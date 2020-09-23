@@ -43,20 +43,18 @@ class TestDrawingObjects(QiskitTestCase):
         xs = list(np.arange(10))
         ys = list(np.ones(10))
 
-        obj1 = drawing_objects.LineData(data_type='test',
+        obj1 = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                         bit=self.qubits[0],
-                                        x=xs,
-                                        y=ys,
+                                        xvals=xs,
+                                        yvals=ys,
                                         meta=self.meta1,
-                                        visible=True,
                                         styles=self.style1)
 
-        obj2 = drawing_objects.LineData(data_type='test',
+        obj2 = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                         bit=self.qubits[0],
-                                        x=xs,
-                                        y=ys,
+                                        xvals=xs,
+                                        yvals=ys,
                                         meta=self.meta2,
-                                        visible=False,
                                         styles=self.style2)
 
         self.assertEqual(obj1, obj2)
@@ -66,148 +64,132 @@ class TestDrawingObjects(QiskitTestCase):
         xs = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
         ys = [types.AbstractCoordinate.BOTTOM, types.AbstractCoordinate.TOP]
 
-        obj1 = drawing_objects.LineData(data_type='test',
+        obj1 = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                         bit=self.qubits[0],
-                                        x=xs,
-                                        y=ys,
+                                        xvals=xs,
+                                        yvals=ys,
                                         meta=self.meta1,
-                                        visible=True,
                                         styles=self.style1)
 
-        obj2 = drawing_objects.LineData(data_type='test',
+        obj2 = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                         bit=self.qubits[0],
-                                        x=xs,
-                                        y=ys,
+                                        xvals=xs,
+                                        yvals=ys,
                                         meta=self.meta2,
-                                        visible=False,
                                         styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_box_data_equivalent(self):
         """Test BoxData equivalent check."""
-        obj1 = drawing_objects.BoxData(data_type='test',
+        xs = [0, 1]
+        ys = [0, 1]
+
+        obj1 = drawing_objects.BoxData(data_type=types.DrawingBox.SCHED_GATE,
                                        bit=self.qubits[0],
-                                       x0=0,
-                                       y0=0,
-                                       x1=1,
-                                       y1=1,
+                                       xvals=xs,
+                                       yvals=ys,
                                        meta=self.meta1,
-                                       visible=True,
                                        styles=self.style1)
 
-        obj2 = drawing_objects.BoxData(data_type='test',
+        obj2 = drawing_objects.BoxData(data_type=types.DrawingBox.SCHED_GATE,
                                        bit=self.qubits[0],
-                                       x0=0,
-                                       y0=0,
-                                       x1=1,
-                                       y1=1,
+                                       xvals=xs,
+                                       yvals=ys,
                                        meta=self.meta2,
-                                       visible=False,
                                        styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_box_data_equivalent_abstract_coord(self):
         """Test BoxData equivalent check with abstract coordinate."""
-        obj1 = drawing_objects.BoxData(data_type='test',
+        xs = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
+        ys = [types.AbstractCoordinate.BOTTOM, types.AbstractCoordinate.TOP]
+
+        obj1 = drawing_objects.BoxData(data_type=types.DrawingBox.SCHED_GATE,
                                        bit=self.qubits[0],
-                                       x0=types.AbstractCoordinate.LEFT,
-                                       y0=types.AbstractCoordinate.BOTTOM,
-                                       x1=types.AbstractCoordinate.RIGHT,
-                                       y1=types.AbstractCoordinate.TOP,
+                                       xvals=xs,
+                                       yvals=ys,
                                        meta=self.meta1,
-                                       visible=True,
                                        styles=self.style1)
 
-        obj2 = drawing_objects.BoxData(data_type='test',
+        obj2 = drawing_objects.BoxData(data_type=types.DrawingBox.SCHED_GATE,
                                        bit=self.qubits[0],
-                                       x0=types.AbstractCoordinate.LEFT,
-                                       y0=types.AbstractCoordinate.BOTTOM,
-                                       x1=types.AbstractCoordinate.RIGHT,
-                                       y1=types.AbstractCoordinate.TOP,
+                                       xvals=xs,
+                                       yvals=ys,
                                        meta=self.meta2,
-                                       visible=False,
                                        styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_text_data_equivalent(self):
         """Test TextData equivalent check."""
-        obj1 = drawing_objects.TextData(data_type='test',
+        obj1 = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
                                         bit=self.qubits[0],
-                                        x=0,
-                                        y=0,
+                                        xval=0,
+                                        yval=0,
                                         text='test',
                                         latex='test',
                                         meta=self.meta1,
-                                        visible=True,
                                         styles=self.style1)
 
-        obj2 = drawing_objects.TextData(data_type='test',
+        obj2 = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
                                         bit=self.qubits[0],
-                                        x=0,
-                                        y=0,
+                                        xval=0,
+                                        yval=0,
                                         text='test',
                                         latex='test',
                                         meta=self.meta2,
-                                        visible=False,
                                         styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_text_data_equivalent_abstract_coord(self):
         """Test TextData equivalent check with abstract coordinate."""
-        obj1 = drawing_objects.TextData(data_type='test',
+        obj1 = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
                                         bit=self.qubits[0],
-                                        x=types.AbstractCoordinate.LEFT,
-                                        y=types.AbstractCoordinate.BOTTOM,
+                                        xval=types.AbstractCoordinate.LEFT,
+                                        yval=types.AbstractCoordinate.BOTTOM,
                                         text='test',
                                         latex='test',
                                         meta=self.meta1,
-                                        visible=True,
                                         styles=self.style1)
 
-        obj2 = drawing_objects.TextData(data_type='test',
+        obj2 = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
                                         bit=self.qubits[0],
-                                        x=types.AbstractCoordinate.LEFT,
-                                        y=types.AbstractCoordinate.BOTTOM,
+                                        xval=types.AbstractCoordinate.LEFT,
+                                        yval=types.AbstractCoordinate.BOTTOM,
                                         text='test',
                                         latex='test',
                                         meta=self.meta2,
-                                        visible=False,
                                         styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_bit_link_data_equivalent(self):
         """Test BitLinkData equivalent check."""
-        obj1 = drawing_objects.BitLinkData(bits=[self.qubits[0], self.qubits[1]],
-                                           x=0,
-                                           offset=0,
-                                           visible=True,
-                                           styles=self.style1)
+        obj1 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
+                                            xval=0,
+                                            offset=0,
+                                            styles=self.style1)
 
-        obj2 = drawing_objects.BitLinkData(bits=[self.qubits[0], self.qubits[1]],
-                                           x=0,
-                                           offset=1,
-                                           visible=False,
-                                           styles=self.style2)
+        obj2 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
+                                            xval=0,
+                                            offset=1,
+                                            styles=self.style2)
 
         self.assertEqual(obj1, obj2)
 
     def test_bit_link_data_equivalent_abstract_coord(self):
         """Test BitLinkData equivalent check with abstract coordinate."""
-        obj1 = drawing_objects.BitLinkData(bits=[self.qubits[0], self.qubits[1]],
-                                           x=types.AbstractCoordinate.LEFT,
-                                           offset=0,
-                                           visible=True,
-                                           styles=self.style1)
+        obj1 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
+                                            xval=types.AbstractCoordinate.LEFT,
+                                            offset=0,
+                                            styles=self.style1)
 
-        obj2 = drawing_objects.BitLinkData(bits=[self.qubits[0], self.qubits[1]],
-                                           x=types.AbstractCoordinate.LEFT,
-                                           offset=1,
-                                           visible=False,
-                                           styles=self.style2)
+        obj2 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
+                                            xval=types.AbstractCoordinate.LEFT,
+                                            offset=1,
+                                            styles=self.style2)
 
         self.assertEqual(obj1, obj2)

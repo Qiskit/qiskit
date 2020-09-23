@@ -30,7 +30,7 @@ If the instruction is associated with multiple bits and the target bit of the cl
 the primary bit of the instruction, the instance also generates a ``GateLink`` object
 that shows the relationship between bits during multi-bit gates.
 """
-from typing import List
+from typing import List, Iterator
 
 from qiskit import circuit
 from qiskit.converters import circuit_to_dag
@@ -94,41 +94,27 @@ class BitEvents:
 
         return BitEvents(bit, instructions)
 
-    def is_empty(self) -> bool:
-        """Return if there is any gate associated with this bit."""
-        if any(not isinstance(inst, self._non_gates) for inst in self.instructions):
-            return False
-        else:
-            return True
-
-    def gates(self) -> List[types.ScheduledGate]:
+    def get_gates(self) -> Iterator[types.ScheduledGate]:
         """Return scheduled gates."""
-        gates = []
-
         for inst in self.instructions:
             if not isinstance(inst.operand, self._non_gates):
-                gates.append(inst)
-        return gates
+                yield inst
 
-    def barriers(self) -> List[types.Barrier]:
+    def get_barriers(self) -> Iterator[types.Barrier]:
         """Return barriers."""
-        barriers = []
         for inst in self.instructions:
             if isinstance(inst.operand, circuit.Barrier):
                 barrier = types.Barrier(t0=inst.t0,
                                         bits=inst.bits)
-                barriers.append(barrier)
-        return barriers
+                yield barrier
 
-    def bit_links(self) -> List[types.GateLink]:
+    def get_bit_links(self) -> Iterator[types.GateLink]:
         """Return link between multi-bit gates."""
-        links = []
-        for inst in self.gates():
+        for inst in self.get_gates():
             # generate link iff this is the primary bit.
             if len(inst.bits) > 1 and inst.bits.index(self.bit) == 0:
                 t0 = inst.t0 + 0.5 * inst.duration
                 link = types.GateLink(t0=t0,
                                       operand=inst.operand,
                                       bits=inst.bits)
-                links.append(link)
-        return links
+                yield link
