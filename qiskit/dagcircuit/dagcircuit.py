@@ -81,6 +81,7 @@ class DAGCircuit:
             """Dummy class so we can deprecate dag.qubits() and do
             dag.qubits as property.
             """
+
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
                               'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
@@ -486,7 +487,10 @@ class DAGCircuit:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            if type(k) is not type(v):
+            # TODO Support mapping from AncillaQubit to Qubit, since AncillaQubits are mapped to
+            # Qubits upon being converted to an Instruction. Until this translation is fixed
+            # and Instructions have a concept of ancilla qubits, this fix is required.
+            if not (isinstance(k, type(v)) or isinstance(v, type(k))):
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
