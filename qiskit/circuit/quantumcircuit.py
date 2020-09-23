@@ -1061,9 +1061,8 @@ class QuantumCircuit:
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
-            # If instruction is a composite circuit
-            elif instruction.name not in ['barrier', 'reset'] and \
-                type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
+            # If instruction is a root gate or a root instruction (in that case, compositive)
+            elif type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name
