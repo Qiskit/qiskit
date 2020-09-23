@@ -392,7 +392,7 @@ def detail_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Sch
                  device: DrawerBackendInfo) -> str:
     """Layout function for generating figure title.
 
-    This layout write program name, program duration, and backend name in the title.
+    This layout writes program name, program duration, and backend name in the title.
     """
     title_str = list()
 
