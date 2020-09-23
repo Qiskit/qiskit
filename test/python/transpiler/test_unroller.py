@@ -216,6 +216,7 @@ class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
 
     def setUp(self):
+        super().setUp()
         qr = self.qr = QuantumRegister(3, 'qr')
         cr = self.cr = ClassicalRegister(3, 'cr')
         self.circuit = QuantumCircuit(qr, cr)

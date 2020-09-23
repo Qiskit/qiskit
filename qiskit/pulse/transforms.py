@@ -15,13 +15,15 @@
 """
 import warnings
 from collections import defaultdict
+from typing import Callable
 from typing import List, Optional, Iterable
 
 import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions, interfaces
-from qiskit.pulse.instructions import directives
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 
@@ -213,15 +215,15 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
                                                      chans.AcquireChannel(i),
                                                      mem_slot=chans.MemorySlot(i),
                                                      kernel=inst.kernel,
-                                                     discriminator=inst.discriminator) << time
+                                                     discriminator=inst.discriminator)
                 if time not in acquire_map:
-                    new_schedule |= explicit_inst
+                    new_schedule.insert(time, explicit_inst, inplace=True)
                     acquire_map = {time: {i}}
                 elif i not in acquire_map[time]:
-                    new_schedule |= explicit_inst
+                    new_schedule.insert(time, explicit_inst, inplace=True)
                     acquire_map[time].add(i)
         else:
-            new_schedule |= inst << time
+            new_schedule.insert(time, inst, inplace=True)
 
     return new_schedule
 
@@ -254,8 +256,11 @@ def pad(schedule: Schedule,
             continue
 
         curr_time = 0
+        # Use the copy of timeslots. When a delay is inserted before the current interval,
+        # current timeslot is pointed twice and the program crashes with the wrong pointer index.
+        timeslots = schedule.timeslots[channel].copy()
         # TODO: Replace with method of getting instructions on a channel
-        for interval in schedule.timeslots[channel]:
+        for interval in timeslots:
             if curr_time >= until:
                 break
             if interval[0] != curr_time:
@@ -295,13 +300,16 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
                 if inst.pulse in existing_pulses:
                     idx = existing_pulses.index(inst.pulse)
                     identical_pulse = existing_pulses[idx]
-                    new_schedule |= instructions.Play(
-                        identical_pulse, inst.channel, inst.name) << time
+                    new_schedule.insert(time,
+                                        instructions.Play(identical_pulse,
+                                                          inst.channel,
+                                                          inst.name),
+                                        inplace=True)
                 else:
                     existing_pulses.append(inst.pulse)
-                    new_schedule |= inst << time
+                    new_schedule.insert(time, inst, inplace=True)
             else:
-                new_schedule |= inst << time
+                new_schedule.insert(time, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
@@ -426,6 +434,85 @@ def align_sequential(schedule: Schedule) -> Schedule:
     for _, child in schedule._children:
         aligned.insert(aligned.duration, child, inplace=True)
     return aligned
+
+
+def align_equispaced(schedule: Schedule,
+                     duration: int) -> Schedule:
+    """Schedule a list of pulse instructions with equivalent interval.
+
+    Args:
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+        duration: Duration of context. This should be larger than the schedule duration.
+
+    Returns:
+        New schedule with input `schedule`` child schedules and instructions
+        aligned with equivalent interval.
+
+    Notes:
+        This context is convenient for writing PDD or Hahn echo sequence for example.
+    """
+    if duration and duration < schedule.duration:
+        return schedule
+    else:
+        total_delay = duration - schedule.duration
+
+    if len(schedule._children) > 1:
+        # Calculate the interval in between sub-schedules.
+        # If the duration cannot be divided by the number of sub-schedules,
+        # the modulo is appended and prepended to the input schedule.
+        interval, mod = np.divmod(total_delay, len(schedule._children) - 1)
+    else:
+        interval = 0
+        mod = total_delay
+
+    # Calculate pre schedule delay
+    delay, mod = np.divmod(mod, 2)
+
+    aligned = Schedule()
+    # Insert sub-schedules with interval
+    _t0 = int(aligned.stop_time + delay + mod)
+    for _, child in schedule._children:
+        aligned.insert(_t0, child, inplace=True)
+        _t0 = int(aligned.stop_time + interval)
+
+    return pad(aligned, aligned.channels, until=duration, inplace=True)
+
+
+def align_func(schedule: Schedule,
+               duration: int,
+               func: Callable[[int], float]) -> Schedule:
+    """Schedule a list of pulse instructions with schedule position defined by the
+    numerical expression.
+
+    Args:
+        schedule: Input schedule of which top-level ``child`` nodes will be
+            reschedulued.
+        duration: Duration of context. This should be larger than the schedule duration.
+        func: A function that takes an index of sub-schedule and returns the
+            fractional coordinate of of that sub-schedule.
+            The returned value should be defined within [0, 1].
+            The pulse index starts from 1.
+
+    Returns:
+        New schedule with input `schedule`` child schedules and instructions
+        aligned with equivalent interval.
+
+    Notes:
+        This context is convenient for writing UDD sequence for example.
+    """
+    if duration < schedule.duration:
+        return schedule
+
+    aligned = Schedule()
+    for ind, (_, child) in enumerate(schedule._children):
+        _t_center = duration * func(ind + 1)
+        _t0 = int(_t_center - 0.5 * child.duration)
+        if _t0 < 0 or _t0 > duration:
+            PulseError('Invalid schedule position t=%d is specified at index=%d' % (_t0, ind))
+        aligned.insert(_t0, child, inplace=True)
+
+    return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
 def flatten(schedule: Schedule) -> Schedule:
