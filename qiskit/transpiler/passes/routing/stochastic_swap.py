@@ -16,8 +16,6 @@ from logging import getLogger
 from math import inf
 from collections import OrderedDict
 import numpy as np
-import scipy.sparse as sp
-import scipy.sparse.csgraph as cs
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
@@ -25,6 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.routing.utils import weighted_distance
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module
@@ -180,30 +179,8 @@ class StochasticSwap(TransformationPass):
         best_layout = None  # initialize best final layout
         edges = coupling.get_edges()
         if properties:
-            logger.debug("layer_permutation: Using noise aware distance.")
-            twoQ_gates = []
-            for gate in properties.gates:
-                if len(gate.qubits) == 2:
-                    twoQ_gates.append(gate)
-            weights = []
-            for edge in edges:
-                for gate in twoQ_gates:
-                    if gate.qubits[0] == edge[0] and gate.qubits[1] == edge[1]:
-                        weights.append(gate.parameters[0].value)
-                        break
-            weights = np.asarray(weights)
-            # normalize edge weights
-            avg_weight = np.mean(weights[weights != 1])
-            normed_weights = weights / avg_weight
-            rows = [edge[0] for edge in edges]
-            cols = [edge[1] for edge in edges]
-            weighted_dist = sp.coo_matrix((normed_weights,(rows,cols)),
-                                          shape=(num_qubits, num_qubits),
-                                          dtype=float).tocsr()
-
-            weighted_paths = cs.shortest_path(weighted_dist, directed=False,
-                                              return_predecessors=False)
-            cdist2 = weighted_paths**2
+            logger.debug("layer_permutation: Using weighted distance.")
+            cdist2 = weighted_distance(num_qubits, coupling, properties)**2
         else:
             logger.debug("layer_permutation: Using ideal distance.")
             cdist2 = coupling._dist_matrix**2

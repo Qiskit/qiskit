@@ -22,6 +22,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.routing.utils import weighted_distance
 from qiskit.dagcircuit import DAGNode
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic='basic', seed=None):
+    def __init__(self, coupling_map, heuristic='basic', seed=None, properties=None):
         r"""SabreSwap initializer.
 
         Args:
@@ -73,6 +74,7 @@ class SabreSwap(TransformationPass):
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
+            properties (BackendProperties): A backend properties instance.
 
         Additional Information:
 
@@ -120,6 +122,13 @@ class SabreSwap(TransformationPass):
 
         super().__init__()
         self.coupling_map = coupling_map
+        self.distance = None
+        if properties:
+            self.distance = weighted_distance(len(properties.qubits),
+                                              coupling_map, properties)
+        else:
+            coupling_map._compute_distance_matrix()
+            self.distance = coupling_map._dist_matrix
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
@@ -315,7 +324,7 @@ class SabreSwap(TransformationPass):
         the remaining virtual gates that must be applied.
         """
         if heuristic == 'basic':
-            return sum(self.coupling_map.distance(*[layout[q] for q in node.qargs])
+            return sum(self.distance[layout[node.qargs[0]], layout[node.qargs[1]]]
                        for node in front_layer)
 
         elif heuristic == 'lookahead':
