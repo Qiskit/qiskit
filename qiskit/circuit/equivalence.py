@@ -204,21 +204,19 @@ class EquivalenceLibrary():
                                          {(inst.name, inst.num_qubits)
                                           for inst, _, __ in decomp.data})
                 if basis not in node_map:
-                    basis_node = graph.add_node(
-                        {'basis': basis, 'label': str(set(basis))})
+                    basis_node = graph.add_node({'basis': basis,
+                                                 'label': str(set(basis))})
                     node_map[basis] = basis_node
                 if decomp_basis not in node_map:
-                    decomp_basis_node = graph.add_node(
-                        {'basis': decomp_basis,
-                         'label': str(set(decomp_basis))})
+                    decomp_basis_node = graph.add_node({'basis': decomp_basis,
+                                                        'label': str(set(decomp_basis))})
                     node_map[decomp_basis] = decomp_basis_node
 
                 label = "%s\n%s" % (
                     str(params), str(decomp) if num_qubits <= 5 else '...')
                 graph.add_edge(node_map[basis],
                                node_map[decomp_basis],
-                               dict(label=label, fontname='Courier',
-                                    fontsize=str(8)))
+                               dict(label=label, fontname='Courier', fontsize=str(8)))
 
         return graph
 
