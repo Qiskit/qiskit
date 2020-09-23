@@ -268,7 +268,7 @@ class Isometry(Instruction):
             # of the 2^n identity matrix
             iso_circuit = self._gates_to_uncompute()
             # invert the circuit to create the circuit implementing the isometry
-            self._inverse = iso_circuit.to_gate()
+            self._inverse = iso_circuit.to_instruction()
         return self._inverse
 
 
