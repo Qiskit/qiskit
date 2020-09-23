@@ -13,12 +13,12 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional
 from abc import ABC, abstractmethod
 
 import numpy as np
 
-from qiskit.circuit import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 
 

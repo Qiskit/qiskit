@@ -15,7 +15,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
-from qiskit.circuit import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 
