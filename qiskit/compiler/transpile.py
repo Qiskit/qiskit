@@ -32,7 +32,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
@@ -254,25 +253,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     end_time = time()
     _log_transpile_time(start_time, end_time)
     return circuits
-
-
-def any_delay_in(circuits: Union[List[QuantumCircuit], QuantumCircuit]) -> bool:
-    """Check if the circuits have any delay instruction.
-
-    Args:
-        circuits: Circuits to be checked
-
-    Returns:
-        True if there is any delay in either of the circuit, otherwise False.
-    """
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-    has_delay = False
-    for qc in circuits:
-        if 'delay' in qc.count_ops():
-            has_delay = True
-            break
-    return has_delay
 
 
 def _check_conflicting_argument(**kargs):
