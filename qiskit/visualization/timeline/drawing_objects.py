@@ -85,7 +85,7 @@ class ElementaryData(ABC):
     __hash__ = None
 
     def __init__(self,
-                 data_type: Enum,
+                 data_type: Union[str, Enum],
                  xvals: Union[np.ndarray, List[types.Coordinate]],
                  yvals: Union[np.ndarray, List[types.Coordinate]],
                  bits: Optional[Union[types.Bits, List[types.Bits]]] = None,
@@ -132,7 +132,7 @@ class ElementaryData(ABC):
 class LineData(ElementaryData):
     """Drawing object that represents line shape."""
     def __init__(self,
-                 data_type: Enum,
+                 data_type: Union[str, Enum],
                  xvals: Union[np.ndarray, List[types.Coordinate]],
                  yvals: Union[np.ndarray, List[types.Coordinate]],
                  bit: types.Bits,
@@ -161,7 +161,7 @@ class LineData(ElementaryData):
 class BoxData(ElementaryData):
     """Drawing object that represents box shape."""
     def __init__(self,
-                 data_type: Enum,
+                 data_type: Union[str, Enum],
                  xvals: Union[np.ndarray, List[types.Coordinate]],
                  yvals: Union[np.ndarray, List[types.Coordinate]],
                  bit: types.Bits,
@@ -196,7 +196,7 @@ class BoxData(ElementaryData):
 class TextData(ElementaryData):
     """Drawing object that represents a text on canvas."""
     def __init__(self,
-                 data_type: Enum,
+                 data_type: Union[str, Enum],
                  xval: types.Coordinate,
                  yval: types.Coordinate,
                  bit: types.Bits,
@@ -238,23 +238,18 @@ class GateLinkData(ElementaryData):
     def __init__(self,
                  xval: types.Coordinate,
                  bits: List[types.Bits],
-                 offset: float = 0,
                  styles: Dict[str, Any] = None):
         """Create new bit link.
 
         Args:
             xval: Horizontal coordinate that the object is drawn.
             bits: Bit associated to this object.
-            offset: Horizontal offset of bit link. If multiple links are overlapped,
-                the actual position of the link is automatically shifted by this argument.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
-        self.offset = offset
-
         super().__init__(
-            data_type=types.DrawingLine.BIT_LINK,
+            data_type=types.DrawingLine.GATE_LINK,
             xvals=[xval],
-            yvals=[np.nan],
+            yvals=[0],
             bits=bits,
             meta=None,
             styles=styles

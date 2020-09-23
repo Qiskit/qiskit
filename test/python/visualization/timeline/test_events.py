@@ -47,7 +47,7 @@ class TestLoadScheduledCircuit(QiskitTestCase):
         bit_event_q2 = events.BitEvents.load_program(self.circ, self.qr[2])
 
         gates_q0 = list(bit_event_q0.get_gates())
-        links_q0 = list(bit_event_q0.get_bit_links())
+        links_q0 = list(bit_event_q0.get_gate_links())
         barriers_q0 = list(bit_event_q0.get_barriers())
 
         self.assertEqual(len(gates_q0), 2)
@@ -67,7 +67,7 @@ class TestLoadScheduledCircuit(QiskitTestCase):
         self.assertEqual(barriers_q0[1].t0, 100)
 
         gates_q1 = list(bit_event_q1.get_gates())
-        links_q1 = list(bit_event_q1.get_bit_links())
+        links_q1 = list(bit_event_q1.get_gate_links())
         barriers_q1 = list(bit_event_q1.get_barriers())
 
         self.assertEqual(len(gates_q1), 1)
@@ -81,7 +81,7 @@ class TestLoadScheduledCircuit(QiskitTestCase):
         self.assertEqual(barriers_q1[1].t0, 100)
 
         gates_q2 = list(bit_event_q2.get_gates())
-        links_q2 = list(bit_event_q2.get_bit_links())
+        links_q2 = list(bit_event_q2.get_gate_links())
         barriers_q2 = list(bit_event_q2.get_barriers())
 
         self.assertEqual(len(gates_q2), 0)
@@ -159,7 +159,7 @@ class TestBitEvents(QiskitTestCase):
         """Test link output."""
         bit_event = events.BitEvents(self.qubits[0], self.instructions)
 
-        links = list(bit_event.get_bit_links())
+        links = list(bit_event.get_gate_links())
         ref_list = [
             types.GateLink(t0=35.0, operand=library.CXGate(),
                            bits=[self.qubits[0], self.qubits[1]]),

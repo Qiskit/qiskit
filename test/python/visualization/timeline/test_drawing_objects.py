@@ -168,12 +168,10 @@ class TestDrawingObjects(QiskitTestCase):
         """Test BitLinkData equivalent check."""
         obj1 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
                                             xval=0,
-                                            offset=0,
                                             styles=self.style1)
 
         obj2 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
                                             xval=0,
-                                            offset=1,
                                             styles=self.style2)
 
         self.assertEqual(obj1, obj2)
@@ -182,12 +180,10 @@ class TestDrawingObjects(QiskitTestCase):
         """Test BitLinkData equivalent check with abstract coordinate."""
         obj1 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
                                             xval=types.AbstractCoordinate.LEFT,
-                                            offset=0,
                                             styles=self.style1)
 
         obj2 = drawing_objects.GateLinkData(bits=[self.qubits[0], self.qubits[1]],
                                             xval=types.AbstractCoordinate.LEFT,
-                                            offset=1,
                                             styles=self.style2)
 
         self.assertEqual(obj1, obj2)
