@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 Core module of the timeline drawer.
 
 This module provides `DrawDataContainer` which is a collection of drawing objects
