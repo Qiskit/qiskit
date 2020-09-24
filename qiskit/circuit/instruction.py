@@ -142,7 +142,10 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            self._params.append(self.validate_parameter(single_param))
+            if isinstance(single_param, ParameterExpression):
+                self._params.append(single_param)
+            else:
+                self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
         """Instruction parameters has no validation or normalization."""

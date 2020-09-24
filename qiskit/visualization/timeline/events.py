@@ -24,9 +24,9 @@ The :py:class:`BitEvents` class instance is created with the class method ``load
     ```
 
 Loaded circuit instructions are saved as ``ScheduledGate``, which is a collection of instruction,
-associated time, and bits. All gate instructions are returned by the `gates` method.
+associated time, and bits. All gate instructions are returned by the `.get_gates` method.
 Instruction types specified in `BitEvents._non_gates` are not considered as gates.
-If the instruction is associated with multiple bits and the target bit of the class instance is
+If an instruction is associated with multiple bits and the target bit of the class instance is
 the primary bit of the instruction, the instance also generates a ``GateLink`` object
 that shows the relationship between bits during multi-bit gates.
 """
