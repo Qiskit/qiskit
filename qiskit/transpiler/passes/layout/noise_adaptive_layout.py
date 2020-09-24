@@ -14,7 +14,6 @@
 
 import math
 
-import numpy as np
 import retworkx as rx
 
 from qiskit.transpiler.layout import Layout
@@ -112,21 +111,22 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
         swap_reliabs_ro = rx.digraph_floyd_warshall_numpy(self.swap_graph,
                                                           lambda weight: weight)
-        # retworkx returns a readonly numpy array copy to allow modifications
-        self.swap_reliabs = np.copy(swap_reliabs_ro)
-        for i in range(self.swap_reliabs.shape[0]):
-            for j in range(self.swap_reliabs.shape[1]):
+        for i in range(swap_reliabs_ro.shape[0]):
+            self.swap_reliabs[i] = {}
+            for j in range(swap_reliabs_ro.shape[1]):
                 if (i, j) in self.cx_reliability:
                     self.swap_reliabs[i][j] = self.cx_reliability[(i, j)]
                 elif (j, i) in self.cx_reliability:
                     self.swap_reliabs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
+                    # TODO: Replace with neighbors_directed() after
+                    # https://github.com/Qiskit/retworkx/pull/147 is released
                     for n in self.swap_graph.adj_direction(j, False):
                         if (n, j) in self.cx_reliability:
-                            reliab = math.exp(-self.swap_reliabs[i][n])*self.cx_reliability[(n, j)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(n, j)]
                         else:
-                            reliab = math.exp(-self.swap_reliabs[i][n])*self.cx_reliability[(j, n)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(j, n)]
                         if reliab > best_reliab:
                             best_reliab = reliab
                     self.swap_reliabs[i][j] = best_reliab
@@ -194,6 +194,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
         reliab_store = {}
         for hw_qubit in self.available_hw_qubits:
             reliab = 1
+            # TODO: Replace with neighbors() after
+            # https://github.com/Qiskit/retworkx/pull/147 is released
             for n in self.prog_graph.adj(prog_qubit):
                 if n in self.prog2hw:
                     reliab *= self.swap_reliabs[self.prog2hw[n]][hw_qubit]
