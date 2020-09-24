@@ -126,7 +126,7 @@ def gen_sched_gate(gate: types.ScheduledGate,
         unitary = 'n/a'
 
     try:
-        label = gate.operand.label
+        label = gate.operand.label or 'n/a'
     except AttributeError:
         label = 'n/a'
 

@@ -49,5 +49,11 @@ class TestBitArrange(QiskitTestCase):
 class TestAxisMap(QiskitTestCase):
     """Tests for layout.time_axis_map."""
 
+    def test_time_map_in_dt(self):
+        """Test time_map_in_dt layout function."""
+        axis_config = layouts.time_map_in_dt(time_window=(-100, 500))
 
-
+        self.assertEqual(axis_config.window, (-100, 500))
+        self.assertEqual(axis_config.label, 'System cycle time (dt)')
+        ref_map = {0: '0', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'}
+        self.assertDictEqual(axis_config.axis_map, ref_map)
