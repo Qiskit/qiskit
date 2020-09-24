@@ -1999,7 +1999,7 @@ class QuantumCircuit:
         return instructions
 
     def h(self, qubit,  # pylint: disable=invalid-name
-           label=None):
+          label=None):
         """Apply :class:`~qiskit.circuit.library.HGate`."""
         from .library.standard_gates.h import HGate
         return self.append(HGate(label=label), [qubit], [])
@@ -2045,8 +2045,8 @@ class QuantumCircuit:
     def rccx(self, control_qubit1, control_qubit2, target_qubit, label=None):
         """Apply :class:`~qiskit.circuit.library.RCCXGate`."""
         from .library.standard_gates.x import RCCXGate
-        return self.append(RCCXGate(label=label), 
-                [control_qubit1, control_qubit2, target_qubit], [])
+        return self.append(RCCXGate(label=label),
+                           [control_qubit1, control_qubit2, target_qubit], [])
 
     def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit, label=None):
         """Apply :class:`~qiskit.circuit.library.RC3XGate`."""
@@ -2136,8 +2136,8 @@ class QuantumCircuit:
 
     def fredkin(self, control_qubit, target_qubit1, target_qubit2, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CSwapGate`."""
-        return self.cswap(control_qubit, target_qubit1, target_qubit2, 
-                           label=label, ctrl_state=ctrl_state)
+        return self.cswap(control_qubit, target_qubit1, target_qubit2,
+                          label=label, ctrl_state=ctrl_state)
 
     def sx(self, qubit, label=None):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.SXGate`."""
@@ -2257,20 +2257,20 @@ class QuantumCircuit:
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            'noancilla': MCXGrayCode(num_ctrl_qubits, 
-                               label=label, ctrl_state=ctrl_state),
-            'recursion': MCXRecursive(num_ctrl_qubits, 
-                               label=label, ctrl_state=ctrl_state),
-            'v-chain': MCXVChain(num_ctrl_qubits, False, 
-                               label=label, ctrl_state=ctrl_state),
-            'v-chain-dirty': MCXVChain(num_ctrl_qubits, dirty_ancillas=True, 
-                               label=label, ctrl_state=ctrl_state),
+            'noancilla': MCXGrayCode(num_ctrl_qubits,
+                                     label=label, ctrl_state=ctrl_state),
+            'recursion': MCXRecursive(num_ctrl_qubits,
+                                      label=label, ctrl_state=ctrl_state),
+            'v-chain': MCXVChain(num_ctrl_qubits, False,
+                                 label=label, ctrl_state=ctrl_state),
+            'v-chain-dirty': MCXVChain(num_ctrl_qubits, dirty_ancillas=True,
+                                       label=label, ctrl_state=ctrl_state),
             # outdated, previous names
             'advanced': MCXRecursive(num_ctrl_qubits, label=label, ctrl_state=ctrl_state),
-            'basic': MCXVChain(num_ctrl_qubits, dirty_ancillas=False, 
-                                   label=label, ctrl_state=ctrl_state),
-            'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True, 
-                                   label=label, ctrl_state=ctrl_state)
+            'basic': MCXVChain(num_ctrl_qubits, dirty_ancillas=False,
+                               label=label, ctrl_state=ctrl_state),
+            'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True,
+                                             label=label, ctrl_state=ctrl_state)
         }
 
         # check ancilla input
@@ -2305,10 +2305,10 @@ class QuantumCircuit:
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
     def mct(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla',
-                label=None, ctrl_state=None):
+            label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.MCXGate`."""
-        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode, 
-                           label=label, ctrl_state=ctrl_state)
+        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode,
+                        label=label, ctrl_state=ctrl_state)
 
     def y(self, qubit, label=None):
         """Apply :class:`~qiskit.circuit.library.YGate`."""
