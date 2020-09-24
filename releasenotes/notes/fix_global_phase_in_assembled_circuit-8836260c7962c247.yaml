@@ -1,3 +1,0 @@
-fixes:
-  - |
-    Fixes bug where gates whose definition had a global phase would incorrectly be added together during assembly. This would be using the phase from the unrolled circuit when it was needed (during assembly).
