@@ -13,10 +13,10 @@
 """Tests for event of timeline drawer."""
 
 import qiskit
+from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import library
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.timeline import events, types
-from qiskit import QuantumCircuit, QuantumRegister, transpile
 
 
 class TestLoadScheduledCircuit(QiskitTestCase):
