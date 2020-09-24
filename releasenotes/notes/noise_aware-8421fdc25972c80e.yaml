@@ -1,0 +1,7 @@
+---
+features:
+  - |
+   StochasticSwap, SabreSwap, and LookaheadSwap are now noise aware, with the qubit distance calculations
+   being weighted by the cx errors for each edge in the device coupling map.  Edges that are reported as
+   faulty, i.e. cx_err = 1.0, are weighted by 1e99, which causes the swap mappers to avoid them at all cost
+   (unless all possible routes include one or more such edges). 
