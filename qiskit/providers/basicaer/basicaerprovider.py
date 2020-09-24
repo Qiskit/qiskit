@@ -17,7 +17,7 @@ from collections import OrderedDict
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers.v2.provider import ProviderV1
+from qiskit.providers import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import resolve_backend_name, filter_backends
 
@@ -35,11 +35,11 @@ SIMULATORS = [
 ]
 
 
-class BasicAerProvider(ProviderV1):
+class BasicAerProvider(BaseProvider):
     """Provider for Basic Aer backends."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
 
         # Populate the list of Basic Aer backends.
         self._backends = self._verify_backends()
@@ -108,9 +108,14 @@ class BasicAerProvider(ProviderV1):
         """
         ret = OrderedDict()
         for backend_cls in SIMULATORS:
-            backend_instance = self._get_backend_instance(backend_cls)
-            backend_name = backend_instance.name()
-            ret[backend_name] = backend_instance
+            try:
+                backend_instance = self._get_backend_instance(backend_cls)
+                backend_name = backend_instance.name()
+                ret[backend_name] = backend_instance
+            except QiskitError as err:
+                # Ignore backends that could not be initialized.
+                logger.info('Basic Aer backend %s is not available: %s',
+                            backend_cls, str(err))
         return ret
 
     def _get_backend_instance(self, backend_cls):

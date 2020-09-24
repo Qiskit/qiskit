@@ -32,10 +32,8 @@ import time
 from math import log2, sqrt
 import numpy as np
 from qiskit.util import local_hardware_info
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.v2.backend import BackendV1
-from qiskit.providers.v2.options import Options
+from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
 from .exceptions import BasicAerError
@@ -50,7 +48,7 @@ logger = logging.getLogger(__name__)
 # does not show up
 
 
-class UnitarySimulatorPy(BackendV1):
+class UnitarySimulatorPy(BaseBackend):
     """Python implementation of a unitary simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
@@ -108,24 +106,17 @@ class UnitarySimulatorPy(BackendV1):
         "chop_threshold": 1e-15
     }
 
-    def __init__(self, configuration=None, provider=None, **fields):
-        super().__init__(
-            configuration=(configuration or QasmBackendConfiguration.from_dict(
-                self.DEFAULT_CONFIGURATION)),
-            provider=provider,
-            **fields)
+    def __init__(self, configuration=None, provider=None):
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+                         provider=provider)
 
         # Define attributes inside __init__.
         self._unitary = None
         self._number_of_qubits = 0
         self._initial_unitary = None
+        self._chop_threshold = 1e-15
         self._global_phase = 0
-        self._chop_threshold = self.options.get('chop_threshold')
-
-    @classmethod
-    def _default_options(cls):
-        return Options(shots=1,
-                       initial_unitary=None, chop_threshold=1e-15)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -161,10 +152,10 @@ class UnitarySimulatorPy(BackendV1):
     def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
-        self._initial_unitary = self.options.get("initial_unitary")
-        self._chop_threshold = self.options.get("chop_threshold")
-        if 'backend_options' in backend_options:
-            backend_options = backend_options['backend_options']
+        self._initial_unitary = self.DEFAULT_OPTIONS["initial_unitary"]
+        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        if backend_options is None:
+            backend_options = {}
 
         # Check for custom initial statevector in backend_options first,
         # then config second
@@ -215,7 +206,7 @@ class UnitarySimulatorPy(BackendV1):
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
-    def run(self, qobj, **backend_options):
+    def run(self, qobj, backend_options=None):
         """Run qobj asynchronously.
 
         Args:
@@ -250,16 +241,11 @@ class UnitarySimulatorPy(BackendV1):
                     "chop_threshold": 1e-15
                 }
         """
-        if isinstance(qobj, (QuantumCircuit, list)):
-            from qiskit.compiler import assemble
-            qobj = assemble(qobj, self)
-            qobj_options = None
-        else:
-            qobj_options = None
-        self._set_options(qobj_config=qobj_options,
+        self._set_options(qobj_config=qobj.config,
                           backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))
+        job = BasicAerJob(self, job_id, self._run_job, qobj)
+        job.submit()
         return job
 
     def _run_job(self, job_id, qobj):

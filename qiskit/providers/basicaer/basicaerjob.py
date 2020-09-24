@@ -10,24 +10,51 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=abstract-method
-
 """This module implements the job class used by Basic Aer Provider."""
 
-from qiskit.providers import JobStatus
-from qiskit.providers.v2.job import JobV1
+from concurrent import futures
+import sys
+import functools
+
+from qiskit.providers import BaseJob, JobStatus, JobError
+from qiskit.qobj import validate_qobj_against_schema
 
 
-class BasicAerJob(JobV1):
+def requires_submit(func):
+    """
+    Decorator to ensure that a submit has been performed before
+    calling the method.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+        return func(self, *args, **kwargs)
+    return _wrapper
+
+
+class BasicAerJob(BaseJob):
     """BasicAerJob class.
 
     Attributes:
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    def __init__(self, backend, job_id, result):
+    if sys.platform in ['darwin', 'win32']:
+        _executor = futures.ThreadPoolExecutor()
+    else:
+        _executor = futures.ProcessPoolExecutor()
+
+    def __init__(self, backend, job_id, fn, qobj):
         super().__init__(backend, job_id)
-        self._result = result
+        self._fn = fn
+        self._qobj = qobj
         self._future = None
 
     def submit(self):
@@ -39,11 +66,22 @@ class BasicAerJob(JobV1):
 
             JobError: if trying to re-submit the job.
         """
-        return
+        if self._future is not None:
+            raise JobError("We have already submitted the job!")
 
-    def result(self):
+        validate_qobj_against_schema(self._qobj)
+        self._future = self._executor.submit(self._fn, self._job_id, self._qobj)
+
+    @requires_submit
+    def result(self, timeout=None):
         # pylint: disable=arguments-differ
-        """Get job result .
+        """Get job result. The behavior is the same as the underlying
+        concurrent Future objects,
+
+        https://docs.python.org/3/library/concurrent.futures.html#future-objects
+
+        Args:
+            timeout (float): number of seconds to wait for results.
 
         Returns:
             qiskit.Result: Result object
@@ -52,16 +90,47 @@ class BasicAerJob(JobV1):
             concurrent.futures.TimeoutError: if timeout occurred.
             concurrent.futures.CancelledError: if job cancelled before completed.
         """
-        return self._result
+        return self._future.result(timeout=timeout)
 
+    @requires_submit
+    def cancel(self):
+        return self._future.cancel()
+
+    @requires_submit
     def status(self):
         """Gets the status of the job by querying the Python's future
 
         Returns:
             qiskit.providers.JobStatus: The current JobStatus
+
+        Raises:
+            JobError: If the future is in unexpected state
+            concurrent.futures.TimeoutError: if timeout occurred.
         """
-        return JobStatus.DONE
+        # The order is important here
+        if self._future.running():
+            _status = JobStatus.RUNNING
+        elif self._future.cancelled():
+            _status = JobStatus.CANCELLED
+        elif self._future.done():
+            _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
+        else:
+            # Note: There is an undocumented Future state: PENDING, that seems to show up when
+            # the job is enqueued, waiting for someone to pick it up. We need to deal with this
+            # state but there's no public API for it, so we are assuming that if the job is not
+            # in any of the previous states, is PENDING, ergo INITIALIZING for us.
+            _status = JobStatus.INITIALIZING
+
+        return _status
 
     def backend(self):
         """Return the instance of the backend used for this job."""
         return self._backend
+
+    def qobj(self):
+        """Return the Qobj submitted for this job.
+
+        Returns:
+            Qobj: the Qobj submitted for this job.
+        """
+        return self._qobj

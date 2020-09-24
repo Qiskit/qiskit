@@ -89,12 +89,12 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     # Override base class value to return the final state vector
     SHOW_FINAL_STATE = True
 
-    def __init__(self, configuration=None, provider=None, **fields):
+    def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider, **fields)
+                         provider=provider)
 
-    def run(self, qobj, **backend_options):
+    def run(self, qobj, backend_options=None):
         """Run qobj asynchronously.
 
         Args:
