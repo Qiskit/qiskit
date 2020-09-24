@@ -42,8 +42,8 @@ class TestNoiseSwap(QiskitTestCase):
 
         man = FakeManhattan()
 
-        bad_gates = [[kk, kk+1] for kk in range(13,21)]
-        bad_gates += [[kk, kk+1] for kk in range(44,51)]
+        bad_gates = [[kk, kk+1] for kk in range(13, 21)]
+        bad_gates += [[kk, kk+1] for kk in range(44, 51)]
         rev_bad_gates = [kk[::-1] for kk in bad_gates]
         bad_gates += rev_bad_gates
 
@@ -64,13 +64,13 @@ class TestNoiseSwap(QiskitTestCase):
         for method in swap_methods:
 
             new_qc = transpile(qc, bad,
-                            initial_layout=[0, 64],
-                            routing_method=method,
-                            seed_transpiler=12345)
+                               initial_layout=[0, 64],
+                               routing_method=method,
+                               seed_transpiler=12345)
 
             any_bad = False
             for gate in new_qc.data:
-                if gate[0].num_qubits == 2:   
+                if gate[0].num_qubits == 2:
                     if [gate[1][0].index, gate[1][1].index] in bad_gates:
                         any_bad = True
                         break
