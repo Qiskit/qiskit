@@ -643,3 +643,21 @@ class TestBasisExamples(QiskitTestCase):
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
+
+    def test_global_phase(self):
+        """Verify global phase preserved in basis translation"""
+        circ = QuantumCircuit(1)
+        gate_angle = pi / 5
+        circ_angle = pi / 3
+        circ.rz(gate_angle, 0)
+        circ.global_phase = circ_angle
+        in_dag = circuit_to_dag(circ)
+        out_dag = BasisTranslator(std_eqlib, ['u1']).run(in_dag)
+
+        qr = QuantumRegister(1, 'q')
+        expected = QuantumCircuit(qr)
+        expected.u1(gate_angle, qr)
+        expected.global_phase = circ_angle - gate_angle / 2
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(out_dag, expected_dag)
+        self.assertEqual(float(out_dag.global_phase), float(expected_dag.global_phase))

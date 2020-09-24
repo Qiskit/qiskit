@@ -13,7 +13,6 @@
 """Return a circuit with any adjacent barriers merged together."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.barrier import Barrier
 
 
@@ -59,12 +58,7 @@ class MergeAdjacentBarriers(TransformationPass):
             return dag
 
         # add the merged barriers to a new DAG
-        new_dag = DAGCircuit()
-
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():
