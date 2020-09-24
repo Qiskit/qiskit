@@ -125,7 +125,7 @@ class AbstractCoordinate(Enum):
 
 
 class Plotter(str, Enum):
-    """Name of pulse plotter APIs.
+    """Name of timeline plotter APIs.
 
     Mpl: Matplotlib plotter interface. Show timeline in 2D canvas.
     """
