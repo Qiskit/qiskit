@@ -67,7 +67,8 @@ class Schedule(ScheduleComponent):
         self.__children = []
 
         if len(schedules) > 0:
-            warnings.warn('Argument schedules for the constructor of class qiskit.pulse.Schedule '
+            warnings.warn(
+                          'Constructing a Schedule with Instructions/Schedules '
                           'is deprecated as of 0.22.0, and will be removed in a later release.',
                           DeprecationWarning, stacklevel=2)
 
