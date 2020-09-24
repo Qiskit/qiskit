@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import warnings
@@ -81,6 +81,7 @@ class DAGCircuit:
             """Dummy class so we can deprecate dag.qubits() and do
             dag.qubits as property.
             """
+
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
                               'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
@@ -90,6 +91,10 @@ class DAGCircuit:
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
         self._global_phase = 0
+        self._calibrations = defaultdict(dict)
+
+        self.duration = None
+        self.unit = 'dt'
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -178,6 +183,25 @@ class DAGCircuit:
                 self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
+
+    @property
+    def calibrations(self):
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
+        return dict(self._calibrations)
+
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in th format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -296,6 +320,19 @@ class DAGCircuit:
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
         return node_index
+
+    def _copy_circuit_metadata(self):
+        """Return a copy of source_dag with metadata but empty."""
+        target_dag = DAGCircuit()
+        target_dag.name = self.name
+        target_dag._global_phase = self._global_phase
+
+        for qreg in self.qregs.values():
+            target_dag.add_qreg(qreg)
+        for creg in self.cregs.values():
+            target_dag.add_creg(creg)
+
+        return target_dag
 
     def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
@@ -466,7 +503,10 @@ class DAGCircuit:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            if type(k) is not type(v):
+            # TODO Support mapping from AncillaQubit to Qubit, since AncillaQubits are mapped to
+            # Qubits upon being converted to an Instruction. Until this translation is fixed
+            # and Instructions have a concept of ancilla qubits, this fix is required.
+            if not (isinstance(k, type(v)) or isinstance(v, type(k))):
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
@@ -638,6 +678,20 @@ class DAGCircuit:
             return dag
         else:
             return None
+
+    def reverse_ops(self):
+        """Reverse the operations in the ``self`` circuit.
+
+        Returns:
+            DAGCircuit: the reversed dag.
+        """
+        # TODO: speed up
+        # pylint: disable=cyclic-import
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        qc = dag_to_circuit(self)
+        reversed_qc = qc.reverse_ops()
+        reversed_dag = circuit_to_dag(reversed_qc)
+        return reversed_dag
 
     def idle_wires(self, ignore=None):
         """Return idle wires.
@@ -841,6 +895,9 @@ class DAGCircuit:
             for replay_node in to_replay:
                 in_dag.apply_operation_back(replay_node.op, replay_node.qargs,
                                             replay_node.cargs)
+
+        if in_dag.global_phase:
+            self.global_phase += in_dag.global_phase
 
         if wires is None:
             wires = in_dag.wires

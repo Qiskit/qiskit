@@ -174,6 +174,9 @@ class QuantumCircuit:
         self._global_phase = 0
         self.global_phase = global_phase
 
+        self.duration = None
+        self.unit = 'dt'
+
     @property
     def data(self):
         """Return the circuit data (instructions and context).
@@ -201,7 +204,7 @@ class QuantumCircuit:
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
-            calibrations (dict): A dictionary of input in th format
+            calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = calibrations
@@ -311,6 +314,9 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in reversed(self.data):
             reverse_circ._append(inst.reverse_ops(), qargs, cargs)
+
+        reverse_circ.duration = self.duration
+        reverse_circ.unit = self.unit
         return reverse_circ
 
     def reverse_bits(self):
@@ -852,6 +858,10 @@ class QuantumCircuit:
 
         self._update_parameter_table(instruction)
 
+        # mark as normal circuit if a new instruction is added
+        self.duration = None
+        self.unit = 'dt'
+
         return instruction
 
     def _update_parameter_table(self, instruction):
@@ -973,6 +983,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: a circuit one level decomposed
         """
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -1416,15 +1427,6 @@ class QuantumCircuit:
     def num_ancillas(self):
         """Return the number of ancilla qubits."""
         return len(self.ancillas)
-
-    @property
-    def n_qubits(self):
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     @property
     def num_clbits(self):
@@ -1955,6 +1957,46 @@ class QuantumCircuit:
                 qubits.append(qarg)
 
         return self.append(Barrier(len(qubits)), qubits, [])
+
+    def delay(self, duration, qarg=None, unit='dt'):
+        """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
+        When applying to multiple qubits, delays with the same duration will be created.
+
+        Args:
+            duration (int or float): duration of the delay.
+            qarg (Object): qubit argument to apply this delay.
+            unit (str): unit of the duration. Supported units: 's', 'ms', 'us', 'ns', 'ps', 'dt'.
+                Default is ``dt``, i.e. integer time unit depending on the target backend.
+
+        Returns:
+            qiskit.Instruction: the attached delay instruction.
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        from .delay import Delay
+        qubits = []
+        if qarg is None:  # -> apply delays to all qubits
+            for q in self.qubits:
+                qubits.append(q)
+        else:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, (range, tuple)):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
+        instructions = InstructionSet()
+        for q in qubits:
+            inst = (Delay(duration, unit), [q], [])
+            self.append(*inst)
+            instructions.add(*inst)
+        return instructions
 
     def h(self, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.HGate`."""
