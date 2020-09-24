@@ -221,6 +221,21 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_global_phase_u3_on_left(self):
+        """Check proper phase accumulation with instruction with no definition."""
+        from qiskit.circuit.library.standard_gates import U1Gate
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        u1 = U1Gate(0.1)
+        u1.definition.global_phase = np.pi / 2
+        qc.append(u1, [0])
+        qc.global_phase = np.pi / 3
+        qc.u3(0.1, 0.2, 0.3, 0)
+
+        dag = circuit_to_dag(qc)
+        after = Optimize1qGates().run(dag)
+        self.assertAlmostEqual(after.global_phase, 5 * np.pi / 6, 8)
+
 
 class TestOptimize1qGatesParamReduction(QiskitTestCase):
     """Test for 1q gate optimizations parameter reduction, reduce n in Un """
