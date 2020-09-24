@@ -15,12 +15,12 @@ features:
         circuit.draw('mpl', style={'name': 'iqx'})
 
   - |
-    In the ``style`` dict, the ``dispcol`` dict now allows for entering both the gate
+    In the ``style`` dict, the ``displaycolor`` dict now allows for entering both the gate
     color and the text color for each gate type in the form (gate_color, text_color).
     This allows the use of light and dark gate colors with contrasting text colors.
     Users can still set only the gate color, in which case the ``gatetextcolor`` will
     be used. Gate colors can be set in the ``style`` dict for any number of gate types,
-    from one to the entire ``dispcol`` dict. For example,
+    from one to the entire ``displaycolor`` dict. For example,
         'u1': ('#FA74A6', '#000000')
     or
         'u1': '#FA74A6'
