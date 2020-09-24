@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Constructing a Schedule with Instructions/Schedules
+    is deprecated as of 0.22.0, and will be removed in a later release.
+  - |
+    Constructing a ParameterizedSchedule with Instructions/Schedules
+    is deprecated as of 0.22.0, and will be removed in a later release.

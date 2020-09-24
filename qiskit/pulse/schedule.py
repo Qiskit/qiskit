@@ -66,9 +66,8 @@ class Schedule(ScheduleComponent):
         self._timeslots = {}
         self.__children = []
 
-        if len(schedules) > 0:
-            warnings.warn(
-                          'Constructing a Schedule with Instructions/Schedules '
+        if schedules:
+            warnings.warn('Constructing a Schedule with Instructions/Schedules '
                           'is deprecated as of 0.22.0, and will be removed in a later release.',
                           DeprecationWarning, stacklevel=2)
 
@@ -321,8 +320,8 @@ class Schedule(ScheduleComponent):
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
         schedule = Schedule(name=self.name)
-        for instruction in self.instructions:
-            schedule.insert(*instruction, inplace=True)
+        for t0, instr in self.instructions:
+            schedule.insert(t0, instr, inplace=True)
         return schedule
 
     def filter(self, *filter_funcs: List[Callable],
@@ -395,8 +394,8 @@ class Schedule(ScheduleComponent):
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
 
         schedule = Schedule(name=new_sched_name)
-        for instruction in valid_subschedules:
-            schedule.insert(*instruction, inplace=True)
+        for t0, instr in valid_subschedules:
+            schedule.insert(t0, instr, inplace=True)
         return schedule
 
     def _construct_filter(self, *filter_funcs: List[Callable],
@@ -650,8 +649,8 @@ class Schedule(ScheduleComponent):
         else:
             try:
                 schedule = Schedule(name=self.name)
-                for child in new_children:
-                    schedule.insert(*child, inplace=True)
+                for t0, instr in new_children:
+                    schedule.insert(t0, instr, inplace=True)
                 return schedule
             except PulseError as err:
                 raise PulseError(
@@ -791,10 +790,9 @@ class ParameterizedSchedule:
         parameters = parameters or []
         self.name = name or ''
 
-        if len(schedules) > 0:
-            warnings.warn('Argument schedules for the constructor of class '
-                          'qiskit.pulse.ParameterizedSchedule is deprecated as of 0.22.0, '
-                          'and will be removed in a later release.',
+        if schedules:
+            warnings.warn('Constructing a ParameterizedSchedule with Instructions/Schedules '
+                          'is deprecated as of 0.22.0, and will be removed in a later release.',
                           DeprecationWarning, stacklevel=2)
 
             # partition schedules into callable and schedules

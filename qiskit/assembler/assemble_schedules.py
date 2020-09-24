@@ -19,6 +19,7 @@ from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import instructions, transforms, library
+from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
@@ -92,10 +93,18 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    #ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-    schedules = [
-        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
-    ]
+    def schedule_converter(sched):
+        if isinstance(sched, pulse.Schedule):
+            return sched
+        elif isinstance(sched, ScheduleComponent):
+            new_sched = pulse.Schedule()
+            for t0, instr in sched.instructions:
+                new_sched.insert(t0, instr, inplace=True)
+            return new_sched
+        else:
+            raise QiskitError('Invalid parameter schedules: {}.'.format(type(sched)))
+
+    schedules = [schedule_converter(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}

@@ -61,10 +61,13 @@ def as_soon_as_possible(circuit: QuantumCircuit,
         start_times.append(start_time)
         update_times(circ_pulse_def.qubits, stop_time)
 
-    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
-                       if not isinstance(cpd.schedule, Barrier)]
-    # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-    return Schedule(*timed_schedules, name=circuit.name)
+    new_schedule = Schedule(name=circuit.name)
+
+    for time, cpd in zip(start_times, circ_pulse_defs):
+        if not isinstance(cpd.schedule, Barrier):
+           new_schedule.insert(time, cpd.schedule, inplace=True)
+
+    return new_schedule
 
 
 def as_late_as_possible(circuit: QuantumCircuit,
@@ -109,7 +112,10 @@ def as_late_as_possible(circuit: QuantumCircuit,
 
     last_stop = max(t for t in qubit_time_available.values()) if qubit_time_available else 0
     start_times = [last_stop - t for t in reversed(rev_stop_times)]
-    timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
-                       if not isinstance(cpd.schedule, Barrier)]
-    # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
-    return Schedule(*timed_schedules, name=circuit.name)
+    new_schedule = Schedule(name=circuit.name)
+
+    for time, cpd in zip(start_times, circ_pulse_defs):
+        if not isinstance(cpd.schedule, Barrier):
+            new_schedule.insert(time, cpd.schedule, inplace=True)
+
+    return new_schedule

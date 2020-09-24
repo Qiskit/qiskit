@@ -224,15 +224,13 @@ def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
 
     schedules = []
     for program in qobj.experiments:
-        insts = []
+        schedule = pulse.Schedule()
         for inst in program.instructions:
             pulse_inst = converter(inst)
             if isinstance(pulse_inst, ParameterizedSchedule):
                 raise pulse.PulseError('Parameterized instructions are not '
                                        'yet supported in the pulse schedule.')
-            insts.append(pulse_inst)
+            schedule.insert(0, pulse_inst, inplace=True)
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-        schedule = pulse.Schedule(*insts)
         schedules.append(schedule)
     return schedules
