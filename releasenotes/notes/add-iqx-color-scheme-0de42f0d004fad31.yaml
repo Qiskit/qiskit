@@ -12,7 +12,7 @@ features:
     The second way is to add ``{'name': 'iqx'}`` to the ``style`` parameter to the
     ``QuantumCircuit.draw`` method or to the ``circuit_drawer`` function. The second
     way will override the setting in the settings.conf file. For example,
-        circuit.draw('mpl', style={'name': 'iqx'})
+    circuit.draw('mpl', style={'name': 'iqx'})
 
   - |
     In the ``style`` dict, the ``displaycolor`` dict now allows for entering both the gate
@@ -21,6 +21,4 @@ features:
     Users can still set only the gate color, in which case the ``gatetextcolor`` will
     be used. Gate colors can be set in the ``style`` dict for any number of gate types,
     from one to the entire ``displaycolor`` dict. For example,
-        'u1': ('#FA74A6', '#000000')
-    or
-        'u1': '#FA74A6'
+    'u1': ('#FA74A6', '#000000') or 'u1': '#FA74A6'
