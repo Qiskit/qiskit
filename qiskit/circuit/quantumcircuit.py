@@ -1210,6 +1210,9 @@ class QuantumCircuit:
         below:
 
         Args:
+            name (str): The name of the style. The name can be set to 'iqx',
+                'bw', or 'default'. This overrides the setting in the
+                '.qiskit/settings.conf' file.
             textcolor (str): The color code to use for text. Defaults to
                 `'#000000'`
             subtextcolor (str): The color code to use for subtext. Defaults to

@@ -140,19 +140,27 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
-        config = user_config.get_config()
-        if config:
-            config_style = config.get('circuit_mpl_style', 'default')
-            if config_style == 'iqx':
+        if style and isinstance(style, dict) and 'name' in style.keys():
+            if style['name'] == 'iqx':
                 self._style = IQXStyle()
-            elif config_style == 'bw':
+            elif style['name'] == 'bw':
                 self._style = BWStyle()
             else:
                 self._style = DefaultStyle()
-        elif style is False:
-            self._style = BWStyle()
         else:
-            self._style = DefaultStyle()
+            config = user_config.get_config()
+            if config:
+                config_style = config.get('circuit_mpl_style', 'default')
+                if config_style == 'iqx':
+                    self._style = IQXStyle()
+                elif config_style == 'bw':
+                    self._style = BWStyle()
+                else:
+                    self._style = DefaultStyle()
+            elif style is False:
+                self._style = BWStyle()
+            else:
+                self._style = DefaultStyle()
 
         if style:
             if isinstance(style, dict):
@@ -161,21 +169,6 @@ class MatplotlibDrawer:
                 with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
-
-        # This provides a way for a user to specify a style by setting the
-        # name in the style param that's passed to draw()
-        if self._style.name == 'iqx' or self._style.name == 'bw':
-            if self._style.name == 'iqx':
-                self._style = IQXStyle()
-            elif self._style.name == 'bw':
-                self._style = BWStyle()
-            if style:
-                if isinstance(style, dict):
-                    self._style.set_style(style)
-                elif isinstance(style, str):
-                    with open(style) as infile:
-                        dic = json.load(infile)
-                    self._style.set_style(dic)
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
