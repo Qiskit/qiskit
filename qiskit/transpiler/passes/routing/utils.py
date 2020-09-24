@@ -29,13 +29,13 @@ def weighted_distance(num_qubits, coupling_map, properties):
         ndarray: 2D array of distances.
     """
     edges = edges = coupling_map.get_edges()
-    twoQ_gates = []
+    two_qubit_gates = []
     for gate in properties.gates:
         if len(gate.qubits) == 2:
-            twoQ_gates.append(gate)
+            two_qubit_gates.append(gate)
     weights = []
     for edge in edges:
-        for gate in twoQ_gates:
+        for gate in two_qubit_gates:
             if gate.qubits[0] == edge[0] and gate.qubits[1] == edge[1]:
                 if gate.parameters[0].value == 1.0:
                     # If a gate reports bad weight it a lot
