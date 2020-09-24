@@ -31,6 +31,9 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
 
     Args:
         bits: List of bits to sort.
+
+    Returns:
+        Sorted bits.
     """
     qregs = []
     cregs = []
@@ -56,6 +59,9 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
 
     Args:
         bits: List of bits to sort.
+
+    Returns:
+        Sorted bits.
     """
     qregs = []
     cregs = []

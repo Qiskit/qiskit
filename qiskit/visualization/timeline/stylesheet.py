@@ -10,6 +10,33 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Stylesheet for timeline drawer.
+
+# TODO merge this docstring with pulse drawer.
+
+The stylesheet `QiskitTimelineStyle` is initialized with the hard-corded default values in
+`default_style`.
+
+The `QiskitTimelineStyle` is a wrapper class of python dictionary with
+the nested keys written such as `<type>.<group>.<item>` to represent a specific item
+from many configuration options. This key representation is the imitative of
+`rcParams` of `matplotlib`.  However, the `QiskitTimelineStyle` is not necessary be compatible
+with the `rcParams` because the timeline stylesheet is heavily specialized to the context of
+the scheduled circuit visualization.
+
+Type of stylesheet is broadly separated into `formatter`, `generator` and `layout`.
+The formatter is a nested dictionary of drawing parameters to control the appearance of
+each visualization element. This takes similar data structure to the `rcParams` of `matplotlib`.
+
+The generator is a list of callback functions that generates drawing objects from
+a given data source and the formatter. Each item can take multiple functions so that
+several drawing data, for example, box, text, etc..., are generated from the single data source.
+The layout is a callback function that determines the appearance of the output image.
+Because a single stylesheet doesn't generate multiple images with different appearance,
+only one layout function can be chosen for each stylesheet.
+"""
+
 import warnings
 from typing import Dict, Any, Mapping
 from qiskit.visualization.timeline import generators, layouts
