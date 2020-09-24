@@ -106,7 +106,8 @@ class BitEvents:
         for inst in self.instructions:
             if isinstance(inst.operand, circuit.Barrier):
                 barrier = types.Barrier(t0=inst.t0,
-                                        bits=inst.bits)
+                                        bits=inst.bits,
+                                        bit_position=inst.bit_position)
                 yield barrier
 
     def get_gate_links(self) -> Iterator[types.GateLink]:
