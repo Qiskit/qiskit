@@ -29,8 +29,7 @@
           },
         "coreconfig": {
             "type": "object",
-            "required": ["backend_name", "backend_version", "n_qubits", "basis_gates", "gates", "local", "simulator", "conditional", "memory", "max_shots",
-                         "supported_instructions"],
+            "required": ["backend_name", "backend_version", "n_qubits", "basis_gates", "gates", "local", "simulator", "conditional", "memory", "max_shots"],
             "properties": {
                 "backend_name": {
                     "type": "string",
@@ -158,12 +157,11 @@
                     "description": "Whether delay between programs can be set dynamically using 'rep_delay').",
                     "default": false
                     },
-                    "discriminators": {
-                        "type": "array",
-                        "minItems": 0,
-                        "description": "Instructions supported by the backend.",
-                        "items": {"type": "string"}
-                    }
+                "supported_instructions": {
+                    "type": "array",
+                    "minItems": 0,
+                    "description": "Instructions supported by the backend.",
+                    "items": {"type": "string"}
                 }
             },
             "openpulse_config":{
