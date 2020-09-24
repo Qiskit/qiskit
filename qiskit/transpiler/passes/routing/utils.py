@@ -37,7 +37,11 @@ def weighted_distance(num_qubits, coupling_map, properties):
     for edge in edges:
         for gate in twoQ_gates:
             if gate.qubits[0] == edge[0] and gate.qubits[1] == edge[1]:
-                weights.append(gate.parameters[0].value)
+                if gate.parameters[0].value == 1.0:
+                    # If a gate reports bad weight it a lot
+                    weights.append(1e99)
+                else:
+                    weights.append(gate.parameters[0].value)
                 break
     weights = np.asarray(weights)
     # normalize edge weights
