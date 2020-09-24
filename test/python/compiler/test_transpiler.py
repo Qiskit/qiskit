@@ -802,7 +802,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        # self.assertEqual(transpiled_circuit, circ)
 
     def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
         """Test if the custom, non calibrated gate raises QiskitError."""
