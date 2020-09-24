@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name
 
-r"""
+"""
 Drawing objects for timeline drawer.
 
 Drawing objects play two important roles:
@@ -37,7 +37,7 @@ specified. In addition, drawing objects have the `data_key` property that return
 unique hash of the object for comparison.
 This key is generated from a data type, the location of the drawing object in the canvas,
 and associated qubit or classical bit objects.
-See py:mod:`qiskit.visualization.pulse_v2.types` for detail on the data type.
+See py:mod:`qiskit.visualization.timeline.types` for detail on the data type.
 If a data key cannot distinguish two independent objects, you need to add a new data type.
 The data key may be used in the plotter interface to identify the object.
 
@@ -55,15 +55,16 @@ time occupation of two quantum registers during the gate along with a line conne
 these rectangles to identify the pair. This shape can be represented with
 two box-type objects with one line-type object instead of defining a new object dedicated
 to the two qubit gate. As many plotters don't support an API that visualizes such
-a linked-box shape, if we introduce such a drawing object and write a custom wrapper function
-on top of the existing API, it could be difficult to prevent bugs with the CI tools
-due to lack of the effective unittest for image data.
+a linked-box shape, if we introduce such complex drawing objects and write a
+custom wrapper function on top of the existing API,
+it could be difficult to prevent bugs with the CI tools due to lack of
+the effective unittest for image data.
 
 Link between gates
 ~~~~~~~~~~~~~~~~~~
-The `GateLinkData` is the special subclass of drawing object that represents
+The ``GateLinkData`` is the special subclass of drawing object that represents
 a link between bits. Usually objects are associated to the specific bit,
-but `GateLinkData` can be associated with multiple bits to illustrate relationship
+but ``GateLinkData`` can be associated with multiple bits to illustrate relationship
 between quantum or classical bits during a gate operation.
 """
 
