@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-======================================
-Base Objects (:mod:`qiskit.providers`)
-======================================
+================================================================
+Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
+================================================================
 
 .. currentmodule:: qiskit.providers
 
