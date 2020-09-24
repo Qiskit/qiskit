@@ -10,11 +10,44 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
-A collection of functions that decide layout of figure.
+"""
+A collection of functions that decide the layout of an output image.
 
-Those functions are assigned to the `layout` key of the stylesheet.
-User can change the layout of the output image by writing own function.
+There are 2 types of layout functions in this module.
+
+1. layout.bit_arrange
+
+In this stylesheet entry the input data is a list of `types.Bits` and returns a
+sorted list of `types.Bits`.
+
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_layout(bits: List[types.Bits]) -> List[types.Bits]:
+
+        # sort a list of bits
+        pass
+    ```
+
+2. layout.time_axis_map
+
+In this stylesheet entry the input data is `Tuple[int, int]` that represents horizontal
+axis limit of the output image. The layout function returns `types.HorizontalAxis` data
+which is consumed by the plotter API to make horizontal axis.
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_layout(time_window: Tuple[int, int]) -> types.HorizontalAxis:
+
+        # create axis config
+        pass
+    ```
+
+Arbitrary layout function satisfying the above format can be accepted.
 """
 
 from typing import List, Tuple

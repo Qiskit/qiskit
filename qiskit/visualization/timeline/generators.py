@@ -12,26 +12,86 @@
 
 """
 A collection of functions that generate drawing objects from formatted input data.
-See :py:mod:`~qiskit.visualization.timeline.types` for the detail of input data.
+See :py:mod:`~qiskit.visualization.timeline.types` for more info on the required data.
 
-Adding a custom generator:
-    The function in this module are generators for drawing objects.
-    All drawing objects are created by these generators.
-    A stylesheet provides a list of generators and the core drawing
-    function calls all specified generators for each instruction data.
+An end-user can write arbitrary functions that generate custom drawing objects.
+Generators in this module are called with the `formatter` kwarg. This data provides
+the stylesheet configuration.
 
-    An end-user can write arbitrary function with predefined function signature:
-        ```python
-        def my_object_generator(bit: Union[Qubit, Clbit], gate: ScheduledGate) -> List[TextData]:
-            return TextData(
-                data_type='user_custom',
-                bit=bit,
-                x=0,
-                y=0,
-                text='custom_text')
-        ```
-    In above example user can add a custom text created by `my_object_generator`.
-    This custom generator can be added to the list under the `generator.gate` of the stylesheet.
+
+There are 4 types of generators in this module.
+
+1. generator.gates
+
+In this stylesheet entry the input data is `types.ScheduledGate` and generates gate objects
+such as time buckets and gate name annotations.
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_object_generator(
+            gate: types.ScheduledGate,
+            formatter: Dict[str, Any]) -> List[ElementaryData]:
+
+        # generate gate object.
+        pass
+    ```
+
+2. generator.bits
+
+In this stylesheet entry the input data is `types.Bits` and generates timeline objects
+such as zero line and name of bit associated with the timeline.
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_object_generator(
+            bit: types.Bits,
+            formatter: Dict[str, Any]) -> List[ElementaryData]:
+
+        # generate timeline object.
+        pass
+    ```
+
+3. generator.barriers
+
+In this stylesheet entry the input data is `types.Barrier` and generates barrier objects
+such as barrier lines.
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_object_generator(
+            barrier: types.Barrier,
+            formatter: Dict[str, Any]) -> List[ElementaryData]:
+
+        # generate barrier object.
+        pass
+    ```
+
+4. generator.gate_links
+
+In this stylesheet entry the input data is `types.GateLink` and generates barrier objects
+such as barrier lines.
+
+The format of generator is restricted to:
+
+    ```python
+
+    def my_object_generator(
+            link: types.GateLink,
+            formatter: Dict[str, Any]) -> List[ElementaryData]:
+
+        # generate barrier object.
+        pass
+    ```
+
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
 """
 
 from typing import List, Union, Dict, Any
