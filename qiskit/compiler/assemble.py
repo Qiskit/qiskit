@@ -363,7 +363,9 @@ def _parse_rep_delay(rep_delay: float,
     Returns:
         float: Modified rep delay after parsing.
     """
-    rep_delay = rep_delay or default_rep_delay
+    if rep_delay is None:
+        rep_delay = default_rep_delay
+
     if rep_delay is not None:
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):

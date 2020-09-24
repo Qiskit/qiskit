@@ -456,6 +456,7 @@ class QasmSimulatorPy(BaseBackend):
         self._classical_memory = 0
         self._classical_register = 0
         self._sample_measure = False
+        global_phase = experiment.header.global_phase
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
@@ -485,6 +486,8 @@ class QasmSimulatorPy(BaseBackend):
             shots = self._shots
         for _ in range(shots):
             self._initialize_statevector()
+            # apply global_phase
+            self._statevector *= np.exp(1j * global_phase)
             # Initialize classical memory to all 0
             self._classical_memory = 0
             self._classical_register = 0
