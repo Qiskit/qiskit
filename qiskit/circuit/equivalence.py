@@ -15,7 +15,7 @@
 import io
 from collections import namedtuple
 
-import networkx as nx
+import retworkx as rx
 
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
@@ -179,7 +179,9 @@ class EquivalenceLibrary():
             raise ImportError('EquivalenceLibrary.draw requires pillow. '
                               "You can use 'pip install pillow' to install")
 
-        dot = nx.drawing.nx_pydot.to_pydot(self._build_basis_graph())
+        dot_str = self._build_basis_graph().to_dot(
+            lambda node: {'label': node['label']}, lambda edge: edge)
+        dot = pydot.graph_from_dot_data(dot_str)[0]
         if filename:
             extension = filename.split('.')[-1]
             dot.write(filename, format=extension)
@@ -188,8 +190,9 @@ class EquivalenceLibrary():
         return Image.open(io.BytesIO(png))
 
     def _build_basis_graph(self):
-        graph = nx.MultiDiGraph()
+        graph = rx.PyDiGraph()
 
+        node_map = {}
         for key in self._get_all_keys():
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
@@ -200,17 +203,20 @@ class EquivalenceLibrary():
                                          for name, num_qubits in
                                          {(inst.name, inst.num_qubits)
                                           for inst, _, __ in decomp.data})
-
-                graph.add_node(basis, label=str(set(basis)))
-                graph.add_node(decomp_basis, label=str(set(decomp_basis)))
+                if basis not in node_map:
+                    basis_node = graph.add_node({'basis': basis,
+                                                 'label': str(set(basis))})
+                    node_map[basis] = basis_node
+                if decomp_basis not in node_map:
+                    decomp_basis_node = graph.add_node({'basis': decomp_basis,
+                                                        'label': str(set(decomp_basis))})
+                    node_map[decomp_basis] = decomp_basis_node
 
                 label = "%s\n%s" % (
                     str(params), str(decomp) if num_qubits <= 5 else '...')
-                graph.add_edge(basis,
-                               decomp_basis,
-                               label=label,
-                               fontname='Courier',
-                               fontsize=8)
+                graph.add_edge(node_map[basis],
+                               node_map[decomp_basis],
+                               dict(label=label, fontname='Courier', fontsize=str(8)))
 
         return graph
 
