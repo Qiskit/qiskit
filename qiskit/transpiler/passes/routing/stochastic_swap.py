@@ -299,12 +299,7 @@ class StochasticSwap(TransformationPass):
 
         # Construct an empty DAGCircuit with the same set of
         # qregs and cregs as the input circuit
-        dagcircuit_output = DAGCircuit()
-        dagcircuit_output.name = circuit_graph.name
-        for qreg in circuit_graph.qregs.values():
-            dagcircuit_output.add_qreg(qreg)
-        for creg in circuit_graph.cregs.values():
-            dagcircuit_output.add_creg(creg)
+        dagcircuit_output = circuit_graph._copy_circuit_metadata()
 
         logger.debug("trivial_layout = %s", layout)
 

@@ -119,6 +119,7 @@ class UnitarySimulatorPy(BackendV1):
         self._unitary = None
         self._number_of_qubits = 0
         self._initial_unitary = None
+        self._global_phase = 0
         self._chop_threshold = self.options.get('chop_threshold')
 
     @classmethod
@@ -209,6 +210,8 @@ class UnitarySimulatorPy(BackendV1):
     def _get_unitary(self):
         """Return the current unitary"""
         unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
+        if self._global_phase:
+            unitary *= np.exp(1j * float(self._global_phase))
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
@@ -316,6 +319,7 @@ class UnitarySimulatorPy(BackendV1):
         """
         start = time.time()
         self._number_of_qubits = experiment.header.n_qubits
+        self._global_phase = experiment.header.global_phase
 
         # Validate the dimension of initial unitary if set
         self._validate_initial_unitary()

@@ -802,7 +802,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        # self.assertEqual(transpiled_circuit, circ)
 
     def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
         """Test if the custom, non calibrated gate raises QiskitError."""
@@ -860,6 +859,21 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circ = transpile(circ, FakeAlmaden())
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
+
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay(self, optimization_level):
+        """Verify a circuit with delay can transpile to a scheduled circuit."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, scheduling_method='alap', basis_gates=['h', 'cx'],
+                        instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)],
+                        optimization_level=optimization_level)
+
+        self.assertEqual(out.duration, 1200)
 
 
 class StreamHandlerRaiseException(StreamHandler):
