@@ -204,7 +204,7 @@ class QasmBackendConfiguration:
     def __init__(self, backend_name, backend_version, n_qubits,
                  basis_gates, gates, local, simulator,
                  conditional, open_pulse, memory,
-                 max_shots, coupling_map, supported_instructions,
+                 max_shots, coupling_map, supported_instructions=None,
                  dynamic_reprate_enabled=False, rep_delay_range=None,
                  default_rep_delay=None, max_experiments=None,
                  sample_name=None, n_registers=None, register_map=None,
@@ -268,7 +268,8 @@ class QasmBackendConfiguration:
         self.memory = memory
         self.max_shots = max_shots
         self.coupling_map = coupling_map
-        self.supported_instructions = supported_instructions
+        if supported_instructions:
+            self.supported_instructions = supported_instructions
 
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
         if rep_delay_range:
@@ -362,9 +363,11 @@ class QasmBackendConfiguration:
             'memory': self.memory,
             'max_shots': self.max_shots,
             'coupling_map': self.coupling_map,
-            'supported_instructions': self.supported_instructions,
             'dynamic_reprate_enabled': self.dynamic_reprate_enabled
         }
+
+        if hasattr(self, 'supported_instructions'):
+            out_dict['supported_instructions'] = self.supported_instructions
 
         if hasattr(self, 'rep_delay_range'):
             out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]
