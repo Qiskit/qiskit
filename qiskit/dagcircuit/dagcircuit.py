@@ -321,6 +321,19 @@ class DAGCircuit:
         new_node._node_id = node_index
         return node_index
 
+    def _copy_circuit_metadata(self):
+        """Return a copy of source_dag with metadata but empty."""
+        target_dag = DAGCircuit()
+        target_dag.name = self.name
+        target_dag._global_phase = self._global_phase
+
+        for qreg in self.qregs.values():
+            target_dag.add_qreg(qreg)
+        for creg in self.cregs.values():
+            target_dag.add_creg(creg)
+
+        return target_dag
+
     def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
 
@@ -882,6 +895,9 @@ class DAGCircuit:
             for replay_node in to_replay:
                 in_dag.apply_operation_back(replay_node.op, replay_node.qargs,
                                             replay_node.cargs)
+
+        if in_dag.global_phase:
+            self.global_phase += in_dag.global_phase
 
         if wires is None:
             wires = in_dag.wires
