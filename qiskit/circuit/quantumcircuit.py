@@ -2108,17 +2108,17 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
 
-    def s(self, qubit, label=label):  # pylint: disable=invalid-name
+    def s(self, qubit, label=None):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.SGate`."""
         from .library.standard_gates.s import SGate
         return self.append(SGate(label=label), [qubit], [])
 
-    def sdg(self, qubit, label=label):
+    def sdg(self, qubit, label=None):
         """Apply :class:`~qiskit.circuit.library.SdgGate`."""
         from .library.standard_gates.s import SdgGate
         return self.append(SdgGate(label=label), [qubit], [])
 
-    def swap(self, qubit1, qubit2, label=label):
+    def swap(self, qubit1, qubit2, label=None):
         """Apply :class:`~qiskit.circuit.library.SwapGate`."""
         from .library.standard_gates.swap import SwapGate
         return self.append(SwapGate(label=label), [qubit1, qubit2], [])
