@@ -14,7 +14,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, ParameterExpression
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -58,9 +58,12 @@ class UnrollCustomDefinitions(TransformationPass):
         for node in dag.op_nodes():
 
             if dag.calibrations and node.name in dag.calibrations:
-                qubit = tuple([node.qargs[0].index])
-                params = tuple(node.op.params)
-                if (qubit, params) in dag.calibrations[node.name]:
+                qubits = tuple(qubit.index for qubit in node.qargs)
+                params = []
+                for p in node.op.params:
+                    params.append(float(p) if isinstance(p, ParameterExpression) and not p.parameters else p)
+                params = tuple(params)
+                if (qubits, params) in dag.calibrations[node.name]:
                     continue
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):

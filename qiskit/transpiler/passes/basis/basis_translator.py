@@ -22,7 +22,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister
+from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -89,9 +89,13 @@ class BasisTranslator(TransformationPass):
         source_basis = set()
         for node in dag.op_nodes():
             name = node.op.name
-            qubit_params = (tuple([node.qargs[0].index]), tuple(node.op.params))
+            qubits = tuple(qubit.index for qubit in node.qargs)
+            params = []
+            for p in node.op.params:
+                params.append(float(p) if isinstance(p, ParameterExpression) and not p.parameters else p)
+            params = tuple(params)
             if (dag.calibrations and name in dag.calibrations
-                    and qubit_params in dag.calibrations[name]):
+                    and (qubits, params) in dag.calibrations[name]):
                 pass
             else:
                 source_basis.add((name, node.op.num_qubits))
@@ -131,9 +135,12 @@ class BasisTranslator(TransformationPass):
                 continue
 
             if dag.calibrations and node.name in dag.calibrations:
-                qubit = tuple([node.qargs[0].index])
-                params = tuple(node.op.params)
-                if (qubit, params) in dag.calibrations[node.name]:
+                qubits = tuple(qubit.index for qubit in node.qargs)
+                params = []
+                for p in node.op.params:
+                    params.append(float(p) if isinstance(p, ParameterExpression) and not p.parameters else p)
+                params = tuple(params)
+                if (qubits, params) in dag.calibrations[node.name]:
                     continue
 
             if (node.op.name, node.op.num_qubits) in instr_map:
