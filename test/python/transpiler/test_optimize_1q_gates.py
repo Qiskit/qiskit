@@ -224,7 +224,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u3_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
-        from qiskit.circuit.library.standard_gates import U1Gate
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         u1 = U1Gate(0.1)
