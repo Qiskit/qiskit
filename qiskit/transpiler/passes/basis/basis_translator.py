@@ -92,7 +92,10 @@ class BasisTranslator(TransformationPass):
             qubits = tuple(qubit.index for qubit in node.qargs)
             params = []
             for p in node.op.params:
-                params.append(float(p) if isinstance(p, ParameterExpression) and not p.parameters else p)
+                if isinstance(p, ParameterExpression) and not p.parameters:
+                    params.append(float(p))
+                else:
+                    params.append(p)
             params = tuple(params)
             if (dag.calibrations and name in dag.calibrations
                     and (qubits, params) in dag.calibrations[name]):
@@ -138,7 +141,10 @@ class BasisTranslator(TransformationPass):
                 qubits = tuple(qubit.index for qubit in node.qargs)
                 params = []
                 for p in node.op.params:
-                    params.append(float(p) if isinstance(p, ParameterExpression) and not p.parameters else p)
+                    if isinstance(p, ParameterExpression) and not p.parameters:
+                        params.append(float(p))
+                    else:
+                        params.append(p)
                 params = tuple(params)
                 if (qubits, params) in dag.calibrations[node.name]:
                     continue
