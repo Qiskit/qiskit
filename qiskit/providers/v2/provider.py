@@ -40,7 +40,7 @@ class ProviderV1(Provider, ABC):
             **kwargs: dict used for filtering.
 
         Returns:
-            BaseBackend: a backend matching the filtering.
+            Backend: a backend matching the filtering.
 
         Raises:
             QiskitBackendNotFoundError: if no backend could be found or
@@ -63,7 +63,7 @@ class ProviderV1(Provider, ABC):
             **kwargs: dict used for filtering.
 
         Returns:
-            list[BaseBackend]: a list of Backends that match the filtering
+            list[Backend]: a list of Backends that match the filtering
                 criteria.
         """
         pass
