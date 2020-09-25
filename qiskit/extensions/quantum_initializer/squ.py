@@ -23,6 +23,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
 from qiskit.util import deprecate_arguments
@@ -59,6 +60,21 @@ class SingleQubitUnitary(Gate):
 
         # Create new gate
         super().__init__("unitary", 1, [unitary_matrix])
+
+    def inverse(self):
+        """Return the inverse.
+
+        Note that the resulting gate has an empty ``params`` property.
+        """
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # removing the params because arrays are deprecated
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
 
     @property
     def diag(self):
@@ -136,6 +152,14 @@ class SingleQubitUnitary(Gate):
         # (the one using negative angles).
         # Therefore, we have to take the inverse of the angles at the end.
         return -alpha, -beta, -gamma, delta
+
+    def validate_parameter(self, parameter):
+        """Single-qubit unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
 
 
 # pylint: disable=unused-argument, invalid-name, missing-type-doc, missing-param-doc
