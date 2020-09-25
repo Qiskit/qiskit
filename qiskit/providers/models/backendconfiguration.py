@@ -13,14 +13,15 @@
 """Backend Configuration Classes."""
 import re
 import copy
+import numbers
 import warnings
 from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
-                                   ControlChannel, AcquireChannel)
+from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
+                                   DriveChannel, MeasureChannel)
 
 
 class GateConfig:
@@ -530,6 +531,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+        if hamiltonian is not None:
+            self.hamiltonian = dict(hamiltonian)
+            self.hamiltonian['vars'] = {
+                k: v * 1e9 if isinstance(v, numbers.Number) else v
+                for k, v in self.hamiltonian['vars'].items()
+            }
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
 
@@ -605,7 +612,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             'meas_lo_range': self.meas_lo_range,
             'meas_kernels': self.meas_kernels,
             'discriminators': self.discriminators,
-            'hamiltonian': self.hamiltonian,
             'rep_times': self.rep_times,
             'dt': self.dt,
             'dtm': self.dtm,
@@ -644,6 +650,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict['channel_bandwidth'] = [
                 [min_range * 1e-9, max_range * 1e-9] for
                 (min_range, max_range) in self.channel_bandwidth]
+
+        if self.hamiltonian:
+            hamiltonian = copy.deepcopy(self.hamiltonian)
+            hamiltonian['vars'] = {
+                k: v * 1e-9 if isinstance(v, numbers.Number) else v
+                for k, v in hamiltonian['vars'].items()
+            }
+            out_dict['hamiltonian'] = hamiltonian
 
         return out_dict
 
