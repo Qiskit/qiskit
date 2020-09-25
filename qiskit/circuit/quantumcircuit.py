@@ -1909,7 +1909,7 @@ class QuantumCircuit:
         ``Schedule``s, which also may contain ``parameter``.
         """
         for cals in self.calibrations.values():
-            for (qubit, cal_params), schedule in cals.items():
+            for (qubit, cal_params), schedule in copy.copy(cals).items():
                 if any(isinstance(p, ParameterExpression) and parameter in p.parameters
                        for p in cal_params):
                     del cals[(qubit, cal_params)]
