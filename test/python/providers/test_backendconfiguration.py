@@ -16,7 +16,7 @@ import collections
 import copy
 
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeProvider
+from qiskit.test.mock import FakeProvider, FakeYorktown
 
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.providers import BackendConfigurationError
@@ -133,6 +133,37 @@ class TestBackendConfiguration(QiskitTestCase):
         for i, rd in enumerate(config_dict['rep_delay_range']):
             self.assertAlmostEqual(rd, _rep_delay_range_us[i], delta=1e-8)
         self.assertEqual(config_dict['default_rep_delay'], _default_rep_delay_us)
+
+    def test_discriminators_and_meas_kernels(self):
+        """Test that discriminators, meas_kernels and their defaults are loaded properly."""
+        # test pulse config w/ defaults
+        pulse_def_dict = self.config.to_dict()
+        self.assertEqual(pulse_def_dict['meas_kernels'], ['kernel1'])
+        self.assertEqual(pulse_def_dict['discriminators'], ['max_1Q_fidelity'])
+        self.assertEqual(pulse_def_dict['default_meas_kernel'], 'kernel1')
+        self.assertEqual(pulse_def_dict['default_discriminator'], 'max_1Q_fidelity')
+        # test pulse config w/ out defaults
+        pulse_no_def_dict = self.provider.get_backend('fake_openpulse_3q').configuration().to_dict()
+        self.assertEqual(pulse_no_def_dict['meas_kernels'], ['kernel1'])
+        self.assertEqual(pulse_no_def_dict['discriminators'], ['max_1Q_fidelity'])
+        self.assertNotIn('default_meas_kernel', pulse_no_def_dict)
+        self.assertNotIn('default_discriminator', pulse_no_def_dict)
+
+        # test qasm config w/ kernel/discrim
+        qasm_with_disc_config = self.provider.get_backend('fake_qasm_simulator').configuration()
+        qasm_with_disc_dict = qasm_with_disc_config.to_dict()
+        self.assertEqual(qasm_with_disc_dict['meas_kernels'], ['boxcar'])
+        self.assertEqual(qasm_with_disc_dict['discriminators'], ['linear', 'quadratic'])
+        self.assertEqual(qasm_with_disc_dict['default_meas_kernel'], 'boxcar')
+        self.assertEqual(qasm_with_disc_dict['default_discriminator'], 'linear')
+
+        # test qasm config w/ out kernel/discrim
+        qasm_no_disc_config = FakeYorktown().configuration()
+        qasm_no_disc_dict = qasm_no_disc_config.to_dict()
+        self.assertNotIn('meas_kernels', qasm_no_disc_dict)
+        self.assertNotIn('discriminators', qasm_no_disc_dict)
+        self.assertNotIn('default_meas_kernel', qasm_no_disc_dict)
+        self.assertNotIn('default_discriminator', qasm_no_disc_dict)
 
     def test_get_channel_prefix_index(self):
         """Test private method to get channel and index."""

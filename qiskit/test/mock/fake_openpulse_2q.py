@@ -58,6 +58,8 @@ class FakeOpenPulse2Q(FakeBackend):
             ],
             meas_kernels=['kernel1'],
             discriminators=['max_1Q_fidelity'],
+            default_meas_kernel='kernel1',
+            default_discriminator='max_1Q_fidelity',
             acquisition_latency=[[100, 100], [100, 100]],
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],

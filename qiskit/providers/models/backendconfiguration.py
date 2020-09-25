@@ -287,7 +287,7 @@ class QasmBackendConfiguration:
         if default_meas_kernel is not None:
             self.default_meas_kernel = default_meas_kernel
         if default_discriminator is not None:
-            self.default_discrimator = default_discriminator
+            self.default_discriminator = default_discriminator
 
         # max_experiments must be >=1
         if max_experiments:
