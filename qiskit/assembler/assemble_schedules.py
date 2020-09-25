@@ -102,7 +102,7 @@ def _assemble_experiments(
                 new_sched.insert(t0, instr, inplace=True)
             return new_sched
         else:
-            raise QiskitError('Invalid parameter schedules: {}.'.format(type(sched)))
+            raise QiskitError('Input type: {} not supported'.format(type(sched)))
 
     schedules = [schedule_converter(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(schedules)

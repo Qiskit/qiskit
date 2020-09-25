@@ -65,7 +65,7 @@ def as_soon_as_possible(circuit: QuantumCircuit,
 
     for time, cpd in zip(start_times, circ_pulse_defs):
         if not isinstance(cpd.schedule, Barrier):
-           new_schedule.insert(time, cpd.schedule, inplace=True)
+            new_schedule.insert(time, cpd.schedule, inplace=True)
 
     return new_schedule
 

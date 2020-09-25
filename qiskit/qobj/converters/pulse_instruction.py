@@ -25,6 +25,8 @@ from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
 
+FREQUENCY_SCALING_FACTOR = 1e9
+
 
 class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module waveforms.
@@ -508,8 +510,9 @@ class QobjToInstructionConverter:
                 _phase = phase_expr(*args, **kwargs)
                 return instructions.SetPhase(_phase, channel) << t0
 
-            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+            schedule = ParameterizedSchedule(parameters=phase_expr.params)
+            schedule.add_parameterized(gen_fc_sched)
+            return schedule
 
         return instructions.SetPhase(phase, channel) << t0
 
@@ -535,8 +538,9 @@ class QobjToInstructionConverter:
                 _phase = phase_expr(*args, **kwargs)
                 return instructions.ShiftPhase(_phase, channel) << t0
 
-            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+            schedule = ParameterizedSchedule(parameters=phase_expr.params)
+            schedule.add_parameterized(gen_fc_sched)
+            return schedule
 
         return instructions.ShiftPhase(phase, channel) << t0
 
@@ -546,22 +550,27 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): set frequency qobj instruction
+                                                The passed frequency will be scaled by a factor 1e9
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.SetFrequency(_frequency, channel) << t0
+                return instructions.SetFrequency(_frequency * FREQUENCY_SCALING_FACTOR,
+                                                 channel) << t0
 
-            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+            schedule = ParameterizedSchedule(parameters=frequency_expr.params)
+            schedule.add_parameterized(gen_sf_schedule)
+            return schedule
+        else:
+            frequency = frequency * FREQUENCY_SCALING_FACTOR
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -571,23 +580,28 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+                                                The passed frequency will be scaled by a factor 1e9
 
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.ShiftFrequency(_frequency, channel) << t0
+                return instructions.ShiftFrequency(_frequency * FREQUENCY_SCALING_FACTOR,
+                                                   channel) << t0
 
-            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+            schedule = ParameterizedSchedule(parameters=frequency_expr.params)
+            schedule.add_parameterized(gen_sf_schedule)
+            return schedule
+        else:
+            frequency = frequency * FREQUENCY_SCALING_FACTOR
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 

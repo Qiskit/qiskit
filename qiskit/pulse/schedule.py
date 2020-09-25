@@ -816,6 +816,39 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
+    def add_parameterized(self,
+                          schedule: Union['ParameterizedSchedule', callable]
+                          ) -> 'ParameterizedSchedule':
+        """
+        Add a parameterized schedule.
+
+        Args:
+            schedule: The command to add.
+
+        Returns:
+            The parameterized schedule
+
+        Raises:
+            PulseError: when the argument is of the wrong type.
+        """
+        if isinstance(schedule, ParameterizedSchedule):
+            parameterized = list(self._parameterized)
+            parameters = list(self.parameters)
+
+            parameterized.append(schedule)
+            parameters += schedule.parameters
+
+            self._parameterized = tuple(parameterized)
+            self._parameters = tuple(sorted(set(parameters)))
+        elif callable(schedule):
+            parameterized = list(self._parameterized)
+            parameterized.append(schedule)
+            self._parameterized = tuple(parameterized)
+        else:
+            raise PulseError('Input type: {} not supported'.format(type(schedule)))
+
+        return self
+
     def bind_parameters(self,
                         *args: Union[int, float, complex, ParameterExpression],
                         **kwargs: Union[int, float, complex, ParameterExpression]) -> Schedule:
