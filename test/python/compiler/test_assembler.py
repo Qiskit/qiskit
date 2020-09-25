@@ -410,6 +410,28 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
 
+    def test_circuit_global_phase_gate_definitions(self):
+        """Test circuit with global phase on gate definitions."""
+        class TestGate(Gate):
+            """dummy gate"""
+            def __init__(self):
+                super().__init__('test_gate', 1, [])
+
+            def _define(self):
+                circ_def = QuantumCircuit(1)
+                circ_def.x(0)
+                circ_def.global_phase = np.pi
+                self._definition = circ_def
+
+        gate = TestGate()
+        circ = QuantumCircuit(1)
+        circ.append(gate, [0])
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), 0)
+        circ.global_phase = np.pi / 2
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), np.pi/2)
+
     def test_pulse_gates_single_circ(self):
         """Test that we can add calibrations to circuits."""
         theta = Parameter('theta')
