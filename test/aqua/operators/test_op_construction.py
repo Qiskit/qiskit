@@ -31,8 +31,9 @@ from qiskit.quantum_info import Operator, Pauli, Statevector
 from qiskit.circuit.library import CZGate, ZGate
 
 from qiskit.aqua.operators import (
-    X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp, ListOp,
-    ComposedOp, StateFn, VectorStateFn, OperatorStateFn, CircuitStateFn, DictStateFn,
+    X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
+    CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
+    SummedOp
 )
 
 
@@ -357,8 +358,194 @@ class TestOpConstruction(QiskitAquaTestCase):
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
 
+    def test_compose_op_of_different_dim(self):
+        """
+        Test if smaller operator expands to correct dim when composed with bigger operator.
+        Test if PrimitiveOps compose methods are consistent.
+        """
+        # PauliOps of different dim
+        xy_p = (X ^ Y)
+        xyz_p = (X ^ Y ^ Z)
+
+        pauli_op = xy_p @ xyz_p
+        expected_result = (I ^ I ^ Z)
+        self.assertEqual(pauli_op, expected_result)
+
+        # MatrixOps of different dim
+        xy_m = xy_p.to_matrix_op()
+        xyz_m = xyz_p.to_matrix_op()
+
+        matrix_op = xy_m @ xyz_m
+        self.assertEqual(matrix_op, expected_result.to_matrix_op())
+
+        # CircuitOps of different dim
+        xy_c = xy_p.to_circuit_op()
+        xyz_c = xyz_p.to_circuit_op()
+
+        circuit_op = xy_c @ xyz_c
+
+        self.assertTrue(np.array_equal(pauli_op.to_matrix(), matrix_op.to_matrix()))
+        self.assertTrue(np.allclose(pauli_op.to_matrix(), circuit_op.to_matrix(), rtol=1e-14))
+        self.assertTrue(np.allclose(matrix_op.to_matrix(), circuit_op.to_matrix(), rtol=1e-14))
+
+    def test_permute_on_primitive_op(self):
+        """ Test if permute methods of PrimitiveOps are consistent and work as expected. """
+        indices = [1, 2, 4]
+
+        # PauliOp
+        pauli_op = (X ^ Y ^ Z)
+        permuted_pauli_op = pauli_op.permute(indices)
+        expected_pauli_op = (X ^ I ^ Y ^ Z ^ I)
+
+        self.assertEqual(permuted_pauli_op, expected_pauli_op)
+
+        # CircuitOp
+        circuit_op = pauli_op.to_circuit_op()
+        permuted_circuit_op = circuit_op.permute(indices)
+        expected_circuit_op = expected_pauli_op.to_circuit_op()
+
+        self.assertEqual(permuted_circuit_op.primitive.__str__(),
+                         expected_circuit_op.primitive.__str__())
+
+        # MatrixOp
+        matrix_op = pauli_op.to_matrix_op()
+        permuted_matrix_op = matrix_op.permute(indices)
+        expected_matrix_op = expected_pauli_op.to_matrix_op()
+
+        equal = np.allclose(permuted_matrix_op.to_matrix(), expected_matrix_op.to_matrix())
+        self.assertTrue(equal)
+
+    def test_permute_on_list_op(self):
+        """ Test if ListOp permute method is consistent with PrimitiveOps permute methods. """
+
+        op1 = (X ^ Y ^ Z).to_circuit_op()
+        op2 = (Z ^ X ^ Y)
+
+        # ComposedOp
+        indices = [1, 2, 0]
+        primitive_op = op1 @ op2
+        primitive_op_perm = primitive_op.permute(indices)  # CircuitOp.permute
+
+        composed_op = ComposedOp([op1, op2])
+        composed_op_perm = composed_op.permute(indices)
+
+        # reduce the ListOp to PrimitiveOp
+        to_primitive = composed_op_perm.oplist[0] @ composed_op_perm.oplist[1]
+        # compare resulting PrimitiveOps
+        equal = np.allclose(primitive_op_perm.to_matrix(), to_primitive.to_matrix())
+        self.assertTrue(equal)
+
+        # TensoredOp
+        indices = [3, 5, 4, 0, 2, 1]
+        primitive_op = op1 ^ op2
+        primitive_op_perm = primitive_op.permute(indices)
+
+        tensored_op = TensoredOp([op1, op2])
+        tensored_op_perm = tensored_op.permute(indices)
+
+        # reduce the ListOp to PrimitiveOp
+        composed_oplist = tensored_op_perm.oplist
+        to_primitive = \
+            composed_oplist[0] @ (composed_oplist[1].oplist[0] ^ composed_oplist[1].oplist[1]) @ \
+            composed_oplist[2]
+
+        # compare resulting PrimitiveOps
+        equal = np.allclose(primitive_op_perm.to_matrix(), to_primitive.to_matrix())
+        self.assertTrue(equal)
+
+        # SummedOp
+        primitive_op = (X ^ Y ^ Z)
+        summed_op = SummedOp([primitive_op])
+
+        indices = [1, 2, 0]
+        primitive_op_perm = primitive_op.permute(indices)  # PauliOp.permute
+        summed_op_perm = summed_op.permute(indices)
+
+        # reduce the ListOp to PrimitiveOp
+        to_primitive = summed_op_perm.oplist[0] @ primitive_op @ summed_op_perm.oplist[2]
+
+        # compare resulting PrimitiveOps
+        equal = np.allclose(primitive_op_perm.to_matrix(), to_primitive.to_matrix())
+        self.assertTrue(equal)
+
+    def test_expand_on_list_op(self):
+        """ Test if expanded ListOp has expected num_qubits. """
+        add_qubits = 3
+
+        # ComposedOp
+        composed_op = ComposedOp([(X ^ Y ^ Z), (H ^ T), (Z ^ X ^ Y ^ Z).to_matrix_op()])
+        expanded = composed_op._expand_dim(add_qubits)
+        self.assertEqual(composed_op.num_qubits + add_qubits, expanded.num_qubits)
+
+        # TensoredOp
+        tensored_op = TensoredOp([(X ^ Y), (Z ^ I)])
+        expanded = tensored_op._expand_dim(add_qubits)
+        self.assertEqual(tensored_op.num_qubits + add_qubits, expanded.num_qubits)
+
+        # SummedOp
+        summed_op = SummedOp([(X ^ Y), (Z ^ I ^ Z)])
+        expanded = summed_op._expand_dim(add_qubits)
+        self.assertEqual(summed_op.num_qubits + add_qubits, expanded.num_qubits)
+
+    def test_expand_on_state_fn(self):
+        """ Test if expanded StateFn has expected num_qubits. """
+        num_qubits = 3
+        add_qubits = 2
+
+        # case CircuitStateFn, with primitive QuantumCircuit
+        qc2 = QuantumCircuit(num_qubits)
+        qc2.cx(0, 1)
+
+        cfn = CircuitStateFn(qc2, is_measurement=True)
+
+        cfn_exp = cfn._expand_dim(add_qubits)
+        self.assertEqual(cfn_exp.num_qubits, add_qubits + num_qubits)
+
+        # case OperatorStateFn, with OperatorBase primitive, in our case CircuitStateFn
+        osfn = OperatorStateFn(cfn)
+        osfn_exp = osfn._expand_dim(add_qubits)
+
+        self.assertEqual(osfn_exp.num_qubits, add_qubits + num_qubits)
+
+        # case DictStateFn
+        dsfn = DictStateFn('1'*num_qubits, is_measurement=True)
+        self.assertEqual(dsfn.num_qubits, num_qubits)
+
+        dsfn_exp = dsfn._expand_dim(add_qubits)
+        self.assertEqual(dsfn_exp.num_qubits, num_qubits + add_qubits)
+
+        # case VectorStateFn
+        vsfn = VectorStateFn(np.ones(2**num_qubits, dtype=complex))
+        self.assertEqual(vsfn.num_qubits, num_qubits)
+
+        vsfn_exp = vsfn._expand_dim(add_qubits)
+        self.assertEqual(vsfn_exp.num_qubits, num_qubits + add_qubits)
+
+    def test_permute_on_state_fn(self):
+        """ Test if StateFns permute are consistent. """
+
+        num_qubits = 4
+        dim = 2**num_qubits
+        primitive_list = [1.0/(i+1) for i in range(dim)]
+        primitive_dict = {format(i, 'b').zfill(num_qubits): 1.0/(i+1) for i in range(dim)}
+
+        dict_fn = DictStateFn(primitive=primitive_dict, is_measurement=True)
+        vec_fn = VectorStateFn(primitive=primitive_list, is_measurement=True)
+
+        # check if dict_fn and vec_fn are equivalent
+        equivalent = np.allclose(dict_fn.to_matrix(), vec_fn.to_matrix())
+        self.assertTrue(equivalent)
+
+        # permute
+        indices = [2, 3, 0, 1]
+        permute_dict = dict_fn.permute(indices)
+        permute_vect = vec_fn.permute(indices)
+
+        equivalent = np.allclose(permute_dict.to_matrix(), permute_vect.to_matrix())
+        self.assertTrue(equivalent)
+
     def test_compose_consistency(self):
-        """Checks if PrimitiveOp @ ComposedOp is consistent with ComposedOp @ PrimitiveOp."""
+        """Test if PrimitiveOp @ ComposedOp is consistent with ComposedOp @ PrimitiveOp."""
 
         # PauliOp
         op1 = (X ^ Y ^ Z)
@@ -386,6 +573,75 @@ class TestOpConstruction(QiskitAquaTestCase):
         comp1 = op1 @ ComposedOp([op2, op3])
         comp2 = ComposedOp([op3, op2]) @ op1
         self.assertListEqual(comp1.oplist, list(reversed(comp2.oplist)))
+
+    def test_compose_with_indices(self):
+        """ Test compose method using its permutation feature."""
+
+        pauli_op = (X ^ Y ^ Z)
+        circuit_op = (T ^ H)
+        matrix_op = (X ^ Y ^ H ^ T).to_matrix_op()
+        evolved_op = EvolvedOp(matrix_op)
+
+        # composition of PrimitiveOps
+        num_qubits = 4
+        primitive_op = pauli_op @ circuit_op @ matrix_op
+        composed_op = pauli_op @ circuit_op @ evolved_op
+        self.assertEqual(primitive_op.num_qubits, num_qubits)
+        self.assertEqual(composed_op.num_qubits, num_qubits)
+
+        # with permutation
+        num_qubits = 5
+        indices = [1, 4]
+        permuted_primitive_op = evolved_op @ circuit_op.permute(indices) @ pauli_op @ matrix_op
+        composed_primitive_op = \
+            evolved_op @ pauli_op.compose(circuit_op, permutation=indices, front=True) @ matrix_op
+
+        self.assertTrue(np.allclose(permuted_primitive_op.to_matrix(),
+                                    composed_primitive_op.to_matrix()))
+        self.assertEqual(num_qubits, permuted_primitive_op.num_qubits)
+
+        # ListOp
+        num_qubits = 6
+        tensored_op = TensoredOp([pauli_op, circuit_op])
+        summed_op = pauli_op + circuit_op.permute([2, 1])
+        composed_op = circuit_op @ evolved_op @ matrix_op
+
+        list_op = summed_op @ composed_op.compose(tensored_op, permutation=[1, 2, 3, 5, 4],
+                                                  front=True)
+        self.assertEqual(num_qubits, list_op.num_qubits)
+
+        num_qubits = 4
+        circuit_fn = CircuitStateFn(primitive=circuit_op.primitive, is_measurement=True)
+        operator_fn = OperatorStateFn(primitive=circuit_op ^ circuit_op, is_measurement=True)
+
+        no_perm_op = circuit_fn @ operator_fn
+        self.assertEqual(no_perm_op.num_qubits, num_qubits)
+
+        indices = [0, 4]
+        perm_op = operator_fn.compose(circuit_fn, permutation=indices, front=True)
+        self.assertEqual(perm_op.num_qubits, max(indices) + 1)
+
+        # StateFn
+        num_qubits = 3
+        dim = 2**num_qubits
+        vec = [1.0/(i+1) for i in range(dim)]
+        dic = {format(i, 'b').zfill(num_qubits): 1.0/(i+1) for i in range(dim)}
+
+        is_measurement = True
+        op_state_fn = OperatorStateFn(matrix_op, is_measurement=is_measurement)  # num_qubit = 4
+        vec_state_fn = VectorStateFn(vec, is_measurement=is_measurement)  # 3
+        dic_state_fn = DictStateFn(dic, is_measurement=is_measurement)  # 3
+        circ_state_fn = CircuitStateFn(circuit_op.to_circuit(), is_measurement=is_measurement)  # 2
+
+        composed_op = op_state_fn @ vec_state_fn @ dic_state_fn @ circ_state_fn
+        self.assertEqual(composed_op.num_qubits, op_state_fn.num_qubits)
+
+        # with permutation
+        perm = [2, 4, 6]
+        composed = \
+            op_state_fn @ dic_state_fn.compose(vec_state_fn, permutation=perm, front=True) @ \
+            circ_state_fn
+        self.assertEqual(composed.num_qubits, max(perm) + 1)
 
     def test_summed_op_equals(self):
         """Test corner cases of SummedOp's equals function."""
@@ -544,6 +800,11 @@ class TestOpConstruction(QiskitAquaTestCase):
 
         summed_op_with_param = op1_with_param + op2_with_param  # unitary
         self.assertRaises(AquaError, summed_op_with_param.to_circuit)  # should raise Aqua error
+
+    def test_permute_list_op_with_inconsistent_num_qubits(self):
+        """Test if permute raises error if ListOp contains operators with different num_qubits."""
+        list_op = ListOp([X, X ^ X])
+        self.assertRaises(AquaError, list_op.permute, [0, 1])
 
     @data(Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]))
     def test_op_hashing(self, op):
