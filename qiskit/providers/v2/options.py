@@ -12,8 +12,9 @@
 
 """Container class for backend options."""
 
+import types
 
-class Options:
+class Options(types.SimpleNamespace):
     """Base options object
 
     This class is the abstract class that all backend options are based
@@ -24,13 +25,10 @@ class Options:
     options.
     """
 
-    def __init__(self, **kwargs):
-        self.data = kwargs if kwargs else {}
-
     def update_options(self, **fields):
         """Update options with kwargs"""
-        self.data.update(fields)
+        self.__dict__.update(fields)
 
     def get(self, field, default=None):
         """Get an option value for a given key."""
-        return self.data.get(field, default)
+        return getattr(self, field, default)
