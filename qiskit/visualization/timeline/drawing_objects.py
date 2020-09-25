@@ -73,6 +73,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, List, Union
 
 import numpy as np
+
 from qiskit import circuit
 from qiskit.visualization.timeline import types
 from qiskit.visualization.exceptions import VisualizationError
