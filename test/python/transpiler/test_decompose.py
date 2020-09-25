@@ -19,6 +19,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import HGate
 from qiskit.circuit.library import CCXGate
+from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
 
 
@@ -100,3 +101,20 @@ class TestDecompose(QiskitTestCase):
         output = qc2.decompose()
 
         self.assertEqual(qc1, output)
+
+    def test_decompose_global_phase_1q(self):
+        """Test decomposition of circuit with global phase"""
+        qc = QuantumCircuit(1)
+        qc.rz(0.1, 0)
+        qc.ry(0.5, 0)
+        qc.global_phase += pi/4
+        qcd = qc.decompose()
+        self.assertEqual(Operator(qc), Operator(qcd))
+
+    def test_decompose_global_phase_2q(self):
+        """Test decomposition of circuit with global phase"""
+        qc = QuantumCircuit(2, global_phase=pi/4)
+        qc.rz(0.1, 0)
+        qc.rxx(0.2, 0, 1)
+        qcd = qc.decompose()
+        self.assertEqual(Operator(qc), Operator(qcd))
