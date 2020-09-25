@@ -14,6 +14,7 @@
 
 import types
 
+
 class Options(types.SimpleNamespace):
     """Base options object
 
