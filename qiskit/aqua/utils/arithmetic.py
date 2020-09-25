@@ -14,6 +14,7 @@
 Arithmetic Utilities
 """
 
+from typing import List, Tuple
 import numpy as np
 
 
@@ -93,3 +94,40 @@ def next_power_of_2_base(n):
         base += 1
 
     return base
+
+
+def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
+    """Return a sequence of transpositions, corresponding to the permutation.
+
+    Args:
+        permutation: The ``List[int]`` defining the permutation. An element at index ``j`` should be
+            permuted to index ``permutation[j]``.
+
+    Returns:
+        List of transpositions, corresponding to the permutation. For permutation = [3, 0, 2, 1],
+        returns [(0,1), (0,3)]
+    """
+    unchecked = [True] * len(permutation)
+    cyclic_form = []
+    for i in range(len(permutation)):
+        if unchecked[i]:
+            cycle = [i]
+            unchecked[i] = False
+            j = i
+            while unchecked[permutation[j]]:
+                j = permutation[j]
+                cycle.append(j)
+                unchecked[j] = False
+            if len(cycle) > 1:
+                cyclic_form.append(cycle)
+    cyclic_form.sort()
+    res = []
+    for x in cyclic_form:
+        len_x = len(x)
+        if len_x == 2:
+            res.append((x[0], x[1]))
+        elif len_x > 2:
+            first = x[0]
+            for y in x[len_x - 1:0:-1]:
+                res.append((first, y))
+    return res
