@@ -28,11 +28,11 @@ from abc import ABC
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
-from ..channels import Channel
-from ..exceptions import PulseError
-from ..interfaces import ScheduleComponent
-from ..schedule import Schedule
-
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.schedule import Schedule
 # pylint: disable=missing-return-doc
 
 
@@ -218,6 +218,38 @@ class Instruction(ScheduleComponent, ABC):
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Instruction':
+        """Modify and return self with parameters assigned according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            Self with updated parameters.
+        """
+        new_operands = list(self.operands)
+
+        for idx, op in enumerate(self.operands):
+            for parameter, value in value_dict.items():
+                if isinstance(op, ParameterExpression) and parameter in op.parameters:
+                    new_operands[idx] = new_operands[idx].assign(parameter, value)
+                elif (isinstance(op, Channel)
+                      and isinstance(op.index, ParameterExpression)
+                      and parameter in op.index.parameters):
+                    new_index = new_operands[idx].index.assign(parameter, value)
+                    if not new_index.parameters:
+                        new_index = float(new_index)
+                        if float(new_index).is_integer():
+                            # If it's not, allow Channel to raise an error upon initialization
+                            new_index = int(new_index)
+                    new_operands[idx] = type(op)(new_index)
+
+        self._operands = tuple(new_operands)
+        return self
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
