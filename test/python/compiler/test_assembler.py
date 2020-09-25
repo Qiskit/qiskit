@@ -413,6 +413,7 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_circuit_global_phase_gate_definitions(self):
         """Test circuit with global phase on gate definitions."""
         class TestGate(Gate):
+            """dummy gate"""
             def __init__(self):
                 super().__init__('test_gate', 1, [])
 
