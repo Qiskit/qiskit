@@ -35,25 +35,25 @@ class BackendV1(Backend, ABC):
 
     This abstract class is to be used for all Backend objects created by a
     provider. There are several classes of information contained in a Backend.
-    The first are the properties of class itself. These should be used to
-    defined the immutable characteristics of the backend. For a backend
-    that runs experiments this would be things like ``basis_gates`` that
-    do not change for the lifetime of the backend. The ``options``
-    attribute of the backend is used to contain the dynamic properties of
-    the backend. The intent is that these will all be user configurable. It
-    should be used more for runtime properties that **configure** how the
-    backend is used. For example, something like a ``shots`` field for a
-    backend that runs experiments which would contain an int for how many
-    shots to execute. The ``properties`` attribute is optionally defined and
-    is used to return measured properties, or properties of a backend that may
-    change over time. The simplest example of this would be a version string,
-    which will change as a backend is updated, but also could be something like
-    noise parameters for backends that run experiments.
+    The first are the attributes of the class itself. These should be used to
+    defined the immutable characteristics of the backend. The ``options``
+    attribute of the backend is used to contain the dynamic user configurable
+    options of the backend. It should be used more for runtime options
+    that configure how the backend is used. For example, something like a
+    ``shots`` field for a backend that runs experiments which would contain an
+    int for how many shots to execute. The ``properties`` attribute is
+    optionally defined :class:`~qiskit.providers.models.BackendProperties`
+    object and is used to return measured properties, or properties
+    of a backend that may change over time. The simplest example of this would
+    be a version string, which will change as a backend is updated, but also
+    could be something like noise parameters for backends that run experiments.
 
     This first version of the Backend abstract class is written to be mostly
-    backwards compatible with the v1 providers interface. This was done to ease
-    the transition for users and provider maintainers from v1 to v2. Expect,
-    future versions of this abstract class to change the data model and
+    backwards compatible with the v1 providers interface. This includes reusing
+    the model objects :class:`~qiskit.providers.models.BackendProperties` and
+    :class:`~qiskit.providers.models.BackendConfiguration`. This was done to
+    ease the transition for users and provider maintainers from v1 to v2.
+    Expect, future versions of this abstract class to change the data model and
     interface.
     """
     version = 1
@@ -203,8 +203,12 @@ class BackendV1(Backend, ABC):
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
                 For v1 providers migrating to this first version of a v2
                 provider interface a :class:`~qiskit.qobj.QasmQobj` or
-                :class:`~qiskit.qobj.PulseQobj` object. These will be
-                deprecated and removed from terra in the future.
+                :class:`~qiskit.qobj.PulseQobj` objects should probably be
+                supported too (but deprecated) for backwards compatibility. Be
+                sure to update the docstrings of subclasses implementing this
+                method to document that. New provider implementations should not
+                do this though as :mod:`qiskit.qobj` will be deprecated and
+                removed along with the legacy providers interface.
             options: Any kwarg options to pass to the backend for running the
                 config. If a key is also present in the options
                 attribute/object then the expectation is that the value
