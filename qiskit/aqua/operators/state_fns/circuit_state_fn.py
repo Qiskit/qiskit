@@ -137,12 +137,16 @@ class CircuitStateFn(StateFn):
                               coeff=np.conj(self.coeff),
                               is_measurement=(not self.is_measurement))
 
-    def compose(self, other: OperatorBase) -> OperatorBase:
-        if not self.is_measurement:
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+        if not self.is_measurement and not front:
             raise ValueError(
                 'Composition with a Statefunctions in the first operand is not defined.')
+        # type: ignore
+        new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
 
-        new_self, other = self._check_zero_for_composition_and_expand(other)
+        if front:
+            return other.compose(new_self)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..primitive_ops.circuit_op import CircuitOp
@@ -191,10 +195,12 @@ class CircuitStateFn(StateFn):
         if isinstance(other, CircuitStateFn) and other.is_measurement == self.is_measurement:
             # Avoid reimplementing tensor, just use CircuitOp's
             from ..primitive_ops.circuit_op import CircuitOp
-            from ..operator_globals import Zero
             c_op_self = CircuitOp(self.primitive, self.coeff)
             c_op_other = CircuitOp(other.primitive, other.coeff)
-            return c_op_self.tensor(c_op_other).compose(Zero)
+            c_op = c_op_self.tensor(c_op_other)
+            if isinstance(c_op, CircuitOp):
+                return CircuitStateFn(primitive=c_op.primitive, coeff=c_op.coeff,
+                                      is_measurement=self.is_measurement)
         # pylint: disable=cyclic-import
         from ..list_ops.tensored_op import TensoredOp
         return TensoredOp([self, other])
@@ -357,6 +363,11 @@ class CircuitStateFn(StateFn):
                     del self.primitive.data[i]
         return self
 
+    def _expand_dim(self, num_qubits: int) -> 'CircuitStateFn':
+        # this is equivalent to self.tensor(identity_operator), but optimized for better performance
+        # just like in tensor method, qiskit endianness is reversed here
+        return self.permute(list(range(num_qubits, num_qubits + self.num_qubits)))
+
     def permute(self, permutation: List[int]) -> 'CircuitStateFn':
         r"""
         Permute the qubits of the circuit.
@@ -368,5 +379,5 @@ class CircuitStateFn(StateFn):
         Returns:
             A new CircuitStateFn containing the permuted circuit.
         """
-        new_qc = QuantumCircuit(self.num_qubits).compose(self.primitive, qubits=permutation)
+        new_qc = QuantumCircuit(max(permutation) + 1).compose(self.primitive, qubits=permutation)
         return CircuitStateFn(new_qc, coeff=self.coeff, is_measurement=self.is_measurement)

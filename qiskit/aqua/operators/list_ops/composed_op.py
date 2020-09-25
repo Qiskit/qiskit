@@ -12,7 +12,7 @@
 
 """ ComposedOp Class """
 
-from typing import List, Union, cast
+from typing import List, Union, cast, Optional
 from functools import reduce, partial
 import numpy as np
 
@@ -82,24 +82,31 @@ class ComposedOp(ListOp):
     def adjoint(self) -> OperatorBase:
         return ComposedOp([op.adjoint() for op in reversed(self.oplist)], coeff=self.coeff)
 
-    def compose(self, other: OperatorBase) -> OperatorBase:
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+
+        new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
+        new_self = cast(ComposedOp, new_self)
+
+        if front:
+            return other.compose(new_self)
         # Try composing with last element in list
         if isinstance(other, ComposedOp):
-            return ComposedOp(self.oplist + other.oplist, coeff=self.coeff * other.coeff)
+            return ComposedOp(new_self.oplist + other.oplist, coeff=new_self.coeff * other.coeff)
 
         # Try composing with last element of oplist. We only try
         # this if that last element isn't itself an
         # ComposedOp, so we can tell whether composing the
         # two elements directly worked. If it doesn't,
         # continue to the final return statement below, appending other to the oplist.
-        if not isinstance(self.oplist[-1], ComposedOp):
-            comp_with_last = self.oplist[-1].compose(other)
+        if not isinstance(new_self.oplist[-1], ComposedOp):
+            comp_with_last = new_self.oplist[-1].compose(other)
             # Attempt successful
             if not isinstance(comp_with_last, ComposedOp):
-                new_oplist = self.oplist[0:-1] + [comp_with_last]
-                return ComposedOp(new_oplist, coeff=self.coeff)
+                new_oplist = new_self.oplist[0:-1] + [comp_with_last]
+                return ComposedOp(new_oplist, coeff=new_self.coeff)
 
-        return ComposedOp(self.oplist + [other], coeff=self.coeff)
+        return ComposedOp(new_self.oplist + [other], coeff=new_self.coeff)
 
     def eval(self,
              front: Union[str, dict, np.ndarray,

@@ -12,7 +12,7 @@
 
 """ PauliOp Class """
 
-from typing import Union, Set, Dict, Optional, cast
+from typing import Union, Set, Dict, cast, List, Optional
 import logging
 import numpy as np
 from scipy.sparse import spmatrix
@@ -27,6 +27,7 @@ from .primitive_op import PrimitiveOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..legacy.weighted_pauli_operator import WeightedPauliOperator
+from ... import AquaError
 
 logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
@@ -80,6 +81,9 @@ class PauliOp(PrimitiveOp):
 
         return self.primitive == other.primitive
 
+    def _expand_dim(self, num_qubits: int) -> 'PauliOp':
+        return PauliOp(Pauli(label='I'*num_qubits).kron(self.primitive), coeff=self.coeff)
+
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Both Paulis
         if isinstance(other, PauliOp):
@@ -95,25 +99,53 @@ class PauliOp(PrimitiveOp):
 
         return TensoredOp([self, other])
 
-    def compose(self, other: OperatorBase) -> OperatorBase:
-        other = self._check_zero_for_composition_and_expand(other)
+    def permute(self, permutation: List[int]) -> 'PauliOp':
+        """Permutes the sequence of Pauli matrices.
 
+        Args:
+            permutation: A list defining where each Pauli should be permuted. The Pauli at index
+                j of the primitive should be permuted to position permutation[j].
+
+        Returns:
+              A new PauliOp representing the permuted operator. For operator (X ^ Y ^ Z) and
+              indices=[1,2,4], it returns (X ^ I ^ Y ^ Z ^ I).
+
+        Raises:
+            AquaError: if indices do not define a new index for each qubit.
+        """
+        pauli_string = self.primitive.__str__()
+        length = max(permutation) + 1  # size of list must be +1 larger then its max index
+        new_pauli_list = ['I'] * length
+        if len(permutation) != self.num_qubits:
+            raise AquaError("List of indices to permute must have the same size as Pauli Operator")
+        for i, index in enumerate(permutation):
+            new_pauli_list[-index - 1] = pauli_string[-i - 1]
+        return PauliOp(Pauli(label=''.join(new_pauli_list)), self.coeff)
+
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+
+        new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
+        new_self = cast(PauliOp, new_self)
+
+        if front:
+            return other.compose(new_self)
         # If self is identity, just return other.
-        if not any(self.primitive.x + self.primitive.z):  # type: ignore
-            return other * self.coeff  # type: ignore
+        if not any(new_self.primitive.x + new_self.primitive.z):  # type: ignore
+            return other * new_self.coeff  # type: ignore
 
         # Both Paulis
         if isinstance(other, PauliOp):
-            product, phase = Pauli.sgn_prod(self.primitive, other.primitive)
-            return PrimitiveOp(product, coeff=self.coeff * other.coeff * phase)
+            product, phase = Pauli.sgn_prod(new_self.primitive, other.primitive)
+            return PrimitiveOp(product, coeff=new_self.coeff * other.coeff * phase)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
         if isinstance(other, (CircuitOp, CircuitStateFn)):
-            return self.to_circuit_op().compose(other)
+            return new_self.to_circuit_op().compose(other)
 
-        return super().compose(other)
+        return super(PauliOp, new_self).compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         if self.num_qubits > 16 and not massive:

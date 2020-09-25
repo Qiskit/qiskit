@@ -12,7 +12,7 @@
 
 """ OperatorStateFn Class """
 
-from typing import Union, Set
+from typing import Union, Set, List
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
@@ -80,6 +80,16 @@ class OperatorStateFn(StateFn):
         return OperatorStateFn(self.primitive.adjoint(),
                                coeff=np.conj(self.coeff),
                                is_measurement=(not self.is_measurement))
+
+    def _expand_dim(self, num_qubits: int) -> 'OperatorStateFn':
+        return OperatorStateFn(self.primitive._expand_dim(num_qubits),
+                               coeff=self.coeff,
+                               is_measurement=self.is_measurement)
+
+    def permute(self, permutation: List[int]) -> 'OperatorStateFn':
+        return OperatorStateFn(self.primitive.permute(permutation),
+                               coeff=self.coeff,
+                               is_measurement=self.is_measurement)
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         if isinstance(other, OperatorStateFn):

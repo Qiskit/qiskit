@@ -108,30 +108,37 @@ class CircuitOp(PrimitiveOp):
 
         return TensoredOp([self, other])
 
-    def compose(self, other: OperatorBase) -> OperatorBase:
-        other = self._check_zero_for_composition_and_expand(other)
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+
+        new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
+        new_self = cast(CircuitOp, new_self)
+
+        if front:
+            return other.compose(new_self)
+        # ignore
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..operator_globals import Zero
         from ..state_fns import CircuitStateFn
         from .pauli_op import PauliOp
         from .matrix_op import MatrixOp
 
-        if other == Zero ^ self.num_qubits:
-            return CircuitStateFn(self.primitive, coeff=self.coeff)
+        if other == Zero ^ new_self.num_qubits:
+            return CircuitStateFn(new_self.primitive, coeff=new_self.coeff)
 
         if isinstance(other, (PauliOp, CircuitOp, MatrixOp)):
             other = other.to_circuit_op()
 
         if isinstance(other, (CircuitOp, CircuitStateFn)):
-            new_qc = other.primitive.compose(self.primitive)  # type: ignore
+            new_qc = other.primitive.compose(new_self.primitive)  # type: ignore
             if isinstance(other, CircuitStateFn):
                 return CircuitStateFn(new_qc,
                                       is_measurement=other.is_measurement,
-                                      coeff=self.coeff * other.coeff)
+                                      coeff=new_self.coeff * other.coeff)
             else:
-                return CircuitOp(new_qc, coeff=self.coeff * other.coeff)
+                return CircuitOp(new_qc, coeff=new_self.coeff * other.coeff)
 
-        return super().compose(other)
+        return super(CircuitOp, new_self).compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         if self.num_qubits > 16 and not massive:
@@ -219,6 +226,9 @@ class CircuitOp(PrimitiveOp):
                     del self.primitive.data[i]  # type: ignore
         return self
 
+    def _expand_dim(self, num_qubits: int) -> 'CircuitOp':
+        return self.permute(list(range(num_qubits, num_qubits + self.num_qubits)))
+
     def permute(self, permutation: List[int]) -> 'CircuitOp':
         r"""
         Permute the qubits of the circuit.
@@ -230,5 +240,5 @@ class CircuitOp(PrimitiveOp):
         Returns:
             A new CircuitOp containing the permuted circuit.
         """
-        new_qc = QuantumCircuit(self.num_qubits).compose(self.primitive, qubits=permutation)
+        new_qc = QuantumCircuit(max(permutation) + 1).compose(self.primitive, qubits=permutation)
         return CircuitOp(new_qc, coeff=self.coeff)
