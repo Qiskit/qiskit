@@ -199,7 +199,7 @@ class BackendV1(Backend, ABC):
 
         Args:
             run_input (QuantumCircuit or Schedule or list): An individual or a
-                list of of :class:`~qiskit.circuits.QuantumCircuit`circuits or
+                list of :class:`~qiskit.circuits.QuantumCircuit` or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
                 For v1 providers migrating to this first version of a v2
                 provider interface a :class:`~qiskit.qobj.QasmQobj` or

@@ -77,7 +77,7 @@ class JobV1(Job, ABC):
         return self.status() == JobStatus.CANCELLED
 
     def in_final_state(self) -> bool:
-        """Return whether the job is in a final job state."""
+        """Return whether the job is in a final job state such as ``DONE`` or ``ERROR``."""
         return self.status() in JOB_FINAL_STATES
 
     def wait_for_final_state(
