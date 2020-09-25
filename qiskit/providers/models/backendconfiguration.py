@@ -206,6 +206,8 @@ class QasmBackendConfiguration:
                  conditional, open_pulse, memory,
                  max_shots, coupling_map, dynamic_reprate_enabled=False,
                  rep_delay_range=None, default_rep_delay=None, max_experiments=None,
+                 meas_kernels=None, discriminators=None,
+                 default_meas_kernel=None, default_discriminator=None,
                  sample_name=None, n_registers=None, register_map=None,
                  configurable=None, credits_required=None, online_date=None,
                  display_name=None, description=None, tags=None, **kwargs):
@@ -236,6 +238,10 @@ class QasmBackendConfiguration:
             default_rep_delay (float): Value of ``rep_delay`` if not specified by user and
                 ``dynamic_reprate_enabled=True``.
             max_experiments (int): The maximum number of experiments per job
+            meas_kernels (List[str]): Available measurement kernels on the backend.
+            discriminators (List[str]): Available discriminators on the backend.
+            default_meas_kernel (str): Default measurement kernel used on the backend.
+            default_discriminator (str): Default discriminator used on the backend.
             sample_name (str): Sample name for the backend
             n_registers (int): Number of register slots available for feedback
                 (if conditional is True)
@@ -272,6 +278,16 @@ class QasmBackendConfiguration:
             self.rep_delay_range = [_rd * 1e-6 for _rd in rep_delay_range]  # convert to sec
         if default_rep_delay:
             self.default_rep_delay = default_rep_delay * 1e-6   # convert to sec
+
+        if meas_kernels is not None:
+            self.meas_kernels = meas_kernels
+        if discriminators is not None:
+            self.discriminators = discriminators
+
+        if default_meas_kernel is not None:
+            self.default_meas_kernel = default_meas_kernel
+        if default_discriminator is not None:
+            self.default_discrimator = default_discriminator
 
         # max_experiments must be >=1
         if max_experiments:
@@ -366,6 +382,16 @@ class QasmBackendConfiguration:
             out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]
         if hasattr(self, 'default_rep_delay'):
             out_dict['default_rep_delay'] = self.default_rep_delay*1e6
+
+        if hasattr(self, 'meas_kernels'):
+            out_dict['meas_kernels'] = self.meas_kernels
+        if hasattr(self, 'discriminators'):
+            out_dict['discriminators'] = self.discriminators
+
+        if hasattr(self, 'default_meas_kernel'):
+            out_dict['default_meas_kernel'] = self.default_meas_kernel
+        if hasattr(self, 'default_discriminator'):
+            out_dict['default_discriminator'] = self.default_discriminator
 
         for kwarg in ['max_experiments', 'sample_name', 'n_registers',
                       'register_map', 'configurable', 'credits_required',
@@ -490,8 +516,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             dt: Qubit drive channel timestep in nanoseconds.
             dtm: Measurement drive channel timestep in nanoseconds.
             rep_times: Supported repetition times (program execution time) for backend in μs.
-            meas_kernels: Supported measurement kernels.
-            discriminators: Supported discriminators.
+            meas_kernels (List[str]): Available measurement kernels on the backend.
+            discriminators (List[str]): Available discriminators on the backend.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
             channel_bandwidth (list): Bandwidth of all channels
                 (qubit, measurement, and U)
