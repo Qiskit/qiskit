@@ -30,6 +30,7 @@ class Provider:
 
 class ProviderV1(Provider, ABC):
     """Base class for a Backend Provider."""
+    version = 1
 
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.

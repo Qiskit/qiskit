@@ -41,6 +41,7 @@ class JobV1(Job, ABC):
     future versions of this abstract class to change the data model and
     interface.
     """
+    version = 1
     _async = True
 
     def __init__(self, backend: Backend, job_id: str, **kwargs) -> None:
