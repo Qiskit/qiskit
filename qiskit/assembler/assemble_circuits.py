@@ -113,9 +113,6 @@ def _assemble_circuit(
             # measurement result may be needed for a conditional gate.
             if instruction.name == "measure" and is_conditional_experiment:
                 instruction.register = clbit_indices
-        if op_context[0].definition is not None and op_context[0].definition.global_phase:
-            # pylint:  disable=no-member
-            header.global_phase += float(op_context[0].definition.global_phase)
 
         # To convert to a qobj-style conditional, insert a bfunc prior
         # to the conditional instruction to map the creg ?= val condition
