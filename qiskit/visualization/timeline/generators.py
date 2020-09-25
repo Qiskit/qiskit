@@ -435,7 +435,7 @@ def gen_barrier(barrier: types.Barrier,
 def gen_bit_link(link: types.GateLink,
                  formatter: Dict[str, Any]
                  ) -> List[drawing_objects.GateLinkData]:
-    """Generate bit link line.
+    """Generate gate link line.
 
     Line color depends on the operand type.
 
