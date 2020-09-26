@@ -39,6 +39,7 @@ only one layout function can be chosen for each stylesheet.
 
 import warnings
 from typing import Dict, Any, Mapping
+
 from qiskit.visualization.timeline import generators, layouts
 
 
