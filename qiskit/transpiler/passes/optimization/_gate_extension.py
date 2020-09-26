@@ -61,11 +61,12 @@ if HAS_Z3:
     TdgGate._trivial_if = lambda self, x1: True
     TdgGate._postconditions = lambda self, x1, y1: y1 == x1
 
-    # RzGate = U1Gate
+    # RzGate
     RZGate._trivial_if = lambda self, x1: True
     RZGate._postconditions = lambda self, x1, y1: y1 == x1
-    CRZGate._trivial_if = lambda self, x1: True
     CRZGate._postconditions = lambda self, x1, y1: y1 == x1
+
+    #  U1Gate
     U1Gate._trivial_if = lambda self, x1: True
     U1Gate._postconditions = lambda self, x1, y1: y1 == x1
     CU1Gate._trivial_if = lambda self, x1: True

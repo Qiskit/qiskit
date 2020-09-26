@@ -18,7 +18,7 @@ from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library.standard_gates import CZGate, CRZGate, CU1Gate, MCU1Gate
+from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
 from . import _gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
@@ -167,7 +167,7 @@ class HoareOptimizer(TransformationPass):
             remove = self._check_removal(ctrlvar)
 
         # try with other qubit as 'target'.
-        if isinstance(gate, (CZGate, CRZGate, CU1Gate, MCU1Gate)):
+        if isinstance(gate, (CZGate, CU1Gate, MCU1Gate)):
             while not remove and qb[0] > 0:
                 qb[0] = qb[0] - 1
                 ctrl_vars = ctrlvar[:qb[0]] + ctrlvar[qb[0] + 1:] + trgtvar
