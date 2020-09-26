@@ -27,7 +27,7 @@ the scheduled circuit visualization.
 
 Type of stylesheet is broadly separated into `formatter`, `generator` and `layout`.
 The formatter is a nested dictionary of drawing parameters to control the appearance of
-each visualization element. This takes similar data structure to the `rcParams` of `matplotlib`.
+each visualization element. This data structure is similar to the `rcParams` of `matplotlib`.
 
 The generator is a list of callback functions that generates drawing objects from
 a given data source and the formatter. Each item can take multiple functions so that
