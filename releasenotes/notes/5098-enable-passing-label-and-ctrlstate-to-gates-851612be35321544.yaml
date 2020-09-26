@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Some gates did not allow passing label or ctrl_state parameters to them even though they 
+    were implemented in their respective classes. This fixes issue #5098. The following is the list
+    of gates that now properly accept label and/or ctrl_state parameters: 
+
+    label: 
+      h, i, id, ms, p, rccx, rcccx, rz, s, sdg, swap, sx, sxdg, t, tdg, u, u1, u2, u3, y, z
+
+    label + ctrl_state: 
+      ccx, fredkin, mcu1, toffoli, mcx, mct
