@@ -724,8 +724,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
-                    alpha=0.05, linewidth=0)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color=plt.rcParams['grid.color'],
+                    alpha=0.2, linewidth=0)
 
     # Get rid of the panes
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -829,7 +829,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
+    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams['figure.facecolor'], zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
