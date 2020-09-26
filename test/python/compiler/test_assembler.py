@@ -171,12 +171,15 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # turn on dynamic rep rates, rep_delay should be set
-        # now remove rep_delay and enable dynamic rep rates; use ``default_rep_delay``
         setattr(backend_config, 'dynamic_reprate_enabled', True)
         qobj = assemble(self.circ, backend, rep_delay=rep_delay)
         self.assertEqual(qobj.config.rep_delay, 2.2)
 
-        # use ``rep_delay`` outside of ``rep_delay_range
+        # test ``rep_delay=0``
+        qobj = assemble(self.circ, backend, rep_delay=0)
+        self.assertEqual(qobj.config.rep_delay, 0)
+
+        # use ``rep_delay`` outside of ``rep_delay_range```
         rep_delay_large = 5.0e-6
         with self.assertRaises(SchemaValidationError):
             assemble(self.circ, backend, rep_delay=rep_delay_large)
@@ -406,6 +409,28 @@ class TestCircuitAssembler(QiskitTestCase):
                          0)
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
+
+    def test_circuit_global_phase_gate_definitions(self):
+        """Test circuit with global phase on gate definitions."""
+        class TestGate(Gate):
+            """dummy gate"""
+            def __init__(self):
+                super().__init__('test_gate', 1, [])
+
+            def _define(self):
+                circ_def = QuantumCircuit(1)
+                circ_def.x(0)
+                circ_def.global_phase = np.pi
+                self._definition = circ_def
+
+        gate = TestGate()
+        circ = QuantumCircuit(1)
+        circ.append(gate, [0])
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), 0)
+        circ.global_phase = np.pi / 2
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), np.pi/2)
 
     def test_pulse_gates_single_circ(self):
         """Test that we can add calibrations to circuits."""
