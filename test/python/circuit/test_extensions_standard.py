@@ -347,7 +347,7 @@ class TestStandard1Q(QiskitTestCase):
     def test_h(self):
         self.circuit.h(self.qr[1], label="Labeling h")
         op, qargs, _ = self.circuit[0]
-        label = self.circuit[0][0].label 
+        label = self.circuit[0][0].label
         self.assertEqual(op.name, 'h')
         self.assertEqual(qargs, [self.qr[1]])
         self.assertEqual(label, "Labeling h")
@@ -510,7 +510,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.name, 'rz')
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[1]])
-        self.assertEqual(label="RZ label")
+        self.assertEqual(label, "RZ label")
 
     def test_rz_wires(self):
         self.circuit.rz(1, 1)
