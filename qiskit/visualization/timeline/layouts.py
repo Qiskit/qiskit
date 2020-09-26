@@ -21,7 +21,7 @@ In this stylesheet entry the input data is a list of `types.Bits` and returns a
 sorted list of `types.Bits`.
 
 
-The function signature of the generator is restricted to:
+The function signature of the layout is restricted to:
 
     ```python
 
@@ -37,7 +37,7 @@ In this stylesheet entry the input data is `Tuple[int, int]` that represents hor
 axis limit of the output image. The layout function returns `types.HorizontalAxis` data
 which is consumed by the plotter API to make horizontal axis.
 
-The format of generator is restricted to:
+The function signature of the layout is restricted to:
 
     ```python
 

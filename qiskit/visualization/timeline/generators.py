@@ -26,7 +26,7 @@ There are 4 types of generators in this module.
 In this stylesheet entry the input data is `types.ScheduledGate` and generates gate objects
 such as time buckets and gate name annotations.
 
-The format of generator is restricted to:
+The function signature of the generator is restricted to:
 
     ```python
 
@@ -43,7 +43,7 @@ The format of generator is restricted to:
 In this stylesheet entry the input data is `types.Bits` and generates timeline objects
 such as zero line and name of bit associated with the timeline.
 
-The format of generator is restricted to:
+The function signature of the generator is restricted to:
 
     ```python
 
@@ -60,7 +60,7 @@ The format of generator is restricted to:
 In this stylesheet entry the input data is `types.Barrier` and generates barrier objects
 such as barrier lines.
 
-The format of generator is restricted to:
+The function signature of the generator is restricted to:
 
     ```python
 
@@ -77,7 +77,7 @@ The format of generator is restricted to:
 In this stylesheet entry the input data is `types.GateLink` and generates barrier objects
 such as barrier lines.
 
-The format of generator is restricted to:
+The function signature of the generator is restricted to:
 
     ```python
 
