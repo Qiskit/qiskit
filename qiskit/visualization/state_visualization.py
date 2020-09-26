@@ -27,6 +27,7 @@ from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
+    import matplotlib as mpl
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
@@ -40,6 +41,7 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
     from qiskit.circuit.tools.pi_check import pi_check
+    from packaging import version
 
 
 if HAS_MATPLOTLIB:
@@ -712,6 +714,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
+    if version.parse(mpl.__version__) >= version.parse('3.3.0'):
+        ax.axes.set_box_aspect((1, 1, 1))
+
     # start the plotting
     # Plot semi-transparent sphere
     u = np.linspace(0, 2 * np.pi, 25)
@@ -719,8 +724,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
-                    alpha=0.05, linewidth=0)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color=plt.rcParams['grid.color'],
+                    alpha=0.2, linewidth=0)
 
     # Get rid of the panes
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -824,7 +829,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
+    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams['figure.facecolor'], zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
