@@ -140,7 +140,7 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
-        if style and isinstance(style, dict) and 'name' in style.keys():
+        if isinstance(style, dict) and 'name' in style.keys():
             if style['name'] == 'iqx':
                 self._style = IQXStyle()
             elif style['name'] == 'bw':
