@@ -224,7 +224,6 @@ class DrawerCanvas:
 
         # update coordinate
         y0 = -self.formatter['margin.top']
-        y_interval = self.formatter['margin.interval']
         for bit in self.layout['bit_arrange'](self.bits):
             # remove classical bit
             if isinstance(bit, circuit.Clbit) and not self.formatter['control.show_clbits']:
@@ -234,9 +233,9 @@ class DrawerCanvas:
                 continue
             offset = y0 - 0.5
             self.assigned_coordinates[bit] = offset
-            y0 = offset - (0.5 + y_interval)
+            y0 = offset - 0.5
         self.vmax = 0
-        self.vmin = y0 + y_interval - self.formatter['margin.bottom']
+        self.vmin = y0 - self.formatter['margin.bottom']
 
         # add data
         temp_gate_links = dict()

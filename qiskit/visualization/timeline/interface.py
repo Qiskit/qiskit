@@ -26,7 +26,7 @@ def draw(program: circuit.QuantumCircuit,
          show_barriers: Optional[bool] = None,
          show_delays: Optional[bool] = None,
          show_labels: bool = True,
-         plotter: Optional[str] = types.Plotter.Mpl.value,
+         plotter: Optional[str] = types.Plotter.MPL.value,
          axis: Optional[Any] = None,
          filename: Optional[str] = None):
     """Generate visualization data for pulse programs.
@@ -197,7 +197,7 @@ def draw(program: circuit.QuantumCircuit,
     # Call plotter API and generate image
     #
 
-    if plotter == types.Plotter.Mpl:
+    if plotter == types.Plotter.MPL.value:
         try:
             from qiskit.visualization.timeline.plotters import MplPlotter
         except ImportError:
