@@ -26,7 +26,7 @@ except ImportError:
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.standard_gates import CXGate, CCXGate, CYGate, CZGate
 from qiskit.circuit.library.standard_gates import TGate, TdgGate, SGate, SdgGate, RZGate, U1Gate
-from qiskit.circuit.library.standard_gates import SwapGate, CSwapGate, CRZGate, CU1Gate
+from qiskit.circuit.library.standard_gates import SwapGate, CSwapGate, CRZGate, CU1Gate, MCU1Gate
 
 if HAS_Z3:
     # FLIP GATES #
@@ -70,6 +70,8 @@ if HAS_Z3:
     U1Gate._postconditions = lambda self, x1, y1: y1 == x1
     CU1Gate._trivial_if = lambda self, x1: True
     CU1Gate._postconditions = lambda self, x1, y1: y1 == x1
+    MCU1Gate._trivial_if = lambda self, x1: True
+    MCU1Gate._postconditions = lambda self, x1, y1: y1 == x1
 
     # MULTI-QUBIT GATES #
     # SwapGate
