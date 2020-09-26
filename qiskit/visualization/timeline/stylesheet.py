@@ -21,7 +21,7 @@ The stylesheet `QiskitTimelineStyle` is initialized with the hard-corded default
 The `QiskitTimelineStyle` is a wrapper class of python dictionary with
 the nested keys written such as `<type>.<group>.<item>` to represent a specific item
 from many configuration options. This key representation is imitative of
-`rcParams` of `matplotlib`.  However, the `QiskitTimelineStyle` is not necessary be compatible
+`rcParams` of `matplotlib`.  However, the `QiskitTimelineStyle` does not need to be compatible
 with the `rcParams` because the timeline stylesheet is heavily specialized to the context of
 the scheduled circuit visualization.
 
