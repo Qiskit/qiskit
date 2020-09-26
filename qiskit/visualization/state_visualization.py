@@ -27,7 +27,6 @@ from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
-    import matplotlib as mpl
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
@@ -41,7 +40,6 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
     from qiskit.circuit.tools.pi_check import pi_check
-    from packaging import version
 
 
 if HAS_MATPLOTLIB:
@@ -714,7 +712,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
-    if version.parse(mpl.__version__) >= version.parse('3.3.0'):
+    # Force aspect ratio
+    # MPL 3.2 or previous do not have set_box_aspect
+    if hasattr(ax.axes, 'set_box_aspect'):
         ax.axes.set_box_aspect((1, 1, 1))
 
     # start the plotting
