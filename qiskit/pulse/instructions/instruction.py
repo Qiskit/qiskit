@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -30,11 +28,11 @@ from abc import ABC
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
-from ..channels import Channel
-from ..exceptions import PulseError
-from ..interfaces import ScheduleComponent
-from ..schedule import Schedule
-
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.schedule import Schedule
 # pylint: disable=missing-return-doc
 
 
@@ -183,19 +181,6 @@ class Instruction(ScheduleComponent, ABC):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: Optional[str] = None) -> Schedule:
-        """Return a new schedule which is the union of `self` and `schedule`.
-
-        Args:
-            *schedules: Schedules to be take the union with this Instruction.
-            name: Name of the new schedule. Defaults to name of self
-        """
-        warnings.warn("The union method is deprecated. Use insert with start_time=0.",
-                      DeprecationWarning)
-        if name is None:
-            name = self.name
-        return Schedule(self, *schedules, name=name)
-
     def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
         """Return a new schedule shifted forward by `time`.
 
@@ -234,13 +219,44 @@ class Instruction(ScheduleComponent, ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Instruction':
+        """Modify and return self with parameters assigned according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            Self with updated parameters.
+        """
+        new_operands = list(self.operands)
+
+        for idx, op in enumerate(self.operands):
+            for parameter, value in value_dict.items():
+                if isinstance(op, ParameterExpression) and parameter in op.parameters:
+                    new_operands[idx] = new_operands[idx].assign(parameter, value)
+                elif (isinstance(op, Channel)
+                      and isinstance(op.index, ParameterExpression)
+                      and parameter in op.index.parameters):
+                    new_index = new_operands[idx].index.assign(parameter, value)
+                    if not new_index.parameters:
+                        new_index = float(new_index)
+                        if float(new_index).is_integer():
+                            # If it's not, allow Channel to raise an error upon initialization
+                            new_index = int(new_index)
+                    new_operands[idx] = type(op)(new_index)
+
+        self._operands = tuple(new_operands)
+        return self
+
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: float = 1, plot_all: bool = False,
              plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
-             scaling: float = None,
              channels: Optional[List[Channel]] = None):
         """Plot the instruction.
 
@@ -257,18 +273,12 @@ class Instruction(ScheduleComponent, ABC):
             table: Draw event table for supported instructions
             label: Label individual instructions
             framechange: Add framechange indicators
-            scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
-
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

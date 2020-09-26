@@ -36,7 +36,8 @@ $ python
 >>> qc.cx(0, 1)
 >>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
->>> result = backend_sim.run(assemble(qc)).result()
+>>> transpiled_qc = transpile(qc, backend_sim)
+>>> result = backend_sim.run(assemble(transpiled_qc)).result()
 >>> print(result.get_counts(qc))
 ```
 
@@ -119,7 +120,7 @@ https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
 
 The changelog for the current release can be found in the releases tab:
 ![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
-The changelog provides a quick overview of noteable changes for a given
+The changelog provides a quick overview of noteble changes for a given
 release.
 
 Additionally, as part of each release detailed release notes are written to

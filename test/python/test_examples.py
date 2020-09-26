@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -32,7 +30,6 @@ ibmq_examples_dir = os.path.join(examples_dir, 'ibmq')
 class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
 
-    @unittest.skipIf(os.name == 'nt', 'Skip on windows until #2616 is fixed')
     @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
                      "Multiprocess spawn fails on macOS python 3.8 without "
                      "__name__ == '__main__' guard")
@@ -46,15 +43,15 @@ class TestPythonExamples(QiskitTestCase):
                 example_path = os.path.join(examples_dir, example)
                 cmd = [sys.executable, example_path]
                 run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE)
+                                               stderr=subprocess.PIPE,
+                                               env={**os.environ, "PYTHONIOENCODING": "utf8"})
                 stdout, stderr = run_example.communicate()
                 error_string = "Running example %s failed with return code %s\n" % (
                     example, run_example.returncode)
                 error_string += "stdout:%s\nstderr: %s" % (
-                    stdout.decode('utf8'), stderr.decode('utf8'))
+                    stdout, stderr)
                 self.assertEqual(run_example.returncode, 0, error_string)
 
-    @unittest.skipIf(os.name == 'nt', 'Skip on windows until #2616 is fixed')
     @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
                      "Multiprocess spawn fails on macOS python 3.8 without "
                      "__name__ == '__main__' guard")
@@ -74,7 +71,8 @@ class TestPythonExamples(QiskitTestCase):
                 example_path = os.path.join(ibmq_examples_dir, example)
                 cmd = [sys.executable, example_path]
                 run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE)
+                                               stderr=subprocess.PIPE,
+                                               env={**os.environ, "PYTHONIOENCODING": "utf8"})
                 stdout, stderr = run_example.communicate()
                 error_string = "Running example %s failed with return code %s\n" % (
                     example, run_example.returncode)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -110,12 +108,12 @@ class TestGraySynth(QiskitTestCase):
         and only T gates as phase rotations,
 
         And should return the following circuit (or an equivalent one):
-                ┌───┐┌───┐     ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐     ┌───┐
-        q_0: |0>┤ T ├┤ X ├─────┤ T ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├─────┤ X ├
-                ├───┤└─┬─┘┌───┐└───┘└─┬─┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘┌───┐└─┬─┘
-        q_1: |0>┤ X ├──┼──┤ T ├───────■────┼─────────┼─────────┼─────────■──┤ X ├──┼──
-                └─┬─┘  │  └───┘            │         │         │            └─┬─┘  │
-        q_2: |0>──■────┼───────────────────┼─────────■─────────┼──────────────■────┼──
+                ┌───┐┌───┐     ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐     ┌───┐┌───┐
+        q_0: |0>┤ T ├┤ X ├─────┤ T ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ T ├─────┤ X ├┤ X ├
+                ├───┤└─┬─┘┌───┐└───┘└─┬─┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘└───┘┌───┐└─┬─┘└─┬─┘
+        q_1: |0>┤ X ├──┼──┤ T ├───────■────┼─────────┼─────────┼───────┤ X ├──■────┼──
+                └─┬─┘  │  └───┘            │         │         │       └─┬─┘       │
+        q_2: |0>──■────┼───────────────────┼─────────■─────────┼─────────■─────────┼──
                        │                   │                   │                   │
         q_3: |0>───────■───────────────────■───────────────────■───────────────────■──
         """
@@ -142,9 +140,61 @@ class TestGraySynth(QiskitTestCase):
         c_compare.t(q[0])
         c_compare.cx(q[3], q[0])
         c_compare.t(q[0])
-        c_compare.cx(q[1], q[0])
         c_compare.cx(q[2], q[1])
+        c_compare.cx(q[1], q[0])
         c_compare.cx(q[3], q[0])
+        unitary_compare = UnitaryGate(Operator(c_compare))
+
+        # Check if the two circuits are equivalent
+        self.assertEqual(unitary_gray, unitary_compare)
+
+    def test_ccz(self):
+        """Test synthesis of the doubly-controlled Z gate.
+
+        The diagonal operator in Example 4.3
+            U|x> = e^(2.pi.i.f(x))|x>,
+        where
+            f(x) = 1/8*(x0 + x1 + x2 - x0^x1 - x0^x2 - x1^x2 + x0^x1^x2)
+
+        The algorithm should take the following matrix as an input:
+        S = [[1, 0, 0, 1, 1, 0, 1],
+             [0, 1, 0, 1, 0, 1, 1],
+             [0, 0, 1, 0, 1, 1, 1]]
+
+        and only T and T* gates as phase rotations,
+
+        And should return the following circuit (or an equivalent one):
+                ┌───┐
+        q_0: |0>┤ T ├───────■──────────────■───────────────────■──────────────■──
+                └───┘┌───┐┌─┴─┐┌───┐       │                   │            ┌─┴─┐
+        q_1: |0>─────┤ T ├┤ X ├┤ T*├───────┼─────────■─────────┼─────────■──┤ X ├
+                     └───┘└───┘└───┘┌───┐┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐┌───┐┌─┴─┐└───┘
+        q_2: |0>────────────────────┤ T ├┤ X ├┤ T*├┤ X ├┤ T*├┤ X ├┤ T ├┤ X ├─────
+                                    └───┘└───┘└───┘└───┘└───┘└───┘└───┘└───┘
+        """
+        cnots = [[1, 0, 0, 1, 1, 0, 1],
+                 [0, 1, 0, 1, 0, 1, 1],
+                 [0, 0, 1, 0, 1, 1, 1]]
+        angles = ['t', 't', 't', 'tdg', 'tdg', 'tdg', 't']
+        c_gray = graysynth(cnots, angles)
+        unitary_gray = UnitaryGate(Operator(c_gray))
+
+        # Create the circuit displayed above:
+        q = QuantumRegister(3, 'q')
+        c_compare = QuantumCircuit(q)
+        c_compare.t(q[0])
+        c_compare.t(q[1])
+        c_compare.cx(q[0], q[1])
+        c_compare.tdg(q[1])
+        c_compare.t(q[2])
+        c_compare.cx(q[0], q[2])
+        c_compare.tdg(q[2])
+        c_compare.cx(q[1], q[2])
+        c_compare.tdg(q[2])
+        c_compare.cx(q[0], q[2])
+        c_compare.t(q[2])
+        c_compare.cx(q[1], q[2])
+        c_compare.cx(q[0], q[1])
         unitary_compare = UnitaryGate(Operator(c_compare))
 
         # Check if the two circuits are equivalent
@@ -189,6 +239,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
                  [1, 1, 0, 1, 1, 1],
                  [0, 0, 1, 1, 1, 0]]
         c_patel = cnot_synth(state)
+        unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
         q = QuantumRegister(6, 'q')
@@ -208,6 +259,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
         c_compare.cx(q[0], q[1])
         c_compare.cx(q[0], q[4])
         c_compare.cx(q[0], q[3])
+        unitary_compare = UnitaryGate(Operator(c_compare))
 
         # Check if the two circuits are equivalent
-        self.assertEqual(c_patel, c_compare)
+        self.assertEqual(unitary_patel, unitary_compare)

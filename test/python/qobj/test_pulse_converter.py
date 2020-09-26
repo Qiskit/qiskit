@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -191,6 +189,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
+        super().setUp()
         self.linear = Waveform(np.arange(0, 0.01), name='linear')
         self.pulse_library = [PulseLibraryItem(name=self.linear.name,
                                                samples=self.linear.samples.tolist())]

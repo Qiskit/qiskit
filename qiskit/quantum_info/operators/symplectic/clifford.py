@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020
@@ -39,7 +37,7 @@ class Clifford(BaseOperator):
     from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
-    * Rows *N-1* to *2N-1* are the *stabilizer* group generators.
+    * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
     The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
     can be accessed using the :attr:`table` attribute. The destabilizer or
@@ -113,7 +111,7 @@ class Clifford(BaseOperator):
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
-            if not data.is_unitary() or set(data._input_dims) != set([2]):
+            if not data.is_unitary() or set(data._input_dims) != {2}:
                 raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
                 np.eye(2 * len(data._input_dims), dtype=np.bool))

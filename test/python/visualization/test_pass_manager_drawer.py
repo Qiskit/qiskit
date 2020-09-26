@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -52,6 +50,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
     def setUp(self):
+        super().setUp()
         coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]
         coupling_map = CouplingMap(couplinglist=coupling)
         basis_gates = ['u1', 'u3', 'u2', 'cx']

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,7 +25,7 @@ class U3Gate(Gate):
 
     .. math::
         U3(\theta, \phi, \lambda) =
-            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -101,17 +99,7 @@ class U3Gate(Gate):
         ], dtype=complex)
 
 
-class CU3Meta(type):
-    """A metaclass to ensure that Cu3Gate and CU3Gate are of the same type.
-
-    Can be removed when Cu3Gate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CU3Gate, Cu3Gate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CU3Gate(ControlledGate, metaclass=CU3Meta):
+class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
 
     This is a controlled version of the U3 gate (generic single qubit rotation).
@@ -140,7 +128,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 1 & 0                   & 0 & 0 \\
                 0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     .. note::
@@ -166,15 +154,15 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
                     0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
 
     def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = U3Gate(theta, phi, lam)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=U3Gate(theta, phi, lam))
 
     def _define(self):
         """
@@ -201,7 +189,9 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -209,10 +199,15 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
-        return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return CU3Gate(
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            ctrl_state=self.ctrl_state
+        )
 
     def to_matrix(self):
-        """Return a numpy.array for the CRY gate."""
+        """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
@@ -231,18 +226,6 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                  [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
                  [0, 0, 0, 1]],
                 dtype=complex)
-
-
-class Cu3Gate(CU3Gate, metaclass=CU3Meta):
-    """The deprecated CU3Gate class."""
-
-    def __init__(self, theta, phi, lam):
-        import warnings
-        warnings.warn('The class Cu3Gate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CU3Gate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta, phi, lam)
 
 
 def _generate_gray_code(num_bits):

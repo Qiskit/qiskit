@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -48,6 +46,8 @@ class Decompose(TransformationPass):
             # opaque or built-in gates are not decomposable
             if not node.op.definition:
                 continue
+            if node.op.definition.global_phase:
+                dag.global_phase += node.op.definition.global_phase
             # TODO: allow choosing among multiple decomposition rules
             rule = node.op.definition.data
 
