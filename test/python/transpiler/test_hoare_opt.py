@@ -312,7 +312,6 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
-
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.x(1)
