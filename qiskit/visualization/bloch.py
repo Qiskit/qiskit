@@ -52,10 +52,12 @@ __all__ = ['Bloch']
 
 import os
 import numpy as np
+import matplotlib as mpl
 from matplotlib import get_backend
 import matplotlib.pyplot as plt  # pylint: disable=import-error
 from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
 from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
+from packaging import version
 
 
 class Arrow3D(FancyArrowPatch):
@@ -412,6 +414,9 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
+        if version.parse(mpl.__version__) >= version.parse('3.3.0'):
+            self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()
