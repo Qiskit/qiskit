@@ -21,7 +21,7 @@ In this stylesheet entry the input data is a list of `types.Bits` and returns a
 sorted list of `types.Bits`.
 
 
-The format of generator is restricted to:
+The function signature of the generator is restricted to:
 
     ```python
 
