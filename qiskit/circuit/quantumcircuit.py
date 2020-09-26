@@ -1006,6 +1006,7 @@ class QuantumCircuit:
         """Returns OpenQASM string composite circuit given an instruction.
         The given instruction should be the result of composite_circuit.to_instruction()."""
 
+        gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
@@ -1013,8 +1014,15 @@ class QuantumCircuit:
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
-        qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
-                                           composite_circuit_gates)
+        if composite_circuit_gates:
+            composite_circuit_gates = composite_circuit_gates.rstrip(' ')
+
+        if gate_parameters:
+            qasm_string = "gate %s(%s) %s { %s }" % (instruction.name, gate_parameters,
+                                                     qubit_parameters, composite_circuit_gates)
+        else:
+            qasm_string = "gate %s %s { %s }" % (instruction.name, qubit_parameters,
+                                                 composite_circuit_gates)
 
         return qasm_string
 
@@ -1053,9 +1061,8 @@ class QuantumCircuit:
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
-            # If instruction is a composite circuit
-            elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
-                                                                                 'reset']):
+            # If instruction is a root gate or a root instruction (in that case, compositive)
+            elif type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name
