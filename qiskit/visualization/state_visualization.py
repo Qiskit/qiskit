@@ -193,7 +193,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
-            or [<r>, <theta>, <phi>] (spherical)
+            or [<r>, <theta>, <phi>] (spherical in radians)
+            <theta> is inclination angle from +z direction
+            <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
