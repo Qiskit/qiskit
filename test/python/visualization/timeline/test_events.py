@@ -13,10 +13,10 @@
 """Tests for event of timeline drawer."""
 
 import qiskit
+from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import library
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.timeline import events, types
-from qiskit import QuantumCircuit, QuantumRegister, transpile
 
 
 class TestLoadScheduledCircuit(QiskitTestCase):
@@ -26,13 +26,11 @@ class TestLoadScheduledCircuit(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qr = QuantumRegister(3)
-
-        circ = QuantumCircuit(self.qr)
-        circ.delay(duration=100, qarg=self.qr[2])
-        circ.barrier(self.qr[0], self.qr[1], self.qr[2])
-        circ.h(self.qr[0])
-        circ.cx(self.qr[0], self.qr[1])
+        circ = QuantumCircuit(3)
+        circ.delay(100, 2)
+        circ.barrier(0, 1, 2)
+        circ.h(0)
+        circ.cx(0, 1)
 
         self.circ = transpile(circ,
                               scheduling_method='alap',
@@ -42,49 +40,49 @@ class TestLoadScheduledCircuit(QiskitTestCase):
 
     def test_create_from_program(self):
         """Test factory method."""
-        bit_event_q0 = events.BitEvents.load_program(self.circ, self.qr[0])
-        bit_event_q1 = events.BitEvents.load_program(self.circ, self.qr[1])
-        bit_event_q2 = events.BitEvents.load_program(self.circ, self.qr[2])
+        bit_event_q0 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][0])
+        bit_event_q1 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][1])
+        bit_event_q2 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][2])
 
         gates_q0 = list(bit_event_q0.get_gates())
         links_q0 = list(bit_event_q0.get_gate_links())
         barriers_q0 = list(bit_event_q0.get_barriers())
 
-        self.assertEqual(len(gates_q0), 2)
+        self.assertEqual(len(gates_q0), 3)
         self.assertEqual(len(links_q0), 1)
         self.assertEqual(len(barriers_q0), 1)
 
         # h gate
-        self.assertEqual(gates_q0[0].t0, 100)
+        self.assertEqual(gates_q0[1].t0, 100)
 
         # cx gate
-        self.assertEqual(gates_q0[1].t0, 300)
+        self.assertEqual(gates_q0[2].t0, 300)
 
         # link
-        self.assertEqual(links_q0[1].t0, 800)
+        self.assertEqual(links_q0[0].t0, 800)
 
         # barrier
-        self.assertEqual(barriers_q0[1].t0, 100)
+        self.assertEqual(barriers_q0[0].t0, 100)
 
         gates_q1 = list(bit_event_q1.get_gates())
         links_q1 = list(bit_event_q1.get_gate_links())
         barriers_q1 = list(bit_event_q1.get_barriers())
 
-        self.assertEqual(len(gates_q1), 1)
+        self.assertEqual(len(gates_q1), 3)
         self.assertEqual(len(links_q1), 0)
         self.assertEqual(len(barriers_q1), 1)
 
         # cx gate
-        self.assertEqual(gates_q0[0].t0, 300)
+        self.assertEqual(gates_q0[2].t0, 300)
 
         # barrier
-        self.assertEqual(barriers_q1[1].t0, 100)
+        self.assertEqual(barriers_q1[0].t0, 100)
 
         gates_q2 = list(bit_event_q2.get_gates())
         links_q2 = list(bit_event_q2.get_gate_links())
         barriers_q2 = list(bit_event_q2.get_barriers())
 
-        self.assertEqual(len(gates_q2), 0)
+        self.assertEqual(len(gates_q2), 2)
         self.assertEqual(len(links_q2), 0)
         self.assertEqual(len(barriers_q2), 1)
 
@@ -104,21 +102,25 @@ class TestBitEvents(QiskitTestCase):
 
         self.instructions = [
             types.ScheduledGate(t0=0, operand=library.U1Gate(0),
-                                duration=0, bits=[self.qubits[0]]),
+                                duration=0, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=0, operand=library.U2Gate(0, 0),
-                                duration=10, bits=[self.qubits[0]]),
+                                duration=10, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=10, operand=library.CXGate(),
-                                duration=50, bits=[self.qubits[0], self.qubits[1]]),
+                                duration=50, bits=[self.qubits[0], self.qubits[1]],
+                                bit_position=0),
             types.ScheduledGate(t0=100, operand=library.U3Gate(0, 0, 0),
-                                duration=20, bits=[self.qubits[0]]),
+                                duration=20, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=120, operand=library.Barrier(2),
-                                duration=0, bits=[self.qubits[0], self.qubits[1]]),
+                                duration=0, bits=[self.qubits[0], self.qubits[1]],
+                                bit_position=0),
             types.ScheduledGate(t0=120, operand=library.CXGate(),
-                                duration=50, bits=[self.qubits[1], self.qubits[0]]),
+                                duration=50, bits=[self.qubits[1], self.qubits[0]],
+                                bit_position=1),
             types.ScheduledGate(t0=200, operand=library.Barrier(1),
-                                duration=0, bits=[self.qubits[0]]),
+                                duration=0, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=200, operand=library.Measure(),
-                                duration=100, bits=[self.qubits[0], self.clbits[0]]),
+                                duration=100, bits=[self.qubits[0], self.clbits[0]],
+                                bit_position=0),
         ]
 
     def test_gate_output(self):
@@ -128,17 +130,20 @@ class TestBitEvents(QiskitTestCase):
         gates = list(bit_event.get_gates())
         ref_list = [
             types.ScheduledGate(t0=0, operand=library.U1Gate(0),
-                                duration=0, bits=[self.qubits[0]]),
+                                duration=0, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=0, operand=library.U2Gate(0, 0),
-                                duration=10, bits=[self.qubits[0]]),
+                                duration=10, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=10, operand=library.CXGate(),
-                                duration=50, bits=[self.qubits[0], self.qubits[1]]),
+                                duration=50, bits=[self.qubits[0], self.qubits[1]],
+                                bit_position=0),
             types.ScheduledGate(t0=100, operand=library.U3Gate(0, 0, 0),
-                                duration=20, bits=[self.qubits[0]]),
+                                duration=20, bits=[self.qubits[0]], bit_position=0),
             types.ScheduledGate(t0=120, operand=library.CXGate(),
-                                duration=50, bits=[self.qubits[1], self.qubits[0]]),
+                                duration=50, bits=[self.qubits[1], self.qubits[0]],
+                                bit_position=1),
             types.ScheduledGate(t0=200, operand=library.Measure(),
-                                duration=100, bits=[self.qubits[0], self.clbits[0]])
+                                duration=100, bits=[self.qubits[0], self.clbits[0]],
+                                bit_position=0)
         ]
 
         self.assertListEqual(gates, ref_list)
@@ -149,8 +154,8 @@ class TestBitEvents(QiskitTestCase):
 
         barriers = list(bit_event.get_barriers())
         ref_list = [
-            types.Barrier(t0=120, bits=[self.qubits[0], self.qubits[1]]),
-            types.Barrier(t0=200, bits=[self.qubits[0]])
+            types.Barrier(t0=120, bits=[self.qubits[0], self.qubits[1]], bit_position=0),
+            types.Barrier(t0=200, bits=[self.qubits[0]], bit_position=0)
         ]
 
         self.assertListEqual(barriers, ref_list)
@@ -161,9 +166,9 @@ class TestBitEvents(QiskitTestCase):
 
         links = list(bit_event.get_gate_links())
         ref_list = [
-            types.GateLink(t0=35.0, operand=library.CXGate(),
+            types.GateLink(t0=35.0, opname=library.CXGate().name,
                            bits=[self.qubits[0], self.qubits[1]]),
-            types.GateLink(t0=250.0, operand=library.Measure(),
+            types.GateLink(t0=250.0, opname=library.Measure().name,
                            bits=[self.qubits[0], self.clbits[0]])
         ]
 

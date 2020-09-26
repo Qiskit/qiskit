@@ -24,6 +24,7 @@ class TestDrawingObjects(QiskitTestCase):
 
     def setUp(self) -> None:
         """Setup."""
+        super().setUp()
 
         # bits
         self.qubits = list(qiskit.QuantumRegister(2))
