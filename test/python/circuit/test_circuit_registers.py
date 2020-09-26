@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -185,6 +183,24 @@ class TestCircuitRegisters(QiskitTestCase):
         with self.subTest('qubit is not an ancilla'):
             action_qubits = [qubit for qubit in qc.qubits if not isinstance(qubit, AncillaQubit)]
             self.assertEqual(len(action_qubits), 2)
+
+    def test_decomposing_with_boxed_ancillas(self):
+        """Test decomposing a circuit which contains an instruction with ancillas.
+
+        This was a previous bug where the wire-map in the DAG raised an error upon mapping
+        the Qubit type to the AncillaQubit type.
+        """
+        ar = AncillaRegister(1)
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr, ar)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+
+        qc2 = QuantumCircuit(*qc.qregs)
+        qc2.append(qc, [0, 1])
+        decomposed = qc2.decompose()  # used to raise a DAGCircuitError
+
+        self.assertEqual(decomposed, qc)
 
     def test_qregs_circuit(self):
         """Test getting quantum registers from circuit.

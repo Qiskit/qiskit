@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -86,7 +84,6 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
-
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
 

@@ -58,7 +58,7 @@ is that if your code contribution has user facing changes that you will write
 the release documentation for these changes. This documentation must explain
 what was changed, why it was changed, and how users can either use or adapt
 to the change. The idea behind release documentation is that when a naive
-user with limited internal knowledege of the project is upgrading from the
+user with limited internal knowledge of the project is upgrading from the
 previous release to the new one, they should be able to read the release notes,
 understand if they need to update their program which uses qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
@@ -279,6 +279,16 @@ Windows:
 C:\..\> set LOG_LEVEL="INFO"
 C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 ```
+
+##### STDOUT/STDERR and logging capture
+
+When running tests in parallel either via tox, the makefile, or in CI we set
+the env variable `QISKIT_TEST_CAPTURE_STREAMS` which will capture any text
+written to stdout, stderr, and log messages and add them as attachments to
+the tests run so output can be associated with the test case it originated
+from. However, if you run tests outside of these mechanisms by default the
+streams are not captured. To enable stream capture just set the
+`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`.
 
 ##### Test Skip Options
 

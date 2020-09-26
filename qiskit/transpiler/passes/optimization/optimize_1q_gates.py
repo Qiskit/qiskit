@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -26,23 +24,24 @@ from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators import Quaternion
 
-_DECIMAL_ROUND = 15
-_CHOP_THRESHOLD = 10 ** -(_DECIMAL_ROUND)
+_CHOP_THRESHOLD = 1e-15
 
 
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
-    def __init__(self, basis=None):
+    def __init__(self, basis=None, eps=1e-15):
         """Optimize1qGates initializer.
 
         Args:
             basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
                 of this pass, the basis is the set intersection between the `basis` parameter and
                 the set `{'u1','u2','u3'}`.
+            eps (float): EPS to check against
         """
         super().__init__()
         self.basis = basis if basis else ["u1", "u2", "u3"]
+        self.eps = eps
 
     def run(self, dag):
         """Run the Optimize1qGates pass on `dag`.
@@ -61,7 +60,7 @@ class Optimize1qGates(TransformationPass):
         for run in runs:
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
-
+            right_global_phase = 0
             for current_node in run:
                 left_name = current_node.name
                 if (current_node.condition is not None
@@ -78,6 +77,9 @@ class Optimize1qGates(TransformationPass):
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (0, 0, 0)
+                if (current_node.op.definition is not None and
+                        current_node.op.definition.global_phase):
+                    right_global_phase += current_node.op.definition.global_phase
                 # If there are any sympy objects coming from the gate convert
                 # to numpy.
                 left_parameters = tuple([float(x) for x in left_parameters])
@@ -157,8 +159,8 @@ class Optimize1qGates(TransformationPass):
                 # exact and approximate rewriting.
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
-                if np.round(np.mod(right_parameters[0], (2 * np.pi)), _DECIMAL_ROUND) == 0 \
-                        and right_name != "u1":
+                if abs(np.mod(right_parameters[0],
+                              (2 * np.pi))) < self.eps and right_name != "u1":
                     right_name = "u1"
                     right_parameters = (0, 0, right_parameters[1] +
                                         right_parameters[2] +
@@ -166,23 +168,29 @@ class Optimize1qGates(TransformationPass):
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
                 if right_name == "u3":
                     # theta = pi/2 + 2*k*pi
-                    if np.mod(np.round(right_parameters[0] - np.pi / 2, _DECIMAL_ROUND),
-                              (2 * np.pi)) == 0:
+                    right_angle = right_parameters[0] - np.pi / 2
+                    if abs(right_angle) < self.eps:
+                        right_angle = 0
+                    if abs(np.mod((right_angle),
+                                  2 * np.pi)) < self.eps:
                         right_name = "u2"
                         right_parameters = (np.pi / 2, right_parameters[1],
                                             right_parameters[2] +
                                             (right_parameters[0] - np.pi / 2))
                     # theta = -pi/2 + 2*k*pi
-                    if np.mod(np.round(right_parameters[0] + np.pi / 2, _DECIMAL_ROUND),
-                              (2 * np.pi)) == 0:
+                    right_angle = right_parameters[0] + np.pi / 2
+                    if abs(right_angle) < self.eps:
+                        right_angle = 0
+                    if abs(np.mod(right_angle,
+                                  2 * np.pi)) < self.eps:
                         right_name = "u2"
                         right_parameters = (np.pi / 2, right_parameters[1] +
                                             np.pi, right_parameters[2] -
                                             np.pi + (right_parameters[0] +
                                                      np.pi / 2))
                 # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-                if right_name == "u1" and np.mod(np.round(right_parameters[2], _DECIMAL_ROUND),
-                                                 (2 * np.pi)) == 0:
+                if right_name == "u1" and abs(np.mod(right_parameters[2],
+                                                     2 * np.pi)) < self.eps:
                     right_name = "nop"
 
             if right_name == "u2" and "u2" not in self.basis:
@@ -200,6 +208,8 @@ class Optimize1qGates(TransformationPass):
                     new_op = U3Gate(*right_parameters)
                 else:
                     raise TranspilerError('It was not possible to use the basis %s' % self.basis)
+
+            dag.global_phase += right_global_phase
 
             if right_name != 'nop':
                 dag.substitute_node(run[0], new_op, inplace=True)

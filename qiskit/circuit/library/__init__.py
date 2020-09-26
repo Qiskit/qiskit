@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -31,10 +29,13 @@ Standard Gates
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
+   CSXGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -42,8 +43,14 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Measure
    MSGate
+   PhaseGate
    RCCXGate
    RC3XGate
    Reset
@@ -58,8 +65,11 @@ Standard Gates
    SdgGate
    SwapGate
    iSwapGate
+   SXGate
+   SXdgGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
@@ -78,6 +88,10 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   GR
+   GRX
+   GRY
+   GRZ
 
 Boolean Logic Circuits
 ======================
@@ -128,6 +142,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 
@@ -140,6 +162,7 @@ Particular Quantum Circuits
    IQP
    QuantumVolume
    PhaseEstimation
+   GroverOperator
 
 
 N-local circuits
@@ -165,9 +188,65 @@ Data encoding circuits
    ZFeatureMap
    ZZFeatureMap
 
+Toffoli template circuits
+=========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   template_circuits.toffoli.template_2a_1
+   template_circuits.toffoli.template_2a_2
+   template_circuits.toffoli.template_2a_3
+   template_circuits.toffoli.template_4a_1
+   template_circuits.toffoli.template_4a_2
+   template_circuits.toffoli.template_4a_3
+   template_circuits.toffoli.template_4b_1
+   template_circuits.toffoli.template_4b_2
+   template_circuits.toffoli.template_5a_1
+   template_circuits.toffoli.template_5a_2
+   template_circuits.toffoli.template_5a_3
+   template_circuits.toffoli.template_5a_4
+   template_circuits.toffoli.template_6a_1
+   template_circuits.toffoli.template_6a_2
+   template_circuits.toffoli.template_6a_3
+   template_circuits.toffoli.template_6a_4
+   template_circuits.toffoli.template_6b_1
+   template_circuits.toffoli.template_6b_2
+   template_circuits.toffoli.template_6c_1
+   template_circuits.toffoli.template_7a_1
+   template_circuits.toffoli.template_7b_1
+   template_circuits.toffoli.template_7c_1
+   template_circuits.toffoli.template_7d_1
+   template_circuits.toffoli.template_7e_1
+   template_circuits.toffoli.template_2a_1
+   template_circuits.toffoli.template_9a_1
+   template_circuits.toffoli.template_9c_1
+   template_circuits.toffoli.template_9c_2
+   template_circuits.toffoli.template_9c_3
+   template_circuits.toffoli.template_9c_4
+   template_circuits.toffoli.template_9c_5
+   template_circuits.toffoli.template_9c_6
+   template_circuits.toffoli.template_9c_7
+   template_circuits.toffoli.template_9c_8
+   template_circuits.toffoli.template_9c_9
+   template_circuits.toffoli.template_9c_10
+   template_circuits.toffoli.template_9c_11
+   template_circuits.toffoli.template_9c_12
+   template_circuits.toffoli.template_9d_1
+   template_circuits.toffoli.template_9d_2
+   template_circuits.toffoli.template_9d_3
+   template_circuits.toffoli.template_9d_4
+   template_circuits.toffoli.template_9d_5
+   template_circuits.toffoli.template_9d_6
+   template_circuits.toffoli.template_9d_7
+   template_circuits.toffoli.template_9d_8
+   template_circuits.toffoli.template_9d_9
+   template_circuits.toffoli.template_9d_10
+
 """
 
 from .standard_gates import *
+from .template_circuits import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
@@ -178,7 +257,11 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
-    GMS
+    GMS,
+    GR,
+    GRX,
+    GRY,
+    GRZ
 )
 from .boolean_logic import (
     AND,
@@ -194,6 +277,8 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
+    LinearAmplitudeFunction,
 )
 from .n_local import (
     NLocal,
@@ -213,3 +298,4 @@ from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
+from .grover_operator import GroverOperator
