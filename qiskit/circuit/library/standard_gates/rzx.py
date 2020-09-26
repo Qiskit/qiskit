@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -137,7 +135,9 @@ class RZXGate(Gate):
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -147,7 +147,7 @@ class RZXGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the RZX gate."""
         import numpy
-        half_theta = self.params[0] / 2
+        half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         isin = 1j * numpy.sin(half_theta)
         return numpy.array([[cos, 0, -isin, 0],

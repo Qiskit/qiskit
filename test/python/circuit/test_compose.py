@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -27,6 +25,7 @@ class TestCircuitCompose(QiskitTestCase):
     """Test composition of two circuits."""
 
     def setUp(self):
+        super().setUp()
         qreg1 = QuantumRegister(3, 'lqr_1')
         qreg2 = QuantumRegister(2, 'lqr_2')
         creg = ClassicalRegister(2, 'lcr')
