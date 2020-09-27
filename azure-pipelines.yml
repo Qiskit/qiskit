@@ -607,3 +607,37 @@ stages:
             artifactName: 'html_tutorials'
             Parallel: true
             ParallelCount: 8
+    - job: 'Image_tests'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "matplotlib<3.3.0" pylatexenc pillow
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: python -m unittest discover -v test/ipynb
+          displayName: 'Run image test'
