@@ -326,6 +326,16 @@ class HoareOptimizer(TransformationPass):
             trgtvar = [self.variables[qb.index][-1] for qb in trgtqb]
         return (ctrlqb, ctrlvar, trgtqb, trgtvar)
 
+    def _reset(self):
+        """ Reset HoareOptimize internal state,
+            so it can be run multiple times.
+        """
+        self.solver = Solver()
+        self.variables.clear()
+        self.gatenum.clear()
+        self.gatecache.clear()
+        self.varnum.clear()
+
     def run(self, dag):
         """
         Args:
@@ -338,4 +348,5 @@ class HoareOptimizer(TransformationPass):
         if self.size > 1:
             for qbt in dag.qubits:
                 self._multigate_opt(dag, qbt.index)
+        self._reset()
         return dag
