@@ -10,45 +10,33 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Tests for circuit MPL drawer"""
+
 import unittest
 
 import json
 import os
 from contextlib import contextmanager
-from qiskit.test import QiskitTestCase
-
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
-                                    MCXGate, YGate, HGate, ZGate,
-                                    C4XGate, C3XGate, MSGate, RZZGate)
-from qiskit.extensions import HamiltonianGate, UnitaryGate
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import IQP
-from qiskit.quantum_info.random import random_unitary
-
 import math
 import numpy as np
 from numpy import pi
 
+from qiskit.test import QiskitTestCase
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
+from qiskit.test.mock import FakeTenerife
+from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit.circuit.library import U2Gate, XGate, MCXGate, HGate, RZZGate
+from qiskit.extensions import HamiltonianGate
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import IQP
+from qiskit.quantum_info.random import random_unitary
+
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
-
-
-def save_data(image_filename, testname):
-    datafilename = 'result_test.json'
-    if os.path.exists(datafilename):
-        with open(datafilename) as datafile:
-            data = json.load(datafile)
-    else:
-        data = {}
-    data[image_filename] = {'testname': testname}
-    with open(datafilename, 'w') as datafile:
-        json.dump(data, datafile)
 
 
 @contextmanager
 def cwd(path):
+    """A context manager to run in a particular path"""
     oldpwd = os.getcwd()
     os.chdir(path)
     try:
@@ -57,22 +45,38 @@ def cwd(path):
         os.chdir(oldpwd)
 
 
-def save_data_wrap(func, testname):
-    def wrapper(*args, **kwargs):
-        image_filename = kwargs['filename']
-        with cwd(RESULTDIR):
-            results = func(*args, **kwargs)
-            save_data(image_filename, testname)
-        return results
-
-    return wrapper
-
-
 class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
     def setUp(self):
-        self.circuit_drawer = save_data_wrap(_matplotlib_circuit_drawer, str(self))
+        super().setUp()
+        self.circuit_drawer = TestMatplotlibDrawer.save_data_wrap(_matplotlib_circuit_drawer,
+                                                                  str(self))
+
+    @staticmethod
+    def save_data_wrap(func, testname):
+        """A wrapper to save the data from a test"""
+        def wrapper(*args, **kwargs):
+            image_filename = kwargs['filename']
+            with cwd(RESULTDIR):
+                results = func(*args, **kwargs)
+                TestMatplotlibDrawer.save_data(image_filename, testname)
+            return results
+
+        return wrapper
+
+    @staticmethod
+    def save_data(image_filename, testname):
+        """Saves result data of a test"""
+        datafilename = 'result_test.json'
+        if os.path.exists(datafilename):
+            with open(datafilename) as datafile:
+                data = json.load(datafile)
+        else:
+            data = {}
+        data[image_filename] = {'testname': testname}
+        with open(datafilename, 'w') as datafile:
+            json.dump(data, datafile)
 
     def test_empty_circuit(self):
         """Test empty circuit"""
@@ -188,8 +192,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test large gates with params"""
         qr = QuantumRegister(6, 'q')
         circuit = QuantumCircuit(qr)
-        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-        circuit.append(IQP(A), [0, 1, 2])
+        circuit.append(IQP([[6, 5, 3], [5, 4, 5], [3, 5, 1]]), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),
@@ -207,7 +210,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         theta = Parameter('theta')
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
         circuit = circuit.bind_parameters({theta: 1})
-        circuit.isometry(np.eye(4, 4), [i for i in range(3, 5)], [])
+        circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
 
         self.circuit_drawer(circuit, filename='big_gates.png')
 

@@ -233,8 +233,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
         if rep_delay is not None:
             rep_delay = None
             warnings.warn(
-                "Dynamic rep rates not supported on this backend. rep_time will be "
-                "used instead of rep_delay.",
+                "Dynamic rep rates not supported on this backend, cannot use rep_delay.",
                 RuntimeWarning,
             )
 
