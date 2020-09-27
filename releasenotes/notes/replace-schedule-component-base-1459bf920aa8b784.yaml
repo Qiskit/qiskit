@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes the unecessary specificity of the ScheduleComponent abstract base class for Schedule and Instruction by replacing it with NamedValue. Refer to `#5076 <https://github.com/Qiskit/qiskit-terra/issues/5076>` for more details 
