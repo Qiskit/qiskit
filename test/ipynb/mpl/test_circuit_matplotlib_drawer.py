@@ -25,7 +25,8 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import U2Gate, XGate, MCXGate, HGate, RZZGate
+from qiskit.circuit.library import (U2Gate, XGate, MCXGate, HGate, RZZGate
+                                    SwapGate, DCXGate)
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
@@ -370,6 +371,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='global_phase.png')
 
     def test_iqx_colors(self):
+        """Tests with iqx color scheme"""
         circuit = QuantumCircuit(7)
         circuit.h(0)
         circuit.x(0)
