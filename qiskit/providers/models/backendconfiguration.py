@@ -270,7 +270,7 @@ class QasmBackendConfiguration:
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
         if rep_delay_range:
             self.rep_delay_range = [_rd * 1e-6 for _rd in rep_delay_range]  # convert to sec
-        if default_rep_delay:
+        if default_rep_delay is not None:
             self.default_rep_delay = default_rep_delay * 1e-6   # convert to sec
 
         # max_experiments must be >=1
