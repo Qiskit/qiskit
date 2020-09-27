@@ -31,12 +31,13 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.interfaces import NamedValue
 from qiskit.pulse.schedule import Schedule
+
 # pylint: disable=missing-return-doc
 
 
-class Instruction(ScheduleComponent, ABC):
+class Instruction(NamedValue, ABC):
     """The smallest schedulable unit: a single instruction. It has a fixed duration and specified
     channels.
     """
@@ -69,10 +70,12 @@ class Instruction(ScheduleComponent, ABC):
 
         for channel in channels:
             if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
+                raise PulseError(
+                    "Expected a channel, got {} instead.".format(channel))
 
         self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
+        self._timeslots = {channel: [(0, self.duration)]
+                           for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
@@ -130,7 +133,7 @@ class Instruction(ScheduleComponent, ABC):
         return self._duration
 
     @property
-    def _children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[NamedValue]:
         """Instruction has no child nodes."""
         return ()
 
@@ -147,7 +150,8 @@ class Instruction(ScheduleComponent, ABC):
         """
         return self.ch_stop_time(*channels)
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Optional[List[Channel]]) -> int:
+        # pylint: disable=unused-argument
         """Return minimum start time for supplied channels.
 
         Args:
@@ -172,8 +176,8 @@ class Instruction(ScheduleComponent, ABC):
             time: Shifted time of this node due to parent
 
         Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`
+            Tuple[int, Instruction]: Tuple containing time `Instruction` starts
+                at and the flattened `Instruction`
         """
         yield (time, self)
 
@@ -181,7 +185,7 @@ class Instruction(ScheduleComponent, ABC):
         """Return itself as already single instruction."""
         return self
 
-    def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
+    def shift(self: NamedValue, time: int, name: Optional[str] = None) -> Schedule:
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -192,7 +196,7 @@ class Instruction(ScheduleComponent, ABC):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent,
+    def insert(self, start_time: int, schedule: Schedule,
                name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
@@ -206,7 +210,7 @@ class Instruction(ScheduleComponent, ABC):
             name = self.name
         return Schedule(self, (start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent,
+    def append(self, schedule: Schedule,
                name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
@@ -301,11 +305,11 @@ class Instruction(ScheduleComponent, ABC):
             self._hash = hash((type(self), self.operands, self.name))
         return self._hash
 
-    def __add__(self, other: ScheduleComponent) -> Schedule:
+    def __add__(self, other: NamedValue) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> Schedule:
+    def __or__(self, other: NamedValue) -> Schedule:
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
