@@ -309,7 +309,6 @@ class TestHoareOptimizer(QiskitTestCase):
                DAGNode(type='op', op=SwapGate())]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-
     def test_multiple_pass(self):
         """ Verify that multiple pass can be run
             with the same Hoare instance.
@@ -335,6 +334,6 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result2, circuit_to_dag(expected))
 
+
 if __name__ == '__main__':
     unittest.main()
-    
