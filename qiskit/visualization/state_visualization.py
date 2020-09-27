@@ -27,7 +27,6 @@ from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
-    import matplotlib as mpl
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
@@ -41,7 +40,6 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
     from qiskit.circuit.tools.pi_check import pi_check
-    from packaging import version
 
 
 if HAS_MATPLOTLIB:
@@ -186,17 +184,22 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>]
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
+            or [<r>, <theta>, <phi>] (spherical in radians)
+            <theta> is inclination angle from +z direction
+            <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
+        coord_type (str): a string that specifies coordinate type for bloch
+            (cartesian or spherical), default is cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -218,6 +221,11 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
+    if coord_type == "spherical":
+        r, theta, phi = bloch[0], bloch[1], bloch[2]
+        bloch[0] = r*np.sin(theta)*np.cos(phi)
+        bloch[1] = r*np.sin(theta)*np.sin(phi)
+        bloch[2] = r*np.cos(theta)
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
@@ -714,7 +722,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
-    if version.parse(mpl.__version__) >= version.parse('3.3.0'):
+    # Force aspect ratio
+    # MPL 3.2 or previous do not have set_box_aspect
+    if hasattr(ax.axes, 'set_box_aspect'):
         ax.axes.set_box_aspect((1, 1, 1))
 
     # start the plotting
