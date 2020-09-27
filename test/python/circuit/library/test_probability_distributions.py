@@ -40,7 +40,7 @@ class TestUniformDistribution(QiskitTestCase):
 class TestNormalDistribution(QiskitTestCase):
     """Test the normal distribution circuit."""
 
-    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds):
+    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_phase):
         """Assert that ``circuit`` implements the normal distribution correctly.
 
         This test asserts that the ``circuit`` produces the desired state-vector.
@@ -67,24 +67,28 @@ class TestNormalDistribution(QiskitTestCase):
         expected = np.sqrt(normalized_probabilities)
 
         # compare to actual statevector from circuit
-        actual = Statevector.from_instruction(circuit).data
-        np.testing.assert_array_almost_equal(expected, actual)
+        actual = Statevector.from_instruction(circuit)
+        if upto_phase:
+            self.assertTrue(actual.equiv(expected))
+        else:
+            np.testing.assert_array_almost_equal(expected, actual.data)
 
     @data(
-        [2, None, None, None],
-        [3, 1.75, 2.5, None],
-        [2, 1.75, 2.5, (0, 3)],
-        [[1, 2, 2], None, None, None],
-        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)]]
+        [2, None, None, None, False],
+        [3, 1.75, 2.5, None, True],
+        [2, 1.75, 2.5, (0, 3), False],
+        [[1, 2, 2], None, None, None, True],
+        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)],
+         False]
     )
     @unpack
-    def test_normal(self, num_qubits, mu, sigma, bounds):
+    def test_normal(self, num_qubits, mu, sigma, bounds, upto_phase):
         """Test the statevector produced by ``NormalDistribution`` and the default arguments."""
 
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {'num_qubits': num_qubits}
+        kwargs = {'num_qubits': num_qubits, 'upto_phase': upto_phase}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
@@ -102,7 +106,7 @@ class TestNormalDistribution(QiskitTestCase):
             kwargs['bounds'] = bounds
 
         normal = NormalDistribution(**kwargs)
-        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds)
+        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_phase)
 
     @data(
         [2, [1, 1], 2, (0, 1)],  # invalid mu
@@ -134,7 +138,7 @@ class TestNormalDistribution(QiskitTestCase):
 class TestLogNormalDistribution(QiskitTestCase):
     """Test the normal distribution circuit."""
 
-    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds):
+    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_phase):
         """Assert that ``circuit`` implements the normal distribution correctly.
 
         This test asserts that the ``circuit`` produces the desired state-vector.
@@ -167,24 +171,28 @@ class TestLogNormalDistribution(QiskitTestCase):
         expected = np.sqrt(normalized_probabilities)
 
         # compare to actual statevector from circuit
-        actual = Statevector.from_instruction(circuit).data
-        np.testing.assert_array_almost_equal(expected, actual)
+        actual = Statevector.from_instruction(circuit)
+        if upto_phase:
+            self.assertTrue(actual.equiv(expected))
+        else:
+            np.testing.assert_array_almost_equal(expected, actual.data)
 
     @data(
-        [2, None, None, None],
-        [3, 1.75, 2.5, None],
-        [2, 1.75, 2.5, (0, 3)],
-        [[1, 2, 2], None, None, None],
-        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)]]
+        [2, None, None, None, False],
+        [3, 1.75, 2.5, None, True],
+        [2, 1.75, 2.5, (0, 3), False],
+        [[1, 2, 2], None, None, None, True],
+        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)],
+         False]
     )
     @unpack
-    def test_lognormal(self, num_qubits, mu, sigma, bounds):
+    def test_lognormal(self, num_qubits, mu, sigma, bounds, upto_phase):
         """Test the statevector produced by ``LogNormalDistribution`` and the default arguments."""
 
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {'num_qubits': num_qubits}
+        kwargs = {'num_qubits': num_qubits, 'upto_phase': upto_phase}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
@@ -202,7 +210,7 @@ class TestLogNormalDistribution(QiskitTestCase):
             kwargs['bounds'] = bounds
 
         normal = LogNormalDistribution(**kwargs)
-        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds)
+        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_phase)
 
 
 if __name__ == '__main__':

@@ -118,6 +118,7 @@ class NormalDistribution(QuantumCircuit):
                  mu: Optional[Union[float, List[float]]] = None,
                  sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
+                 upto_phase: bool = True,
                  name: str = 'P(X)') -> None:
         r"""
         Args:
@@ -132,6 +133,8 @@ class NormalDistribution(QuantumCircuit):
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
                 If ``None``, the bounds are set to ``(-1, 1)`` for each dimension.
+            upto_phase: If True, load the probabilities up to a global phase for a more efficient
+                circuit.
             name: The name of the circuit.
         """
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
@@ -166,8 +169,12 @@ class NormalDistribution(QuantumCircuit):
         probabilities = multivariate_normal.pdf(x, mu, sigma)
         normalized_probabilities = probabilities / np.sum(probabilities)
 
-        # use default synthesis to construct the circuit
-        self.initialize(np.sqrt(normalized_probabilities), self.qubits)  # pylint: disable=no-member
+        # use default the isometry (or initialize) algorithm to construct the circuit
+        # pylint: disable=no-member
+        if upto_phase:
+            self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
+        else:
+            self.initialize(np.sqrt(normalized_probabilities), self.qubits)
 
 
 def _check_dimensions_match(num_qubits, mu, sigma, bounds):
