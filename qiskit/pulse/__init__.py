@@ -463,7 +463,7 @@ from qiskit.pulse.instructions import (
     ShiftPhase,
     Snapshot,
 )
-from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.interfaces import NamedValue
 from qiskit.pulse.library import (
     Constant,
     ConstantPulse,

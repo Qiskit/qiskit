@@ -20,14 +20,14 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import channels as chans, exceptions, instructions, interfaces
+from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 
-def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
+def align_measures(schedules: Iterable[Schedule],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
@@ -178,7 +178,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     return new_schedules
 
 
-def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
+def add_implicit_acquires(schedule: Schedule,
                           meas_map: List[List[int]]
                           ) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
@@ -317,7 +317,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
 
 
 def _push_left_append(this: Schedule,
-                      other: interfaces.ScheduleComponent,
+                      other: Schedule,
                       ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
@@ -366,8 +366,8 @@ def align_left(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def _push_right_prepend(this: interfaces.ScheduleComponent,
-                        other: interfaces.ScheduleComponent,
+def _push_right_prepend(this: Schedule,
+                        other: Schedule,
                         ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the latest possible time
     such that ``other`` ends before it overlaps with any of ``this``.

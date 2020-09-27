@@ -32,7 +32,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse import (Waveform, SamplePulse, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
+                          Instruction, ShiftFrequency, SetPhase)
 
 
 class EventsOutputChannels:
@@ -342,7 +342,7 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule: ScheduleComponent,
+    def _build_channels(self, schedule: 'Schedule',
                         channels: List[Channel],
                         t0: int, tf: int,
                         show_framechange_channels: bool = True
@@ -755,7 +755,7 @@ class ScheduleDrawer:
                 y0 -= 1
         return y0
 
-    def draw(self, schedule: ScheduleComponent,
+    def draw(self, schedule: 'Schedule',
              dt: float, interp_method: Callable,
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
