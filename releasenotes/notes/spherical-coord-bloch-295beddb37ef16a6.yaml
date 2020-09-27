@@ -6,6 +6,8 @@ features:
 
     Cartesian coordinates are still supported and made as the default mode.
     for example::
+    
+    .. jupyter-execute::
 
       from qiskit.visualization import plot_bloch_vector
 
