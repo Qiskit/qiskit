@@ -139,6 +139,51 @@ class TestCircuitAssembler(QiskitTestCase):
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
 
+    def test_assemble_backend_rep_delays(self):
+        """Check that rep_delay is properly set from backend values."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        rep_delay_range = [2.5e-3, 4.5e-3]  # sec
+        default_rep_delay = 3.0e-3
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(backend_config, 'default_rep_delay', default_rep_delay)
+
+        # dynamic rep rates off
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # dynamic rep rates on
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(qobj.config.rep_delay, default_rep_delay*1e6)
+
+    def test_assemble_user_rep_time_delay(self):
+        """Check that user runtime config rep_delay works."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        # set custom rep_delay in runtime config
+        rep_delay = 2.2e-6
+        rep_delay_range = [0, 3e-6]  # sec
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+
+        # dynamic rep rates off (no default so shouldn't be in qobj config)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # turn on dynamic rep rates, rep_delay should be set
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(qobj.config.rep_delay, 2.2)
+
+        # test ``rep_delay=0``
+        qobj = assemble(self.circ, backend, rep_delay=0)
+        self.assertEqual(qobj.config.rep_delay, 0)
+
+        # use ``rep_delay`` outside of ``rep_delay_range```
+        rep_delay_large = 5.0e-6
+        with self.assertRaises(SchemaValidationError):
+            assemble(self.circ, backend, rep_delay=rep_delay_large)
+
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
         opaque_inst = Instruction(name='my_inst', num_qubits=4,
@@ -364,6 +409,28 @@ class TestCircuitAssembler(QiskitTestCase):
                          0)
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
+
+    def test_circuit_global_phase_gate_definitions(self):
+        """Test circuit with global phase on gate definitions."""
+        class TestGate(Gate):
+            """dummy gate"""
+            def __init__(self):
+                super().__init__('test_gate', 1, [])
+
+            def _define(self):
+                circ_def = QuantumCircuit(1)
+                circ_def.x(0)
+                circ_def.global_phase = np.pi
+                self._definition = circ_def
+
+        gate = TestGate()
+        circ = QuantumCircuit(1)
+        circ.append(gate, [0])
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), 0)
+        circ.global_phase = np.pi / 2
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), np.pi/2)
 
     def test_pulse_gates_single_circ(self):
         """Test that we can add calibrations to circuits."""
