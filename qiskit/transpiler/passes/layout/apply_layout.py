@@ -57,5 +57,6 @@ class ApplyLayout(TransformationPass):
             if node.type == 'op':
                 qargs = [q[layout[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
+        new_dag._global_phase = dag._global_phase
 
         return new_dag
