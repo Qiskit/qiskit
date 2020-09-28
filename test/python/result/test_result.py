@@ -60,7 +60,6 @@ class TestResultOperations(QiskitTestCase):
     def test_result_repr(self):
         """Test that repr is contstructed correctly for a results object."""
         raw_counts = {'0x0': 4, '0x2': 10}
-        processed_counts = {'0 0 00': 4, '0 0 10': 10}
         data = models.ExperimentResultData(counts=dict(**raw_counts))
         exp_result_header = QobjExperimentHeader(
             creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4)
