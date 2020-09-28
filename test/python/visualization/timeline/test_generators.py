@@ -66,7 +66,7 @@ class TestGates(QiskitTestCase):
 
         ref_styles = {
             'zorder': self.formatter['layer.gate'],
-            'facecolor': self.formatter['gate_face_color.u3'],
+            'facecolor': self.formatter['color.gates']['u3'],
             'alpha': self.formatter['alpha.gate'],
             'linewidth': self.formatter['line_width.gate']
         }
@@ -85,7 +85,7 @@ class TestGates(QiskitTestCase):
 
         ref_styles = {
             'zorder': self.formatter['layer.frame_change'],
-            'color': self.formatter['gate_face_color.u1'],
+            'color': self.formatter['color.gates']['u1'],
             'size': self.formatter['text_size.frame_change'],
             'va': 'center',
             'ha': 'center'
@@ -108,7 +108,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u3(0.00, 0.00, 0.00)[20]')
         ref_latex = '{name}(0.00, 0.00, 0.00)[20]'.format(
-            name=self.formatter['gate_latex_repr.u3'])
+            name=self.formatter['latex_symbol.gates']['u3'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -130,7 +130,7 @@ class TestGates(QiskitTestCase):
                              [self.formatter['label_offset.frame_change']])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u1(0.00)')
-        ref_latex = '{name}(0.00)'.format(name=self.formatter['gate_latex_repr.u1'])
+        ref_latex = '{name}(0.00)'.format(name=self.formatter['latex_symbol.gates']['u1'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -157,7 +157,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0.])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u3')
-        ref_latex = '{name}'.format(name=self.formatter['gate_latex_repr.u3'])
+        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u3'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -179,7 +179,7 @@ class TestGates(QiskitTestCase):
                              [self.formatter['label_offset.frame_change']])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u1')
-        ref_latex = '{name}'.format(name=self.formatter['gate_latex_repr.u1'])
+        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u1'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -312,6 +312,6 @@ class TestGateLink(QiskitTestCase):
             'zorder': self.formatter['layer.bit_link'],
             'linewidth': self.formatter['line_width.bit_link'],
             'linestyle': self.formatter['line_style.bit_link'],
-            'color': self.formatter['gate_face_color.cx']
+            'color': self.formatter['color.gates']['cx']
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)

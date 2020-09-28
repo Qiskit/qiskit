@@ -141,8 +141,7 @@ def gen_sched_gate(gate: types.ScheduledGate,
     }
 
     # find color
-    color = formatter.get('gate_face_color.{name}'.format(name=gate.operand.name),
-                          formatter['gate_face_color.default'])
+    color = formatter['color.gates'].get(gate.operand.name, formatter['color.default_gate'])
 
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -224,8 +223,8 @@ def gen_full_gate_name(gate: types.ScheduledGate,
         'ha': 'center'
     }
     # find latex representation
-    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
-                               r'{{\rm {name}}}'.format(name=gate.operand.name))
+    default_name = r'{{\rm {name}}}'.format(name=gate.operand.name)
+    latex_name = formatter['latex_symbol.gates'].get(gate.operand.name, default_name)
 
     label_plain = '{name}'.format(name=gate.operand.name)
     label_latex = r'{name}'.format(name=latex_name)
@@ -306,8 +305,8 @@ def gen_short_gate_name(gate: types.ScheduledGate,
         'ha': 'center'
     }
     # find latex representation
-    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
-                               r'{{\rm {name}}}'.format(name=gate.operand.name))
+    default_name = r'{{\rm {name}}}'.format(name=gate.operand.name)
+    latex_name = formatter['latex_symbol.gates'].get(gate.operand.name, default_name)
 
     label_plain = '{name}'.format(name=gate.operand.name)
     label_latex = '{name}'.format(name=latex_name)
@@ -452,8 +451,7 @@ def gen_gate_link(link: types.GateLink,
     """
 
     # find line color
-    color = formatter.get('gate_face_color.{name}'.format(name=link.opname),
-                          formatter['gate_face_color.default'])
+    color = formatter['color.gates'].get(link.opname, formatter['color.default_gate'])
 
     styles = {
         'alpha': formatter['alpha.gate_link'],
