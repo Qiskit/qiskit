@@ -153,22 +153,22 @@ class DrawerCanvas:
             # create objects associated with gates
             for gen in self.generator['gates']:
                 obj_generator = partial(gen, formatter=self.formatter)
-                drawings = [obj_generator(gate) for gate in bit_events.get_gates()]
-                for data in list(chain.from_iterable(drawings)):
+                draw_targets = [obj_generator(gate) for gate in bit_events.get_gates()]
+                for data in list(chain.from_iterable(draw_targets)):
                     self.add_data(data)
 
             # create objects associated with gate links
             for gen in self.generator['gate_links']:
                 obj_generator = partial(gen, formatter=self.formatter)
-                drawings = [obj_generator(link) for link in bit_events.get_gate_links()]
-                for data in list(chain.from_iterable(drawings)):
+                draw_targets = [obj_generator(link) for link in bit_events.get_gate_links()]
+                for data in list(chain.from_iterable(draw_targets)):
                     self.add_data(data)
 
             # create objects associated with barrier
             for gen in self.generator['barriers']:
                 obj_generator = partial(gen, formatter=self.formatter)
-                drawings = [obj_generator(barrier) for barrier in bit_events.get_barriers()]
-                for data in list(chain.from_iterable(drawings)):
+                draw_targets = [obj_generator(barrier) for barrier in bit_events.get_barriers()]
+                for data in list(chain.from_iterable(draw_targets)):
                     self.add_data(data)
 
             # create objects associated with bit
@@ -290,7 +290,6 @@ class DrawerCanvas:
             active_bits = [bit for bit in data.bits if bit not in self.disable_bits]
             if len(active_bits) >= 2:
                 return True
-            return False
         else:
             if any([bit in self.assigned_coordinates for bit in data.bits]):
                 # check barrier
@@ -300,7 +299,7 @@ class DrawerCanvas:
                 if data.data_type in _delays and not self.formatter['control.show_delays']:
                     return False
                 return True
-            return False
+        return False
 
     def _check_bit_visible(self, bit: types.Bits) -> bool:
         """A helper function to check if the bit is visible.

@@ -10,6 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-return-type-doc
+
+"""Qiskit timeline drawer.
+
+This module provides a common user interface of the timeline drawer.
+The `draw` function takes a transpiled circuit program to visualize with a stylesheet
+along with several control arguments.
+The drawer canvas object is internally initialized from the input data and
+the configured canvas is passed to the one of plotter APIs to generate a visualization data.
+"""
+
 from typing import Optional, Dict, Any, List, Tuple
 
 from qiskit import circuit
@@ -62,7 +73,7 @@ def draw(program: circuit.QuantumCircuit,
         Image data. The generated data format depends on the `plotter`.
         If matplotlib family is specified, this will be a `matplotlib.pyplot.Figure` data.
 
-    Examples:
+    Example:
         To visualize a scheduled circuit program, you can call this function with set of
         control arguments. Most of appearance of the output image can be controlled by the
         stylesheet.
@@ -132,7 +143,6 @@ def draw(program: circuit.QuantumCircuit,
         and update existing stylesheet with custom functions.
         This feature enables you to control the most of appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
-
 
     Plotters:
         - `mpl`: Matplotlib API to generate 2D image. Charts are placed along y axis with

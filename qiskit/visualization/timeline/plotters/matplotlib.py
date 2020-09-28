@@ -139,6 +139,9 @@ class MplPlotter(BasePlotter):
         Args:
             xvals: Left and right point coordinates.
             yvals: Bottom and top point coordinates.
+
+        Returns:
+            Coordinate vectors of time bucket fringe.
         """
         x0, x1 = xvals
         y0, y1 = yvals
