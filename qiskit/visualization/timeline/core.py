@@ -13,7 +13,7 @@
 """
 Core module of the timeline drawer.
 
-This module provides `DrawDataContainer` which is a collection of drawing objects
+This module provides `DrawDataContainer` which is a collection of drawings
 with additional information to setup the drawer canvas.
 In addition, this instance performs the simple data processing such as arrangement of
 coordinates of bit and bit links when a program is loaded.
@@ -27,9 +27,9 @@ The data container is initialized without arguments and then a program is loaded
 
 This module is expected to be used by the timeline drawer interface and not exposed to users.
 The `DrawDataContainer` takes a scheduled circuit data and convert it into
-a set of drawing objects, then a plotter interface takes the drawing objects
-from the container to call the plotter's API. A set of drawing objects to generate can be
-customized with stylesheet. The generated drawing objects can be accessed from
+a set of drawings, then a plotter interface takes the drawings
+from the container to call the plotter's API. A set of drawings to generate can be
+customized with stylesheet. The generated drawings can be accessed from
     ```python
     ddc.drawings
     ```
@@ -49,12 +49,12 @@ from typing import Tuple, Iterator, Dict
 import numpy as np
 from qiskit import circuit
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import drawing_objects, events, types
+from qiskit.visualization.timeline import drawings, events, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
 
 
 class DrawerCanvas:
-    """Data container for drawing objects."""
+    """Data container for drawings."""
 
     def __init__(self,
                  stylesheet: QiskitTimelineStyle):
@@ -64,7 +64,7 @@ class DrawerCanvas:
         self.generator = stylesheet.generator
         self.layout = stylesheet.layout
 
-        # drawing objects
+        # drawings
         self._collections = dict()
         self._output_dataset = dict()
 
@@ -101,7 +101,7 @@ class DrawerCanvas:
         return new_t0, new_t1
 
     @property
-    def collections(self) -> Iterator[Tuple[str, drawing_objects.ElementaryData]]:
+    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
@@ -117,20 +117,20 @@ class DrawerCanvas:
         self._time_range = new_range
 
     def add_data(self,
-                 data: drawing_objects.ElementaryData):
-        """Add drawing object to collections.
+                 data: drawings.ElementaryData):
+        """Add drawing to collections.
 
         If the given object already exists in the collections,
         this interface replaces the old object instead of adding new entry.
 
         Args:
-            data: New drawing object to add.
+            data: New drawing to add.
         """
         self._collections[data.data_key] = data
 
     def load_program(self,
                      program: circuit.QuantumCircuit):
-        """Load quantum circuit and create drawing object..
+        """Load quantum circuit and create drawing..
 
         Args:
             program: Scheduled circuit object to draw.
@@ -206,7 +206,7 @@ class DrawerCanvas:
         Specified object in the blocked list will not be shown.
 
         Args:
-            data_type: A drawing object data type to disable.
+            data_type: A drawing data type to disable.
             remove: Set `True` to disable, set `False` to enable.
         """
         if remove:
@@ -245,7 +245,7 @@ class DrawerCanvas:
             new_data = deepcopy(data)
             new_data.xvals = self._bind_coordinate(data.xvals)
             new_data.yvals = self._bind_coordinate(data.yvals)
-            if data.data_type == types.DrawingLine.GATE_LINK:
+            if data.data_type == types.LineType.GATE_LINK:
                 temp_gate_links[data_key] = new_data
             else:
                 temp_data[data_key] = new_data
@@ -258,7 +258,7 @@ class DrawerCanvas:
             if self._check_data_visible(data):
                 self._output_dataset[data_key] = data
 
-    def _check_data_visible(self, data: drawing_objects.ElementaryData) -> bool:
+    def _check_data_visible(self, data: drawings.ElementaryData) -> bool:
         """A helper function to check if the data is visible.
 
         Args:
@@ -267,8 +267,8 @@ class DrawerCanvas:
         Returns:
             Return `True` if the data is visible.
         """
-        _barriers = [types.DrawingLine.BARRIER]
-        _delays = [types.DrawingBox.DELAY, types.DrawingLabel.DELAY]
+        _barriers = [types.LineType.BARRIER]
+        _delays = [types.BoxType.DELAY, types.LabelType.DELAY]
 
         t0, t1 = self.time_range
 
@@ -276,7 +276,7 @@ class DrawerCanvas:
         if np.max(data.xvals) < t0 or np.min(data.xvals) > t1:
             return False
 
-        if data.data_type == types.DrawingLine.GATE_LINK:
+        if data.data_type == types.LineType.GATE_LINK:
             # gate link is visible iff there are more than two active bits
             active_bits = [bit for bit in data.bits if bit not in self.disable_bits]
             if len(active_bits) >= 2:
@@ -302,7 +302,7 @@ class DrawerCanvas:
         Returns:
             Return `True` if the bit is visible.
         """
-        _gates = [types.DrawingBox.SCHED_GATE, types.DrawingSymbol.FRAME]
+        _gates = [types.BoxType.SCHED_GATE, types.SymbolType.FRAME]
 
         if bit in self.disable_bits:
             return False
@@ -319,7 +319,7 @@ class DrawerCanvas:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:
-            vals: Sequence of coordinate objects associated with a drawing object.
+            vals: Sequence of coordinate objects associated with a drawing.
 
         Returns:
             Numpy data array with substituted values.
@@ -341,8 +341,8 @@ class DrawerCanvas:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
     def _check_link_overlap(self,
-                            links: Dict[str, drawing_objects.GateLinkData]
-                            ) -> Dict[str, drawing_objects.GateLinkData]:
+                            links: Dict[str, drawings.GateLinkData]
+                            ) -> Dict[str, drawings.GateLinkData]:
         """Helper method to check overlap of bit links.
 
         This method dynamically shifts horizontal position of links if they are overlapped.
@@ -350,7 +350,7 @@ class DrawerCanvas:
         allowed_overlap = self.formatter['margin.link_interval_dt']
 
         # return y coordinates
-        def y_coords(link: drawing_objects.GateLinkData):
+        def y_coords(link: drawings.GateLinkData):
             return np.array([self.assigned_coordinates.get(bit, None) for bit in link.bits])
 
         # group overlapped links

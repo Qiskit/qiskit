@@ -22,7 +22,7 @@ import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import core, types, drawing_objects
+from qiskit.visualization.timeline import core, types, drawings
 from qiskit.visualization.timeline.plotters.base_plotter import BasePlotter
 
 
@@ -81,16 +81,16 @@ class MplPlotter(BasePlotter):
         self.ax.set_ylim(self.canvas.vmin, self.canvas.vmax)
 
     def draw(self):
-        """Output drawing objects stored in canvas object."""
+        """Output drawings stored in canvas object."""
 
         for _, data in self.canvas.collections:
             xvals = data.xvals
             yvals = data.yvals
             offsets = [self.canvas.assigned_coordinates[bit] for bit in data.bits]
 
-            if isinstance(data, drawing_objects.BoxData):
+            if isinstance(data, drawings.BoxData):
                 # box data
-                if data.data_type in [types.DrawingBox.SCHED_GATE, types.DrawingBox.DELAY]:
+                if data.data_type in [types.BoxType.SCHED_GATE, types.BoxType.DELAY]:
                     # draw a smoothly rounded rectangle
                     xs, ys1, ys2 = self._time_bucket_outline(xvals, yvals)
                     self.ax.fill_between(x=xs,
@@ -107,11 +107,11 @@ class MplPlotter(BasePlotter):
                     pc = PatchCollection([rect], **data.styles)
                     self.ax.add_collection(pc)
 
-            elif isinstance(data, drawing_objects.LineData):
+            elif isinstance(data, drawings.LineData):
                 # line data
                 self.ax.plot(xvals, yvals + offsets[0], **data.styles)
 
-            elif isinstance(data, drawing_objects.TextData):
+            elif isinstance(data, drawings.TextData):
                 # text data
                 if data.latex is not None:
                     s = r'${latex}$'.format(latex=data.latex)
@@ -120,7 +120,7 @@ class MplPlotter(BasePlotter):
 
                 self.ax.text(x=xvals[0], y=yvals[0] + offsets[0], s=s, **data.styles)
 
-            elif isinstance(data, drawing_objects.GateLinkData):
+            elif isinstance(data, drawings.GateLinkData):
                 # gate link data
                 self.ax.plot(xvals.repeat(len(offsets)), offsets, **data.styles)
 

@@ -35,7 +35,7 @@ class BasePlotter(ABC):
 
     @abstractmethod
     def draw(self):
-        """Output drawing objects stored in canvas object."""
+        """Output drawings stored in canvas object."""
         raise NotImplementedError
 
     @abstractmethod

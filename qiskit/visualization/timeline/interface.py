@@ -133,16 +133,16 @@ def draw(program: circuit.QuantumCircuit,
             sort by index or bit types.
             See :py:mod:`~qiskit.visualization.timeline.layouts` for details.
         generator.gates: List of generator callback function that takes
-            `ScheduledGate` object and returns drawing objects.
+            `ScheduledGate` object and returns drawings.
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
         generator.bits: List of generator callback function that takes
-            a bit object and returns drawing objects.
+            a bit object and returns drawings.
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
         generator.barriers: List of generator callback function that takes
-            `Barrier` object and returns drawing objects.
+            `Barrier` object and returns drawings.
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
         generator.bit_links: List of generator callback function that takes
-            `GateLink` object and returns drawing objects.
+            `GateLink` object and returns drawings.
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
 
     Raises:
@@ -185,9 +185,9 @@ def draw(program: circuit.QuantumCircuit,
 
     # show labels
     if not show_labels:
-        labels = [types.DrawingLabel.DELAY,
-                  types.DrawingLabel.GATE_PARAM,
-                  types.DrawingLabel.GATE_NAME]
+        labels = [types.LabelType.DELAY,
+                  types.LabelType.GATE_PARAM,
+                  types.LabelType.GATE_NAME]
         for label in labels:
             canvas.set_disable_type(label, remove=True)
 

@@ -29,7 +29,7 @@ Type of stylesheet is broadly separated into `formatter`, `generator` and `layou
 The formatter is a nested dictionary of drawing parameters to control the appearance of
 each visualization element. This data structure is similar to the `rcParams` of `matplotlib`.
 
-The generator is a list of callback functions that generates drawing objects from
+The generator is a list of callback functions that generates drawings from
 a given data source and the formatter. Each item can take multiple functions so that
 several drawing data, for example, box, text, etc..., are generated from the single data source.
 The layout is a callback function that determines the appearance of the output image.
