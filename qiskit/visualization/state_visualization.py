@@ -184,17 +184,22 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>]
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
+            or [<r>, <theta>, <phi>] (spherical in radians)
+            <theta> is inclination angle from +z direction
+            <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
+        coord_type (str): a string that specifies coordinate type for bloch
+            (cartesian or spherical), default is cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -216,6 +221,11 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
+    if coord_type == "spherical":
+        r, theta, phi = bloch[0], bloch[1], bloch[2]
+        bloch[0] = r*np.sin(theta)*np.cos(phi)
+        bloch[1] = r*np.sin(theta)*np.sin(phi)
+        bloch[2] = r*np.cos(theta)
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
@@ -712,6 +722,11 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
+    # Force aspect ratio
+    # MPL 3.2 or previous do not have set_box_aspect
+    if hasattr(ax.axes, 'set_box_aspect'):
+        ax.axes.set_box_aspect((1, 1, 1))
+
     # start the plotting
     # Plot semi-transparent sphere
     u = np.linspace(0, 2 * np.pi, 25)
@@ -719,8 +734,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
-                    alpha=0.05, linewidth=0)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color=plt.rcParams['grid.color'],
+                    alpha=0.2, linewidth=0)
 
     # Get rid of the panes
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -824,7 +839,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
+    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams['figure.facecolor'], zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:

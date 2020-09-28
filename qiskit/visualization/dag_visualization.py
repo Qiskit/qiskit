@@ -20,8 +20,6 @@ import os
 import sys
 import tempfile
 
-from networkx.drawing.nx_pydot import to_pydot
-
 from .exceptions import VisualizationError
 
 try:
@@ -88,16 +86,15 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
     type_str = str(type(dag))
-    if 'dagcircuit.DAGDependency' in type_str:
-        G = dag.to_networkx()
-        G.graph['dpi'] = 100 * scale
+    if 'DAGDependency' in type_str:
+        graph_attrs = {'dpi': str(100 * scale)}
 
-        if style == 'plain':
-            pass
-        elif style == 'color':
-            for node in G.nodes:
-                n = G.nodes[node]
-                n['label'] = str(node.node_id) + ': ' + node.name
+        def node_attr_func(node):
+            if style == 'plain':
+                return {}
+            if style == 'color':
+                n = {}
+                n['label'] = str(node.node_id) + ': ' + str(node.name)
                 if node.name == 'measure':
                     n['color'] = 'blue'
                     n['style'] = 'filled'
@@ -111,22 +108,23 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
                 if node.condition:
-                    n['label'] = str(node.node_id) + ': ' + node.name + ' (conditional)'
+                    n['label'] = str(node.node_id) + ': ' + str(node.name) + ' (conditional)'
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightgreen'
-        else:
-            raise VisualizationError("Unrecognized style for the dag_drawer.")
+                return n
+            else:
+                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+        edge_attr_func = None
 
     else:
-        G = dag.to_networkx()
-        G.graph['dpi'] = 100 * scale
+        graph_attrs = {'dpi': str(100 * scale)}
 
-        if style == 'plain':
-            pass
-        elif style == 'color':
-            for node in G.nodes:
-                n = G.nodes[node]
+        def node_attr_func(node):
+            if style == 'plain':
+                return {}
+            if style == 'color':
+                n = {}
                 n['label'] = node.name
                 if node.type == 'op':
                     n['color'] = 'blue'
@@ -140,12 +138,18 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
-            for e in G.edges(data=True):
-                e[2]['label'] = e[2]['name']
-        else:
-            raise VisualizationError("Unrecognized style for the dag_drawer.")
+                return n
+            else:
+                raise VisualizationError('Invalid style %s' % style)
 
-    dot = to_pydot(G)
+        def edge_attr_func(edge):
+            e = {}
+            e['label'] = str(edge['name'])
+            return e
+
+    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,
+                                      graph_attrs)
+    dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
         extension = filename.split('.')[-1]
