@@ -50,9 +50,8 @@ class DiagonalGate(Gate):
             raise QiskitError("The number of diagonal entries is not a positive power of 2.")
         diag = diag.copy()
         only_complex = True
-        for i in range(len(diag)):
-            z = diag[i]
-            if np.isscalar(z) and (z == 1. or z == -1.):
+        for i, z in enumerate(diag):
+            if np.isscalar(z) and z in (1.0, -1.0):
                 diag[i] = complex(z)
                 continue
             try:
