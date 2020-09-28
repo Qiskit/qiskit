@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
+
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import core, types, drawings
 from qiskit.visualization.timeline.plotters.base_plotter import BasePlotter

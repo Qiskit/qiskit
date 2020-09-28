@@ -13,32 +13,40 @@
 """
 Core module of the timeline drawer.
 
-This module provides `DrawDataContainer` which is a collection of drawings
-with additional information to setup the drawer canvas.
-In addition, this instance performs the simple data processing such as arrangement of
-coordinates of bit and bit links when a program is loaded.
+This module provides the `DrawerCanvas` which is a collection of drawings.
+The canvas instance is not just a container of drawing objects, as it also performs
+data processing like binding abstract coordinates.
 
-The data container is initialized without arguments and then a program is loaded by method.
+
+Initialization
+~~~~~~~~~~~~~~
+The `DataCanvas` is not exposed to users as they are implicitly initialized in the
+interface function. It is noteworthy that the data canvas is agnostic to plotters.
+This means once the canvas instance is initialized we can reuse this data
+among multiple plotters. The canvas is initialized with a stylesheet.
+
     ```python
-    ddc = DrawDataContainer()
-    ddc.load_program(sched_circ, inst_durations)
-    ddc.update_preference(visible_bits=[qregs[0], qregs[1]])
+    canvas = DrawerCanvas(stylesheet=stylesheet)
+    canvas.load_program(sched)
+    canvas.update()
     ```
 
-This module is expected to be used by the timeline drawer interface and not exposed to users.
-The `DrawDataContainer` takes a scheduled circuit data and convert it into
-a set of drawings, then a plotter interface takes the drawings
-from the container to call the plotter's API. A set of drawings to generate can be
-customized with stylesheet. The generated drawings can be accessed from
+Once all properties are set, `.update` method is called to apply changes to drawings.
+
+Update
+~~~~~~
+To update the image, a user can set new values to canvas and then call the `.update` method.
+
     ```python
-    ddc.drawings
+    canvas.set_time_range(2000, 3000)
+    canvas.update()
     ```
-This module can be commonly used among different plotters. If the plotter supports
-dynamic update of drawings, the channel data can be updated with new preference:
-    ```python
-    ddc.update_preference(visible_bits=[qregs[1]])
-    ```
-In this example, the Qubit1 will be removed from the output.
+
+All stored drawings are updated accordingly. The plotter API can access to
+drawings with `.collections` property of the canvas instance. This returns
+an iterator of drawings with the unique data key.
+If a plotter provides object handler for plotted shapes, the plotter API can manage
+the lookup table of the handler and the drawings by using this data key.
 """
 
 from copy import deepcopy
@@ -47,6 +55,7 @@ from itertools import chain
 from typing import Tuple, Iterator, Dict
 
 import numpy as np
+
 from qiskit import circuit
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import drawings, events, types
