@@ -23,6 +23,7 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
+from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -33,6 +34,11 @@ from .exceptions import VisualizationError
 class TextDrawerCregBundle(VisualizationError):
     """The parameter "cregbundle" was set to True in an imposible situation. For example, an
     instruction needs to refer to individual classical wires'"""
+    pass
+
+
+class TextDrawerEncodingError(VisualizationError):
+    """A problem with encoding"""
     pass
 
 
@@ -517,13 +523,12 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False, global_phase=None):
+                 cregbundle=False, global_phase=None, encoding=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
-
         self.cregbundle = cregbundle
         self.global_phase = global_phase
         self.plotbarriers = plotbarriers
@@ -531,6 +536,7 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        self.encoding = encoding if encoding else sys.stdout.encoding
 
     def __str__(self):
         return self.single_string()
@@ -548,20 +554,25 @@ class TextDrawing():
 
     def single_string(self):
         """Creates a long string with the ascii art.
-
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
-        return "\n".join(self.lines())
+        try:
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            warn('The encoding %s has a limited charset. Consider a different encoding in your '
+                 'environment. UTF-8 is being used instead' % self.encoding, RuntimeWarning)
+            self.encoding = 'utf-8'
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
 
-    def dump(self, filename, encoding="utf8"):
+    def dump(self, filename, encoding=None):
         """Dumps the ascii art in the file.
 
         Args:
             filename (str): File to dump the ascii art.
-            encoding (str): Optional. Default "utf-8".
+            encoding (str): Optional. Force encoding, instead of self.encoding.
         """
-        with open(filename, mode='w', encoding=encoding) as text_file:
+        with open(filename, mode='w', encoding=encoding or self.encoding) as text_file:
             text_file.write(self.single_string())
 
     def lines(self, line_length=None):
@@ -797,7 +808,10 @@ class TextDrawing():
         params = TextDrawing.params_for_label(instruction)
 
         if params:
-            label += "(%s)" % ','.join(params)
+            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
+                label += "(%s[%s])" % (params[0], instruction.op.unit)
+            else:
+                label += "(%s)" % ','.join(params)
         return label
 
     @staticmethod

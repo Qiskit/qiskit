@@ -22,10 +22,10 @@ from typing import Union, List
 
 import numpy
 
-from qiskit.qobj.qasm_qobj import QobjDictField
-from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
-from qiskit.qobj.qasm_qobj import validator
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
