@@ -343,10 +343,10 @@ class HoareOptimizer(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
+        self._reset()
         self._initialize(dag)
         self._traverse_dag(dag)
         if self.size > 1:
             for qbt in dag.qubits:
                 self._multigate_opt(dag, qbt.index)
-        self._reset()
         return dag
