@@ -29,7 +29,7 @@ Type of stylesheet is broadly separated into `formatter`, `generator` and `layou
 The formatter is a nested dictionary of drawing parameters to control the appearance of
 each visualization element. This data structure is similar to the `rcParams` of `matplotlib`.
 
-The generator is a list of callback functions that generates drawing objects from
+The generator is a list of callback functions that generates drawings from
 a given data source and the formatter. Each item can take multiple functions so that
 several drawing data, for example, box, text, etc..., are generated from the single data source.
 The layout is a callback function that determines the appearance of the output image.
@@ -193,13 +193,12 @@ def default_style() -> Dict[str, Any]:
     """Define default values of the timeline stylesheet."""
     return {
         'formatter.general.fig_width': 14,
-        'formatter.general.fig_unit_height': 0.5,
+        'formatter.general.fig_unit_height': 0.8,
         'formatter.general.dpi': 150,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.02,
         'formatter.margin.right_percent': 0.02,
-        'formatter.margin.interval': 0.3,
         'formatter.margin.link_interval_dt': 20,
         'formatter.time_bucket.edge_dt': 10,
         'formatter.color.background': '#FFFFFF',
@@ -260,8 +259,8 @@ def default_style() -> Dict[str, Any]:
         'formatter.gate_latex_repr.measure': r'{\rm Measure}',
         'formatter.unicode_symbol.frame_change': u'\u21BA',
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
-        'formatter.box_height.gate': 0.7,
-        'formatter.box_height.timeslot': 0.8,
+        'formatter.box_height.gate': 0.5,
+        'formatter.box_height.timeslot': 0.6,
         'formatter.layer.gate': 3,
         'formatter.layer.timeslot': 0,
         'formatter.layer.gate_name': 5,
