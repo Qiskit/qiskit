@@ -243,7 +243,7 @@ def draw(program: circuit.QuantumCircuit,
             in the front of the output image (default `4`).
         - formatter.layer.barrier: Layer index of barrier lines. Larger number comes
             in the front of the output image (default `1`).
-        - formatter.layer.bit_link: Layer index of gate link lines. Larger number comes
+        - formatter.layer.gate_link: Layer index of gate link lines. Larger number comes
             in the front of the output image (default `2`).
         - formatter.alpha.gate: Transparency of gate boxes. A value in the range from
             `0` to `1`. The value `0` gives completely transparent boxes (default `1.0`).
@@ -251,15 +251,15 @@ def draw(program: circuit.QuantumCircuit,
             `0` to `1`. The value `0` gives completely transparent boxes (default `0.7`).
         - formatter.alpha.barrier: Transparency of barrier lines. A value in the range from
             `0` to `1`. The value `0` gives completely transparent lines (default `0.5`).
-        - formatter.alpha.bit_link: Transparency of gate link lines. A value in the range from
+        - formatter.alpha.gate_link: Transparency of gate link lines. A value in the range from
             `0` to `1`. The value `0` gives completely transparent lines (default `0.8`).
         - formatter.line_width.gate: Line width of the fringe of gate boxes (default `0`).
         - formatter.line_width.timeslot: Line width of the fringe of time slots (default `0`).
         - formatter.line_width.barrier: Line width of barrier lines (default `3`).
-        - formatter.line_width.bit_link: Line width of bit links (default `3`).
+        - formatter.line_width.gate_link: Line width of gate links (default `3`).
         - formatter.line_style.barrier: Line style of barrier lines. This
             conforms to the line style spec of matplotlib (default `'-'`).
-        - formatter.line_style.bit_link: Line style of bit link lines. This
+        - formatter.line_style.gate_link: Line style of gate link lines. This
             conforms to the line style spec of matplotlib (default `'-'`).
         - formatter.text_size.gate_name: Text size of gate name annotations (default `12`).
         - formatter.text_size.bit_name: Text size of bit labels (default `15`).
@@ -288,7 +288,7 @@ def draw(program: circuit.QuantumCircuit,
             See :py:mod:~`qiskit.visualization.timeline.generators` for more details.
             No default generator is set (default `[]`).
         - generator.gate_links: List of callback functions that generates drawings
-            for bit links. Arbitrary callback functions satisfying the generator format
+            for gate links. Arbitrary callback functions satisfying the generator format
             can be set here. There are some default generators in the timeline drawer.
             See :py:mod:~`qiskit.visualization.timeline.generators` for more details.
             No default generator is set (default `[]`).

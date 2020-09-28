@@ -104,7 +104,7 @@ class IqxStandard(dict):
     - Show bit name.
     - Show barriers.
     - Show idle timeline.
-    - Show bit link.
+    - Show gate link.
     - Remove classical bits.
     """
     def __init__(self, **kwargs):
@@ -118,7 +118,7 @@ class IqxStandard(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -133,7 +133,7 @@ class IqxSimple(dict):
 
     - Show time buckets.
     - Show bit name.
-    - Show bit link.
+    - Show gate link.
     - Remove idle timeline.
     - Remove classical bits.
     """
@@ -147,7 +147,7 @@ class IqxSimple(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -166,7 +166,7 @@ class IqxDebugging(dict):
     - Show delays.
     - Show idle timeline.
     - Show bit name.
-    - Show bit link.
+    - Show gate link.
     """
     def __init__(self, **kwargs):
         super().__init__()
@@ -179,7 +179,7 @@ class IqxDebugging(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -267,17 +267,17 @@ def default_style() -> Dict[str, Any]:
         'formatter.layer.bit_name': 5,
         'formatter.layer.frame_change': 4,
         'formatter.layer.barrier': 1,
-        'formatter.layer.bit_link': 2,
+        'formatter.layer.gate_link': 2,
         'formatter.alpha.gate': 1.0,
         'formatter.alpha.timeslot': 0.7,
         'formatter.alpha.barrier': 0.5,
-        'formatter.alpha.bit_link': 0.8,
+        'formatter.alpha.gate_link': 0.8,
         'formatter.line_width.gate': 0,
         'formatter.line_width.timeslot': 0,
         'formatter.line_width.barrier': 3,
-        'formatter.line_width.bit_link': 3,
+        'formatter.line_width.gate_link': 3,
         'formatter.line_style.barrier': '-',
-        'formatter.line_style.bit_link': '-',
+        'formatter.line_style.gate_link': '-',
         'formatter.text_size.gate_name': 12,
         'formatter.text_size.bit_name': 15,
         'formatter.text_size.frame_change': 18,

@@ -300,7 +300,7 @@ class TestGateLink(QiskitTestCase):
 
     def gen_bit_link(self):
         """Test gen_bit_link generator."""
-        drawing_obj = generators.gen_bit_link(self.gate_link, self.formatter)[0]
+        drawing_obj = generators.gen_gate_link(self.gate_link, self.formatter)[0]
 
         self.assertEqual(drawing_obj.data_type, types.LineType.GATE_LINK)
         self.assertListEqual(list(drawing_obj.xvals), [100])

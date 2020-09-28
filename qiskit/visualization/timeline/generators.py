@@ -432,19 +432,19 @@ def gen_barrier(barrier: types.Barrier,
     return [drawing]
 
 
-def gen_bit_link(link: types.GateLink,
-                 formatter: Dict[str, Any]
-                 ) -> List[drawings.GateLinkData]:
+def gen_gate_link(link: types.GateLink,
+                  formatter: Dict[str, Any]
+                  ) -> List[drawings.GateLinkData]:
     """Generate gate link line.
 
     Line color depends on the operand type.
 
     Stylesheet:
-        - `bit_link` style is applied.
+        - `gate_link` style is applied.
         - The `gate_face_color` style is applied for line color.
 
     Args:
-        link: Bit link object.
+        link: Gate link object.
         formatter: Dictionary of stylesheet settings.
 
     Returns:
@@ -456,10 +456,10 @@ def gen_bit_link(link: types.GateLink,
                           formatter['gate_face_color.default'])
 
     styles = {
-        'alpha': formatter['alpha.bit_link'],
-        'zorder': formatter['layer.bit_link'],
-        'linewidth': formatter['line_width.bit_link'],
-        'linestyle': formatter['line_style.bit_link'],
+        'alpha': formatter['alpha.gate_link'],
+        'zorder': formatter['layer.gate_link'],
+        'linewidth': formatter['line_width.gate_link'],
+        'linestyle': formatter['line_style.gate_link'],
         'color': color
     }
 

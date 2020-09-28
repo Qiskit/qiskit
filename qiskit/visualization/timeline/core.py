@@ -394,10 +394,10 @@ class DrawerCanvas:
                 x0 = xpos_mean - 0.5 * allowed_overlap * (len(overlaps) - 1)
                 for ind, key in enumerate(sorted_keys):
                     data = links[key]
-                    data.xvals = x0 + ind * allowed_overlap
+                    data.xvals = [x0 + ind * allowed_overlap]
                     new_links[key] = data
             else:
                 key = overlaps[0]
                 new_links[key] = links[key]
 
-        return new_links
+        return {key: new_links[key] for key in links.keys()}
