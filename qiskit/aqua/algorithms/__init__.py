@@ -124,6 +124,13 @@ knowledge to do this in that application domain.
    :toctree: ../stubs/
    :nosignatures:
 
+   Eigensolver
+   EigensolverResult
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
    NumPyEigensolver
 
 Factorizers
@@ -197,7 +204,7 @@ from .amplitude_estimators import (AmplitudeEstimationAlgorithmResult,
                                    MaximumLikelihoodAmplitudeEstimationResult)
 from .classifiers import VQC, QSVM, SklearnSVM, SVM_Classical
 from .distribution_learners import QGAN
-from .eigen_solvers import NumPyEigensolver, ExactEigensolver, EigensolverResult
+from .eigen_solvers import NumPyEigensolver, ExactEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor
 from .linear_solvers import (LinearsolverResult, HHL,
                              HHLResult, NumPyLSsolver,
@@ -223,6 +230,7 @@ __all__ = [
     'LinearsolverResult',
     'NumPyLSsolver',
     'NumPyLSsolverResult',
+    'Eigensolver',
     'EigensolverResult',
     'ExactLSsolver',
     'NumPyMinimumEigensolver',

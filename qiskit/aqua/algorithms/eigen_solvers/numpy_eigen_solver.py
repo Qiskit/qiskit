@@ -23,7 +23,7 @@ from qiskit.aqua import AquaError
 from qiskit.aqua.algorithms import ClassicalAlgorithm
 from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator, I, StateFn, ListOp
 from qiskit.aqua.utils.validation import validate_min
-from .eigen_solver_result import EigensolverResult
+from .eigen_solver import Eigensolver, EigensolverResult
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
-class NumPyEigensolver(ClassicalAlgorithm):
+class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
     r"""
     The NumPy Eigensolver algorithm.
 
@@ -74,12 +74,10 @@ class NumPyEigensolver(ClassicalAlgorithm):
 
     @property
     def operator(self) -> Optional[OperatorBase]:
-        """ returns operator """
         return self._operator
 
     @operator.setter
     def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
-        """ set operator """
         if isinstance(operator, LegacyBaseOperator):
             operator = operator.to_opflow()
         self._operator = operator
@@ -87,7 +85,6 @@ class NumPyEigensolver(ClassicalAlgorithm):
 
     @property
     def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
-        """ returns aux operators """
         return self._aux_operators
 
     @aux_operators.setter
@@ -97,7 +94,6 @@ class NumPyEigensolver(ClassicalAlgorithm):
                                 LegacyBaseOperator,
                                 List[Optional[Union[OperatorBase,
                                                     LegacyBaseOperator]]]]]) -> None:
-        """ Set aux operators """
         if aux_operators is None:
             aux_operators = []
         elif not isinstance(aux_operators, list):
@@ -126,7 +122,6 @@ class NumPyEigensolver(ClassicalAlgorithm):
         self._check_set_k()
 
     def supports_aux_operators(self) -> bool:
-        """ If will process auxiliary operators or not """
         return True
 
     def _check_set_k(self) -> None:
@@ -200,6 +195,15 @@ class NumPyEigensolver(ClassicalAlgorithm):
                 value = value.real if abs(value.real) > threshold else 0.0
             values.append((value, 0))
         return np.array(values, dtype=object)
+
+    def compute_eigenvalues(
+            self,
+            operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+            aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                        LegacyBaseOperator]]]] = None
+    ) -> EigensolverResult:
+        super().compute_eigenvalues(operator, aux_operators)
+        return self._run()
 
     def _run(self):
         """
