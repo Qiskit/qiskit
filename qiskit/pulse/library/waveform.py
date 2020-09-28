@@ -104,7 +104,8 @@ class Waveform(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             draw_title: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -115,6 +116,7 @@ class Waveform(Pulse):
             scale: Relative visual scaling of waveform amplitudes.
             interactive: When set true show the circuit in a new window.
                          (This depends on the matplotlib backend being used.)
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
