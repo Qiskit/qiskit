@@ -88,7 +88,6 @@ def draw(program: circuit.QuantumCircuit,
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.delay(500, 0)
             qc.cx(0,1)
 
             qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
@@ -104,7 +103,6 @@ def draw(program: circuit.QuantumCircuit,
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.delay(500, 0)
             qc.cx(0,1)
 
             qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
@@ -120,7 +118,6 @@ def draw(program: circuit.QuantumCircuit,
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.delay(500, 0)
             qc.cx(0,1)
 
             qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
@@ -145,7 +142,7 @@ def draw(program: circuit.QuantumCircuit,
         without modifying the codebase of the scheduled circuit drawer.
 
     Plotters:
-        - `mpl`: Matplotlib API to generate 2D image. Charts are placed along y axis with
+        - mpl: Matplotlib API to generate 2D image. Charts are placed along y axis with
             vertical offset. This API takes matplotlib.axes.Axes as `axis` input.
 
     Stylesheet:
