@@ -141,8 +141,7 @@ def gen_sched_gate(gate: types.ScheduledGate,
     }
 
     # find color
-    color = formatter.get('gate_face_color.{name}'.format(name=gate.operand.name),
-                          formatter['gate_face_color.default'])
+    color = formatter['color.gates'].get(gate.operand.name, formatter['color.default_gate'])
 
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -224,8 +223,8 @@ def gen_full_gate_name(gate: types.ScheduledGate,
         'ha': 'center'
     }
     # find latex representation
-    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
-                               r'{{\rm {name}}}'.format(name=gate.operand.name))
+    default_name = r'{{\rm {name}}}'.format(name=gate.operand.name)
+    latex_name = formatter['latex_symbol.gates'].get(gate.operand.name, default_name)
 
     label_plain = '{name}'.format(name=gate.operand.name)
     label_latex = r'{name}'.format(name=latex_name)
@@ -306,8 +305,8 @@ def gen_short_gate_name(gate: types.ScheduledGate,
         'ha': 'center'
     }
     # find latex representation
-    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
-                               r'{{\rm {name}}}'.format(name=gate.operand.name))
+    default_name = r'{{\rm {name}}}'.format(name=gate.operand.name)
+    latex_name = formatter['latex_symbol.gates'].get(gate.operand.name, default_name)
 
     label_plain = '{name}'.format(name=gate.operand.name)
     label_latex = '{name}'.format(name=latex_name)
@@ -432,19 +431,19 @@ def gen_barrier(barrier: types.Barrier,
     return [drawing]
 
 
-def gen_bit_link(link: types.GateLink,
-                 formatter: Dict[str, Any]
-                 ) -> List[drawings.GateLinkData]:
+def gen_gate_link(link: types.GateLink,
+                  formatter: Dict[str, Any]
+                  ) -> List[drawings.GateLinkData]:
     """Generate gate link line.
 
     Line color depends on the operand type.
 
     Stylesheet:
-        - `bit_link` style is applied.
+        - `gate_link` style is applied.
         - The `gate_face_color` style is applied for line color.
 
     Args:
-        link: Bit link object.
+        link: Gate link object.
         formatter: Dictionary of stylesheet settings.
 
     Returns:
@@ -452,14 +451,13 @@ def gen_bit_link(link: types.GateLink,
     """
 
     # find line color
-    color = formatter.get('gate_face_color.{name}'.format(name=link.opname),
-                          formatter['gate_face_color.default'])
+    color = formatter['color.gates'].get(link.opname, formatter['color.default_gate'])
 
     styles = {
-        'alpha': formatter['alpha.bit_link'],
-        'zorder': formatter['layer.bit_link'],
-        'linewidth': formatter['line_width.bit_link'],
-        'linestyle': formatter['line_style.bit_link'],
+        'alpha': formatter['alpha.gate_link'],
+        'zorder': formatter['layer.gate_link'],
+        'linewidth': formatter['line_width.gate_link'],
+        'linestyle': formatter['line_style.gate_link'],
         'color': color
     }
 

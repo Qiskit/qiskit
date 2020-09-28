@@ -48,7 +48,7 @@ class TestGates(QiskitTestCase):
         """Test test_gen_sched_gate generator with finite duration gate."""
         drawing_obj = generators.gen_sched_gate(self.u3, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.BoxType.SCHED_GATE)
+        self.assertEqual(drawing_obj.data_type, str(types.BoxType.SCHED_GATE.value))
         self.assertListEqual(list(drawing_obj.xvals), [100, 120])
         self.assertListEqual(list(drawing_obj.yvals), [-0.5 * self.formatter['box_height.gate'],
                                                        0.5 * self.formatter['box_height.gate']])
@@ -66,7 +66,7 @@ class TestGates(QiskitTestCase):
 
         ref_styles = {
             'zorder': self.formatter['layer.gate'],
-            'facecolor': self.formatter['gate_face_color.u3'],
+            'facecolor': self.formatter['color.gates']['u3'],
             'alpha': self.formatter['alpha.gate'],
             'linewidth': self.formatter['line_width.gate']
         }
@@ -76,7 +76,7 @@ class TestGates(QiskitTestCase):
         """Test test_gen_sched_gate generator with zero duration gate."""
         drawing_obj = generators.gen_sched_gate(self.u1, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.SymbolType.FRAME)
+        self.assertEqual(drawing_obj.data_type, str(types.SymbolType.FRAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [100])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
@@ -85,7 +85,7 @@ class TestGates(QiskitTestCase):
 
         ref_styles = {
             'zorder': self.formatter['layer.frame_change'],
-            'color': self.formatter['gate_face_color.u1'],
+            'color': self.formatter['color.gates']['u1'],
             'size': self.formatter['text_size.frame_change'],
             'va': 'center',
             'ha': 'center'
@@ -96,19 +96,19 @@ class TestGates(QiskitTestCase):
         """Test test_gen_sched_gate generator with delay."""
         drawing_obj = generators.gen_sched_gate(self.delay, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.BoxType.DELAY)
+        self.assertEqual(drawing_obj.data_type, str(types.BoxType.DELAY.value))
 
     def test_gen_full_gate_name_with_finite_duration(self):
         """Test gen_full_gate_name generator with finite duration gate."""
         drawing_obj = generators.gen_full_gate_name(self.u3, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.GATE_NAME)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [110.])
         self.assertListEqual(list(drawing_obj.yvals), [0.])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u3(0.00, 0.00, 0.00)[20]')
         ref_latex = '{name}(0.00, 0.00, 0.00)[20]'.format(
-            name=self.formatter['gate_latex_repr.u3'])
+            name=self.formatter['latex_symbol.gates']['u3'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -124,13 +124,13 @@ class TestGates(QiskitTestCase):
         """Test gen_full_gate_name generator with zero duration gate."""
         drawing_obj = generators.gen_full_gate_name(self.u1, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.GATE_NAME)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [100.])
         self.assertListEqual(list(drawing_obj.yvals),
                              [self.formatter['label_offset.frame_change']])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u1(0.00)')
-        ref_latex = '{name}(0.00)'.format(name=self.formatter['gate_latex_repr.u1'])
+        ref_latex = '{name}(0.00)'.format(name=self.formatter['latex_symbol.gates']['u1'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -146,18 +146,18 @@ class TestGates(QiskitTestCase):
         """Test gen_full_gate_name generator with delay."""
         drawing_obj = generators.gen_full_gate_name(self.delay, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.DELAY)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.DELAY.value))
 
     def test_gen_short_gate_name_with_finite_duration(self):
         """Test gen_short_gate_name generator with finite duration gate."""
         drawing_obj = generators.gen_short_gate_name(self.u3, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.GATE_NAME)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [110.])
         self.assertListEqual(list(drawing_obj.yvals), [0.])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u3')
-        ref_latex = '{name}'.format(name=self.formatter['gate_latex_repr.u3'])
+        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u3'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -173,13 +173,13 @@ class TestGates(QiskitTestCase):
         """Test gen_short_gate_name generator with zero duration gate."""
         drawing_obj = generators.gen_short_gate_name(self.u1, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.GATE_NAME)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.GATE_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [100.])
         self.assertListEqual(list(drawing_obj.yvals),
                              [self.formatter['label_offset.frame_change']])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, 'u1')
-        ref_latex = '{name}'.format(name=self.formatter['gate_latex_repr.u1'])
+        ref_latex = '{name}'.format(name=self.formatter['latex_symbol.gates']['u1'])
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -195,7 +195,7 @@ class TestGates(QiskitTestCase):
         """Test gen_short_gate_name generator with delay."""
         drawing_obj = generators.gen_short_gate_name(self.delay, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.DELAY)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.DELAY.value))
 
 
 class TestTimeslot(QiskitTestCase):
@@ -214,7 +214,7 @@ class TestTimeslot(QiskitTestCase):
         """Test gen_timeslot generator."""
         drawing_obj = generators.gen_timeslot(self.qubit, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.BoxType.TIMELINE)
+        self.assertEqual(drawing_obj.data_type, str(types.BoxType.TIMELINE.value))
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT,
                                                        types.AbstractCoordinate.RIGHT])
         self.assertListEqual(list(drawing_obj.yvals),
@@ -234,7 +234,7 @@ class TestTimeslot(QiskitTestCase):
         """Test gen_bit_name generator."""
         drawing_obj = generators.gen_bit_name(self.qubit, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LabelType.BIT_NAME)
+        self.assertEqual(drawing_obj.data_type, str(types.LabelType.BIT_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
@@ -270,7 +270,7 @@ class TestBarrier(QiskitTestCase):
         """Test gen_barrier generator."""
         drawing_obj = generators.gen_barrier(self.barrier, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LineType.BARRIER)
+        self.assertEqual(drawing_obj.data_type, str(types.LineType.BARRIER.value))
         self.assertListEqual(list(drawing_obj.xvals), [100, 100])
         self.assertListEqual(list(drawing_obj.yvals), [-0.5, 0.5])
         self.assertListEqual(drawing_obj.bits, [self.qubits[1]])
@@ -300,9 +300,9 @@ class TestGateLink(QiskitTestCase):
 
     def gen_bit_link(self):
         """Test gen_bit_link generator."""
-        drawing_obj = generators.gen_bit_link(self.gate_link, self.formatter)[0]
+        drawing_obj = generators.gen_gate_link(self.gate_link, self.formatter)[0]
 
-        self.assertEqual(drawing_obj.data_type, types.LineType.GATE_LINK)
+        self.assertEqual(drawing_obj.data_type, str(types.LineType.GATE_LINK.value))
         self.assertListEqual(list(drawing_obj.xvals), [100])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, self.qubits)
@@ -312,6 +312,6 @@ class TestGateLink(QiskitTestCase):
             'zorder': self.formatter['layer.bit_link'],
             'linewidth': self.formatter['line_width.bit_link'],
             'linestyle': self.formatter['line_style.bit_link'],
-            'color': self.formatter['gate_face_color.cx']
+            'color': self.formatter['color.gates']['cx']
         }
         self.assertDictEqual(ref_styles, drawing_obj.styles)

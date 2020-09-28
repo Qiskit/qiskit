@@ -104,7 +104,7 @@ class IqxStandard(dict):
     - Show bit name.
     - Show barriers.
     - Show idle timeline.
-    - Show bit link.
+    - Show gate link.
     - Remove classical bits.
     """
     def __init__(self, **kwargs):
@@ -118,7 +118,7 @@ class IqxStandard(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -133,7 +133,7 @@ class IqxSimple(dict):
 
     - Show time buckets.
     - Show bit name.
-    - Show bit link.
+    - Show gate link.
     - Remove idle timeline.
     - Remove classical bits.
     """
@@ -147,7 +147,7 @@ class IqxSimple(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -166,7 +166,7 @@ class IqxDebugging(dict):
     - Show delays.
     - Show idle timeline.
     - Show bit name.
-    - Show bit link.
+    - Show gate link.
     """
     def __init__(self, **kwargs):
         super().__init__()
@@ -179,7 +179,7 @@ class IqxDebugging(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.gate_links': [generators.gen_bit_link],
+                 'generator.gate_links': [generators.gen_gate_link],
                  'layout.bit_arrange': layouts.qreg_creg_ascending,
                  'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
@@ -206,59 +206,63 @@ def default_style() -> Dict[str, Any]:
         'formatter.color.gate_name': '#000000',
         'formatter.color.bit_name': '#000000',
         'formatter.color.barrier': '#222222',
-        'formatter.gate_face_color.default': '#BB8BFF',
-        'formatter.gate_face_color.u0': '#FA74A6',
-        'formatter.gate_face_color.u1': '#000000',
-        'formatter.gate_face_color.u2': '#FA74A6',
-        'formatter.gate_face_color.u3': '#FA74A6',
-        'formatter.gate_face_color.id': '#05BAB6',
-        'formatter.gate_face_color.x': '#05BAB6',
-        'formatter.gate_face_color.y': '#05BAB6',
-        'formatter.gate_face_color.z': '#05BAB6',
-        'formatter.gate_face_color.h': '#6FA4FF',
-        'formatter.gate_face_color.cx': '#6FA4FF',
-        'formatter.gate_face_color.cy': '#6FA4FF',
-        'formatter.gate_face_color.cz': '#6FA4FF',
-        'formatter.gate_face_color.swap': '#6FA4FF',
-        'formatter.gate_face_color.s': '#6FA4FF',
-        'formatter.gate_face_color.sdg': '#6FA4FF',
-        'formatter.gate_face_color.dcx': '#6FA4FF',
-        'formatter.gate_face_color.iswap': '#6FA4FF',
-        'formatter.gate_face_color.t': '#BB8BFF',
-        'formatter.gate_face_color.tdg': '#BB8BFF',
-        'formatter.gate_face_color.r': '#BB8BFF',
-        'formatter.gate_face_color.rx': '#BB8BFF',
-        'formatter.gate_face_color.ry': '#BB8BFF',
-        'formatter.gate_face_color.rz': '#BB8BFF',
-        'formatter.gate_face_color.reset': '#808080',
-        'formatter.gate_face_color.measure': '#808080',
-        'formatter.gate_latex_repr.u0': r'{\rm U}_0',
-        'formatter.gate_latex_repr.u1': r'{\rm U}_1',
-        'formatter.gate_latex_repr.u2': r'{\rm U}_2',
-        'formatter.gate_latex_repr.u3': r'{\rm U}_3',
-        'formatter.gate_latex_repr.id': r'{\rm Id}',
-        'formatter.gate_latex_repr.x': r'{\rm X}',
-        'formatter.gate_latex_repr.y': r'{\rm Y}',
-        'formatter.gate_latex_repr.z': r'{\rm Z}',
-        'formatter.gate_latex_repr.h': r'{\rm H}',
-        'formatter.gate_latex_repr.cx': r'{\rm CX}',
-        'formatter.gate_latex_repr.cy': r'{\rm CY}',
-        'formatter.gate_latex_repr.cz': r'{\rm CZ}',
-        'formatter.gate_latex_repr.swap': r'{\rm SWAP}',
-        'formatter.gate_latex_repr.s': r'{\rm S}',
-        'formatter.gate_latex_repr.sdg': r'{\rm S}^\dagger',
-        'formatter.gate_latex_repr.dcx': r'{\rm DCX}',
-        'formatter.gate_latex_repr.iswap': r'{\rm iSWAP}',
-        'formatter.gate_latex_repr.t': r'{\rm T}',
-        'formatter.gate_latex_repr.tdg': r'{\rm T}^\dagger',
-        'formatter.gate_latex_repr.r': r'{\rm R}',
-        'formatter.gate_latex_repr.rx': r'{\rm R}_x',
-        'formatter.gate_latex_repr.ry': r'{\rm R}_y',
-        'formatter.gate_latex_repr.rz': r'{\rm R}_z',
-        'formatter.gate_latex_repr.reset': r'|0\rangle',
-        'formatter.gate_latex_repr.measure': r'{\rm Measure}',
-        'formatter.unicode_symbol.frame_change': u'\u21BA',
+        'formatter.color.gates': {
+            'u0': '#FA74A6',
+            'u1': '#000000',
+            'u2': '#FA74A6',
+            'u3': '#FA74A6',
+            'id': '#05BAB6',
+            'x': '#05BAB6',
+            'y': '#05BAB6',
+            'z': '#05BAB6',
+            'h': '#6FA4FF',
+            'cx': '#6FA4FF',
+            'cy': '#6FA4FF',
+            'cz': '#6FA4FF',
+            'swap': '#6FA4FF',
+            's': '#6FA4FF',
+            'sdg': '#6FA4FF',
+            'dcx': '#6FA4FF',
+            'iswap': '#6FA4FF',
+            't': '#BB8BFF',
+            'tdg': '#BB8BFF',
+            'r': '#BB8BFF',
+            'rx': '#BB8BFF',
+            'ry': '#BB8BFF',
+            'rz': '#BB8BFF',
+            'reset': '#808080',
+            'measure': '#808080'
+        },
+        'formatter.color.default_gate': '#BB8BFF',
+        'formatter.latex_symbol.gates': {
+            'u0': r'{\rm U}_0',
+            'u1': r'{\rm U}_1',
+            'u2': r'{\rm U}_2',
+            'u3': r'{\rm U}_3',
+            'id': r'{\rm Id}',
+            'x': r'{\rm X}',
+            'y': r'{\rm Y}',
+            'z': r'{\rm Z}',
+            'h': r'{\rm H}',
+            'cx': r'{\rm CX}',
+            'cy': r'{\rm CY}',
+            'cz': r'{\rm CZ}',
+            'swap': r'{\rm SWAP}',
+            's': r'{\rm S}',
+            'sdg': r'{\rm S}^\dagger',
+            'dcx': r'{\rm DCX}',
+            'iswap': r'{\rm iSWAP}',
+            't': r'{\rm T}',
+            'tdg': r'{\rm T}^\dagger',
+            'r': r'{\rm R}',
+            'rx': r'{\rm R}_x',
+            'ry': r'{\rm R}_y',
+            'rz': r'{\rm R}_z',
+            'reset': r'|0\rangle',
+            'measure': r'{\rm Measure}'
+        },
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
+        'formatter.unicode_symbol.frame_change': u'\u21BA',
         'formatter.box_height.gate': 0.5,
         'formatter.box_height.timeslot': 0.6,
         'formatter.layer.gate': 3,
@@ -267,17 +271,17 @@ def default_style() -> Dict[str, Any]:
         'formatter.layer.bit_name': 5,
         'formatter.layer.frame_change': 4,
         'formatter.layer.barrier': 1,
-        'formatter.layer.bit_link': 2,
+        'formatter.layer.gate_link': 2,
         'formatter.alpha.gate': 1.0,
         'formatter.alpha.timeslot': 0.7,
         'formatter.alpha.barrier': 0.5,
-        'formatter.alpha.bit_link': 0.8,
+        'formatter.alpha.gate_link': 0.8,
         'formatter.line_width.gate': 0,
         'formatter.line_width.timeslot': 0,
         'formatter.line_width.barrier': 3,
-        'formatter.line_width.bit_link': 3,
+        'formatter.line_width.gate_link': 3,
         'formatter.line_style.barrier': '-',
-        'formatter.line_style.bit_link': '-',
+        'formatter.line_style.gate_link': '-',
         'formatter.text_size.gate_name': 12,
         'formatter.text_size.bit_name': 15,
         'formatter.text_size.frame_change': 18,

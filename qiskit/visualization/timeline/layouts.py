@@ -12,6 +12,7 @@
 
 """
 A collection of functions that decide the layout of an output image.
+See :py:mod:`~qiskit.visualization.timeline.types` for more info on the required data.
 
 There are 2 types of layout functions in this module.
 

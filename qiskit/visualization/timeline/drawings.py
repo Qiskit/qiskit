@@ -26,7 +26,7 @@ Design concept
 ~~~~~~~~~~~~~~
 When we think about dynamically updating drawings, it will be most efficient to
 update only the changed properties of drawings rather than regenerating entirely from scratch.
-Thus the core :py:class:`qiskit.visualization.timeline.core.DrawerCanvas` generates
+Thus the core :py:class:`~qiskit.visualization.timeline.core.DrawerCanvas` generates
 all possible drawings in the beginning and then the canvas instance manages
 visibility of each drawing according to the end-user request.
 
@@ -106,7 +106,10 @@ class ElementaryData(ABC):
         if bits and isinstance(bits, (circuit.Qubit, circuit.Clbit)):
             bits = [bits]
 
-        self.data_type = data_type
+        if isinstance(data_type, Enum):
+            data_type = data_type.value
+
+        self.data_type = str(data_type)
         self.xvals = xvals
         self.yvals = yvals
         self.bits = bits
