@@ -183,16 +183,16 @@ class Grover(QuantumAlgorithm):
             qc.add_register(self._oracle.ancillary_register)
         qc.barrier(self._oracle.variable_register)
         qc += self._init_state_circuit_inverse
-        qc.u3(pi, 0, pi, self._oracle.variable_register)
-        qc.u2(0, pi, self._oracle.variable_register[num_variable_qubits - 1])
+        qc.u(pi, 0, pi, self._oracle.variable_register)
+        qc.u(pi/2, 0, pi, self._oracle.variable_register[num_variable_qubits - 1])
         qc.mct(
             self._oracle.variable_register[0:num_variable_qubits - 1],
             self._oracle.variable_register[num_variable_qubits - 1],
             ancilla,
             mode=self._mct_mode
         )
-        qc.u2(0, pi, self._oracle.variable_register[num_variable_qubits - 1])
-        qc.u3(pi, 0, pi, self._oracle.variable_register)
+        qc.u(pi/2, 0, pi, self._oracle.variable_register[num_variable_qubits - 1])
+        qc.u(pi, 0, pi, self._oracle.variable_register)
         qc += self._init_state_circuit
         qc.barrier(self._oracle.variable_register)
         return qc
@@ -255,8 +255,8 @@ class Grover(QuantumAlgorithm):
                 self._qc_amplitude_amplification += self.qc_amplitude_amplification_iteration
 
         qc = QuantumCircuit(self._oracle.variable_register, self._oracle.output_register)
-        qc.u3(pi, 0, pi, self._oracle.output_register)  # x
-        qc.u2(0, pi, self._oracle.output_register)  # h
+        qc.u(pi, 0, pi, self._oracle.output_register)  # x
+        qc.u(pi/2, 0, pi, self._oracle.output_register)  # h
         qc += self._init_state_circuit
         qc += self._qc_amplitude_amplification
 
