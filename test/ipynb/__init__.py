@@ -10,15 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
+"""Image comparison tests. You can generate the image references with Binder
+in https://mybinder.org/v2/gh/<user>/<repo>/<branch>?urlpath=apps/test/ipynb/<nb_name>.ipynb
 """
-Scheduled circuit visualization module.
-"""
-
-# stylesheets
-from qiskit.visualization.timeline.stylesheet import (
-    IqxStandard,
-    IqxSimple,
-    IqxDebugging
-)
