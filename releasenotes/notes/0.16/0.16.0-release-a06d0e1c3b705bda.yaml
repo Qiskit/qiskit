@@ -1,0 +1,9 @@
+---
+prelude: >
+    The 0.16.0 release incluses serveral new features and bug fixes. The
+    major features in this release are the intoduction of scheduled circuits
+    and the oracle compiler.
+
+    Also of particular importance for this release is that Python 3.5 is no
+    longer supported. If you're are using Qiskit Terra with Python 3.5 the
+    0.15.2 release is that last version which will work.
