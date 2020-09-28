@@ -26,7 +26,7 @@ REQUIREMENTS = [
     "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
     "networkx>=2.2",
-    "retworkx>=0.4.0",
+    "retworkx>=0.5.0",
     "numpy>=1.17",
     "ply>=3.10",
     "psutil>=5",
@@ -83,7 +83,7 @@ setup(
     long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
-    author_email="qiskit@qiskit.org",
+    author_email="hello@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",

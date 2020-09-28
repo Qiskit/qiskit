@@ -22,6 +22,7 @@ assembler.
 """
 from abc import ABCMeta
 
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -44,8 +45,9 @@ class Channel(metaclass=ABCMeta):
         Raises:
             PulseError: If ``index`` is not a nonnegative integer.
         """
-        if not isinstance(index, int) or index < 0:
-            raise PulseError('Channel index must be a nonnegative integer')
+        if not isinstance(index, ParameterExpression):
+            if not isinstance(index, int) or index < 0:
+                raise PulseError('Channel index must be a nonnegative integer')
         self._index = index
         self._hash = None
 
@@ -60,10 +62,10 @@ class Channel(metaclass=ABCMeta):
     @property
     def name(self) -> str:
         """Return the shorthand alias for this channel, which is based on its type and index."""
-        return '%s%d' % (self.__class__.prefix, self._index)
+        return '{}{}'.format(self.__class__.prefix, self._index)
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._index)
+        return '{}({})'.format(self.__class__.__name__, self._index)
 
     def __eq__(self, other: 'Channel') -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
