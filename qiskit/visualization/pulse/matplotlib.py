@@ -274,7 +274,7 @@ class WaveformDrawer:
     def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1):
+             scale: float = 1, draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -282,6 +282,7 @@ class WaveformDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
@@ -323,9 +324,10 @@ class WaveformDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(pulse.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
+            title_label = str('')
+            if draw_title:
+                title_label = str(pulse.name)
+            figure.suptitle(title_label, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
                             va='bottom')
 
         return figure
@@ -763,7 +765,8 @@ class ScheduleDrawer:
              plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
              channels: List[Channel] = None,
-             show_framechange_channels: bool = True):
+             show_framechange_channels: bool = True,
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -786,6 +789,7 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -863,7 +867,10 @@ class ScheduleDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(schedule.name),
+            title_label = str('')
+            if draw_title:
+                title_label = str(schedule.name)
+            figure.suptitle(title_label,
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')

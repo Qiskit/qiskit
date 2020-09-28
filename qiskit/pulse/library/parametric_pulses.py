@@ -125,7 +125,8 @@ class ParametricPulse(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             draw_title: bool = False):
         """Plot the pulse.
 
         Args:
@@ -135,6 +136,7 @@ class ParametricPulse(Pulse):
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
+            draw_title: Add a title to the plot when set "True"
                 (this depends on the matplotlib backend being used supporting this)
 
         Returns:
@@ -142,7 +144,7 @@ class ParametricPulse(Pulse):
         """
         return self.get_waveform().draw(dt=dt, style=style, filename=filename,
                                         interp_method=interp_method, scale=scale,
-                                        interactive=interactive)
+                                        interactive=interactive, draw_title=draw_title)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
