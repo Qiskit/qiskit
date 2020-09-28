@@ -44,7 +44,7 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._names = {p.name: p for p in self._parameters}
+        self._names = None
 
     @property
     def parameters(self) -> Set:
@@ -176,6 +176,9 @@ class ParameterExpression:
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
             outbound_parameters = set()
+
+        if self._names is None:
+            self._names = {p.name: p for p in self._parameters}
 
         inbound_names = {p.name: p for p in inbound_parameters}
         outbound_names = {p.name: p for p in outbound_parameters}
