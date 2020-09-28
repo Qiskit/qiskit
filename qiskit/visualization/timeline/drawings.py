@@ -106,7 +106,10 @@ class ElementaryData(ABC):
         if bits and isinstance(bits, (circuit.Qubit, circuit.Clbit)):
             bits = [bits]
 
-        self.data_type = data_type
+        if isinstance(data_type, Enum):
+            data_type = data_type.value
+
+        self.data_type = str(data_type)
         self.xvals = xvals
         self.yvals = yvals
         self.bits = bits

@@ -254,7 +254,7 @@ class DrawerCanvas:
             new_data = deepcopy(data)
             new_data.xvals = self._bind_coordinate(data.xvals)
             new_data.yvals = self._bind_coordinate(data.yvals)
-            if data.data_type == types.LineType.GATE_LINK:
+            if data.data_type == str(types.LineType.GATE_LINK.value):
                 temp_gate_links[data_key] = new_data
             else:
                 temp_data[data_key] = new_data
@@ -285,7 +285,7 @@ class DrawerCanvas:
         if np.max(data.xvals) < t0 or np.min(data.xvals) > t1:
             return False
 
-        if data.data_type == types.LineType.GATE_LINK:
+        if data.data_type == str(types.LineType.GATE_LINK.value):
             # gate link is visible iff there are more than two active bits
             active_bits = [bit for bit in data.bits if bit not in self.disable_bits]
             if len(active_bits) >= 2:

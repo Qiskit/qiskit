@@ -69,7 +69,7 @@ HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and act
 HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
-class BoxType(Enum):
+class BoxType(str, Enum):
     """Box type.
 
     SCHED_GATE: Box that represents occupation time by gate.
@@ -81,7 +81,7 @@ class BoxType(Enum):
     TIMELINE = 'Box.Timeline'
 
 
-class LineType(Enum):
+class LineType(str, Enum):
     """Line type.
 
     BARRIER: Line that represents barrier instruction.
@@ -91,7 +91,7 @@ class LineType(Enum):
     GATE_LINK = 'Line.GateLink'
 
 
-class SymbolType(Enum):
+class SymbolType(str, Enum):
     """Symbol type.
 
     FRAME: Symbol that represents zero time frame change (Rz) instruction.
@@ -99,7 +99,7 @@ class SymbolType(Enum):
     FRAME = 'Symbol.Frame'
 
 
-class LabelType(Enum):
+class LabelType(str, Enum):
     """Label type.
 
     GATE_NAME: Label that represents name of gate.

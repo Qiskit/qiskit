@@ -91,7 +91,8 @@ class MplPlotter(BasePlotter):
 
             if isinstance(data, drawings.BoxData):
                 # box data
-                if data.data_type in [types.BoxType.SCHED_GATE, types.BoxType.DELAY]:
+                if data.data_type in [str(types.BoxType.SCHED_GATE.value),
+                                      str(types.BoxType.DELAY.value)]:
                     # draw a smoothly rounded rectangle
                     xs, ys1, ys2 = self._time_bucket_outline(xvals, yvals)
                     self.ax.fill_between(x=xs,
