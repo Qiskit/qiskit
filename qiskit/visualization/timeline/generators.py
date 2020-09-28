@@ -162,7 +162,7 @@ def gen_sched_gate(gate: types.ScheduledGate,
         drawing = drawings.BoxData(data_type=data_type,
                                    xvals=[gate.t0, gate.t0 + gate.duration],
                                    yvals=[-0.5 * formatter['box_height.gate'],
-                                                 0.5 * formatter['box_height.gate']],
+                                          0.5 * formatter['box_height.gate']],
                                    bit=gate.bits[gate.bit_position],
                                    meta=meta,
                                    styles=styles)
@@ -353,9 +353,9 @@ def gen_timeslot(bit: types.Bits,
 
     drawing = drawings.BoxData(data_type=types.BoxType.TIMELINE,
                                xvals=[types.AbstractCoordinate.LEFT,
-                                             types.AbstractCoordinate.RIGHT],
+                                      types.AbstractCoordinate.RIGHT],
                                yvals=[-0.5 * formatter['box_height.timeslot'],
-                                             0.5 * formatter['box_height.timeslot']],
+                                      0.5 * formatter['box_height.timeslot']],
                                bit=bit,
                                styles=styles)
 
