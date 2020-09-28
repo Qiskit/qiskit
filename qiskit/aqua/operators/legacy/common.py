@@ -45,11 +45,11 @@ def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
         if pauli.x[qubit_idx]:
             if pauli.z[qubit_idx]:
                 # Measure Y
-                circuit.u1(-np.pi / 2, qr[qubit_idx])  # sdg
-                circuit.u2(0.0, pi, qr[qubit_idx])  # h
+                circuit.p(-np.pi / 2, qr[qubit_idx])  # sdg
+                circuit.u(pi/2, 0.0, pi, qr[qubit_idx])  # h
             else:
                 # Measure X
-                circuit.u2(0.0, pi, qr[qubit_idx])  # h
+                circuit.u(pi/2, 0.0, pi, qr[qubit_idx])  # h
         if barrier:
             circuit.barrier(qr[qubit_idx])
         circuit.measure(qr[qubit_idx], cr[qubit_idx])
@@ -288,13 +288,13 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                 # pauli X
                 if not pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u2(0.0, pi, state_registers[qubit_idx])
+                        qc_slice.u(pi/2, 0.0, pi, state_registers[qubit_idx])
                     else:
                         qc_slice.h(state_registers[qubit_idx])
                 # pauli Y
                 elif pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u3(pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
+                        qc_slice.u(pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
                     else:
                         qc_slice.rx(pi / 2, state_registers[qubit_idx])
             # pauli Z
@@ -332,15 +332,15 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
 
             if not controlled:
                 if use_basis_gates:
-                    qc_slice.u1(lam, state_registers[top_xyz_pauli_indices[pauli_idx]])
+                    qc_slice.p(lam, state_registers[top_xyz_pauli_indices[pauli_idx]])
                 else:
                     qc_slice.rz(lam, state_registers[top_xyz_pauli_indices[pauli_idx]])
             else:
                 if use_basis_gates:
-                    qc_slice.u1(lam / 2, state_registers[top_xyz_pauli_indices[pauli_idx]])
+                    qc_slice.p(lam / 2, state_registers[top_xyz_pauli_indices[pauli_idx]])
                     qc_slice.cx(ancillary_registers[0],
                                 state_registers[top_xyz_pauli_indices[pauli_idx]])
-                    qc_slice.u1(-lam / 2, state_registers[top_xyz_pauli_indices[pauli_idx]])
+                    qc_slice.p(-lam / 2, state_registers[top_xyz_pauli_indices[pauli_idx]])
                     qc_slice.cx(ancillary_registers[0],
                                 state_registers[top_xyz_pauli_indices[pauli_idx]])
                 else:
@@ -357,13 +357,13 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                 # pauli X
                 if not pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u2(0.0, pi, state_registers[qubit_idx])
+                        qc_slice.u(pi/2, 0.0, pi, state_registers[qubit_idx])
                     else:
                         qc_slice.h(state_registers[qubit_idx])
                 # pauli Y
                 elif pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u3(-pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
+                        qc_slice.u(-pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
                     else:
                         qc_slice.rx(-pi / 2, state_registers[qubit_idx])
     # repeat the slice
