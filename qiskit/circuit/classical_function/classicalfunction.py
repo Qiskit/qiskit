@@ -21,7 +21,7 @@ except Exception:  # pylint: disable=broad-except
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler.classical_function_synthesis.utils import tweedledum2qiskit
+from .utils import tweedledum2qiskit
 from .classical_function_visitor import ClassicalFunctionVisitor
 
 

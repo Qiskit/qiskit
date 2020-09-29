@@ -14,7 +14,7 @@
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.transpiler.classical_function_synthesis.utils import tweedledum2qiskit
+from qiskit.circuit.classical_function.utils import tweedledum2qiskit
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
