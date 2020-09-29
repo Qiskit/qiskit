@@ -240,6 +240,8 @@ class QasmBackendConfiguration:
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
+            dt: Qubit drive channel timestep in nanoseconds.
+            dtm: Measurement drive channel timestep in nanoseconds.
             **kwargs: optional fields
         """
         self._data = {}
