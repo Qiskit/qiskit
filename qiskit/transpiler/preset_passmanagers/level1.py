@@ -92,7 +92,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     backend_properties = pass_manager_config.backend_properties
 
     # 1. Template optimization
-    import qiskit.circuit.library.template_circuits as templates
+    from qiskit.circuit.library import templates
     _templates = [templates.template_2a_1(),
                   templates.template_2a_2(),
                   templates.template_2a_3()]

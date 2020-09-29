@@ -14,6 +14,6 @@ features:
     The pass ``qiskit.transpiler.passes.optimization.template_opt`` makes use of all
     these classes and applies template optimization for a given circuit and template.
 
-    In ``qiskit.circuit.library.template_circuits.toffoli``, a list of X, CX
+    In ``qiskit.circuit.library.templates.toffoli``, a list of X, CX
     and Toffoli templates can be found.
 

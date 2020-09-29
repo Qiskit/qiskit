@@ -14,7 +14,7 @@
 
 import unittest
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library.template_circuits.toffoli import template_2a_2, template_5a_3
+from qiskit.circuit.library.teamplates.toffoli import template_2a_2, template_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
