@@ -77,6 +77,30 @@ class TestNoiseSwap(QiskitTestCase):
 
             self.assertFalse(any_bad)
 
+    def test_manhattan_heavy_hex_route(self):
+        """Swap around a Manhattan heavy hex with preferred direction"""
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        valid_inds = [12, 19, 20, 21, 25, 33, 34, 35, 40]
+
+        swap_methods = ['stochastic', 'sabre', 'lookahead']
+
+        for method in swap_methods:
+            new_qc = transpile(qc, backend, initial_layout=[40, 12],
+                               routing_method=method, seed_transpiler=12345)
+
+            any_bad = False
+            for gate in new_qc.data:
+                if gate[0].num_qubits == 2:
+                    if gate[1][0].index not in valid_inds or gate[1][1].index not in valid_inds:
+                        any_bad = True
+                        break
+
+            self.assertFalse(any_bad)
+
 
 if __name__ == '__main__':
     unittest.main()
