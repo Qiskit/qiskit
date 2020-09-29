@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.transpiler.classical_function.ClassicalFunction``.
+This module is used internally by ``qiskit.transpiler.classicalfunction.ClassicalFunction``.
 """
 
 import ast
@@ -37,7 +37,7 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
 
     def __init__(self):
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the classical_function compiler, tweedledum "
+            raise ImportError("To use the classicalfunction compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
         self.scopes = []

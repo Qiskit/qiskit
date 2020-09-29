@@ -15,7 +15,7 @@
 from qiskit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
     XGate, HGate, U3Gate
-from qiskit.circuit.classical_function.exceptions import ClassicalFunctionCompilerError
+from qiskit.circuit.classicalfunction.exceptions import ClassicalFunctionCompilerError
 
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):

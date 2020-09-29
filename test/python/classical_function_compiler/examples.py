@@ -12,9 +12,9 @@
 
 # pylint: disable=invalid-name, missing-function-docstring
 
-"""These examples should be handle by the classical_function compiler"""
+"""These examples should be handle by the classicalfunction compiler"""
 
-from qiskit.circuit.classical_function.types import Int1
+from qiskit.circuit import Int1
 
 
 def identity(a: Int1) -> Int1:

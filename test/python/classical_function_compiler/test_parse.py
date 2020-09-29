@@ -9,16 +9,16 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Tests the classical_function parser."""
+"""Tests the classicalfunction parser."""
 
-from qiskit.circuit.classical_function import ClassicalFunctionParseError
-from qiskit.circuit.classical_function.compile_classical_function import compile_classical_function
+from qiskit.circuit.classicalfunction import ClassicalFunctionParseError
+from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from qiskit.test import QiskitTestCase
 from . import bad_examples as examples
 
 
 class TestParseFail(QiskitTestCase):
-    """Tests bad_examples with the classical_function parser."""
+    """Tests bad_examples with the classicalfunction parser."""
 
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""

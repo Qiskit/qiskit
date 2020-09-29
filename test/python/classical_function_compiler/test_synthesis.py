@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests classical_function compiler synthesis."""
+"""Tests classicalfunction compiler synthesis."""
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit.classical_function.compile_classical_function import compile_classical_function
+from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate

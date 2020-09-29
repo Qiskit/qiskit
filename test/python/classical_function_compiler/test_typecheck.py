@@ -10,16 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests classical_function compiler type checker."""
+"""Tests classicalfunction compiler type checker."""
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.classical_function import ClassicalFunctionCompilerTypeError
-from qiskit.circuit.classical_function.compile_classical_function import compile_classical_function
+from qiskit.circuit.classicalfunction import ClassicalFunctionCompilerTypeError
+from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from . import examples, bad_examples
 
 
 class TestTypeCheck(QiskitTestCase):
-    """Tests classical_function compiler type checker (good examples)."""
+    """Tests classicalfunction compiler type checker (good examples)."""
 
     def test_id(self):
         """Tests examples.identity type checking"""
@@ -63,7 +63,7 @@ class TestTypeCheck(QiskitTestCase):
 
 
 class TestTypeCheckFail(QiskitTestCase):
-    """Tests classical_function compiler type checker (bad examples)."""
+    """Tests classicalfunction compiler type checker (bad examples)."""
 
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""

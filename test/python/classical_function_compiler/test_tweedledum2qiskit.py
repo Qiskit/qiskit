@@ -14,13 +14,13 @@
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit.classical_function.utils import tweedledum2qiskit
+from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
 
 class TestTweedledum2Qiskit(QiskitTestCase):
-    """Tests qiskit.transpiler.classical_function.utils.tweedledum2qiskit function."""
+    """Tests qiskit.transpiler.classicalfunction.utils.tweedledum2qiskit function."""
     def test_x(self):
         """Single uncontrolled X"""
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}

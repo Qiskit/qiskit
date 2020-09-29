@@ -13,7 +13,7 @@
 """Tests LogicNetwork.simulate method."""
 
 from ddt import ddt, data
-from qiskit.circuit.classical_function.compile_classical_function import compile_classical_function
+from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from qiskit.test import QiskitTestCase
 from .utils import get_truthtable_from_function, example_list
 

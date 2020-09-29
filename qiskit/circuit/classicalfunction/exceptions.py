@@ -22,11 +22,11 @@ class ClassicalFunctionCompilerError(QiskitError):
 
 class ClassicalFunctionParseError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler parse error.
-    The classical_function function fails at parsing time."""
+    The classicalfunction function fails at parsing time."""
     pass
 
 
 class ClassicalFunctionCompilerTypeError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler type error.
-    The classical_function function fails at type checking time."""
+    The classicalfunction function fails at type checking time."""
     pass

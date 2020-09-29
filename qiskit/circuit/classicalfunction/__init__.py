@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 """
 =====================================
-ClassicalFunction compiler (:mod:`qiskit.circuit.classical_function`)
+ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
 =====================================
 
-.. currentmodule:: qiskit.circuit.classical_function
+.. currentmodule:: qiskit.circuit.classicalfunction
 
 Overview
 ========
@@ -26,10 +26,10 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.circuit.classical_function import classical_function
-      from qiskit.circuit.classical_function.types import Int1
+      from qiskit.circuit.classicalfunction import classicalfunction
+      from qiskit.circuit.classicalfunction.types import Int1
 
-      @classical_function
+      @classicalfunction
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
           return (not a and b and not c and d)
 
@@ -50,7 +50,7 @@ Supplementary Information
 
    Tweedledum is a C++-17 header-only library that implements a large set of
    reversible (and quantum) synthesis, optimization, and mapping algorithms.
-   The classical_function compiler relies on it and its dependencies to both represent logic
+   The classicalfunction compiler relies on it and its dependencies to both represent logic
    networks and synthesize them into quantum circuits.
 
 .. container:: toggle
@@ -59,20 +59,20 @@ Supplementary Information
 
       **ClassicalFunction data types**
 
-   At the moment, the only type supported by the classical_function compilers is
-   ``qiskit.circuit.classical_function.types.Int1``. The classical_function function
+   At the moment, the only type supported by the classicalfunction compilers is
+   ``qiskit.circuit.classicalfunction.types.Int1``. The classicalfunction function
    to parse *must* include type hints (just ``Int1`` for now).
 
-   The type ``Int1`` means the classical_function will only operate at bit level.
+   The type ``Int1`` means the classicalfunction will only operate at bit level.
 
 
 ClassicalFunction compiler API
 ===================
 
-classical_function
+classicalfunction
 ------
 
-Alias for ``qiskit.circuit.classical_function.compile_classical_function.compile_classical_function``.
+Alias for ``qiskit.circuit.classicalfunction.compile_classical_function.compile_classical_function``.
 It can be used as a decorator.
 
 
@@ -97,5 +97,22 @@ Exceptions
 """
 from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
                          ClassicalFunctionCompilerTypeError)
-from .compile_classical_function import compile_classical_function as classical_function
-from .types import Int1, Int2
+
+
+def classical_function(func):
+    """
+    Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``
+    that can be synthesised into a ``QuantumCircuit``.
+
+    Args:
+        func (callable): A callable (with type hints) to compile into an ``ClassicalFunction``.
+
+    Returns:
+        ClassicalFunction: An object that can synthesis into a QuantumCircuit (via ``synth()``
+        method).
+    """
+    import inspect
+    from .classicalfunction import ClassicalFunction
+
+    source = inspect.getsource(func).strip()
+    return ClassicalFunction(source, name=func.__name__)

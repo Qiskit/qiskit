@@ -18,7 +18,7 @@ try:
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
 from .utils import tweedledum2qiskit
@@ -26,7 +26,7 @@ from .classical_function_visitor import ClassicalFunctionVisitor
 
 
 class ClassicalFunction(Gate):
-    """An ClassicalFunction object represents an classical_function function and
+    """An ClassicalFunction object represents an classicalfunction function and
     its logic network."""
 
     def __init__(self, source, name=None):
@@ -35,7 +35,7 @@ class ClassicalFunction(Gate):
 
         Args:
             source (str): Python code with type hints.
-            name (str): Optional. Default: "*classical_function*". ClassicalFunction name.
+            name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
         Raises:
             ImportError: If tweedledum is not installed.
             QiskitError: If source is not a string.
@@ -43,14 +43,14 @@ class ClassicalFunction(Gate):
         if not isinstance(source, str):
             raise QiskitError('ClassicalFunction needs a source code as a string.')
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the classical_function compiler, tweedledum "
+            raise ImportError("To use the classicalfunction compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
         self._ast = ast.parse(source)
         self._network = None
         self._scopes = None
         self._args = None
-        super().__init__(name or '*classical_function*',
+        super().__init__(name or '*classicalfunction*',
                          num_qubits=sum([qreg.size for qreg in self.qregs]),
                          params=[])
 
@@ -79,7 +79,7 @@ class ClassicalFunction(Gate):
 
     @property
     def args(self):
-        """Returns the classical_function arguments"""
+        """Returns the classicalfunction arguments"""
         if self._args is None:
             self.compile()
         return self._args
@@ -117,12 +117,12 @@ class ClassicalFunction(Gate):
         return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
 
     def _define(self):
-        """The definition of the classical_function is its synthesis"""
+        """The definition of the classicalfunction is its synthesis"""
         self.definition = self.synth()
 
     @property
     def qregs(self):
-        """The list of qregs used by the classical_function"""
+        """The list of qregs used by the classicalfunction"""
         qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
         if self.types[0]['return'] == 'Int1':
