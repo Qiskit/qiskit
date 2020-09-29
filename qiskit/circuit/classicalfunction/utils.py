@@ -40,7 +40,8 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         QuantumCircuit: The Tweedledum circuit converted to a Qiskit circuit.
 
     Raises:
-        ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit equivalent.
+        ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit
+        equivalent.
     """
     gates = {'z': ZGate, 't': TGate, 's': SGate, 'tdg': TdgGate, 'sdg': SdgGate, 'u1': U1Gate,
              'x': XGate, 'h': HGate, 'u3': U3Gate}

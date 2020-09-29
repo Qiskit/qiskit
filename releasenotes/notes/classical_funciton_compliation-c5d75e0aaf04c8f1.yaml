@@ -10,18 +10,29 @@ features:
       
       @classical_function
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
-        return (not a and b and not c and d)
+           x = not a and b
+           y = d and not c
+           z = not x or y
+           return z
      
       quantum_circuit = grover_oracle.synth()
       quantum_circuit.draw()
 
 
-    The parameter ``arg_regs`` in :meth:`qiskit.circuit.classical_function.ClassicalFunction.synth` creates a
+    The parameter ``registerless=False`` in :meth:`qiskit.circuit.classical_function.ClassicalFunction.synth` creates a
     circuit with registers refering to the parameter names:
 
     .. jupyter-execute:
 
-      quantum_circuit = grover_oracle.synth(arg_regs=True)
+      quantum_circuit = grover_oracle.synth(registerless=False)
+      quantum_circuit.draw()) 
+
+   A decorated classical function can be used the same way as any other quantum gate when appending it to a circuit.
+
+    .. jupyter-execute:
+
+      circuit = QuantumCircuit(5)
+      circuit.append(grover_oracle, range(5))
       quantum_circuit.draw()) 
 
     The feature requires ``tweedledum``, a library for synthesizing quantum circuits, that can be installed via pip

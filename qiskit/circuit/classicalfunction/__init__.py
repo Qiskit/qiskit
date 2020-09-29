@@ -72,8 +72,7 @@ ClassicalFunction compiler API
 classicalfunction
 ------
 
-Alias for ``qiskit.circuit.classicalfunction.compile_classical_function.compile_classical_function``.
-It can be used as a decorator.
+Decorator for a classical function that returns a `ClassicalFunction` object.
 
 
 ClassicalFunction
