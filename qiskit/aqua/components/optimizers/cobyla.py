@@ -50,7 +50,7 @@ class COBYLA(Optimizer):
                  This is a lower bound on the size of the trust region.
         """
         super().__init__()
-        for k, v in locals().items():
+        for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
         self._tol = tol

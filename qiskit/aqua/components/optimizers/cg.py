@@ -54,7 +54,7 @@ class CG(Optimizer):
             eps: If jac is approximated, use this value for the step size.
         """
         super().__init__()
-        for k, v in locals().items():
+        for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
         self._tol = tol

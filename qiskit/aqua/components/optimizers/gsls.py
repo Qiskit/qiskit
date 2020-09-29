@@ -76,7 +76,7 @@ class GSLS(Optimizer):
                           'You should use maxiter instead.',
                           DeprecationWarning)
             maxiter = max_iter
-        for k, v in locals().items():
+        for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
 
