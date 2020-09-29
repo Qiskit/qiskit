@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -47,6 +45,12 @@ from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import ALAPSchedule
+from qiskit.transpiler.passes import ASAPSchedule
 
 from qiskit.transpiler import TranspilerError
 
@@ -84,6 +88,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     layout_method = pass_manager_config.layout_method or 'dense'
     routing_method = pass_manager_config.routing_method or 'stochastic'
     translation_method = pass_manager_config.translation_method or 'translator'
+    scheduling_method = pass_manager_config.scheduling_method
+    instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -136,6 +142,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         _unroll = [UnrollCustomDefinitions(sel, basis_gates),
                    BasisTranslator(sel, basis_gates)]
+    elif translation_method == 'synthesis':
+        _unroll = [
+            Unroll3qOrMore(),
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+        ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
@@ -158,6 +171,16 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
 
+    # 9. Schedule the circuit only when scheduling_method is supplied
+    if scheduling_method:
+        _scheduling = [TimeUnitAnalysis(instruction_durations)]
+        if scheduling_method in {'alap', 'as_late_as_possible'}:
+            _scheduling += [ALAPSchedule(instruction_durations)]
+        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+            _scheduling += [ASAPSchedule(instruction_durations)]
+        else:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
     # Build pass manager
     pm2 = PassManager()
     if coupling_map:
@@ -174,5 +197,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
     pm2.append(_depth_check + _opt, do_while=_opt_control)
+    if scheduling_method:
+        pm2.append(_scheduling)
 
     return pm2

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -28,6 +26,7 @@ class LayoutTest(QiskitTestCase):
     """Test the methods in the layout object."""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, 'qr')
 
     def test_default_layout(self):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -18,7 +16,6 @@
 
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
@@ -53,13 +50,17 @@ class ConsolidateBlocks(TransformationPass):
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
         """
         super().__init__()
+        self.basis_gates = basis_gates
         self.force_consolidate = force_consolidate
 
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
             kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
-            self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
+            if kak_basis_gate is not None:
+                self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
+            else:
+                self.decomposer = None
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
@@ -73,11 +74,7 @@ class ConsolidateBlocks(TransformationPass):
         if self.decomposer is None:
             return dag
 
-        new_dag = DAGCircuit()
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
@@ -145,11 +142,13 @@ class ConsolidateBlocks(TransformationPass):
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
-                if (
+                if (  # pylint: disable=too-many-boolean-expressions
                         self.force_consolidate
                         or unitary.num_qubits > 2
                         or self.decomposer.num_basis_gates(unitary) < basis_count
                         or len(subcirc) > max_2q_depth
+                        or (self.basis_gates is not None
+                            and not set(subcirc.count_ops()).issubset(self.basis_gates))
                 ):
                     new_dag.apply_operation_back(
                         UnitaryGate(unitary),

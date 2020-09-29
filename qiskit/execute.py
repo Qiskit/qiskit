@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -23,6 +21,7 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 import logging
 from time import time
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
@@ -172,13 +171,14 @@ def execute(experiments, backend,
 
         memory_slot_size (int): Size of each memory slot if the output is Level 0.
 
-        rep_time (int): Time per program execution in sec. Must be from the list provided
-            by the backend (``backend.configuration().rep_times``).
+        rep_time (int): Time per program execution in seconds. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``). Defaults to the first entry.
 
-        rep_delay (float): Delay between programs in sec. Only supported on certain
-            backends (``backend.configuration().dynamic_reprate_enabled`` ).
-            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
-            provided by the backend (``backend.configuration().rep_delays``).
+        rep_delay (float): Delay between programs in seconds. Only supported on certain
+            backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+            ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
+            by the backend (``backend.configuration().rep_delay_range``). Default is given by
+            ``backend.configuration().default_rep_delay``.
 
         parameter_binds (list[dict]): List of Parameter bindings over which the set of
             experiments will be executed. Each list element (bind) should be of the form
@@ -244,10 +244,17 @@ def execute(experiments, backend,
                                     coupling_map=coupling_map,
                                     seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
-                                    initial_layout=initial_layout,
-                                    backend=backend)
+                                    initial_layout=initial_layout)
         experiments = pass_manager.run(experiments)
     else:
+        if 'delay' not in backend.configuration().basis_gates and _any_delay_in(experiments):
+            if schedule_circuit and backend.configuration().open_pulse:
+                pass  # the delay will be handled in the Pulse schedule
+            else:
+                raise QiskitError("Backend {} does not support delay instruction. "
+                                  "Use 'schedule_circuit=True' for pulse-enabled backends."
+                                  .format(backend.name()))
+
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
@@ -300,3 +307,22 @@ def _check_conflicting_argument(**kargs):
     if conflicting_args:
         raise QiskitError("The parameters pass_manager conflicts with the following "
                           "parameter(s): {}.".format(', '.join(conflicting_args)))
+
+
+def _any_delay_in(circuits):
+    """Check if the circuits have any delay instruction.
+
+    Args:
+        circuits (QuantumCircuit or list[QuantumCircuit]): Circuits to be checked
+
+    Returns:
+        bool: True if there is any delay in either of the circuit, otherwise False.
+    """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+    has_delay = False
+    for qc in circuits:
+        if 'delay' in qc.count_ops():
+            has_delay = True
+            break
+    return has_delay

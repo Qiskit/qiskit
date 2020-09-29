@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -28,6 +26,7 @@ class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
 
     def setUp(self):
+        super().setUp()
         self.provider = FakeProvider()
         self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
 
@@ -45,6 +44,20 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test the hamiltonian method."""
         self.assertEqual(self.config.hamiltonian['description'],
                          "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
+        ref_vars = {
+            'v0': 5.0 * 1e9,
+            'v1': 5.1 * 1e9,
+            'j': 0.01 * 1e9,
+            'r': 0.02 * 1e9,
+            'alpha0': -0.33 * 1e9,
+            'alpha1': -0.33 * 1e9
+        }
+        self.assertEqual(self.config.hamiltonian['vars'], ref_vars)
+        # Test that on serialization inverse conversion is done.
+        self.assertEqual(
+            self.config.to_dict()['hamiltonian']['vars'],
+            {k: var*1e-9 for k, var in ref_vars.items()}
+        )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
@@ -94,6 +107,15 @@ class TestBackendConfiguration(QiskitTestCase):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
 
+    def test_supported_instructions(self):
+        """Test that supported instructions get entered into config dict properly."""
+        # verify the supported instructions is not in the config dict when the flag is not set
+        self.assertNotIn("supported_instructions", self.config.to_dict())
+        # verify that supported instructions get added to config dict when set
+        supp_instrs = ["u1", "u2", "play", "acquire"]
+        setattr(self.config, "supported_instructions", supp_instrs)
+        self.assertEqual(supp_instrs, self.config.to_dict()["supported_instructions"])
+
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
         _rep_times_us = [100, 250, 500, 1000]
@@ -105,6 +127,21 @@ class TestBackendConfiguration(QiskitTestCase):
             self.assertEqual(round(self.config.rep_times[i]*1e6), time)
         for rep_time in self.config.to_dict()['rep_times']:
             self.assertGreater(rep_time, 0)
+
+    def test_get_default_rep_delay_and_range(self):
+        """Test whether rep delay property is the right size."""
+        _rep_delay_range_us = [100, 1000]
+        _rep_delay_range_s = [_rd * 1.e-6 for _rd in _rep_delay_range_us]
+        _default_rep_delay_us = 500
+        _default_rep_delay_s = 500 * 1.e-6
+
+        setattr(self.config, 'rep_delay_range', _rep_delay_range_s)
+        setattr(self.config, 'default_rep_delay', _default_rep_delay_s)
+
+        config_dict = self.config.to_dict()
+        for i, rd in enumerate(config_dict['rep_delay_range']):
+            self.assertAlmostEqual(rd, _rep_delay_range_us[i], delta=1e-8)
+        self.assertEqual(config_dict['default_rep_delay'], _default_rep_delay_us)
 
     def test_get_channel_prefix_index(self):
         """Test private method to get channel and index."""

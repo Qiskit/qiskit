@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -13,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def dag_to_circuit(dag):
@@ -48,7 +46,9 @@ def dag_to_circuit(dag):
     """
 
     name = dag.name or None
-    circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name)
+    circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name,
+                             global_phase=dag.global_phase)
+    circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
@@ -56,4 +56,6 @@ def dag_to_circuit(dag):
         inst.condition = node.condition
         circuit._append(inst, node.qargs, node.cargs)
 
+    circuit.duration = dag.duration
+    circuit.unit = dag.unit
     return circuit

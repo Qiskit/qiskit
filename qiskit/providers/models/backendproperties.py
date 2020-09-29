@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -20,6 +18,7 @@ from typing import Any, Iterable, Tuple, Union
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.util import apply_prefix
 
 
 class Nduv:
@@ -308,6 +307,43 @@ class BackendProperties:
             raise BackendPropertyError("Could not find the desired property for {g}".format(g=gate))
         return result
 
+    def faulty_qubits(self):
+        """Return a list of faulty qubits.
+        """
+        faulty = []
+        for qubit in self._qubits:
+            if not self.is_qubit_operational(qubit):
+                faulty.append(qubit)
+        return faulty
+
+    def faulty_gates(self):
+        """Return a list of faulty gates.
+        """
+        faulty = []
+        for gate in self.gates:
+            if not self.is_gate_operational(gate.gate, gate.qubits):
+                faulty.append(gate)
+        return faulty
+
+    def is_gate_operational(self,
+                            gate: str,
+                            qubits: Union[int, Iterable[int]] = None) -> bool:
+        """
+        Return the operational status of the given gate.
+
+        Args:
+            gate: Name of the gate.
+            qubits: The qubit to find the operational status for.
+
+        Returns:
+            bool: Operational status of the given gate. True if the gate is operational,
+            False otherwise.
+        """
+        properties = self.gate_property(gate, qubits)
+        if 'operational' in properties:
+            return bool(properties['operational'][0])
+        return True  # if property operational not existent, then True.
+
     def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
         Return gate error estimates from backend properties.
@@ -410,6 +446,21 @@ class BackendProperties:
         """
         return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
 
+    def is_qubit_operational(self, qubit: int) -> bool:
+        """
+        Return the operational status of the given qubit.
+
+        Args:
+            qubit: Qubit for which to return operational status of.
+
+        Returns:
+            Operational status of the given qubit.
+        """
+        properties = self.qubit_property(qubit)
+        if 'operational' in properties:
+            return bool(properties['operational'][0])
+        return True  # if property operational not existent, then True.
+
     def _apply_prefix(self, value: float, unit: str) -> float:
         """
         Given a SI unit prefix and value, apply the prefix to convert to
@@ -425,24 +476,7 @@ class BackendProperties:
         Raises:
             BackendPropertyError: If the units aren't recognized.
         """
-        downfactors = {
-            'p': 1e12,
-            'n': 1e9,
-            'u': 1e6,
-            'µ': 1e6,
-            'm': 1e3
-        }
-        upfactors = {
-            'k': 1e3,
-            'M': 1e6,
-            'G': 1e9
-        }
-        if not unit:
-            return value
-        if unit[0] in downfactors:
-            return value / downfactors[unit[0]]
-        elif unit[0] in upfactors:
-            return value * upfactors[unit[0]]
-        else:
-            raise BackendPropertyError(
-                "Could not understand units: {u}".format(u=unit))
+        try:
+            return apply_prefix(value, unit)
+        except Exception:
+            raise BackendPropertyError("Could not understand units: {u}".format(u=unit))

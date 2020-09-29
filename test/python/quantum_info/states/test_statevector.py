@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -265,6 +263,17 @@ class TestStatevector(QiskitTestCase):
             op_full = op0.tensor(op1).tensor(op2)
             target = Statevector(np.dot(op_full.data, vec))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
+
+    def test_evolve_global_phase(self):
+        """Test evolve circuit with global phase."""
+        state_i = Statevector([1, 0])
+        qr = QuantumRegister(2)
+        phase = np.pi / 4
+        circ = QuantumCircuit(qr, global_phase=phase)
+        circ.x(0)
+        state_f = state_i.evolve(circ, qargs=[0])
+        target = Statevector([0, 1]) * np.exp(1j * phase)
+        self.assertEqual(state_f, target)
 
     def test_conjugate(self):
         """Test conjugate method."""
@@ -698,7 +707,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg='memory'):
             memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
-            self.assertEqual(set(memory), set(['0', '2']))
+            self.assertEqual(set(memory), {'0', '2'})
 
     def test_reset_2qubit(self):
         """Test reset method for 2-qubit state"""
