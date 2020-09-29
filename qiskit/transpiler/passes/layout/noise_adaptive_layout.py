@@ -65,18 +65,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         super().__init__()
         self.backend_prop = backend_prop
-        self.swap_graph = rx.PyDiGraph()
-        self.cx_reliability = {}
-        self.readout_reliability = {}
-        self.available_hw_qubits = []
-        self.gate_list = []
-        self.gate_reliability = {}
-        self.swap_reliabs = {}
-        self.prog_graph = rx.PyGraph()
-        self.prog_neighbors = {}
-        self.qarg_to_id = {}
-        self.pending_program_edges = []
-        self.prog2hw = {}
 
     def _initialize_backend_prop(self):
         """Extract readout and CNOT errors and compute swap costs."""
@@ -214,6 +202,19 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
     def run(self, dag):
         """Run the NoiseAdaptiveLayout pass on `dag`."""
+        self.swap_graph = rx.PyDiGraph()
+        self.cx_reliability = {}
+        self.readout_reliability = {}
+        self.available_hw_qubits = []
+        self.gate_list = []
+        self.gate_reliability = {}
+        self.swap_reliabs = {}
+        self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
+        self.qarg_to_id = {}
+        self.pending_program_edges = []
+        self.prog2hw = {}
+
         self._initialize_backend_prop()
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):
