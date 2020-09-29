@@ -280,6 +280,16 @@ C:\..\> set LOG_LEVEL="INFO"
 C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 ```
 
+##### STDOUT/STDERR and logging capture
+
+When running tests in parallel either via tox, the makefile, or in CI we set
+the env variable `QISKIT_TEST_CAPTURE_STREAMS` which will capture any text
+written to stdout, stderr, and log messages and add them as attachments to
+the tests run so output can be associated with the test case it originated
+from. However, if you run tests outside of these mechanisms by default the
+streams are not captured. To enable stream capture just set the
+`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`.
+
 ##### Test Skip Options
 
 How and which tests are executed is controlled by an environment
