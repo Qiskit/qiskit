@@ -235,7 +235,7 @@ class Gate(Instruction):
             warn("Gate param type %s is being deprecated as of 0.16.0, and will be removed "
                  "no earlier than 3 months after that release date. "
                  "Considering creating your own Gate subclass with the method validate_parameter "
-                 " to allow this param type." % type(parameter), DeprecationWarning, 3)
+                 "to allow this param type." % type(parameter), DeprecationWarning, 5)
             return parameter
         else:
             raise CircuitError("Invalid param type {0} for gate {1}.".format(type(parameter),
