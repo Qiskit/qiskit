@@ -25,8 +25,10 @@ from qiskit.circuit.exceptions import CircuitError
 ParameterValueType = Union['ParameterExpression', float, int]
 
 
-class ParameterExpression():
+class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
+
+    __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
 
     def __init__(self, symbol_map: Dict, expr: sympy.Expr):
         """Create a new ParameterExpression.
@@ -40,12 +42,14 @@ class ParameterExpression():
             expr: Expression of sympy.Symbols.
         """
         self._parameter_symbols = symbol_map
+        self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
+        self._names = None
 
     @property
     def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
-        return set(self._parameter_symbols.keys())
+        return self._parameters
 
     def conjugate(self) -> 'ParameterExpression':
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
@@ -173,13 +177,15 @@ class ParameterExpression():
         if outbound_parameters is None:
             outbound_parameters = set()
 
-        self_names = {p.name: p for p in self.parameters}
+        if self._names is None:
+            self._names = {p.name: p for p in self._parameters}
+
         inbound_names = {p.name: p for p in inbound_parameters}
         outbound_names = {p.name: p for p in outbound_parameters}
 
-        shared_names = (self_names.keys() - outbound_names.keys()) & inbound_names.keys()
+        shared_names = (self._names.keys() - outbound_names.keys()) & inbound_names.keys()
         conflicting_names = {name for name in shared_names
-                             if self_names[name] != inbound_names[name]}
+                             if self._names[name] != inbound_names[name]}
         if conflicting_names:
             raise CircuitError('Name conflict applying operation for parameters: '
                                '{}'.format(conflicting_names))
