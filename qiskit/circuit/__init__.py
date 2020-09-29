@@ -231,3 +231,4 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
+from .classicalfunction import classical_function
