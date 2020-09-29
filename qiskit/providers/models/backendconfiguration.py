@@ -204,8 +204,9 @@ class QasmBackendConfiguration:
     def __init__(self, backend_name, backend_version, n_qubits,
                  basis_gates, gates, local, simulator,
                  conditional, open_pulse, memory,
-                 max_shots, coupling_map, dynamic_reprate_enabled=False,
-                 rep_delay_range=None, default_rep_delay=None, max_experiments=None,
+                 max_shots, coupling_map, supported_instructions=None,
+                 dynamic_reprate_enabled=False, rep_delay_range=None,
+                 default_rep_delay=None, max_experiments=None,
                  sample_name=None, n_registers=None, register_map=None,
                  configurable=None, credits_required=None, online_date=None,
                  display_name=None, description=None, tags=None, **kwargs):
@@ -227,6 +228,7 @@ class QasmBackendConfiguration:
             memory (bool): True if the backend supports memory
             max_shots (int): The maximum number of shots allowed on the backend
             coupling_map (list): The coupling map for the device
+            supported_instructions (List[str]): Instructions supported by the backend.
             dynamic_reprate_enabled (bool): whether delay between programs can be set dynamically
                 (ie via ``rep_delay``). Defaults to False.
             rep_delay_range (List[float]): 2d list defining supported range of repetition
@@ -266,6 +268,8 @@ class QasmBackendConfiguration:
         self.memory = memory
         self.max_shots = max_shots
         self.coupling_map = coupling_map
+        if supported_instructions:
+            self.supported_instructions = supported_instructions
 
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
         if rep_delay_range:
@@ -361,6 +365,9 @@ class QasmBackendConfiguration:
             'coupling_map': self.coupling_map,
             'dynamic_reprate_enabled': self.dynamic_reprate_enabled
         }
+
+        if hasattr(self, 'supported_instructions'):
+            out_dict['supported_instructions'] = self.supported_instructions
 
         if hasattr(self, 'rep_delay_range'):
             out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]

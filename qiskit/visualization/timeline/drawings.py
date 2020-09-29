@@ -24,18 +24,18 @@ of the timeline drawer. However this interface is agnostic to the actual plotter
 
 Design concept
 ~~~~~~~~~~~~~~
-When we think about dynamically updating drawing objects, it will be most efficient to
+When we think about dynamically updating drawings, it will be most efficient to
 update only the changed properties of drawings rather than regenerating entirely from scratch.
-Thus the core :py:class:`qiskit.visualization.timeline.core.DrawerCanvas` generates
+Thus the core :py:class:`~qiskit.visualization.timeline.core.DrawerCanvas` generates
 all possible drawings in the beginning and then the canvas instance manages
-visibility of each drawing object according to the end-user request.
+visibility of each drawing according to the end-user request.
 
 Data key
 ~~~~~~~~
-In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
-specified. In addition, drawing objects have the `data_key` property that returns an
+In the abstract class ``ElementaryData`` common attributes to represent a drawing are
+specified. In addition, drawings have the `data_key` property that returns an
 unique hash of the object for comparison.
-This key is generated from a data type, the location of the drawing object in the canvas,
+This key is generated from a data type, the location of the drawing in the canvas,
 and associated qubit or classical bit objects.
 See py:mod:`qiskit.visualization.timeline.types` for detail on the data type.
 If a data key cannot distinguish two independent objects, you need to add a new data type.
@@ -43,11 +43,11 @@ The data key may be used in the plotter interface to identify the object.
 
 Drawing objects
 ~~~~~~~~~~~~~~~
-To support not only `matplotlib` but also multiple plotters, those drawing objects should be
+To support not only `matplotlib` but also multiple plotters, those drawings should be
 universal and designed without strong dependency on modules in `matplotlib`.
-This means drawing objects that represent primitive geometries are preferred.
+This means drawings that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for each plotter API, which takes
-drawing objects and outputs image data, we should avoid adding a complicated geometry
+drawings and outputs image data, we should avoid adding a complicated geometry
 that has a context of the scheduled circuit program.
 
 For example, a two qubit scheduled gate may be drawn by two rectangles that represent
@@ -55,14 +55,14 @@ time occupation of two quantum registers during the gate along with a line conne
 these rectangles to identify the pair. This shape can be represented with
 two box-type objects with one line-type object instead of defining a new object dedicated
 to the two qubit gate. As many plotters don't support an API that visualizes such
-a linked-box shape, if we introduce such complex drawing objects and write a
+a linked-box shape, if we introduce such complex drawings and write a
 custom wrapper function on top of the existing API,
 it could be difficult to prevent bugs with the CI tools due to lack of
 the effective unittest for image data.
 
 Link between gates
 ~~~~~~~~~~~~~~~~~~
-The ``GateLinkData`` is the special subclass of drawing object that represents
+The ``GateLinkData`` is the special subclass of drawing that represents
 a link between bits. Usually objects are associated to the specific bit,
 but ``GateLinkData`` can be associated with multiple bits to illustrate relationship
 between quantum or classical bits during a gate operation.
@@ -82,7 +82,7 @@ from qiskit.visualization.exceptions import VisualizationError
 class ElementaryData(ABC):
     """Base class of the scheduled circuit visualization object.
 
-    Note that drawing objects are mutable.
+    Note that drawings are mutable.
     """
     __hash__ = None
 
@@ -93,10 +93,10 @@ class ElementaryData(ABC):
                  bits: Optional[Union[types.Bits, List[types.Bits]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object.
+        """Create new drawing.
 
         Args:
-            data_type: String representation of this drawing object.
+            data_type: String representation of this drawing.
             xvals: Series of horizontal coordinate that the object is drawn.
             yvals: Series of vertical coordinate that the object is drawn.
             bits: Qubit or Clbit object bound to this drawing.
@@ -106,7 +106,10 @@ class ElementaryData(ABC):
         if bits and isinstance(bits, (circuit.Qubit, circuit.Clbit)):
             bits = [bits]
 
-        self.data_type = data_type
+        if isinstance(data_type, Enum):
+            data_type = data_type.value
+
+        self.data_type = str(data_type)
         self.xvals = xvals
         self.yvals = yvals
         self.bits = bits
@@ -143,7 +146,7 @@ class LineData(ElementaryData):
         """Create new line.
 
         Args:
-            data_type: String representation of this drawing object.
+            data_type: String representation of this drawing.
             xvals: Series of horizontal coordinate that the object is drawn.
             yvals: Series of vertical coordinate that the object is drawn.
             bit: Bit associated to this object.
@@ -172,7 +175,7 @@ class BoxData(ElementaryData):
         """Create new box.
 
         Args:
-            data_type: String representation of this drawing object.
+            data_type: String representation of this drawing.
             xvals: Left and right coordinate that the object is drawn.
             yvals: Top and bottom coordinate that the object is drawn.
             bit: Bit associated to this object.
@@ -209,7 +212,7 @@ class TextData(ElementaryData):
         """Create new text.
 
         Args:
-            data_type: String representation of this drawing object.
+            data_type: String representation of this drawing.
             xval: Horizontal coordinate that the object is drawn.
             yval: Vertical coordinate that the object is drawn.
             bit: Bit associated to this object.
@@ -249,7 +252,7 @@ class GateLinkData(ElementaryData):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         super().__init__(
-            data_type=types.DrawingLine.GATE_LINK,
+            data_type=types.LineType.GATE_LINK,
             xvals=[xval],
             yvals=[0],
             bits=bits,
