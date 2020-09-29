@@ -18,7 +18,7 @@ import time
 
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.providers.exceptions import JobTimeoutError
-from qiskit.providers.v2.backend import Backend
+from qiskit.providers.backend import Backend
 
 
 class Job:

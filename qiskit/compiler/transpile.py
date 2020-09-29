@@ -22,7 +22,7 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers import BaseBackend
-from qiskit.providers.v2 import Backend
+from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
 from qiskit.pulse import Schedule

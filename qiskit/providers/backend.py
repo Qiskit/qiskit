@@ -64,7 +64,7 @@ class BackendV1(Backend, ABC):
         Args:
             configuration (BackendConfiguration): A backend configuration
                 object for the backend object.
-            provider (qiskit.providers.v2.Provider): Optionally, the provider
+            provider (qiskit.providers.Provider): Optionally, the provider
                 object that this Backend comes from.
             fields: kwargs for the values to use to override the default
                 options.
@@ -86,13 +86,13 @@ class BackendV1(Backend, ABC):
     def _default_options(cls):
         """Return the default options
 
-        This method will return a :class:`qiskit.providers.v2.Options`
+        This method will return a :class:`qiskit.providers.Options`
         subclass object that will be used for the default options. These
         should be the default parameters to use for the options of the
         backend.
 
         Returns:
-            qiskit.providers.v2.Options: A options object with
+            qiskit.providers.Options: A options object with
                 default values set
         """
         pass
@@ -191,7 +191,7 @@ class BackendV1(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.v2.Job` object
+        This method that will return a :class:`~qiskit.providers.Job` object
         that run circuits. Depending on the backend this may be either an async
         or sync call. It is the discretion of the provider to decide whether
         running should  block until the execution is finished or not. The Job

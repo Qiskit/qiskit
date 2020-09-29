@@ -24,7 +24,7 @@ from time import time
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
-from qiskit.providers.v2 import Backend
+from qiskit.providers.backend import Backend
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
@@ -60,7 +60,7 @@ def execute(experiments, backend,
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend):
+        backend (BaseBackend or Backend):
             Backend to execute circuits on.
             Transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
