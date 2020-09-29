@@ -1006,6 +1006,7 @@ class QuantumCircuit:
         """Returns OpenQASM string composite circuit given an instruction.
         The given instruction should be the result of composite_circuit.to_instruction()."""
 
+        gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
@@ -1013,15 +1014,22 @@ class QuantumCircuit:
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
-        qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
-                                           composite_circuit_gates)
+        if composite_circuit_gates:
+            composite_circuit_gates = composite_circuit_gates.rstrip(' ')
+
+        if gate_parameters:
+            qasm_string = "gate %s(%s) %s { %s }" % (instruction.name, gate_parameters,
+                                                     qubit_parameters, composite_circuit_gates)
+        else:
+            qasm_string = "gate %s %s { %s }" % (instruction.name, qubit_parameters,
+                                                 composite_circuit_gates)
 
         return qasm_string
 
     def qasm(self, formatted=False, filename=None):
         """Return OpenQASM string.
 
-        Parameters:
+        Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
 
@@ -1053,9 +1061,8 @@ class QuantumCircuit:
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
-            # If instruction is a composite circuit
-            elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
-                                                                                 'reset']):
+            # If instruction is a root gate or a root instruction (in that case, compositive)
+            elif type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name
@@ -1210,6 +1217,9 @@ class QuantumCircuit:
         below:
 
         Args:
+            name (str): The name of the style. The name can be set to 'iqx',
+                'bw', or 'default'. This overrides the setting in the
+                '~/.qiskit/settings.conf' file.
             textcolor (str): The color code to use for text. Defaults to
                 `'#000000'`
             subtextcolor (str): The color code to use for subtext. Defaults to
@@ -1255,33 +1265,55 @@ class QuantumCircuit:
                 You must specify all the necessary values if using this. There
                 is no provision for passing an incomplete dict in.
             displaycolor (dict): The color codes to use for each circuit
-                element. The default values are::
+                element in the form (gate_color, text_color).
+                The default values are::
 
                     {
-                        'id': '#F0E442',
-                        'u0': '#E7AB3B',
-                        'u1': '#E7AB3B',
-                        'u2': '#E7AB3B',
-                        'u3': '#E7AB3B',
-                        'x': '#58C698',
-                        'y': '#58C698',
-                        'z': '#58C698',
-                        'h': '#70B7EB',
-                        's': '#E0722D',
-                        'sdg': '#E0722D',
-                        't': '#E0722D',
-                        'tdg': '#E0722D',
-                        'rx': '#ffffff',
-                        'ry': '#ffffff',
-                        'rz': '#ffffff',
-                        'reset': '#D188B4',
-                        'target': '#70B7EB',
-                        'meas': '#D188B4'
+                        'u1': ('#FA74A6', '#000000'),
+                        'u2': ('#FA74A6', '#000000'),
+                        'u3': ('#FA74A6', '#000000'),
+                        'id': ('#05BAB6', '#000000'),
+                        'x': ('#05BAB6', '#000000'),
+                        'y': ('#05BAB6', '#000000'),
+                        'z': ('#05BAB6', '#000000'),
+                        'h': ('#6FA4FF', '#000000'),
+                        'cx': ('#6FA4FF', '#000000'),
+                        'cy': ('#6FA4FF', '#000000'),
+                        'cz': ('#6FA4FF', '#000000'),
+                        'swap': ('#6FA4FF', '#000000'),
+                        's': ('#6FA4FF', '#000000'),
+                        'sdg': ('#6FA4FF', '#000000'),
+                        'dcx': ('#6FA4FF', '#000000'),
+                        'iswap': ('#6FA4FF', '#000000'),
+                        't': ('#BB8BFF', '#000000'),
+                        'tdg': ('#BB8BFF', '#000000'),
+                        'r': ('#BB8BFF', '#000000'),
+                        'rx': ('#BB8BFF', '#000000'),
+                        'ry': ('#BB8BFF', '#000000'),
+                        'rz': ('#BB8BFF', '#000000'),
+                        'rxx': ('#BB8BFF', '#000000'),
+                        'ryy': ('#BB8BFF', '#000000'),
+                        'rzx': ('#BB8BFF', '#000000'),
+                        'reset': ('#000000', #FFFFFF'),
+                        'target': ('#FFFFFF, '#FFFFFF'),
+                        'measure': ('#000000', '#FFFFFF'),
+                        'ccx': ('#BB8BFF', '#000000'),
+                        'cdcx': ('#BB8BFF', '#000000'),
+                        'ccdcx': ('#BB8BFF', '#000000'),
+                        'cswap': ('#BB8BFF', '#000000'),
+                        'ccswap': ('#BB8BFF', '#000000'),
+                        'mcx': ('#BB8BFF', '#000000'),
+                        'mcx_gray': ('#BB8BFF', '#000000),
+                        'u': ('#BB8BFF', '#000000'),
+                        'p': ('#BB8BFF', '#000000'),
+                        'sx': ('#BB8BFF', '#000000'),
+                        'sxdg': ('#BB8BFF', '#000000')
                     }
 
-               Also, just like  `displaytext` there is no provision for an
-               incomplete dict passed in.
-
+                Colors can also be entered without the text color, such as
+                'u1': '#FA74A6', in which case the text color will always
+                be 'gatetextcolor'. The 'displaycolor' dict can contain any
+                number of elements from one to the entire dict above.
             latexdrawerstyle (bool): When set to True, enable LaTeX mode, which
                 will draw gates like the `latex` output modes.
             usepiformat (bool): When set to True, use radians for output.
@@ -1618,7 +1650,7 @@ class QuantumCircuit:
 
         Returns a new circuit with measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
@@ -1647,7 +1679,7 @@ class QuantumCircuit:
 
         Returns a new circuit with measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
@@ -1675,7 +1707,7 @@ class QuantumCircuit:
 
         Returns a new circuit without measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:
