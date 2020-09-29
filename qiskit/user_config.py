@@ -69,10 +69,10 @@ class UserConfig:
                                                        'circuit_mpl_style',
                                                        fallback=None)
             if circuit_mpl_style:
-                if circuit_mpl_style not in ['default', 'bw']:
+                if circuit_mpl_style not in ['default', 'iqx', 'bw']:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid mpl circuit style. Must be "
-                        "either 'default' or 'bw'"
+                        "either 'default', 'iqx', or bw'"
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
             # Parse transpile_optimization_level
