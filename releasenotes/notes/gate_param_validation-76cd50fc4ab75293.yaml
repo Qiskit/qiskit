@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The use of `numpy.ndarray` as a parameter type for the class
+    :class:`~qiskit.circuit.gate.Gate` is being deprecated.
