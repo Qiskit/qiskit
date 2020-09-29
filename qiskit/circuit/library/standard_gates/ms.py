@@ -33,6 +33,7 @@ class MSGate(Gate):
     def __init__(self, num_qubits, theta, *, n_qubits=None,  # pylint:disable=unused-argument
                  label=None):
         """Create new MS gate."""
+        print("TESTING")
         warnings.warn('The qiskit.circuit.library.standard_gates.MSGate class is '
                       'deprecated as of 0.16.0, and will be removed no earlier '
                       'than 3 months after that release date. You should use the '
