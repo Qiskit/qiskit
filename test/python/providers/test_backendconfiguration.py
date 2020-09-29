@@ -107,6 +107,15 @@ class TestBackendConfiguration(QiskitTestCase):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
 
+    def test_supported_instructions(self):
+        """Test that supported instructions get entered into config dict properly."""
+        # verify the supported instructions is not in the config dict when the flag is not set
+        self.assertNotIn("supported_instructions", self.config.to_dict())
+        # verify that supported instructions get added to config dict when set
+        supp_instrs = ["u1", "u2", "play", "acquire"]
+        setattr(self.config, "supported_instructions", supp_instrs)
+        self.assertEqual(supp_instrs, self.config.to_dict()["supported_instructions"])
+
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
         _rep_times_us = [100, 250, 500, 1000]

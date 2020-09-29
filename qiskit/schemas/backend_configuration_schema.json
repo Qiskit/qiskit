@@ -176,6 +176,12 @@
                 "default_discriminator": {
                     "type": "string",
                     "description": "Default discriminator used by the backend."
+                    },
+                "supported_instructions": {
+                    "type": "array",
+                    "minItems": 0,
+                    "description": "Instructions supported by the backend.",
+                    "items": {"type": "string"}
                     }
                 }
             },
