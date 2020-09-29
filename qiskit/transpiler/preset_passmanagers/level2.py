@@ -96,18 +96,18 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 1. Template optimization
     from qiskit.circuit.library import templates
-    _templates = [templates.template_2a_1(),
-                  templates.template_2a_2(),
-                  templates.template_2a_3(),
-                  templates.template_4a_1(),
-                  templates.template_4a_2(),
-                  templates.template_4a_3(),
-                  templates.template_4b_1(),
-                  templates.template_4b_2(),
-                  templates.template_5a_1(),
-                  templates.template_5a_2(),
-                  templates.template_5a_3(),
-                  templates.template_5a_4()
+    _templates = [templates.template_nct_2a_1(),
+                  templates.template_nct_2a_2(),
+                  templates.template_nct_2a_3(),
+                  templates.template_nct_4a_1(),
+                  templates.template_nct_4a_2(),
+                  templates.template_nct_4a_3(),
+                  templates.template_nct_4b_1(),
+                  templates.template_nct_4b_2(),
+                  templates.template_nct_5a_1(),
+                  templates.template_nct_5a_2(),
+                  templates.template_nct_5a_3(),
+                  templates.template_nct_5a_4()
                   ]
     _template_opt = [TemplateOptimization(_templates)]
 
