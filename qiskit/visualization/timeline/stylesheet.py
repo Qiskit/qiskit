@@ -200,6 +200,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.margin.left_percent': 0.02,
         'formatter.margin.right_percent': 0.02,
         'formatter.margin.link_interval_dt': 20,
+        'formatter.margin.minimum_duration': 50,
         'formatter.time_bucket.edge_dt': 10,
         'formatter.color.background': '#FFFFFF',
         'formatter.color.timeslot': '#DDDDDD',

@@ -120,6 +120,10 @@ def draw(program: circuit.QuantumCircuit,
         formatter.time_bucket.edge_dt: The length of round edge of gate boxes. Gate boxes are
             smoothly faded in and out from the zero line. This value is in units of
             the system cycle time dt (default `10`).
+        formatter.margin.minimum_duration: Minimum scheduled circuit duration.
+            If the duration of input circuit is below this value, horizontal limit is
+            set based on this value. This value is in units of
+            the system cycle time dt (default `50`).
         formatter.color.background: Color code of the face color of canvas (default `#FFFFFF`).
         formatter.color.timeslot: Face color of the time slot box (default `#DDDDDD`).
         formatter.color.gate_name: Text color of the gate name annotations (default `#000000`).
