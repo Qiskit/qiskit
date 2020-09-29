@@ -69,10 +69,11 @@ HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and act
 HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
-class DrawingBox(Enum):
-    """Box data type.
+class BoxType(str, Enum):
+    """Box type.
 
     SCHED_GATE: Box that represents occupation time by gate.
+    DELAY: Box associated with delay.
     TIMELINE: Box that represents time slot of a bit.
     """
     SCHED_GATE = 'Box.ScheduledGate'
@@ -80,27 +81,29 @@ class DrawingBox(Enum):
     TIMELINE = 'Box.Timeline'
 
 
-class DrawingLine(Enum):
-    """Line data type.
+class LineType(str, Enum):
+    """Line type.
 
     BARRIER: Line that represents barrier instruction.
+    GATE_LINK: Line that represents a link among gates.
     """
     BARRIER = 'Line.Barrier'
     GATE_LINK = 'Line.GateLink'
 
 
-class DrawingSymbol(Enum):
-    """Symbol data type.
+class SymbolType(str, Enum):
+    """Symbol type.
 
     FRAME: Symbol that represents zero time frame change (Rz) instruction.
     """
     FRAME = 'Symbol.Frame'
 
 
-class DrawingLabel(Enum):
-    """Label data type.
+class LabelType(str, Enum):
+    """Label type.
 
     GATE_NAME: Label that represents name of gate.
+    DELAY: Label associated with delay.
     GATE_PARAM: Label that represents parameter of gate.
     BIT_NAME: Label that represents name of bit.
     """
@@ -133,7 +136,7 @@ class Plotter(str, Enum):
 
 
 # convenient type to represent union of drawing data
-DataTypes = NewType('DataType', Union[DrawingBox, DrawingLabel, DrawingLine, DrawingSymbol])
+DataTypes = NewType('DataType', Union[BoxType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])

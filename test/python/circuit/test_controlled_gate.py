@@ -549,6 +549,19 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
+    def test_mcry_defaults_to_vchain(self):
+        """Test mcry defaults to the v-chain mode if sufficient work qubits are provided."""
+        circuit = QuantumCircuit(5)
+        control_qubits = circuit.qubits[:3]
+        target_qubit = circuit.qubits[3]
+        additional_qubits = circuit.qubits[4:]
+        circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits)
+
+        # If the v-chain mode is selected, all qubits are used. If the noancilla mode would be
+        # selected, the bottom qubit would remain unused.
+        dag = circuit_to_dag(circuit)
+        self.assertEqual(len(list(dag.idle_wires())), 0)
+
     @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test the creating a MCX gate yields the explicit definition if we know it."""

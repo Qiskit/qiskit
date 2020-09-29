@@ -145,6 +145,23 @@ class TestUnitaryCircuit(QiskitTestCase):
             self.assertIn(qubit.index, [0, 1, 3])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
+    def test_1q_unitary_int_qargs(self):
+        """test single qubit unitary matrix with 'int' and 'list of ints' qubits argument"""
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmaz = numpy.array([[1, 0], [0, -1]])
+        # new syntax
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.unitary(sigmax, 0)
+        qc.unitary(sigmax, qr[1])
+        qc.unitary(sigmaz, [0, 1])
+        # expected circuit
+        qc_target = QuantumCircuit(qr)
+        qc_target.append(UnitaryGate(sigmax), [0])
+        qc_target.append(UnitaryGate(sigmax), [qr[1]])
+        qc_target.append(UnitaryGate(sigmaz), [[0, 1]])
+        self.assertEqual(qc, qc_target)
+
     def test_qobj_with_unitary_matrix(self):
         """test qobj output with unitary matrix"""
         qr = QuantumRegister(4)
