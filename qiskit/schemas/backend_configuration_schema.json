@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/backend_config_schema.json",
     "description": "Qiskit device backend configuration",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "definitions": {
       "hamiltonian": {
           "type": "object",
@@ -156,6 +156,12 @@
                     "type": "boolean",
                     "description": "Whether delay between programs can be set dynamically using 'rep_delay').",
                     "default": false
+                    },
+                "supported_instructions": {
+                    "type": "array",
+                    "minItems": 0,
+                    "description": "Instructions supported by the backend.",
+                    "items": {"type": "string"}
                     }
                 }
             },
