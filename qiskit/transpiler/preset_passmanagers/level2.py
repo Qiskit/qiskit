@@ -48,6 +48,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
@@ -93,7 +94,24 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
-    # 1. Search for a perfect layout, or choose a dense layout, if no layout given
+    # 1. Template optimization
+    import qiskit.circuit.library.template_circuits as templates
+    _templates = [templates.template_2a_1(),
+                  templates.template_2a_2(),
+                  templates.template_2a_3(),
+                  templates.template_4a_1(),
+                  templates.template_4a_2(),
+                  templates.template_4a_3(),
+                  templates.template_4b_1(),
+                  templates.template_4b_2(),
+                  templates.template_5a_1(),
+                  templates.template_5a_2(),
+                  templates.template_5a_3(),
+                  templates.template_5a_4()
+                  ]
+    _template_opt = [TemplateOptimization(_templates)]
+
+    # 2. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -111,13 +129,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 3. Unroll to 1q or 2q gates
+    # 4. Unroll to 1q or 2q gates
     _unroll3q = Unroll3qOrMore()
 
-    # 4. Swap to fit the coupling map
+    # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -135,7 +153,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 5. Unroll to the basis
+    # 6. Unroll to the basis
     if translation_method == 'unroller':
         _unroll = [Unroller(basis_gates)]
     elif translation_method == 'translator':
@@ -152,7 +170,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
-    # 6. Fix any bad CX directions
+    # 7. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -160,10 +178,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 7. Remove zero-state reset
+    # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # 9. 1q rotation merge and commutative cancellation iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -171,7 +189,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
 
-    # 9. Schedule the circuit only when scheduling_method is supplied
+    # 10. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
         _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
@@ -183,6 +201,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm2 = PassManager()
+    pm2.append(_template_opt)
     if coupling_map:
         pm2.append(_given_layout)
         pm2.append(_choose_layout_1, condition=_choose_layout_condition)

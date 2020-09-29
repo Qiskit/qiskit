@@ -91,15 +91,14 @@ class TemplateOptimization(TransformationPass):
             if not isinstance(template, QuantumCircuit):
                 raise TranspilerError('A template is a Quantumciruit().')
 
+            if template.num_qubits > len(circuit_dag_dep.qubits):
+                continue
+
             identity = np.identity(2 ** template.num_qubits, dtype=complex)
             comparison = np.allclose(Operator(template).data, identity)
 
             if not comparison:
                 raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
-
-            if template.num_qubits > len(circuit_dag_dep.qubits):
-                raise TranspilerError('A template should have equal or less number of qubit'
-                                      ' compared to the circuit.')
 
             template_dag_dep = circuit_to_dagdependency(template)
 
