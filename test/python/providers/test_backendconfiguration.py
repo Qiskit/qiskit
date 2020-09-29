@@ -138,24 +138,25 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test that discriminators, meas_kernels and their defaults are loaded properly."""
         # test pulse config w/ defaults
         pulse_def_dict = self.config.to_dict()
-        self.assertEqual(pulse_def_dict['meas_kernels'], ['kernel1'])
-        self.assertEqual(pulse_def_dict['discriminators'], ['max_1Q_fidelity'])
-        self.assertEqual(pulse_def_dict['default_meas_kernel'], 'kernel1')
-        self.assertEqual(pulse_def_dict['default_discriminator'], 'max_1Q_fidelity')
+        self.assertEqual(pulse_def_dict['meas_kernels'], ['hw_boxcar'])
+        self.assertEqual(pulse_def_dict['discriminators'], ['linear_discriminator'])
+        self.assertEqual(pulse_def_dict['default_meas_kernel'], 'hw_boxcar')
+        self.assertEqual(pulse_def_dict['default_discriminator'], 'linear_discriminator')
         # test pulse config w/ out defaults
         pulse_no_def_dict = self.provider.get_backend('fake_openpulse_3q').configuration().to_dict()
-        self.assertEqual(pulse_no_def_dict['meas_kernels'], ['kernel1'])
-        self.assertEqual(pulse_no_def_dict['discriminators'], ['max_1Q_fidelity'])
+        self.assertEqual(pulse_no_def_dict['meas_kernels'], ['hw_boxcar'])
+        self.assertEqual(pulse_no_def_dict['discriminators'], ['linear_discriminator'])
         self.assertNotIn('default_meas_kernel', pulse_no_def_dict)
         self.assertNotIn('default_discriminator', pulse_no_def_dict)
 
         # test qasm config w/ kernel/discrim
         qasm_with_disc_config = self.provider.get_backend('fake_qasm_simulator').configuration()
         qasm_with_disc_dict = qasm_with_disc_config.to_dict()
-        self.assertEqual(qasm_with_disc_dict['meas_kernels'], ['boxcar'])
-        self.assertEqual(qasm_with_disc_dict['discriminators'], ['linear', 'quadratic'])
-        self.assertEqual(qasm_with_disc_dict['default_meas_kernel'], 'boxcar')
-        self.assertEqual(qasm_with_disc_dict['default_discriminator'], 'linear')
+        self.assertEqual(qasm_with_disc_dict['meas_kernels'], ['hw_boxcar'])
+        self.assertEqual(qasm_with_disc_dict['discriminators'], ['linear_discriminator',
+                                                                 'quadratic_discriminator'])
+        self.assertEqual(qasm_with_disc_dict['default_meas_kernel'], 'hw_boxcar')
+        self.assertEqual(qasm_with_disc_dict['default_discriminator'], 'linear_discriminator')
 
         # test qasm config w/ out kernel/discrim
         qasm_no_disc_config = FakeYorktown().configuration()

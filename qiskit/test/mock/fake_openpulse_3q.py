@@ -56,8 +56,8 @@ class FakeOpenPulse3Q(FakeBackend):
                 [-0.02, 0.02], [-0.02, 0.02], [-0.02, 0.02],
                 [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3]
             ],
-            meas_kernels=['kernel1'],
-            discriminators=['max_1Q_fidelity'],
+            meas_kernels=['hw_boxcar'],
+            discriminators=['linear_discriminator'],
             acquisition_latency=[[100, 100], [100, 100], [100, 100]],
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
