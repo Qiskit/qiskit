@@ -73,6 +73,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.gate_reliability = {}
         self.swap_reliabs = {}
         self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
         self.qarg_to_id = {}
         self.pending_program_edges = []
         self.prog2hw = {}
@@ -192,11 +193,13 @@ class NoiseAdaptiveLayout(AnalysisPass):
     def _select_best_remaining_qubit(self, prog_qubit):
         """Select the best remaining hardware qubit for the next program qubit."""
         reliab_store = {}
-        for hw_qubit in self.available_hw_qubits:
-            reliab = 1
+        if prog_qubit not in self.prog_neighbors:
             # TODO: Replace with neighbors() after
             # https://github.com/Qiskit/retworkx/pull/147 is released
-            for n in self.prog_graph.adj(prog_qubit):
+            self.prog_neighbors[prog_qubit] = self.prog_graph.adj(prog_qubit)
+        for hw_qubit in self.available_hw_qubits:
+            reliab = 1
+            for n in self.prog_neighbors[prog_qubit]:
                 if n in self.prog2hw:
                     reliab *= self.swap_reliabs[self.prog2hw[n]][hw_qubit]
             reliab *= self.readout_reliability[hw_qubit]
