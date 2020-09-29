@@ -85,7 +85,7 @@ class TestNoiseSwap(QiskitTestCase):
         qc.cx(0, 1)
 
         valid_inds = [12, 19, 20, 21, 25, 33, 34, 35, 40]
-
+        backend = FakeManhattan()
         swap_methods = ['stochastic', 'sabre', 'lookahead']
 
         for method in swap_methods:
