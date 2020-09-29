@@ -789,7 +789,7 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
-            draw_title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
