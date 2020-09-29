@@ -282,7 +282,7 @@ class WaveformDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            draw_title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
