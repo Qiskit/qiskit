@@ -153,7 +153,7 @@ class CircuitOp(PrimitiveOp):
         return np.round(unitary * self.coeff, decimals=EVAL_SIG_DIGITS)
 
     def __str__(self) -> str:
-        qc = self.reduce().to_circuit()  # type: ignore
+        qc = self.to_circuit()  # type: ignore
         prim_str = str(qc.draw(output='text'))
         if self.coeff == 1.0:
             return prim_str
