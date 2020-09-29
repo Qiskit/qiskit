@@ -15,10 +15,11 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-from typing import Optional
+from typing import Optional, Union
 
-from ..channels import PulseChannel
-from .instruction import Instruction
+from qiskit.circuit import ParameterExpression
+from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class ShiftPhase(Instruction):
@@ -38,7 +39,7 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
-    def __init__(self, phase: complex,
+    def __init__(self, phase: Union[complex, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
@@ -49,21 +50,19 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        self._phase = phase
-        self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
-    def phase(self) -> float:
+    def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
-        return self._phase
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
 
 
 class SetPhase(Instruction):
@@ -80,7 +79,7 @@ class SetPhase(Instruction):
     """
 
     def __init__(self,
-                 phase: float,
+                 phase: Union[complex, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
@@ -91,18 +90,16 @@ class SetPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        self._phase = phase
-        self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
-    def phase(self) -> float:
+    def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
-        return self._phase
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
