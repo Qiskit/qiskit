@@ -15,7 +15,7 @@ features:
     makes use of all these classes and applies template optimization for a given
     circuit and template.
 
-    In ``qiskit.circuit.library.templates.toffoli``, a list of X, CX
+    In ``qiskit.circuit.library.templates.nct``, a list of X, CX
     and Toffoli templates can be found.
 
     This pass is invoked in the preset passmanagers of Qiskit.

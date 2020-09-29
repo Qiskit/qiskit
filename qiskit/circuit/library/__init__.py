@@ -188,60 +188,60 @@ Data encoding circuits
    ZFeatureMap
    ZZFeatureMap
 
-Toffoli template circuits
+NCT template circuits
 =========================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   templates.toffoli.template_2a_1
-   templates.toffoli.template_2a_2
-   templates.toffoli.template_2a_3
-   templates.toffoli.template_4a_1
-   templates.toffoli.template_4a_2
-   templates.toffoli.template_4a_3
-   templates.toffoli.template_4b_1
-   templates.toffoli.template_4b_2
-   templates.toffoli.template_5a_1
-   templates.toffoli.template_5a_2
-   templates.toffoli.template_5a_3
-   templates.toffoli.template_5a_4
-   templates.toffoli.template_6a_1
-   templates.toffoli.template_6a_2
-   templates.toffoli.template_6a_3
-   templates.toffoli.template_6a_4
-   templates.toffoli.template_6b_1
-   templates.toffoli.template_6b_2
-   templates.toffoli.template_6c_1
-   templates.toffoli.template_7a_1
-   templates.toffoli.template_7b_1
-   templates.toffoli.template_7c_1
-   templates.toffoli.template_7d_1
-   templates.toffoli.template_7e_1
-   templates.toffoli.template_2a_1
-   templates.toffoli.template_9a_1
-   templates.toffoli.template_9c_1
-   templates.toffoli.template_9c_2
-   templates.toffoli.template_9c_3
-   templates.toffoli.template_9c_4
-   templates.toffoli.template_9c_5
-   templates.toffoli.template_9c_6
-   templates.toffoli.template_9c_7
-   templates.toffoli.template_9c_8
-   templates.toffoli.template_9c_9
-   templates.toffoli.template_9c_10
-   templates.toffoli.template_9c_11
-   templates.toffoli.template_9c_12
-   templates.toffoli.template_9d_1
-   templates.toffoli.template_9d_2
-   templates.toffoli.template_9d_3
-   templates.toffoli.template_9d_4
-   templates.toffoli.template_9d_5
-   templates.toffoli.template_9d_6
-   templates.toffoli.template_9d_7
-   templates.toffoli.template_9d_8
-   templates.toffoli.template_9d_9
-   templates.toffoli.template_9d_10
+   templates.nct.template_nct_2a_1
+   templates.nct.template_nct_2a_2
+   templates.nct.template_nct_2a_3
+   templates.nct.template_nct_4a_1
+   templates.nct.template_nct_4a_2
+   templates.nct.template_nct_4a_3
+   templates.nct.template_nct_4b_1
+   templates.nct.template_nct_4b_2
+   templates.nct.template_nct_5a_1
+   templates.nct.template_nct_5a_2
+   templates.nct.template_nct_5a_3
+   templates.nct.template_nct_5a_4
+   templates.nct.template_nct_6a_1
+   templates.nct.template_nct_6a_2
+   templates.nct.template_nct_6a_3
+   templates.nct.template_nct_6a_4
+   templates.nct.template_nct_6b_1
+   templates.nct.template_nct_6b_2
+   templates.nct.template_nct_6c_1
+   templates.nct.template_nct_7a_1
+   templates.nct.template_nct_7b_1
+   templates.nct.template_nct_7c_1
+   templates.nct.template_nct_7d_1
+   templates.nct.template_nct_7e_1
+   templates.nct.template_nct_2a_1
+   templates.nct.template_nct_9a_1
+   templates.nct.template_nct_9c_1
+   templates.nct.template_nct_9c_2
+   templates.nct.template_nct_9c_3
+   templates.nct.template_nct_9c_4
+   templates.nct.template_nct_9c_5
+   templates.nct.template_nct_9c_6
+   templates.nct.template_nct_9c_7
+   templates.nct.template_nct_9c_8
+   templates.nct.template_nct_9c_9
+   templates.nct.template_nct_9c_10
+   templates.nct.template_nct_9c_11
+   templates.nct.template_nct_9c_12
+   templates.nct.template_nct_9d_1
+   templates.nct.template_nct_9d_2
+   templates.nct.template_nct_9d_3
+   templates.nct.template_nct_9d_4
+   templates.nct.template_nct_9d_5
+   templates.nct.template_nct_9d_6
+   templates.nct.template_nct_9d_7
+   templates.nct.template_nct_9d_8
+   templates.nct.template_nct_9d_9
+   templates.nct.template_nct_9d_10
 
 """
 

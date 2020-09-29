@@ -28,7 +28,7 @@ from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.library.templates.toffoli import template_2a_1, template_2a_2, template_2a_3
+from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.optimization.template_matching import (TemplateMatching,
@@ -65,7 +65,7 @@ class TemplateOptimization(TransformationPass):
         super().__init__()
         # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
         if template_list is None:
-            template_list = [template_2a_1(), template_2a_2(), template_2a_3()]
+            template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
         self.heuristics_qubits_param = heuristics_qubits_param \
             if heuristics_qubits_param is not None else []

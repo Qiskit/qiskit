@@ -93,9 +93,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 1. Template optimization
     from qiskit.circuit.library import templates
-    _templates = [templates.template_2a_1(),
-                  templates.template_2a_2(),
-                  templates.template_2a_3()]
+    _templates = [templates.template_nct_2a_1(),
+                  templates.template_nct_2a_2(),
+                  templates.template_nct_2a_3()]
     _template_opt = [TemplateOptimization(_templates)]
 
     # 2. Use trivial layout if no layout given
