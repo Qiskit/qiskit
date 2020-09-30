@@ -85,7 +85,6 @@ class TemplateOptimization(TransformationPass):
         circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
         circuit = dagdependency_to_circuit(circuit_dag_dep)
-        operator_ini = Operator(circuit)
 
         for template in self.template_list:
             if not isinstance(template, QuantumCircuit):
@@ -124,10 +123,6 @@ class TemplateOptimization(TransformationPass):
                 circuit_dag_dep = substitution.dag_dep_optimized
 
                 circuit_intermediate = dagdependency_to_circuit(circuit_dag_dep)
-                opertator_intermediate = Operator(circuit_intermediate)
-
-                if operator_ini != opertator_intermediate:
-                    raise TranspilerError('A failure happened during the substitution.')
             else:
                 continue
         circuit_dag = dagdependency_to_dag(circuit_dag_dep)
