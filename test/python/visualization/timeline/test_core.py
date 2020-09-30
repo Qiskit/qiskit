@@ -128,3 +128,19 @@ class TestCanvas(QiskitTestCase):
         drawings_tested = list(canvas.collections)
 
         self.assertEqual(len(drawings_tested), 12)
+
+    def test_non_transpiled_delay_circuit(self):
+        """Test non-transpiled circuit containing instruction which is trivial on duration."""
+        circ = QuantumCircuit(1)
+        circ.delay(10, 0)
+
+        canvas = core.DrawerCanvas(stylesheet=self.style)
+        canvas.generator = {
+            'gates': [generators.gen_sched_gate],
+            'bits': [],
+            'barriers': [],
+            'gate_links': []
+        }
+
+        canvas.load_program(circ)
+        self.assertEqual(len(canvas._collections), 1)

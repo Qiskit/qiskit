@@ -89,6 +89,16 @@ class TestLoadScheduledCircuit(QiskitTestCase):
         # barrier
         self.assertEqual(barriers_q2[0].t0, 100)
 
+    def test_calculating_duration(self):
+        """Test calculating duration of input circuit."""
+        bit_event_q0 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][0])
+        bit_event_q1 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][1])
+        bit_event_q2 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][2])
+
+        self.assertEqual(bit_event_q0.duration, 1300)
+        self.assertEqual(bit_event_q1.duration, 1300)
+        self.assertEqual(bit_event_q2.duration, 100)
+
 
 class TestBitEvents(QiskitTestCase):
     """Tests for bit events."""

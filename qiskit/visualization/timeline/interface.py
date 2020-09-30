@@ -84,8 +84,7 @@ def draw(program: circuit.QuantumCircuit,
 
     Raises:
         ImportError: When required visualization package is not installed.
-        VisualizationError: When invalid plotter API is specified or
-            input program is not properly transpiled.
+        VisualizationError: When invalid plotter API is specified.
 
     .. _style-dict-doc:
 
@@ -340,12 +339,6 @@ def draw(program: circuit.QuantumCircuit,
         This feature enables you to control the most of appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
-    # not transpiled
-    if program.duration is None:
-        raise VisualizationError('Input circuit is not properly transpiled. The drawer requires '
-                                 'a scheduled circuit. Transpile your circuit with the '
-                                 '`scheduling_method` kwarg with a target backend.')
-
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IqxStandard())

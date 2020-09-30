@@ -54,6 +54,13 @@ class BitEvents:
         self.bit = bit
         self.instructions = instructions
 
+        # find channel duration
+        duration = 0
+        for inst in instructions:
+            if not isinstance(inst.operand, circuit.Delay):
+                duration = max(duration, inst.t0 + inst.duration)
+        self.duration = duration
+
     @classmethod
     def load_program(cls,
                      scheduled_circuit: circuit.QuantumCircuit,

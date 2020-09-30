@@ -146,6 +146,7 @@ class DrawerCanvas:
             program: Scheduled circuit object to draw.
         """
         self.bits = program.qubits + program.clbits
+        duration = 0
 
         for bit in self.bits:
             bit_events = events.BitEvents.load_program(scheduled_circuit=program,
@@ -178,8 +179,10 @@ class DrawerCanvas:
                 for data in obj_generator(bit):
                     self.add_data(data)
 
+            duration = max(duration, bit_events.duration)
+
         # update time range
-        t_end = max(program.duration, self.formatter['margin.minimum_duration'])
+        t_end = max(duration, self.formatter['margin.minimum_duration'])
         self.set_time_range(t_start=0, t_end=t_end)
 
     def set_time_range(self,
@@ -283,33 +286,40 @@ class DrawerCanvas:
         Returns:
             Return `True` if the data is visible.
         """
-        _barriers = [types.LineType.BARRIER]
-        _delays = [types.BoxType.DELAY, types.LabelType.DELAY]
+        _barriers = [str(types.LineType.BARRIER.value)]
 
-        # type disabled
-        if data.data_type in self.disable_types:
-            return False
+        _delays = [str(types.BoxType.DELAY.value),
+                   str(types.LabelType.DELAY.value)]
 
-        t0, t1 = self.time_range
+        def _time_range_check(_data):
+            """If data is located outside the current time range."""
+            t0, t1 = self.time_range
+            if np.max(_data.xvals) < t0 or np.min(_data.xvals) > t1:
+                return False
+            return True
 
-        # out of drawing range
-        if np.max(data.xvals) < t0 or np.min(data.xvals) > t1:
-            return False
+        def _associated_bit_check(_data):
+            """If all associated bits are not shown."""
+            if all([bit not in self.assigned_coordinates for bit in _data.bits]):
+                return False
+            return True
 
-        if data.data_type == str(types.LineType.GATE_LINK.value):
-            # gate link is visible iff there are more than two active bits
-            active_bits = [bit for bit in data.bits if bit not in self.disable_bits]
-            if len(active_bits) >= 2:
-                return True
-        else:
-            if any([bit in self.assigned_coordinates for bit in data.bits]):
-                # check barrier
-                if data.data_type in _barriers and not self.formatter['control.show_barriers']:
+        def _data_check(_data):
+            """If data is valid."""
+            if _data.data_type == str(types.LineType.GATE_LINK.value):
+                active_bits = [bit for bit in _data.bits if bit not in self.disable_bits]
+                if len(active_bits) < 2:
                     return False
-                # check delay
-                if data.data_type in _delays and not self.formatter['control.show_delays']:
-                    return False
-                return True
+            elif _data.data_type in _barriers and not self.formatter['control.show_barriers']:
+                return False
+            elif _data.data_type in _delays and not self.formatter['control.show_delays']:
+                return False
+            return True
+
+        checks = [_time_range_check, _associated_bit_check, _data_check]
+        if all([check(data) for check in checks]):
+            return True
+
         return False
 
     def _check_bit_visible(self, bit: types.Bits) -> bool:
@@ -321,7 +331,8 @@ class DrawerCanvas:
         Returns:
             Return `True` if the bit is visible.
         """
-        _gates = [types.BoxType.SCHED_GATE, types.SymbolType.FRAME]
+        _gates = [str(types.BoxType.SCHED_GATE.value),
+                  str(types.SymbolType.FRAME.value)]
 
         if bit in self.disable_bits:
             return False
