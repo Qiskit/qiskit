@@ -18,7 +18,6 @@ import numbers
 import operator
 
 import numpy
-import sympy
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -30,7 +29,7 @@ class ParameterExpression:
 
     __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
 
-    def __init__(self, symbol_map: Dict, expr: sympy.Expr):
+    def __init__(self, symbol_map: Dict, expr):
         """Create a new ParameterExpression.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -39,7 +38,7 @@ class ParameterExpression:
         Args:
             symbol_map: Mapping of Parameter instances to the sympy.Symbol
                         serving as their placeholder in expr.
-            expr: Expression of sympy.Symbols.
+            expr (sympy.Expr): Expression of sympy.Symbols.
         """
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
