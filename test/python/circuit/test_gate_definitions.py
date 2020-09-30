@@ -138,7 +138,6 @@ class TestGateDefinitions(QiskitTestCase):
         phi = np.pi / 3
         # rgate axis
         axis = np.array([math.cos(phi), math.sin(phi), 0])
-        print(theta*axis)
         rot = Rotation.from_rotvec(theta * axis)
         rgate = RGate(theta, phi)
         self.assertTrue(numpy.array_equal(
