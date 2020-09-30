@@ -85,6 +85,7 @@ class Instruction:
 
         self._duration = duration
         self._unit = unit
+        self._hash = hash((self.name, self.num_qubits, self.num_clbits))
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -128,6 +129,9 @@ class Instruction:
             return False
 
         return True
+
+    def __hash__(self):
+        return self._hash
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""

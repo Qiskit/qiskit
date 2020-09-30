@@ -72,6 +72,10 @@ class UnitaryGate(Gate):
         self._qasm_def_written = False
         # Store instruction params
         super().__init__('unitary', num_qubits, [data], label=label)
+        self._hash = hash(id(self))
+
+    def __hash__(self):
+        return self._hash
 
     def __eq__(self, other):
         if not isinstance(other, UnitaryGate):

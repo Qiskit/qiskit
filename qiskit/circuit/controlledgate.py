@@ -94,6 +94,8 @@ class ControlledGate(Gate):
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
+        self._hash = hash((self.num_ctrl_qubits, self.ctrl_state,
+                           self.base_gate, self.num_qubits, self.num_clbits))
 
     @property
     def definition(self) -> List:
@@ -221,6 +223,9 @@ class ControlledGate(Gate):
                 self.num_qubits == other.num_qubits and
                 self.num_clbits == other.num_clbits and
                 self.definition == other.definition)
+
+    def __hash__(self):
+        return self._hash
 
     def inverse(self) -> 'ControlledGate':
         """Invert this gate by calling inverse on the base gate."""

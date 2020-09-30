@@ -34,6 +34,7 @@ class UnrollCustomDefinitions(TransformationPass):
         super().__init__()
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
+        self._definition_cache = {}
 
     def run(self, dag):
         """Run the UnrollCustomDefinitions pass on `dag`.
@@ -87,7 +88,11 @@ class UnrollCustomDefinitions(TransformationPass):
                                   "Instruction %s not found in equivalence library "
                                   "and no rule found to expand." %
                                   (str(self._basis_gates), node.op.name))
-            decomposition = circuit_to_dag(node.op.definition)
+            if node.op not in self._definition_cache:
+                self._definition_cache[node.op] = circuit_to_dag(
+                    node.op.definition)
+
+            decomposition = self._definition_cache[node.op]
             unrolled_dag = UnrollCustomDefinitions(self._equiv_lib,
                                                    self._basis_gates).run(
                                                        decomposition)
