@@ -84,7 +84,6 @@ class TemplateOptimization(TransformationPass):
         """
         circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
-        circuit = dagdependency_to_circuit(circuit_dag_dep)
 
         for template in self.template_list:
             if not isinstance(template, QuantumCircuit):

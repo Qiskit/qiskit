@@ -494,15 +494,15 @@ def _does_commute(node1, node2):
             commute_condition = False
         return commute_condition
 
-    # Commutation for measurement, reset or other non-unitary ops
-    # (e.g. directives or pulse gates)
+    # Commutation for non-unitary or parameterized or opaque ops
+    # (e.g. measure, reset, directives or pulse gates)
     # if and only if the qubits and clbits are different.
     non_unitaries = ['measure', 'reset', 'initialize', 'delay']
     directives = ['barrier', 'snapshot']
     if (node1.name in non_unitaries + directives or
         node2.name in non_unitaries + directives or
-        node1.op.definition is None or
-        node2.op.definition is None):
+        node1.op.definition is None or node2.op.definition is None or
+        node1.op.is_parameterized() or node2.op.is_parameterized()):
         intersection_q = set(qarg1).intersection(set(qarg2))
         intersection_c = set(carg1).intersection(set(carg2))
         if intersection_q or intersection_c:

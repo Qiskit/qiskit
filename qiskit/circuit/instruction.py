@@ -253,7 +253,7 @@ class Instruction:
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_reverse')
+        reverse_inst = self.copy(name=self.name)
         reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
