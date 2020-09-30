@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -19,7 +17,6 @@ from copy import deepcopy
 from itertools import cycle
 import numpy as np
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -103,8 +100,8 @@ class SabreSwap(TransformationPass):
 
             .. math::
 
-                H_{decay} = \frac{1}{\abs{F}} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
-                    + W * \frac{1}{\abs{E}} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
+                H_{decay}=\frac{1}{\left|{F}\right|}\sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
+                    + W*\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
 
             - 'decay':
 
@@ -115,8 +112,8 @@ class SabreSwap(TransformationPass):
             .. math::
 
                 H_{decay} = max(decay(SWAP.q_1), decay(SWAP.q_2)) {
-                    \frac{1}{\abs{F}} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
-                    + W * \frac{1}{\abs{E}} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
+                    \frac{1}{\left|{F}\right|} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]\\
+                    + W *\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
                     }
         """
 
@@ -147,7 +144,7 @@ class SabreSwap(TransformationPass):
         rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = _copy_circuit_metadata(dag)
+        mapped_dag = dag._copy_circuit_metadata()
 
         # Assume bidirectional couplings, fixing gate direction is easy later.
         self.coupling_map.make_symmetric()
@@ -335,20 +332,6 @@ class SabreSwap(TransformationPass):
 
         else:
             raise TranspilerError('Heuristic %s not recognized.' % heuristic)
-
-
-def _copy_circuit_metadata(source_dag):
-    """Return a copy of source_dag with metadata but empty.
-    """
-    target_dag = DAGCircuit()
-    target_dag.name = source_dag.name
-
-    for qreg in source_dag.qregs.values():
-        target_dag.add_qreg(qreg)
-    for creg in source_dag.cregs.values():
-        target_dag.add_creg(creg)
-
-    return target_dag
 
 
 def _transform_gate_for_layout(op_node, layout):

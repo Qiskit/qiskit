@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -74,6 +72,16 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   TemplateOptimization
+
+Scheduling
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ALAPSchedule
+   ASAPSchedule
 
 Circuit Analysis
 ================
@@ -151,6 +159,7 @@ from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
+from .optimization import TemplateOptimization
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -164,6 +173,11 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+
+# circuit scheduling
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import TimeUnitAnalysis
 
 # additional utility passes
 from .utils import CheckMap
