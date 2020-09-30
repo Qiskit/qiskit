@@ -16,6 +16,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.exceptions import QiskitError
 
@@ -122,7 +123,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
                              target_qubit, use_basis_gates=use_basis_gates)
 
 
-def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
+def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
          use_basis_gates=False):
     """
     Apply Multiple-Controlled Y rotation gate
@@ -171,11 +172,20 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     self._check_qargs(all_qubits)
     self._check_dups(all_qubits)
 
+    # auto-select the best mode
+    if mode is None:
+        # if enough ancillary qubits are provided, use the 'v-chain' method
+        additional_vchain = MCXGate.get_num_ancilla_qubits(len(control_qubits), 'v-chain')
+        if len(ancillary_qubits) >= additional_vchain:
+            mode = 'basic'
+        else:
+            mode = 'noancilla'
+
     if mode == 'basic':
-        self.u(theta / 2, 0, 0, q_target)
-        self.mct(q_controls, q_target, q_ancillae)
-        self.u(-theta / 2, 0, 0, q_target)
-        self.mct(q_controls, q_target, q_ancillae)
+        self.ry(theta / 2, q_target)
+        self.mcx(q_controls, q_target, q_ancillae, mode='v-chain')
+        self.ry(-theta / 2, q_target)
+        self.mcx(q_controls, q_target, q_ancillae, mode='v-chain')
     elif mode == 'noancilla':
         n_c = len(control_qubits)
         if n_c == 1:  # cu3
