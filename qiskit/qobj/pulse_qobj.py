@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -24,10 +22,10 @@ from typing import Union, List
 
 import numpy
 
-from qiskit.qobj.qasm_qobj import QobjDictField
-from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
-from qiskit.qobj.qasm_qobj import validator
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
@@ -77,6 +75,10 @@ class QobjMeasurementOption:
 
 class PulseQobjInstruction:
     """A class representing a single instruction in an PulseQobj Experiment."""
+
+    _COMMON_ATTRS = ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
+                     'label', 'type', 'pulse_shape', 'parameters']
 
     def __init__(self, name, t0, ch=None, conditional=None, val=None, phase=None,
                  duration=None, qubits=None, memory_slot=None,
@@ -164,9 +166,7 @@ class PulseQobjInstruction:
             'name': self.name,
             't0': self.t0
         }
-        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
-                     'duration', 'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)
         if hasattr(self, 'kernels'):
@@ -177,10 +177,8 @@ class PulseQobjInstruction:
         return out_dict
 
     def __repr__(self):
-        out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        out = 'PulseQobjInstruction(name="%s", t0=%s' % (self.name, self.t0)
+        for attr in self._COMMON_ATTRS:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
@@ -193,9 +191,7 @@ class PulseQobjInstruction:
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         out += "\t\tt0: %s\n" % self.t0
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
         return out
@@ -271,11 +267,13 @@ class PulseQobjConfig(QobjDictField):
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
             rep_time (int): Time per program execution in sec. Must be from the list provided
-                by the backend (``backend.configuration().rep_times``).
+                by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+                in ``backend.configuration().rep_times``.
             rep_delay (float): Delay between programs in sec. Only supported on certain
-                backends (``backend.configuration().dynamic_reprate_enabled``).
-                If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the
-                list provided by the backend (``backend.configuration().rep_delays``).
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
+                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
+                ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
@@ -596,7 +594,7 @@ class PulseQobj:
                 against the jsonschema for qobj spec.
 
         Returns:
-            dict: A dictionary representation of the QasmQobj object
+            dict: A dictionary representation of the PulseQobj object
         """
         out_dict = {
             'qobj_id': self.qobj_id,

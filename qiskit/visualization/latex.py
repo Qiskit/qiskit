@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -69,7 +67,7 @@ class QCircuitImage:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -240,10 +238,13 @@ class QCircuitImage:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                        self.layout[self.ordered_regs[i].index].register.name,
-                        self.layout[self.ordered_regs[i].index].index,
-                        self.ordered_regs[i].index)
+                    if self.layout[self.ordered_regs[i].index]:
+                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            self.layout[self.ordered_regs[i].index].register.name,
+                            self.layout[self.ordered_regs[i].index].index,
+                            self.ordered_regs[i].index)
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -298,7 +299,8 @@ class QCircuitImage:
         columns = 2
 
         # add extra column if needed
-        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+        if self.cregbundle and (self.ops and self.ops[0] and
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
@@ -381,7 +383,8 @@ class QCircuitImage:
 
         column = 1
         # Leave a column to display number of classical registers if needed
-        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+        if self.cregbundle and (self.ops and self.ops[0] and
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             column += 1
         for layer in self.ops:
             num_cols_used = 1
@@ -407,7 +410,7 @@ class QCircuitImage:
                         pos_array.append(self.img_regs[qarglist[ctrl]])
                     pos_qargs = pos_array[num_ctrl_qubits:]
                     ctrl_pos = pos_array[:num_ctrl_qubits]
-                    ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+                    ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
                     if op.condition:
                         mask = self._get_mask(op.condition[0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
@@ -813,7 +816,7 @@ class QCircuitImage:
 
                     elif len(qarglist) == 3:
                         if isinstance(op.op, ControlledGate):
-                            ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
+                            ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -59,9 +57,10 @@ class DAGDependency:
 
     **Reference:**
 
-    [1] Iten, R., Sutter, D. and Woerner, S., 2019.
-    Efficient template matching in quantum circuits.
+    [1] Iten, R., Moyard, R., Metger, T., Sutter, D. and Woerner, S., 2020.
+    Exact and practical pattern matching for quantum circuit optimization.
     `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
+
     """
 
     def __init__(self):
@@ -446,7 +445,7 @@ class DAGDependency:
         """
         from qiskit.visualization.dag_visualization import dag_drawer
         return dag_drawer(dag=self, scale=scale, filename=filename,
-                          style=style, category='dependency')
+                          style=style)
 
 
 def merge_no_duplicates(*iterables):
@@ -514,9 +513,9 @@ def _commute(node1, node2):
         return commute_directive
 
     # List of non commuting gates (TO DO: add more elements)
-    non_commute_list = [set(['x', 'y']), set(['x', 'z'])]
+    non_commute_list = [{'x', 'y'}, {'x', 'z'}]
 
-    if qarg1 == qarg2 and (set([node1.name, node2.name]) in non_commute_list):
+    if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_list):
         return False
 
     # Create matrices to check commutation relation if no other criteria are matched

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -71,7 +69,9 @@ class U2Gate(Gate):
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):

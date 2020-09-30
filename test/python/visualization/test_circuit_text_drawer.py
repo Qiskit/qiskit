@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -1058,6 +1056,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
+    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_multiplexer(self):
         """ Test Multiplexer.
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
@@ -1266,6 +1265,17 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        expected = '\n'.join(["     ┌───────────────────────┐",
+                              "q_0: ┤ RX((pi - x)*(pi - y)) ├",
+                              "     └───────────────────────┘"])
+
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
@@ -1798,6 +1808,7 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_conditional_multiplexer(self):
         """ Test Multiplexer."""
         cx_multiplexer = Gate('multiplexer', 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
@@ -2823,6 +2834,26 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(pqr)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_partial_layout(self):
+        """ With a partial layout.
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = '\n'.join(["            ┌───┐",
+                              "v_0 -> 0 |0>┤ H ├",
+                              "            └───┘",
+                              "       1 |0>─────",
+                              "                 ",
+                              "       2 |0>─────",
+                              "            ┌───┐",
+                              "v_1 -> 3 |0>┤ H ├",
+                              "            └───┘"])
+        qr = QuantumRegister(2, 'v')
+        pqr = QuantumRegister(4, 'physical')
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_with_classical_regs(self):
         """ Involving classical registers"""
         expected = '\n'.join(["                    ",
@@ -2929,6 +2960,7 @@ class TestTextInitialValue(QiskitTestCase):
     """Testing the initial_state parameter"""
 
     def setUp(self) -> None:
+        super().setUp()
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
         self.circuit = QuantumCircuit(qr, cr)

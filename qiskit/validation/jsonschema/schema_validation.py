@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -53,7 +51,7 @@ def _load_schema(file_path, name=None):
         # filename without extension
         name = os.path.splitext(os.path.basename(file_path))[0]
     if name not in _SCHEMAS:
-        with open(file_path, 'r') as schema_file:
+        with open(file_path) as schema_file:
             _SCHEMAS[name] = json.load(schema_file)
 
     return _SCHEMAS[name]
