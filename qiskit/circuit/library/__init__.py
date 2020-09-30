@@ -199,6 +199,7 @@ Data encoding circuits
    ZZFeatureMap
 
 NCT (Not-CNOT-Toffoli) template circuits
+========================================
 
 .. autosummary::
    :toctree: ../stubs/
