@@ -383,7 +383,6 @@ class DAGCircuit:
             self._multi_graph.add_edge(
                 node_index, self.output_map[q]._node_id,
                 dict(name="%s[%s]" % (q.register.name, q.index), wire=q))
-
         return self._multi_graph[node_index]
 
     def apply_operation_front(self, op, qargs, cargs, condition=None):

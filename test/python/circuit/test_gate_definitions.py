@@ -16,9 +16,10 @@
 import inspect
 
 import numpy as np
+import scipy
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
@@ -29,7 +30,7 @@ from qiskit.circuit.library import (
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
-    SXGate, SXdgGate, CSXGate
+    SXGate, SXdgGate, CSXGate, RVGate
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -115,6 +116,50 @@ class TestGateDefinitions(QiskitTestCase):
         circ.cx(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_definition(self):
+        """Test R(v) gate to_matrix and definition.
+        """
+        qreg = QuantumRegister(1)
+        circ = QuantumCircuit(qreg)
+        vec = np.array([0.1, 0.2, 0.3], dtype=float)
+        rvgate = RVGate(*vec)
+        circ.rv(*vec, 0)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_r_equiv(self):
+        """Test R(v) gate is equivalent to R gate.
+        """
+        import math
+        import numpy
+        from scipy.spatial.transform import Rotation
+        theta = np.pi / 5
+        phi = np.pi / 3
+        # rgate axis
+        axis = np.array([math.cos(phi), math.sin(phi), 0])
+        print(theta*axis)
+        rot = Rotation.from_rotvec(theta * axis)
+        rgate = RGate(theta, phi)
+        self.assertTrue(numpy.array_equal(
+            self._su2so3(rgate.to_matrix()), rot.as_matrix()))
+
+    def _su2so3(self, su2):
+        """Convert su2 matrix to so3.
+        """
+        a, b = su2[0, 0].real, su2[0, 0].imag
+        c, d = su2[0, 1].real, su2[0, 1].imag
+        so3 = np.zeros([3,3], dtype=float)
+        so3[0, 0] = a**2 - b**2 - c**2 + d**2
+        so3[0, 1] = 2 * (a*b + c*d)
+        so3[0, 2] = 2 * (-a*c + b*d)
+        so3[1, 0] = 2 * (-a*b + c*d)
+        so3[1, 1] = a**2 - b**2 + c**2 - d**2
+        so3[1, 2] = 2 * (a*d + b*c)
+        so3[2, 0] = 2 * (a*c - b*d)
+        so3[2, 1] = 2 * (b*c - a*d)
+        so3[2, 2] = a**2 + b**2 - c**2 - d**2
+        return so3
 
 
 @ddt
