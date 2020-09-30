@@ -57,6 +57,9 @@ from qiskit.circuit.library.standard_gates.h import CHGate
 from qiskit.circuit.library.standard_gates.rx import CRXGate
 from qiskit.circuit.library.standard_gates.ry import CRYGate
 from qiskit.circuit.library.standard_gates.rz import CRZGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate
+from qiskit.circuit.library.standard_gates.sx import CSXGate
+from qiskit.circuit.library.standard_gates.u import CUGate
 
 
 def ast_to_dag(ast):
@@ -129,7 +132,10 @@ class AstInterpreter:
                           "crx": CRXGate,
                           "cry": CRYGate,
                           "crz": CRZGate,
+                          "csx": CSXGate,
                           "cu1": CU1Gate,
+                          "cp": CPhaseGate,
+                          "cu": CUGate,
                           "cu3": CU3Gate,
                           "ccx": CCXGate,
                           "cswap": CSwapGate}
