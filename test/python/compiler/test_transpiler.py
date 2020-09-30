@@ -870,11 +870,14 @@ class TestTranspile(QiskitTestCase):
         def q0_rxt(tau):
             with pulse.build() as q0_rxt:
                 pulse.play(pulse.library.Gaussian(20, 0.4*tau, 3.0), pulse.DriveChannel(0))
+            return q0_rxt
         circ.add_calibration('rxt', [0], q0_rxt(tau), [2*3.14*tau])
 
         transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
         circ = circ.assign_parameters({tau: 1})
         transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
