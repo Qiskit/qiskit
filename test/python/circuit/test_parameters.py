@@ -349,6 +349,58 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
         self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
 
+    def test_substitution(self):
+        """Test Parameter substitution (vs bind)."""
+        alpha = Parameter('⍺')
+        beta = Parameter('beta')
+        schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
+
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('my_rz', 1, [alpha]), [0])
+        circ.add_calibration('my_rz', [0], schedule, [alpha])
+
+        circ = circ.assign_parameters({alpha: 2*beta})
+
+        circ = circ.assign_parameters({beta: 1.57})
+        cal_sched = circ.calibrations['my_rz'][((0,), (3.14,))]
+        self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
+
+    def test_partial_assigment(self):
+        """Expressions of parameters with partial assignment."""
+        alpha = Parameter('⍺')
+        beta = Parameter('beta')
+        gamma = Parameter('γ')
+        phi = Parameter('ϕ')
+
+        with pulse.build() as my_cal:
+            pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
+            pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
+            pulse.set_phase(phi, pulse.DriveChannel(1))
+
+        circ = QuantumCircuit(2, 2)
+        circ.append(Gate('custom', 2, [alpha, beta, gamma, phi]), [0, 1])
+        circ.add_calibration('custom', [0, 1], my_cal, [alpha, beta, gamma, phi])
+
+        # Partial bind
+        delta = 1e9
+        freq = 4.5e9
+        shift = 0.5e9
+        phase = 3.14/4
+
+        circ = circ.assign_parameters({alpha: freq - delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
+        self.assertEqual(cal_sched.instructions[0][1].frequency, 3.5e9 + beta)
+
+        circ = circ.assign_parameters({beta: delta})
+        self.assertEqual(float(cal_sched.instructions[0][1].frequency), 4.5e9)
+
+        circ = circ.assign_parameters({gamma: shift - delta})
+        self.assertEqual(float(cal_sched.instructions[1][1].frequency), 0.5e9)
+
+        self.assertEqual(cal_sched.instructions[2][1].phase, phi)
+        circ = circ.assign_parameters({phi: phase})
+        self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
+
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
         theta = Parameter('θ')
