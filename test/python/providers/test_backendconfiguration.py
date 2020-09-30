@@ -44,6 +44,20 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test the hamiltonian method."""
         self.assertEqual(self.config.hamiltonian['description'],
                          "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
+        ref_vars = {
+            'v0': 5.0 * 1e9,
+            'v1': 5.1 * 1e9,
+            'j': 0.01 * 1e9,
+            'r': 0.02 * 1e9,
+            'alpha0': -0.33 * 1e9,
+            'alpha1': -0.33 * 1e9
+        }
+        self.assertEqual(self.config.hamiltonian['vars'], ref_vars)
+        # Test that on serialization inverse conversion is done.
+        self.assertEqual(
+            self.config.to_dict()['hamiltonian']['vars'],
+            {k: var*1e-9 for k, var in ref_vars.items()}
+        )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
@@ -92,6 +106,15 @@ class TestBackendConfiguration(QiskitTestCase):
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
+
+    def test_supported_instructions(self):
+        """Test that supported instructions get entered into config dict properly."""
+        # verify the supported instructions is not in the config dict when the flag is not set
+        self.assertNotIn("supported_instructions", self.config.to_dict())
+        # verify that supported instructions get added to config dict when set
+        supp_instrs = ["u1", "u2", "play", "acquire"]
+        setattr(self.config, "supported_instructions", supp_instrs)
+        self.assertEqual(supp_instrs, self.config.to_dict()["supported_instructions"])
 
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
