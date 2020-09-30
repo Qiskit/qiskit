@@ -62,7 +62,7 @@ class RVGate(Gate):
         euler = rot.as_euler(self.seq)
         getattr(qc, 'r' + self.seq[0])(euler[0], qr[0])
         getattr(qc, 'r' + self.seq[1])(euler[1], qr[0])
-        getattr(qc, 'r' + self.seq[2])(euler[2], qr[0])        
+        getattr(qc, 'r' + self.seq[2])(euler[2], qr[0])
         self.definition = qc
 
     def inverse(self):

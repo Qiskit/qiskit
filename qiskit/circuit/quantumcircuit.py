@@ -2076,7 +2076,7 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.rv import RVGate
         return self.append(RVGate(vx, vy, vz), [qubit], [])
-    
+
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.RCCXGate`."""
         from .library.standard_gates.x import RCCXGate

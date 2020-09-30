@@ -134,23 +134,6 @@ class Quaternion:
         return cls(out)
 
     @classmethod
-    def from_axis_rotation_gen(cls, angle, axis):
-        """Return quanternion for rotation about general axis
-        
-        Args:
-            angle (float): angle of rotation in radians.
-            axis (list(float)): components of rotation axis
-
-        Returns:
-            Quaternion: Quanternion for axis of rotation.
-        """
-        axis = np.asarray(axis, dtype=float)
-        out = np.zeros(4, dtype=float)
-        out[0] = math.cos(angle/2.0)
-        out[1:] = axis * math.sin(angle/2.0)
-        return cls(out)
-
-    @classmethod
     def from_euler(cls, angles, order='yzy'):
         """Generate a quaternion from a set of Euler angles.
 

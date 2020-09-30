@@ -17,9 +17,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
-from qiskit.quantum_info.operators.quaternion import (quaternion_from_euler,
-                                                      Quaternion,
-                                                      quaternion_from_axis_rotation)
+from qiskit.quantum_info.operators.quaternion import \
+    quaternion_from_euler, Quaternion, quaternion_from_axis_rotation
 
 from qiskit.test import QiskitTestCase
 
