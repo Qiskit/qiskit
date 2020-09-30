@@ -40,11 +40,11 @@ class HoareOptimizer(TransformationPass):
             raise TranspilerError('z3-solver is required to use HoareOptimizer. '
                                   'To install, run "pip install z3-solver".')
         super().__init__()
-        self.solver = Solver()
-        self.variables = dict()
-        self.gatenum = dict()
-        self.gatecache = dict()
-        self.varnum = dict()
+        self.solver = None
+        self.variables = None
+        self.gatenum = None
+        self.gatecache = None
+        self.varnum = None
         self.size = size
 
     def _gen_variable(self, qb_id):
@@ -331,10 +331,10 @@ class HoareOptimizer(TransformationPass):
             so it can be run multiple times.
         """
         self.solver = Solver()
-        self.variables.clear()
-        self.gatenum.clear()
-        self.gatecache.clear()
-        self.varnum.clear()
+        self.variables = dict()
+        self.gatenum = dict()
+        self.gatecache = dict()
+        self.varnum = dict()
 
     def run(self, dag):
         """
