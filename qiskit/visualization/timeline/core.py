@@ -53,6 +53,7 @@ from copy import deepcopy
 from functools import partial
 from itertools import chain
 from typing import Tuple, Iterator, Dict
+from enum import Enum
 
 import numpy as np
 
@@ -219,10 +220,15 @@ class DrawerCanvas:
             data_type: A drawing data type to disable.
             remove: Set `True` to disable, set `False` to enable.
         """
-        if remove:
-            self.disable_types.add(data_type)
+        if isinstance(data_type, Enum):
+            data_type_str = str(data_type.value)
         else:
-            self.disable_types.discard(data_type)
+            data_type_str = data_type
+
+        if remove:
+            self.disable_types.add(data_type_str)
+        else:
+            self.disable_types.discard(data_type_str)
 
     def update(self):
         """Update all collections.
@@ -279,6 +285,10 @@ class DrawerCanvas:
         """
         _barriers = [types.LineType.BARRIER]
         _delays = [types.BoxType.DELAY, types.LabelType.DELAY]
+
+        # type disabled
+        if data.data_type in self.disable_types:
+            return False
 
         t0, t1 = self.time_range
 
