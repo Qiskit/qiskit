@@ -156,7 +156,4 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_deepcopy(self):
         """Ensure that a deepcopy succeeds and results in an identical object."""
         copy_config = copy.deepcopy(self.config)
-        print(copy_config.to_dict())
-        print("Original:")
-        print(self.config.to_dict())
         self.assertEqual(copy_config, self.config)
