@@ -326,7 +326,7 @@ class WaveformDrawer:
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
             if draw_title:
                 figure.suptitle(pulse.name, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
-                            va='bottom')
+                                va='bottom')
 
         return figure
 
@@ -866,9 +866,6 @@ class ScheduleDrawer:
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
             if draw_title:
-                figure.suptitle(schedule.name,
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
-
+                figure.suptitle(schedule.name, fontsize=self.style.title_font_size,
+                                y=bbox.y1 + 0.02, va='bottom')
         return figure
