@@ -19,7 +19,7 @@ import numpy
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates import U3Gate
@@ -213,9 +213,14 @@ class UnitaryGate(Gate):
 
 def unitary(self, obj, qubits, label=None):
     """Apply unitary gate to q."""
+    gate = UnitaryGate(obj, label=label)
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
-    return self.append(UnitaryGate(obj, label=label), qubits, [])
+    # for single qubit unitary gate, allow an 'int' or a 'list of ints' as qubits.
+    if gate.num_qubits == 1:
+        if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
+            qubits = [qubits]
+    return self.append(gate, qubits, [])
 
 
 QuantumCircuit.unitary = unitary
