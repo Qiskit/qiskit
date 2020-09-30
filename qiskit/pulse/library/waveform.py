@@ -115,8 +115,8 @@ class Waveform(Pulse):
             interp_method: A function for interpolation.
             scale: Relative visual scaling of waveform amplitudes.
             interactive: When set true show the circuit in a new window.
-                         (This depends on the matplotlib backend being used.)
-            draw_title: Add a title to the plot when set "True".
+                (This depends on the matplotlib backend being used.)
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

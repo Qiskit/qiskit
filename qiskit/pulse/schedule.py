@@ -707,7 +707,7 @@ class Schedule(ScheduleComponent):
             framechange: Add framechange indicators.
             channels: A list of Channels to plot.
             show_framechange_channels: Plot channels with only framechanges.
-            draw_title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set to ``True``.
 
         Additional Information:
             If you want to manually rescale the waveform amplitude of channels one by one,

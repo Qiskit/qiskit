@@ -282,7 +282,7 @@ class WaveformDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            draw_title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
@@ -324,10 +324,8 @@ class WaveformDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            title_label = str('')
             if draw_title:
-                title_label = str(pulse.name)
-            figure.suptitle(title_label, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
+                figure.suptitle(pulse.name, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
                             va='bottom')
 
         return figure
@@ -789,7 +787,7 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
-            draw_title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -867,10 +865,8 @@ class ScheduleDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            title_label = str('')
             if draw_title:
-                title_label = str(schedule.name)
-            figure.suptitle(title_label,
+                figure.suptitle(schedule.name,
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')
