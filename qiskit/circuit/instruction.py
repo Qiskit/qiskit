@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -51,7 +49,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
         Args:
@@ -60,6 +58,8 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
+            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
+            unit (str): time unit of duration
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -82,6 +82,9 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
+
+        self._duration = duration
+        self._unit = unit
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -139,29 +142,14 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression)):
-                self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self._params.append(single_param)
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self._params.append(single_param)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self._params.append(single_param)
-            # example: Aer expectation_value_snapshot [complex, 'X']
-            elif isinstance(single_param, list):
-                self._params.append(single_param)
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
+            if isinstance(single_param, ParameterExpression):
                 self._params.append(single_param)
             else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+                self._params.append(self.validate_parameter(single_param))
+
+    def validate_parameter(self, parameter):
+        """Instruction parameters has no validation or normalization."""
+        return parameter
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -200,6 +188,26 @@ class Instruction:
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         sel.add_equivalence(self, decomposition)
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        """Set the duration."""
+        self._duration = duration
+
+    @property
+    def unit(self):
+        """Get the time unit of duration."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit):
+        """Set the time unit of duration."""
+        self._unit = unit
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
@@ -269,7 +277,20 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
@@ -385,6 +406,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc._data = [(self, qargs[:], cargs[:])] * n
+            qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
