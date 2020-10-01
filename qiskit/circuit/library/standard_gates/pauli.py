@@ -36,7 +36,9 @@ class PauliGate(Gate):
         the pauli gates sequentially using standard Qiskit gates
         """
 
-    def __init__(self, pauli_string=None):
+    def __init__(self, pauli_string = "I"):
+        if isinstance(pauli_string, float):
+            pauli_string = "I"
         self.pauli_string = pauli_string
         super().__init__('pauli', len(pauli_string), [pauli_string[::-1]])
 
