@@ -49,7 +49,6 @@ from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import TimeUnitAnalysis
@@ -97,62 +96,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
-    # 1. Template optimization
-    from qiskit.circuit.library import templates
-    _templates = [templates.template_nct_2a_1(),
-                  templates.template_nct_2a_2(),
-                  templates.template_nct_2a_3(),
-                  templates.template_nct_4a_1(),
-                  templates.template_nct_4a_2(),
-                  templates.template_nct_4a_3(),
-                  templates.template_nct_4b_1(),
-                  templates.template_nct_4b_2(),
-                  templates.template_nct_5a_1(),
-                  templates.template_nct_5a_2(),
-                  templates.template_nct_5a_3(),
-                  templates.template_nct_5a_4(),
-                  templates.template_nct_6a_1(),
-                  templates.template_nct_6a_2(),
-                  templates.template_nct_6a_3(),
-                  templates.template_nct_6a_4(),
-                  templates.template_nct_6b_1(),
-                  templates.template_nct_6b_2(),
-                  templates.template_nct_6c_1(),
-                  templates.template_nct_7a_1(),
-                  templates.template_nct_7b_1(),
-                  templates.template_nct_7c_1(),
-                  templates.template_nct_7d_1(),
-                  templates.template_nct_7e_1(),
-                  templates.template_nct_9a_1(),
-                  templates.template_nct_9c_1(),
-                  templates.template_nct_9c_2(),
-                  templates.template_nct_9c_3(),
-                  templates.template_nct_9c_4(),
-                  templates.template_nct_9c_5(),
-                  templates.template_nct_9c_6(),
-                  templates.template_nct_9c_7(),
-                  templates.template_nct_9c_8(),
-                  templates.template_nct_9c_9(),
-                  templates.template_nct_9c_10(),
-                  templates.template_nct_9c_11(),
-                  templates.template_nct_9c_12(),
-                  templates.template_nct_9d_1(),
-                  templates.template_nct_9d_2(),
-                  templates.template_nct_9d_3(),
-                  templates.template_nct_9d_4(),
-                  templates.template_nct_9d_5(),
-                  templates.template_nct_9d_6(),
-                  templates.template_nct_9d_7(),
-                  templates.template_nct_9d_8(),
-                  templates.template_nct_9d_9(),
-                  templates.template_nct_9d_10()
-                  ]
-    _template_opt = [TemplateOptimization(_templates)]
-
-    # 2. Unroll to 1q or 2q gates
+    # 1. Unroll to 1q or 2q gates
     _unroll3q = Unroll3qOrMore()
 
-    # 3. Layout on good qubits if calibration info available, otherwise on dense links
+    # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -170,10 +117,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 4. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 5. Swap to fit the coupling map
+    # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -191,7 +138,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 6. Unroll to the basis
+    # 5. Unroll to the basis
     if translation_method == 'unroller':
         _unroll = [Unroller(basis_gates)]
     elif translation_method == 'translator':
@@ -208,7 +155,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
-    # 7. Fix any CX direction mismatch
+    # 6. Fix any CX direction mismatch
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -235,7 +182,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         CommutativeCancellation(),
     ]
 
-    # 9. Schedule the circuit only when scheduling_method is supplied
+    # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
         _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
@@ -247,7 +194,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm3 = PassManager()
-    pm3.append(_template_opt)
     pm3.append(_unroll3q)
     pm3.append(_reset + _meas)
     if coupling_map:
