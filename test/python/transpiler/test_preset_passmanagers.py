@@ -182,15 +182,15 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3)
-        ancilla = QuantumRegister(13, 'ancilla')
+        idle = QuantumRegister(13, 'idle_q')
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[1])
         qc.cx(qr[2], qr[0])
         initial_layout = {0: qr[1], 2: qr[0], 15: qr[2]}
-        final_layout = {0: qr[1], 1: ancilla[0], 2: qr[0], 3: ancilla[1], 4: ancilla[2],
-                        5: ancilla[3], 6: ancilla[4], 7: ancilla[5], 8: ancilla[6],
-                        9: ancilla[7], 10: ancilla[8], 11: ancilla[9], 12: ancilla[10],
-                        13: ancilla[11], 14: ancilla[12], 15: qr[2]}
+        final_layout = {0: qr[1], 1: idle[0], 2: qr[0], 3: idle[1], 4: idle[2],
+                        5: idle[3], 6: idle[4], 7: idle[5], 8: idle[6],
+                        9: idle[7], 10: idle[8], 11: idle[9], 12: idle[10],
+                        13: idle[11], 14: idle[12], 15: qr[2]}
 
         backend = FakeRueschlikon()
 
@@ -215,14 +215,14 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(5, 'q')
         cr = ClassicalRegister(2)
-        ancilla = QuantumRegister(9, 'ancilla')
+        idle = QuantumRegister(9, 'idle_q')
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[4])
         initial_layout = {qr[2]: 11, qr[4]: 3,  # map to [11, 3] connection
                           qr[0]: 1, qr[1]: 5, qr[3]: 9}
-        final_layout = {0: ancilla[0], 1: qr[0], 2: ancilla[1], 3: qr[4], 4: ancilla[2], 5: qr[1],
-                        6: ancilla[3], 7: ancilla[4], 8: ancilla[5], 9: qr[3], 10: ancilla[6],
-                        11: qr[2], 12: ancilla[7], 13: ancilla[8]}
+        final_layout = {0: idle[0], 1: qr[0], 2: idle[1], 3: qr[4], 4: idle[2], 5: qr[1],
+                        6: idle[3], 7: idle[4], 8: idle[5], 9: qr[3], 10: idle[6],
+                        11: qr[2], 12: idle[7], 13: idle[8]}
         backend = FakeMelbourne()
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
@@ -244,7 +244,7 @@ class TestInitialLayouts(QiskitTestCase):
         # build a circuit which works as-is on the coupling map, using the initial layout
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(2)
-        ancilla = QuantumRegister(17, 'ancilla')
+        idle = QuantumRegister(17, 'idle_q')
 
         qc = QuantumCircuit(qr, cr)
         qc.u3(0.1, 0.2, 0.3, qr[0])
@@ -253,11 +253,11 @@ class TestInitialLayouts(QiskitTestCase):
         qc.cx(qr[0], qr[2])
         initial_layout = [6, 7, 12]
 
-        final_layout = {0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4],
-                        5: ancilla[5], 6: qr[0], 7: qr[1], 8: ancilla[6], 9: ancilla[7],
-                        10: ancilla[8], 11: ancilla[9], 12: qr[2], 13: ancilla[10], 14: ancilla[11],
-                        15: ancilla[12], 16: ancilla[13], 17: ancilla[14], 18: ancilla[15],
-                        19: ancilla[16]}
+        final_layout = {0: idle[0], 1: idle[1], 2: idle[2], 3: idle[3], 4: idle[4],
+                        5: idle[5], 6: qr[0], 7: qr[1], 8: idle[6], 9: idle[7],
+                        10: idle[8], 11: idle[9], 12: qr[2], 13: idle[10], 14: idle[11],
+                        15: idle[12], 16: idle[13], 17: idle[14], 18: idle[15],
+                        19: idle[16]}
 
         backend = FakePoughkeepsie()
 
@@ -296,63 +296,63 @@ class TestFinalLayouts(QiskitTestCase):
                           2: Qubit(QuantumRegister(3, 'qr1'), 2),
                           3: Qubit(QuantumRegister(2, 'qr2'), 0),
                           4: Qubit(QuantumRegister(2, 'qr2'), 1),
-                          5: Qubit(QuantumRegister(15, 'ancilla'), 0),
-                          6: Qubit(QuantumRegister(15, 'ancilla'), 1),
-                          7: Qubit(QuantumRegister(15, 'ancilla'), 2),
-                          8: Qubit(QuantumRegister(15, 'ancilla'), 3),
-                          9: Qubit(QuantumRegister(15, 'ancilla'), 4),
-                          10: Qubit(QuantumRegister(15, 'ancilla'), 5),
-                          11: Qubit(QuantumRegister(15, 'ancilla'), 6),
-                          12: Qubit(QuantumRegister(15, 'ancilla'), 7),
-                          13: Qubit(QuantumRegister(15, 'ancilla'), 8),
-                          14: Qubit(QuantumRegister(15, 'ancilla'), 9),
-                          15: Qubit(QuantumRegister(15, 'ancilla'), 10),
-                          16: Qubit(QuantumRegister(15, 'ancilla'), 11),
-                          17: Qubit(QuantumRegister(15, 'ancilla'), 12),
-                          18: Qubit(QuantumRegister(15, 'ancilla'), 13),
-                          19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
+                          5: Qubit(QuantumRegister(15, 'idle_q'), 0),
+                          6: Qubit(QuantumRegister(15, 'idle_q'), 1),
+                          7: Qubit(QuantumRegister(15, 'idle_q'), 2),
+                          8: Qubit(QuantumRegister(15, 'idle_q'), 3),
+                          9: Qubit(QuantumRegister(15, 'idle_q'), 4),
+                          10: Qubit(QuantumRegister(15, 'idle_q'), 5),
+                          11: Qubit(QuantumRegister(15, 'idle_q'), 6),
+                          12: Qubit(QuantumRegister(15, 'idle_q'), 7),
+                          13: Qubit(QuantumRegister(15, 'idle_q'), 8),
+                          14: Qubit(QuantumRegister(15, 'idle_q'), 9),
+                          15: Qubit(QuantumRegister(15, 'idle_q'), 10),
+                          16: Qubit(QuantumRegister(15, 'idle_q'), 11),
+                          17: Qubit(QuantumRegister(15, 'idle_q'), 12),
+                          18: Qubit(QuantumRegister(15, 'idle_q'), 13),
+                          19: Qubit(QuantumRegister(15, 'idle_q'), 14)}
 
         dense_layout = {2: Qubit(QuantumRegister(3, 'qr1'), 0),
                         6: Qubit(QuantumRegister(3, 'qr1'), 1),
                         1: Qubit(QuantumRegister(3, 'qr1'), 2),
                         5: Qubit(QuantumRegister(2, 'qr2'), 0),
                         0: Qubit(QuantumRegister(2, 'qr2'), 1),
-                        3: Qubit(QuantumRegister(15, 'ancilla'), 0),
-                        4: Qubit(QuantumRegister(15, 'ancilla'), 1),
-                        7: Qubit(QuantumRegister(15, 'ancilla'), 2),
-                        8: Qubit(QuantumRegister(15, 'ancilla'), 3),
-                        9: Qubit(QuantumRegister(15, 'ancilla'), 4),
-                        10: Qubit(QuantumRegister(15, 'ancilla'), 5),
-                        11: Qubit(QuantumRegister(15, 'ancilla'), 6),
-                        12: Qubit(QuantumRegister(15, 'ancilla'), 7),
-                        13: Qubit(QuantumRegister(15, 'ancilla'), 8),
-                        14: Qubit(QuantumRegister(15, 'ancilla'), 9),
-                        15: Qubit(QuantumRegister(15, 'ancilla'), 10),
-                        16: Qubit(QuantumRegister(15, 'ancilla'), 11),
-                        17: Qubit(QuantumRegister(15, 'ancilla'), 12),
-                        18: Qubit(QuantumRegister(15, 'ancilla'), 13),
-                        19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
+                        3: Qubit(QuantumRegister(15, 'idle_q'), 0),
+                        4: Qubit(QuantumRegister(15, 'idle_q'), 1),
+                        7: Qubit(QuantumRegister(15, 'idle_q'), 2),
+                        8: Qubit(QuantumRegister(15, 'idle_q'), 3),
+                        9: Qubit(QuantumRegister(15, 'idle_q'), 4),
+                        10: Qubit(QuantumRegister(15, 'idle_q'), 5),
+                        11: Qubit(QuantumRegister(15, 'idle_q'), 6),
+                        12: Qubit(QuantumRegister(15, 'idle_q'), 7),
+                        13: Qubit(QuantumRegister(15, 'idle_q'), 8),
+                        14: Qubit(QuantumRegister(15, 'idle_q'), 9),
+                        15: Qubit(QuantumRegister(15, 'idle_q'), 10),
+                        16: Qubit(QuantumRegister(15, 'idle_q'), 11),
+                        17: Qubit(QuantumRegister(15, 'idle_q'), 12),
+                        18: Qubit(QuantumRegister(15, 'idle_q'), 13),
+                        19: Qubit(QuantumRegister(15, 'idle_q'), 14)}
 
         csp_layout = {0: Qubit(QuantumRegister(3, 'qr1'), 1),
                       1: Qubit(QuantumRegister(3, 'qr1'), 2),
                       2: Qubit(QuantumRegister(2, 'qr2'), 0),
                       5: Qubit(QuantumRegister(3, 'qr1'), 0),
                       6: Qubit(QuantumRegister(2, 'qr2'), 1),
-                      3: Qubit(QuantumRegister(15, 'ancilla'), 0),
-                      4: Qubit(QuantumRegister(15, 'ancilla'), 1),
-                      7: Qubit(QuantumRegister(15, 'ancilla'), 2),
-                      8: Qubit(QuantumRegister(15, 'ancilla'), 3),
-                      9: Qubit(QuantumRegister(15, 'ancilla'), 4),
-                      10: Qubit(QuantumRegister(15, 'ancilla'), 5),
-                      11: Qubit(QuantumRegister(15, 'ancilla'), 6),
-                      12: Qubit(QuantumRegister(15, 'ancilla'), 7),
-                      13: Qubit(QuantumRegister(15, 'ancilla'), 8),
-                      14: Qubit(QuantumRegister(15, 'ancilla'), 9),
-                      15: Qubit(QuantumRegister(15, 'ancilla'), 10),
-                      16: Qubit(QuantumRegister(15, 'ancilla'), 11),
-                      17: Qubit(QuantumRegister(15, 'ancilla'), 12),
-                      18: Qubit(QuantumRegister(15, 'ancilla'), 13),
-                      19: Qubit(QuantumRegister(15, 'ancilla'), 14)}
+                      3: Qubit(QuantumRegister(15, 'idle_q'), 0),
+                      4: Qubit(QuantumRegister(15, 'idle_q'), 1),
+                      7: Qubit(QuantumRegister(15, 'idle_q'), 2),
+                      8: Qubit(QuantumRegister(15, 'idle_q'), 3),
+                      9: Qubit(QuantumRegister(15, 'idle_q'), 4),
+                      10: Qubit(QuantumRegister(15, 'idle_q'), 5),
+                      11: Qubit(QuantumRegister(15, 'idle_q'), 6),
+                      12: Qubit(QuantumRegister(15, 'idle_q'), 7),
+                      13: Qubit(QuantumRegister(15, 'idle_q'), 8),
+                      14: Qubit(QuantumRegister(15, 'idle_q'), 9),
+                      15: Qubit(QuantumRegister(15, 'idle_q'), 10),
+                      16: Qubit(QuantumRegister(15, 'idle_q'), 11),
+                      17: Qubit(QuantumRegister(15, 'idle_q'), 12),
+                      18: Qubit(QuantumRegister(15, 'idle_q'), 13),
+                      19: Qubit(QuantumRegister(15, 'idle_q'), 14)}
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
@@ -381,19 +381,19 @@ class TestFinalLayouts(QiskitTestCase):
                 if qubit_control != qubit_target:
                     qc.cx(qubit_control, qubit_target)
 
-        ancilla = QuantumRegister(15, 'ancilla')
+        idle = QuantumRegister(15, 'idle_q')
 
         trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
-                          5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
-                          9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
-                          13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
-                          17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+                          5: idle[0], 6: idle[1], 7: idle[2], 8: idle[3],
+                          9: idle[4], 10: idle[5], 11: idle[6], 12: idle[7],
+                          13: idle[8], 14: idle[9], 15: idle[10], 16: idle[11],
+                          17: idle[12], 18: idle[13], 19: idle[14]}
 
-        dense_layout = {2: qr[0], 6: qr[1], 1: qr[2], 5: qr[3], 0: qr[4], 3: ancilla[0],
-                        4: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4], 10: ancilla[5],
-                        11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
-                        15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-                        19: ancilla[14]}
+        dense_layout = {2: qr[0], 6: qr[1], 1: qr[2], 5: qr[3], 0: qr[4], 3: idle[0],
+                        4: idle[1], 7: idle[2], 8: idle[3], 9: idle[4], 10: idle[5],
+                        11: idle[6], 12: idle[7], 13: idle[8], 14: idle[9],
+                        15: idle[10], 16: idle[11], 17: idle[12], 18: idle[13],
+                        19: idle[14]}
 
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = dense_layout
@@ -426,12 +426,12 @@ class TestFinalLayouts(QiskitTestCase):
         qc.cx(qr[6], qr[5])
         qc.cx(qr[5], qr[0])
 
-        ancilla = QuantumRegister(10, 'ancilla')
+        idle = QuantumRegister(10, 'idle_q')
         trivial_layout = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4],
                           5: qr[5], 6: qr[6], 7: qr[7], 8: qr[8], 9: qr[9],
-                          10: ancilla[0], 11: ancilla[1], 12: ancilla[2], 13: ancilla[3],
-                          14: ancilla[4], 15: ancilla[5], 16: ancilla[6], 17: ancilla[7],
-                          18: ancilla[8], 19: ancilla[9]}
+                          10: idle[0], 11: idle[1], 12: idle[2], 13: idle[3],
+                          14: idle[4], 15: idle[5], 16: idle[6], 17: idle[7],
+                          18: idle[8], 19: idle[9]}
 
         expected_layouts = [trivial_layout, trivial_layout]
 
