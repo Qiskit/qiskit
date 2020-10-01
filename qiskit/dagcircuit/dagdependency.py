@@ -13,6 +13,7 @@
 """DAGDependency class for representing non-commutativity in a circuit.
 """
 
+import math
 import heapq
 from collections import OrderedDict, defaultdict
 import networkx as nx

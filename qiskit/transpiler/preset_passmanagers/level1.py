@@ -47,7 +47,6 @@ from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
@@ -91,14 +90,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
-    # 1. Template optimization
-    from qiskit.circuit.library import templates
-    _templates = [templates.template_nct_2a_1(),
-                  templates.template_nct_2a_2(),
-                  templates.template_nct_2a_3()]
-    _template_opt = [TemplateOptimization(_templates)]
-
-    # 2. Use trivial layout if no layout given
+    # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
     _choose_layout_and_score = [TrivialLayout(coupling_map),
@@ -108,7 +100,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    # 3. Use a better layout on densely connected qubits, if circuit needs swaps
+    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     if layout_method == 'trivial':
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -124,13 +116,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return property_set['trivial_layout_score'] is not None and \
                property_set['trivial_layout_score'] != 0
 
-    # 4. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 5. Decompose so only 1-qubit and 2-qubit gates remain
+    # 4. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = Unroll3qOrMore()
 
-    # 6. Swap to fit the coupling map
+    # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -148,7 +140,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 7. Unroll to the basis
+    # 6. Unroll to the basis
     if translation_method == 'unroller':
         _unroll = [Unroller(basis_gates)]
     elif translation_method == 'translator':
@@ -165,7 +157,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
-    # 8. Fix any bad CX directions
+    # 7. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
 
     def _direction_condition(property_set):
@@ -173,10 +165,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 9. Remove zero-state reset
+    # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 10. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
+    # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -184,7 +176,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGates(basis_gates), CXCancellation()]
 
-    # 11. Schedule the circuit only when scheduling_method is supplied
+    # 10. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
         _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
@@ -196,7 +188,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm1 = PassManager()
-    pm1.append(_template_opt)
     if coupling_map:
         pm1.append(_given_layout)
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
