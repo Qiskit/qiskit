@@ -34,6 +34,7 @@ Qiskit consists of four foundational elements:
   development_strategy
   contributing_to_qiskit
   release_notes
+  configuration
   faq
 
 .. toctree::
