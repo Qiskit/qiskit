@@ -198,7 +198,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
                    'MCU1Gate', 'UnitaryGate', 'HamiltonianGate', 'MCPhaseGate',
                    'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
-                   'VariadicZeroParamGate'}
+                   'VariadicZeroParamGate', 'ClassicalFunction'}
         cls._gate_classes = []
         for aclass in class_list:
             if aclass.__name__ not in exclude:
