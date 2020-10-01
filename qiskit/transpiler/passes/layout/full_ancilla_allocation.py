@@ -39,7 +39,7 @@ class FullAncillaAllocation(AnalysisPass):
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.ancilla_name = 'ancilla'
+        self.ancilla_name = 'idle_q'
 
     def run(self, dag):
         """Run the FullAncillaAllocation pass on `dag`.
