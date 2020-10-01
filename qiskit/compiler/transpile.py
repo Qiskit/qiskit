@@ -638,10 +638,10 @@ def _parse_instruction_durations(backend, inst_durations, dt, num_circuits):
             backend_durations = InstructionDurations.from_backend(backend)
         except AttributeError:
             backend_durations = InstructionDurations()
-        durations = backend_durations.update(inst_durations, dt)
+        durations = backend_durations.update(None, dt)
     else:
         durations = InstructionDurations(inst_durations,
-                dt or getattr(inst_durations, 'dt', None))
+                                         dt or getattr(inst_durations, 'dt', None))
 
     if not isinstance(durations, list):
         durations = [durations] * num_circuits
