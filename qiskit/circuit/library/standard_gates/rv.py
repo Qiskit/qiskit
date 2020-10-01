@@ -80,15 +80,11 @@ class RVGate(Gate):
 
 
     def to_matrix(self):
-        """Return a numpy.array for the R gate."""
+        """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
-        theta = numpy.sqrt(v.dot(v))
-        sinc = numpy.sinc(theta)
-        cos = numpy.cos(theta)
-        # return numpy.array([[cos - v[2] * sinc, (-1j * v[0] + v[1]) * sinc],
-        #                     [-(1j * v[0] - v[1]) * sinc, cos + 1j * v[2] * sinc]],
-        #                    dtype=complex)
-        return numpy.array([[   cos + 1j * v[2] * sinc,   (1j * v[0] + v[1]) * sinc],
-                            [1j * (v[0] + v[1]) * sinc,      cos - 1j * v[2] * sinc]],
-                           dtype=complex)
-
+        θ = numpy.sqrt(v.dot(v))
+        nx, ny, nz = v / θ
+        sin = numpy.sin(θ/2)
+        cos = numpy.cos(θ/2)
+        return numpy.array([[-1j * nz * sin + cos, (-ny - 1j*nx) * sin],
+                            [(ny - 1j*nx) * sin, 1j * nz * sin + cos]])

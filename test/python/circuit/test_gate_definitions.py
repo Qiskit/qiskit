@@ -126,9 +126,6 @@ class TestGateDefinitions(QiskitTestCase):
         rvgate = RVGate(*vec)
         circ.rv(*vec, 0)
         decomposed_circ = circ.decompose()
-        print('\n', circ)
-        print(decomposed_circ)
-        import ipdb; ipdb.set_trace()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
     def test_rv_r_equiv(self):
