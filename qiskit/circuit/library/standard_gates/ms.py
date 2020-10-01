@@ -12,6 +12,7 @@
 
 """Global Mølmer–Sørensen gate."""
 
+import warnings
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
