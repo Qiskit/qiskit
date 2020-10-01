@@ -151,6 +151,19 @@ class TestScheduledCircuit(QiskitTestCase):
                               instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)])
         self.assertEqual(scheduled.duration, 1200)
 
+    def test_transpile_circuit_with_custom_instruction(self):
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5154"""
+        bell = QuantumCircuit(2, name="bell")
+        bell.h(0)
+        bell.cx(0, 1)
+        qc = QuantumCircuit(2)
+        qc.delay(500, 1)
+        qc.append(bell.to_instruction(), [0, 1])
+        scheduled = transpile(qc,
+                              scheduling_method='alap',
+                              instruction_durations=[('bell', [0, 1], 1000)])
+        self.assertEqual(scheduled.duration, 1500)
+
     def test_transpile_delay_circuit_without_scheduling_method_as_normal_circuit(self):
         qc = QuantumCircuit(2)
         qc.h(0)
