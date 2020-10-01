@@ -14,6 +14,7 @@
 
 import math
 import numpy
+from scipy.spatial.transform import Rotation
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -48,6 +49,7 @@ class RVGate(Gate):
         """Create new rv single-qubit gate."""
         super().__init__('rv', 1, [v_x, v_y, v_z])
         self.seq = seq.lower()
+        self._rot = Rotation.from_rotvec(self.params)
 
     def _define(self):
         """
@@ -55,20 +57,27 @@ class RVGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from scipy.spatial.transform import Rotation
         qr = QuantumRegister(1, 'q')
         qc = QuantumCircuit(qr, name=self.name)
-        rot = Rotation.from_rotvec(numpy.asarray(self.params))
-        euler = rot.as_euler(self.seq)
-        getattr(qc, 'r' + self.seq[0])(euler[0], qr[0])
-        getattr(qc, 'r' + self.seq[1])(euler[1], qr[0])
-        getattr(qc, 'r' + self.seq[2])(euler[2], qr[0])
+        self._rot = Rotation.from_rotvec(self.params)
+        euler = self._rot.as_euler(self.seq)
+        for iaxis in range(3):
+            if euler[iaxis]:
+                getattr(qc, 'r' + self.seq[iaxis])(euler[iaxis], qr[0])
         self.definition = qc
 
     def inverse(self):
-        """Invert this gate.
-        """
-        return RVGate(-self.params[0], -self.params[1], -self.params[2])
+        """Invert this gate."""
+        return RVGate(*self._rot.inv().as_rotvec())
+
+    # @property
+    # def params(self):
+    #     """return instruction params."""
+    #     #TODO: need to override if maintaining self._rot
+
+    # @params.setter
+    # def params(self, parameters):
+
 
     def to_matrix(self):
         """Return a numpy.array for the R gate."""

@@ -126,6 +126,9 @@ class TestGateDefinitions(QiskitTestCase):
         rvgate = RVGate(*vec)
         circ.rv(*vec, 0)
         decomposed_circ = circ.decompose()
+        print('\n', circ)
+        print(decomposed_circ)
+        import ipdb; ipdb.set_trace()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
     def test_rv_r_equiv(self):
@@ -136,15 +139,17 @@ class TestGateDefinitions(QiskitTestCase):
         from scipy.spatial.transform import Rotation
         theta = np.pi / 5
         phi = np.pi / 3
-        # rgate axis
-        axis = np.array([math.cos(phi), math.sin(phi), 0])
-        rot = Rotation.from_rotvec(theta * axis)
         rgate = RGate(theta, phi)
+        axis = np.array([math.cos(phi), math.sin(phi), 0])  # RGate axis
+        rotvec = theta * axis
+        rv = RVGate(*rotvec)
         self.assertTrue(numpy.array_equal(
-            self._su2so3(rgate.to_matrix()), rot.as_matrix()))
+            self._su2so3(rgate.to_matrix()), rv._rot.as_matrix()))
 
     def _su2so3(self, su2):
         """Convert su2 matrix to so3.
+
+        see 'Topology, Geometry and Gauge fields', Gregory Naber
         """
         a, b = su2[0, 0].real, su2[0, 0].imag
         c, d = su2[0, 1].real, su2[0, 1].imag
