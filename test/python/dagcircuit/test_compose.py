@@ -24,6 +24,7 @@ class TestDagCompose(QiskitTestCase):
     """Test composition of two dags"""
 
     def setUp(self):
+        super().setUp()
         qreg1 = QuantumRegister(3, 'lqr_1')
         qreg2 = QuantumRegister(2, 'lqr_2')
         creg = ClassicalRegister(2, 'lcr')

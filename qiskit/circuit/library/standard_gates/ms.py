@@ -12,8 +12,6 @@
 
 """Global Mølmer–Sørensen gate."""
 
-import warnings
-from qiskit.util import deprecate_arguments
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -29,9 +27,7 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def __init__(self, num_qubits, theta, *, n_qubits=None,  # pylint:disable=unused-argument
-                 label=None):
+    def __init__(self, num_qubits, theta, label=None):
         """Create new MS gate."""
         warnings.warn('The qiskit.circuit.library.standard_gates.MSGate class is '
                       'deprecated as of 0.16.0, and will be removed no earlier '

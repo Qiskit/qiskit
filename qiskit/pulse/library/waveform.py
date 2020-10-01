@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Callable, Union, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
-from ..exceptions import PulseError
-from .pulse import Pulse
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Waveform(Pulse):
@@ -92,6 +93,12 @@ class Waveform(Pulse):
             raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
 
         return samples
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Waveform':
+        # Waveforms don't accept parameters
+        return self
 
     def draw(self, dt: float = 1,
              style=None,

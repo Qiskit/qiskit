@@ -26,6 +26,7 @@ class TestSabreLayout(QiskitTestCase):
     """Tests the SabreLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap20 = FakeAlmaden().configuration().coupling_map
 
     def test_5q_circuit_20q_coupling(self):
