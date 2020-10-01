@@ -22,7 +22,7 @@ from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
 
 from qiskit.circuit.gate import Gate
-
+from qiskit.circuit.exceptions import CircuitError
 
 class PauliGate(Gate):
     r"""A multi-qubit Pauli gate.
@@ -55,7 +55,7 @@ class PauliGate(Gate):
 
     def inverse(self):
         r"""Return inverted pauli gate (itself)."""
-        return PauliGate()  # self-inverse
+        return PauliGate(self.pauli_string)  # self-inverse
 
     def to_matrix(self):
         """Return a Numpy.array for the pauli gate.
@@ -68,5 +68,16 @@ class PauliGate(Gate):
         }
         mat = np.eye(1, dtype=complex)
         for pauli in self.pauli_string:
-            mat = np.kron(mat, pauli_matrices[pauli])
+            mat = np.kron(pauli_matrices[pauli], mat)
         return mat
+
+    def validate_parameter(self, parameter):
+        if isinstance(parameter, str):
+            if all([c in ["I", "X", "Y", "Z"] for c in parameter]):
+                return parameter
+            else:
+                raise CircuitError("Parameter string {0} should contain only "
+                                   "'I', 'X', 'Y', 'Z' characters")
+        else:
+            raise CircuitError("Parameter {0} should be a string of "
+                               "'I', 'X', 'Y', 'Z' characters")

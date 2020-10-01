@@ -176,6 +176,9 @@ class TestStandardGates(QiskitTestCase):
             num_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_qubits, *float_vector)
+        elif class_name == 'PauliGate':
+            pauli_string = "IXYZ"
+            gate = gate_class(pauli_string)
         else:
             gate = gate_class(*float_vector)
 
