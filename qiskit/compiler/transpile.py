@@ -640,7 +640,8 @@ def _parse_instruction_durations(backend, inst_durations, dt, num_circuits):
             backend_durations = InstructionDurations()
         durations = backend_durations.update(inst_durations, dt)
     else:
-        durations = InstructionDurations(inst_durations, dt or inst_durations.dt)
+        durations = InstructionDurations(inst_durations,
+                dt or getattr(inst_durations, 'dt', None))
 
     if not isinstance(durations, list):
         durations = [durations] * num_circuits
