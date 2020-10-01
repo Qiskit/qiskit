@@ -50,6 +50,7 @@ class ASAPSchedule(TransformationPass):
 
         if not time_unit:
             time_unit = self.property_set['time_unit']
+
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)

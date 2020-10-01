@@ -152,6 +152,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(scheduled.duration, 1200)
 
     def test_transpile_circuit_with_custom_instruction(self):
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5154"""
         bell = QuantumCircuit(2, name="bell")
         bell.h(0)
         bell.cx(0, 1)
