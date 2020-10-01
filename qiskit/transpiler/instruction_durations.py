@@ -38,6 +38,21 @@ class InstructionDurations:
         if instruction_durations:
             self.update(instruction_durations)
 
+    def __str__(self):
+        """Return a string representation of all stored durations."""
+        string = ""
+        for k, v in self.duration_by_name.items():
+            string += k
+            string += ': '
+            string += str(v[0]) + ' ' + v[1]
+            string += '\n'
+        for k, v in self.duration_by_name_qubits.items():
+            string += k[0] + str(k[1])
+            string += ': '
+            string += str(v[0]) + ' ' + v[1]
+            string += '\n'
+        return string
+
     @classmethod
     def from_backend(cls, backend: BaseBackend):
         """Construct an :class:`InstructionDurations` object from the backend.
