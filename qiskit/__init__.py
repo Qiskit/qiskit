@@ -77,7 +77,7 @@ except ImportError:
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
 from qiskit.execute import execute  # noqa
-from qiskit.compiler import transpile, assemble, schedule  # noqa
+from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
 
 from .version import __version__  # noqa
 from .version import _get_qiskit_versions  # noqa

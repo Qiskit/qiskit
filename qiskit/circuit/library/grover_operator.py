@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -216,8 +214,7 @@ class GroverOperator(QuantumCircuit):
             return self._zero_reflection
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        qubits = self.reflection_qubits
-        return _zero_reflection(num_state_qubits, qubits, self._mcx_mode)
+        return _zero_reflection(num_state_qubits, self.reflection_qubits, self._mcx_mode)
 
     @property
     def state_preparation(self) -> QuantumCircuit:
@@ -267,7 +264,7 @@ def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx_mode: Optiona
     qr_state = QuantumRegister(num_state_qubits, 'state')
     reflection = QuantumCircuit(qr_state, name='S_0')
 
-    num_ancillas = MCXGate.get_num_ancilla_qubits(num_state_qubits - 1, mcx_mode)
+    num_ancillas = MCXGate.get_num_ancilla_qubits(len(qubits) - 1, mcx_mode)
     if num_ancillas > 0:
         qr_ancilla = AncillaRegister(num_ancillas, 'ancilla')
         reflection.add_register(qr_ancilla)

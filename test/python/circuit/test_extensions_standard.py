@@ -29,6 +29,7 @@ class TestStandard1Q(QiskitTestCase):
     """Standard Extension Test. Gates with a single Qubit"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
@@ -953,6 +954,7 @@ class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
@@ -1300,6 +1302,7 @@ class TestStandard3Q(QiskitTestCase):
     """Standard Extension Test. Gates with three Qubits"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.qr3 = QuantumRegister(3, "s")
@@ -1341,20 +1344,12 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
-        from qiskit.circuit.library.standard_gates.ms import MSGate
-
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
             sig = signature(gate_class)
-            if gate_class == MSGate:
-                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
-                # 3 arguments but really its only 2. This if can be removed once the deprecated
-                # n_qubits argument is no longer supported.
-                free_params = 2
-            else:
-                free_params = len(set(sig.parameters) - {'label'})
+            free_params = len(set(sig.parameters) - {'label'})
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1386,7 +1381,7 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
 
-        params = [0.1 * i for i in range(10)]
+        params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         for gate_class in gate_class_list:
             sig = signature(gate_class)
