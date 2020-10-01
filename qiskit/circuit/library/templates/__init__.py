@@ -13,12 +13,11 @@
 # that they have been altered from the originals.
 
 """
-Template circuits for X, CX and Toffoli gates.
+A library of template circuits.
 
-**Reference:**
-Maslov, D. and Dueck, G. W. and Miller, D. M.,
-Techniques for the synthesis of reversible Toffoli networks, 2007
-http://dx.doi.org/10.1145/1278349.1278355
+Templates are circuits that compute the identity. They find use
+in circuit optimization where matching part of the template allows the compiler
+to replace the match with the inverse of the remainder from the template.
 """
 from .nct.template_nct_2a_1 import template_nct_2a_1
 from .nct.template_nct_2a_2 import template_nct_2a_2

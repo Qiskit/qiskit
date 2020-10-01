@@ -25,7 +25,6 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
-from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
@@ -120,8 +119,6 @@ class TemplateOptimization(TransformationPass):
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized
-
-                circuit_intermediate = dagdependency_to_circuit(circuit_dag_dep)
             else:
                 continue
         circuit_dag = dagdependency_to_dag(circuit_dag_dep)
