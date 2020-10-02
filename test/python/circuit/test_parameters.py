@@ -12,6 +12,7 @@
 
 """Test circuits with variable parameters."""
 
+import copy
 import pickle
 from operator import add, mul, sub, truediv
 from test import combine
@@ -327,6 +328,24 @@ class TestParameters(QiskitTestCase):
         sched = circ.calibrations['rxt'][((0,), (3.14,))]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
 
+    def test_calibration_assignment_doesnt_mutate(self):
+        """That that assignment doesn't mutate the original circuit."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=16, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta])
+        circ_copy = copy.deepcopy(circ)
+        assigned_circ = circ.assign_parameters({theta: 3.14})
+
+        self.assertEqual(circ.calibrations, circ_copy.calibrations)
+        self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
+
     def test_calibration_assignment_w_expressions(self):
         """That calibrations with multiple parameters and more expressions."""
         theta = Parameter('theta')
@@ -392,14 +411,17 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
 
         circ = circ.assign_parameters({beta: delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
         self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
         self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
 
         circ = circ.assign_parameters({gamma: shift - delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
         self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
 
         self.assertEqual(cal_sched.instructions[2][1].phase, phi)
         circ = circ.assign_parameters({phi: phase})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
         self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
 
     def test_circuit_generation(self):
