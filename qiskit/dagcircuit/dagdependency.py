@@ -550,7 +550,6 @@ def _does_commute(node1, node2):
 
     def _unknown_commutator(n):
         return (n.name in non_unitaries + directives or
-                n.op.definition is None or
                 n.op.is_parameterized())
 
     if _unknown_commutator(node1) or _unknown_commutator(node2):
