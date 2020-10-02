@@ -22,6 +22,7 @@ from qiskit.aqua.operators import WeightedPauliOperator
 
 class TestNumPyEigensolver(QiskitAquaTestCase):
     """ Test NumPy Eigen solver """
+
     def setUp(self):
         super().setUp()
         pauli_dict = {
@@ -56,6 +57,20 @@ class TestNumPyEigensolver(QiskitAquaTestCase):
         algo = NumPyEigensolver()
         with self.assertRaises(AquaError):
             _ = algo.run()
+
+    def test_ce_k4_filtered(self):
+        """ Test for k=4 eigenvalues with filter """
+
+        # define filter criterion
+        # pylint: disable=unused-argument
+        def criterion(x, v, a_v):
+            return v >= -1
+
+        algo = NumPyEigensolver(self.qubit_op, k=4, aux_operators=[], filter_criterion=criterion)
+        result = algo.run()
+        self.assertEqual(len(result.eigenvalues), 2)
+        self.assertEqual(len(result.eigenstates), 2)
+        np.testing.assert_array_almost_equal(result.eigenvalues.real, [-0.88272215, -0.22491125])
 
 
 if __name__ == '__main__':

@@ -12,9 +12,10 @@
 
 """The Numpy Minimum Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Callable
 import logging
 import pprint
+import numpy as np
 
 from qiskit.aqua.algorithms import ClassicalAlgorithm, NumPyEigensolver
 from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
@@ -33,14 +34,23 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
     def __init__(self,
                  operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
                  aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                             LegacyBaseOperator]]]] = None
+                                                             LegacyBaseOperator]]]] = None,
+                 filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
+                                            bool] = None
                  ) -> None:
         """
         Args:
             operator: Operator instance
             aux_operators: Auxiliary operators to be evaluated at minimum eigenvalue
+            filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
+                eigensolver is only searching over feasible states and returns an eigenstate that
+                has the smallest eigenvalue among feasible states. The callable has the signature
+                `filter(eigenstate, eigenvalue, aux_values)` and must return a boolean to indicate
+                whether to consider this value or not. If there is no
+                feasible element, the result can even be empty.
         """
-        self._ces = NumPyEigensolver(operator, 1, aux_operators)
+        self._ces = NumPyEigensolver(operator=operator, k=1, aux_operators=aux_operators,
+                                     filter_criterion=filter_criterion)
         # TODO remove
         self._ret = {}  # type: Dict[str, Any]
 

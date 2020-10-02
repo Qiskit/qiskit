@@ -12,7 +12,7 @@
 
 """The Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Dict, Any, Tuple
+from typing import List, Optional, Union, Dict, Any, Tuple, Callable
 import logging
 import pprint
 import warnings
@@ -48,7 +48,9 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
                  operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
                  k: int = 1,
                  aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                             LegacyBaseOperator]]]] = None
+                                                             LegacyBaseOperator]]]] = None,
+                 filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
+                                            bool] = None
                  ) -> None:
         """
         Args:
@@ -58,6 +60,12 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
                 application stack use this algorithm with an operator it creates.
             k: How many eigenvalues are to be computed, has a min. value of 1.
             aux_operators: Auxiliary operators to be evaluated at each eigenvalue
+            filter_criterion: callable that allows to filter eigenvalues/eigenstates, only feasible
+                eigenstates are returned in the results. The callable has the signature
+                `filter(eigenstate, eigenvalue, aux_values)` and must return a boolean to indicate
+                whether to keep this value in the final returned result or not. If the number of
+                elements that satisfies the criterion is smaller than `k` then the returned list has
+                fewer elements and can even be empty.
         """
         validate_min('k', k, 1)
         super().__init__()
@@ -69,6 +77,8 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
 
         self.operator = operator
         self.aux_operators = aux_operators
+
+        self._filter_criterion = filter_criterion
 
         self._ret = {}  # type: Dict[str, Any]
 
@@ -134,6 +144,7 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
                 self._k = self._in_k
 
     def _solve(self) -> None:
+
         sp_mat = self._operator.to_spmatrix()
         # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
         if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
@@ -160,12 +171,17 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
     def _get_ground_state_energy(self) -> None:
         if 'eigvals' not in self._ret or 'eigvecs' not in self._ret:
             self._solve()
-        self._ret['energy'] = self._ret['eigvals'][0].real
-        self._ret['wavefunction'] = self._ret['eigvecs']
+        if len(self._ret['eigvals']) > 0:
+            self._ret['energy'] = self._ret['eigvals'][0].real
+            self._ret['wavefunction'] = self._ret['eigvecs']
+        else:
+            self._ret['energy'] = None
+            self._ret['wavefunction'] = None
 
     def _get_energies(self) -> None:
         if 'eigvals' not in self._ret or 'eigvecs' not in self._ret:
             self._solve()
+
         energies = np.empty(self._k)
         for i in range(self._k):
             energies[i] = self._ret['eigvals'][i].real
@@ -216,10 +232,51 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
         if self._operator is None:
             raise AquaError("Operator was never provided")
 
+        k_orig = self._k
+        if self._filter_criterion:
+            # need to consider all elements if a filter is set
+            self._k = 2**(self._operator.num_qubits)
+
         self._ret = {}
         self._solve()
-        self._get_ground_state_energy()
+
+        # compute energies before filtering, as this also evaluates the aux operators
         self._get_energies()
+
+        # if a filter is set, loop over the given values and only keep
+        if self._filter_criterion:
+
+            eigvecs = []
+            eigvals = []
+            energies = []
+            aux_ops = []
+            cnt = 0
+            for i in range(len(self._ret['eigvals'])):
+                eigvec = self._ret['eigvecs'][i]
+                eigval = self._ret['eigvals'][i]
+                energy = self._ret['energies'][i]
+                if 'aux_ops' in self._ret:
+                    aux_op = self._ret['aux_ops'][i]
+                else:
+                    aux_op = None
+                if self._filter_criterion(eigvec, eigval, aux_op):
+                    cnt += 1
+                    eigvecs += [eigvec]
+                    eigvals += [eigval]
+                    energies += [energy]
+                    if 'aux_ops' in self._ret:
+                        aux_ops += [aux_op]
+                if cnt == k_orig:
+                    break
+
+            self._ret['eigvecs'] = np.array(eigvecs)
+            self._ret['eigvals'] = np.array(eigvals)
+            self._ret['energies'] = np.array(energies)
+
+            self._k = k_orig
+
+        # evaluate ground state after filtering (in case a filter is set)
+        self._get_ground_state_energy()
 
         logger.debug('NumPyEigensolver _run result:\n%s',
                      pprint.pformat(self._ret, indent=4))
