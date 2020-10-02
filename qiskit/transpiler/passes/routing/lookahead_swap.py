@@ -303,14 +303,12 @@ def _copy_circuit_metadata(source_dag, coupling_map):
     Generate only a single qreg in the output DAG, matching the size of the
     coupling_map.
     """
-    target_dag = DAGCircuit()
-    target_dag.name = source_dag.name
+    target_dag = source_dag._copy_circuit_metadata()
 
-    for creg in source_dag.cregs.values():
-        target_dag.add_creg(creg)
-
-    device_qreg = QuantumRegister(len(coupling_map.physical_qubits), 'q')
-    target_dag.add_qreg(device_qreg)
+    len_not_allocated_qubits = len(coupling_map.physical_qubits) - len(target_dag.qubits)
+    if len_not_allocated_qubits:
+        device_qreg = QuantumRegister(len_not_allocated_qubits, 'q')
+        target_dag.add_qreg(device_qreg)
 
     return target_dag
 
