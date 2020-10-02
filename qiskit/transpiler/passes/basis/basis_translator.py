@@ -88,20 +88,8 @@ class BasisTranslator(TransformationPass):
 
         source_basis = set()
         for node in dag.op_nodes():
-            name = node.op.name
-            qubits = tuple(qubit.index for qubit in node.qargs)
-            params = []
-            for p in node.op.params:
-                if isinstance(p, ParameterExpression) and not p.parameters:
-                    params.append(float(p))
-                else:
-                    params.append(p)
-            params = tuple(params)
-            if (dag.calibrations and name in dag.calibrations
-                    and (qubits, params) in dag.calibrations[name]):
-                pass
-            else:
-                source_basis.add((name, node.op.num_qubits))
+            if not _has_calibration_for(dag, node):
+                source_basis.add((node.name, node.op.num_qubits))
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -137,17 +125,8 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
-            if dag.calibrations and node.name in dag.calibrations:
-                qubits = tuple(qubit.index for qubit in node.qargs)
-                params = []
-                for p in node.op.params:
-                    if isinstance(p, ParameterExpression) and not p.parameters:
-                        params.append(float(p))
-                    else:
-                        params.append(p)
-                params = tuple(params)
-                if (qubits, params) in dag.calibrations[node.name]:
-                    continue
+            if _has_calibration_for(dag, node):
+                continue
 
             if (node.op.name, node.op.num_qubits) in instr_map:
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
@@ -188,6 +167,22 @@ class BasisTranslator(TransformationPass):
                     replace_end_time - replace_start_time)
 
         return dag
+
+
+def _has_calibration_for(dag, node):
+    """Return True if the dag has a calibration defined for the node operation. In this
+    case, the operation does not need to be translated to the device basis."""
+    if not dag.calibrations or not node.name in dag.calibrations:
+        return False
+    qubits = tuple(qubit.index for qubit in node.qargs)
+    params = []
+    for p in node.op.params:
+        if isinstance(p, ParameterExpression) and not p.parameters:
+            params.append(float(p))
+        else:
+            params.append(p)
+    params = tuple(params)
+    return (qubits, params) in dag.calibrations[node.name]
 
 
 def _basis_heuristic(basis, target):
