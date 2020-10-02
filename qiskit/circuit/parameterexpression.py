@@ -12,6 +12,7 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
+from collections.abc import Iterable as IterableAbc
 from typing import Callable, Dict, Set, Union
 
 import numbers
@@ -231,6 +232,39 @@ class ParameterExpression:
             expr = operation(self_expr, other_expr)
 
         return ParameterExpression(parameter_symbols, expr)
+
+    def _grad(self, param: 'ParameterExpression') -> ParameterValueType:
+        """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
+
+        Args:
+            param: Parameter w.r.t. which we want to take the derivative
+
+        Returns:
+            ParameterExpression representing the gradient of param_expr w.r.t. param
+        """
+        if param not in self._parameter_symbols:
+            return 0.0
+
+        import sympy as sy
+        expr = self._symbol_expr
+        keys = self._parameter_symbols[param]
+        expr_grad = sy.N(0)
+        if not isinstance(keys, IterableAbc):
+            keys = [keys]
+        for key in keys:
+            expr_grad += sy.Derivative(expr, key).doit()
+
+        # generate the new dictionary of symbols
+        # this needs to be done since in the derivative some symbols might disappear (e.g.
+        # when deriving linear expression)
+        parameter_symbols = {}
+        for parameter, symbol in self._parameter_symbols.items():
+            if symbol in expr_grad.free_symbols:
+                parameter_symbols[parameter] = symbol
+
+        if len(parameter_symbols) > 0:
+            return ParameterExpression(parameter_symbols, expr=expr_grad)
+        return float(expr_grad)  # if no free symbols left, convert to float
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)

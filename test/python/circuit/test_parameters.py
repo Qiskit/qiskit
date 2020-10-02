@@ -1254,6 +1254,30 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
+    def test_parameter_expression_grad(self):
+        """Verify correctness of ParameterExpression gradients."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+
+        # Basic operations
+        expr = (x + y) * z
+
+        expr_grad = expr._grad(x)
+
+        self.assertEqual(expr_grad, y * z)
+
+        expr_grad = expr._grad(z)
+
+        self.assertEqual(expr_grad, (x + y))
+
+        expr = x ** 2
+
+        expr_grad = expr._grad(x)
+
+        self.assertEqual(expr_grad, 2 * x)
+        self.assertEqual(expr_grad._grad(x), 2)
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
