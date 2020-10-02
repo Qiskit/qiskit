@@ -174,7 +174,7 @@ class MatplotlibDrawer:
         self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
-        if style and 'cregbundle' in style.keys():
+        if isinstance(style, dict) and 'cregbundle' in style.keys():
             self.cregbundle = style['cregbundle']
             del style['cregbundle']
             warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
