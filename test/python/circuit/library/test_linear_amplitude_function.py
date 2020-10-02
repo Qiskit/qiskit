@@ -183,11 +183,11 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
 
         values = [0, 0.2, 0.5, 0.9, 1]
 
-        def f(x):
-            c = rescaling_factor
-            return image[0] + (image[1] - image[0]) * (2 / np.pi / c * (x - 0.5) + 0.5)
+        def reference_post_processing(x):
+            x = 2 / np.pi / rescaling_factor * (x - 0.5) + 0.5
+            return image[0] + (image[1] - image[0]) * x
 
-        expected = [f(value) for value in values]
+        expected = [reference_post_processing(value) for value in values]
         actual = [circuit.post_processing(value) for value in values]
 
         self.assertListEqual(expected, actual)
