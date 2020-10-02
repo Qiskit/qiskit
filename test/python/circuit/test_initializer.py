@@ -104,6 +104,19 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
 
+    def test_initialize_with_no_qubits_argument(self):
+        """Initializing all qubits with the desired state if qubits argument is not provided"""
+        desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
+        qc = QuantumCircuit(2)
+        qc.initialize(desired_vector)
+        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
+
     def test_initialize_one_by_one(self):
         """Initializing qubits individually into product state same as initializing the pair."""
         qubit_0_state = [1, 0]
