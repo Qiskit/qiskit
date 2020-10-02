@@ -57,17 +57,8 @@ class UnrollCustomDefinitions(TransformationPass):
 
         for node in dag.op_nodes():
 
-            if dag.calibrations and node.name in dag.calibrations:
-                qubits = tuple(qubit.index for qubit in node.qargs)
-                params = []
-                for p in node.op.params:
-                    if isinstance(p, ParameterExpression) and not p.parameters:
-                        params.append(float(p))
-                    else:
-                        params.append(p)
-                params = tuple(params)
-                if (qubits, params) in dag.calibrations[node.name]:
-                    continue
+            if dag.has_calibration_for(node):
+                continue
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):
                 if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
