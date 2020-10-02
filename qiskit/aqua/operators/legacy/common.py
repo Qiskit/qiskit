@@ -45,11 +45,11 @@ def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
         if pauli.x[qubit_idx]:
             if pauli.z[qubit_idx]:
                 # Measure Y
-                circuit.p(-np.pi / 2, qr[qubit_idx])  # sdg
-                circuit.u(pi/2, 0.0, pi, qr[qubit_idx])  # h
+                circuit.sdg(qr[qubit_idx])  # sdg
+                circuit.h(qr[qubit_idx])  # h
             else:
                 # Measure X
-                circuit.u(pi/2, 0.0, pi, qr[qubit_idx])  # h
+                circuit.h(qr[qubit_idx])  # h
         if barrier:
             circuit.barrier(qr[qubit_idx])
         circuit.measure(qr[qubit_idx], cr[qubit_idx])
@@ -288,7 +288,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                 # pauli X
                 if not pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u(pi/2, 0.0, pi, state_registers[qubit_idx])
+                        qc_slice.h(state_registers[qubit_idx])
                     else:
                         qc_slice.h(state_registers[qubit_idx])
                 # pauli Y
@@ -357,7 +357,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                 # pauli X
                 if not pauli[1].z[qubit_idx]:
                     if use_basis_gates:
-                        qc_slice.u(pi/2, 0.0, pi, state_registers[qubit_idx])
+                        qc_slice.h(state_registers[qubit_idx])
                     else:
                         qc_slice.h(state_registers[qubit_idx])
                 # pauli Y
