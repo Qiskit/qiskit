@@ -116,5 +116,6 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         self.assertEqual(reference, circuit)
 
+
 if __name__ == '__main__':
     unittest.main()
