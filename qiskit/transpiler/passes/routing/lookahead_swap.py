@@ -125,7 +125,7 @@ class LookaheadSwap(TransformationPass):
             mapped_gates.extend(gates_mapped)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = _copy_circuit_metadata(dag, self.coupling_map)
+        mapped_dag = dag._copy_circuit_metadata()
 
         for node in mapped_gates:
             mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
@@ -294,22 +294,6 @@ def _score_step(step):
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
                 if len(g.qargs) == 2]) - 3 * len(step['swaps_added'])
-
-
-def _copy_circuit_metadata(source_dag, coupling_map):
-    """Return a copy of source_dag with metadata but empty.
-
-    Generate only a single qreg in the output DAG, matching the size of the
-    coupling_map.
-    """
-    target_dag = source_dag._copy_circuit_metadata()
-
-    len_not_allocated_qubits = len(coupling_map.physical_qubits) - len(target_dag.qubits)
-    if len_not_allocated_qubits:
-        device_qreg = QuantumRegister(len_not_allocated_qubits, 'q')
-        target_dag.add_qreg(device_qreg)
-
-    return target_dag
 
 
 def _transform_gate_for_layout(gate, layout):
