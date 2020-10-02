@@ -172,7 +172,7 @@ class BasisTranslator(TransformationPass):
 def _has_calibration_for(dag, node):
     """Return True if the dag has a calibration defined for the node operation. In this
     case, the operation does not need to be translated to the device basis."""
-    if not dag.calibrations or not node.name in dag.calibrations:
+    if not dag.calibrations or node.name not in dag.calibrations:
         return False
     qubits = tuple(qubit.index for qubit in node.qargs)
     params = []
