@@ -40,8 +40,8 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate
+from qiskit.visualization.qcstyle import DefaultStyle, IQXStyle, BWStyle
 from qiskit.circuit import Delay
-from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -140,17 +140,35 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
-        config = user_config.get_config()
-        if config and (style is None):
-            config_style = config.get('circuit_mpl_style', 'default')
-            if config_style == 'default':
-                self._style = DefaultStyle()
-            elif config_style == 'bw':
+        if isinstance(style, dict) and 'name' in style.keys():
+            if style['name'] == 'iqx':
+                self._style = IQXStyle()
+            elif style['name'] == 'bw':
                 self._style = BWStyle()
-        elif style is False:
-            self._style = BWStyle()
+            else:
+                self._style = DefaultStyle()
         else:
-            self._style = DefaultStyle()
+            config = user_config.get_config()
+            if config:
+                config_style = config.get('circuit_mpl_style', 'default')
+                if config_style == 'iqx':
+                    self._style = IQXStyle()
+                elif config_style == 'bw':
+                    self._style = BWStyle()
+                else:
+                    self._style = DefaultStyle()
+            elif style is False:
+                self._style = BWStyle()
+            else:
+                self._style = DefaultStyle()
+
+        if style:
+            if isinstance(style, dict):
+                self._style.set_style(style)
+            elif isinstance(style, str):
+                with open(style) as infile:
+                    dic = json.load(infile)
+                self._style.set_style(dic)
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
@@ -164,14 +182,6 @@ class MatplotlibDrawer:
                  " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
         else:
             self.cregbundle = cregbundle
-
-        if style:
-            if isinstance(style, dict):
-                self._style.set_style(style)
-            elif isinstance(style, str):
-                with open(style) as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
 
         if ax is None:
             self.return_fig = True
@@ -337,21 +347,40 @@ class MatplotlibDrawer:
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
         if op.name in self._style.dispcol:
-            fc = self._style.dispcol[op.name]
+            color = self._style.dispcol[op.name]
+            # Backward compatibility for style dict using 'displaycolor' with
+            # gate color and no text color, so test for str first
+            if isinstance(color, str):
+                fc = color
+                gt = self._style.gt
+            else:
+                fc = color[0]
+                gt = color[1]
+        # Treat special case of classical gates in iqx style by making all
+        # controlled gates of x, dcx, and swap the classical gate color
+        elif self._style.name == 'iqx' and base_name in ['x', 'dcx', 'swap']:
+            color = self._style.dispcol[base_name]
+            if isinstance(color, str):
+                fc = color
+                gt = self._style.gt
+            else:
+                fc = color[0]
+                gt = color[1]
         else:
             fc = self._style.gc
-        if self._style.name != 'bw':
-            ec = fc
-            lc = fc
-        else:
+            gt = self._style.gt
+
+        if self._style.name == 'bw':
             ec = self._style.edge_color
             lc = self._style.lc
-        if op.name == 'reset':
-            gt = self._style.not_gate_lc
         else:
-            gt = self._style.gt
-        return fc, ec, gt, self._style.tc, self._style.sc, lc
+            ec = fc
+            lc = fc
+        # Subtext needs to be same color as gate text
+        sc = gt
+        return fc, ec, gt, self._style.tc, sc, lc
 
     def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text='', subtext=''):
         xpos = min([x[0] for x in xy])
@@ -489,7 +518,7 @@ class MatplotlibDrawer:
         # display the control label at the top or bottom if there is one
         if text_top is True:
             self.ax.text(xpos, ypos + 0.7 * HIG, text, ha='center', va='top',
-                         fontsize=self._style.sfs, color=self._style.tc,
+                         fontsize=self._style.sfs, color=tc,
                          clip_on=True, zorder=PORDER_TEXT)
         elif text_top is False:
             self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
@@ -923,8 +952,9 @@ class MatplotlibDrawer:
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
-                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec,
-                                      ac=self._style.dispcol['target'])
+                    tgt_color = self._style.dispcol['target']
+                    tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
+                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # cz gate
