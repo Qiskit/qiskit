@@ -349,7 +349,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.h(1)
         transpiled = transpile(circuit, backend=FakeTenerife(),
-                               optimization_level=0, initial_layout=list(range(5)),
+                               optimization_level=0, initial_layout=list(range(3)),
                                seed_transpiler=0)
 
         self.circuit_drawer(transpiled, filename='partial_layout.png')
