@@ -251,5 +251,6 @@ class TestLookaheadSwap(QiskitTestCase):
         self.assertEqual(mapped_dag.count_ops().get('swap', 0),
                          dag_circuit.count_ops().get('swap', 0) + 1)
 
+
 if __name__ == '__main__':
     unittest.main()
