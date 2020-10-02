@@ -115,8 +115,20 @@ class PauliTrotterEvolution(EvolutionBase):
                 # if operator.primitive.abelian:
                 #     return self.evolution_for_abelian_paulisum(operator.primitive)
                 # else:
-                trotterized = self.trotter.convert(operator.primitive)
-                return self._recursive_convert(trotterized)
+                # Collect terms that are not the identity.
+                oplist = [x for x in operator.primitive if not isinstance(x, PauliOp)
+                          or sum(x.primitive.x + x.primitive.z) != 0]  # type: ignore
+                # Collect the coefficients of any identity terms,
+                # which become global phases when exponentiated.
+                identity_phases = [x.coeff for x in operator.primitive if isinstance(x, PauliOp)
+                                   and sum(x.primitive.x + x.primitive.z) == 0]  # type: ignore
+                # Construct sum without the identity operators.
+                new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
+                trotterized = self.trotter.convert(new_primitive)
+                circuit_no_identities = self._recursive_convert(trotterized)
+                # Set the global phase of the QuantumCircuit to account for removed identity terms.
+                circuit_no_identities.primitive.global_phase = -sum(identity_phases)  # type: ignore
+                return circuit_no_identities
             elif isinstance(operator.primitive, PauliOp):
                 return self.evolution_for_pauli(operator.primitive)
             # Covers ListOp, ComposedOp, TensoredOp
