@@ -365,7 +365,7 @@ class TestParameters(QiskitTestCase):
         cal_sched = circ.calibrations['my_rz'][((0,), (3.14,))]
         self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
 
-    def test_partial_assigment(self):
+    def test_partial_assignment(self):
         """Expressions of parameters with partial assignment."""
         alpha = Parameter('⍺')
         beta = Parameter('beta')
@@ -389,13 +389,14 @@ class TestParameters(QiskitTestCase):
 
         circ = circ.assign_parameters({alpha: freq - delta})
         cal_sched = list(circ.calibrations['custom'].values())[0]
-        self.assertEqual(cal_sched.instructions[0][1].frequency, 3.5e9 + beta)
+        self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
 
         circ = circ.assign_parameters({beta: delta})
-        self.assertEqual(float(cal_sched.instructions[0][1].frequency), 4.5e9)
+        self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
+        self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
 
         circ = circ.assign_parameters({gamma: shift - delta})
-        self.assertEqual(float(cal_sched.instructions[1][1].frequency), 0.5e9)
+        self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
 
         self.assertEqual(cal_sched.instructions[2][1].phase, phi)
         circ = circ.assign_parameters({phi: phase})
