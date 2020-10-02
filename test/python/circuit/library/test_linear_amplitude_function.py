@@ -169,6 +169,30 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
                 _ = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
                                             rescaling_factor, [1, 0])
 
+    def test_post_processing(self):
+        """Test the ``post_processing`` method."""
+        num_state_qubits = 2
+        slope = 1
+        offset = -2
+        domain = (0, 2)
+        image = (-2, 0)
+        rescaling_factor = 0.1
+
+        circuit = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
+                                          rescaling_factor)
+
+        values = [0, 0.2, 0.5, 0.9, 1]
+
+        def f(x):
+            c = rescaling_factor
+            return image[0] + (image[1] - image[0]) * (2 / np.pi / c * (x - 0.5) + 0.5)
+
+        expected = [f(value) for value in values]
+        actual = [circuit.post_processing(value) for value in values]
+
+        self.assertListEqual(expected, actual)
+
+
 
 if __name__ == '__main__':
     unittest.main()
