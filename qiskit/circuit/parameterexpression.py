@@ -49,7 +49,10 @@ class ParameterExpression():
 
     def conjugate(self) -> 'ParameterExpression':
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+        if type(self) == 'complex':
+            return self.real - (self.imag)*1j
+        else:
+            return self
 
     def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
         """
