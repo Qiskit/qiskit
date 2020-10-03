@@ -21,6 +21,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
@@ -40,7 +41,7 @@ class Initialize(Instruction):
     which is not unitary.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, reset=True):
         """Create new initialize composite.
 
         params (list): vector of complex amplitudes to initialize to
@@ -59,6 +60,7 @@ class Initialize(Instruction):
         num_qubits = int(num_qubits)
 
         super().__init__("initialize", num_qubits, 0, params)
+        self.reset = reset
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization
@@ -79,8 +81,9 @@ class Initialize(Instruction):
 
         q = QuantumRegister(self.num_qubits, 'q')
         initialize_circuit = QuantumCircuit(q, name='init_def')
-        for qubit in q:
-            initialize_circuit.append(Reset(), [qubit])
+        if self.reset:
+            for qubit in q:
+                initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
         self.definition = initialize_circuit
@@ -265,6 +268,41 @@ class Initialize(Instruction):
         else:
             raise CircuitError("invalid param type {0} for instruction  "
                                "{1}".format(type(parameter), self.name))
+
+
+class InitializeGate(Gate):
+    """Complex amplitude initialization
+
+    Class that implements the (complex amplitude) initialization of some
+    flexible collection of qubit registers (assuming the qubits are in the
+    zero state).
+    Note that InitializeGate is an Gate and not an Instruction since it does not contains
+    a reset instruction, contained in Initialize
+    """
+
+    def __init__(self, params, label=None):
+        """Create new initialize gate.
+
+        params (list): vector of complex amplitudes to initialize to
+        label: An optional label for the gate.
+        """
+
+        if not isinstance(params, list):
+            raise QiskitError("Given param is not a statevector")
+
+        num_qubits = math.log2(len(params))
+
+        if num_qubits == 0 or not num_qubits.is_integer():
+            raise QiskitError("Desired statevector length not a positive power of 2.")
+
+        super().__init__('init', int(num_qubits), params, label=label)
+
+    def _define(self):
+        desired_vector = self.params
+        q = QuantumRegister(self.num_qubits, 'q')
+        circ = QuantumCircuit(q, name='init_def')
+        circ.append(Initialize(desired_vector, reset=False), q[:])
+        self.definition = circ
 
 
 def initialize(self, params, qubits):
