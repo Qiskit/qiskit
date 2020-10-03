@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -184,22 +186,17 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
-            or [<r>, <theta>, <phi>] (spherical in radians)
-            <theta> is inclination angle from +z direction
-            <phi> is azimuth from +x direction
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>]
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type for bloch
-            (cartesian or spherical), default is cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -221,11 +218,6 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
-    if coord_type == "spherical":
-        r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r*np.sin(theta)*np.cos(phi)
-        bloch[1] = r*np.sin(theta)*np.sin(phi)
-        bloch[2] = r*np.cos(theta)
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
@@ -644,7 +636,8 @@ def phase_to_rgb(complex_number):
 
 @deprecate_arguments({'rho': 'state'})
 def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=False, use_degrees=False, *, rho=None):
+                       show_state_phases=False, use_degrees=False, *, rho=None,
+                       show_all_state_labels=False):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -663,6 +656,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
+        show_all_state_labels (bool): An optional boolean indicating whether to
+            show labels for all basis states.
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
@@ -722,11 +717,6 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
-    # Force aspect ratio
-    # MPL 3.2 or previous do not have set_box_aspect
-    if hasattr(ax.axes, 'set_box_aspect'):
-        ax.axes.set_box_aspect((1, 1, 1))
-
     # start the plotting
     # Plot semi-transparent sphere
     u = np.linspace(0, 2 * np.pi, 25)
@@ -734,8 +724,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, color=plt.rcParams['grid.color'],
-                    alpha=0.2, linewidth=0)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
+                    alpha=0.05, linewidth=0)
 
     # Get rid of the panes
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -774,8 +764,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                 angle = (float(weight) / d) * (np.pi * 2) + \
                         (weight_order * 2 * (np.pi / number_of_divisions))
 
-                if (weight > d / 2) or ((weight == d / 2) and
-                                        (weight_order >= number_of_divisions / 2)):
+                if (weight > d / 2) or (((weight == d / 2) and
+                                         (weight_order >= number_of_divisions / 2))):
                     angle = np.pi - angle - (2 * np.pi / number_of_divisions)
 
                 xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
@@ -783,15 +773,30 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
-                    prob = 1
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
                 if yvalue >= 0.1:
                     alfa = 1.0 - yvalue
 
-                if not np.isclose(prob, 0) and show_state_labels:
+                if prob > 0 and show_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = '$\\vert' + element + '\\rangle$'
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        if use_degrees:
+                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
+                            element_text += '\n$%s$' % (element_angle)
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                            ha='center', va='center', size=12)
+
+                elif show_all_state_labels:
                     rprime = 1.3
                     angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
@@ -839,7 +844,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams['figure.facecolor'], zorder=1))
+    ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
