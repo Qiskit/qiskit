@@ -40,7 +40,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate
-from qiskit.visualization.qcstyle import DefaultStyle, IQXStyle, BWStyle
+from qiskit.visualization.qcstyle import DefaultStyle, IQXStyle, BWStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -146,7 +146,7 @@ class MatplotlibDrawer:
             elif style['name'] == 'bw':
                 self._style = BWStyle()
             else:
-                self._style = DefaultStyle()
+                self._style = DefaultStyle().style
         else:
             config = user_config.get_config()
             if config:
@@ -156,20 +156,21 @@ class MatplotlibDrawer:
                 elif config_style == 'bw':
                     self._style = BWStyle()
                 else:
-                    self._style = DefaultStyle()
+                    self._style = DefaultStyle().style
             elif style is False:
                 self._style = BWStyle()
             else:
-                self._style = DefaultStyle()
+                self._style = DefaultStyle().style
 
         if style:
             if isinstance(style, dict):
-                self._style.set_style(style)
+                set_style(self._style, style)
+                print(self._style)
             elif isinstance(style, str):
                 try:
                     with open(style) as infile:
                         dic = json.load(infile)
-                    self._style.set_style(dic)
+                    set_style(self._style, dic)
                 except FileNotFoundError:
                     warn("Style JSON file '{}' not found. Will use default style.".format(style),
                          UserWarning, 2)
@@ -196,7 +197,7 @@ class MatplotlibDrawer:
         if ax is None:
             self.return_fig = True
             self.figure = plt.figure()
-            self.figure.patch.set_facecolor(color=self._style.bg)
+            self.figure.patch.set_facecolor(color=self._style['bg'])
             self.ax = self.figure.add_subplot(111)
         else:
             self.return_fig = False

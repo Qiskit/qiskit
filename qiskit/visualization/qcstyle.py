@@ -20,140 +20,149 @@ class DefaultStyle:
     """IBM Design Style colors
     """
     def __init__(self):
-        # Set colors
-        basis_color = '#FA74A6'               # Red
-        clifford_color = '#6FA4FF'            # Blue
-        non_gate_color = '#000000'            # Black
-        other_color = '#BB8BFF'               # Purple
-        pauli_color = '#05BAB6'               # Green
-        iden_color = '#05BAB6'                # Green
-
-        black_font = '#000000'                # Black font color
-        white_font = '#ffffff'                # White font color
-
-        self.name = 'default'
-        self.tc = '#000000'
-        self.sc = '#000000'
-        self.lc = '#000000'
-        self.not_gate_lc = '#ffffff'
-        self.cc = '#778899'         # Medium Gray
-        self.gc = other_color
-        self.gt = '#000000'
-        self.bc = '#bdbdbd'         # Dark Gray
-        self.bg = '#ffffff'
-        self.edge_color = None
-        self.math_fs = 15
-        self.fs = 13
-        self.sfs = 8
-        self.disptex = {
-            'id': 'I',
-            'p': 'P',
-            'u': 'U',
-            'u1': '$\\mathrm{U}_1$',
-            'u2': '$\\mathrm{U}_2$',
-            'u3': '$\\mathrm{U}_3$',
-            'x': 'X',
-            'y': 'Y',
-            'z': 'Z',
-            'h': 'H',
-            's': 'S',
-            'sdg': '$\\mathrm{S}^\\dagger$',
-            'sx': '$\\sqrt{\\mathrm{X}}$',
-            'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
-            't': 'T',
-            'tdg': '$\\mathrm{T}^\\dagger$',
-            'iswap': 'Iswap',
-            'dcx': 'Dcx',
-            'ms': 'MS',
-            'diagonal': 'Diagonal',
-            'unitary': 'Unitary',
-            'r': 'R',
-            'rx': '$\\mathrm{R}_\\mathrm{X}$',
-            'ry': '$\\mathrm{R}_\\mathrm{Y}$',
-            'rz': '$\\mathrm{R}_\\mathrm{Z}$',
-            'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
-            'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
-            'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-            'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
-            'reset': '$\\left|0\\right\\rangle$',
-            'initialize': '$|\\psi\\rangle$'
+        colors = {
+            # Default Colors
+            'basis': '#FA74A6',         # Red
+            'clifford': '#6FA4FF',      # Light Blue
+            'pauli': '#05BAB6',         # Green
+            'def_other': '#BB8BFF',     # Purple
+            # IQX Colors
+            'classical': '#002D9C',     # Dark Blue
+            'phase': '#33B1FF',         # Cyan
+            'hadamard': '#FA4D56',      # Light Red
+            'non_unitary': '#A8A8A8',   # Medium Gray
+            'iqx_other': '#9F1853',     # Dark Red
+            # B/W
+            'black': '#000000',
+            'white': '#FFFFFF',
+            'light_gray': '#778899',
+            'dark_gray': '#BDBDBD'
         }
-        self.dispcol = {
-            'u1': (basis_color, black_font),
-            'u2': (basis_color, black_font),
-            'u3': (basis_color, black_font),
-            'id': (iden_color, black_font),
-            'x': (pauli_color, black_font),
-            'y': (pauli_color, black_font),
-            'z': (pauli_color, black_font),
-            'h': (clifford_color, black_font),
-            'cx': (clifford_color, black_font),
-            'cy': (clifford_color, black_font),
-            'cz': (clifford_color, black_font),
-            'swap': (clifford_color, black_font),
-            's': (clifford_color, black_font),
-            'sdg': (clifford_color, black_font),
-            'dcx': (clifford_color, black_font),
-            'iswap': (clifford_color, black_font),
-            't': (other_color, black_font),
-            'tdg': (other_color, black_font),
-            'r': (other_color, black_font),
-            'rx': (other_color, black_font),
-            'ry': (other_color, black_font),
-            'rz': (other_color, black_font),
-            'rxx': (other_color, black_font),
-            'ryy': (other_color, black_font),
-            'rzx': (other_color, black_font),
-            'reset': (non_gate_color, white_font),
-            'target': ('#ffffff', white_font),
-            'measure': (non_gate_color, white_font),
-            'ccx': (other_color, black_font),
-            'cdcx': (other_color, black_font),
-            'ccdcx': (other_color, black_font),
-            'cswap': (other_color, black_font),
-            'ccswap': (other_color, black_font),
-            'mcx': (other_color, black_font),
-            'mcx_gray': (other_color, black_font),
-            'u': (other_color, black_font),
-            'p': (other_color, black_font),
-            'sx': (other_color, black_font),
-            'sxdg': (other_color, black_font)
+        self.style = {
+
+            'name': 'default',
+            'tc': colors['black'],          # Non-gate Text Color
+            'gt': colors['black'],          # Gate Text Color
+            'sc': colors['black'],          # Gate Subtext Color
+            'lc': colors['black'],          # Line Color
+            'cc': colors['light_gray'],     # creg Line Color
+            'gc': colors['def_other'],      # Default Gate Color
+            'bc': colors['dark_gray'],      # Barrier Color
+            'bg': colors['white'],          # Background Color
+            'ec': None,                     # Edge Color (B/W only)
+            'fs': 13,                       # Gate Font Size
+            'sfs': 8,                       # Subtext Font Size
+            'latexmode': False,
+            'index': False,
+            'figwidth': -1,
+            'dpi': 150,
+            'margin': [2.0, 0.1, 0.1, 0.3],
+            'cline': 'doublet',
+
+            'disptex': {
+                'id': 'I',
+                'p': 'P',
+                'u': 'U',
+                'u1': '$\\mathrm{U}_1$',
+                'u2': '$\\mathrm{U}_2$',
+                'u3': '$\\mathrm{U}_3$',
+                'x': 'X',
+                'y': 'Y',
+                'z': 'Z',
+                'h': 'H',
+                's': 'S',
+                'sdg': '$\\mathrm{S}^\\dagger$',
+                'sx': '$\\sqrt{\\mathrm{X}}$',
+                'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
+                't': 'T',
+                'tdg': '$\\mathrm{T}^\\dagger$',
+                'iswap': 'Iswap',
+                'dcx': 'Dcx',
+                'ms': 'MS',
+                'diagonal': 'Diagonal',
+                'unitary': 'Unitary',
+                'r': 'R',
+                'rx': '$\\mathrm{R}_\\mathrm{X}$',
+                'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+                'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+                'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+                'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+                'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+                'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+                'reset': '$\\left|0\\right\\rangle$',
+                'initialize': '$|\\psi\\rangle$'
+            },
+            'dispcol': {
+                'u1': (colors['basis'], colors['black']),
+                'u2': (colors['basis'], colors['black']),
+                'u3': (colors['basis'], colors['black']),
+                'id': (colors['pauli'], colors['black']),
+                'x': (colors['pauli'], colors['black']),
+                'y': (colors['pauli'], colors['black']),
+                'z': (colors['pauli'], colors['black']),
+                'h': (colors['clifford'], colors['black']),
+                'cx': (colors['clifford'], colors['black']),
+                'cy': (colors['clifford'], colors['black']),
+                'cz': (colors['clifford'], colors['black']),
+                'swap': (colors['clifford'], colors['black']),
+                's': (colors['clifford'], colors['black']),
+                'sdg': (colors['clifford'], colors['black']),
+                'dcx': (colors['clifford'], colors['black']),
+                'iswap': (colors['clifford'], colors['black']),
+                't': (colors['def_other'], colors['black']),
+                'tdg': (colors['def_other'], colors['black']),
+                'r': (colors['def_other'], colors['black']),
+                'rx': (colors['def_other'], colors['black']),
+                'ry': (colors['def_other'], colors['black']),
+                'rz': (colors['def_other'], colors['black']),
+                'rxx': (colors['def_other'], colors['black']),
+                'ryy': (colors['def_other'], colors['black']),
+                'rzx': (colors['def_other'], colors['black']),
+                'reset': (colors['black'], colors['white']),
+                'target': (colors['white'], colors['white']),
+                'measure': (colors['black'], colors['white']),
+                'ccx': (colors['def_other'], colors['black']),
+                'cdcx': (colors['def_other'], colors['black']),
+                'ccdcx': (colors['def_other'], colors['black']),
+                'cswap': (colors['def_other'], colors['black']),
+                'ccswap': (colors['def_other'], colors['black']),
+                'mcx': (colors['def_other'], colors['black']),
+                'mcx_gray': (colors['def_other'], colors['black']),
+                'u': (colors['def_other'], colors['black']),
+                'p': (colors['def_other'], colors['black']),
+                'sx': (colors['def_other'], colors['black']),
+                'sxdg': (colors['def_other'], colors['black'])
+            }
         }
-        self.latexmode = False
-        self.index = False
-        self.figwidth = -1
-        self.dpi = 150
-        self.margin = [2.0, 0.1, 0.1, 0.3]
-        self.cline = 'doublet'
 
-    def set_style(self, style_dic):
-        dic = copy(style_dic)
-        self.name = dic.pop('name', self.name)
-        self.tc = dic.pop('textcolor', self.tc)
-        self.sc = dic.pop('subtextcolor', self.sc)
-        self.lc = dic.pop('linecolor', self.lc)
-        self.cc = dic.pop('creglinecolor', self.cc)
-        self.gt = dic.pop('gatetextcolor', self.gt)
-        self.gc = dic.pop('gatefacecolor', self.gc)
-        self.bc = dic.pop('barrierfacecolor', self.bc)
-        self.bg = dic.pop('backgroundcolor', self.bg)
-        self.fs = dic.pop('fontsize', self.fs)
-        self.sfs = dic.pop('subfontsize', self.sfs)
-        self.disptex = dic.pop('displaytext', self.disptex)
-        dcol = dic.pop('displaycolor', self.dispcol)
-        for col in dcol.keys():
-            if col in self.dispcol.keys():
-                self.dispcol[col] = dcol[col]
-        self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.index = dic.pop('showindex', self.index)
-        self.figwidth = dic.pop('figwidth', self.figwidth)
-        self.dpi = dic.pop('dpi', self.dpi)
-        self.margin = dic.pop('margin', self.margin)
-        self.cline = dic.pop('creglinestyle', self.cline)
+def set_style(base_style, update_style):
+    upd_dict = copy(update_style)
+    base_style['name'] = upd_dict.pop('name', base_style['name'])
+    base_style['tc'] = upd_dict.pop('textcolor', base_style['tc'])
+    base_style['sc'] = upd_dict.pop('subtextcolor', base_style['sc'])
+    base_style['lc'] = upd_dict.pop('linecolor', base_style['lc'])
+    base_style['cc'] = upd_dict.pop('creglinecolor', base_style['cc'])
+    base_style['gt'] = upd_dict.pop('gatetextcolor', base_style['gt'])
+    base_style['gc'] = upd_dict.pop('gatefacecolor', base_style['gc'])
+    base_style['bc'] = upd_dict.pop('barrierfacecolor', base_style['bc'])
+    base_style['bg'] = upd_dict.pop('backgroundcolor', base_style['bg'])
+    base_style['fs'] = upd_dict.pop('fontsize', base_style['fs'])
+    base_style['sfs'] = upd_dict.pop('subfontsize', base_style['sfs'])
+    base_style['disptex'] = upd_dict.pop('displaytext', base_style['disptex'])
+    dcol = upd_dict.pop('displaycolor', base_style['dispcol'])
+    for col in dcol.keys():
+        if col in base_style['dispcol'].keys():
+            base_style['dispcol'][col] = dcol[col]
+    base_style['latexmode'] = upd_dict.pop('latexdrawerstyle', base_style['latexmode'])
+    base_style['index'] = upd_dict.pop('showindex', base_style['index'])
+    base_style['figwidth'] = upd_dict.pop('figwidth', base_style['figwidth'])
+    base_style['dpi'] = upd_dict.pop('dpi', base_style['dpi'])
+    base_style['margin'] = upd_dict.pop('margin', base_style['margin'])
+    base_style['cline'] = upd_dict.pop('creglinestyle', base_style['cline'])
 
-        if dic:
-            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
-                 DeprecationWarning, 2)
+    if upd_dict:
+        warn('style option/s ({}) is/are not supported'.format(', '.join(upd_dict.keys())),
+             DeprecationWarning, 2)
 
 
 class BWStyle:
