@@ -32,7 +32,7 @@ class SchedStyle:
                  use_table: bool = True,
                  table_columns: int = 2,
                  table_font_size: int = 10,
-                 axis_font_size: int = 18,
+                 axis_font_size: int = 8,
                  label_font_size: int = 10,
                  icon_font_size: int = 18,
                  title_font_size: Optional[int] = 25,
