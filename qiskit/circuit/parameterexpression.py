@@ -233,7 +233,7 @@ class ParameterExpression:
 
         return ParameterExpression(parameter_symbols, expr)
 
-    def _grad(self, param: 'ParameterExpression') -> ParameterValueType:
+    def grad(self, param: 'ParameterExpression') -> Union['ParameterExpression', float]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -242,17 +242,21 @@ class ParameterExpression:
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
         """
+        # Check if the parameter is contained in the parameter expression
         if param not in self._parameter_symbols:
+            # If it is not contained then return 0
             return 0.0
 
+        # Compute the gradient of the parameter expression w.r.t. param
         import sympy as sy
-        expr = self._symbol_expr
         keys = self._parameter_symbols[param]
         expr_grad = sy.N(0)
         if not isinstance(keys, IterableAbc):
             keys = [keys]
+        # Since param may appear in more than one keys, loop through keys and apply product rule
         for key in keys:
-            expr_grad += sy.Derivative(expr, key).doit()
+            # TODO enable nth derivative
+            expr_grad += sy.Derivative(self._symbol_expr, key).doit()
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
@@ -261,9 +265,10 @@ class ParameterExpression:
         for parameter, symbol in self._parameter_symbols.items():
             if symbol in expr_grad.free_symbols:
                 parameter_symbols[parameter] = symbol
-
+        # If the gradient corresponds to a parameter expression then return the new expression
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
+        # ... else return a float corresponding to the gradient.
         return float(expr_grad)  # if no free symbols left, convert to float
 
     def __add__(self, other):

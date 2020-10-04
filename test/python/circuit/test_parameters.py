@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
+import unittest
 
 import pickle
 from operator import add, mul, sub, truediv
@@ -1261,23 +1262,15 @@ class TestParameterExpressions(QiskitTestCase):
         y = Parameter('y')
         z = Parameter('z')
 
-        # Basic operations
-        expr = (x + y) * z
+        with self.subTest(msg='first order gradient'):
+            expr = (x + y) * z
+            self.assertEqual(expr.grad(x), z)
+            self.assertEqual(expr.grad(z), (x + y))
+        with self.subTest(msg='second order gradient'):
+            expr = x * x
+            self.assertEqual(expr.grad(x), 2 * x)
+            self.assertEqual(expr.grad(x).grad(x), 2)
 
-        expr_grad = expr._grad(x)
-
-        self.assertEqual(expr_grad, y * z)
-
-        expr_grad = expr._grad(z)
-
-        self.assertEqual(expr_grad, (x + y))
-
-        expr = x ** 2
-
-        expr_grad = expr._grad(x)
-
-        self.assertEqual(expr_grad, 2 * x)
-        self.assertEqual(expr_grad._grad(x), 2)
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
@@ -1326,3 +1319,7 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr, theta)
         self.assertEqual(theta, expr)
+
+
+if __name__ == '__main__':
+    unittest.main()
