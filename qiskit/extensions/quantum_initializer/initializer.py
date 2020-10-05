@@ -270,15 +270,7 @@ class Initialize(Instruction):
 def initialize(self, params, qubits=None):
     """Apply initialize to circuit."""
     if qubits is None:
-        init = Initialize(params)
-        n_qubits = init.num_qubits
-        total_qubits = self.num_qubits
-        for qbt in range(0, total_qubits, n_qubits):
-            qubits = []
-            for q in range(qbt, qbt + n_qubits):
-                qubits.append(q)
-            self.append(Initialize(params), qubits)
-        return self
+        qubits = self.qubits
     elif not isinstance(qubits, list):
         qubits = [qubits]
     return self.append(Initialize(params), qubits)
