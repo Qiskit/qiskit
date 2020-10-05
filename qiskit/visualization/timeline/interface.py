@@ -44,7 +44,7 @@ def draw(program: circuit.QuantumCircuit,
 
     Args:
         program: Program to visualize. This program should be a `QuantumCircuit` which is
-            transpiled with gate time information before visualization.
+            transpiled with a scheduling_method, thus containing gate time information.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
             :py:class:`~qiskit.visualization.timeline.stylesheets.IqxStandard`,
             :py:class:`~qiskit.visualization.timeline.stylesheets.IqxSimple`, and
