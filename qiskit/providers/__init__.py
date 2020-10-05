@@ -22,7 +22,7 @@ provider is anything that provides an external service to Terra. The typical
 example of this is a Backend provider which provides
 :class:`~qiskit.providers.Backend` objects which can be used for executing
 :class:`~qiskit.circuits.QuantumCircuit` and/or :class:`~qiskit.pulse.Schedule`
-objects. This module the abstract classes which are used to define the
+objects. This module contains the abstract classes which are used to define the
 interface between a provider and terra.
 
 Version Support

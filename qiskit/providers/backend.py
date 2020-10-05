@@ -49,10 +49,10 @@ class BackendV1(Backend, ABC):
     could be something like noise parameters for backends that run experiments.
 
     This first version of the Backend abstract class is written to be mostly
-    backwards compatible with the v1 providers interface. This includes reusing
+    backwards compatible with the legacy providers interface. This includes reusing
     the model objects :class:`~qiskit.providers.models.BackendProperties` and
     :class:`~qiskit.providers.models.BackendConfiguration`. This was done to
-    ease the transition for users and provider maintainers from v1 to v2.
+    ease the transition for users and provider maintainers to the new versioned providers.
     Expect, future versions of this abstract class to change the data model and
     interface.
     """
@@ -201,7 +201,7 @@ class BackendV1(Backend, ABC):
             run_input (QuantumCircuit or Schedule or list): An individual or a
                 list of :class:`~qiskit.circuits.QuantumCircuit` or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
-                For v1 providers migrating to this first version of a v2
+                For legacy providers migrating to the new versioned providers,
                 provider interface a :class:`~qiskit.qobj.QasmQobj` or
                 :class:`~qiskit.qobj.PulseQobj` objects should probably be
                 supported too (but deprecated) for backwards compatibility. Be

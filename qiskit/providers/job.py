@@ -36,8 +36,8 @@ class JobV1(Job, ABC):
     """Class to handle jobs
 
     This first version of the Backend abstract class is written to be mostly
-    backwards compatible with the v1 providers interface. This was done to ease
-    the transition for users and provider maintainers from v1 to v2. Expect,
+    backwards compatible with the legacy providers interface. This was done to ease
+    the transition for users and provider maintainers to the new versioned providers. Expect,
     future versions of this abstract class to change the data model and
     interface.
     """
