@@ -276,3 +276,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(scheduled.bit_stop_time(q[2]), 2400)
         self.assertEqual(scheduled.bit_start_time(*q), 300)
         self.assertEqual(scheduled.bit_stop_time(*q), 2400)
+        c = scheduled.clbits
+        self.assertEqual(scheduled.bit_start_time(c[0]), 1400)
+        self.assertEqual(scheduled.bit_stop_time(c[0]), 2400)
