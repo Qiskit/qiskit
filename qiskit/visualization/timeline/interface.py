@@ -18,7 +18,7 @@ This module provides a common user interface of the timeline drawer.
 The `draw` function takes a transpiled circuit program to visualize with a stylesheet
 along with several control arguments.
 The drawer canvas object is internally initialized from the input data and
-the configured canvas is passed to the one of plotter APIs to generate a visualization data.
+the configured canvas is passed to one of the plotter APIs to generate a visualization data.
 """
 
 from typing import Optional, Dict, Any, List, Tuple
