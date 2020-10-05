@@ -149,12 +149,12 @@ class MplPlotter(BasePlotter):
         width = x1 - x0
         y_mid = 0.5 * (y0 + y1)
 
-        ew = int(min(self.canvas.formatter['time_bucket.edge_dt'], max(width / 2 - 2, 0)))
-        edge = np.sin(np.pi / 2 * np.arange(0, ew) / ew)
+        risefall = int(min(self.canvas.formatter['time_bucket.edge_dt'], max(width / 2 - 2, 0)))
+        edge = np.sin(np.pi / 2 * np.arange(0, risefall) / risefall)
 
-        xs = np.concatenate([np.arange(x0, x0 + ew),
-                             [x0 + ew, x1 - ew],
-                             np.arange(x1 - ew + 1, x1 + 1)])
+        xs = np.concatenate([np.arange(x0, x0 + risefall),
+                             [x0 + risefall, x1 - risefall],
+                             np.arange(x1 - risefall + 1, x1 + 1)])
 
         l1 = (y1 - y_mid) * np.concatenate([edge, [1, 1], edge[::-1]])
         l2 = (y0 - y_mid) * np.concatenate([edge, [1, 1], edge[::-1]])
