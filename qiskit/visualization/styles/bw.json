@@ -1,15 +1,15 @@
 {
     "name": "default",
     "textcolor": "#000000",
-    "gatetextcolor": "#FFFFFF",
-    "subtextcolor": "#FFFFFF",
+    "gatetextcolor": "#000000",
+    "subtextcolor": "#000000",
     "linecolor": "#000000",
     "creglinecolor": "#778899",
-    "gatefacecolor": "#9F1853",
-    "measurefacecolor": "#A8A8A8",
-    "barrierfacecolor": "#A8A8A8",
+    "gatefacecolor": "#FFFFFF",
+    "measurefacecolor": "#FFFFFF",
+    "barrierfacecolor": "#BDBDBD",
     "backgroundcolor": "#FFFFFF",
-    "edgecolor": null,
+    "edgecolor": "#000000",
     "fontsize": 13,
     "subfontsize": 8,
     "showindex": false,
@@ -55,164 +55,164 @@
     },
     "displaycolor": {
         "u1": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "u2": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "u3": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "u": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "p": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "id": [
-            "#002D9C",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "x": [
-            "#002D9C",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "y": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "z": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "h": [
-            "#FA4D56",
+            "#FFFFFF",
             "#000000"
         ],
         "cx": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "ccx": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "mcx": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "mcx_gray": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "cy": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "cz": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "swap": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "cswap": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "ccswap": [
-            "#002D9C",
+            "#FFFFFF",
             "#000000"
         ],
         "dcx": [
-            "#002D9C",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "cdcx": [
-            "#002D9C",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "ccdcx": [
-            "#002D9C",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "iswap": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "s": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "sdg": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "t": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "tdg": [
-            "#33B1FF",
+            "#FFFFFF",
             "#000000"
         ],
         "sx": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "sxdg": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "r": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "rx": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "ry": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "rz": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "rxx": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "ryy": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "rzx": [
-            "#9F1853",
-            "#FFFFFF"
+            "#FFFFFF",
+            "#000000"
         ],
         "reset": [
-            "#A8A8A8",
-            "#000000"
+            "#000000",
+            "#FFFFFF"
         ],
         "target": [
             "#FFFFFF",
             "#FFFFFF"
         ],
         "barrier": [
-            "#A8A8A8",
+            "#BDBDBD",
             "#000000"
         ],
         "measure": [
-            "#A8A8A8",
-            "#000000"
+            "#000000",
+            "#FFFFFF"
         ]
     }
 }
