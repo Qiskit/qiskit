@@ -230,7 +230,7 @@ class TestOptimize1qGates(QiskitTestCase):
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
-        qc.u3(0.1, 0.2, 0.3, 0)
+        qc.append(U3Gate(0.1, 0.2, 0.3), [0])
 
         dag = circuit_to_dag(qc)
         after = Optimize1qGates().run(dag)
