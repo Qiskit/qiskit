@@ -54,7 +54,7 @@ class BitEvents:
         self.bit = bit
         self.instructions = instructions
 
-        # find channel duration
+        # find qubit duration
         duration = 0
         for inst in instructions:
             if not isinstance(inst.operand, circuit.Delay):
