@@ -22,6 +22,80 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.22.0
+*************
+
+Terra 0.15.2
+============
+
+No change
+
+Aer 0.6.1
+=========
+
+No change
+
+Ignis 0.4.0
+===========
+
+No change
+
+Aqua 0.7.5
+==========
+
+No change
+
+IBM Q Provider 0.10.0
+=====================
+
+.. _Release Notes_IBMQ_provider_0.10.0_New Features:
+
+New Features
+------------
+
+- CQC randomness extractors can now be invoked asynchronously, using methods
+  :meth:`~qiskit.providers.ibmq.random.CQCExtractor.run_async_ext1` and
+  :meth:`~qiskit.providers.ibmq.random.CQCExtractor.run_async_ext2`. Each of
+  these methods returns a :class:`~qiskit.providers.ibmq.random.CQCExtractorJob`
+  instance that allows you to check on the job status (using
+  :meth:`~qiskit.providers.ibmq.random.CQCExtractorJob.status`) and wait for
+  its result (using
+  :meth:`~qiskit.providers.ibmq.random.CQCExtractorJob.block_until_ready`).
+  The :meth:`qiskit.provider.ibmq.random.CQCExtractor.run` method remains
+  synchronous.
+
+- You can now use the new IBMQ experiment service to query, retrieve, and
+  download experiment related data. Interface to this service is located
+  in the new :mod:`qiskit.providers.ibmq.experiment` package.
+  Note that this feature is still in
+  beta, and not all accounts have access to it. It is also subject to heavy
+  modification in both functionality and API without backward compatibility.
+
+- Two Jupyter magic functions, the IQX dashboard and the backend widget, are
+  updated to display backend reservations. If a backend has reservations
+  scheduled in the next 24 hours, time to the next one and its duration
+  are displayed (e.g. ``Reservation: in 6 hrs 30 min (60m)``). If there is
+  a reservation and the backend is active, the backend status is displayed
+  as ``active [R]``.
+
+
+.. _Release Notes_IBMQ_provider_0.10.0_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- Starting from this release, the `basis_gates` returned by
+  :meth:`qiskit.providers.ibmq.IBMQBackend.configuration` may differ for each backend.
+  You should update your program if it relies on the basis gates being
+  ``['id','u1','u2','u3','cx']``. We recommend always using the
+  :meth:`~qiskit.providers.ibmq.IBMQBackend.configuration` method to find backend
+  configuration values instead of hard coding them.
+
+- ``qiskit-ibmq-provider`` release 0.10 requires ``qiskit-terra``
+  release 0.15 or above. The package metadata has been updated to reflect
+  the new dependency.
+
+*************
 Qiskit 0.21.0
 *************
 
