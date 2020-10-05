@@ -19,6 +19,7 @@ import warnings
 import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
+from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
@@ -2368,6 +2369,93 @@ class QuantumCircuit:
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+
+    # Functions only for scheduled circuits
+    def bit_duration(self, *bits: Union[Bit, int]) -> Union[int, float]:
+        """Return the duration between the start and stop time of the first and last instructions,
+        excluding delays, over the supplied bits. Its time unit is ``self.unit``.
+
+        Args:
+            *bits: Bits within ``self`` to include.
+
+        Returns:
+            Return the duration between the first start and last stop time of non-delay instructions
+        """
+        return self.bit_stop_time(*bits) - self.bit_start_time(*bits)
+
+    def bit_start_time(self, *bits: Union[Bit, int]) -> Union[int, float]:
+        """Return the start time of the first instruction, excluding delays, over the supplied bits.
+        Its time unit is ``self.unit``.
+
+        Return 0 if there are no instructions over bits
+
+        Args:
+            *bits: Bits within ``self`` to include. Integers are allowed for qubits, indicating
+            indices of ``self.qubits``.
+
+        Returns:
+            Return the start time of the first instruction, excluding delays, over the supplied bits
+
+        Raises:
+            CircuitError: if ``self`` is a not-yet scheduled circuit.
+        """
+        from .delay import Delay
+        if self.duration is None:
+            raise CircuitError("bit_start_time is defined only for scheduled circuit.")
+
+        bits = [self.qubits[b] if isinstance(b, int) else b for b in bits]
+
+        starts = {bit: 0 for bit in bits}
+        dones = {bit: False for bit in bits}
+        for inst, qargs, cargs in self.data:
+            for bit in bits:
+                if bit in qargs or bit in cargs:
+                    if isinstance(inst, Delay):
+                        if not dones[bit]:
+                            starts[bit] += inst.duration
+                    else:
+                        dones[bit] = True
+            if len(bits) == len([done for done in dones.values() if done]):  # all done
+                return min(start for start in starts.values())
+
+        return 0  # If there are no instructions over bits
+
+    def bit_stop_time(self, *bits: Union[Bit, int]) -> Union[int, float]:
+        """Return the stop time of the last instruction, excluding delays, over the supplied bits.
+        Its time unit is ``self.unit``.
+
+        Return 0 if there are no instructions over bits
+
+        Args:
+            *bits: Bits within ``self`` to include. Integers are allowed for qubits, indicating
+            indices of ``self.qubits``.
+
+        Returns:
+            Return the stop time of the last instruction, excluding delays, over the supplied bits
+
+        Raises:
+            CircuitError: if ``self`` is a not-yet scheduled circuit.
+        """
+        from .delay import Delay
+        if self.duration is None:
+            raise CircuitError("bit_start_time is defined only for scheduled circuit.")
+
+        bits = [self.qubits[b] if isinstance(b, int) else b for b in bits]
+
+        stops = {bit: self.duration for bit in bits}
+        dones = {bit: False for bit in bits}
+        for inst, qargs, cargs in reversed(self.data):
+            for bit in bits:
+                if bit in qargs or bit in cargs:
+                    if isinstance(inst, Delay):
+                        if not dones[bit]:
+                            stops[bit] -= inst.duration
+                    else:
+                        dones[bit] = True
+            if len(bits) == len([done for done in dones.values() if done]):  # all done
+                return max(stop for stop in stops.values())
+
+        return 0  # If there are no instructions over bits
 
 
 def _circuit_from_qasm(qasm):
