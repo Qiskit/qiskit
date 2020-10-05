@@ -58,6 +58,27 @@ class Result:
             self.header = header
         self._metadata.update(kwargs)
 
+    def __repr__(self):
+        out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
+               "job_id='%s', success=%s, results=%s" % (
+                   self.backend_version,
+                   self.backend_version, self.qobj_id, self.job_id, self.success,
+                   self.results))
+        if hasattr(self, 'date'):
+            out += ", date=%s" % self.date
+        if hasattr(self, 'status'):
+            out += ", status=%s" % self.status
+        if hasattr(self, 'header'):
+            out += ", status=%s" % self.header
+        for key in self._metadata:
+            if isinstance(self._metadata[key], str):
+                value_str = "'%s'" % self._metadata[key]
+            else:
+                value_str = repr(self._metadata[key])
+            out += ", %s=%s" % (key, value_str)
+        out += ')'
+        return out
+
     def to_dict(self):
         """Return a dictionary format representation of the Result
 
