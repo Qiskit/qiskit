@@ -111,7 +111,7 @@ class TestGeneral(QiskitTestCase):
         graph.add_edges_from((node, nodes[(i + 1) % len(nodes)]) for i, node in enumerate(nodes))
         # TODO: Remove after retworkx has dense_gnm_random_graph function
         test_graph = rx.PyGraph()
-        test_graph.extend_from_edge_list([e for e in graph.edges])
+        test_graph.extend_from_edge_list(list(graph.edges))
         swapper = ApproximateTokenSwapper(test_graph)  # type: ApproximateTokenSwapper[int]
 
         # Generate a randomized permutation.
