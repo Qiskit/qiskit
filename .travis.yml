@@ -23,8 +23,8 @@ dist: bionic
 language: python
 python: 3.7
 before_install:
-  - wget https://sh.rustup.rs -O rust-installer/rustup.sh
-  - sh rust-installer/rustup.sh -y
+  - wget https://sh.rustup.rs -O rustup.sh
+  - sh rustup.sh -y
   - export PATH=~/.cargo/bin:$PATH
   - pip install -U pip virtualenv setuptools-rust
 install:
