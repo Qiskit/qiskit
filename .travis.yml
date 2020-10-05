@@ -22,12 +22,18 @@ os: linux
 dist: bionic
 language: python
 python: 3.7
+before_install:
+  - wget https://sh.rustup.rs -O rust-installer/rustup.sh
+  - sh rust-installer/rustup.sh -y
+  - export PATH=~/.cargo/bin:$PATH
+  - pip install -U pip virtualenv setuptools-rust
 install:
   # Install step for jobs that require compilation and qa.
   - pip install -U -r requirements.txt -c constraints.txt
   - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
   - pip install -c constraints.txt -e .
   - pip install "qiskit-ibmq-provider" -c constraints.txt
+  - pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
 script:
   # Compile the executables and run the tests.
   - python setup.py build_ext --inplace
