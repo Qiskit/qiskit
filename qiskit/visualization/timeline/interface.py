@@ -14,7 +14,7 @@
 
 """Qiskit timeline drawer.
 
-This module provides a common user interface of the timeline drawer.
+This module provides a common user interface to the timeline drawer.
 The `draw` function takes a scheduled circuit to visualize, as well as a style sheet
 along with several control arguments.
 The drawer canvas object is internally initialized from the input data and
