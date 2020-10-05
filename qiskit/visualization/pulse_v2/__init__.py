@@ -13,8 +13,3 @@
 """
 Pulse visualization module.
 """
-
-from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
-
-
-PULSE_STYLE = QiskitPulseStyle()

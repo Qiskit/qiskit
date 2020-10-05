@@ -157,6 +157,9 @@ def circuit_drawer(circuit,
     output. The options available in the style dict are defined below:
 
     Args:
+        name (str): The name of the style. The name can be set to 'iqx',
+            'bw', or 'default'. This overrides the setting in the
+            '~/.qiskit/settings.conf' file.
         textcolor (str): The color code to use for text. Defaults to
             `'#000000'`
         subtextcolor (str): The color code to use for subtext. Defaults to
@@ -200,34 +203,56 @@ def circuit_drawer(circuit,
 
             You must specify all the necessary values if using this. There is
             no provision for passing an incomplete dict in.
-        displaycolor (dict):
-            The color codes to use for each circuit element. The default values are::
+        displaycolor (dict): The color codes to use for each circuit
+            element in the form (gate_color, text_color).
+            The default values are::
 
                 {
-                    'id': '#F0E442',
-                    'u0': '#E7AB3B',
-                    'u1': '#E7AB3B',
-                    'u2': '#E7AB3B',
-                    'u3': '#E7AB3B',
-                    'x': '#58C698',
-                    'y': '#58C698',
-                    'z': '#58C698',
-                    'h': '#70B7EB',
-                    's': '#E0722D',
-                    'sdg': '#E0722D',
-                    't': '#E0722D',
-                    'tdg': '#E0722D',
-                    'rx': '#ffffff',
-                    'ry': '#ffffff',
-                    'rz': '#ffffff',
-                    'reset': '#D188B4',
-                    'target': '#70B7EB',
-                    'meas': '#D188B4'
+                    'u1': ('#FA74A6', '#000000'),
+                    'u2': ('#FA74A6', '#000000'),
+                    'u3': ('#FA74A6', '#000000'),
+                    'id': ('#05BAB6', '#000000'),
+                    'x': ('#05BAB6', '#000000'),
+                    'y': ('#05BAB6', '#000000'),
+                    'z': ('#05BAB6', '#000000'),
+                    'h': ('#6FA4FF', '#000000'),
+                    'cx': ('#6FA4FF', '#000000'),
+                    'cy': ('#6FA4FF', '#000000'),
+                    'cz': ('#6FA4FF', '#000000'),
+                    'swap': ('#6FA4FF', '#000000'),
+                    's': ('#6FA4FF', '#000000'),
+                    'sdg': ('#6FA4FF', '#000000'),
+                    'dcx': ('#6FA4FF', '#000000'),
+                    'iswap': ('#6FA4FF', '#000000'),
+                    't': ('#BB8BFF', '#000000'),
+                    'tdg': ('#BB8BFF', '#000000'),
+                    'r': ('#BB8BFF', '#000000'),
+                    'rx': ('#BB8BFF', '#000000'),
+                    'ry': ('#BB8BFF', '#000000'),
+                    'rz': ('#BB8BFF', '#000000'),
+                    'rxx': ('#BB8BFF', '#000000'),
+                    'ryy': ('#BB8BFF', '#000000'),
+                    'rzx': ('#BB8BFF', '#000000'),
+                    'reset': ('#000000', #FFFFFF'),
+                    'target': ('#FFFFFF, '#FFFFFF'),
+                    'measure': ('#000000', '#FFFFFF'),
+                    'ccx': ('#BB8BFF', '#000000'),
+                    'cdcx': ('#BB8BFF', '#000000'),
+                    'ccdcx': ('#BB8BFF', '#000000'),
+                    'cswap': ('#BB8BFF', '#000000'),
+                    'ccswap': ('#BB8BFF', '#000000'),
+                    'mcx': ('#BB8BFF', '#000000'),
+                    'mcx_gray': ('#BB8BFF', '#000000),
+                    'u': ('#BB8BFF', '#000000'),
+                    'p': ('#BB8BFF', '#000000'),
+                    'sx': ('#BB8BFF', '#000000'),
+                    'sxdg': ('#BB8BFF', '#000000')
                 }
 
-           Also, just like  `displaytext` there is no provision for an
-           incomplete dict passed in.
-
+            Colors can also be entered without the text color, such as
+            'u1': '#FA74A6', in which case the text color will always
+            be 'gatetextcolor'. The 'displaycolor' dict can contain any
+            number of elements from one to the entire dict above.
         latexdrawerstyle (bool): When set to True enable latex mode which will
             draw gates like the `latex` output modes.
         usepiformat (bool): When set to True use radians for output

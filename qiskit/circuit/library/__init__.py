@@ -88,6 +88,10 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   GR
+   GRX
+   GRY
+   GRZ
 
 Boolean Logic Circuits
 ======================
@@ -253,7 +257,11 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
-    GMS
+    GMS,
+    GR,
+    GRX,
+    GRY,
+    GRZ
 )
 from .boolean_logic import (
     AND,
@@ -270,6 +278,7 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
     QuadraticForm,
+    LinearAmplitudeFunction,
 )
 from .n_local import (
     NLocal,
