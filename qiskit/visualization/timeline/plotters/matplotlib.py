@@ -39,7 +39,7 @@ class MplPlotter(BasePlotter):
         """Create new plotter.
         Args:
             canvas: Configured drawer canvas object. Canvas object should be updated
-                with `.update` method before set to the plotter API.
+                with `.update` method before initializing the plotter.
             axis: Matplotlib axis object. When `axis` is provided, the plotter updates
                 given axis instead of creating and returning new matplotlib figure.
         """
