@@ -37,6 +37,7 @@ class MplPlotter(BasePlotter):
                  canvas: core.DrawerCanvas,
                  axis: Optional[plt.Axes] = None):
         """Create new plotter.
+
         Args:
             canvas: Configured drawer canvas object. Canvas object should be updated
                 with `.update` method before initializing the plotter.
