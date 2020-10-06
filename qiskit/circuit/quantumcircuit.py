@@ -2371,30 +2371,30 @@ class QuantumCircuit:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
     # Functions only for scheduled circuits
-    def bit_duration(self, *bits: Union[Bit, int]) -> Union[int, float]:
+    def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
         """Return the duration between the start and stop time of the first and last instructions,
-        excluding delays, over the supplied bits. Its time unit is ``self.unit``.
+        excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
 
         Args:
-            *bits: Bits within ``self`` to include.
+            *qubits: Qubits within ``self`` to include.
 
         Returns:
             Return the duration between the first start and last stop time of non-delay instructions
         """
-        return self.bit_stop_time(*bits) - self.bit_start_time(*bits)
+        return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
 
-    def bit_start_time(self, *bits: Union[Bit, int]) -> Union[int, float]:
-        """Return the start time of the first instruction, excluding delays, over the supplied bits.
-        Its time unit is ``self.unit``.
+    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+        """Return the start time of the first instruction, excluding delays,
+        over the supplied qubits. Its time unit is ``self.unit``.
 
-        Return 0 if there are no instructions over bits
+        Return 0 if there are no instructions over qubits
 
         Args:
-            *bits: Bits within ``self`` to include. Integers are allowed for qubits, indicating
+            *qubits: Qubits within ``self`` to include. Integers are allowed for qubits, indicating
             indices of ``self.qubits``.
 
         Returns:
-            Return the start time of the first instruction, excluding delays, over the supplied bits
+            Return the start time of the first instruction, excluding delays, over the qubits
 
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
@@ -2403,35 +2403,35 @@ class QuantumCircuit:
         if self.duration is None:
             raise CircuitError("bit_start_time is defined only for scheduled circuit.")
 
-        bits = [self.qubits[b] if isinstance(b, int) else b for b in bits]
+        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
-        starts = {bit: 0 for bit in bits}
-        dones = {bit: False for bit in bits}
-        for inst, qargs, cargs in self.data:
-            for bit in bits:
-                if bit in qargs or bit in cargs:
+        starts = {q: 0 for q in qubits}
+        dones = {q: False for q in qubits}
+        for inst, qargs, _ in self.data:
+            for q in qubits:
+                if q in qargs:
                     if isinstance(inst, Delay):
-                        if not dones[bit]:
-                            starts[bit] += inst.duration
+                        if not dones[q]:
+                            starts[q] += inst.duration
                     else:
-                        dones[bit] = True
-            if len(bits) == len([done for done in dones.values() if done]):  # all done
+                        dones[q] = True
+            if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return min(start for start in starts.values())
 
         return 0  # If there are no instructions over bits
 
-    def bit_stop_time(self, *bits: Union[Bit, int]) -> Union[int, float]:
-        """Return the stop time of the last instruction, excluding delays, over the supplied bits.
+    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+        """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
         Its time unit is ``self.unit``.
 
-        Return 0 if there are no instructions over bits
+        Return 0 if there are no instructions over qubits
 
         Args:
-            *bits: Bits within ``self`` to include. Integers are allowed for qubits, indicating
+            *qubits: Qubits within ``self`` to include. Integers are allowed for qubits, indicating
             indices of ``self.qubits``.
 
         Returns:
-            Return the stop time of the last instruction, excluding delays, over the supplied bits
+            Return the stop time of the last instruction, excluding delays, over the qubits
 
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
@@ -2440,19 +2440,19 @@ class QuantumCircuit:
         if self.duration is None:
             raise CircuitError("bit_start_time is defined only for scheduled circuit.")
 
-        bits = [self.qubits[b] if isinstance(b, int) else b for b in bits]
+        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
-        stops = {bit: self.duration for bit in bits}
-        dones = {bit: False for bit in bits}
-        for inst, qargs, cargs in reversed(self.data):
-            for bit in bits:
-                if bit in qargs or bit in cargs:
+        stops = {q: self.duration for q in qubits}
+        dones = {q: False for q in qubits}
+        for inst, qargs, _ in reversed(self.data):
+            for q in qubits:
+                if q in qargs:
                     if isinstance(inst, Delay):
-                        if not dones[bit]:
-                            stops[bit] -= inst.duration
+                        if not dones[q]:
+                            stops[q] -= inst.duration
                     else:
-                        dones[bit] = True
-            if len(bits) == len([done for done in dones.values() if done]):  # all done
+                        dones[q] = True
+            if len(qubits) == len([done for done in dones.values() if done]):  # all done
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
