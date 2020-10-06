@@ -27,6 +27,7 @@ from qiskit.qobj.utils import MeasLevel
 
 GIGAHERTZ_TO_SI_UNITS = 1e9
 
+
 class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module waveforms.
 
