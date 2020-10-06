@@ -29,7 +29,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.instruction_durations import InstructionDurationsType
+from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
@@ -132,8 +132,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
-            The gate lengths defined in ``backend.properties`` are used as default and
-            they are updated (overwritten) if this ``instruction_durations`` is specified.
+            The gate lengths defined in ``backend.properties`` are used as default.
+            They are overwritten if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
             The `instruction_durations` must be given as a list of tuples
             [(instruction_name, qubits, duration, unit), ...].
@@ -427,7 +427,7 @@ def _parse_transpile_args(circuits, backend,
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt,
-                                             scheduling_method, num_circuits)
+                                             num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
@@ -631,14 +631,17 @@ def _parse_scheduling_method(scheduling_method, num_circuits):
     return scheduling_method
 
 
-def _parse_instruction_durations(backend, inst_durations, dt, scheduling_method, num_circuits):
+def _parse_instruction_durations(backend, inst_durations, dt, num_circuits):
     durations = None
-    if scheduling_method is not None:
-        from qiskit.transpiler.instruction_durations import InstructionDurations
-        if backend:
-            durations = InstructionDurations.from_backend(backend).update(inst_durations, dt)
-        else:
-            durations = InstructionDurations(inst_durations, dt)
+    if inst_durations is None and backend:
+        try:
+            backend_durations = InstructionDurations.from_backend(backend)
+        except AttributeError:
+            backend_durations = InstructionDurations()
+        durations = backend_durations.update(None, dt)
+    else:
+        durations = InstructionDurations(inst_durations,
+                                         dt or getattr(inst_durations, 'dt', None))
 
     if not isinstance(durations, list):
         durations = [durations] * num_circuits
