@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def dag_to_circuit(dag):
@@ -56,4 +56,6 @@ def dag_to_circuit(dag):
         inst.condition = node.condition
         circuit._append(inst, node.qargs, node.cargs)
 
+    circuit.duration = dag.duration
+    circuit.unit = dag.unit
     return circuit
