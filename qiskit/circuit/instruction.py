@@ -149,7 +149,7 @@ class Instruction:
 
     def validate_parameter(self, parameter):
         """Instruction parameters has no validation or normalization."""
-        return parameter
+        raise NotImplementedError
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
