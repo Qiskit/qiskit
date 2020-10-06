@@ -129,7 +129,7 @@ class FakeBackend(BaseBackend):
                 sim = Aer.get_backend('qasm_simulator')
                 if self.properties():
                     from qiskit.providers.aer.noise import NoiseModel
-                    noise_model = NoiseModel.from_backend(self)
+                    noise_model = NoiseModel.from_backend(self, warnings=False)
                     job = sim.run(qobj, noise_model=noise_model)
                 else:
                     job = sim.run(qobj)

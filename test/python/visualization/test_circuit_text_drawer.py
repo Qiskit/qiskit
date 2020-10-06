@@ -2340,6 +2340,30 @@ class TestTextControlledGate(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_controlled_composite_gate_even_label(self):
+        """Controlled composite gates (top and bottom) with a even label length"""
+        expected = '\n'.join(["                 ",
+                              "q_0: |0>────■────",
+                              "        ┌───┴───┐",
+                              "q_1: |0>┤0      ├",
+                              "        │       │",
+                              "q_2: |0>┤1 cghz ├",
+                              "        │       │",
+                              "q_3: |0>┤2      ├",
+                              "        └───┬───┘",
+                              "q_4: |0>────■────",
+                              "                 "])
+        ghz_circuit = QuantumCircuit(3, name='cghz')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        ccghz = ghz.control(2)
+        circuit = QuantumCircuit(5)
+        circuit.append(ccghz, [4, 0, 1, 2, 3])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextOpenControlledGate(QiskitTestCase):
     """Test open controlled gates"""
