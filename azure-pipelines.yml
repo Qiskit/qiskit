@@ -36,7 +36,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.3.0
+            pip install cibuildwheel==1.6.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -80,7 +80,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.3.0
+          pip install cibuildwheel==1.6.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -105,12 +105,14 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.3.0
+            pip install cibuildwheel==1.6.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -357,6 +359,8 @@ stages:
             python.version: '3.7'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -426,6 +430,8 @@ stages:
             python.version: '3.6'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -496,6 +502,8 @@ stages:
             python.version: '3.6'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
