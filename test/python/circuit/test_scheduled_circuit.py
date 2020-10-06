@@ -215,7 +215,7 @@ class TestScheduledCircuit(QiskitTestCase):
                               )
         self.assertEqual(scheduled.duration, 1300)
 
-    def test_unit_seconds_for_users_who_uses_durations_given_by_backend(self):
+    def test_unit_seconds_when_using_backend_durations(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500*self.dt, 1, 's')
@@ -228,17 +228,11 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(scheduled.duration, 1908)
 
         # update durations
+        durations = InstructionDurations.from_backend(self.backend_with_dt)
+        durations.update([('cx', [0, 1], 1000*self.dt, 's')])
         scheduled = transpile(qc,
                               backend=self.backend_with_dt,
                               scheduling_method='alap',
-                              instruction_durations=[('cx', [0, 1], 1000*self.dt, 's')]
-                              )
-        self.assertEqual(scheduled.duration, 1500)
-
-        my_own_durations = InstructionDurations([('cx', [0, 1], 1000*self.dt, 's')])
-        scheduled = transpile(qc,
-                              backend=self.backend_with_dt,  # unit='s'
-                              scheduling_method='alap',
-                              instruction_durations=my_own_durations
+                              instruction_durations=durations
                               )
         self.assertEqual(scheduled.duration, 1500)
