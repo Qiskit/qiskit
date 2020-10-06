@@ -805,12 +805,12 @@ class QuantumCircuit:
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # make copy of parameterized gate instance if used in another circuit
-        is_gate = isinstance(instruction, Gate)
         is_referenced = sys.getrefcount(instruction) > 4
-        if is_gate and is_referenced:
+        if is_referenced:
             is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
             if is_parameter:
                 param_items = self._parameter_table.items()
+                # leave alone if parameter instance exists within current circuit, o.w. make a copy
                 if not any([(instruction == item[1][0][0]) for item in param_items]):
                     instruction = copy.deepcopy(instruction)
 
