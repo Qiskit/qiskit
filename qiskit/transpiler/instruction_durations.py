@@ -38,6 +38,21 @@ class InstructionDurations:
         if instruction_durations:
             self.update(instruction_durations)
 
+    def __str__(self):
+        """Return a string representation of all stored durations."""
+        string = ""
+        for k, v in self.duration_by_name.items():
+            string += k
+            string += ': '
+            string += str(v[0]) + ' ' + v[1]
+            string += '\n'
+        for k, v in self.duration_by_name_qubits.items():
+            string += k[0] + str(k[1])
+            string += ': '
+            string += str(v[0]) + ' ' + v[1]
+            string += '\n'
+        return string
+
     @classmethod
     def from_backend(cls, backend: BaseBackend):
         """Construct an :class:`InstructionDurations` object from the backend.
@@ -67,9 +82,6 @@ class InstructionDurations:
         # TODO: backend.properties() should tell us durations of measurements
         # TODO: Remove the following lines after that
         try:
-            dtm = backend.configuration().dtm
-            if dtm != dt:
-                raise TranspilerError("dtm != dt case is not supported.")
             inst_map = backend.defaults().instruction_schedule_map
             all_qubits = tuple(range(backend.configuration().num_qubits))
             meas_duration = inst_map.get('measure', all_qubits).duration
