@@ -70,6 +70,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
@@ -94,4 +95,3 @@ from .y import YGate, CYGate
 from .z import ZGate, CZGate
 # pylint: disable=cyclic-import
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
-from ..generalized_gates.gms import MSGate
