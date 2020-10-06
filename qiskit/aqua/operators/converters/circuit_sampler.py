@@ -18,6 +18,7 @@ from functools import partial
 from time import time
 
 from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit import QiskitError
 from qiskit.aqua import QuantumInstance
@@ -48,7 +49,7 @@ class CircuitSampler(ConverterBase):
     """
 
     def __init__(self,
-                 backend: Union[BaseBackend, QuantumInstance] = None,
+                 backend: Union[Backend, BaseBackend, QuantumInstance] = None,
                  statevector: Optional[bool] = None,
                  param_qobj: bool = False,
                  attach_results: bool = False) -> None:
@@ -101,7 +102,7 @@ class CircuitSampler(ConverterBase):
                              'backend, not {}.'.format(self.quantum_instance.backend))
 
     @property
-    def backend(self) -> BaseBackend:
+    def backend(self) -> Union[Backend, BaseBackend]:
         """ Returns the backend.
 
         Returns:
@@ -110,11 +111,11 @@ class CircuitSampler(ConverterBase):
         return self.quantum_instance.backend
 
     @backend.setter
-    def backend(self, backend: BaseBackend):
+    def backend(self, backend: Union[Backend, BaseBackend]):
         """ Sets backend without additional configuration. """
         self.set_backend(backend)
 
-    def set_backend(self, backend: BaseBackend, **kwargs) -> None:
+    def set_backend(self, backend: Union[Backend, BaseBackend], **kwargs) -> None:
         """ Sets backend with configuration.
 
         Raises:
@@ -133,13 +134,14 @@ class CircuitSampler(ConverterBase):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       Backend, BaseBackend]) -> None:
         """ Sets the QuantumInstance.
 
         Raises:
             ValueError: statevector or param_qobj are True when not supported by backend.
         """
-        if isinstance(quantum_instance, BaseBackend):
+        if isinstance(quantum_instance, (Backend, BaseBackend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         self._check_quantum_instance_and_modes_consistent()
