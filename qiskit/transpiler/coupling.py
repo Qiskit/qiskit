@@ -147,8 +147,8 @@ class CouplingMap:
         """
         if not self.is_connected():
             raise CouplingError("coupling graph not connected")
-        self._dist_matrix = rx.digraph_floyd_warshall_numpy(self.graph,
-                                                            as_undirected=True)
+        undirected = self.graph.to_undirected()
+        self._dist_matrix = rx.graph_distance_matrix(undirected)
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
