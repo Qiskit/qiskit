@@ -27,7 +27,6 @@ from qiskit.qobj.utils import MeasLevel
 
 GIGAHERTZ_TO_SI_UNITS = 1e9
 
-
 class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module waveforms.
 
@@ -546,7 +545,8 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): set frequency qobj instruction
-                                                The passed frequency will be scaled by a factor 1e9
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
         Returns:
             Schedule: Converted and scheduled Instruction
         """
@@ -574,7 +574,8 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): Shift frequency qobj instruction.
-                                                The passed frequency will be scaled by a factor 1e9
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
 
         Returns:
             Schedule: Converted and scheduled Instruction
