@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler.assemble_schedules import _assemble_instructions as _assemble_schedule
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, QasmExperimentCalibrations, GateCalibration,
@@ -39,7 +40,14 @@ def _assemble_circuit(
 
     Returns:
         One experiment for the QasmQobj, and pulse library for pulse gates (which could be None)
+
+    Raises:
+        QiskitError: when the circuit has unit other than 'dt'.
     """
+    if circuit.unit != 'dt':
+        raise QiskitError("Unable to assemble circuit with unit '{}', which must be 'dt'."
+                          .format(circuit.unit))
+
     # header data
     num_qubits = 0
     memory_slots = 0
@@ -68,7 +76,7 @@ def _assemble_circuit(
                                   memory_slots=memory_slots,
                                   creg_sizes=creg_sizes,
                                   name=circuit.name,
-                                  global_phase=circuit.global_phase)
+                                  global_phase=float(circuit.global_phase))
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)

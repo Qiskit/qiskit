@@ -1381,7 +1381,7 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
 
-        params = [0.1 * i for i in range(10)]
+        params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         for gate_class in gate_class_list:
             sig = signature(gate_class)
