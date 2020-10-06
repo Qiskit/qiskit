@@ -119,7 +119,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
     elif routing_method == 'sabre':
-        _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
+        _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler,
+                            properties=backend_properties)]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
