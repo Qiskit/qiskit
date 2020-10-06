@@ -22,6 +22,7 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
 from qiskit.pulse import Schedule
@@ -41,7 +42,7 @@ LOG = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-              backend: Optional[BaseBackend] = None,
+              backend: Optional[Union[Backend, BaseBackend]] = None,
               basis_gates: Optional[List[str]] = None,
               coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
               backend_properties: Optional[BackendProperties] = None,
