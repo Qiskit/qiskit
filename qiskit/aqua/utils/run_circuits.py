@@ -21,6 +21,7 @@ import uuid
 
 import numpy as np
 from qiskit.providers import BaseBackend, JobStatus, JobError
+from qiskit.providers import Backend
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
 from qiskit.qobj import QasmQobj
@@ -218,7 +219,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
     backend_options = backend_options or {}
     noise_config = noise_config or {}
 
-    if backend is None or not isinstance(backend, BaseBackend):
+    if backend is None or not isinstance(backend, (Backend, BaseBackend)):
         raise ValueError('Backend is missing or not an instance of BaseBackend')
 
     with_autorecover = not is_simulator_backend(backend)
