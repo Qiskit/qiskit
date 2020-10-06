@@ -148,8 +148,9 @@ class Instruction:
                 self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
-        """Instruction parameters has no validation or normalization."""
-        raise NotImplementedError
+        """Instruction parameter validator. NotImplemented."""
+        raise CircuitError("The instruction %s is accepting parameters that should be "
+                           "validated." % self.name)
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""

@@ -63,3 +63,16 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return "%s(duration=%s[unit=%s])" % \
                (self.__class__.__name__, self.params[0], self.unit)
+
+    def validate_parameter(self, parameter):
+        """Delay instrction parameter has to be a to-int castable."""
+        try:
+            parameter_int = int(parameter)
+        except Exception:
+            raise CircuitError("cast error: invalid param type {0} in delay instruction "
+                               "{1}".format(type(parameter), self.name))
+        if parameter == parameter_int:
+            return parameter_int
+        else:
+            raise CircuitError("invalid param type {0} in delay instruction "
+                               "{1}".format(type(parameter), self.name))
