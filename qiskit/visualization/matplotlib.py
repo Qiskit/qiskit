@@ -115,8 +115,8 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=None, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, fold=25, ax=None,
-                 initial_state=False, cregbundle=True, global_phase=None):
+                 layout=None, fold=25, ax=None, initial_state=False,
+                 cregbundle=True, global_phase=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -136,9 +136,9 @@ class MatplotlibDrawer:
 
         self._style = DefaultStyle().style
         style_name = 'default'
-        #with open('bw.json', 'w') as infile:
-        #    json.dump(self._style, infile, indent=4)
-        if isinstance(style, dict) and 'name' in style.keys():
+        if style is False:
+            style_name = 'bw'
+        elif isinstance(style, dict) and 'name' in style.keys():
             style_name = style['name']
         elif isinstance(style, str):
             style_name = style
@@ -150,31 +150,12 @@ class MatplotlibDrawer:
             style_name = style_name[:-5]
         if style_name != 'default':
             in_styles = style_name in ['iqx', 'bw']
-            self._load_json_style(style_name + '.json', self._style, in_styles)
+            self._load_json_style(style_name + '.json', in_styles)
 
-        """if isinstance(style, dict) and 'name' in style.keys() and style['name'] != 'default':
-            in_styles = style['name'].split('.')[0] in ['iqx', 'bw']
-            print('in1', in_styles, style['name'])
-            self._load_json_style(style['name'], self._style, in_styles)
-        elif isinstance(style, str) and style != 'default':
-            in_styles = style.split('.')[0] in ['iqx', 'bw']
-            print('in2', in_styles)
-            self._load_json_style(style, self._style, in_styles)
-        else:
-            config = user_config.get_config()
-            if config:
-                config_style = config.get('circuit_mpl_style', 'default')
-                if config_style != 'default':
-                    in_styles = config_style.split('.')[0] in ['iqx', 'bw']
-                    print('in3', in_styles)
-                    self._load_json_style(config_style, self._style, in_styles)
-            elif style is False:
-                self._load_json_style('bw', self._style, in_styles=True)"""
         if isinstance(style, dict):
             set_style(self._style, style)
 
         self._plot_barriers = plot_barriers
-        self._reverse_bits = reverse_bits
         self._layout = layout
         self._fold = fold
         if self._fold < 2:
@@ -193,14 +174,7 @@ class MatplotlibDrawer:
         self._ax.tick_params(labelbottom=False, labeltop=False,
                              labelleft=False, labelright=False)
         self._initial_state = initial_state
-        if isinstance(style, dict) and 'cregbundle' in style.keys():
-            self._cregbundle = style['cregbundle']
-            del style['cregbundle']
-            warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
-                 " in a future release. cregbundle is now a parameter to draw()."
-                 " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
-        else:
-            self._cregbundle = cregbundle
+        self._cregbundle = cregbundle
         self._global_phase = global_phase
 
         self._ast = None
@@ -259,7 +233,7 @@ class MatplotlibDrawer:
                            'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
                            '}': (0.1896, 0.1188)}
 
-    def _load_json_style(self, style_name, def_style, in_styles=True):
+    def _load_json_style(self, style_name, in_styles=True):
         if in_styles:
             dirname = os.path.dirname(__file__)
             dirname = os.path.join(dirname, 'styles')
@@ -270,7 +244,7 @@ class MatplotlibDrawer:
         try:
             with open(style_path) as infile:
                 json_dict = json.load(infile)
-            set_style(def_style, json_dict)
+            set_style(self._style, json_dict)
         except FileNotFoundError:
             warn("Style JSON file '{}' not found. Will use default style.".format(style_name),
                  UserWarning, 2)
@@ -334,7 +308,6 @@ class MatplotlibDrawer:
             return sum_text
 
     def _param_parse(self, v):
-        # create an empty list to store the parameters in
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
             try:
@@ -682,7 +655,7 @@ class MatplotlibDrawer:
                 longest_reg_name_width = text_width
             pos = -ii
             self._qreg_dict[ii] = {
-                'y': pos, 'label': qreg_name, 'index': reg.index, 'group': reg.register}
+                'y': pos, 'reg_name': qreg_name, 'index': reg.index, 'group': reg.register}
             self._n_lines += 1
 
         # classical register
@@ -694,12 +667,12 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self._cregbundle:
-                    creg_name = '{}'.format(reg.register.name)
+                    creg_name = '${}$'.format(reg.register.name)
                     creg_name = _fix_double_script(creg_name) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._creg_dict[ii] = {'y': pos, 'label': creg_name, 'index': reg.index,
+                    self._creg_dict[ii] = {'y': pos, 'reg_name': creg_name, 'index': reg.index,
                                            'group': reg.register}
                     if not (not nreg or reg.register != nreg.register):
                         continue
@@ -709,7 +682,7 @@ class MatplotlibDrawer:
                     text_width = self._get_text_width(reg.register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._creg_dict[ii] = {'y': pos, 'label': creg_name, 'index': reg.index,
+                    self._creg_dict[ii] = {'y': pos, 'reg_name': creg_name, 'index': reg.index,
                                            'group': reg.register}
                 self._n_lines += 1
                 idx += 1
@@ -721,7 +694,7 @@ class MatplotlibDrawer:
         # quantum register
         fs = self._style['fs']
         for qreg in self._qreg_dict.values():
-            qreg_name = qreg['label']
+            qreg_name = qreg['reg_name']
             y = qreg['y'] - n_fold * (self._n_lines + 1)
             self._ax.text(self._x_offset - 0.2, y, qreg_name, ha='right', va='center',
                           fontsize=1.25 * fs, color=self._style['tc'],
@@ -732,10 +705,10 @@ class MatplotlibDrawer:
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
-            creg_name = creg['label']
+            creg_name = creg['reg_name']
             y = creg['y'] - n_fold * (self._n_lines + 1)
             if y not in this_creg_dict.keys():
-                this_creg_dict[y] = {'val': 1, 'label': creg_name}
+                this_creg_dict[y] = {'val': 1, 'reg_name': creg_name}
             else:
                 this_creg_dict[y]['val'] += 1
         for y, this_creg in this_creg_dict.items():
@@ -746,7 +719,7 @@ class MatplotlibDrawer:
                 self._ax.text(self._x_offset + 0.1, y + 0.1, str(this_creg['val']), ha='left',
                               va='bottom', fontsize=0.8 * fs,
                               color=self._style['tc'], clip_on=True, zorder=PORDER_TEXT)
-            self._ax.text(self._x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
+            self._ax.text(self._x_offset - 0.2, y, this_creg['reg_name'], ha='right', va='center',
                           fontsize=1.25 * fs, color=self._style['tc'],
                           clip_on=True, zorder=PORDER_TEXT)
             self._line([self._x_offset, y], [self._xmax, y], lc=self._style['cc'],
