@@ -12,7 +12,7 @@
 
 """Assemble function for converting a list of circuits into a qobj."""
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 import hashlib
 
 from qiskit import qobj, pulse
@@ -60,7 +60,7 @@ def assemble_schedules(schedules: List[pulse.Schedule],
 
 
 def _assemble_experiments(
-        schedules: List[pulse.Schedule],
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:

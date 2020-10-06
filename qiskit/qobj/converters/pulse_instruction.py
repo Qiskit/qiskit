@@ -25,6 +25,8 @@ from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
 
+GIGAHERTZ_TO_SI_UNITS = 1e9
+
 
 class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module waveforms.
@@ -544,21 +546,25 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): set frequency qobj instruction
+                                                The passed frequency will be scaled by a factor 1e9
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.SetFrequency(_frequency, channel) << t0
+                return instructions.SetFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
+                                                 channel) << t0
 
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+        else:
+            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -568,22 +574,26 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+                                                The passed frequency will be scaled by a factor 1e9
 
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.ShiftFrequency(_frequency, channel) << t0
+                return instructions.ShiftFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
+                                                   channel) << t0
 
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+        else:
+            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 
