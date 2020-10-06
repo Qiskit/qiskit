@@ -10,40 +10,58 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module implements the legacy abstract base class for backend jobs.
-
-When creating a new backend module it is also necessary to implement this
-job interface.
-"""
+"""Job abstract interface."""
 
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 import time
 
-from .jobstatus import JobStatus, JOB_FINAL_STATES
-from .exceptions import JobTimeoutError
-from .basebackend import BaseBackend
+from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
+from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.providers.backend import Backend
 
 
-class BaseJob(ABC):
-    """Legacy Class to handle asynchronous jobs"""
+class Job:
+    """Base common type for all versioned Job abstract classes.
 
-    def __init__(self, backend: BaseBackend, job_id: str) -> None:
+    Note this class should not be inherited from directly, it is intended
+    to be used for type checking. When implementing a provider you should use
+    the versioned abstract classes as the parent class and not this class
+    directly.
+    """
+    version = 0
+
+
+class JobV1(Job, ABC):
+    """Class to handle jobs
+
+    This first version of the Backend abstract class is written to be mostly
+    backwards compatible with the legacy providers interface. This was done to ease
+    the transition for users and provider maintainers to the new versioned providers. Expect,
+    future versions of this abstract class to change the data model and
+    interface.
+    """
+    version = 1
+    _async = True
+
+    def __init__(self, backend: Backend, job_id: str, **kwargs) -> None:
         """Initializes the asynchronous job.
 
         Args:
             backend: the backend used to run the job.
             job_id: a unique id in the context of the backend used to run
                 the job.
+            kwargs: Any key value metadata to associate with this job.
         """
         self._job_id = job_id
         self._backend = backend
+        self.metadata = kwargs
 
     def job_id(self) -> str:
         """Return a unique id identifying the job."""
         return self._job_id
 
-    def backend(self) -> BaseBackend:
+    def backend(self) -> Backend:
         """Return the backend where this job was executed."""
         return self._backend
 
@@ -60,7 +78,7 @@ class BaseJob(ABC):
         return self.status() == JobStatus.CANCELLED
 
     def in_final_state(self) -> bool:
-        """Return whether the job is in a final job state."""
+        """Return whether the job is in a final job state such as ``DONE`` or ``ERROR``."""
         return self.status() in JOB_FINAL_STATES
 
     def wait_for_final_state(
@@ -88,6 +106,8 @@ class BaseJob(ABC):
             JobTimeoutError: If the job does not reach a final state before the
                 specified timeout.
         """
+        if not self._async:
+            return
         start_time = time.time()
         status = self.status()
         while status not in JOB_FINAL_STATES:
@@ -99,6 +119,7 @@ class BaseJob(ABC):
                 callback(self.job_id(), status, self)
             time.sleep(wait)
             status = self.status()
+        return
 
     @abstractmethod
     def submit(self):
@@ -110,10 +131,9 @@ class BaseJob(ABC):
         """Return the results of the job."""
         pass
 
-    @abstractmethod
     def cancel(self):
         """Attempt to cancel the job."""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def status(self):

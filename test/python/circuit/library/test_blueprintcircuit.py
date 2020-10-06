@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumRegister, Parameter
+from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
 from qiskit.circuit.library import BlueprintCircuit
 
 
@@ -90,7 +90,7 @@ class TestBlueprintCircuit(QiskitTestCase):
                 self.assertGreater(len(circuit._data), 0)
 
         methods = ['qasm', 'count_ops', 'num_connected_components', 'num_nonlocal_gates',
-                   'depth', '__len__', 'copy']
+                   'depth', '__len__', 'copy', 'inverse']
         for method in methods:
             with self.subTest(method=method):
                 circuit = MockBlueprint(3)
@@ -101,6 +101,20 @@ class TestBlueprintCircuit(QiskitTestCase):
             circuit = MockBlueprint(3)
             _ = circuit[2]
             self.assertGreater(len(circuit._data), 0)
+
+    def test_compose_works(self):
+        """Test that the circuit is constructed when compose is called."""
+        qc = QuantumCircuit(3)
+        qc.x([0, 1, 2])
+        circuit = MockBlueprint(3)
+        circuit.compose(qc, inplace=True)
+
+        reference = QuantumCircuit(3)
+        reference.rx(list(circuit.parameters)[0], 0)
+        reference.h([0, 1, 2])
+        reference.x([0, 1, 2])
+
+        self.assertEqual(reference, circuit)
 
 
 if __name__ == '__main__':
