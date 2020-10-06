@@ -17,6 +17,7 @@ import logging
 import numpy as np
 
 from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import OperatorBase, ExpectationBase, LegacyBaseOperator
 from qiskit.aqua.components.initial_states import InitialState
@@ -74,7 +75,8 @@ class QAOA(VQE):
                  aux_operators: Optional[List[Optional[Union[OperatorBase, LegacyBaseOperator]]]] =
                  None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+                 quantum_instance: Optional[
+                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         """
         Args:
             operator: Qubit operator

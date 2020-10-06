@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import GroverOperator
+from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
 
@@ -121,7 +122,7 @@ class Grover(QuantumAlgorithm):
         ('post_processing', {float: 'lam'}),
         ('grover_operator', {list: 'rotation_counts'}),
         ('quantum_instance', {str: 'mct_mode'}),
-        ('incremental', {(BaseBackend, QuantumInstance): 'quantum_instance'})
+        ('incremental', {(Backend, BaseBackend, QuantumInstance): 'quantum_instance'})
     ], skip=1)  # skip the argument 'self'
     def __init__(self,
                  oracle: Union[Oracle, QuantumCircuit, Statevector],
@@ -131,7 +132,7 @@ class Grover(QuantumAlgorithm):
                  sample_from_iterations: bool = False,
                  post_processing: Callable[[List[int]], List[int]] = None,
                  grover_operator: Optional[QuantumCircuit] = None,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
+                 quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
                  init_state: Optional[InitialState] = None,
                  incremental: bool = False,
                  num_iterations: Optional[int] = None,

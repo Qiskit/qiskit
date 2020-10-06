@@ -29,6 +29,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
 from qiskit.aqua.components.optimizers import Optimizer, SLSQP
@@ -47,7 +48,8 @@ class VQAlgorithm(QuantumAlgorithm):
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
                  initial_point: Optional[np.ndarray] = None,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+                 quantum_instance: Optional[
+                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         """
         Args:
             var_form: An optional parameterized variational form (ansatz).
