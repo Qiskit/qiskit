@@ -26,6 +26,7 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Statevector
 
 
 class TestInitialize(QiskitTestCase):
@@ -60,6 +61,22 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
+
+    def test_statevector(self):
+        """Initialize gates from a statevector."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/5134 (footnote)
+        desired_vector = [0, 0, 0, 1]
+        qc = QuantumCircuit(2)
+        statevector = Statevector.from_label('11')
+        qc.initialize(statevector, [0, 1])
+        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
+
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""

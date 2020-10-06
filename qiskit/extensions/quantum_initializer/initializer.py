@@ -26,6 +26,7 @@ from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
+from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -34,8 +35,7 @@ class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
-    flexible collection of qubit registers (assuming the qubits are in the
-    zero state).
+    flexible collection of qubit registers.
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
@@ -43,8 +43,11 @@ class Initialize(Instruction):
     def __init__(self, params):
         """Create new initialize composite.
 
-        params (list): vector of complex amplitudes to initialize to
+        params (list or Statevector): vector (or Statevector) of complex amplitudes to initialize to
         """
+        if isinstance(params, Statevector):
+            params = params.data
+
         num_qubits = math.log2(len(params))
 
         # Check if param is a power of 2
