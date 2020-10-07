@@ -13,12 +13,13 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..exceptions import PulseError
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
 
 
 class Pulse(ABC):
@@ -37,6 +38,20 @@ class Pulse(ABC):
     def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this pulse."""
         return id(self)
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Pulse':
+        """Return a new pulse with parameters assigned.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            New pulse with updated parameters.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def draw(self, dt: float = 1,
