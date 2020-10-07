@@ -2438,7 +2438,7 @@ class QuantumCircuit:
         """
         from .delay import Delay
         if self.duration is None:
-            raise CircuitError("bit_start_time is defined only for scheduled circuit.")
+            raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
