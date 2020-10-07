@@ -12,7 +12,6 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from collections.abc import Iterable as IterableAbc
 from typing import Callable, Dict, Set, Union
 
 import numbers
