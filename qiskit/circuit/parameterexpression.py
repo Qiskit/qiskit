@@ -51,8 +51,9 @@ class ParameterExpression:
         return self._parameters
 
     def conjugate(self) -> 'ParameterExpression':
-        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+        """Return the conjugate."""
+        conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        return conjugated
 
     def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
         """

@@ -1249,7 +1249,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_conjugate(self):
         """Test calling conjugate on a ParameterExpression."""
         x = Parameter('x')
-        self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
+        self.assertEqual((x.conjugate() + 1j), (x - 1j).conjugate())
 
     @data(circlib.RGate, circlib.RXGate, circlib.RYGate, circlib.RZGate, circlib.RXXGate,
           circlib.RYYGate, circlib.RZXGate, circlib.RZZGate, circlib.CRXGate, circlib.CRYGate,
