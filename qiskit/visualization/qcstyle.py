@@ -135,34 +135,33 @@ class DefaultStyle:
 
 
 def set_style(def_style, json_style):
-    json_dict = copy(json_style)
-    def_style['name'] = json_dict.pop('name', def_style['name'])
-    def_style['tc'] = json_dict.pop('textcolor', def_style['tc'])
-    def_style['gt'] = json_dict.pop('gatetextcolor', def_style['gt'])
-    def_style['sc'] = json_dict.pop('subtextcolor', def_style['sc'])
-    def_style['lc'] = json_dict.pop('linecolor', def_style['lc'])
-    def_style['cc'] = json_dict.pop('creglinecolor', def_style['cc'])
-    def_style['gc'] = json_dict.pop('gatefacecolor', def_style['gc'])
-    def_style['mc'] = json_dict.pop('measurefacecolor', def_style['mc'])
-    def_style['bc'] = json_dict.pop('barrierfacecolor', def_style['bc'])
-    def_style['bg'] = json_dict.pop('backgroundcolor', def_style['bg'])
-    def_style['ec'] = json_dict.pop('edgecolor', def_style['ec'])
-    def_style['fs'] = json_dict.pop('fontsize', def_style['fs'])
-    def_style['sfs'] = json_dict.pop('subfontsize', def_style['sfs'])
-    def_style['index'] = json_dict.pop('showindex', def_style['index'])
-    def_style['figwidth'] = json_dict.pop('figwidth', def_style['figwidth'])
-    def_style['dpi'] = json_dict.pop('dpi', def_style['dpi'])
-    def_style['margin'] = json_dict.pop('margin', def_style['margin'])
-    def_style['cline'] = json_dict.pop('creglinestyle', def_style['cline'])
-    dtex = json_dict.pop('displaytext', def_style['disptex'])
+    def_style['name'] = json_style.pop('name', def_style['name'])
+    def_style['tc'] = json_style.pop('textcolor', def_style['tc'])
+    def_style['gt'] = json_style.pop('gatetextcolor', def_style['gt'])
+    def_style['sc'] = json_style.pop('subtextcolor', def_style['sc'])
+    def_style['lc'] = json_style.pop('linecolor', def_style['lc'])
+    def_style['cc'] = json_style.pop('creglinecolor', def_style['cc'])
+    def_style['gc'] = json_style.pop('gatefacecolor', def_style['gc'])
+    def_style['mc'] = json_style.pop('measurefacecolor', def_style['mc'])
+    def_style['bc'] = json_style.pop('barrierfacecolor', def_style['bc'])
+    def_style['bg'] = json_style.pop('backgroundcolor', def_style['bg'])
+    def_style['ec'] = json_style.pop('edgecolor', def_style['ec'])
+    def_style['fs'] = json_style.pop('fontsize', def_style['fs'])
+    def_style['sfs'] = json_style.pop('subfontsize', def_style['sfs'])
+    def_style['index'] = json_style.pop('showindex', def_style['index'])
+    def_style['figwidth'] = json_style.pop('figwidth', def_style['figwidth'])
+    def_style['dpi'] = json_style.pop('dpi', def_style['dpi'])
+    def_style['margin'] = json_style.pop('margin', def_style['margin'])
+    def_style['cline'] = json_style.pop('creglinestyle', def_style['cline'])
+    dtex = json_style.pop('displaytext', def_style['disptex'])
     for tex in dtex.keys():
         if tex in def_style['disptex'].keys():
             def_style['disptex'][tex] = dtex[tex]
-    dcol = json_dict.pop('displaycolor', def_style['dispcol'])
+    dcol = json_style.pop('displaycolor', def_style['dispcol'])
     for col in dcol.keys():
         if col in def_style['dispcol'].keys():
             def_style['dispcol'][col] = dcol[col]
 
-    if json_dict:
+    if json_style:
         warn('style option/s ({}) is/are not supported'.format(', '.join(json_dict.keys())),
              DeprecationWarning, 2)

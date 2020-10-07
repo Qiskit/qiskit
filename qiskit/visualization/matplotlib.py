@@ -121,11 +121,9 @@ class MatplotlibDrawer:
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
-
         if not HAS_PYLATEX:
             raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
                               'to install, run "pip install pylatexenc".')
-
         self._creg = []
         self._qreg = []
         self._registers(cregs, qregs)
@@ -133,28 +131,7 @@ class MatplotlibDrawer:
         self._creg_dict = collections.OrderedDict()
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
-
-        self._style = DefaultStyle().style
-        style_name = 'default'
-        if style is False:
-            style_name = 'bw'
-        elif isinstance(style, dict) and 'name' in style.keys():
-            style_name = style['name']
-        elif isinstance(style, str):
-            style_name = style
-        else:
-            config = user_config.get_config()
-            if config:
-                style_name = config.get('circuit_mpl_style', 'default')
-        if style_name[-5:] == '.json':
-            style_name = style_name[:-5]
-        if style_name != 'default':
-            in_styles = style_name in ['iqx', 'bw']
-            self._load_json_style(style_name + '.json', in_styles)
-
-        if isinstance(style, dict):
-            set_style(self._style, style)
-
+        self._load_style(style)
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -233,28 +210,6 @@ class MatplotlibDrawer:
                            'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
                            '}': (0.1896, 0.1188)}
 
-    def _load_json_style(self, style_name, in_styles=True):
-        if in_styles:
-            dirname = os.path.dirname(__file__)
-            dirname = os.path.join(dirname, 'styles')
-            style_path = os.path.join(dirname, style_name)
-        else:
-            style_path = os.path.join('', style_name)
-        print(style_path)
-        try:
-            with open(style_path) as infile:
-                json_dict = json.load(infile)
-            set_style(self._style, json_dict)
-        except FileNotFoundError:
-            warn("Style JSON file '{}' not found. Will use default style.".format(style_name),
-                 UserWarning, 2)
-        except json.JSONDecodeError as e:
-            warn("Could not decode JSON in file '{}': {}. ".format(style_name, str(e))
-                 + "Will use default style.", UserWarning, 2)
-        except OSError:
-            warn("Error loading JSON file '{}'. Will use default style.".format(style_name),
-                 UserWarning, 2)
-
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
@@ -266,6 +221,45 @@ class MatplotlibDrawer:
     @property
     def ast(self):
         return self._ast
+
+    def _load_style(self, style):
+        self._style = DefaultStyle().style
+        style_name = 'default'
+        if style is False:
+            style_name = 'bw'
+        elif isinstance(style, dict) and 'name' in style.keys():
+            style_name = style['name']
+        elif isinstance(style, str):
+            style_name = style
+        else:
+            config = user_config.get_config()
+            if config:
+                style_name = config.get('circuit_mpl_style', 'default')
+        if style_name[-5:] == '.json':
+            style_name = style_name[:-5]
+        if style_name != 'default':
+            if style_name in ['iqx', 'bw']:
+                dirname = os.path.dirname(__file__)
+                dirname = os.path.join(dirname, 'styles')
+                style_path = os.path.join(dirname, style_name + '.json')
+            else:
+                style_path = os.path.join('', style_name + '.json')
+            print(style_path)
+            try:
+                with open(style_path) as infile:
+                    json_style = json.load(infile)
+                set_style(self._style, json_style)
+            except FileNotFoundError:
+                warn("Style JSON file '{}' not found. Will use default style.".format(style_name),
+                     UserWarning, 2)
+            except json.JSONDecodeError as e:
+                warn("Could not decode JSON in file '{}': {}. ".format(style_name, str(e))
+                     + "Will use default style.", UserWarning, 2)
+            except OSError:
+                warn("Error loading JSON file '{}'. Will use default style.".format(style_name),
+                     UserWarning, 2)
+        if isinstance(style, dict):
+            set_style(self._style, style)
 
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):
