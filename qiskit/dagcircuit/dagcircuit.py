@@ -172,7 +172,6 @@ class DAGCircuit:
         Args:
             angle (float, ParameterExpression)
         """
-        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:

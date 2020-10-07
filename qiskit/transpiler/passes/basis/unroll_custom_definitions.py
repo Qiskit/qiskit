@@ -14,7 +14,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import ControlledGate, ParameterExpression
+from qiskit.circuit import ControlledGate
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 

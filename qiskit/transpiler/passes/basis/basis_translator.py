@@ -22,7 +22,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ParameterExpression
+from qiskit.circuit import Gate, ParameterVector, QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError

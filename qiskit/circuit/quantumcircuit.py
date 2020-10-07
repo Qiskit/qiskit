@@ -1617,7 +1617,7 @@ class QuantumCircuit:
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
                      for inst, qargs, cargs in self._data]
 
-        cpy._calibrations = copy.deepcopy(self.calibrations)
+        cpy._calibrations = copy.deepcopy(self._calibrations)
 
         if name:
             cpy.name = name
