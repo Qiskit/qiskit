@@ -251,7 +251,7 @@ class ParameterExpression:
         import sympy as sy
         keys = self._parameter_symbols[param]
         expr_grad = sy.N(0)
-        if not isinstance(keys, IterableAbc):
+        if not isinstance(keys, list):
             keys = [keys]
         # Since param may appear in more than one keys, loop through keys and apply product rule
         for key in keys:
