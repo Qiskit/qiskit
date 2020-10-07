@@ -641,6 +641,7 @@ stages:
             pip install -U -r requirements.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "matplotlib<3.3.0" pylatexenc pillow
+            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
