@@ -36,6 +36,7 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+from .delay import Delay
 
 try:
     import pygments
@@ -2007,7 +2008,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        from .delay import Delay
         qubits = []
         if qarg is None:  # -> apply delays to all qubits
             for q in self.qubits:
@@ -2399,7 +2399,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        from .delay import Delay
         if self.duration is None:
             raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
 
@@ -2436,7 +2435,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
-        from .delay import Delay
         if self.duration is None:
             raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
 
