@@ -68,7 +68,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             return '0'
 
         if output in ['text', 'qasm']:
-            pi = 'pi'
+            pi = '\u03C0'
         elif output == 'latex':
             pi = '\\pi'
         elif output == 'mpl':
