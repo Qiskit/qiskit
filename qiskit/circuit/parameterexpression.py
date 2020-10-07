@@ -12,7 +12,6 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from collections.abc import Iterable as IterableAbc
 from typing import Callable, Dict, Set, Union
 
 import numbers
@@ -233,7 +232,7 @@ class ParameterExpression:
 
         return ParameterExpression(parameter_symbols, expr)
 
-    def grad(self, param: 'ParameterExpression') -> Union['ParameterExpression', float]:
+    def gradient(self, param: 'ParameterExpression') -> Union['ParameterExpression', float]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -251,7 +250,7 @@ class ParameterExpression:
         import sympy as sy
         keys = self._parameter_symbols[param]
         expr_grad = sy.N(0)
-        if not isinstance(keys, IterableAbc):
+        if not isinstance(keys, list):
             keys = [keys]
         # Since param may appear in more than one keys, loop through keys and apply product rule
         for key in keys:
@@ -265,11 +264,11 @@ class ParameterExpression:
         for parameter, symbol in self._parameter_symbols.items():
             if symbol in expr_grad.free_symbols:
                 parameter_symbols[parameter] = symbol
-        # If the gradient corresponds to a parameter expression then return the new expression
+        # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
-        # ... else return a float corresponding to the gradient.
-        return float(expr_grad)  # if no free symbols left, convert to float
+        # If no free symbols left, return a float corresponding to the gradient.
+        return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)

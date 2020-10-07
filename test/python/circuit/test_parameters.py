@@ -1264,12 +1264,20 @@ class TestParameterExpressions(QiskitTestCase):
 
         with self.subTest(msg='first order gradient'):
             expr = (x + y) * z
-            self.assertEqual(expr.grad(x), z)
-            self.assertEqual(expr.grad(z), (x + y))
+            self.assertEqual(expr.gradient(x), z)
+            self.assertEqual(expr.gradient(z), (x + y))
+
+        with self.subTest(msg='multiple symbols corresponding to one key'):
+            px = Parameter('x')
+            x = px
+            z = px
+            expr = x * z
+            self.assertEqual(expr.gradient(px), 2*x)
+
         with self.subTest(msg='second order gradient'):
             expr = x * x
-            self.assertEqual(expr.grad(x), 2 * x)
-            self.assertEqual(expr.grad(x).grad(x), 2)
+            self.assertEqual(expr.gradient(x), 2 * x)
+            self.assertEqual(expr.gradient(x).gradient(x), 2)
 
 
 class TestParameterEquality(QiskitTestCase):
