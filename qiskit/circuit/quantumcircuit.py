@@ -804,17 +804,7 @@ class QuantumCircuit:
             CircuitError: if object passed is a subclass of Instruction
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
-        # make copy of parameterized gate instance if used in another circuit
-        is_referenced = sys.getrefcount(instruction) > 4
-        if is_referenced:
-            is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
-            if is_parameter:
-                param_items = self._parameter_table.items()
-                # leave alone if parameter instance exists within current circuit, o.w. make a copy
-                if not any([(instruction == item[1][0][0]) for item in param_items]):
-                    instruction = copy.deepcopy(instruction)
-
-        # convert input to instruction
+        # Convert input to instruction
         if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
             if issubclass(instruction, Instruction):
                 raise CircuitError('Object is a subclass of Instruction, please add () to '
@@ -824,6 +814,12 @@ class QuantumCircuit:
                                'have a to_instruction() method.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
+
+        # Make copy of parameterized gate instances
+        if hasattr(instruction, 'params'):
+            is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
+            if is_parameter:
+                instruction = copy.deepcopy(instruction)
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
