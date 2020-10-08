@@ -680,6 +680,7 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
+        dest._calibrations.update(other.calibrations)
 
         dest.global_phase += other.global_phase
 
@@ -1618,6 +1619,8 @@ class QuantumCircuit:
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
                      for inst, qargs, cargs in self._data]
 
+        cpy._calibrations = copy.deepcopy(self._calibrations)
+
         if name:
             cpy.name = name
         return cpy
@@ -1875,11 +1878,7 @@ class QuantumCircuit:
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
-            if isinstance(value, ParameterExpression):
-                bound_circuit._substitute_parameter(parameter, value)
-            else:
-                bound_circuit._bind_parameter(parameter, value)
-                del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+            bound_circuit._assign_parameter(parameter, value)
 
         return None if inplace else bound_circuit
 
@@ -1899,22 +1898,9 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        bound_circuit = self.copy()
-
-        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-        unrolled_value_dict = self._unroll_param_dict(value_dict)
-
-        # check that only existing parameters are in the parameter dictionary
-        if len(unrolled_value_dict) > len(self._parameter_table):
-            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self._parameter_table.keys()]))
-
-        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-        for parameter, value in unrolled_value_dict.items():
-            bound_circuit._bind_parameter(parameter, value)
-            del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
-
-        return bound_circuit
+        if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
+            raise TypeError('Found ParameterExpression in values; use assign_parameters instead.')
+        return self.assign_parameters(value_dict)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
@@ -1929,33 +1915,52 @@ class QuantumCircuit:
                 unrolled_value_dict.update(zip(param, value))
         return unrolled_value_dict
 
-    def _bind_parameter(self, parameter, value):
-        """Assigns a parameter value to matching instructions in-place."""
-        for (instr, param_index) in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].bind({parameter: value})
+    def _assign_parameter(self, parameter, value):
+        """Update this circuit where instances of ``parameter`` are replaced by ``value``, which
+        can be either a numeric value or a new parameter expression.
 
-            # For instructions which have already been defined (e.g. composite
-            # instructions), search the definition for instances of the
-            # parameter which also need to be bound.
+        Args:
+            parameter (ParameterExpression): Parameter to be bound
+            value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
+                replace instances of ``parameter``.
+        """
+        for instr, param_index in self._parameter_table[parameter]:
+            instr.params[param_index] = instr.params[param_index].assign(parameter, value)
             self._rebind_definition(instr, parameter, value)
-        # bind circuit's phase
+
+        if isinstance(value, ParameterExpression):
+            entry = self._parameter_table.pop(parameter)
+            for new_parameter in value.parameters:
+                self._parameter_table[new_parameter] = entry
+        else:
+            del self._parameter_table[parameter]  # clear evaluated expressions
+
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
-            self.global_phase = self.global_phase.bind({parameter: value})
+            self.global_phase = self.global_phase.assign(parameter, value)
+        self._assign_calibration_parameters(parameter, value)
 
-    def _substitute_parameter(self, old_parameter, new_parameter_expr):
-        """Substitute an existing parameter in all circuit instructions and the parameter table."""
-        for instr, param_index in self._parameter_table[old_parameter]:
-            new_param = instr.params[param_index].subs({old_parameter: new_parameter_expr})
-            instr.params[param_index] = new_param
-            self._rebind_definition(instr, old_parameter, new_parameter_expr)
-
-        entry = self._parameter_table.pop(old_parameter)
-        for new_parameter in new_parameter_expr.parameters:
-            self._parameter_table[new_parameter] = entry
-        if (isinstance(self.global_phase, ParameterExpression)
-                and old_parameter in self.global_phase.parameters):
-            self.global_phase = self.global_phase.subs({old_parameter: new_parameter_expr})
+    def _assign_calibration_parameters(self, parameter, value):
+        """Update parameterized pulse gate calibrations, if there are any which contain
+        ``parameter``. This updates the calibration mapping as well as the gate definition
+        ``Schedule``s, which also may contain ``parameter``.
+        """
+        for cals in self.calibrations.values():
+            for (qubit, cal_params), schedule in copy.copy(cals).items():
+                if any(isinstance(p, ParameterExpression) and parameter in p.parameters
+                       for p in cal_params):
+                    del cals[(qubit, cal_params)]
+                    new_cal_params = []
+                    for p in cal_params:
+                        if isinstance(p, ParameterExpression) and parameter in p.parameters:
+                            new_param = p.assign(parameter, value)
+                            if not new_param.parameters:
+                                new_param = float(new_param)
+                            new_cal_params.append(new_param)
+                        else:
+                            new_cal_params.append(p)
+                    schedule.assign_parameters({parameter: value})
+                    cals[(qubit, tuple(new_cal_params))] = schedule
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
