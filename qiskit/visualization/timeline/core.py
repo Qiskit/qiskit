@@ -146,7 +146,7 @@ class DrawerCanvas:
             program: Scheduled circuit object to draw.
         """
         self.bits = program.qubits + program.clbits
-        duration = 0
+        stop_time = 0
 
         for bit in self.bits:
             bit_events = events.BitEvents.load_program(scheduled_circuit=program,
@@ -179,10 +179,10 @@ class DrawerCanvas:
                 for data in obj_generator(bit):
                     self.add_data(data)
 
-            duration = max(duration, bit_events.duration)
+            stop_time = max(stop_time, bit_events.stop_time)
 
         # update time range
-        t_end = max(duration, self.formatter['margin.minimum_duration'])
+        t_end = max(stop_time, self.formatter['margin.minimum_duration'])
         self.set_time_range(t_start=0, t_end=t_end)
 
     def set_time_range(self,

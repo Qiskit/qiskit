@@ -2405,6 +2405,12 @@ class QuantumCircuit:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
         if self.duration is None:
+            # circuit has only delays, this is kind of scheduled
+            for inst, _, _ in self.data:
+                if not isinstance(inst, Delay):
+                    break
+            else:
+                return 0
             raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
@@ -2441,7 +2447,13 @@ class QuantumCircuit:
             CircuitError: if ``self`` is a not-yet scheduled circuit.
         """
         if self.duration is None:
-            raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+            # circuit has only delays, this is kind of scheduled
+            for inst, _, _ in self.data:
+                if not isinstance(inst, Delay):
+                    break
+            else:
+                return 0
+            raise CircuitError("qubit_stop_time is defined only for scheduled circuit.")
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
 
