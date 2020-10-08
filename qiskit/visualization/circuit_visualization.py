@@ -76,15 +76,15 @@ def circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        scale (float): scale of image to draw (shrink if < 1). Only used by the ``mpl``,
-            ``latex``, and ``latex_source`` outputs.
+        scale (float): scale of image to draw (shrink if < 1). Only used by the
+            ``mpl``, ``latex``, and ``latex_source`` outputs.
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
-            passed in that is the path to a json file which contains that will
-            be open, parsed, and then used just as the input dict. See:
-            :ref:`Style Dict Doc <style-dict-doc>` for more information on the
-            contents.
+            passed in that is the path to a json file which contains a style
+            dictionary that will be opened, parsed, and then used as the input
+            dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
+            information on the contents.
         output (str): Select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
             By default the `'text`' drawer is used unless a user config file
@@ -114,7 +114,7 @@ def circuit_drawer(circuit,
         with_layout (bool): Include layout information, with labels on the
             physical layout. Default is True.
         fold (int): Sets pagination. It can be disabled using -1.
-            In `text`, sets the length of the lines. This useful when the
+            In `text`, sets the length of the lines. This is useful when the
             drawing does not fit in the console. If None (default), it will try
             to guess the console width using ``shutil.get_terminal_size()``.
             However, if running in jupyter, the default line length is set to
@@ -128,21 +128,21 @@ def circuit_drawer(circuit,
             will be silently ignored with all other outputs.
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default: ``False``.
-        cregbundle (bool): Optional. If set True bundle classical registers.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``True``.
 
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
 
-        * `PIL.Image` (output='latex')
-            an in-memory representation of the image of the circuit diagram.
-        * `matplotlib.figure.Figure` (output='mpl')
-            a matplotlib figure object for the circuit diagram.
-        * `str` (output='latex_source')
-            The LaTeX source code for visualizing the circuit diagram.
         * `TextDrawing` (output='text')
             A drawing that can be printed as ascii art
+        * `PIL.Image` (output='latex')
+            an in-memory representation of the image of the circuit diagram.
+        * `str` (output='latex_source')
+            The LaTeX source code for visualizing the circuit diagram.
+        * `matplotlib.figure.Figure` (output='mpl')
+            a matplotlib figure object for the circuit diagram.
 
     Raises:
         VisualizationError: when an invalid output method is selected
@@ -158,10 +158,10 @@ def circuit_drawer(circuit,
 
     Args:
         name (str): The name of the style. The name can be set to 'iqx',
-            'bw', or 'default'. This overrides the setting in the
-            '~/.qiskit/settings.conf' file.
-        textcolor (str): The color code to use for text. Defaults to
-            `'#000000'`
+            'bw', 'default', or the name of a user-created json file.
+            This overrides the setting in the '~/.qiskit/settings.conf' file.
+        textcolor (str): The color code to use for all text not inside a gate.
+            Defaults to `'#000000'`
         subtextcolor (str): The color code to use for subtext. Defaults to
             `'#000000'`
         linecolor (str): The color code to use for lines. Defaults to
@@ -307,8 +307,8 @@ def circuit_drawer(circuit,
                                     initial_state=initial_state,
                                     cregbundle=cregbundle)
     elif output == 'latex':
-        image = _latex_circuit_drawer(circuit, scale=scale,
-                                      filename=filename, style=style,
+        image = _latex_circuit_drawer(circuit,
+                                      filename=filename, scale=scale,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -319,7 +319,6 @@ def circuit_drawer(circuit,
     elif output == 'latex_source':
         return _generate_latex_source(circuit,
                                       filename=filename, scale=scale,
-                                      style=style,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -346,80 +345,6 @@ def circuit_drawer(circuit,
     if image and interactive:
         image.show()
     return image
-
-
-# -----------------------------------------------------------------------------
-# Plot style sheet option
-# -----------------------------------------------------------------------------
-def qx_color_scheme():
-    """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
-    warn('The qx_color_scheme function is deprecated as of 0.11, and '
-         'will be removed no earlier than 3 months after that release '
-         'date.', DeprecationWarning, stacklevel=2)
-    return {
-        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
-        "textcolor": "#000000",
-        "gatetextcolor": "#000000",
-        "subtextcolor": "#000000",
-        "linecolor": "#000000",
-        "creglinecolor": "#b9b9b9",
-        "gatefacecolor": "#ffffff",
-        "barrierfacecolor": "#bdbdbd",
-        "backgroundcolor": "#ffffff",
-        "fold": 20,
-        "fontsize": 13,
-        "subfontsize": 8,
-        "figwidth": -1,
-        "dpi": 150,
-        "displaytext": {
-            "id": "id",
-            "u0": "U_0",
-            "u1": "U_1",
-            "u2": "U_2",
-            "u3": "U_3",
-            "x": "X",
-            "y": "Y",
-            "z": "Z",
-            "h": "H",
-            "s": "S",
-            "sdg": "S^\\dagger",
-            "t": "T",
-            "tdg": "T^\\dagger",
-            "rx": "R_x",
-            "ry": "R_y",
-            "rz": "R_z",
-            "reset": "\\left|0\\right\\rangle"
-        },
-        "displaycolor": {
-            "id": "#ffca64",
-            "u0": "#f69458",
-            "u1": "#f69458",
-            "u2": "#f69458",
-            "u3": "#f69458",
-            "x": "#a6ce38",
-            "y": "#a6ce38",
-            "z": "#a6ce38",
-            "h": "#00bff2",
-            "s": "#00bff2",
-            "sdg": "#00bff2",
-            "t": "#ff6666",
-            "tdg": "#ff6666",
-            "rx": "#ffca64",
-            "ry": "#ffca64",
-            "rz": "#ffca64",
-            "reset": "#d7ddda",
-            "target": "#00bff2",
-            "meas": "#f070aa"
-        },
-        "latexdrawerstyle": True,
-        "usepiformat": False,
-        "cregbundle": False,
-        "showindex": False,
-        "compress": True,
-        "margin": [2.0, 0.0, 0.0, 0.3],
-        "creglinestyle": "solid",
-        "reversebits": False
-    }
 
 
 # -----------------------------------------------------------------------------
@@ -578,7 +503,7 @@ def _latex_circuit_drawer(circuit,
 
 
 def _generate_latex_source(circuit, filename=None,
-                           scale=0.7, style=None, reverse_bits=False,
+                           scale=0.7, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
                            with_layout=True, initial_state=False, cregbundle=False):
     """Convert QuantumCircuit to LaTeX string.
@@ -613,7 +538,7 @@ def _generate_latex_source(circuit, filename=None,
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,

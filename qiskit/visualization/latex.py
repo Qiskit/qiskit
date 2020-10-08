@@ -16,14 +16,12 @@
 
 import collections
 import io
-import json
 import math
 import re
 
 import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
@@ -38,7 +36,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale, style=None,
+    def __init__(self, qubits, clbits, ops, scale,
                  plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
@@ -48,7 +46,6 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
-            style (dict or str): dictionary of style or file name of style file
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be

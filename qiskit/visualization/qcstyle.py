@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
-
-from copy import copy
 from warnings import warn
 
 
@@ -20,6 +17,8 @@ class DefaultStyle:
     """IBM Design Style colors
     """
     def __init__(self):
+        """Creates a Default Style dictionary
+        """
         colors = {
             '### Default Colors': 'Default Colors',
             'basis': '#FA74A6',         # Red
@@ -35,8 +34,8 @@ class DefaultStyle:
             '### B/W': 'B/W',
             'black': '#000000',
             'white': '#FFFFFF',
-            'light_gray': '#778899',
-            'dark_gray': '#BDBDBD'
+            'dark_gray': '#778899',
+            'light_gray': '#BDBDBD'
         }
         self.style = {
             'name': 'default',
@@ -44,10 +43,10 @@ class DefaultStyle:
             'gt': colors['black'],          # Gate Text Color
             'sc': colors['black'],          # Gate Subtext Color
             'lc': colors['black'],          # Line Color
-            'cc': colors['light_gray'],     # creg Line Color
+            'cc': colors['dark_gray'],      # creg Line Color
             'gc': colors['def_other'],      # Default Gate Color
             'mc': colors['white'],          # Measure Arcs Color
-            'bc': colors['dark_gray'],      # Barrier Color
+            'bc': colors['light_gray'],     # Barrier Color
             'bg': colors['white'],          # Background Color
             'ec': None,                     # Edge Color (B/W only)
             'fs': 13,                       # Gate Font Size
@@ -128,13 +127,16 @@ class DefaultStyle:
                 'rzx': (colors['def_other'], colors['black']),
                 'reset': (colors['black'], colors['white']),
                 'target': (colors['white'], colors['white']),
-                'barrier': (colors['dark_gray'], colors['black']),
+                'barrier': (colors['light_gray'], colors['black']),
                 'measure': (colors['black'], colors['white'])
             }
         }
 
 
 def set_style(def_style, json_style):
+    """Utility function to take elements in json_style and
+    write them into def_style.
+    """
     def_style['name'] = json_style.pop('name', def_style['name'])
     def_style['tc'] = json_style.pop('textcolor', def_style['tc'])
     def_style['gt'] = json_style.pop('gatetextcolor', def_style['gt'])
@@ -163,5 +165,5 @@ def set_style(def_style, json_style):
             def_style['dispcol'][col] = dcol[col]
 
     if json_style:
-        warn('style option/s ({}) is/are not supported'.format(', '.join(json_dict.keys())),
+        warn('style option/s ({}) is/are not supported'.format(', '.join(json_style.keys())),
              DeprecationWarning, 2)
