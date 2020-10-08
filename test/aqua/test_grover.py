@@ -145,8 +145,16 @@ class TestGroverConstructor(QiskitAquaTestCase):
         init_state = Zero(2)
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
-        with self.assertRaises(TypeError):
-            Grover(oracle=oracle, state_preparation=init_state)
+        # filtering the following:
+        # DeprecationWarning: Passing an InitialState component is deprecated as of 0.8.0,
+        # and will be removed no earlier than 3 months after the release date.
+        # You should pass a QuantumCircuit instead.
+        try:
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            with self.assertRaises(TypeError):
+                Grover(oracle=oracle, state_preparation=init_state)
+        finally:
+            warnings.filterwarnings(action="always", category=DeprecationWarning)
 
     def test_is_good_state_list(self):
         """Test List is_good_state"""
@@ -248,7 +256,16 @@ class TestGroverFunctionality(QiskitAquaTestCase):
 
     def test_num_iteration(self):
         """Test specified num_iterations"""
-        grover = Grover(oracle=self._oracle, good_state=['111'], num_iterations=2)
+        # filtering the following:
+        # DeprecationWarning: The num_iterations argument is deprecated as of 0.8.0,
+        # and will be removed no earlier than 3 months after the release date.
+        # If you want to use the num_iterations argument you should use the iterations
+        # argument instead and pass an integer for the number of iterations.
+        try:
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            grover = Grover(oracle=self._oracle, good_state=['111'], num_iterations=2)
+        finally:
+            warnings.filterwarnings(action="always", category=DeprecationWarning)
         ret = grover.run(self._sv)
         self.assertTrue(Operator(ret['circuit']).equiv(Operator(self._expected)))
 
