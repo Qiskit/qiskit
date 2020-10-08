@@ -77,7 +77,6 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
 
-
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
         desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
