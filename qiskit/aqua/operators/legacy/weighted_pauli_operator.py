@@ -26,7 +26,7 @@ from qiskit.quantum_info import Pauli
 from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
-from qiskit.aqua import AquaError, aqua_globals
+from qiskit.aqua import AquaError, aqua_globals, MissingOptionalLibraryError
 from .base_operator import LegacyBaseOperator
 from .common import (measure_pauli_z, covariance, pauli_measurement,
                      kernel_F2, suzuki_expansion_slice_pauli_list,
@@ -704,6 +704,7 @@ class WeightedPauliOperator(LegacyBaseOperator):
 
         Raises:
             AquaError: if Operator is empty
+            MissingOptionalLibraryError: qiskit-aer not installed
         """
         if self.is_empty():
             raise AquaError("Operator is empty, check the operator.")
@@ -712,7 +713,13 @@ class WeightedPauliOperator(LegacyBaseOperator):
         qc = QuantumCircuit(qr)
         if use_simulator_snapshot_mode and self.paulis:
             # pylint: disable=import-outside-toplevel
-            from qiskit.providers.aer.extensions import SnapshotExpectationValue
+            try:
+                from qiskit.providers.aer.extensions import SnapshotExpectationValue
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname='qiskit-aer',
+                    name='evaluation_instruction',
+                    pip_install='pip install qiskit-aer') from ex
             snapshot = SnapshotExpectationValue('expval', self.paulis, variance=True)
             instructions = {'expval_snapshot': snapshot}
         elif statevector_mode:

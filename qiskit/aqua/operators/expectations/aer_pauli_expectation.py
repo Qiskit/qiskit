@@ -15,6 +15,7 @@
 import logging
 from typing import Union
 
+from qiskit.aqua import MissingOptionalLibraryError
 from ..operator_base import OperatorBase
 from .expectation_base import ExpectationBase
 from ..list_ops.list_op import ListOp
@@ -53,7 +54,13 @@ class AerPauliExpectation(ExpectationBase):
     # pylint: disable=inconsistent-return-statements,import-outside-toplevel
     @classmethod
     def _replace_pauli_sums(cls, operator):
-        from qiskit.providers.aer.extensions import SnapshotExpectationValue
+        try:
+            from qiskit.providers.aer.extensions import SnapshotExpectationValue
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname='qiskit-aer',
+                name='AerPauliExpectation',
+                pip_install='pip install qiskit-aer') from ex
         # The 'expval_measurement' label on the snapshot instruction is special - the
         # CircuitSampler will look for it to know that the circuit is a Expectation
         # measurement, and not simply a
