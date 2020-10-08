@@ -19,6 +19,7 @@ import warnings
 import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
+from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
@@ -35,6 +36,7 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+from .delay import Delay
 
 try:
     import pygments
@@ -2006,7 +2008,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        from .delay import Delay
         qubits = []
         if qarg is None:  # -> apply delays to all qubits
             for q in self.qubits:
@@ -2368,6 +2369,91 @@ class QuantumCircuit:
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+
+    # Functions only for scheduled circuits
+    def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+        """Return the duration between the start and stop time of the first and last instructions,
+        excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
+
+        Args:
+            *qubits: Qubits within ``self`` to include.
+
+        Returns:
+            Return the duration between the first start and last stop time of non-delay instructions
+        """
+        return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
+
+    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+        """Return the start time of the first instruction, excluding delays,
+        over the supplied qubits. Its time unit is ``self.unit``.
+
+        Return 0 if there are no instructions over qubits
+
+        Args:
+            *qubits: Qubits within ``self`` to include. Integers are allowed for qubits, indicating
+            indices of ``self.qubits``.
+
+        Returns:
+            Return the start time of the first instruction, excluding delays, over the qubits
+
+        Raises:
+            CircuitError: if ``self`` is a not-yet scheduled circuit.
+        """
+        if self.duration is None:
+            raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+
+        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
+
+        starts = {q: 0 for q in qubits}
+        dones = {q: False for q in qubits}
+        for inst, qargs, _ in self.data:
+            for q in qubits:
+                if q in qargs:
+                    if isinstance(inst, Delay):
+                        if not dones[q]:
+                            starts[q] += inst.duration
+                    else:
+                        dones[q] = True
+            if len(qubits) == len([done for done in dones.values() if done]):  # all done
+                return min(start for start in starts.values())
+
+        return 0  # If there are no instructions over bits
+
+    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+        """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
+        Its time unit is ``self.unit``.
+
+        Return 0 if there are no instructions over qubits
+
+        Args:
+            *qubits: Qubits within ``self`` to include. Integers are allowed for qubits, indicating
+            indices of ``self.qubits``.
+
+        Returns:
+            Return the stop time of the last instruction, excluding delays, over the qubits
+
+        Raises:
+            CircuitError: if ``self`` is a not-yet scheduled circuit.
+        """
+        if self.duration is None:
+            raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+
+        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
+
+        stops = {q: self.duration for q in qubits}
+        dones = {q: False for q in qubits}
+        for inst, qargs, _ in reversed(self.data):
+            for q in qubits:
+                if q in qargs:
+                    if isinstance(inst, Delay):
+                        if not dones[q]:
+                            stops[q] -= inst.duration
+                    else:
+                        dones[q] = True
+            if len(qubits) == len([done for done in dones.values() if done]):  # all done
+                return max(stop for stop in stops.values())
+
+        return 0  # If there are no instructions over bits
 
 
 def _circuit_from_qasm(qasm):
