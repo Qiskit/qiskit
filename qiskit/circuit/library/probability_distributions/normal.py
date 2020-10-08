@@ -169,12 +169,15 @@ class NormalDistribution(QuantumCircuit):
         probabilities = multivariate_normal.pdf(x, mu, sigma)
         normalized_probabilities = probabilities / np.sum(probabilities)
 
-        # use default the isometry (or initialize) algorithm to construct the circuit
+        # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
         if upto_phase:
             self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
         else:
-            self.initialize(np.sqrt(normalized_probabilities), self.qubits)
+            from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
+            initialize = Initialize(np.sqrt(normalized_probabilities))
+            circuit = initialize.gates_to_uncompute().inverse()
+            self.compose(circuit, inplace=True)
 
 
 def _check_dimensions_match(num_qubits, mu, sigma, bounds):
