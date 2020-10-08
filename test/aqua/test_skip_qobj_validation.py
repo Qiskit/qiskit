@@ -85,7 +85,7 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
             from qiskit.providers.aer.noise import NoiseModel
             from qiskit import Aer
             self.backend = Aer.get_backend('qasm_simulator')
-        except Exception as ex:  # pylint: disable=broad-except
+        except ImportError as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 

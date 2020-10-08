@@ -35,7 +35,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         super().setUp()
         try:
             from qiskit import Aer  # pylint: disable=unused-import,import-outside-toplevel
-        except Exception as ex:  # pylint: disable=broad-except
+        except ImportError as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -45,7 +45,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except Exception as ex:  # pylint: disable=broad-except
+        except ImportError as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -85,7 +85,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except Exception as ex:  # pylint: disable=broad-except
+        except ImportError as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -123,8 +123,12 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
     def test_measurement_error_mitigation_with_dedicated_shots(self):
         """ measurement error mitigation with dedicated shots test """
         # pylint: disable=import-outside-toplevel
-        from qiskit import Aer
-        from qiskit.providers.aer import noise
+        try:
+            from qiskit import Aer
+            from qiskit.providers.aer import noise
+        except ImportError as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
 
         aqua_globals.random_seed = 0
 
@@ -159,8 +163,12 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
         """ measurement error mitigation with different qubit order"""
         # pylint: disable=import-outside-toplevel
-        from qiskit import Aer
-        from qiskit.providers.aer import noise
+        try:
+            from qiskit import Aer
+            from qiskit.providers.aer import noise
+        except ImportError as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
 
         aqua_globals.random_seed = 0
 
@@ -207,7 +215,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except Exception as ex:  # pylint: disable=broad-except
+        except ImportError as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
