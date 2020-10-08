@@ -251,6 +251,9 @@ class ParameterExpression:
     def __neg__(self):
         return self._apply_operation(operator.mul, -1.0)
 
+    def __pow__(self, power):
+        return self._apply_operation(operator.pow, power)
+    
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
 
@@ -262,6 +265,65 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def _call(self, ufunc, *args):
+        return ParameterExpression(
+            self._parameter_symbols,
+            ufunc(self._symbol_expr, *args)
+        )
+
+    def sin(self):
+        """Sine of a ParameterExpression"""
+        from sympy import sin as _sin
+        return self._call(_sin)
+
+    def cos(self):
+        """Cosine of a ParameterExpression"""
+        from sympy import cos as _cos
+        return self._call(_cos)
+
+    def tan(self):
+        """Tangent of a ParameterExpression"""
+        from sympy import tan as _tan
+        return self._call(_tan)
+
+    def arcsin(self):
+        """Arcsin of a ParameterExpression"""
+        from sympy import asin as _asin
+        return self._call(_asin)
+
+    def arccos(self):
+        """Arccos of a ParameterExpression"""
+        from sympy import acos as _acos
+        return self._call(_acos)
+
+    def arctan(self):
+        """Arctan of a ParameterExpression"""
+        from sympy import atan as _atan
+        return self._call(_atan)
+
+    def arctan2(self, denom):
+        """Arctan2 of a ParameterExpression"""
+        from sympy import atan2, fraction
+        num, den = fraction(self._symbol_expr)
+        return ParameterExpression(
+            self._parameter_symbols,
+            atan2(num, den))
+    
+    def exp(self):
+        """Exponential of a ParameterExpression"""
+        from sympy import exp as _exp
+        return self._call(_exp)
+
+    def log(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import log as _log
+        return self._call(_log)
+
+    def sqrt(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import sqrt as _sqrt
+        return self._call(_sqrt)
+    
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 
