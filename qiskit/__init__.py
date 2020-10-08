@@ -75,8 +75,8 @@ _config = _user_config.get_config()
 
 # Try to import the Aer provider if installed.
 try:
-    from qiskit.providers import aer
-    Aer = aer.Aer
+    import qiskit_aer
+    Aer = qiskit_aer.Aer
 except ImportError:
     suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
     if suppress_warnings.upper() != 'Y':
