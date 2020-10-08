@@ -82,7 +82,7 @@ class BasisTranslator(TransformationPass):
             return dag
 
         # Names of instructions assumed to supported by any backend.
-        basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
+        basic_instrs = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
 
         target_basis = set(self._target_basis).union(basic_instrs)
 
