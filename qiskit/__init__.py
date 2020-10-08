@@ -73,14 +73,6 @@ from qiskit.providers.basicaer import BasicAer  # noqa
 
 _config = _user_config.get_config()
 
-from qiskit.execute import execute  # noqa
-from qiskit.compiler import transpile, assemble, schedule  # noqa
-
-from .version import __version__  # noqa
-from .version import _get_qiskit_versions  # noqa
-
-__qiskit_version__ = _get_qiskit_versions()
-
 # Try to import the Aer provider if installed.
 try:
     from qiskit.providers import aer
@@ -106,3 +98,14 @@ except ImportError:
                           'qiskit-ibmq-provider or check your installation.',
                           RuntimeWarning)
 
+
+# Moved to after IBMQ and Aer imports due to import issues
+# with other modules that check for IBMQ (tools)
+from qiskit.execute import execute  # noqa
+from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
+
+from .version import __version__  # noqa
+from .version import _get_qiskit_versions  # noqa
+
+
+__qiskit_version__ = _get_qiskit_versions()
