@@ -46,9 +46,9 @@ def draw(program: circuit.QuantumCircuit,
         program: Program to visualize. This program should be a `QuantumCircuit` which is
             transpiled with a scheduling_method, thus containing gate time information.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
-            :py:class:`~qiskit.visualization.timeline.stylesheets.IqxStandard`,
-            :py:class:`~qiskit.visualization.timeline.stylesheets.IqxSimple`, and
-            :py:class:`~qiskit.visualization.timeline.stylesheets.IqxDebugging` for details of
+            :py:class:`~qiskit.visualization.timeline.stylesheets.IQXStandard`,
+            :py:class:`~qiskit.visualization.timeline.stylesheets.IQXSimple`, and
+            :py:class:`~qiskit.visualization.timeline.stylesheets.IQXDebugging` for details of
             preset stylesheets. See also the stylesheet section for details of configuration keys.
         time_range: Set horizontal axis limit.
         disable_bits: List of qubits of classical bits not shown in the output image.
@@ -298,7 +298,7 @@ def draw(program: circuit.QuantumCircuit,
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit, transpile, schedule
-            from qiskit.visualization.timeline import draw, IqxSimple
+            from qiskit.visualization.timeline import draw, IQXSimple
             from qiskit.test.mock import FakeAlmaden
 
             qc = QuantumCircuit(2)
@@ -306,14 +306,14 @@ def draw(program: circuit.QuantumCircuit,
             qc.cx(0,1)
 
             qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
-            draw(qc, style=IqxSimple())
+            draw(qc, style=IQXSimple())
 
         Drawing with the stylesheet suited for program debugging.
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit, transpile, schedule
-            from qiskit.visualization.timeline import draw, IqxDebugging
+            from qiskit.visualization.timeline import draw, IQXDebugging
             from qiskit.test.mock import FakeAlmaden
 
             qc = QuantumCircuit(2)
@@ -321,7 +321,7 @@ def draw(program: circuit.QuantumCircuit,
             qc.cx(0,1)
 
             qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
-            draw(qc, style=IqxDebugging())
+            draw(qc, style=IQXDebugging())
 
         You can partially customize a preset stylesheet when call it::
 
@@ -329,7 +329,7 @@ def draw(program: circuit.QuantumCircuit,
                 'formatter.general.fig_width': 16,
                 'formatter.general.fig_unit_height': 1
             }
-            style = IqxStandard(**my_style)
+            style = IQXStandard(**my_style)
 
             # draw
             draw(qc, style=style)
@@ -341,7 +341,7 @@ def draw(program: circuit.QuantumCircuit,
     """
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
-    temp_style.update(style or stylesheet.IqxStandard())
+    temp_style.update(style or stylesheet.IQXStandard())
 
     # update control properties
     if show_idle is not None:

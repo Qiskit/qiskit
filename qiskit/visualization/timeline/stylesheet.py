@@ -96,7 +96,7 @@ class QiskitTimelineStyle(dict):
         return sub_dict
 
 
-class IqxStandard(dict):
+class IQXStandard(dict):
     """Standard timeline stylesheet.
 
     - Show time buckets.
@@ -128,7 +128,7 @@ class IqxStandard(dict):
         return 'Standard timeline style sheet.'
 
 
-class IqxSimple(dict):
+class IQXSimple(dict):
     """Simple timeline stylesheet.
 
     - Show time buckets.
@@ -157,7 +157,7 @@ class IqxSimple(dict):
         return 'Simplified timeline style sheet.'
 
 
-class IqxDebugging(dict):
+class IQXDebugging(dict):
     """Timeline stylesheet for programmers. Show details of instructions.
 
     - Show time buckets.
