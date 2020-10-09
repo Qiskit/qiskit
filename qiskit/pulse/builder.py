@@ -282,8 +282,8 @@ class _PulseBuilder():
             duplication.
 
         Args:
-            backend (BaseBackend): Input backend to use in builder. If not set
-                certain functionality will be unavailable.
+            backend (Union[Backend, BaseBackend]): Input backend to use in
+                builder. If not set certain functionality will be unavailable.
             schedule: Initital schedule to build on. If not supplied
                 a schedule will be created.
             name: Name of pulse program to be built. Only used if `schedule`
@@ -345,7 +345,7 @@ class _PulseBuilder():
         """Returns the builder backend if set.
 
         Returns:
-            Optional[BaseBackend]: The builder's backend.
+            Optional[Union[Backend, BaseBackend]]: The builder's backend.
         """
         return self._backend
 
@@ -543,7 +543,7 @@ def build(backend=None,
         qiskit.execute(pulse_prog, backend)
 
     Args:
-        backend (BaseBackend): A Qiskit backend. If not supplied certain
+        backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
         schedule: a *mutable* pulse Schedule in which your pulse program will
             be built.
@@ -592,7 +592,7 @@ def active_backend():
     """Get the backend of the currently active builder context.
 
     Returns:
-        BaseBackend: The active backend in the currently active
+        Union[Backend, BaseBackend]: The active backend in the currently active
             builder context.
 
     Raises:
