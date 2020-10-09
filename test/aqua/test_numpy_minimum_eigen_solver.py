@@ -125,6 +125,21 @@ class TestNumPyMinimumEigensolver(QiskitAquaTestCase):
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 
+    def test_cme_filter_empty(self):
+        """ Test with filter always returning False """
+
+        # define filter criterion
+        # pylint: disable=unused-argument
+        def criterion(x, v, a_v):
+            return False
+
+        algo = NumPyMinimumEigensolver(
+            self.qubit_op, aux_operators=self.aux_ops, filter_criterion=criterion)
+        result = algo.run()
+        self.assertEqual(result.eigenvalue, None)
+        self.assertEqual(result.eigenstate, None)
+        self.assertEqual(result.aux_operator_eigenvalues, None)
+
 
 if __name__ == '__main__':
     unittest.main()

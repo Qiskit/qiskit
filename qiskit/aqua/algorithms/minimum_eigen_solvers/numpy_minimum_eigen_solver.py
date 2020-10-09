@@ -72,6 +72,18 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
                                                                   LegacyBaseOperator]]]]) -> None:
         self._ces.aux_operators = aux_operators
 
+    @property
+    def filter_criterion(self) -> Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+        """ returns the filter criterion if set """
+        return self._ces.filter_criterion
+
+    @filter_criterion.setter
+    def filter_criterion(self, filter_criterion: Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
+        """ set the filter criterion """
+        self._ces.filter_criterion = filter_criterion
+
     def supports_aux_operators(self) -> bool:
         return self._ces.supports_aux_operators()
 
@@ -94,11 +106,16 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
         self._ret = self._ces._ret  # TODO remove
 
         result = MinimumEigensolverResult()
-        result.eigenvalue = result_ces.eigenvalues[0]
-        result.eigenstate = result_ces.eigenstates[0]
-        if result_ces.aux_operator_eigenvalues is not None:
-            if len(result_ces.aux_operator_eigenvalues) > 0:
-                result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
+        if len(result_ces.eigenvalues) > 0:
+            result.eigenvalue = result_ces.eigenvalues[0]
+            result.eigenstate = result_ces.eigenstates[0]
+            if result_ces.aux_operator_eigenvalues is not None:
+                if len(result_ces.aux_operator_eigenvalues) > 0:
+                    result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
+        else:
+            result.eigenvalue = None
+            result.eigenstate = None
+            result.aux_operator_eigenvalues = None
 
         logger.debug('NumPyMinimumEigensolver dict:\n%s',
                      pprint.pformat(result.data, indent=4))

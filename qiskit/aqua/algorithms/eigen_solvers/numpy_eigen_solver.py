@@ -131,6 +131,18 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
         self._in_k = k
         self._check_set_k()
 
+    @property
+    def filter_criterion(self) -> Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+        """ returns the filter criterion if set """
+        return self._filter_criterion
+
+    @filter_criterion.setter
+    def filter_criterion(self, filter_criterion: Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
+        """ set the filter criterion """
+        self._filter_criterion = filter_criterion
+
     def supports_aux_operators(self) -> bool:
         return True
 

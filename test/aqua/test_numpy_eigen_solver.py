@@ -72,6 +72,19 @@ class TestNumPyEigensolver(QiskitAquaTestCase):
         self.assertEqual(len(result.eigenstates), 2)
         np.testing.assert_array_almost_equal(result.eigenvalues.real, [-0.88272215, -0.22491125])
 
+    def test_ce_k4_filtered_empty(self):
+        """ Test for k=4 eigenvalues with filter always returning False """
+
+        # define filter criterion
+        # pylint: disable=unused-argument
+        def criterion(x, v, a_v):
+            return False
+
+        algo = NumPyEigensolver(self.qubit_op, k=4, aux_operators=[], filter_criterion=criterion)
+        result = algo.run()
+        self.assertEqual(len(result.eigenvalues), 0)
+        self.assertEqual(len(result.eigenstates), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
