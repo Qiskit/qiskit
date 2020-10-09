@@ -32,38 +32,18 @@ class DAGNode:
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
                  condition=None, wire=None, nid=-1):
         """Create a node """
-        if isinstance(type, dict):
-            warnings.warn("Using data_dict as a a parameter to create a "
-                          "DAGNode object is deprecated. Instead pass each "
-                          "field in the dictionary as a kwarg",
-                          DeprecationWarning, stacklevel=2)
-            data_dict = type
-            self.type = data_dict.get('type')
-            self._op = data_dict.get('op')
-            self.name = data_dict.get('name')
-            self._qargs = data_dict.get('qargs')
-            self.cargs = data_dict.get('cargs')
-            if data_dict.get('condition'):
-                warnings.warn("Use of condition arg is deprecated, set condition in instruction",
-                              DeprecationWarning)
-            if self._op:
-                self._op.condition = (data_dict.get('condition') if self._op.condition is None
-                                      else self._op.condition)
-            self.condition = self._op.condition if self._op is not None else None
-            self._wire = data_dict.get('wire')
-        else:
-            self.type = type
-            self._op = op
-            self.name = name
-            self._qargs = qargs if qargs is not None else []
-            self.cargs = cargs if cargs is not None else []
-            if condition:
-                warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
-                              DeprecationWarning)
-            if self._op:
-                self._op.condition = condition if self._op.condition is None else self._op.condition
-            self.condition = self._op.condition if self._op is not None else None
-            self._wire = wire
+        self.type = type
+        self._op = op
+        self.name = name
+        self._qargs = qargs if qargs is not None else []
+        self.cargs = cargs if cargs is not None else []
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
+                          DeprecationWarning)
+        if self._op:
+            self._op.condition = condition if self._op.condition is None else self._op.condition
+        self.condition = self._op.condition if self._op is not None else None
+        self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
 
