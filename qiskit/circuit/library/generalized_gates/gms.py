@@ -18,10 +18,11 @@ Global Mølmer–Sørensen gate.
 from typing import Union, List
 
 import numpy as np
+# pylint: disable=cyclic-import
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.rxx import RXXGate
 
 
 class GMS(QuantumCircuit):
@@ -114,7 +115,6 @@ class MSGate(Gate):
         super().__init__('ms', num_qubits, [theta], label=label)
 
     def _define(self):
-        # pylint: disable=cyclic-import
         theta = self.params[0]
         q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)
