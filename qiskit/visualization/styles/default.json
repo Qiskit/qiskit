@@ -6,7 +6,6 @@
     "linecolor": "#000000",
     "creglinecolor": "#778899",
     "gatefacecolor": "#BB8BFF",
-    "measurefacecolor": "#FFFFFF",
     "barrierfacecolor": "#BDBDBD",
     "backgroundcolor": "#FFFFFF",
     "edgecolor": null,
@@ -205,10 +204,6 @@
         "target": [
             "#FFFFFF",
             "#FFFFFF"
-        ],
-        "barrier": [
-            "#BDBDBD",
-            "#000000"
         ],
         "measure": [
             "#000000",

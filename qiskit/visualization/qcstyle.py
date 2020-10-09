@@ -45,7 +45,6 @@ class DefaultStyle:
             'lc': colors['black'],          # Line Color
             'cc': colors['dark_gray'],      # creg Line Color
             'gc': colors['def_other'],      # Default Gate Color
-            'mc': colors['white'],          # Measure Arcs Color
             'bc': colors['light_gray'],     # Barrier Color
             'bg': colors['white'],          # Background Color
             'ec': None,                     # Edge Color (B/W only)
@@ -127,7 +126,6 @@ class DefaultStyle:
                 'rzx': (colors['def_other'], colors['black']),
                 'reset': (colors['black'], colors['white']),
                 'target': (colors['white'], colors['white']),
-                'barrier': (colors['light_gray'], colors['black']),
                 'measure': (colors['black'], colors['white'])
             }
         }
@@ -144,7 +142,6 @@ def set_style(def_style, json_style):
     def_style['lc'] = json_style.pop('linecolor', def_style['lc'])
     def_style['cc'] = json_style.pop('creglinecolor', def_style['cc'])
     def_style['gc'] = json_style.pop('gatefacecolor', def_style['gc'])
-    def_style['mc'] = json_style.pop('measurefacecolor', def_style['mc'])
     def_style['bc'] = json_style.pop('barrierfacecolor', def_style['bc'])
     def_style['bg'] = json_style.pop('backgroundcolor', def_style['bg'])
     def_style['ec'] = json_style.pop('edgecolor', def_style['ec'])

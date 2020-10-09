@@ -82,7 +82,7 @@ def circuit_drawer(circuit,
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
             passed in that is the path to a json file which contains a style
-            dictionary that will be opened, parsed, and then used as the input
+            dictionary, it will be opened, parsed, and then used as the input
             dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
             information on the contents.
         output (str): Select the output method to use for drawing the circuit.
@@ -171,38 +171,51 @@ def circuit_drawer(circuit,
         gatetextcolor (str): The color code to use for gate text. Defaults to
             `'#000000'`
         gatefacecolor (str): The color code to use for gates. Defaults to
-            `'#ffffff'`
+            `'#BB8BFF'`
         barrierfacecolor (str): The color code to use for barriers. Defaults to
-            `'#bdbdbd'`
+            `'#BDBDBD'`
         backgroundcolor (str): The color code to use for the background.
-            Defaults to `'#ffffff'`
+            Defaults to `'#FFFFFF'`
         fontsize (int): The font size to use for text. Defaults to 13
         subfontsize (int): The font size to use for subtext. Defaults to 8
-        displaytext (dict): A dictionary of the text to use for each element
-            type in the output visualization. The default values are::
+        displaytext (dict): A dictionary of the text to use for certain element
+            types in the output visualization. These items allow the use of
+            LaTeX formatting for gate names. The default values are::
 
                 {
-                    'id': 'id',
-                    'u0': 'U_0',
-                    'u1': 'U_1',
-                    'u2': 'U_2',
-                    'u3': 'U_3',
+                    'u1': '$\\mathrm{U}_1$',
+                    'u2': '$\\mathrm{U}_2$',
+                    'u3': '$\\mathrm{U}_3$',
+                    'u': 'U',
+                    'p': 'P',
+                    'id': 'I',
                     'x': 'X',
                     'y': 'Y',
                     'z': 'Z',
                     'h': 'H',
                     's': 'S',
-                    'sdg': 'S^\\dagger',
+                    'sdg': '$\\mathrm{S}^\\dagger$',
+                    'sx': '$\\sqrt{\\mathrm{X}}$',
+                    'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
                     't': 'T',
-                    'tdg': 'T^\\dagger',
-                    'rx': 'R_x',
-                    'ry': 'R_y',
-                    'rz': 'R_z',
-                    'reset': '\\left|0\\right\\rangle'
+                    'tdg': '$\\mathrm{T}^\\dagger$',
+                    'dcx': 'Dcx',
+                    'iswap': 'Iswap',
+                    'ms': 'MS',
+                    'r': 'R',
+                    'rx': '$\\mathrm{R}_\\mathrm{X}$',
+                    'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+                    'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+                    'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+                    'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+                    'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+                    'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+                    'reset': '$\\left|0\\right\\rangle$',
+                    'initialize': '$|\\psi\\rangle$'
                 }
 
-            You must specify all the necessary values if using this. There is
-            no provision for passing an incomplete dict in.
+            The 'displaytext' dict can contain any number of elements from one to
+            the entire dict above.
         displaycolor (dict): The color codes to use for each circuit
             element in the form (gate_color, text_color).
             The default values are::
@@ -212,20 +225,31 @@ def circuit_drawer(circuit,
                     'u2': ('#FA74A6', '#000000'),
                     'u3': ('#FA74A6', '#000000'),
                     'id': ('#05BAB6', '#000000'),
+                    'u': ('#BB8BFF', '#000000'),
+                    'p': ('#BB8BFF', '#000000'),
                     'x': ('#05BAB6', '#000000'),
                     'y': ('#05BAB6', '#000000'),
                     'z': ('#05BAB6', '#000000'),
                     'h': ('#6FA4FF', '#000000'),
                     'cx': ('#6FA4FF', '#000000'),
+                    'ccx': ('#BB8BFF', '#000000'),
+                    'mcx': ('#BB8BFF', '#000000'),
+                    'mcx_gray': ('#BB8BFF', '#000000),
                     'cy': ('#6FA4FF', '#000000'),
                     'cz': ('#6FA4FF', '#000000'),
                     'swap': ('#6FA4FF', '#000000'),
+                    'cswap': ('#BB8BFF', '#000000'),
+                    'ccswap': ('#BB8BFF', '#000000'),
+                    'dcx': ('#6FA4FF', '#000000'),
+                    'cdcx': ('#BB8BFF', '#000000'),
+                    'ccdcx': ('#BB8BFF', '#000000'),
+                    'iswap': ('#6FA4FF', '#000000'),
                     's': ('#6FA4FF', '#000000'),
                     'sdg': ('#6FA4FF', '#000000'),
-                    'dcx': ('#6FA4FF', '#000000'),
-                    'iswap': ('#6FA4FF', '#000000'),
                     't': ('#BB8BFF', '#000000'),
                     'tdg': ('#BB8BFF', '#000000'),
+                    'sx': ('#BB8BFF', '#000000'),
+                    'sxdg': ('#BB8BFF', '#000000')
                     'r': ('#BB8BFF', '#000000'),
                     'rx': ('#BB8BFF', '#000000'),
                     'ry': ('#BB8BFF', '#000000'),
@@ -236,31 +260,15 @@ def circuit_drawer(circuit,
                     'reset': ('#000000', #FFFFFF'),
                     'target': ('#FFFFFF, '#FFFFFF'),
                     'measure': ('#000000', '#FFFFFF'),
-                    'ccx': ('#BB8BFF', '#000000'),
-                    'cdcx': ('#BB8BFF', '#000000'),
-                    'ccdcx': ('#BB8BFF', '#000000'),
-                    'cswap': ('#BB8BFF', '#000000'),
-                    'ccswap': ('#BB8BFF', '#000000'),
-                    'mcx': ('#BB8BFF', '#000000'),
-                    'mcx_gray': ('#BB8BFF', '#000000),
-                    'u': ('#BB8BFF', '#000000'),
-                    'p': ('#BB8BFF', '#000000'),
-                    'sx': ('#BB8BFF', '#000000'),
-                    'sxdg': ('#BB8BFF', '#000000')
                 }
 
             Colors can also be entered without the text color, such as
             'u1': '#FA74A6', in which case the text color will always
             be 'gatetextcolor'. The 'displaycolor' dict can contain any
             number of elements from one to the entire dict above.
-        latexdrawerstyle (bool): When set to True enable latex mode which will
-            draw gates like the `latex` output modes.
-        usepiformat (bool): When set to True use radians for output
-        fold (int): The number of circuit elements to fold the circuit at.
+        fold (int): The number of circuit elements to fold the circuit.
             Defaults to 20
-        cregbundle (bool): If set True bundle classical registers
-        showindex (bool): If set True draw an index.
-        compress (bool): If set True draw a compressed circuit
+        showindex (bool): If set True, draw an index.
         figwidth (int): The maximum width (in inches) for the output figure.
         dpi (int): The DPI to use for the output image. Defaults to 150
         margin (list): A list of margin values to adjust spacing around output
@@ -411,7 +419,6 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 def _latex_circuit_drawer(circuit,
                           scale=0.7,
                           filename=None,
-                          style=None,
                           plot_barriers=True,
                           reverse_bits=False,
                           justify=None,
@@ -427,7 +434,6 @@ def _latex_circuit_drawer(circuit,
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
         filename (str): file path to save image to
-        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
@@ -453,8 +459,7 @@ def _latex_circuit_drawer(circuit,
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        _generate_latex_source(circuit, filename=tmppath,
-                               scale=scale, style=style,
+        _generate_latex_source(circuit, filename=tmppath, scale=scale,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
                                idle_wires=idle_wires, with_layout=with_layout,
