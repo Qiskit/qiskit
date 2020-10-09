@@ -40,9 +40,9 @@ class TestLoadScheduledCircuit(QiskitTestCase):
 
     def test_create_from_program(self):
         """Test factory method."""
-        bit_event_q0 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][0], 1300)
-        bit_event_q1 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][1], 1300)
-        bit_event_q2 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][2], 1300)
+        bit_event_q0 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][0])
+        bit_event_q1 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][1])
+        bit_event_q2 = events.BitEvents.load_program(self.circ, self.circ.qregs[0][2])
 
         gates_q0 = list(bit_event_q0.get_gates())
         links_q0 = list(bit_event_q0.get_gate_links())
