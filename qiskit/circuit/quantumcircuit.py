@@ -2059,7 +2059,8 @@ class QuantumCircuit:
 
     def ms(self, theta, qubits):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.MSGate`."""
-        from .library.standard_gates.ms import MSGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.gms import MSGate
         return self.append(MSGate(len(qubits), theta), qubits)
 
     def p(self, theta, qubit):
