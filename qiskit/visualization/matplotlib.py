@@ -251,7 +251,6 @@ class MatplotlibDrawer:
                 style_path = os.path.join(dirname, style_name + '.json')
             else:
                 style_path = os.path.join('', style_name + '.json')
-            print(style_path)
             try:
                 with open(style_path) as infile:
                     json_style = json.load(infile)

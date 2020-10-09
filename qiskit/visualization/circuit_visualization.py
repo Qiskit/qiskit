@@ -81,8 +81,8 @@ def circuit_drawer(circuit,
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
             passed in that is the path to a json file which contains a style
-            dictionary, it will be opened, parsed, and then used as the input
-            dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
+            dictionary, the file will be opened, parsed, and then used as the
+            input dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
             information on the contents.
         output (str): Select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
@@ -120,7 +120,7 @@ def circuit_drawer(circuit,
             80 characters. In ``mpl`` it is the number of (visual) layers before
             folding. Default is 25.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
-            the visualization output. If none is specified a new matplotlib
+            the visualization output. If none is specified, a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant. This is only used
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
@@ -131,8 +131,8 @@ def circuit_drawer(circuit,
             Default: ``True``.
 
     Returns:
-        :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
-        :class:`TextDrawing`:
+        :class:`TextDrawing`or :class:`PIL.Image` or :class:`str`or
+        :class:`matplotlib.figure`:
 
         * `TextDrawing` (output='text')
             A drawing that can be printed as ascii art
@@ -157,8 +157,8 @@ def circuit_drawer(circuit,
 
     Args:
         name (str): The name of the style. The name can be set to 'iqx',
-            'bw', 'default', or the name of a user-created json file.
-            This overrides the setting in the '~/.qiskit/settings.conf' file.
+            'bw', 'default', or the name of a user-created json file. This
+            overrides the setting in the '~/.qiskit/settings.conf' file.
         textcolor (str): The color code to use for all text not inside a gate.
             Defaults to `'#000000'`
         subtextcolor (str): The color code to use for subtext. Defaults to
@@ -169,8 +169,8 @@ def circuit_drawer(circuit,
             lines. Defaults to `'#778899'`
         gatetextcolor (str): The color code to use for gate text. Defaults to
             `'#000000'`
-        gatefacecolor (str): The color code to use for gates. Defaults to
-            `'#BB8BFF'`
+        gatefacecolor (str): The color code to use for a gate if no color
+            specified in the 'displaycolor' dict. Defaults to `'#BB8BFF'`
         barrierfacecolor (str): The color code to use for barriers. Defaults to
             `'#BDBDBD'`
         backgroundcolor (str): The color code to use for the background.
@@ -266,8 +266,8 @@ def circuit_drawer(circuit,
             be 'gatetextcolor'. The 'displaycolor' dict can contain any
             number of elements from one to the entire dict above.
         fold (int): The number of circuit elements to fold the circuit.
-            Defaults to 20
-        showindex (bool): If set True, draw an index.
+            Defaults to 25
+        showindex (bool): If set True, show the index numbers at the top.
         figwidth (int): The maximum width (in inches) for the output figure.
         dpi (int): The DPI to use for the output image. Defaults to 150
         margin (list): A list of margin values to adjust spacing around output
@@ -286,7 +286,7 @@ def circuit_drawer(circuit,
             qc = QuantumCircuit(q, c)
             qc.h(q)
             qc.measure(q, c)
-            circuit_drawer(qc)
+            circuit_drawer(qc, output='mpl', style={'showindex', 'True'})
     """
     image = None
     config = user_config.get_config()
@@ -348,7 +348,7 @@ def circuit_drawer(circuit,
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
-            'are latex, latex_source, text, and mpl' % output)
+            'are text, latex, latex_source, and mpl' % output)
     if image and interactive:
         image.show()
     return image
@@ -367,27 +367,30 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 
     Args:
         circuit (QuantumCircuit): Input circuit
-        filename (str): optional filename to write the result
+        filename (str): Optional filename to write the result
         reverse_bits (bool): Rearrange the bits in reverse order.
         plot_barriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
         idle_wires (bool): Include idle wires. Default is True.
-        with_layout (bool): Include layout information, with labels on the physical
+        with_layout (bool): Include layout information with labels on the physical
             layout. Default: True
         fold (int): Optional. Breaks the circuit drawing to this length. This
-                    useful when the drawing does not fit in the console. If
-                    None (default), it will try to guess the console width using
-                    `shutil.get_terminal_size()`. If you don't want pagination
-                   at all, set `fold=-1`.
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
-        cregbundle (bool): Optional. If set True bundle classical registers. Default: ``False``.
+            is useful when the drawing does not fit in the console. If
+            None (default), it will try to guess the console width using
+            `shutil.get_terminal_size()`. If you don't want pagination
+            at all, set `fold=-1`.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
+            Default: ``True``.
         encoding (str): Optional. Sets the encoding preference of the output.
-                   Default: ``sys.stdout.encoding``.
+            Default: ``sys.stdout.encoding``.
+
     Returns:
-        TextDrawing: An instances that, when printed, draws the circuit in ascii art.
+        TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
                                                         reverse_bits=reverse_bits,
@@ -438,12 +441,13 @@ def _latex_circuit_drawer(circuit,
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
-        cregbundle (bool): Optional. If set True bundle classical registers.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
 
     Returns:
@@ -452,7 +456,7 @@ def _latex_circuit_drawer(circuit,
     Raises:
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
-        CalledProcessError: usually points errors during diagram creation.
+        CalledProcessError: usually points to errors during diagram creation.
         ImportError: if pillow is not installed
     """
     tmpfilename = 'circuit'
@@ -513,20 +517,21 @@ def _generate_latex_source(circuit, filename=None,
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
-        circuit (QuantumCircuit): input circuit
-        scale (float): image scaling
-        filename (str): optional filename to write latex
+        circuit (QuantumCircuit): a quantum circuit
+        scale (float): scaling factor
+        filename (str): file path to save image to
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
-        cregbundle (bool): Optional. If set True bundle classical registers.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
 
     Returns:
@@ -582,7 +587,7 @@ def _matplotlib_circuit_drawer(circuit,
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
-        reverse_bits (bool): When set to True reverse the bit order inside
+        reverse_bits (bool): When set to True, reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
@@ -591,9 +596,9 @@ def _matplotlib_circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
-        fold (int): amount ops allowed before folding. Default is 25.
+        fold (int): Number of vertical layers allowed before folding. Default is 25.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
-            the visualization output. If none is specified a new matplotlib
+            the visualization output. If none is specified, a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
