@@ -9,17 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
-Scheduled circuit visualization module.
+Plotter API.
 """
 
-# interface
-from qiskit.visualization.timeline.interface import draw
-
-# stylesheets
-from qiskit.visualization.timeline.stylesheet import (
-    IQXStandard,
-    IQXSimple,
-    IQXDebugging
-)
+from qiskit.visualization.timeline.plotters.matplotlib import MplPlotter
