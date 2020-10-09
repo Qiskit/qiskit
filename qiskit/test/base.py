@@ -21,6 +21,7 @@ the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
 """
 
+import inspect
 import itertools
 import logging
 import os
@@ -36,7 +37,7 @@ except ImportError:
     HAS_FIXTURES = False
 
 from .runtest import RunTest, MultipleExceptions
-from .utils import Path, _AssertNoLogsContext
+from .utils import Path, _AssertNoLogsContext, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -82,8 +83,86 @@ def gather_details(source_dict, target_dict):
         target_dict[name] = _copy_content(content_object)
 
 
-class QiskitTestCase(unittest.TestCase):
+class BaseQiskitTestCase(unittest.TestCase):
+    """Common extra functionality on top of unittest."""
+    @staticmethod
+    def _get_resource_path(filename, path=Path.TEST):
+        """Get the absolute path to a resource.
+
+        Args:
+            filename (string): filename or relative path to the resource.
+            path (Path): path used as relative to the filename.
+
+        Returns:
+            str: the absolute path to the resource.
+        """
+        return os.path.normpath(os.path.join(path.value, filename))
+
+    def assertNoLogs(self, logger=None, level=None):
+        """Assert that no message is sent to the specified logger and level.
+
+        Context manager to test that no message is sent to the specified
+        logger and level (the opposite of TestCase.assertLogs()).
+        """
+        return _AssertNoLogsContext(self, logger, level)
+
+    def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
+                              places=None, default_value=0):
+        """Assert two dictionaries with numeric values are almost equal.
+
+        Fail if the two dictionaries are unequal as determined by
+        comparing that the difference between values with the same key are
+        not greater than delta (default 1e-8), or that difference rounded
+        to the given number of decimal places is not zero. If a key in one
+        dictionary is not in the other the default_value keyword argument
+        will be used for the missing value (default 0). If the two objects
+        compare equal then they will automatically compare almost equal.
+
+        Args:
+            dict1 (dict): a dictionary.
+            dict2 (dict): a dictionary.
+            delta (number): threshold for comparison (defaults to 1e-8).
+            msg (str): return a custom message on failure.
+            places (int): number of decimal places for comparison.
+            default_value (number): default value for missing keys.
+
+        Raises:
+            TypeError: if the arguments are not valid (both `delta` and
+                `places` are specified).
+            AssertionError: if the dictionaries are not almost equal.
+        """
+
+        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
+
+        if error_msg:
+            msg = self._formatMessage(msg, error_msg)
+            raise self.failureException(msg)
+
+
+class BasicQiskitTestCase(BaseQiskitTestCase):
     """Helper class that contains common functionality."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
+
+        # Set logging to file and stdout if the LOG_LEVEL envar is set.
+        cls.log = logging.getLogger(cls.__name__)
+        if os.getenv('LOG_LEVEL'):
+            filename = '%s.log' % os.path.splitext(inspect.getfile(cls))[0]
+            setup_test_logging(cls.log, os.getenv('LOG_LEVEL'), filename)
+
+    def tearDown(self):
+        # Reset the default providers, as in practice they acts as a singleton
+        # due to importing the instances from the top-level qiskit namespace.
+        from qiskit.providers.basicaer import BasicAer
+
+        BasicAer._backends = BasicAer._verify_backends()
+
+
+class FullQiskitTestCase(BaseQiskitTestCase):
+    """Helper class that contains common functionality that captures streams."""
 
     run_tests_with = RunTest
 
@@ -91,9 +170,9 @@ class QiskitTestCase(unittest.TestCase):
         """Construct a TestCase."""
         if not HAS_FIXTURES:
             raise ImportError(
-                "Test runner requirements are missing, install "
-                "requirements-dev.txt and run tests again.")
-        super(QiskitTestCase, self).__init__(*args, **kwargs)
+                "Test runner requirements testtools and fixtures are missing. "
+                "Install them with 'pip install testtools fixtures'")
+        super().__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
         self._reset()
         self.__exception_handlers = []
@@ -338,58 +417,6 @@ class QiskitTestCase(unittest.TestCase):
         cls.using_ibmq_credentials = False
         cls.log = logging.getLogger(cls.__name__)
 
-    @staticmethod
-    def _get_resource_path(filename, path=Path.TEST):
-        """Get the absolute path to a resource.
-
-        Args:
-            filename (string): filename or relative path to the resource.
-            path (Path): path used as relative to the filename.
-        Returns:
-            str: the absolute path to the resource.
-        """
-        return os.path.normpath(os.path.join(path.value, filename))
-
-    def assertNoLogs(self, logger=None, level=None):
-        """Assert that no message is sent to the specified logger and level.
-
-        Context manager to test that no message is sent to the specified
-        logger and level (the opposite of TestCase.assertLogs()).
-        """
-        return _AssertNoLogsContext(self, logger, level)
-
-    def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
-                              places=None, default_value=0):
-        """Assert two dictionaries with numeric values are almost equal.
-
-        Fail if the two dictionaries are unequal as determined by
-        comparing that the difference between values with the same key are
-        not greater than delta (default 1e-8), or that difference rounded
-        to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword argument
-        will be used for the missing value (default 0). If the two objects
-        compare equal then they will automatically compare almost equal.
-
-        Args:
-            dict1 (dict): a dictionary.
-            dict2 (dict): a dictionary.
-            delta (number): threshold for comparison (defaults to 1e-8).
-            msg (str): return a custom message on failure.
-            places (int): number of decimal places for comparison.
-            default_value (number): default value for missing keys.
-
-        Raises:
-            TypeError: if the arguments are not valid (both `delta` and
-                `places` are specified).
-            AssertionError: if the dictionaries are not almost equal.
-        """
-
-        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
-
-        if error_msg:
-            msg = self._formatMessage(msg, error_msg)
-            raise self.failureException(msg)
-
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
     """Test if two dictionaries with numeric values are almost equal.
@@ -450,3 +477,9 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return error_msg[:-2] + msg_suffix
     else:
         return ''
+
+
+if not HAS_FIXTURES and not os.environ.get('QISKIT_TEST_CAPTURE_STREAMS'):
+    QiskitTestCase = BasicQiskitTestCase
+else:
+    QiskitTestCase = FullQiskitTestCase

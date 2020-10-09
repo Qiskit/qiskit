@@ -26,6 +26,8 @@ from .symplectic.random import random_clifford
 from .symplectic.random import random_pauli_table
 from .symplectic.random import random_stabilizer_table
 
+DEFAULT_RNG = default_rng()
+
 
 def random_unitary(dims, seed=None):
     """Return a random unitary Operator.
@@ -41,7 +43,7 @@ def random_unitary(dims, seed=None):
         Operator: a unitary operator.
     """
     if seed is None:
-        random_state = np.random.default_rng()
+        random_state = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
@@ -69,7 +71,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         Operator: a Hermitian operator.
     """
     if seed is None:
-        rng = np.random.default_rng()
+        rng = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:

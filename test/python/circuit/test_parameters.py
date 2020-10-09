@@ -12,6 +12,7 @@
 
 """Test circuits with variable parameters."""
 
+import copy
 import pickle
 from operator import add, mul, sub, truediv
 from test import combine
@@ -27,6 +28,7 @@ from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
+from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
@@ -307,6 +309,120 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(len(qc2._parameter_table), 0)
                 for gate, _, _ in qc2.data:
                     self.assertEqual(float(gate.params[0]), 1.0)
+
+    def test_calibration_assignment(self):
+        """That that calibration mapping and the schedules they map are assigned together."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=16, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta])
+        circ = circ.assign_parameters({theta: 3.14})
+
+        self.assertTrue(((0,), (3.14,)) in circ.calibrations['rxt'])
+        sched = circ.calibrations['rxt'][((0,), (3.14,))]
+        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
+
+    def test_calibration_assignment_doesnt_mutate(self):
+        """That that assignment doesn't mutate the original circuit."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=16, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta])
+        circ_copy = copy.deepcopy(circ)
+        assigned_circ = circ.assign_parameters({theta: 3.14})
+
+        self.assertEqual(circ.calibrations, circ_copy.calibrations)
+        self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
+
+    def test_calibration_assignment_w_expressions(self):
+        """That calibrations with multiple parameters and more expressions."""
+        theta = Parameter('theta')
+        sigma = Parameter('sigma')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta, sigma]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=4*sigma, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta/2, sigma])
+        circ = circ.assign_parameters(
+            {theta: 3.14, sigma: 4}
+        )
+
+        self.assertTrue(((0,), (3.14/2, 4)) in circ.calibrations['rxt'])
+        sched = circ.calibrations['rxt'][((0,), (3.14/2, 4))]
+        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
+
+    def test_substitution(self):
+        """Test Parameter substitution (vs bind)."""
+        alpha = Parameter('⍺')
+        beta = Parameter('beta')
+        schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
+
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('my_rz', 1, [alpha]), [0])
+        circ.add_calibration('my_rz', [0], schedule, [alpha])
+
+        circ = circ.assign_parameters({alpha: 2*beta})
+
+        circ = circ.assign_parameters({beta: 1.57})
+        cal_sched = circ.calibrations['my_rz'][((0,), (3.14,))]
+        self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
+
+    def test_partial_assignment(self):
+        """Expressions of parameters with partial assignment."""
+        alpha = Parameter('⍺')
+        beta = Parameter('beta')
+        gamma = Parameter('γ')
+        phi = Parameter('ϕ')
+
+        with pulse.build() as my_cal:
+            pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
+            pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
+            pulse.set_phase(phi, pulse.DriveChannel(1))
+
+        circ = QuantumCircuit(2, 2)
+        circ.append(Gate('custom', 2, [alpha, beta, gamma, phi]), [0, 1])
+        circ.add_calibration('custom', [0, 1], my_cal, [alpha, beta, gamma, phi])
+
+        # Partial bind
+        delta = 1e9
+        freq = 4.5e9
+        shift = 0.5e9
+        phase = 3.14/4
+
+        circ = circ.assign_parameters({alpha: freq - delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
+        self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
+
+        circ = circ.assign_parameters({beta: delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
+        self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
+        self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
+
+        circ = circ.assign_parameters({gamma: shift - delta})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
+        self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
+
+        self.assertEqual(cal_sched.instructions[2][1].phase, phi)
+        circ = circ.assign_parameters({phi: phase})
+        cal_sched = list(circ.calibrations['custom'].values())[0]
+        self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""

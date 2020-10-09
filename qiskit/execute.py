@@ -21,7 +21,10 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 import logging
 from time import time
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble, schedule
+from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
@@ -57,7 +60,7 @@ def execute(experiments, backend,
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend):
+        backend (BaseBackend or Backend):
             Backend to execute circuits on.
             Transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
@@ -246,6 +249,14 @@ def execute(experiments, backend,
                                     initial_layout=initial_layout)
         experiments = pass_manager.run(experiments)
     else:
+        if 'delay' not in backend.configuration().basis_gates and _any_delay_in(experiments):
+            if schedule_circuit and backend.configuration().open_pulse:
+                pass  # the delay will be handled in the Pulse schedule
+            else:
+                raise QiskitError("Backend {} does not support delay instruction. "
+                                  "Use 'schedule_circuit=True' for pulse-enabled backends."
+                                  .format(backend.name()))
+
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
@@ -263,33 +274,56 @@ def execute(experiments, backend,
                                meas_map=meas_map,
                                method=scheduling_method)
 
-    # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble(experiments,
-                    qobj_id=qobj_id,
-                    qobj_header=qobj_header,
-                    shots=shots,
-                    memory=memory,
-                    max_credits=max_credits,
-                    seed_simulator=seed_simulator,
-                    default_qubit_los=default_qubit_los,
-                    default_meas_los=default_meas_los,
-                    schedule_los=schedule_los,
-                    meas_level=meas_level,
-                    meas_return=meas_return,
-                    memory_slots=memory_slots,
-                    memory_slot_size=memory_slot_size,
-                    rep_time=rep_time,
-                    rep_delay=rep_delay,
-                    parameter_binds=parameter_binds,
-                    backend=backend,
-                    init_qubits=init_qubits,
-                    **run_config)
+    if isinstance(backend, BaseBackend):
+        # assembling the circuits into a qobj to be run on the backend
+        qobj = assemble(experiments,
+                        qobj_id=qobj_id,
+                        qobj_header=qobj_header,
+                        shots=shots,
+                        memory=memory,
+                        max_credits=max_credits,
+                        seed_simulator=seed_simulator,
+                        default_qubit_los=default_qubit_los,
+                        default_meas_los=default_meas_los,
+                        schedule_los=schedule_los,
+                        meas_level=meas_level,
+                        meas_return=meas_return,
+                        memory_slots=memory_slots,
+                        memory_slot_size=memory_slot_size,
+                        rep_time=rep_time,
+                        rep_delay=rep_delay,
+                        parameter_binds=parameter_binds,
+                        backend=backend,
+                        init_qubits=init_qubits,
+                        **run_config)
 
-    # executing the circuits on the backend and returning the job
-    start_time = time()
-    job = backend.run(qobj, **run_config)
-    end_time = time()
-    _log_submission_time(start_time, end_time)
+        # executing the circuits on the backend and returning the job
+        start_time = time()
+        job = backend.run(qobj, **run_config)
+        end_time = time()
+        _log_submission_time(start_time, end_time)
+    elif isinstance(backend, Backend):
+        start_time = time()
+        job = backend.run(experiments,
+                          shots=shots,
+                          memory=memory,
+                          seed_simulator=seed_simulator,
+                          default_qubit_los=default_qubit_los,
+                          default_meas_los=default_meas_los,
+                          schedule_los=schedule_los,
+                          meas_level=meas_level,
+                          meas_return=meas_return,
+                          memory_slots=memory_slots,
+                          memory_slot_size=memory_slot_size,
+                          rep_time=rep_time,
+                          rep_delay=rep_delay,
+                          parameter_binds=parameter_binds,
+                          init_qubits=init_qubits,
+                          **run_config)
+        end_time = time()
+        _log_submission_time(start_time, end_time)
+    else:
+        raise QiskitError("Invalid backend type %s" % type(backend))
     return job
 
 
@@ -298,3 +332,22 @@ def _check_conflicting_argument(**kargs):
     if conflicting_args:
         raise QiskitError("The parameters pass_manager conflicts with the following "
                           "parameter(s): {}.".format(', '.join(conflicting_args)))
+
+
+def _any_delay_in(circuits):
+    """Check if the circuits have any delay instruction.
+
+    Args:
+        circuits (QuantumCircuit or list[QuantumCircuit]): Circuits to be checked
+
+    Returns:
+        bool: True if there is any delay in either of the circuit, otherwise False.
+    """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+    has_delay = False
+    for qc in circuits:
+        if 'delay' in qc.count_ops():
+            has_delay = True
+            break
+    return has_delay
