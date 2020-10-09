@@ -33,9 +33,8 @@ that shows the relationship between bits during multi-bit gates.
 from typing import List, Iterator
 
 from qiskit import circuit
-from qiskit.converters import circuit_to_dag
-from qiskit.visualization.timeline import types
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.timeline import types
 
 
 class BitEvents:
@@ -44,15 +43,18 @@ class BitEvents:
 
     def __init__(self,
                  bit: types.Bits,
-                 instructions: List[types.ScheduledGate]):
+                 instructions: List[types.ScheduledGate],
+                 t_stop: int):
         """Create new event for the specified bit.
 
         Args:
             bit: Bit object associated with this event table.
             instructions: List of scheduled gate object.
+            t_stop: Stop time of this bit.
         """
         self.bit = bit
         self.instructions = instructions
+        self.stop_time = t_stop
 
     @classmethod
     def load_program(cls,
@@ -70,30 +72,29 @@ class BitEvents:
         Raises:
             VisualizationError: When the circuit is not transpiled with duration.
         """
-        dag = circuit_to_dag(scheduled_circuit)
-        nodes = list(dag.topological_op_nodes())
-
         t0 = 0
+        tf = scheduled_circuit.qubit_stop_time(bit)
+
         instructions = []
-        for node in nodes:
-            associated_bits = node.qargs + node.cargs
+        for inst, qargs, cargs in scheduled_circuit.data:
+            associated_bits = qargs + cargs
             if bit not in associated_bits:
                 continue
 
-            duration = node.op.duration
+            duration = inst.duration
             if duration is None:
                 raise VisualizationError('Instruction {oper} has no duration. '
                                          'You need to transpile the QuantumCircuit with '
-                                         'gate durations before drawing.'.format(oper=node.op))
+                                         'gate durations before drawing.'.format(oper=inst))
 
             instructions.append(types.ScheduledGate(t0=t0,
-                                                    operand=node.op,
+                                                    operand=inst,
                                                     duration=duration,
                                                     bits=associated_bits,
                                                     bit_position=associated_bits.index(bit)))
             t0 += duration
 
-        return BitEvents(bit, instructions)
+        return BitEvents(bit, instructions, tf)
 
     def get_gates(self) -> Iterator[types.ScheduledGate]:
         """Return scheduled gates."""
