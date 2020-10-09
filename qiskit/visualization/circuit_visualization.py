@@ -30,7 +30,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from warnings import warn
 
 try:
     from PIL import Image
@@ -517,7 +516,6 @@ def _generate_latex_source(circuit, filename=None,
         circuit (QuantumCircuit): input circuit
         scale (float): image scaling
         filename (str): optional filename to write latex
-        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output

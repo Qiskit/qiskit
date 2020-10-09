@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring,inconsistent-return-statements
+# pylint: disable=invalid-name,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -62,6 +62,7 @@ PORDER_SUBP = 4
 
 
 class Anchor:
+    """Locate the anchors for the gates"""
     def __init__(self, reg_num, yind, fold):
         self.__yind = yind
         self.__fold = fold
@@ -70,6 +71,7 @@ class Anchor:
         self.gate_anchor = 0
 
     def plot_coord(self, index, gate_width, x_offset):
+        """Set the coord positions for an index"""
         h_pos = index % self.__fold + 1
         # check folding
         if self.__fold > 0:
@@ -86,6 +88,7 @@ class Anchor:
         return x_pos + x_offset, y_pos
 
     def is_locatable(self, index, gate_width):
+        """Determine if a gate has been placed"""
         hold = [index + i for i in range(gate_width)]
         for p in hold:
             if p in self.__gate_placed:
@@ -93,6 +96,7 @@ class Anchor:
         return True
 
     def set_index(self, index, gate_width):
+        """Set the index for a gate"""
         if self.__fold < 2:
             _index = index
         else:
@@ -107,12 +111,14 @@ class Anchor:
         self.__gate_placed.sort()
 
     def get_index(self):
+        """Getter for the index"""
         if self.__gate_placed:
             return self.__gate_placed[-1] + 1
         return 0
 
 
 class MatplotlibDrawer:
+    """Matplotlib drawer class called from circuit_drawer"""
     def __init__(self, qregs, cregs, ops,
                  scale=None, style=None, plot_barriers=True,
                  layout=None, fold=25, ax=None, initial_state=False,
@@ -220,6 +226,7 @@ class MatplotlibDrawer:
 
     @property
     def ast(self):
+        """AST getter"""
         return self._ast
 
     def _load_style(self, style):
@@ -583,6 +590,7 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
 
     def draw(self, filename=None, verbose=False):
+        """Draw method called from circuit_drawer"""
         self._draw_regs()
         self._draw_ops(verbose)
         _xl = - self._style['margin'][0]
