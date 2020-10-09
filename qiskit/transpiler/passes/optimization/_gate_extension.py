@@ -12,11 +12,11 @@
 
 """
 Dynamically extend Gate classes with functions required for the Hoare
-optimizer, namely triviality- and post-conditionsto.
-A return value of 'true' for triviality conditions indicates the gate is
-always trivial, provided the qubit is in a classical state.
-Functions/gates that are omitted here are assumed to always be
-non-trivial and/or have unknown post-conditions.
+optimizer, namely triviality-conditions and post-conditions.
+If `_trivial_if` returns `True` and the qubit is in a classical state
+then the gate is trivial.
+If a gate has no `_trivial_if`, then is assumed to be non-trivial.
+If a gate has no `_postconditions`, then is assumed to have unknown post-conditions.
 """
 try:
     from z3 import Not, And
