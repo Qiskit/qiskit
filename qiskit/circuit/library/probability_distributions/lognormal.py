@@ -129,6 +129,11 @@ class LogNormalDistribution(QuantumCircuit):
             probabilities += [probability]
         normalized_probabilities = probabilities / np.sum(probabilities)
 
+        # store as properties
+        self._values = x
+        self._probabilities = normalized_probabilities
+        self._bounds = bounds
+
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
         if upto_phase:
@@ -138,3 +143,18 @@ class LogNormalDistribution(QuantumCircuit):
             initialize = Initialize(np.sqrt(normalized_probabilities))
             circuit = initialize.gates_to_uncompute().inverse()
             self.compose(circuit, inplace=True)
+
+    @property
+    def values(self) -> np.ndarray:
+        """Return the discretized points of the random variable."""
+        return self._values
+
+    @property
+    def probabilities(self) -> np.ndarray:
+        """Return the sampling probabilities for the values."""
+        return self._probabilities
+
+    @property
+    def bounds(self) -> Union[Tuple[float, float], List[Tuple[float, float]]]:
+        """Return the bounds of the probability distribution."""
+        return self._bounds

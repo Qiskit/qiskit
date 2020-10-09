@@ -40,11 +40,24 @@ class NormalDistribution(QuantumCircuit):
 
     .. note::
 
+        The parameter ``sigma`` equals the **variance**, :math:`\sigma^2` and not the standard
+        deviation. This is for consistency with multivariate distributions, where the uppercase
+        sigma, :math:`\Sigma`, is associated with the covariance.
+
+    .. note::
+
         The circuit loads the square root of the probabilities into the qubit amplitudes such
         that the sampling probability, which is the square of the amplitude, equals the
         probability of the distribution.
 
-    In the multi-dimensional case, ``num_qubits`` is a list of integers, each specifying how many
+    In the multi-dimensional case, the distribution is defined as
+
+    .. math::
+
+        \mathbb{P}(X = x) = \frac{\Sigma^{-1}}{\sqrt{2\pi}} e^{-\frac{(x - \mu)^2}{\Sigma}}
+
+    where :math:`\Sigma` is the covariance. To specify a multivariate normal distribution,
+    ``num_qubits`` is a list of integers, each specifying how many
     qubits are used to discretize the respective dimension. The arguments ``mu`` and ``sigma``
     in this case are a vector and square matrix.
     If for instance, ``num_qubits = [2, 3]`` then ``mu`` is a 2d vector and ``sigma`` is the
@@ -128,7 +141,7 @@ class NormalDistribution(QuantumCircuit):
             mu: The parameter :math:`\mu`, which is the expected value of the distribution.
                 Can be either a float for a 1d random variable or a list of floats for a higher
                 dimensional random variable. Defaults to 0.
-            sigma: The parameter :math:`\sigma`, which is the standard deviation or covariance
+            sigma: The parameter :math:`\sigma^2`, which is the variance or covariance
                 matrix. Default to the identity matrix of appropriate size.
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
@@ -169,6 +182,11 @@ class NormalDistribution(QuantumCircuit):
         probabilities = multivariate_normal.pdf(x, mu, sigma)
         normalized_probabilities = probabilities / np.sum(probabilities)
 
+        # store the values, probabilities and bounds to make them user accessible
+        self._values = x
+        self._probabilities = normalized_probabilities
+        self._bounds = bounds
+
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
         if upto_phase:
@@ -178,6 +196,21 @@ class NormalDistribution(QuantumCircuit):
             initialize = Initialize(np.sqrt(normalized_probabilities))
             circuit = initialize.gates_to_uncompute().inverse()
             self.compose(circuit, inplace=True)
+
+    @property
+    def values(self) -> np.ndarray:
+        """Return the discretized points of the random variable."""
+        return self._values
+
+    @property
+    def probabilities(self) -> np.ndarray:
+        """Return the sampling probabilities for the values."""
+        return self._probabilities
+
+    @property
+    def bounds(self) -> Union[Tuple[float, float], List[Tuple[float, float]]]:
+        """Return the bounds of the probability distribution."""
+        return self._bounds
 
 
 def _check_dimensions_match(num_qubits, mu, sigma, bounds):
