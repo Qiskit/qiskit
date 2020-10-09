@@ -860,6 +860,25 @@ class TestTranspile(QiskitTestCase):
         transpiled_circ = transpile(circ, FakeAlmaden())
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
 
+    def test_parameterized_calibrations_transpile(self):
+        """Check that gates can be matched to their calibrations before and after parameter
+        assignment."""
+        tau = Parameter('tau')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [2*3.14*tau]), [0])
+
+        def q0_rxt(tau):
+            with pulse.build() as q0_rxt:
+                pulse.play(pulse.library.Gaussian(20, 0.4*tau, 3.0), pulse.DriveChannel(0))
+            return q0_rxt
+        circ.add_calibration('rxt', [0], q0_rxt(tau), [2*3.14*tau])
+
+        transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
+        circ = circ.assign_parameters({tau: 1})
+        transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
+
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
