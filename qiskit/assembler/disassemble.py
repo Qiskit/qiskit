@@ -16,7 +16,7 @@ import collections
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.opaque_instruction import  OpaqueInstruction
+from qiskit.circuit.opaque_instruction import OpaqueInstruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.pulse.schedule import ParameterizedSchedule
