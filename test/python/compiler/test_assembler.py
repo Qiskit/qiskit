@@ -19,7 +19,7 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Gate, Parameter
+from qiskit.circuit import OpaqueInstruction, Gate, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
@@ -186,8 +186,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
-        opaque_inst = Instruction(name='my_inst', num_qubits=4,
-                                  num_clbits=2, params=[0.5, 0.4])
+        opaque_inst = OpaqueInstruction(name='my_inst', num_qubits=4,
+                                        num_clbits=2, params=[0.5, 0.4])
         q = QuantumRegister(6, name='q')
         c = ClassicalRegister(4, name='c')
         circ = QuantumCircuit(q, c, name='circ')

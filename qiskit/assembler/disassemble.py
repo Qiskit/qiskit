@@ -16,7 +16,7 @@ import collections
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.opaque_instruction import  OpaqueInstruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -161,7 +161,7 @@ def _experiments_to_circuits(qobj):
                             conditional['value'] = val
                             break
                 else:
-                    _inst = temp_opaque_instruction = Instruction(
+                    _inst = temp_opaque_instruction = OpaqueInstruction(
                         name=name, num_qubits=len(qubits),
                         num_clbits=len(clbits), params=params)
                     circuit.append(temp_opaque_instruction, qubits, clbits)

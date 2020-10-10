@@ -28,15 +28,8 @@ from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.circuit import Instruction
+from qiskit.circuit import OpaqueInstruction
 
-
-class KrausInstruction(Instruction):
-    def __init__(self, num_qubits, kraus):
-        super(KrausInstruction, self).__init__('kraus', num_qubits, 0, kraus)
-
-    def validate_parameter(self, parameter):
-        return parameter
 
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
@@ -225,7 +218,7 @@ class QuantumChannel(BaseOperator):
         # converting to an Operator and using its to_instruction method
         if len(kraus) == 1:
             return Operator(kraus[0]).to_instruction()
-        return KrausInstruction(num_qubits, kraus)
+        return OpaqueInstruction('kraus', num_qubits, 0, kraus)
 
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""

@@ -13,7 +13,7 @@
 """Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.opaque_instruction import OpaqueInstruction
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 
@@ -71,11 +71,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
                            'Circuit parameters: {}, parameter_map: {}').format(
                                circuit.parameters, parameter_dict))
 
-    instruction = Instruction(name=circuit.name,
-                              num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                              num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=sorted(parameter_dict.values(), key=lambda p: p.name))
-    instruction.condition = None
+    instruction = OpaqueInstruction(name=circuit.name,
+                                    num_qubits=sum([qreg.size for qreg in circuit.qregs]),
+                                    num_clbits=sum([creg.size for creg in circuit.cregs]),
+                                    params=sorted(parameter_dict.values(), key=lambda p: p.name))
 
     def find_bit_position(bit):
         """find the index of a given bit (Register, int) within

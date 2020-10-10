@@ -21,7 +21,7 @@ from qiskit import pulse
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Instruction
+from qiskit.circuit import OpaqueInstruction
 from qiskit.compiler.assemble import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -140,8 +140,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
 
     def test_opaque_instruction(self):
         """Test the disassembler handles opaque instructions correctly."""
-        opaque_inst = Instruction(name='my_inst', num_qubits=4,
-                                  num_clbits=2, params=[0.5, 0.4])
+        opaque_inst = OpaqueInstruction(name='my_inst', num_qubits=4,
+                                        num_clbits=2, params=[0.5, 0.4])
         q = QuantumRegister(6, name='q')
         c = ClassicalRegister(4, name='c')
         circ = QuantumCircuit(q, c, name='circ')

@@ -23,16 +23,13 @@ class Delay(Instruction):
 
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
-        if not isinstance(duration, (float, int)):
-            raise CircuitError('Unsupported duration type.')
-
         if unit == 'dt' and not isinstance(duration, int):
             raise CircuitError("Integer duration is required for 'dt' unit.")
 
         if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
-        super().__init__("delay", 1, 0, params=[duration], unit=unit)
+        super().__init__("delay", 1, 0, params=[], duration=duration, unit=unit)
 
     def inverse(self):
         """Special case. Return self."""
@@ -44,35 +41,18 @@ class Delay(Instruction):
     def c_if(self, classical, val):
         raise CircuitError('Conditional Delay is not yet implemented.')
 
-    @property
-    def duration(self):
-        """Get the duration of this delay."""
-        return self.params[0]
-
-    @duration.setter
-    def duration(self, duration):
-        """Set the duration of this delay."""
-        self.params = [duration]
-
     def to_matrix(self) -> np.ndarray:
         """Return the identity matrix."""
         return np.array([[1, 0],
                          [0, 1]], dtype=complex)
 
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = super().assemble()
+        instruction.params = [self.duration]
+        return instruction
+
     def __repr__(self):
         """Return the official string representing the delay."""
         return "%s(duration=%s[unit=%s])" % \
-               (self.__class__.__name__, self.params[0], self.unit)
-
-    def validate_parameter(self, parameter):
-        """Delay instrction parameter has to be a to-int castable."""
-        try:
-            parameter_int = int(parameter)
-        except Exception:
-            raise CircuitError("cast error: invalid param type {0} in delay instruction "
-                               "{1}".format(type(parameter), self.name))
-        if parameter == parameter_int:
-            return parameter_int
-        else:
-            raise CircuitError("invalid param type {0} in delay instruction "
-                               "{1}".format(type(parameter), self.name))
+               (self.__class__.__name__, self.duration, self.unit)

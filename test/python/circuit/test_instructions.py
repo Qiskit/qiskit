@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit import Parameter
-from qiskit.circuit import Instruction
+from qiskit.circuit import OpaqueInstruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -34,17 +34,17 @@ class TestInstructions(QiskitTestCase):
 
     def test_instructions_equal(self):
         """Test equality of two instructions."""
-        hop1 = Instruction('h', 1, 0, [])
-        hop2 = Instruction('s', 1, 0, [])
-        hop3 = Instruction('h', 1, 0, [])
+        hop1 = OpaqueInstruction('h', 1, 0, [])
+        hop2 = OpaqueInstruction('s', 1, 0, [])
+        hop3 = OpaqueInstruction('h', 1, 0, [])
 
         self.assertFalse(hop1 == hop2)
         self.assertTrue(hop1 == hop3)
 
-        uop1 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
-        uop2 = Instruction('u', 1, 0, [0.4, 0.6, 0.5])
-        uop3 = Instruction('v', 1, 0, [0.4, 0.5, 0.5])
-        uop4 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
+        uop1 = OpaqueInstruction('u', 1, 0, [0.4, 0.5, 0.5])
+        uop2 = OpaqueInstruction('u', 1, 0, [0.4, 0.6, 0.5])
+        uop3 = OpaqueInstruction('v', 1, 0, [0.4, 0.5, 0.5])
+        uop4 = OpaqueInstruction('u', 1, 0, [0.4, 0.5, 0.5])
 
         self.assertFalse(uop1 == uop2)
         self.assertTrue(uop1 == uop4)
@@ -54,10 +54,10 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(HGate() == CXGate())
         self.assertFalse(hop1 == HGate())
 
-        eop1 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
-        eop2 = Instruction('kraus', 1, 0, [np.array([[0, 1], [1, 0]])])
-        eop3 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
-        eop4 = Instruction('kraus', 1, 0, [np.eye(4)])
+        eop1 = OpaqueInstruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop2 = OpaqueInstruction('kraus', 1, 0, [np.array([[0, 1], [1, 0]])])
+        eop3 = OpaqueInstruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop4 = OpaqueInstruction('kraus', 1, 0, [np.eye(4)])
 
         self.assertTrue(eop1 == eop3)
         self.assertFalse(eop1 == eop2)
@@ -69,20 +69,20 @@ class TestInstructions(QiskitTestCase):
         phi = Parameter('phi')
 
         # Verify we can check params including parameters
-        self.assertEqual(Instruction('u', 1, 0, [theta, phi, 0.4]),
-                         Instruction('u', 1, 0, [theta, phi, 0.4]))
+        self.assertEqual(OpaqueInstruction('u', 1, 0, [theta, phi, 0.4]),
+                         OpaqueInstruction('u', 1, 0, [theta, phi, 0.4]))
 
         # Verify we can test for correct parameter order
-        self.assertNotEqual(Instruction('u', 1, 0, [theta, phi, 0]),
-                            Instruction('u', 1, 0, [phi, theta, 0]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [theta, phi, 0]),
+                            OpaqueInstruction('u', 1, 0, [phi, theta, 0]))
 
         # Verify we can still find a wrong fixed param if we use parameters
-        self.assertNotEqual(Instruction('u', 1, 0, [theta, phi, 0.4]),
-                            Instruction('u', 1, 0, [theta, phi, 0.5]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [theta, phi, 0.4]),
+                            OpaqueInstruction('u', 1, 0, [theta, phi, 0.5]))
 
         # Verify we can find cases when param != float
-        self.assertNotEqual(Instruction('u', 1, 0, [0.3, phi, 0.4]),
-                            Instruction('u', 1, 0, [theta, phi, 0.5]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [0.3, phi, 0.4]),
+                            OpaqueInstruction('u', 1, 0, [theta, phi, 0.5]))
 
     def test_instructions_equal_with_parameter_expressions(self):
         """Test equality of instructions for cases with ParameterExpressions."""
@@ -92,20 +92,20 @@ class TestInstructions(QiskitTestCase):
         product_ = theta * phi
 
         # Verify we can check params including parameters
-        self.assertEqual(Instruction('u', 1, 0, [sum_, product_, 0.4]),
-                         Instruction('u', 1, 0, [sum_, product_, 0.4]))
+        self.assertEqual(OpaqueInstruction('u', 1, 0, [sum_, product_, 0.4]),
+                         OpaqueInstruction('u', 1, 0, [sum_, product_, 0.4]))
 
         # Verify we can test for correct parameter order
-        self.assertNotEqual(Instruction('u', 1, 0, [product_, sum_, 0]),
-                            Instruction('u', 1, 0, [sum_, product_, 0]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [product_, sum_, 0]),
+                            OpaqueInstruction('u', 1, 0, [sum_, product_, 0]))
 
         # Verify we can still find a wrong fixed param if we use parameters
-        self.assertNotEqual(Instruction('u', 1, 0, [sum_, phi, 0.4]),
-                            Instruction('u', 1, 0, [sum_, phi, 0.5]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [sum_, phi, 0.4]),
+                            OpaqueInstruction('u', 1, 0, [sum_, phi, 0.5]))
 
         # Verify we can find cases when param != float
-        self.assertNotEqual(Instruction('u', 1, 0, [0.3, sum_, 0.4]),
-                            Instruction('u', 1, 0, [product_, sum_, 0.5]))
+        self.assertNotEqual(OpaqueInstruction('u', 1, 0, [0.3, sum_, 0.4]),
+                            OpaqueInstruction('u', 1, 0, [product_, sum_, 0.5]))
 
     def circuit_instruction_circuit_roundtrip(self):
         """test converting between circuit and instruction and back
@@ -150,8 +150,7 @@ class TestInstructions(QiskitTestCase):
         q = QuantumRegister(4)
         c = ClassicalRegister(2)
         circ = QuantumCircuit(q, c)
-        opaque_inst = Instruction(name='my_inst', num_qubits=3,
-                                  num_clbits=1, params=[0.5])
+        opaque_inst = OpaqueInstruction(name='my_inst', num_qubits=3, num_clbits=1, params=[0.5])
         circ.append(opaque_inst, [q[3], q[1], q[0]], [c[1]])
         self.assertEqual(circ.data[0][0].name, 'my_inst')
         self.assertEqual(circ.decompose(), circ)
@@ -322,7 +321,7 @@ class TestInstructions(QiskitTestCase):
         """Verify modifying the parameters of a copied instruction does not
         affect the original."""
 
-        inst = Instruction('test', 2, 1, [0, 1, 2])
+        inst = OpaqueInstruction('test', 2, 1, [0, 1, 2])
 
         cpy = inst.copy()
 
