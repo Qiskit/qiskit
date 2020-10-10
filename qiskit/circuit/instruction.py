@@ -11,24 +11,12 @@
 # that they have been altered from the originals.
 
 """
-A generic quantum instruction.
+An abstract class Instruction.
 
 Instructions can be implementable on hardware (u, cx, etc.) or in simulation
 (snapshot, noise, etc.).
 
 Instructions can be unitary (a.k.a Gate) or non-unitary.
-
-Instructions are identified by the following:
-
-    name: A string to identify the type of instruction.
-          Used to request a specific instruction on the backend, or in visualizing circuits.
-
-    num_qubits, num_clbits: dimensions of the instruction.
-
-    params: List of parameters to specialize a specific instruction instance.
-
-Instructions do not have any context about where they are in a circuit (which qubits/clbits).
-The circuit itself keeps this context.
 """
 import warnings
 import copy

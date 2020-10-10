@@ -32,5 +32,6 @@ from .instruction import Instruction
 
 
 class OpaqueInstruction(Instruction):
+    """Opaque instruction"""
     def validate_parameter(self, parameter):
         return parameter
