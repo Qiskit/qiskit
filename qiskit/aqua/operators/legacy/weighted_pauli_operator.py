@@ -720,7 +720,7 @@ class WeightedPauliOperator(LegacyBaseOperator):
                     libname='qiskit-aer',
                     name='evaluation_instruction',
                     pip_install='pip install qiskit-aer') from ex
-            snapshot = SnapshotExpectationValue('expval', self.paulis, variance=True)
+            snapshot = SnapshotExpectationValue('expval', self.paulis)
             instructions = {'expval_snapshot': snapshot}
         elif statevector_mode:
             for _, pauli in self._paulis:

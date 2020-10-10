@@ -76,16 +76,12 @@ class AerPauliExpectation(ExpectationBase):
 
         if isinstance(operator, SummedOp):
             paulis = [[meas.coeff, meas.primitive] for meas in operator.oplist]
-            snapshot_instruction = SnapshotExpectationValue('expval_measurement',
-                                                            paulis,
-                                                            variance=True)
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
             snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
             return snapshot_op
         if isinstance(operator, PauliOp):
             paulis = [[operator.coeff, operator.primitive]]
-            snapshot_instruction = SnapshotExpectationValue('expval_measurement',
-                                                            paulis,
-                                                            variance=True)
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
             snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
             return snapshot_op
         if isinstance(operator, ListOp):
