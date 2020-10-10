@@ -131,7 +131,7 @@ class NormalDistribution(QuantumCircuit):
                  mu: Optional[Union[float, List[float]]] = None,
                  sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
-                 upto_phase: bool = True,
+                 upto_phase: bool = False,
                  name: str = 'P(X)') -> None:
         r"""
         Args:
