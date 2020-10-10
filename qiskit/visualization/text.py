@@ -796,7 +796,10 @@ class TextDrawing():
                   SXGate: '√X',
                   SXdgGate: '√XDG'}
         instruction_type = type(instruction)
-        if instruction_type in {Gate, Instruction}:
+        if instruction_type is Gate:
+            return instruction.name
+        if isinstance(instruction, Instruction) and not isinstance(instruction, Gate):
+            # An custom instruction (Instruction subclass but not a Gate)
             return instruction.name
         return labels.get(instruction_type, None)
 
