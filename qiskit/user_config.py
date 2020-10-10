@@ -64,17 +64,32 @@ class UserConfig:
                         "'latex_source'"
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
+
             # Parse circuit_mpl_style
             circuit_mpl_style = self.config_parser.get('default',
                                                        'circuit_mpl_style',
                                                        fallback=None)
             if circuit_mpl_style:
-                if circuit_mpl_style not in ['default', 'iqx', 'bw']:
+                if not isinstance(circuit_mpl_style, str):
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid mpl circuit style. Must be "
-                        "either 'default', 'iqx', or bw'"
+                        "a text string"
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
+
+            # Parse circuit_mpl_style_path
+            circuit_mpl_style_path = self.config_parser.get('default',
+                                                            'circuit_mpl_style_path',
+                                                            fallback=None)
+            if circuit_mpl_style_path:
+                cpath_list = circuit_mpl_style_path.split(';')
+                for path in cpath_list:
+                    if not os.path.exists(os.path.expanduser(path)):
+                        raise exceptions.QiskitUserConfigError(
+                            "%s is not a valid circuit mpl style path."
+                            % path)
+                self.settings['circuit_mpl_style_path'] = cpath_list
+
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 'default', 'transpile_optimization_level', fallback=-1)
@@ -86,6 +101,7 @@ class UserConfig:
                         "0, 1, 2, or 3.")
                 self.settings['transpile_optimization_level'] = (
                     transpile_optimization_level)
+
             # Parse package warnings
             package_warnings = self.config_parser.getboolean(
                 'default', 'suppress_packaging_warnings', fallback=False)

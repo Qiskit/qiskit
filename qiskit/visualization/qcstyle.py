@@ -166,3 +166,5 @@ def set_style(def_style, json_style):
     if json_style:
         warn('style option/s ({}) is/are not supported'.format(', '.join(json_style.keys())),
              DeprecationWarning, 2)
+
+    return def_style

@@ -137,7 +137,7 @@ class MatplotlibDrawer:
         self._creg_dict = collections.OrderedDict()
         self._ops = ops
         self._scale = 1.0 if scale is None else scale
-        self._load_style(style)
+        self._style = self._load_style(style)
         self._plot_barriers = plot_barriers
         self._layout = layout
         self._fold = fold
@@ -230,42 +230,54 @@ class MatplotlibDrawer:
         return self._ast
 
     def _load_style(self, style):
-        self._style = DefaultStyle().style
+        def_style = DefaultStyle().style
         style_name = 'default'
+        config = user_config.get_config()
         if style is False:
             style_name = 'bw'
         elif isinstance(style, dict) and 'name' in style.keys():
             style_name = style['name']
         elif isinstance(style, str):
             style_name = style
-        else:
-            config = user_config.get_config()
-            if config:
-                style_name = config.get('circuit_mpl_style', 'default')
+        elif config:
+            style_name = config.get('circuit_mpl_style', 'default')
         if style_name[-5:] == '.json':
             style_name = style_name[:-5]
+
+        # Search for file in 'styles' dir, then config_path, and finally 'cwd'
+        style_path = []
         if style_name != 'default':
-            if style_name in ['iqx', 'bw']:
-                dirname = os.path.dirname(__file__)
-                dirname = os.path.join(dirname, 'styles')
-                style_path = os.path.join(dirname, style_name + '.json')
-            else:
-                style_path = os.path.join('', style_name + '.json')
-            try:
-                with open(style_path) as infile:
-                    json_style = json.load(infile)
-                set_style(self._style, json_style)
-            except FileNotFoundError:
-                warn("Style JSON file '{}' not found. Will use default style.".format(style_name),
-                     UserWarning, 2)
-            except json.JSONDecodeError as e:
-                warn("Could not decode JSON in file '{}': {}. ".format(style_name, str(e))
-                     + "Will use default style.", UserWarning, 2)
-            except OSError:
-                warn("Error loading JSON file '{}'. Will use default style.".format(style_name),
-                     UserWarning, 2)
+            style_name = style_name + '.json'
+            dirname = os.path.dirname(__file__)
+            dirname = os.path.join(dirname, 'styles')
+            style_path.append(os.path.join(dirname, style_name))
+
+            if config:
+                config_path = config.get('circuit_mpl_style_path', '')
+            if config_path:
+                for path in config_path:
+                    style_path.append(os.path.join(path, style_name))
+            style_path.append(os.path.join('', style_name))
+
+            for path in style_path:
+                if os.path.isfile(path):
+                    try:
+                        with open(path) as infile:
+                            json_style = json.load(infile)
+                        set_style(def_style, json_style)
+                        break
+                    except FileNotFoundError:
+                        warn("Style JSON file '{}' not found. Will use default style.".format(
+                            style_name), UserWarning, 2)
+                    except json.JSONDecodeError as e:
+                        warn("Could not decode JSON in file '{}': {}. ".format(
+                            style_name, str(e)) + "Will use default style.", UserWarning, 2)
+                    except OSError:
+                        warn("Error loading JSON file '{}'. Will use default style.".format(
+                            style_name), UserWarning, 2)
         if isinstance(style, dict):
-            set_style(self._style, style)
+            set_style(def_style, style)
+        return def_style
 
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):
