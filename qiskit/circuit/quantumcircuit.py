@@ -25,6 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
@@ -822,6 +823,12 @@ class QuantumCircuit:
                                'have a to_instruction() method.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
+
+        # Make copy of parameterized gate instances
+        if hasattr(instruction, 'params'):
+            is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
+            if is_parameter:
+                instruction = copy.deepcopy(instruction)
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
