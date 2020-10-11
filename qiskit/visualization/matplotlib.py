@@ -166,15 +166,25 @@ class MatplotlibDrawer:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style) as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
+                try:
+                    with open(style) as infile:
+                        dic = json.load(infile)
+                    self._style.set_style(dic)
+                except FileNotFoundError:
+                    warn("Style JSON file '{}' not found. Will use default style.".format(style),
+                         UserWarning, 2)
+                except json.JSONDecodeError as e:
+                    warn("Could not decode JSON in file '{}': {}. ".format(style, str(e))
+                         + "Will use default style.", UserWarning, 2)
+                except OSError:
+                    warn("Error loading JSON file '{}'. Will use default style.".format(style),
+                         UserWarning, 2)
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
-        if style and 'cregbundle' in style.keys():
+        if isinstance(style, dict) and 'cregbundle' in style.keys():
             self.cregbundle = style['cregbundle']
             del style['cregbundle']
             warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
