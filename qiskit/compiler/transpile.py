@@ -323,13 +323,6 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     else:
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
-    if pass_manager_config.scheduling_method is not None:
-        if pass_manager_config.basis_gates:
-            if 'delay' not in pass_manager_config.basis_gates:
-                pass_manager_config.basis_gates.append('delay')
-        else:
-            pass_manager_config.basis_gates = ['delay']
-
     result = pass_manager.run(circuit, callback=transpile_config['callback'],
                               output_name=transpile_config['output_name'])
 
