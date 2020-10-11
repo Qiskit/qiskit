@@ -519,7 +519,7 @@ def _generate_latex_source(circuit, filename=None,
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
-        filename (str): file path to save image to
+        filename (str): optional filename to write latex
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output

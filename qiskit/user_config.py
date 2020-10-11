@@ -61,7 +61,8 @@ class UserConfig:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid circuit drawer backend. Must be "
                         "either 'text', 'mpl', 'latex', 'auto', or "
-                        "'latex_source'"
+                        "'latex_source'. Correct the drawer name in "
+                        "~/.qiskit/settings.conf."
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
 
@@ -73,7 +74,8 @@ class UserConfig:
                 if not isinstance(circuit_mpl_style, str):
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid mpl circuit style. Must be "
-                        "a text string"
+                        "a text string. Correct the style name in "
+                        "~/.qiskit/settings.conf"
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
 
@@ -87,6 +89,7 @@ class UserConfig:
                     if not os.path.exists(os.path.expanduser(path)):
                         raise exceptions.QiskitUserConfigError(
                             "%s is not a valid circuit mpl style path."
+                            " Correct the path in ~/.qiskit/setting.conf."
                             % path)
                 self.settings['circuit_mpl_style_path'] = cpath_list
 

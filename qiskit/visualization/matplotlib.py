@@ -254,15 +254,17 @@ class MatplotlibDrawer:
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
-            if config_path:
-                for path in config_path:
-                    style_path.append(os.path.join(path, style_name))
+                if config_path:
+                    for path in config_path:
+                        style_path.append(os.path.join(path, style_name))
             style_path.append(os.path.join('', style_name))
 
+            found_path = False
             for path in style_path:
-                if os.path.isfile(path):
+                if os.path.isfile(os.path.expanduser(path)):
+                    found_path = True
                     try:
-                        with open(path) as infile:
+                        with open(os.path.expanduser(path)) as infile:
                             json_style = json.load(infile)
                         set_style(def_style, json_style)
                         break
@@ -275,6 +277,10 @@ class MatplotlibDrawer:
                     except OSError:
                         warn("Error loading JSON file '{}'. Will use default style.".format(
                             style_name), UserWarning, 2)
+            if not found_path:
+                warn("Style JSON file '{}' not found. Will use default style.".format(
+                    style_name), UserWarning, 2)
+
         if isinstance(style, dict):
             set_style(def_style, style)
         return def_style

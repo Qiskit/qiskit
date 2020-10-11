@@ -1134,7 +1134,12 @@ class QuantumCircuit:
         **matplotlib**: images with color rendered purely in Python.
 
         Args:
-            circuit (QuantumCircuit): the quantum circuit to draw
+            output (str): Select the output method to use for drawing the circuit.
+                Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
+                By default the `'text`' drawer is used unless a user config file
+                has an alternative backend set as the default. If the output kwarg
+                is set, that backend will always be used over the default in a user
+                config file.
             scale (float): scale of image to draw (shrink if < 1). Only used by the
                 ``mpl``, ``latex``, and ``latex_source`` outputs.
             filename (str): file path to save image to
@@ -1144,12 +1149,6 @@ class QuantumCircuit:
                 dictionary, the file will be opened, parsed, and then used as the
                 input dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
                 information on the contents.
-            output (str): Select the output method to use for drawing the circuit.
-                Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
-                By default the `'text`' drawer is used unless a user config file
-                has an alternative backend set as the default. If the output kwarg
-                is set, that backend will always be used over the default in a user
-                config file.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
