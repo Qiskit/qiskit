@@ -78,7 +78,7 @@ measure qr2[1] -> cr[2];\n"""
         composite_circ.h(0)
         composite_circ.x(1)
         composite_circ.cx(0, 1)
-        composite_circ_instr = composite_circ.to_instruction()
+        composite_circ_instr = composite_circ.to_gate()
 
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
@@ -112,7 +112,7 @@ measure qr[1] -> cr[1];\n"""
         composite_circ.h(0)
         composite_circ.x(1)
         composite_circ.cx(0, 1)
-        composite_circ_instr = composite_circ.to_instruction()
+        composite_circ_instr = composite_circ.to_gate()
 
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(2, 'cr')
@@ -145,15 +145,15 @@ measure qr[1] -> cr[1];\n"""
 
         my_gate = QuantumCircuit(1, name='my_gate')
         my_gate.h(0)
-        my_gate_inst1 = my_gate.to_instruction()
+        my_gate_inst1 = my_gate.to_gate()
 
         my_gate = QuantumCircuit(1, name='my_gate')
         my_gate.x(0)
-        my_gate_inst2 = my_gate.to_instruction()
+        my_gate_inst2 = my_gate.to_gate()
 
         my_gate = QuantumCircuit(1, name='my_gate')
         my_gate.x(0)
-        my_gate_inst3 = my_gate.to_instruction()
+        my_gate_inst3 = my_gate.to_gate()
 
         qr = QuantumRegister(1, name='qr')
         circuit = QuantumCircuit(qr, name='circuit')
