@@ -44,4 +44,8 @@ def dag_to_dagdependency(dag):
 
     dagdependency._add_successors()
 
+    # copy metadata
+    dagdependency.global_phase = dag.global_phase
+    dagdependency.calibrations = dag.calibrations
+
     return dagdependency
