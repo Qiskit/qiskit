@@ -125,7 +125,7 @@ class TestBitEvents(QiskitTestCase):
 
     def test_gate_output(self):
         """Test gate output."""
-        bit_event = events.BitEvents(self.qubits[0], self.instructions)
+        bit_event = events.BitEvents(self.qubits[0], self.instructions, 300)
 
         gates = list(bit_event.get_gates())
         ref_list = [
@@ -150,7 +150,7 @@ class TestBitEvents(QiskitTestCase):
 
     def test_barrier_output(self):
         """Test barrier output."""
-        bit_event = events.BitEvents(self.qubits[0], self.instructions)
+        bit_event = events.BitEvents(self.qubits[0], self.instructions, 200)
 
         barriers = list(bit_event.get_barriers())
         ref_list = [
@@ -162,7 +162,7 @@ class TestBitEvents(QiskitTestCase):
 
     def test_bit_link_output(self):
         """Test link output."""
-        bit_event = events.BitEvents(self.qubits[0], self.instructions)
+        bit_event = events.BitEvents(self.qubits[0], self.instructions, 250)
 
         links = list(bit_event.get_gate_links())
         ref_list = [
