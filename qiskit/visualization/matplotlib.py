@@ -230,7 +230,7 @@ class MatplotlibDrawer:
         return self._ast
 
     def _load_style(self, style):
-        def_style = DefaultStyle().style
+        current_style = DefaultStyle().style
         style_name = 'default'
         config = user_config.get_config()
         if style is False:
@@ -249,8 +249,7 @@ class MatplotlibDrawer:
         if style_name != 'default':
             style_name = style_name + '.json'
             dirname = os.path.dirname(__file__)
-            dirname = os.path.join(dirname, 'styles')
-            style_path.append(os.path.join(dirname, style_name))
+            style_path.append(os.path.join(dirname, 'styles', style_name))
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
@@ -266,7 +265,7 @@ class MatplotlibDrawer:
                     try:
                         with open(os.path.expanduser(path)) as infile:
                             json_style = json.load(infile)
-                        set_style(def_style, json_style)
+                        set_style(current_style, json_style)
                         break
                     except FileNotFoundError:
                         warn("Style JSON file '{}' not found. Will use default style.".format(
@@ -282,8 +281,8 @@ class MatplotlibDrawer:
                     style_name), UserWarning, 2)
 
         if isinstance(style, dict):
-            set_style(def_style, style)
-        return def_style
+            set_style(current_style, style)
+        return current_style
 
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize, param=False):

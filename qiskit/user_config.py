@@ -14,6 +14,7 @@
 
 import configparser
 import os
+from warnings import warn
 
 from qiskit import exceptions
 
@@ -29,6 +30,9 @@ class UserConfig:
     [default]
     circuit_drawer = mpl
     circuit_mpl_style = default
+    circuit_mpl_style_path = /home/user/styles;/home/user
+    transpile_optimization_level = 2
+    suppress_packaging_warnings = True
 
     """
     def __init__(self, filename=None):
@@ -36,7 +40,7 @@ class UserConfig:
 
         Args:
             filename (str): The path to the user config file. If one isn't
-                specified ~/.qiskit/settings.conf is used.
+                specified, ~/.qiskit/settings.conf is used.
         """
         if filename is None:
             self.filename = DEFAULT_FILENAME
@@ -60,9 +64,8 @@ class UserConfig:
                                           'latex_source', 'auto']:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid circuit drawer backend. Must be "
-                        "either 'text', 'mpl', 'latex', 'auto', or "
-                        "'latex_source'. Correct the drawer name in "
-                        "~/.qiskit/settings.conf."
+                        "either 'text', 'mpl', 'latex', 'latex_source', or "
+                        "'auto'."
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
 
@@ -72,11 +75,9 @@ class UserConfig:
                                                        fallback=None)
             if circuit_mpl_style:
                 if not isinstance(circuit_mpl_style, str):
-                    raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid mpl circuit style. Must be "
-                        "a text string. Correct the style name in "
-                        "~/.qiskit/settings.conf"
-                        % circuit_mpl_style)
+                    warn("%s is not a valid mpl circuit style. Must be "
+                         "a text string. Will not load style."
+                         % circuit_mpl_style, UserWarning, 2)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
 
             # Parse circuit_mpl_style_path
@@ -87,10 +88,9 @@ class UserConfig:
                 cpath_list = circuit_mpl_style_path.split(';')
                 for path in cpath_list:
                     if not os.path.exists(os.path.expanduser(path)):
-                        raise exceptions.QiskitUserConfigError(
-                            "%s is not a valid circuit mpl style path."
-                            " Correct the path in ~/.qiskit/setting.conf."
-                            % path)
+                        warn("%s is not a valid circuit mpl style path."
+                             " Correct the path in ~/.qiskit/settings.conf."
+                             % path, UserWarning, 2)
                 self.settings['circuit_mpl_style_path'] = cpath_list
 
             # Parse transpile_optimization_level

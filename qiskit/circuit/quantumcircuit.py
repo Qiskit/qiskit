@@ -1143,10 +1143,11 @@ class QuantumCircuit:
         Args:
             output (str): Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
-                By default the `'text`' drawer is used unless a user config file
-                has an alternative backend set as the default. If the output kwarg
-                is set, that backend will always be used over the default in a user
-                config file.
+                By default the `'text`' drawer is used unless the user config file
+                (usually '~/.qiskit/settings.conf') has an alternative backend set
+                as the default, for example, 'circuit_drawer = latex'. If the output
+                kwarg is set, that backend will always be used over the default in
+                the user config file.
             scale (float): scale of image to draw (shrink if < 1). Only used by the
                 ``mpl``, ``latex``, and ``latex_source`` outputs.
             filename (str): file path to save image to
@@ -1154,7 +1155,21 @@ class QuantumCircuit:
                 This option is only used by the ``mpl`` output type. If a str is
                 passed in that is the path to a json file which contains a style
                 dictionary, the file will be opened, parsed, and then used as the
-                input dict. See: :ref:`Style Dict Doc <style-dict-doc>` for more
+                input dict. A file to be loaded must end in '.json', but the name
+                entered here can omit '.json'. For example, ``style='iqx.json'``
+                or ``style='iqx'``.
+                If ``style`` is a dict and the 'name' key is set, that name
+                will be used to load a json file, followed by loading the other
+                items in the style dict. For example, ``style={'name': 'iqx'}``.
+                If ``style`` is not a str and 'name' is not a key in the style dict,
+                then the default value from the user config file (usually
+                ~/.qiskit/settings.conf) will be used, for example,
+                'circuit_mpl_style = iqx'.
+                If none of these are set, the 'default' style will be used.
+                The search path for style json files can be specified in the user
+                config, for example,
+                'circuit_mpl_style_path = /home/user/styles;/home/user'.
+                See: :ref:`Style Dict Doc <style-dict-doc>` for more
                 information on the contents.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
