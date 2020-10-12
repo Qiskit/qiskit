@@ -252,7 +252,11 @@ class Statevector(QuantumState):
         Returns:
             bool: True if statevectors are equivalent up to global phase.
         """
-        if not isinstance(other, Statevector):
+        if isinstance(other, QuantumCircuit):
+            other = Statevector.from_instruction(other)
+        elif isinstance(other, str):
+            other = Statevector.from_label(other)
+        elif not isinstance(other, Statevector):
             try:
                 other = Statevector(other)
             except QiskitError:

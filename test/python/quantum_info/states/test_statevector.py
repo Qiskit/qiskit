@@ -345,13 +345,27 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(-state, Statevector(-1 * vec))
 
     def test_equiv(self):
-        """Test negate method"""
+        """Test equiv method"""
         vec = np.array([1, 0, 0, -1j]) / np.sqrt(2)
         phase = np.exp(-1j * np.pi / 4)
         statevec = Statevector(vec)
         self.assertTrue(statevec.equiv(phase * vec))
         self.assertTrue(statevec.equiv(Statevector(phase * vec)))
         self.assertFalse(statevec.equiv(2 * vec))
+
+    def test_equiv_different_input_types(self):
+        """Test the equiv method on different types of input."""
+        statevec = Statevector([1, 0])
+
+        with self.subTest('circuit'):
+            qc = QuantumCircuit(1)
+            self.assertTrue(statevec.equiv(qc))
+            qc.x(0)
+            self.assertFalse(statevec.equiv(qc))
+
+        with self.subTest('label'):
+            self.assertTrue(statevec.equiv('0'))
+            self.assertFalse(statevec.equiv('+'))
 
     def test_to_dict(self):
         """Test to_dict method"""
