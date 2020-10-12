@@ -2068,7 +2068,7 @@ class QuantumCircuit:
                            [control_qubit, target_qubit], [])
 
     def mcp(self, lam, control_qubits, target_qubit):
-        """Apply :class:`~qiskit.circuit.library.MCU1Gate`."""
+        """Apply :class:`~qiskit.circuit.library.MCPhaseGate`."""
         from .library.standard_gates.p import MCPhaseGate
         num_ctrl_qubits = len(control_qubits)
         return self.append(MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit],
