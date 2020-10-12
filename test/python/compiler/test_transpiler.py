@@ -746,7 +746,6 @@ class TestTranspile(QiskitTestCase):
     )
     def test_translation_method_synthesis(self, optimization_level, basis_gates):
         """Verify translation_method='synthesis' gets to the basis."""
-
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
