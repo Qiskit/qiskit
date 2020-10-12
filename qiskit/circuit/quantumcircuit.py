@@ -2258,7 +2258,7 @@ class QuantumCircuit:
         warnings.warn('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You should use '
                       'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
-                      'you can decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                      'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
                       'u3(ϴ,φ,λ) = p(φ) sx p(ϴ) sx p(λ) (2 pulses on hardware).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
