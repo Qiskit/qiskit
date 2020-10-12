@@ -25,15 +25,14 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
-from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.library.template_circuits.toffoli import template_2a_1, template_2a_2, \
-    template_2a_3
+from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.optimization.template_matching import TemplateMatching, \
-    TemplateSubstitution, MaximalMatches
+from qiskit.transpiler.passes.optimization.template_matching import (TemplateMatching,
+                                                                     TemplateSubstitution,
+                                                                     MaximalMatches)
 
 
 class TemplateOptimization(TransformationPass):
@@ -65,7 +64,7 @@ class TemplateOptimization(TransformationPass):
         super().__init__()
         # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
         if template_list is None:
-            template_list = [template_2a_1(), template_2a_2(), template_2a_3()]
+            template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
         self.heuristics_qubits_param = heuristics_qubits_param \
             if heuristics_qubits_param is not None else []
@@ -84,22 +83,19 @@ class TemplateOptimization(TransformationPass):
         """
         circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
-        circuit = dagdependency_to_circuit(circuit_dag_dep)
-        operator_ini = Operator(circuit)
 
         for template in self.template_list:
             if not isinstance(template, QuantumCircuit):
                 raise TranspilerError('A template is a Quantumciruit().')
+
+            if template.num_qubits > len(circuit_dag_dep.qubits):
+                continue
 
             identity = np.identity(2 ** template.num_qubits, dtype=complex)
             comparison = np.allclose(Operator(template).data, identity)
 
             if not comparison:
                 raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
-
-            if template.num_qubits > len(circuit_dag_dep.qubits):
-                raise TranspilerError('A template should have equal or less number of qubit'
-                                      ' compared to the circuit.')
 
             template_dag_dep = circuit_to_dagdependency(template)
 
@@ -123,12 +119,6 @@ class TemplateOptimization(TransformationPass):
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized
-
-                circuit_intermediate = dagdependency_to_circuit(circuit_dag_dep)
-                opertator_intermediate = Operator(circuit_intermediate)
-
-                if operator_ini != opertator_intermediate:
-                    raise TranspilerError('A failure happened during the substitution.')
             else:
                 continue
         circuit_dag = dagdependency_to_dag(circuit_dag_dep)

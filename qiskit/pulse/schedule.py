@@ -22,7 +22,7 @@ import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.interfaces import ScheduleComponent
@@ -44,7 +44,7 @@ class Schedule(ScheduleComponent):
     # Prefix to use for auto naming.
     prefix = 'sched'
 
-    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+    def __init__(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
                  name: Optional[str] = None):
         """Create an empty schedule.
 
@@ -637,6 +637,47 @@ class Schedule(ScheduleComponent):
                     'Replacement of {old} with {new} results in '
                     'overlapping instructions.'.format(
                         old=old, new=new)) from err
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType],
+                          ) -> 'Schedule':
+        """Assign the parameters in this schedule according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            Schedule with updated parameters (a new one if not inplace, otherwise self).
+        """
+        for _, inst in self.instructions:
+            inst.assign_parameters(value_dict)
+
+        for chan in copy.copy(self._timeslots):
+            if isinstance(chan.index, ParameterExpression):
+                chan_timeslots = self._timeslots.pop(chan)
+
+                # Find the channel's new assignment
+                new_channel = chan
+                for param in chan.index.parameters:
+                    if param in value_dict:
+                        new_index = new_channel.index.assign(param, value_dict[param])
+                        if not new_index.parameters:
+                            new_index = float(new_index)
+                            if float(new_index).is_integer():
+                                new_index = int(new_index)
+                        new_channel = type(chan)(new_index)
+
+                # Merge with existing channel
+                if new_channel in self._timeslots:
+                    sched = Schedule()
+                    sched._timeslots = {new_channel: chan_timeslots}
+                    self._add_timeslots(0, sched)
+                # Or add back under the new name
+                else:
+                    self._timeslots[new_channel] = chan_timeslots
+
+        return self
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
