@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Collapse chains of single qubit gates into a single U3 gate.
+"""Collapse chains of single qubit gates into a 2x2 matrix operator.
 """
 
 from itertools import groupby
@@ -21,30 +19,26 @@ from functools import reduce
 import numpy as np
 
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.operators import Quaternion
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-
-DEFAULT_ATOL = 1e-15
+from qiskit.quantum_info import Operator
 
 
 class Collapse1qChains(TransformationPass):
-    """Collapse chains of single-qubit gates into a single U3 gate each.
+    """Collapse every chain of single-qubit gates into a 2x2 matrix operator.
 
-    This pass can make some gates temporarily less optimized, for example
-    by converting a U1 gate into a U3. A follow-up invocation of SimplifyU3
-    can correct for this.
+    The resulting operators can be synthesized and optimized over the desired
+    basis by invoking some follow-on passes.
 
-    If the chain evaluates to identity (e.g. U3(0,0,0)), this pass simply
+    If the chain evaluates to identity (e.g. U(0,0,0)), this pass simply
     collapses the chain to none.
     """
     def __init__(self, ignore_solo=True):
         """
         Args:
             ignore_solo (bool): If True, all solo gates (chains of length one)
-                are left untouched. Otherwise, each will be converted to a U3.
+                are left untouched (faster). Otherwise, each will be converted
+                to a 2x2 matrix operator.
         """
         self.ignore_solo = ignore_solo
         super().__init__()
@@ -56,11 +50,10 @@ class Collapse1qChains(TransformationPass):
             dag (DAGCircuit): the DAG to be optimized.
 
         Returns:
-            DAGCircuit: a DAG with no single-qubit gate chains and only U3s
-                as single-qubit gates.
+            DAGCircuit: a DAG with no single-qubit gate chains and only as single-qubit gates.
 
         Raises:
-            TranspilerError: in case of numerical errors in combining U3 gates.
+            TranspilerError: in case of numerical errors in combining U gates.
         """
         chains = []
 
@@ -88,63 +81,19 @@ class Collapse1qChains(TransformationPass):
         chains = _split_chains_on_parameters(chains)
 
         # collapse chains into a single U3
-        decomposer = OneQubitEulerDecomposer(basis='U3')
         for chain in chains:
             if len(chain) == 1 and self.ignore_solo:
                 continue
             matrix_chain = [gate.op.to_matrix() for gate in reversed(chain)]
-            u3_gate = decomposer(reduce(np.dot, matrix_chain)).data[0][0]
+            op = Operator(reduce(np.dot, matrix_chain))
             for node in chain[1:]:
                 dag.remove_op_node(node)
-            if np.allclose(u3_gate.params, [0., 0., 0.], atol=DEFAULT_ATOL):
+            if op.equiv(np.eye(2)):
                 dag.remove_op_node(chain[0])
             else:
-                dag.substitute_node(chain[0], u3_gate, inplace=True)
+                dag.substitute_node(chain[0], op.to_instruction(), inplace=True)
 
         return dag
-
-
-def _compose_u3(theta1, phi1, lambda1, theta2, phi2, lambda2):
-    """Return a triple theta, phi, lambda for the product.
-
-    u3(theta, phi, lambda)
-       = u3(theta1, phi1, lambda1).u3(theta2, phi2, lambda2)
-       = Rz(phi1).Ry(theta1).Rz(lambda1+phi2).Ry(theta2).Rz(lambda2)
-       = Rz(phi1).Rz(phi').Ry(theta').Rz(lambda').Rz(lambda2)
-       = u3(theta', phi1 + phi', lambda2 + lambda')
-
-    Return theta, phi, lambda.
-    """
-    # Careful with the factor of two in yzy_to_zyz
-    thetap, phip, lambdap = _yzy_to_zyz((lambda1 + phi2), theta1, theta2)
-    (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
-    return (theta, phi, lamb)
-
-
-def _yzy_to_zyz(xi, theta1, theta2, eps=1e-9):  # pylint: disable=invalid-name
-    """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
-
-    Solve the equation
-
-    .. math::
-
-    Ry(theta1).Rz(xi).Ry(theta2) = Rz(phi).Ry(theta).Rz(lambda)
-
-    for theta, phi, and lambda.
-
-    Return a solution theta, phi, and lambda.
-    """
-    quaternion_yzy = Quaternion.from_euler([theta1, xi, theta2], 'yzy')
-    euler = quaternion_yzy.to_zyz()
-    quaternion_zyz = Quaternion.from_euler(euler, 'zyz')
-    # output order different than rotation order
-    out_angles = (euler[1], euler[0], euler[2])
-    abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))
-    if not np.allclose(abs_inner, 1, eps):
-        raise TranspilerError('YZY and ZYZ angles do not give same rotation matrix.')
-    out_angles = tuple(0 if np.abs(angle) < DEFAULT_ATOL else angle
-                       for angle in out_angles)
-    return out_angles
 
 
 def _split_chains_on_parameters(chains):

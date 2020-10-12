@@ -67,7 +67,7 @@ class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
     def __init__(self, basis_gates: List[str]):
-        """SynthesizeUnitaries initializer.
+        """UnitarySynthesis initializer.
 
         Args:
             basis_gates: List of gate names to target.
@@ -86,7 +86,7 @@ class UnitarySynthesis(TransformationPass):
         """
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
-
+        print(euler_basis)
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
             decomposer1q = OneQubitEulerDecomposer(euler_basis)

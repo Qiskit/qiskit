@@ -181,15 +181,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates),
-        UnitarySynthesis(basis_gates),
-        Optimize1qGates(basis_gates),
-        CommutativeCancellation(),
+        UnitarySynthesis(basis_gates)
     ]
 
     if basis_gates is not None:
-        _opt += [Collapse1qChains(), SimplifyU3()]
+        _opt += [Collapse1qChains(), SimplifyU3(), CommutativeCancellation()]
     elif 'u3' in basis_gates:
-        _opt += [Collapse1qChains()]
+        _opt += [Collapse1qChains(), CommutativeCancellation()]
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
