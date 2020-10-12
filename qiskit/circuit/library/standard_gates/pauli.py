@@ -15,7 +15,6 @@ Simulator command to perform multiple pauli gates in a single pass
 """
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.x import XGate
@@ -48,6 +47,8 @@ class PauliGate(Gate):
         """
         gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         gates = {'I': IGate, 'X': XGate, 'Y': YGate, 'Z': ZGate}
         q = QuantumRegister(len(self.pauli_string), 'q')
         qc = QuantumCircuit(q, name=self.name)
