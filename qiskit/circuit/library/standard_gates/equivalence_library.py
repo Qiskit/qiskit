@@ -14,7 +14,7 @@
 
 
 # pylint: disable=invalid-name
-
+import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
 
@@ -103,7 +103,9 @@ for num_qubits in range(2, 20):
     for i in range(num_qubits):
         for j in range(i + 1, num_qubits):
             def_ms.append(RXXGate(theta), [q[i], q[j]])
-    _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
 
 # PhaseGate
 
