@@ -24,6 +24,7 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 
+
 class PauliGate(Gate):
     r"""A multi-qubit Pauli gate.
 
@@ -36,7 +37,7 @@ class PauliGate(Gate):
         the pauli gates sequentially using standard Qiskit gates
         """
 
-    def __init__(self, pauli_string = "I"):
+    def __init__(self, pauli_string="I"):
         if isinstance(pauli_string, float):
             pauli_string = "I"
         self.pauli_string = pauli_string
