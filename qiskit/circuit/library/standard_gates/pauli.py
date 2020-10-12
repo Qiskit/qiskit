@@ -15,7 +15,8 @@ Simulator command to perform multiple pauli gates in a single pass
 """
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
