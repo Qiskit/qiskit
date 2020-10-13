@@ -27,6 +27,12 @@ class NormalDistribution(QuantumCircuit):
 
         \mathbb{P}(X = x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x - \mu)^2}{\sigma^2}}
 
+    .. note::
+
+        The parameter ``sigma`` in this class equals the **variance**, :math:`\sigma^2` and not the
+        standard deviation. This is for consistency with multivariate distributions, where the
+        uppercase sigma, :math:`\Sigma`, is associated with the covariance.
+
     This circuit considers the discretized version of the normal distribution on
     ``2 ** num_qubits`` equidistant points, :math:`x_i`, truncated to ``bounds``.
     For a one-dimensional random variable, meaning `num_qubits` is a single integer, it applies
@@ -34,19 +40,13 @@ class NormalDistribution(QuantumCircuit):
 
     .. math::
 
-        \mathcal{P}_X |0\rangle^n = \sum_{i=0}^{2^n - 1} \sqrt{\mathbb{P}(x_i) |i\rangle}
+        \mathcal{P}_X |0\rangle^n = \sum_{i=0}^{2^n - 1} \sqrt{\mathbb{P}(x_i)} |i\rangle
 
     where :math:`n` is `num_qubits`.
 
     .. note::
 
-        The parameter ``sigma`` equals the **variance**, :math:`\sigma^2` and not the standard
-        deviation. This is for consistency with multivariate distributions, where the uppercase
-        sigma, :math:`\Sigma`, is associated with the covariance.
-
-    .. note::
-
-        The circuit loads the square root of the probabilities into the qubit amplitudes such
+        The circuit loads the **square root** of the probabilities into the qubit amplitudes such
         that the sampling probability, which is the square of the amplitude, equals the
         probability of the distribution.
 

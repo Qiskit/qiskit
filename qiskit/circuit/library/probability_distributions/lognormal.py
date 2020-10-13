@@ -35,9 +35,26 @@ class LogNormalDistribution(QuantumCircuit):
 
         \mathbb{P}(X = x) = \frac{1}{x\sqrt{2\pi\sigma^2}} e^{-\frac{(\log(x) - \mu)^2}{\sigma^2}}
 
+    .. note::
+
+        The parameter ``sigma`` in this class equals the **variance**, :math:`\sigma^2` and not the
+        standard deviation. This is for consistency with multivariate distributions, where the
+        uppercase sigma, :math:`\Sigma`, is associated with the covariance.
+
     This circuit considers the discretized version of :math:`X` on ``2 ** num_qubits`` equidistant
-    points, :math:`x_i`, truncated to ``bounds``. See also
-    :class:`~qiskit.circuit.library.NormalDistribution` for more information.
+    points, :math:`x_i`, truncated to ``bounds``.  The action of this circuit can be written as
+
+    .. math::
+
+        \mathcal{P}_X |0\rangle^n = \sum_{i=0}^{2^n - 1} \sqrt{\mathbb{P}(x_i)} |i\rangle
+
+    where :math:`n` is `num_qubits`.
+
+    .. note::
+
+        The circuit loads the **square root** of the probabilities into the qubit amplitudes such
+        that the sampling probability, which is the square of the amplitude, equals the
+        probability of the distribution.
 
     This circuit is for example used in amplitude estimation applications, such as finance [1, 2],
     where customer demand or the return of a portfolio could be modelled using a log-normal
