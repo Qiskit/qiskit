@@ -49,11 +49,7 @@ class Decompose(TransformationPass):
             if node.op.definition.global_phase:
                 dag.global_phase += node.op.definition.global_phase
             # TODO: allow choosing among multiple decomposition rules
-            rule = node.op.definition.data
 
-            if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                dag.substitute_node(node, rule[0][0], inplace=True)
-            else:
-                decomposition = circuit_to_dag(node.op.definition)
-                dag.substitute_node_with_dag(node, decomposition)
+            dag.substitute_node_with_circuit(node, node.op.definition)
+
         return dag
