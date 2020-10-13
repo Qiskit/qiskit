@@ -6,14 +6,16 @@ features:
     maximal matches in the circuit.
 
   - |
-    In ``qiskit.transpiler.passes.optimization.template_matching`` they are all
+    In ``qiskit.transpiler.passes.optimization.template_matching`` exist all
     necessary classes to apply the template optimization. Those classes are
     ``ForwardMatch``, ``BackwardMatch``, ``TemplateMatching``, ``MaximalMatches``
     and ``TemplateSubstitution``.
 
-    The pass ``qiskit.transpiler.passes.optimization.template_opt`` makes use of all
-    these classes and applies template optimization for a given circuit and template.
+    The pass ``qiskit.transpiler.passes.optimization.template_optimization``
+    makes use of all these classes and applies template optimization for a given
+    circuit and template.
 
-    In ``qiskit.circuit.library.template_circuits.toffoli``, a list of X, CX
+    In ``qiskit.circuit.library.templates.nct``, a list of X, CX
     and Toffoli templates can be found.
 
+    This pass is invoked in the preset passmanagers of Qiskit.
