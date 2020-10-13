@@ -51,7 +51,7 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
 
     .. math::
 
@@ -128,7 +128,7 @@ class CU3Gate(ControlledGate):
                 1 & 0                   & 0 & 0 \\
                 0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     .. note::
@@ -154,7 +154,7 @@ class CU3Gate(ControlledGate):
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
                     0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
 

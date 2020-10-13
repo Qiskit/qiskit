@@ -17,15 +17,17 @@ from collections import namedtuple
 from typing import Dict, List
 
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
+from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
-from qiskit.pulse.channels import AcquireChannel, MemorySlot
+from qiskit.pulse import instructions as pulse_inst
+from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig
-
 
 CircuitPulseDef = namedtuple('CircuitPulseDef', [
     'schedule',  # The schedule which implements the quantum circuit command
@@ -35,7 +37,6 @@ CircuitPulseDef = namedtuple('CircuitPulseDef', [
 def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
-``
     input circuit.
 
     Without concern for the final schedule, extract and return a list of Schedules and the qubits
@@ -57,6 +58,9 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
 
     inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
+
+    # convert the unit of durations from SI to dt before lowering
+    circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
 
     def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
@@ -105,6 +109,12 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
 
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
+        elif isinstance(inst, Delay):
+            sched = Schedule(name=inst.name)
+            for qubit in inst_qubits:
+                for channel in [DriveChannel]:
+                    sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
+            circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
         elif isinstance(inst, Measure):
             if (len(inst_qubits) != 1 and len(clbits) != 1):
                 raise QiskitError("Qubit '{}' or classical bit '{}' errored because the "
