@@ -99,8 +99,8 @@ class LogNormalDistribution(QuantumCircuit):
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
                 If ``None``, the bounds are set to ``(0, 1)`` for each dimension.
-            upto_diag: If True, load the probabilities up to a global phase for a more efficient
-                circuit.
+            upto_diag: If True, load the square root of the probabilities up to multiplication
+                with a diagonal for a more efficient circuit.
             name: The name of the circuit.
         """
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
