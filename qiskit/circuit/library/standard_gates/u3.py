@@ -51,7 +51,7 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
 
     .. math::
 
