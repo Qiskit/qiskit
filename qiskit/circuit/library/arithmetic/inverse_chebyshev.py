@@ -42,8 +42,7 @@ class InverseChebyshev(BlueprintCircuit):
                  constant: Optional[float] = None,
                  kappa: Optional[float] = None,
                  name: str = 'inv_cheb') -> None:
-        """Construct the piecewise Chebyshev approximation of the inverse function.
-
+        """
         Args:
             num_state_qubits: number of qubits representing the state.
             epsilon: accuracy of the approximation.
