@@ -249,7 +249,6 @@ class ParameterExpression:
         # Compute the gradient of the parameter expression w.r.t. param
         import sympy as sy
         key = self._parameter_symbols[param]
-        # Since param may appear in more than one keys, loop through keys and apply product rule
         # TODO enable nth derivative
         expr_grad = sy.Derivative(self._symbol_expr, key).doit()
 
