@@ -145,7 +145,7 @@ def circuit_drawer(circuit,
             Default is True.
 
     Returns:
-        :class:`TextDrawing`or :class:`matplotlib.figure` or :class:`PIL.Image` or
+        :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
         :class:`str`
 
         * `TextDrawing` (output='text')
