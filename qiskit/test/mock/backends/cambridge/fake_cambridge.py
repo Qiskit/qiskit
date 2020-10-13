@@ -36,3 +36,13 @@ class FakeCambridge(FakeQasmBackend):
     conf_filename = "conf_cambridge.json"
     props_filename = "props_cambridge.json"
     backend_name = "fake_cambridge"
+
+
+class FakeCambridgeAlternativeBasis(FakeCambridge):
+
+    props_filename = "props_cambridge_alt.json"
+
+    def __init__(self):
+        super().__init__()
+        self._configuration.basis_gates = ['u', 'sx', 'p', 'cx', 'id']
+
