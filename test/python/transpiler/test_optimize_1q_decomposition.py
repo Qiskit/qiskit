@@ -18,17 +18,14 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.circuit.library.standard_gates import U1Gate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-from qiskit.converters import circuit_to_dag
-from qiskit.converters import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
-from qiskit.transpiler.exceptions import TranspilerError
+
 
 @ddt.ddt
 class TestOptimize1qGatesDecomposition(QiskitTestCase):
@@ -137,7 +134,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc.u1(theta, qr)
         qc.u1(0.1, qr)
         qc.u1(0.2, qr)
-        dag = circuit_to_dag(qc)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -214,7 +210,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         self.assertTrue(
             Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
                 Operator(result.bind_parameters({theta: 3.14, phi: 10}))))
-
 
 
 if __name__ == '__main__':

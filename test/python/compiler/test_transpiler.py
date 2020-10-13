@@ -691,7 +691,6 @@ class TestTranspile(QiskitTestCase):
         qc.ry(math.pi / 4, 1)
         qc.rxx(math.pi / 4, 0, 1)
         qc.measure([0, 1], [0, 1])
-
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertEqual(qc, out)

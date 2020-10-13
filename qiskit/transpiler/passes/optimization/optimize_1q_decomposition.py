@@ -68,6 +68,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
         runs = dag.collect_runs(self.euler_basis_names[self.basis])
         runs = _split_runs_on_parameters(runs)
         for run in runs:
+            # Don't try to optimize a single 1q gate
+            if len(run) <= 1:
+                continue
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
