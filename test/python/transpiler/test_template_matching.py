@@ -14,7 +14,7 @@
 
 import unittest
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library.template_circuits.toffoli import template_2a_2, template_5a_3
+from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
@@ -99,7 +99,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(qr[1], qr[0])
         dag_in = circuit_to_dag(circuit_in)
 
-        template_list = [template_2a_2()]
+        template_list = [template_nct_2a_2()]
         pass_ = TemplateOptimization(template_list)
         dag_opt = pass_.run(dag_in)
 
@@ -110,7 +110,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(dag_opt, dag_expected)
 
-    def test_pass_template_5a(self):
+    def test_pass_template_nct_5a(self):
         """
         Verify the result of template matching and substitution with the template 5a_3.
         q_0: ───────■─────────■────■──
@@ -158,7 +158,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(qr[1], qr[4])
         dag_in = circuit_to_dag(circuit_in)
 
-        template_list = [template_5a_3()]
+        template_list = [template_nct_5a_3()]
         pass_ = TemplateOptimization(template_list)
         dag_opt = pass_.run(dag_in)
 
@@ -196,38 +196,6 @@ class TestTemplateMatching(QiskitTestCase):
         qct.cx(0, 1)
         qct.x(0)
         qct.h(1)
-
-        template_list = [qct]
-        pass_ = TemplateOptimization(template_list)
-
-        self.assertRaises(TranspilerError, pass_.run, dag_in)
-
-    def test_pass_template_too_many_qubits(self):
-        """
-        If the template has more qubits than the circuit, it raises an error.
-        """
-        qr = QuantumRegister(2, 'qr')
-        circuit_in = QuantumCircuit(qr)
-        circuit_in.h(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.cx(qr[1], qr[0])
-        circuit_in.cx(qr[1], qr[0])
-        dag_in = circuit_to_dag(circuit_in)
-
-        qrt = QuantumRegister(10, 'qrc')
-        qct = QuantumCircuit(qrt)
-        qct.mcx(control_qubits=[0, 1, 2, 3], target_qubit=[8])
-        qct.mcx(control_qubits=[0, 1, 2, 3], target_qubit=[8])
-        qct.x(0)
-        qct.x(0)
-        qct.h(1)
-        qct.h(1)
-        qct.x(8)
-        qct.x(8)
 
         template_list = [qct]
         pass_ = TemplateOptimization(template_list)
