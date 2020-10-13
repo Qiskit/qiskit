@@ -898,6 +898,17 @@ class TestOpConstruction(QiskitAquaTestCase):
         expected = Statevector([1, 0])
         self.assertEqual(op.eval().primitive, expected)
 
+    def test_to_circuit_op(self):
+        """Test to_circuit_op method."""
+        vector = np.array([2, 2])
+        vsfn = VectorStateFn([1, 1], coeff=2)
+        dsfn = DictStateFn({'0': 1, '1': 1}, coeff=2)
+
+        for sfn in [vsfn, dsfn]:
+            np.testing.assert_array_almost_equal(
+                sfn.to_circuit_op().eval().primitive.data, vector
+            )
+
 
 class TestOpMethods(QiskitAquaTestCase):
     """Basic method tests."""
