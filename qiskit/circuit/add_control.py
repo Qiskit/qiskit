@@ -111,7 +111,7 @@ def control(operation: Union[Gate, ControlledGate],
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
-        basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
+        basis = ['p', 'u', 'x', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         for gate, qreg, _ in unrolled_gate.definition.data:
             if gate.name == 'x':
@@ -130,15 +130,15 @@ def control(operation: Union[Gate, ControlledGate],
                 controlled_circ.mcrz(gate.definition.data[0][0].params[0],
                                      q_control, q_target[qreg[0].index],
                                      use_basis_gates=True)
-            elif gate.name == 'u1':
-                from qiskit.circuit.library import MCU1Gate
-                controlled_circ.append(MCU1Gate(gate.params[0], num_ctrl_qubits),
+            elif gate.name == 'p':
+                from qiskit.circuit.library import MCPhaseGate
+                controlled_circ.append(MCPhaseGate(gate.params[0], num_ctrl_qubits),
                                        q_control[:] + [q_target[qreg[0].index]])
             elif gate.name == 'cx':
                 controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
                                     q_target[qreg[1].index],
                                     q_ancillae)
-            elif gate.name == 'u3':
+            elif gate.name == 'u':
                 theta, phi, lamb = gate.params
                 if phi == -pi / 2 and lamb == pi / 2:
                     controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],

@@ -1094,10 +1094,10 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     gry = ry.RYGate(theta)
     grz = rz.RZGate(theta)
 
-    ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
-    ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
-    ugry = ac._unroll_gate(gry, ['u1', 'u3', 'cx'])
-    ugrz = ac._unroll_gate(grz, ['u1', 'u3', 'cx'])
+    ugu1 = ac._unroll_gate(gu1, ['p', 'u', 'cx'])
+    ugrx = ac._unroll_gate(grx, ['p', 'u', 'cx'])
+    ugry = ac._unroll_gate(gry, ['p', 'u', 'cx'])
+    ugrz = ac._unroll_gate(grz, ['p', 'u', 'cx'])
     ugrz.params = grz.params
 
     cgu1 = ugu1.control(num_ctrl)
@@ -1121,7 +1121,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         cqc = QuantumCircuit(self.num_ctrl + self.num_target)
         cqc.append(cgate, cqc.qregs[0])
         dag = circuit_to_dag(cqc)
-        unroller = Unroller(['u3', 'cx'])
+        unroller = Unroller(['u', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
         self.log.info('%s gate count: %d', cgate.name, uqc.size())
         self.log.info('\n%s', str(uqc))
@@ -1143,7 +1143,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         qc.append(self.grz.control(self.num_ctrl), qreg)
 
         dag = circuit_to_dag(qc)
-        unroller = Unroller(['u3', 'cx'])
+        unroller = Unroller(['u', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
