@@ -35,7 +35,6 @@ class LogNormalDistribution(QuantumCircuit):
 
         \mathbb{P}(X = x) = \frac{1}{x\sqrt{2\pi\sigma^2}} e^{-\frac{(\log(x) - \mu)^2}{\sigma^2}}
 
-
     This circuit considers the discretized version of :math:`X` on ``2 ** num_qubits`` equidistant
     points, :math:`x_i`, truncated to ``bounds``. See also
     :class:`~qiskit.circuit.library.NormalDistribution` for more information.
@@ -68,7 +67,7 @@ class LogNormalDistribution(QuantumCircuit):
                  mu: Optional[Union[float, List[float]]] = None,
                  sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
-                 upto_phase: bool = False,
+                 upto_diag: bool = False,
                  name: str = 'P(X)') -> None:
         r"""
         Args:
@@ -78,12 +77,12 @@ class LogNormalDistribution(QuantumCircuit):
             mu: The parameter :math:`\mu` of the distribution.
                 Can be either a float for a 1d random variable or a list of floats for a higher
                 dimensional random variable.
-            sigma: The parameter :math:`\sigma`, which is the standard deviation or covariance
-                matrix.
+            sigma: The parameter :math:`\sigma^2` or :math:`\Sigma`, which is the variance or
+                covariance matrix.
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
                 If ``None``, the bounds are set to ``(0, 1)`` for each dimension.
-            upto_phase: If True, load the probabilities up to a global phase for a more efficient
+            upto_diag: If True, load the probabilities up to a global phase for a more efficient
                 circuit.
             name: The name of the circuit.
         """
@@ -136,7 +135,7 @@ class LogNormalDistribution(QuantumCircuit):
 
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
-        if upto_phase:
+        if upto_diag:
             self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
         else:
             from qiskit.extensions import Initialize  # pylint: disable=cyclic-import

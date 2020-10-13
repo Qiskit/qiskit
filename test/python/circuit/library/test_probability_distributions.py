@@ -40,7 +40,7 @@ class TestUniformDistribution(QiskitTestCase):
 class TestNormalDistribution(QiskitTestCase):
     """Test the normal distribution circuit."""
 
-    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_phase):
+    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_diag):
         """Assert that ``circuit`` implements the normal distribution correctly.
 
         This test asserts that the ``circuit`` produces the desired state-vector.
@@ -68,7 +68,7 @@ class TestNormalDistribution(QiskitTestCase):
 
         # compare to actual statevector from circuit
         actual = Statevector.from_instruction(circuit)
-        if upto_phase:
+        if upto_diag:
             self.assertTrue(actual.equiv(expected))
         else:
             np.testing.assert_array_almost_equal(expected, actual.data)
@@ -82,13 +82,13 @@ class TestNormalDistribution(QiskitTestCase):
          False]
     )
     @unpack
-    def test_normal(self, num_qubits, mu, sigma, bounds, upto_phase):
+    def test_normal(self, num_qubits, mu, sigma, bounds, upto_diag):
         """Test the statevector produced by ``NormalDistribution`` and the default arguments."""
 
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {'num_qubits': num_qubits, 'upto_phase': upto_phase}
+        kwargs = {'num_qubits': num_qubits, 'upto_diag': upto_diag}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
@@ -106,7 +106,7 @@ class TestNormalDistribution(QiskitTestCase):
             kwargs['bounds'] = bounds
 
         normal = NormalDistribution(**kwargs)
-        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_phase)
+        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_diag)
 
     @data(
         [2, [1, 1], 2, (0, 1)],  # invalid mu
@@ -138,7 +138,7 @@ class TestNormalDistribution(QiskitTestCase):
 class TestLogNormalDistribution(QiskitTestCase):
     """Test the normal distribution circuit."""
 
-    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_phase):
+    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds, upto_diag):
         """Assert that ``circuit`` implements the normal distribution correctly.
 
         This test asserts that the ``circuit`` produces the desired state-vector.
@@ -172,7 +172,7 @@ class TestLogNormalDistribution(QiskitTestCase):
 
         # compare to actual statevector from circuit
         actual = Statevector.from_instruction(circuit)
-        if upto_phase:
+        if upto_diag:
             self.assertTrue(actual.equiv(expected))
         else:
             np.testing.assert_array_almost_equal(expected, actual.data)
@@ -186,13 +186,13 @@ class TestLogNormalDistribution(QiskitTestCase):
          False]
     )
     @unpack
-    def test_lognormal(self, num_qubits, mu, sigma, bounds, upto_phase):
+    def test_lognormal(self, num_qubits, mu, sigma, bounds, upto_diag):
         """Test the statevector produced by ``LogNormalDistribution`` and the default arguments."""
 
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {'num_qubits': num_qubits, 'upto_phase': upto_phase}
+        kwargs = {'num_qubits': num_qubits, 'upto_diag': upto_diag}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
@@ -210,7 +210,7 @@ class TestLogNormalDistribution(QiskitTestCase):
             kwargs['bounds'] = bounds
 
         normal = LogNormalDistribution(**kwargs)
-        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_phase)
+        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_diag)
 
 
 if __name__ == '__main__':

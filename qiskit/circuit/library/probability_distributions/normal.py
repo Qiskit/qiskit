@@ -131,7 +131,7 @@ class NormalDistribution(QuantumCircuit):
                  mu: Optional[Union[float, List[float]]] = None,
                  sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
-                 upto_phase: bool = False,
+                 upto_diag: bool = False,
                  name: str = 'P(X)') -> None:
         r"""
         Args:
@@ -141,12 +141,12 @@ class NormalDistribution(QuantumCircuit):
             mu: The parameter :math:`\mu`, which is the expected value of the distribution.
                 Can be either a float for a 1d random variable or a list of floats for a higher
                 dimensional random variable. Defaults to 0.
-            sigma: The parameter :math:`\sigma^2`, which is the variance or covariance
-                matrix. Default to the identity matrix of appropriate size.
+            sigma: The parameter :math:`\sigma^2` or :math:`\Sigma`, which is the variance or
+                covariance matrix. Default to the identity matrix of appropriate size.
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
                 If ``None``, the bounds are set to ``(-1, 1)`` for each dimension.
-            upto_phase: If True, load the probabilities up to a global phase for a more efficient
+            upto_diag: If True, load the probabilities up to a global phase for a more efficient
                 circuit.
             name: The name of the circuit.
         """
@@ -189,7 +189,7 @@ class NormalDistribution(QuantumCircuit):
 
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
-        if upto_phase:
+        if upto_diag:
             self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
         else:
             from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
