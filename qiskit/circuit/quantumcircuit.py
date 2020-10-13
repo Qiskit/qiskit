@@ -2082,7 +2082,7 @@ class QuantumCircuit:
                            [control_qubit, target_qubit], [])
 
     def mcp(self, lam, control_qubits, target_qubit):
-        """Apply :class:`~qiskit.circuit.library.MCU1Gate`."""
+        """Apply :class:`~qiskit.circuit.library.MCPhaseGate`."""
         from .library.standard_gates.p import MCPhaseGate
         num_ctrl_qubits = len(control_qubits)
         return self.append(MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit],
@@ -2272,7 +2272,7 @@ class QuantumCircuit:
         warnings.warn('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You should use '
                       'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
-                      'you can decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                      'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
                       'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
