@@ -113,6 +113,12 @@ phase_to_u1 = QuantumCircuit(q)
 phase_to_u1.append(U1Gate(theta), [0])
 _sel.add_equivalence(PhaseGate(theta), phase_to_u1)
 
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phase_to_u = QuantumCircuit(q)
+phase_to_u.u(0, 0, theta, 0)
+_sel.add_equivalence(PhaseGate(theta), phase_to_u)
+
 # CPhaseGate
 
 q = QuantumRegister(2, 'q')
