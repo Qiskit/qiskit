@@ -32,6 +32,7 @@ import networkx as nx
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode
 
@@ -171,7 +172,6 @@ class DAGCircuit:
         Args:
             angle (float, ParameterExpression)
         """
-        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
@@ -202,6 +202,22 @@ class DAGCircuit:
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = calibrations
+
+    def has_calibration_for(self, node):
+        """Return True if the dag has a calibration defined for the node operation. In this
+        case, the operation does not need to be translated to the device basis.
+        """
+        if not self.calibrations or node.name not in self.calibrations:
+            return False
+        qubits = tuple(qubit.index for qubit in node.qargs)
+        params = []
+        for p in node.op.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        params = tuple(params)
+        return (qubits, params) in self.calibrations[node.name]
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
