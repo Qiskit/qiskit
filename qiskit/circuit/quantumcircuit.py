@@ -1237,7 +1237,7 @@ class QuantumCircuit:
 
         Args:
             name (str): the name of the style. The name can be set to ``iqx``,
-                ```bw``, ``default``, or the name of a user-created json file. This
+                ``bw``, ``default``, or the name of a user-created json file. This
                 overrides the setting in the user config file (usually
                 ``~/.qiskit/settings.conf``).
             textcolor (str): the color code to use for all text not inside a gate.
@@ -1258,23 +1258,25 @@ class QuantumCircuit:
                 Defaults to ``#FFFFFF``
             edgecolor (str): the color code to use for gate edges when using the
                 `bw` style. Defaults to ``#000000``.
-            fontsize (int): the font size to use for text. Defaults to 13
-            subfontsize (int): the font size to use for subtext. Defaults to 8
+            fontsize (int): the font size to use for text. Defaults to 13.
+            subfontsize (int): the font size to use for subtext. Defaults to 8.
             showindex (bool): if set to True, show the index numbers at the top.
                 Defaults to False.
             figwidth (int): the maximum width (in inches) for the output figure.
                 If set to -1, the maximum displayable width will be used.
                 Defaults to -1.
-            dpi (int): the DPI to use for the output image. Defaults to 150
+            dpi (int): the DPI to use for the output image. Defaults to 150.
             margin (list): a list of margin values to adjust spacing around output
                 image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
                 Defaults to [2.0, 0.1, 0.1, 0.3].
             creglinestyle (str): The style of line to use for classical registers.
                 Choices are ``solid``, ``doublet``, or any valid matplotlib
-                `linestyle` kwarg value. Defaults to ``doublet``
+                `linestyle` kwarg value. Defaults to ``doublet``.
             displaytext (dict): a dictionary of the text to use for certain element
                 types in the output visualization. These items allow the use of
-                LaTeX formatting for gate names. The default values are::
+                LaTeX formatting for gate names. The 'displaytext' dict can contain
+                any number of elements from one to the entire dict above.The default
+                values are::
 
                     {
                         'u1': '$\\mathrm{U}_1$',
@@ -1308,10 +1310,12 @@ class QuantumCircuit:
                         'initialize': '$|\\psi\\rangle$'
                     }
 
-                The 'displaytext' dict can contain any number of elements from one to
-                the entire dict above.
             displaycolor (dict): the color codes to use for each circuit element in
-                the form (gate_color, text_color). The default values are::
+                the form (gate_color, text_color). Colors can also be entered without
+                the text color, such as 'u1': '#FA74A6', in which case the text color
+                will always be `gatetextcolor`. The `displaycolor` dict can contain
+                any number of elements from one to the entire dict above. The default
+                values are::
 
                     {
                         'u1': ('#FA74A6', '#000000'),
@@ -1354,11 +1358,7 @@ class QuantumCircuit:
                         'target': ('#FFFFFF, '#FFFFFF'),
                         'measure': ('#000000', '#FFFFFF'),
                     }
-                    
-                Colors can also be entered without the text color, such as
-                'u1': '#FA74A6', in which case the text color will always
-                be `gatetextcolor`. The `displaycolor` dict can contain any
-                number of elements from one to the entire dict above.
+
         """
 
         # pylint: disable=cyclic-import
