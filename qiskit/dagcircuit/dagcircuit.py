@@ -880,6 +880,15 @@ class DAGCircuit:
         return (nd for nd in self.topological_nodes() if nd.type == 'op')
 
     def substitute_node_with_circuit(self, node, input_circuit, wires=None):
+        """Replace one node with circuit.
+
+        Args:
+            node (DAGNode): node to substitute
+            input_circuit (QuantumCircuit): circuit that will substitute the node
+            wires (list[Bit]): gives an order for (qu)bits
+                in the input circuit. This order gets matched to the node wires
+                by qargs first, then cargs, then conditions.
+        """
         from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
 
         circuit_data = input_circuit.data
