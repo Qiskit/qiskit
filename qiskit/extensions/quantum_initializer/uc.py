@@ -49,7 +49,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
-_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U')
 
 
 class UCGate(Gate):

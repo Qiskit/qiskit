@@ -287,7 +287,7 @@ class TwoQubitBasisDecomposer():
         gate (Gate): Two-qubit gate to be used in the KAK decomposition.
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
+            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'PSX', 'RR']. Default 'U'.
     """
 
     def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):
@@ -298,7 +298,7 @@ class TwoQubitBasisDecomposer():
         if euler_basis is not None:
             self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
         else:
-            self._decomposer1q = OneQubitEulerDecomposer('U3')
+            self._decomposer1q = OneQubitEulerDecomposer('U')
 
         # FIXME: find good tolerances
         self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)

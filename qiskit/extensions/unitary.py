@@ -30,7 +30,7 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecom
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
-_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U')
 
 
 class UnitaryGate(Gate):

@@ -46,12 +46,14 @@ def _choose_euler_basis(basis_gates):
     """"Choose the first available 1q basis to use in the Euler decomposition."""
 
     euler_basis_names = {
-        'U3': ['u3'],
-        'U1X': ['u1', 'rx'],
+        'U': ['u'],
+        'PSX': ['p', 'sx'],
         'RR': ['r'],
         'ZYZ': ['rz', 'ry'],
         'ZXZ': ['rz', 'rx'],
         'XYX': ['rx', 'ry'],
+        'U3': ['u3'],  # deprecated since 0.16
+        'U1X': ['u1', 'rx']  # deprecated since 0.16
     }
 
     basis_set = set(basis_gates or [])
@@ -86,7 +88,6 @@ class UnitarySynthesis(TransformationPass):
         """
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
-        print(euler_basis)
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
             decomposer1q = OneQubitEulerDecomposer(euler_basis)
