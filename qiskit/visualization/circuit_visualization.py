@@ -146,7 +146,7 @@ def circuit_drawer(circuit,
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
-        :class:`str`
+        :class:`str`:
 
         * `TextDrawing` (output='text')
             A drawing that can be printed as ascii art.
