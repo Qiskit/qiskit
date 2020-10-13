@@ -1275,6 +1275,7 @@ class QuantumCircuit:
             displaytext (dict): a dictionary of the text to use for certain element
                 types in the output visualization. These items allow the use of
                 LaTeX formatting for gate names. The default values are::
+
                     {
                         'u1': '$\\mathrm{U}_1$',
                         'u2': '$\\mathrm{U}_2$',
@@ -1306,10 +1307,12 @@ class QuantumCircuit:
                         'reset': '$\\left|0\\right\\rangle$',
                         'initialize': '$|\\psi\\rangle$'
                     }
+
                 The 'displaytext' dict can contain any number of elements from one to
                 the entire dict above.
             displaycolor (dict): the color codes to use for each circuit element in
                 the form (gate_color, text_color). The default values are::
+
                     {
                         'u1': ('#FA74A6', '#000000'),
                         'u2': ('#FA74A6', '#000000'),
@@ -1351,6 +1354,7 @@ class QuantumCircuit:
                         'target': ('#FFFFFF, '#FFFFFF'),
                         'measure': ('#000000', '#FFFFFF'),
                     }
+                    
                 Colors can also be entered without the text color, such as
                 'u1': '#FA74A6', in which case the text color will always
                 be `gatetextcolor`. The `displaycolor` dict can contain any
