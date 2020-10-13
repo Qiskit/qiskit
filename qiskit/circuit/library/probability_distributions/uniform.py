@@ -18,7 +18,7 @@ from qiskit.circuit import QuantumCircuit
 class UniformDistribution(QuantumCircuit):
     r"""A circuit to encode a discretized uniform distribution in qubit amplitudes.
 
-    This simplfy corresponds to applying Hadamard gates on all qubits.
+    This simply corresponds to applying Hadamard gates on all qubits.
 
     The probability density function of the discretized uniform distribution on
     :math:`N` values is
