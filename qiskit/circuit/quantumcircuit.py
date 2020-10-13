@@ -1355,18 +1355,6 @@ class QuantumCircuit:
                 'u1': '#FA74A6', in which case the text color will always
                 be `gatetextcolor`. The `displaycolor` dict can contain any
                 number of elements from one to the entire dict above.
-
-        Example:
-            .. jupyter-execute::
-
-                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-                from qiskit.tools.visualization import circuit_drawer
-                q = QuantumRegister(1)
-                c = ClassicalRegister(1)
-                qc = QuantumCircuit(q, c)
-                qc.h(q)
-                qc.measure(q, c)
-                circuit_drawer(qc, output='mpl', style={'showindex': 'True'})
         """
 
         # pylint: disable=cyclic-import
