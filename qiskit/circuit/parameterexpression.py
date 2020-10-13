@@ -232,7 +232,7 @@ class ParameterExpression:
 
         return ParameterExpression(parameter_symbols, expr)
 
-    def gradient(self, param: 'ParameterExpression') -> Union['ParameterExpression', float]:
+    def gradient(self, param: 'Parameter') -> Union['ParameterExpression', float]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -242,7 +242,7 @@ class ParameterExpression:
             ParameterExpression representing the gradient of param_expr w.r.t. param
         """
         # Check if the parameter is contained in the parameter expression
-        if param not in self._parameter_symbols:
+        if param not in self._parameter_symbols.keys():
             # If it is not contained then return 0
             return 0.0
 
