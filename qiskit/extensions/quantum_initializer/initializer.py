@@ -48,7 +48,7 @@ class Initialize(Instruction):
         params (str or list):
           - list: vector of complex amplitudes to initialize to
 
-          - str: A string of labels of basis states of the pauli eigenstates Z, X, Y. See
+          - str: A string of labels of basis states of the Pauli eigenstates Z, X, Y. See
                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
                Notice the order of the labels is reversed with respect to the qubit index to
                be applied to. Example label '01' initializes the qubit zero to |1> and the
