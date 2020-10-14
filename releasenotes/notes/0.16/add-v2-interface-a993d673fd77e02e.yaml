@@ -5,10 +5,12 @@ features:
     which can be found in :mod:`qiskit.providers`, provides a new versioning
     mechanism that will enable changes to the interface to happen in a
     compatible manner over time. The new interface should be simple to migrate
-    existing providers to. Besides having explicitly versioned abstract classes
-    the key changes for the new interface are that the
-    :class:`qiskit.providers.backend.BackendV1` method
-    :meth:`~qiskit.providers.backend.BackendV1.run` can now
+    existing providers, as it is mostly identical except for the explicit
+    versioning.
+
+    Besides having explicitly versioned abstract classes the key changes for
+    the new interface are that the :class:`~qiskit.providers.backend.BackendV1`
+    method :meth:`~qiskit.providers.backend.BackendV1.run` can now
     take a :class:`~qiskit.circuits.QuantumCircuit` or
     :class:`~qiskit.pulse.Schedule` object as inputs instead of ``Qobj`` 
     objects. To go along with that options are now part of a backend class
