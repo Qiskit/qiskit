@@ -101,16 +101,9 @@ class CircuitStateFn(StateFn):
 
         Returns:
             The CircuitStateFn created from the vector.
-
-        Raises:
-            ValueError: If a vector with complex values is passed, which the Initializer cannot
-            handle.
         """
         normalization_coeff = np.linalg.norm(statevector)
         normalized_sv = statevector / normalization_coeff
-        if not np.all(np.abs(statevector) == statevector):
-            # TODO maybe switch to Isometry?
-            raise ValueError('Qiskit circuit Initializer cannot handle non-positive statevectors.')
         return CircuitStateFn(Initialize(normalized_sv), coeff=normalization_coeff)
 
     def primitive_strings(self) -> Set[str]:
