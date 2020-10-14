@@ -2,7 +2,7 @@
 features:
   - |
     The class :class:`~qiskit.extensions.quantum_initializer.initializer.Initialize`
-    now allows labels a la 
+    now allows labels à la 
     :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
     This labels refer to basis states of the Pauli eigenstates Z, X, Y.
     Notice the order of the labels is reversed with respect to the qubit index to
@@ -14,4 +14,4 @@ features:
         from qiskit.extensions.quantum_initializer.initializer import Initialize
 
         initialize = Initialize("10+-lr")
-	initialize.definition.draw('mpl')
+        initialize.definition.draw('mpl')
