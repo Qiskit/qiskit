@@ -69,13 +69,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(2)
         statevector = Statevector.from_label('11')
         qc.initialize(statevector, [0, 1])
-        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_vector)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity))
+        self.assertEqual(qc.data[0][0].params, desired_vector)
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
