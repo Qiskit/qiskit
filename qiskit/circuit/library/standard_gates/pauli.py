@@ -22,6 +22,7 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 
+
 class PauliGate(Gate):
     r"""A multi-qubit Pauli gate.
 
