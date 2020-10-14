@@ -57,6 +57,17 @@ class TestResultOperations(QiskitTestCase):
 
         self.assertEqual(result.get_counts(0), processed_counts)
 
+    def test_counts_duplicate_name(self):
+        """Test results containing multiple entries of a single name will warn."""
+        data = models.ExperimentResultData(counts=dict())
+        exp_result_header = QobjExperimentHeader(name='foo')
+        exp_result = models.ExperimentResult(shots=14, success=True,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result] * 2, **self.base_result_args)
+
+        with self.assertWarnsRegex(UserWarning, r'multiple.*foo'):
+            result.get_counts('foo')
+
     def test_result_repr(self):
         """Test that repr is contstructed correctly for a results object."""
         raw_counts = {'0x0': 4, '0x2': 10}
