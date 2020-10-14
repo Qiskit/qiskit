@@ -64,6 +64,7 @@ class PauliGate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
+        # pylint: disable=cyclic-import
         from qiskit.quantum_info import Pauli
         return Pauli(label=self.pauli_string).to_matrix()
 
