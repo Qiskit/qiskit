@@ -518,11 +518,11 @@ class TestStochasticSwap(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[0], qr[4])
         circuit.cx(qr[1], qr[2])
-        circuit.u3(1, 1.5, 0.7, qr[3])
+        circuit.u(1, 1.5, 0.7, qr[3])
 
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[1], qr[2])
-        expected.u3(1, 1.5, 0.7, qr[3])
+        expected.u(1, 1.5, 0.7, qr[3])
         expected.swap(qr[0], qr[1])
         expected.swap(qr[3], qr[4])
         expected.cx(qr[1], qr[3])
