@@ -18,7 +18,7 @@ from test.aqua import QiskitAquaTestCase
 import itertools
 import numpy as np
 
-from qiskit.aqua import QuantumInstance
+from qiskit.aqua import QuantumInstance, aqua_globals
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    ListOp, Zero, One, Plus, Minus, StateFn,
                                    PauliExpectation, CircuitSampler)
@@ -136,6 +136,34 @@ class TestPauliExpectation(QiskitAquaTestCase):
 
         sampled = self.sampler.convert(converted_meas)
         np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
+
+    def test_to_matrix_called(self):
+        """ test to matrix called in different situations """
+        qs = 45
+        states_op = ListOp([Zero ^ qs,
+                            One ^ qs,
+                            (Zero ^ qs) + (One ^ qs)])
+        paulis_op = ListOp([Z ^ qs,
+                            (I ^ Z ^ I) ^ int(qs / 3)])
+
+        # 45 qubit calculation - throws exception if to_matrix is called
+        # massive is False
+        with self.assertRaises(ValueError):
+            states_op.to_matrix()
+            paulis_op.to_matrix()
+
+        # now set global variable or argument
+        try:
+            aqua_globals.massive = True
+            with self.assertRaises(MemoryError):
+                states_op.to_matrix()
+                paulis_op.to_matrix()
+            aqua_globals.massive = False
+            with self.assertRaises(MemoryError):
+                states_op.to_matrix(massive=True)
+                paulis_op.to_matrix(massive=True)
+        finally:
+            aqua_globals.massive = False
 
     def test_not_to_matrix_called(self):
         """ 45 qubit calculation - literally will not work if to_matrix is
