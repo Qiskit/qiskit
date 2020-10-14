@@ -8,10 +8,10 @@ features:
     Notice the order of the labels is reversed with respect to the qubit index to
     be applied to. Example label '01' initializes the qubit zero to |1> and the
     qubit one to |0>.
- 
+    
     .. jupyter-execute::
     
         from qiskit.extensions.quantum_initializer.initializer import Initialize
-
+        
         initialize = Initialize("10+-lr")
         initialize.definition.draw('mpl')
