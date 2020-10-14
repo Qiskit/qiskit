@@ -28,7 +28,7 @@ from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.circuit.library import HGate, U2Gate, XGate, CZGate, ZGate, YGate, U1Gate, \
-    SwapGate, RZZGate
+    SwapGate, RZZGate, CU3Gate, CU1Gate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -350,8 +350,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1])
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[2], qr[0])
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]])
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_cu3_reverse_bits(self):
@@ -366,8 +366,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1])
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[2], qr[0])
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]])
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
 
     def test_text_crz(self):
@@ -501,8 +501,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                    "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu1(pi / 2, qr[0], qr[1])
-        circuit.cu1(pi / 2, qr[2], qr[0])
+        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]])
+        circuit.append(CU1Gate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_cu1_reverse_bits(self):
@@ -516,8 +516,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "                    "])
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu1(pi / 2, qr[0], qr[1])
-        circuit.cu1(pi / 2, qr[2], qr[0])
+        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]])
+        circuit.append(CU1Gate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
 
     def test_text_ccx(self):
@@ -836,14 +836,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "             └───┘    └───┘",
                               "q1_1: |0>──────────────────",
                               "         ┌───────────┐     ",
-                              "q1_2: |0>┤ U1(1e-07) ├─────",
+                              "q1_2: |0>┤ RZ(1e-07) ├─────",
                               "         └───────────┘     "])
 
         qr = QuantumRegister(3, 'q1')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[0])
-        circuit.u1(0.0000001, qr[2])
+        circuit.rz(0.0000001, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_spacing_2378(self):
@@ -927,7 +927,7 @@ class TestTextDrawerLabels(QiskitTestCase):
                               "q_2: |0>┤ This is a really long long long box ├",
                               "        └─────────────────────────────────────┘"])
         circuit = QuantumCircuit(3)
-        circuit.cu1(pi / 2, 0, 1)
+        circuit.append(CU1Gate(pi / 2), [0, 1])
         circuit.x(2, label='This is a really long long long box')
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
@@ -1235,15 +1235,15 @@ class TestTextDrawerParams(QiskitTestCase):
 
     def test_text_parameters_mix(self):
         """ cu3 drawing with parameters"""
-        expected = '\n'.join(["                           ",
-                              "q_0: |0>─────────■─────────",
-                              "        ┌────────┴────────┐",
-                              "q_1: |0>┤ U3(π/2,theta,π) ├",
-                              "        └─────────────────┘"])
+        expected = '\n'.join(["                            ",
+                              "q_0: |0>─────────■──────────",
+                              "        ┌────────┴─────────┐",
+                              "q_1: |0>┤ U(π/2,theta,π,0) ├",
+                              "        └──────────────────┘"])
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu3(pi / 2, Parameter('theta'), pi, qr[0], qr[1])
+        circuit.cu(pi / 2, Parameter('theta'), pi, 0, qr[0], qr[1])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -1257,7 +1257,7 @@ class TestTextDrawerParams(QiskitTestCase):
         my_u2_circuit = QuantumCircuit(1, name='my_u2')
         phi = Parameter('phi')
         lam = Parameter('lambda')
-        my_u2_circuit.u3(3.141592653589793, phi, lam, 0)
+        my_u2_circuit.u(3.141592653589793, phi, lam, 0)
         my_u2 = my_u2_circuit.to_gate()
         qr = QuantumRegister(1, name='qr')
         circuit = QuantumCircuit(qr, name='circuit')
@@ -1660,7 +1660,7 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1]).c_if(cr, 1)
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[0], qr[1]]).c_if(cr, 1)
 
         expected = '\n'.join(["                            ",
                               "qr_0: |0>─────────■─────────",
@@ -1679,7 +1679,7 @@ class TestTextConditional(QiskitTestCase):
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[1], qr[0]).c_if(cr, 1)
+        circuit.append(CU3Gate(pi / 2, pi / 2, pi / 2), [qr[1], qr[0]]).c_if(cr, 1)
 
         expected = '\n'.join(["         ┌─────────────────┐",
                               "qr_0: |0>┤ U3(π/2,π/2,π/2) ├",
@@ -1885,14 +1885,14 @@ class TestTextNonRational(QiskitTestCase):
     """ non-rational numbers are correctly represented """
 
     def test_text_pifrac(self):
-        """ u2 drawing with -5pi/8 fraction"""
-        expected = '\n'.join(["        ┌─────────────┐",
-                              "q_0: |0>┤ U2(π,-5π/8) ├",
-                              "        └─────────────┘"])
+        """ u drawing with -5pi/8 fraction"""
+        expected = '\n'.join(["        ┌──────────────┐",
+                              "q_0: |0>┤ U(π,-5π/8,0) ├",
+                              "        └──────────────┘"])
 
         qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.u2(pi, -5 * pi / 8, qr[0])
+        circuit.u(pi, -5 * pi / 8, 0, qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_complex(self):
