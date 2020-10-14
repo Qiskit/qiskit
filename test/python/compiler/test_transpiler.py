@@ -775,7 +775,6 @@ class TestTranspile(QiskitTestCase):
         with pulse.build() as q1_y90:
             pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
 
-        # Add calibration
         circ.add_calibration(custom_180, [0], q0_x180)
         circ.add_calibration(custom_90, [1], q1_y90)
 
@@ -796,7 +795,6 @@ class TestTranspile(QiskitTestCase):
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
         circ.add_calibration("h", [0], q0_x180)
 
         backend = FakeAlmaden()
@@ -816,7 +814,6 @@ class TestTranspile(QiskitTestCase):
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
         circ.add_calibration(custom_180, [1], q0_x180)
 
         backend = FakeAlmaden()
@@ -833,7 +830,6 @@ class TestTranspile(QiskitTestCase):
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibration
         circ.add_calibration("h", [1], q0_x180)
 
         backend = FakeAlmaden()
@@ -861,8 +857,6 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration('h', [1], q0_x180)  # 'h' is calibrated on qubit 1
 
         transpiled_circ = transpile(circ, FakeAlmaden())
-        print(circ)
-        print(transpiled_circ)
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
 
     def test_parameterized_calibrations_transpile(self):

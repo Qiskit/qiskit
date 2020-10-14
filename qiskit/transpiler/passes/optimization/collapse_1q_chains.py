@@ -74,7 +74,7 @@ class Collapse1qChains(TransformationPass):
                 chains.append(chain)
 
         # cannot collapse parameterized gates yet
-        chains = _split_chains_on_unknown_def(chains)
+        chains = _split_chains_on_unknown_matrix(chains, dag)
 
         # collapse chains into a single unitary operator
         for chain in chains:
@@ -92,17 +92,22 @@ class Collapse1qChains(TransformationPass):
         return dag
 
 
-def _split_chains_on_unknown_def(chains):
-    """Finds chains containing parameterized gates or opaque gates (i.e. gates
-    without a known matrix definition, e.g. pulse gates). Splits them into
+def _split_chains_on_unknown_matrix(chains, dag):
+    """Finds chains containing parameterized gates or opaque gates or pulse
+    gates (i.e. everything without a known matrix definition). Splits them into
     sequential chains excluding those gates.
     """
     out = []
     for chain in chains:
-        groups = groupby(chain, lambda x: (x.op.is_parameterized() or
-                                           x.op.definition is None))
+        groups = groupby(chain,
+                         lambda x: (
+                            x.op.is_parameterized() or
+                            x.op.definition is None or
+                            ((x.qargs[0].index, ), tuple(x.op.params)) in getattr(dag, 'calibrations', {}).get(x.name, {})
+                            )
+                         )
 
-        for group_is_parameterized, gates in groups:
-            if not group_is_parameterized:
+        for group_is_opaque, gates in groups:
+            if not group_is_opaque:
                 out.append(list(gates))
     return out
