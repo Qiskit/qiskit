@@ -28,6 +28,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states.statevector import Statevector
 
+
 class TestInitialize(QiskitTestCase):
     """Qiskit Initialize tests."""
 

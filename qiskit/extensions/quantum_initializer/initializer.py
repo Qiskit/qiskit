@@ -299,14 +299,14 @@ class Initialize(Instruction):
     def validate_parameter(self, parameter):
         """Initialize instruction parameter can be str, int, float, and complex."""
 
-        """Initialize instruction parameter can be str"""
+        # Initialize instruction parameter can be str
         if self._fromlabel:
             if parameter in ['0', '1', '+', '-', 'l', 'r']:
                 return parameter
             raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
                                "0, 1, +, -, l, or r ".format(type(parameter), self.name))
 
-        """Initialize instruction parameter can be int, float, and complex."""
+        # Initialize instruction parameter can be int, float, and complex.
         if isinstance(parameter, (int, float, complex)):
             return complex(parameter)
         elif isinstance(parameter, np.number):
