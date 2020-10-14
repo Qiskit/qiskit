@@ -2260,9 +2260,9 @@ class QuantumCircuit:
         from .library.standard_gates.u2 import U2Gate
         warnings.warn('The QuantumCircuit.u2 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You can use the '
-                      'general 1-qubit gate QuantumCircuit.u instead: u2(φ,λ) = u(pi/2, φ, λ). '
+                      'general 1-qubit gate QuantumCircuit.u instead: u2(φ,λ) = u(π/2, φ, λ). '
                       'Alternatively, you can decompose it in terms of QuantumCircuit.p and '
-                      'QuantumCircuit.sx: u2(φ,λ) = p(pi/2+φ) sx p(pi/2+λ) (1 pulse on hardware).',
+                      'QuantumCircuit.sx: u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U2Gate(phi, lam), [qubit], [])
 
