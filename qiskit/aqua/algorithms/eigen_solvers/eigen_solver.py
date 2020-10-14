@@ -55,7 +55,8 @@ class Eigensolver(ABC):
             self.aux_operators = aux_operators if aux_operators else None  # type: ignore
         return EigensolverResult()
 
-    def supports_aux_operators(self) -> bool:
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
         """Whether computing the expectation value of auxiliary operators is supported.
 
         Returns:

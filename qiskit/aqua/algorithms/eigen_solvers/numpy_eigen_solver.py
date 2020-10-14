@@ -143,7 +143,8 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
         """ set the filter criterion """
         self._filter_criterion = filter_criterion
 
-    def supports_aux_operators(self) -> bool:
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
         return True
 
     def _check_set_k(self) -> None:

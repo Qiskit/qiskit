@@ -84,8 +84,9 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
         """ set the filter criterion """
         self._ces.filter_criterion = filter_criterion
 
-    def supports_aux_operators(self) -> bool:
-        return self._ces.supports_aux_operators()
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
+        return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
             self,

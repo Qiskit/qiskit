@@ -391,7 +391,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
 
         return circuits
 
-    def supports_aux_operators(self) -> bool:
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
         return True
 
     def _run(self) -> 'VQEResult':
