@@ -24,7 +24,7 @@ from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers import Backend
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
-from qiskit.qobj import QasmQobj
+from qiskit.qobj import QasmQobj, QasmQobjConfig
 from qiskit.exceptions import QiskitError
 from qiskit.aqua import MissingOptionalLibraryError
 from qiskit.aqua.aqua_error import AquaError
@@ -355,9 +355,19 @@ def run_on_backend(backend, qobj, backend_options=None,
             temp_backend_options = \
                 backend_options['backend_options'] if backend_options != {} else None
             temp_noise_config = noise_config['noise_model'] if noise_config != {} else None
-            job = AerJob(backend, job_id,
-                         backend._run_job, qobj, temp_backend_options, temp_noise_config, False)
-            job._future = job._executor.submit(job._fn, job._job_id, job._qobj, *job._args)
+
+            # Add new options
+            if temp_backend_options is not None or temp_noise_config is not None:
+                config = qobj.config.to_dict()
+                if temp_backend_options is not None:
+                    for key, val in temp_backend_options.items():
+                        config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
+                if temp_noise_config is not None:
+                    config['noise_model'] = temp_noise_config
+                qobj.config = QasmQobjConfig.from_dict(config)
+
+            job = AerJob(backend, job_id, backend._run, qobj)
+            job.submit()
         elif is_basicaer_provider(backend):
             backend._set_options(qobj_config=qobj.config, **backend_options)
             job = BasicAerJob(backend, job_id, backend._run_job, qobj)
