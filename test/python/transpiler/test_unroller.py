@@ -241,13 +241,13 @@ class TestUnroller(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         qc2 = QuantumCircuit(qr2)
         qc2.append(gate_level_1, [1, 0])
-        qc2.cu1(pi, 1, 0)
+        qc2.cp(pi, 1, 0)
         gate_level_2 = qc2.to_gate()
 
         qr3 = QuantumRegister(2, 'qr3')
         qc3 = QuantumCircuit(qr3)
         qc3.append(gate_level_2, [1, 0])
-        qc3.cu3(pi, pi, pi, 1, 0)
+        qc3.cu(pi, pi, pi, 0, 1, 0)
         gate_level_3 = qc3.to_gate()
 
         qr4 = QuantumRegister(2, 'qr4')
@@ -255,12 +255,12 @@ class TestUnroller(QiskitTestCase):
         qc4.append(gate_level_3, [0, 1])
 
         dag = circuit_to_dag(qc4)
-        out_dag = Unroller(['cx', 'cu1', 'cu3']).run(dag)
+        out_dag = Unroller(['cx', 'cp', 'cu']).run(dag)
 
         expected = QuantumCircuit(qr4)
         expected.cx(1, 0)
-        expected.cu1(pi, 0, 1)
-        expected.cu3(pi, pi, pi, 1, 0)
+        expected.cp(pi, 0, 1)
+        expected.cu(pi, pi, pi, 0, 1, 0)
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
