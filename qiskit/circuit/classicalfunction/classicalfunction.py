@@ -26,15 +26,15 @@ from .classical_function_visitor import ClassicalFunctionVisitor
 
 
 class ClassicalFunction(gate.Gate):
-    """An ClassicalFunction object represents an classicalfunction function and
-    its logic network."""
+    """Represent a classical function function and its logic network."""
 
     def __init__(self, source, name=None):
-        """Creates a ``ClassicalFunction`` from Python source code in ``source``. The code should
-        be a single function with types.
+        """Creates a ``ClassicalFunction`` from Python source code in ``source``.
 
-        Args:
-            source (str): Python code with type hints.
+        The code should be a single function with types.
+
+    Args:
+        source (str): Python code with type hints.
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
         Raises:
             ImportError: If tweedledum is not installed.
@@ -87,6 +87,7 @@ class ClassicalFunction(gate.Gate):
     @property
     def types(self):
         """Dumps a list of scopes with their variables and types.
+
         Returns:
             list(dict): A list of scopes as dicts, where key is the variable name and
             value is its type.
