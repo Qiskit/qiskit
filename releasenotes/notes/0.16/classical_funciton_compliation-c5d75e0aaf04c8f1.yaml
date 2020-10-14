@@ -1,10 +1,13 @@
 ---
 features:
   - |
-    This first version of a classical function compiler allows to "compile" typed python functions (operating only on
-    bits `Int1` at the moment) into quantum circuits.
+    An initial version of a classical function compiler,
+    :mod:`qiskit.circuit.classicalfunction`, has been added. This
+    enables compiling typed python functions (operating only on bits of type
+    ``Int1`` at the moment) into :class:`~qiskit.circuit.QuantumCircuit`
+    objects. For example:
 
-    .. jupyter-execute:
+    .. jupyter-execute::
 
       from qiskit.circuit import classical_function, Int1
 
@@ -19,15 +22,18 @@ features:
       quantum_circuit.draw()
 
 
-    The parameter ``registerless=False`` in :meth:`qiskit.circuit.classical_function.ClassicalFunction.synth` creates a
-    circuit with registers refering to the parameter names:
+    The parameter ``registerless=False`` in the
+    :class:`qiskit.circuit.classicalfunction.ClassicalFunction` method
+    :meth:`~qiskit.circuit.classicalfunction.ClassicalFunction.synth` creates a
+    circuit with registers refering to the parameter names. For example::
 
     .. jupyter-execute:
 
       quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw()) 
 
-    A decorated classical function can be used the same way as any other quantum gate when appending it to a circuit.
+    A decorated classical function can be used the same way as any other quantum
+    gate when appending it to a circuit.
 
     .. jupyter-execute:
 
@@ -35,5 +41,5 @@ features:
       circuit.append(grover_oracle, range(5))
       quantum_circuit.draw()) 
 
-    The feature requires ``tweedledum``, a library for synthesizing quantum circuits, that can be installed via pip
-    with ``pip install tweedledum``. 
+    The feature requires ``tweedledum``, a library for synthesizing quantum
+    circuits, that can be installed via pip with ``pip install tweedledum``.

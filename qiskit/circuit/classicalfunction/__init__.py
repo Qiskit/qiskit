@@ -94,6 +94,7 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
+from .classicalfunction import ClassicalFunction
 from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
                          ClassicalFunctionCompilerTypeError)
 
@@ -111,7 +112,6 @@ def classical_function(func):
         method).
     """
     import inspect
-    from .classicalfunction import ClassicalFunction
 
     source = inspect.getsource(func).strip()
     return ClassicalFunction(source, name=func.__name__)

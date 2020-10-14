@@ -12,7 +12,7 @@
 
 """Internal utils for ClassicalFunction Compiler"""
 
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
     XGate, HGate, U3Gate
 from qiskit.circuit.classicalfunction.exceptions import ClassicalFunctionCompilerError
