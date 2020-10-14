@@ -90,12 +90,13 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
     def test_teleport(self):
         """Test draw teleport circuit."""
+        from qiskit.circuit.library import U3Gate
         filename = self._get_resource_path('test_teleport.tex')
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
         qc = QuantumCircuit(qr, cr)
         # Prepare an initial state
-        qc.u3(0.3, 0.2, 0.1, qr[0])
+        qc.append(U3Gate(0.3, 0.2, 0.1), [qr[0]])
         # Prepare a Bell pair
         qc.h(qr[1])
         qc.cx(qr[1], qr[2])
