@@ -281,18 +281,15 @@ class ListOp(OperatorBase):
         return ComposedOp([self] * exponent)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_matrix will return an exponentially large matrix, '
-                'in this case {0}x{0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
+        OperatorBase._check_massive('to_matrix', True, self.num_qubits, massive)
 
         # Combination function must be able to handle classical values.
         # Note: this can end up, when we have list operators containing other list operators, as a
         #       ragged array and numpy 1.19 raises a deprecation warning unless this is explicitly
         #       done as object type now - was implicit before.
-        mat = self.combo_fn(np.asarray([op.to_matrix() * self.coeff for op in self.oplist],
-                                       dtype=object))
+        mat = self.combo_fn(
+            np.asarray([op.to_matrix(massive=massive) * self.coeff for op in self.oplist],
+                       dtype=object))
         # Note: As ComposedOp has a combo function of inner product we can end up here not with
         # a matrix (array) but a scalar. In which case we make a single element array of it.
         if isinstance(mat, Number):

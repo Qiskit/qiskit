@@ -136,8 +136,10 @@ class EvolvedOp(PrimitiveOp):
 
     def to_matrix(self, massive: bool = False) -> Union[np.ndarray, List[np.ndarray]]:
         if self.primitive.__class__.__name__ == ListOp.__name__:
-            return [op.exp_i().to_matrix() * self.primitive.coeff * self.coeff  # type: ignore
-                    for op in self.primitive.oplist]  # type: ignore
+            return \
+                [op.exp_i().to_matrix(massive=massive) *
+                 self.primitive.coeff * self.coeff  # type: ignore
+                 for op in self.primitive.oplist]  # type: ignore
 
         prim_mat = -1.j * self.primitive.to_matrix()  # type: ignore
         # pylint: disable=no-member

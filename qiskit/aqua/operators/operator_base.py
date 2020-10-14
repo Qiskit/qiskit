@@ -17,7 +17,7 @@ from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
 
-from qiskit.aqua import AquaError
+from qiskit.aqua import AquaError, aqua_globals
 from qiskit.circuit import ParameterExpression, ParameterVector
 from .legacy.base_operator import LegacyBaseOperator
 
@@ -604,6 +604,37 @@ class OperatorBase(ABC):
             An ``OperatorBase`` equivalent to self composed with itself exponent times.
         """
         return self.power(exponent)
+
+    @staticmethod
+    def _check_massive(method: str,
+                       matrix: bool,
+                       num_qubits: int,
+                       massive: bool) -> None:
+        """
+        Checks if matrix or vector generated will be too large.
+
+        Args:
+            method: Name of the calling method
+            matrix: True if object is matrix, otherwise vector
+            num_qubits: number of qubits
+            massive: True if it is ok to proceed with large matrix
+
+        Raises:
+            ValueError: Massive is False and number of qubits is greater than 16
+        """
+        if num_qubits > 16 and not massive and not aqua_globals.massive:
+            dim = 2 ** num_qubits
+            if matrix:
+                obj_type = 'matrix'
+                dimensions = f'{dim}x{dim}'
+            else:
+                obj_type = 'vector'
+                dimensions = f'{dim}'
+            raise ValueError(
+                f"'{method}' will return an exponentially large {obj_type}, "
+                f"in this case '{dimensions}' elements. "
+                "Set aqua_globals.massive=True or the method argument massive=True "
+                "if you want to proceed.")
 
     # Printing
 

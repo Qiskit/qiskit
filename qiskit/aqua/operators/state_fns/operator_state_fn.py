@@ -108,13 +108,7 @@ class OperatorStateFn(StateFn):
         converter, but in this case a convenience method for quick hacking and
         access to classical tools is
         appropriate. """
-
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_matrix will return an exponentially large matrix,'
-                ' in this case {0}x{0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
-
+        OperatorBase._check_massive('to_density_matrix', True, self.num_qubits, massive)
         return self.primitive.to_matrix() * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
@@ -145,15 +139,10 @@ class OperatorStateFn(StateFn):
         Raises:
             ValueError: Invalid parameters.
         """
-
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_vector will return an exponentially large vector, in this case {0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
-
+        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
         # Operator - return diagonal (real values, not complex),
         # not rank 1 decomposition (statevector)!
-        mat = self.primitive.to_matrix()
+        mat = self.primitive.to_matrix(massive=massive)
         # TODO change to weighted sum of eigenvectors' StateFns?
 
         # ListOp primitives can return lists of matrices (or trees for nested ListOps),

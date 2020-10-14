@@ -215,25 +215,16 @@ class CircuitStateFn(StateFn):
         to classical tools is
         appropriate.
         """
-
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_matrix will return an exponentially large matrix,'
-                ' in this case {0}x{0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
-
+        OperatorBase._check_massive('to_density_matrix', True, self.num_qubits, massive)
         # Rely on VectorStateFn's logic here.
-        return StateFn(self.to_matrix() * self.coeff).to_density_matrix()
+        return StateFn(self.to_matrix(massive=massive) * self.coeff).to_density_matrix()
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_vector will return an exponentially large vector, in this case {0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
+        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
 
         # Need to adjoint to get forward statevector and then reverse
         if self.is_measurement:
-            return np.conj(self.adjoint().to_matrix())
+            return np.conj(self.adjoint().to_matrix(massive=massive))
         qc = self.to_circuit(meas=False)
         statevector_backend = BasicAer.get_backend('statevector_simulator')
         statevector = execute(qc,
@@ -335,11 +326,7 @@ class CircuitStateFn(StateFn):
         Sample the state function as a normalized probability distribution. Returns dict of
         bitstrings in order of probability, with values being probability.
         """
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_vector will return an exponentially large vector, in this case {0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
-
+        OperatorBase._check_massive('sample', False, self.num_qubits, massive)
         qc = self.to_circuit(meas=True)
         qasm_backend = BasicAer.get_backend('qasm_simulator')
         counts = execute(qc, qasm_backend, optimization_level=0, shots=shots).result().get_counts()
