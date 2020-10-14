@@ -102,6 +102,22 @@ class TestDecompose(QiskitTestCase):
 
         self.assertEqual(qc1, output)
 
+    def test_decomposition_preserves_qregs_order(self):
+        """Test decomposing a gate preserves it's definition registers order"""
+        qr = QuantumRegister(2, 'qr1')
+        qc = QuantumCircuit(qr)
+        qc.cx(1, 0)
+        gate = qc.to_gate()
+
+        qr2 = QuantumRegister(2, 'qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.append(gate, qr2)
+
+        expected = QuantumCircuit(qr2)
+        expected.cx(1, 0)
+
+        self.assertEqual(qc2.decompose(), expected)
+
     def test_decompose_global_phase_1q(self):
         """Test decomposition of circuit with global phase"""
         qc = QuantumCircuit(1)
