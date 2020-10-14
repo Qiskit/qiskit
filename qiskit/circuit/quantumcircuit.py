@@ -2366,7 +2366,7 @@ class QuantumCircuit:
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
-    def pauli(self, qubits, pauli_string):  # pylint: disable=invalid-name
+    def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.PauliGate`."""
         from .library.standard_gates.pauli import PauliGate
         return self.append(PauliGate(pauli_string), qubits, [])

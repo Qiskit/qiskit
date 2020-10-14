@@ -13,8 +13,6 @@
 """
 Simulator command to perform multiple pauli gates in a single pass
 """
-import numpy as np
-
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.x import XGate
@@ -23,6 +21,7 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
+import qiskit.quantum_info as qi
 
 
 class PauliGate(Gate):
@@ -37,11 +36,11 @@ class PauliGate(Gate):
         the pauli gates sequentially using standard Qiskit gates
         """
 
-    def __init__(self, pauli_string="I"):
-        if isinstance(pauli_string, float):
-            pauli_string = "I"
-        self.pauli_string = pauli_string
-        super().__init__('pauli', len(pauli_string), [pauli_string[::-1]])
+    def __init__(self, label="I"):
+        if isinstance(label, float):
+            label = "I"
+        self.pauli_string = label
+        super().__init__('pauli', len(label), [self.pauli_string[::-1]])
 
     def _define(self):
         """
@@ -51,10 +50,11 @@ class PauliGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         gates = {'I': IGate, 'X': XGate, 'Y': YGate, 'Z': ZGate}
         q = QuantumRegister(len(self.pauli_string), 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q,
+                            name='{}({})'.format(self.name, self.pauli_string))
 
         rules = [(gates[p](), [q[i]], [])
-                 for (i, p) in enumerate(self.pauli_string)]
+                 for (i, p) in enumerate(reversed(self.pauli_string))]
         qc._data = rules
         self.definition = qc
 
@@ -65,16 +65,7 @@ class PauliGate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
-        pauli_matrices = {
-            'I': np.array([[1, 0], [0, 1]], dtype=complex),
-            'X': np.array([[0, 1], [1, 0]], dtype=complex),
-            'Y': np.array([[0, -1j], [1j, 0]], dtype=complex),
-            'Z': np.array([[1, 0], [0, -1]], dtype=complex)
-        }
-        mat = np.eye(1, dtype=complex)
-        for pauli in self.pauli_string:
-            mat = np.kron(pauli_matrices[pauli], mat)
-        return mat
+        return qi.Pauli(label=self.pauli_string).to_matrix()
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):
