@@ -21,8 +21,6 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
-import qiskit.quantum_info as qi
-
 
 class PauliGate(Gate):
     r"""A multi-qubit Pauli gate.
@@ -65,7 +63,8 @@ class PauliGate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
-        return qi.Pauli(label=self.pauli_string).to_matrix()
+        from qiskit.quantum_info import Pauli
+        return Pauli(label=self.pauli_string).to_matrix()
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):
