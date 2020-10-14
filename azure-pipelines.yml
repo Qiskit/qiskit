@@ -3,7 +3,7 @@
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
-# TODO in L588 change git+https://github.com/Qiskit/qiskit-aqua back to "qiskit-aqua"
+# TODO in L591 change git+https://github.com/Qiskit/qiskit-aqua back to "qiskit-aqua"
 # after the joint release of Terra 0.16 and Aqua 0.8
 
 trigger:
