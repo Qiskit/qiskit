@@ -267,7 +267,6 @@ class TestInitialLayouts(QiskitTestCase):
 
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
-        print(qc_b)
 
         self.assertIsInstance(gate_0, U3Gate)
         self.assertEqual(qubits_0[0].index, 6)

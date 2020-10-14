@@ -52,8 +52,9 @@ def _choose_euler_basis(basis_gates):
         'ZYZ': ['rz', 'ry'],
         'ZXZ': ['rz', 'rx'],
         'XYX': ['rx', 'ry'],
-        'U3': ['u3'],  # deprecated since 0.16
-        'U1X': ['u1', 'rx']  # deprecated since 0.16
+        'U1U2U3': ['u1', 'u2', 'u3'],  # deprecated since 0.16
+        'U3': ['u3'],                  # deprecated since 0.16
+        'U1X': ['u1', 'rx']            # deprecated since 0.16
     }
 
     basis_set = set(basis_gates or [])

@@ -861,6 +861,8 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration('h', [1], q0_x180)  # 'h' is calibrated on qubit 1
 
         transpiled_circ = transpile(circ, FakeAlmaden())
+        print(circ)
+        print(transpiled_circ)
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
 
     def test_parameterized_calibrations_transpile(self):

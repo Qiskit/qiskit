@@ -179,7 +179,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Collapse1qChains(), UnitarySynthesis(basis_gates), CXCancellation()]
+    if basis_gates is None:
+        _opt = [CXCancellation()]
+    else:
+        _opt = [Collapse1qChains(), UnitarySynthesis(basis_gates), CXCancellation()]
 
     # 10. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:

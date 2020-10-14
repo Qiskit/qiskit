@@ -32,7 +32,7 @@ class Collapse1qChains(TransformationPass):
     If the chain evaluates to identity (e.g. U(0,0,0)), this pass simply
     collapses the chain to none.
     """
-    def __init__(self, ignore_solo=True):
+    def __init__(self, ignore_solo=False):
         """
         Args:
             ignore_solo (bool): If True, all solo gates (chains of length one)
