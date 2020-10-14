@@ -6,8 +6,8 @@ features:
     :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
     This labels refer to basis states of the Pauli eigenstates Z, X, Y.
     Notice the order of the labels is reversed with respect to the qubit index to
-    be applied to. Example label '01' initializes the qubit zero to |1> and the
-    qubit one to |0>.
+    be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+    qubit one to `|0>`.
     
     .. jupyter-execute::
     
