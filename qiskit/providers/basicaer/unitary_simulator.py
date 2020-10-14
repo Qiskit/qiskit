@@ -66,7 +66,7 @@ class UnitarySimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary', 'p', 'sx', 'u'],
         'gates': [
             {
                 'name': 'u1',
@@ -317,7 +317,7 @@ class UnitarySimulatorPy(BaseBackend):
                 gate = operation.params[0]
                 self._add_unitary(gate, qubits)
             # Check if single  gate
-            elif operation.name in ('U', 'u1', 'u2', 'u3'):
+            elif operation.name in ('U', 'u1', 'u2', 'u3', 'p', 'sx', 'u'):
                 params = getattr(operation, 'params', None)
                 qubit = operation.qubits[0]
                 gate = single_gate_matrix(operation.name, params)

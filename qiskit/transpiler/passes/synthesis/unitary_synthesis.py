@@ -19,7 +19,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
-from qiskit.extensions.quantum_initializer import isometry
+from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
 
@@ -106,8 +106,7 @@ class UnitarySynthesis(TransformationPass):
                     continue
                 synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix()))
             else:
-                synth_dag = circuit_to_dag(
-                    isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
+                continue
 
             dag.substitute_node_with_dag(node, synth_dag)
 

@@ -42,7 +42,6 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Collapse1qChains
-from qiskit.transpiler.passes import SimplifyU3
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
@@ -148,6 +147,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
+            Collapse1qChains(),
             UnitarySynthesis(basis_gates),
         ]
     else:
@@ -166,7 +166,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 8. Optimize single-qubit gates and commutative cancellation iteratively
     # until no more change in depth. If basis_gate is None, we interpret that
-    # to mean final circuit should be over the original circuit gates. Since
+    # to mean the final circuit should be over the original circuit gates. Since
     # our optimizations require an intermediary mapping to U3 gates and it's
     # hard to recover the original gates, we forego optimizations in this case.
     _depth_check = [Depth(), FixedPoint('depth')]
@@ -174,10 +174,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    if basis_gates is not None:
-        _opt = [Collapse1qChains(), SimplifyU3(), CommutativeCancellation()]
-    else:
-        _opt = [CommutativeCancellation()]
+    _opt = [Collapse1qChains(), UnitarySynthesis(basis_gates), CommutativeCancellation()]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:

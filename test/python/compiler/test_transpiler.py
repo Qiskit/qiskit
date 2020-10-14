@@ -501,7 +501,7 @@ class TestTranspile(QiskitTestCase):
             self.assertFalse(mock_pass.called)
 
     def test_optimize_to_nothing(self):
-        """ Optimize gates up to fixed point in the default pipeline
+        """Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
@@ -518,7 +518,7 @@ class TestTranspile(QiskitTestCase):
         circ.sdg(qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u1', 'u2', 'u3', 'cx'])
+                          basis_gates=['p', 'sx', 'cx'])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         self.assertEqual(after, expected)
@@ -570,11 +570,11 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(1.5708, 0, 0), [qr[0]])
+        expected.u(1.5708, 0, 0, qr[0])
         expected.reset(qr[0])
-        expected.append(U3Gate(1.5708, 3.1416, 0), [qr[0]])
+        expected.u(1.5708, 3.1416, 0, qr[0])
 
-        after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
+        after = transpile(qc, basis_gates=['reset', 'u'], optimization_level=1)
         self.assertEqual(after, expected)
 
     def test_initialize_FakeMelbourne(self):
@@ -628,11 +628,11 @@ class TestTranspile(QiskitTestCase):
                 [13, 12]]
 
         circuit = transpile(qc, backend=None, coupling_map=cmap,
-                            basis_gates=['u3'], initial_layout=layout)
+                            basis_gates=['u'], initial_layout=layout)
 
         dag_circuit = circuit_to_dag(circuit)
         resources_after = dag_circuit.count_ops()
-        self.assertEqual({'u3': 1}, resources_after)
+        self.assertEqual({'u': 1}, resources_after)
 
     def test_check_circuit_width(self):
         """Verify transpilation of circuit with virtual qubits greater than
@@ -687,7 +687,7 @@ class TestTranspile(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_measure_doesnt_unroll_ms(self, optimization_level):
-        """Verify a measure doesn't cause an Rx,Ry,Rxx circuit to unroll to U3,CX."""
+        """Verify a measure doesn't cause an Rx,Ry,Rxx circuit to unroll to U,CX."""
 
         qc = QuantumCircuit(2, 2)
         qc.rx(math.pi / 2, 0)
@@ -742,7 +742,7 @@ class TestTranspile(QiskitTestCase):
     @combine(
         optimization_level=[0, 1, 2, 3],
         basis_gates=[
-            ['u3', 'cx'],
+            ['u', 'cx'],
             ['rx', 'rz', 'iswap'],
             ['rx', 'ry', 'rxx'],
         ],

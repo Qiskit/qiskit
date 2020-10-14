@@ -30,14 +30,16 @@ def single_gate_params(gate, params=None):
     Raises:
         QiskitError: if the gate name is not valid
     """
-    if gate in ('U', 'u3'):
+    if gate in ('U', 'u3', 'u'):
         return params[0], params[1], params[2]
     elif gate == 'u2':
         return np.pi / 2, params[0], params[1]
-    elif gate == 'u1':
+    elif gate in ('u1', 'p'):
         return 0, 0, params[0]
     elif gate == 'id':
         return 0, 0, 0
+    elif gate == 'sx':
+        return np.pi/2, -np.pi/2, np.pi / 2
     raise QiskitError('Gate is not among the valid types: %s' % gate)
 
 

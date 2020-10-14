@@ -64,7 +64,6 @@ Optimizations
    :toctree: ../stubs/
 
    Optimize1qGates
-   SimplifyU3
    Collapse1qChains
    Collect2qBlocks
    ConsolidateBlocks
@@ -153,7 +152,6 @@ from .basis import BasisTranslator
 
 # optimization
 from .optimization import Optimize1qGates
-from .optimization import SimplifyU3
 from .optimization import Collapse1qChains
 from .optimization import Collect2qBlocks
 from .optimization import ConsolidateBlocks

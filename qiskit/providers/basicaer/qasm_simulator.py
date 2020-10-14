@@ -67,7 +67,7 @@ class QasmSimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'p', 'sx', 'u', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -512,7 +512,7 @@ class QasmSimulatorPy(BaseBackend):
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
-                elif operation.name in ('U', 'u1', 'u2', 'u3'):
+                elif operation.name in ('u1', 'u2', 'u3', 'p', 'sx', 'u'):
                     params = getattr(operation, 'params', None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)

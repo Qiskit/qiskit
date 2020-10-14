@@ -43,7 +43,6 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Collapse1qChains
-from qiskit.transpiler.passes import SimplifyU3
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
@@ -148,10 +147,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                    BasisTranslator(sel, basis_gates)]
     elif translation_method == 'synthesis':
         _unroll = [
-            Collapse1qChains(),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
+            Collapse1qChains(ignore_solo=False),
             UnitarySynthesis(basis_gates),
         ]
     else:
@@ -167,7 +166,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 8. Optimize single-qubit and two-qubit chains of gates iteratively
     # until no more change in depth. If basis_gate is None, we interpret that
-    # to mean final circuit should be over the original circuit gates. Since
+    # to mean the final circuit should be over the original circuit gates. Since
     # our optimizations require an intermediary mapping to U3 gates and it's
     # hard to recover the original gates, we forego optimizations in this case.
     _depth_check = [Depth(), FixedPoint('depth')]
@@ -182,6 +181,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates),
+        Collapse1qChains(ignore_solo=False),
         UnitarySynthesis(basis_gates),
         CommutativeCancellation()
     ]

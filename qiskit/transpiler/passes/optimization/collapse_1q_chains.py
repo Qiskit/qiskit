@@ -18,7 +18,6 @@ from functools import reduce
 
 import numpy as np
 
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info import Operator
@@ -51,9 +50,6 @@ class Collapse1qChains(TransformationPass):
 
         Returns:
             DAGCircuit: a DAG with no single-qubit gate chains and only as single-qubit gates.
-
-        Raises:
-            TranspilerError: in case of numerical errors in combining U gates.
         """
         chains = []
 
@@ -78,9 +74,9 @@ class Collapse1qChains(TransformationPass):
                 chains.append(chain)
 
         # cannot collapse parameterized gates yet
-        chains = _split_chains_on_parameters(chains)
+        chains = _split_chains_on_unknown_def(chains)
 
-        # collapse chains into a single U3
+        # collapse chains into a single unitary operator
         for chain in chains:
             if len(chain) == 1 and self.ignore_solo:
                 continue
@@ -96,13 +92,15 @@ class Collapse1qChains(TransformationPass):
         return dag
 
 
-def _split_chains_on_parameters(chains):
-    """Finds chains containing parameterized gates, and splits them into
-    sequential chains excluding the parameterized gates.
+def _split_chains_on_unknown_def(chains):
+    """Finds chains containing parameterized gates or opaque gates (i.e. gates
+    without a known matrix definition, e.g. pulse gates). Splits them into
+    sequential chains excluding those gates.
     """
     out = []
     for chain in chains:
-        groups = groupby(chain, lambda x: x.op.is_parameterized())
+        groups = groupby(chain, lambda x: (x.op.is_parameterized() or
+                                           x.op.definition is None))
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:
