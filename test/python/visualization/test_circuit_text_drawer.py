@@ -92,7 +92,7 @@ class TestTextDrawerElement(QiskitTestCase):
                               "«     ┌─┐┌───┐     »",
                               "«q_0: ┤M├┤ X ├──■──»",
                               "«     └╥┘└─┬─┘┌─┴─┐»",
-                              "«q_1: ─╫───■──┤ X ├»",
+                              "«q_1: ─╫───■──┤ X ├",
                               "«      ║      └───┘»",
                               "«c_0: ═╩═══════════»",
                               "«                  »",
@@ -1235,11 +1235,11 @@ class TestTextDrawerParams(QiskitTestCase):
 
     def test_text_parameters_mix(self):
         """ cu3 drawing with parameters"""
-        expected = '\n'.join(["                              ",
-                              "q_0: |0>──────────■───────────",
-                              "        ┌─────────┴──────────┐",
+        expected = '\n'.join(["                            ",
+                              "q_0: |0>─────────■──────────",
+                              "        ┌────────┴─────────┐",
                               "q_1: |0>┤ U(π/2,theta,π,0) ├",
-                              "        └────────────────────┘"])
+                              "        └──────────────────┘"])
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
@@ -1886,9 +1886,9 @@ class TestTextNonRational(QiskitTestCase):
 
     def test_text_pifrac(self):
         """ u drawing with -5pi/8 fraction"""
-        expected = '\n'.join(["        ┌────────────────┐",
+        expected = '\n'.join(["        ┌──────────────┐",
                               "q_0: |0>┤ U(π,-5π/8,0) ├",
-                              "        └────────────────┘"])
+                              "        └──────────────┘"])
 
         qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
