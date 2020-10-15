@@ -210,7 +210,7 @@ def circuit_drawer(circuit,
             types in the output visualization. These items allow the use of
             LaTeX formatting for gate names. The 'displaytext' dict can contain
             any number of elements from one to the entire dict above.The default
-            values are:: `default.json`
+            values are (`default.json`)::
 
                 {
                     'u1': '$\\mathrm{U}_1$',
@@ -249,7 +249,7 @@ def circuit_drawer(circuit,
             the text color, such as 'u1': '#FA74A6', in which case the text color
             will always be `gatetextcolor`. The `displaycolor` dict can contain
             any number of elements from one to the entire dict above. The default
-            values are:: `default.json`
+            values are (`default.json`)::
 
                 {
                     'u1': ('#FA74A6', '#000000'),
