@@ -39,8 +39,8 @@ features:
         print("Duration in dt:", scheduled_circuit.duration)
         scheduled_circuit.draw(idle_wires=False)
 
-    Note that scheduled circuits can not be directly executed on real backends
-    so far (not yet supported).
+    See also :func:`~qiskit.visualization.timeline_drawer` for the best visualization
+    of scheduled circuits.
 
   - |
     A new fuction :func:`qiskit.compiler.sequence` has been also added so that
