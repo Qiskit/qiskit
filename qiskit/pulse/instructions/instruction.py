@@ -25,7 +25,8 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from collections import defaultdict
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -65,17 +66,26 @@ class Instruction(ScheduleComponent, ABC):
         if duration < 0:
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
-        self._duration = duration
 
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
+        self._duration = duration
         self._channels = channels
         self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
+
+        self._parameter_table = defaultdict(list)
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and op.is_parameterized():
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
 
     @property
     def name(self) -> str:
@@ -128,6 +138,16 @@ class Instruction(ScheduleComponent, ABC):
     def duration(self) -> int:
         """Duration of this instruction."""
         return self._duration
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        return set(self._parameter_table.keys())
+
+    @property
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
@@ -232,21 +252,21 @@ class Instruction(ScheduleComponent, ABC):
             Self with updated parameters.
         """
         new_operands = list(self.operands)
+        from copy import copy
+        for parameter, op_indices in copy(self._parameter_table).items():
+            if parameter not in value_dict:
+                continue
 
-        for idx, op in enumerate(self.operands):
-            for parameter, value in value_dict.items():
-                if isinstance(op, ParameterExpression) and parameter in op.parameters:
-                    new_operands[idx] = new_operands[idx].assign(parameter, value)
-                elif (isinstance(op, Channel)
-                      and isinstance(op.index, ParameterExpression)
-                      and parameter in op.index.parameters):
-                    new_index = new_operands[idx].index.assign(parameter, value)
-                    if not new_index.parameters:
-                        new_index = float(new_index)
-                        if float(new_index).is_integer():
-                            # If it's not, allow Channel to raise an error upon initialization
-                            new_index = int(new_index)
-                    new_operands[idx] = type(op)(new_index)
+            value = value_dict[parameter]
+            for op_idx in op_indices:
+                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+
+            if isinstance(value, ParameterExpression):
+                entry = self._parameter_table.pop(parameter)
+                for new_parameter in value.parameters:
+                    self._parameter_table[new_parameter] = entry
+            else:
+                del self._parameter_table[parameter]
 
         self._operands = tuple(new_operands)
         return self

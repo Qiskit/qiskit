@@ -21,8 +21,10 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
+from typing import Set
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -48,8 +50,12 @@ class Channel(metaclass=ABCMeta):
         if not isinstance(index, ParameterExpression):
             if not isinstance(index, int) or index < 0:
                 raise PulseError('Channel index must be a nonnegative integer')
+
         self._index = index
         self._hash = None
+        self._parameters = set()
+        if isinstance(index, ParameterExpression):
+            self._parameters = index.parameters
 
     @property
     def index(self) -> int:
@@ -58,6 +64,44 @@ class Channel(metaclass=ABCMeta):
         the signal line driving the qubit labeled with index 0.
         """
         return self._index
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the channel index."""
+        return self._parameters
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the channel is parameterized."""
+        return bool(self.parameters)
+
+    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
+        """Return a new channel with the parameter assigned according to the input.
+
+        Args:
+            parameter (Parameter): A parameter in this expression whose value will be updated.
+            value: The new value to bind to.
+
+        Returns:
+            A new channel with updated parameters.
+
+        Raises:
+            PulseError: Todo
+        """
+        if parameter not in self.parameters:
+            raise PulseError('Cannot bind parameters ({}) not present in the channel.'
+                             ''.format(parameter))
+        new_chan_idx = self.index.assign(parameter, value)
+
+        if not new_chan_idx.parameters:
+            new_chan_idx = float(new_chan_idx)
+            if float(new_chan_idx).is_integer():
+                # If it's not, allow Channel to raise an error upon initialization
+                new_chan_idx = int(new_chan_idx)
+            self.parameters.remove(parameter)
+        else:
+            self.parameters.add(new_chan_idx.parameters)
+
+        return type(self)(new_chan_idx)
 
     @property
     def name(self) -> str:
