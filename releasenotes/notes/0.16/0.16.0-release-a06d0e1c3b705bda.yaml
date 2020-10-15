@@ -1,5 +1,5 @@
 ---
-prelude: >
+prelude: |
     The 0.16.0 release includes serveral new features and bug fixes. The
     major features in this release are the following:
 
