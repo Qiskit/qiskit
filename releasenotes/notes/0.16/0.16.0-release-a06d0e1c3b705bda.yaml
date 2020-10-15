@@ -2,13 +2,15 @@
 prelude: >
     The 0.16.0 release includes serveral new features and bug fixes. The
     major features in this release are the following:
-    1) Introduction of scheduled circuits, where delays can be used to control
-    the timing and alignment of operations in the circuit.
-    2) Compilation of quantum circuits from classical functions, such as
-    oracles.
-    3) Ability to compile and optimize single qubit rotations over different
-    euler basis as well as the phase + square-root(X) basis (i.e. ['p', 'sx']),
-    which will replace the older IQX basis of ['u1', 'u2', 'u3'].
+
+    * Introduction of scheduled circuits, where delays can be used to control
+      the timing and alignment of operations in the circuit.
+    * Compilation of quantum circuits from classical functions, such as
+      oracles.
+    * Ability to compile and optimize single qubit rotations over different
+      Euler basis as well as the phase + square-root(X) basis (i.e.
+      ``['p', 'sx']``), which will replace the older IBM Quantum basis of
+      ``['u1', 'u2', 'u3']``.
 
     Also of particular importance for this release is that Python 3.5 is no
     longer supported. If you're are using Qiskit Terra with Python 3.5 the
@@ -17,7 +19,7 @@ upgrade:
   - |
     Type checking for the ``params`` kwarg of the constructor for the
     :class:`~qiskit.circuit.Gate` class and its subclasses has been changed.
-    Previously all :class:`~qiskit.circuit.Gate` params had to be
+    Previously all :class:`~qiskit.circuit.Gate` parameters had to be
     in a set of allowed types defined in the
     :class:`~qiskit.circuit.Instruction` class. Now a new method,
     :meth:`~qiskit.circuit.Gate.validate_parameter` is used to determine
