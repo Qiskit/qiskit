@@ -33,8 +33,8 @@ class ClassicalFunction(gate.Gate):
 
         The code should be a single function with types.
 
-    Args:
-        source (str): Python code with type hints.
+        Args:
+            source (str): Python code with type hints.
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
         Raises:
             ImportError: If tweedledum is not installed.

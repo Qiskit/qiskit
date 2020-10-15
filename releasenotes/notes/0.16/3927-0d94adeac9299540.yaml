@@ -16,7 +16,7 @@ upgrade:
         - :class:`~qiskit.circuit.QuantumCircuit.num_qubits`
       * - :class:`~qiskit.quantum_info.Pauli`
         - ``numberofqubits``
-        - :attr:`~qiskit.quantum_info.num_qubits`
+        - :attr:`~qiskit.quantum_info.Pauli.num_qubits`
 
     .. list-table::
       :header-rows: 1
