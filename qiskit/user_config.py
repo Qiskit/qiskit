@@ -30,7 +30,7 @@ class UserConfig:
     [default]
     circuit_drawer = mpl
     circuit_mpl_style = default
-    circuit_mpl_style_path = /home/user/styles;/home/user
+    circuit_mpl_style_path = ~/.qiskit:<default location>
     transpile_optimization_level = 2
     suppress_packaging_warnings = True
 
@@ -85,7 +85,7 @@ class UserConfig:
                                                             'circuit_mpl_style_path',
                                                             fallback=None)
             if circuit_mpl_style_path:
-                cpath_list = circuit_mpl_style_path.split(';')
+                cpath_list = circuit_mpl_style_path.split(':')
                 for path in cpath_list:
                     if not os.path.exists(os.path.expanduser(path)):
                         warn("%s is not a valid circuit mpl style path."

@@ -63,7 +63,7 @@ def circuit_drawer(circuit,
                    ax=None,
                    initial_state=False,
                    cregbundle=True):
-    """Draw a quantum circuit to different formats (set by output parameter):
+    """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
     **text**: ASCII art TextDrawing that can be printed in the console.
 
@@ -95,7 +95,7 @@ def circuit_drawer(circuit,
             If none of these are set, the `default` style will be used.
             The search path for style json files can be specified in the user
             config, for example,
-            ``circuit_mpl_style_path = /home/user/styles;/home/user``.
+            ``circuit_mpl_style_path = /home/user/styles:/home/user``.
             See: :ref:`Style Dict Doc <style-dict-doc>` for more
             information on the contents.
         output (str): select the output method to use for drawing the circuit.
@@ -210,7 +210,7 @@ def circuit_drawer(circuit,
             types in the output visualization. These items allow the use of
             LaTeX formatting for gate names. The 'displaytext' dict can contain
             any number of elements from one to the entire dict above.The default
-            values are::
+            values are:: `default.json`
 
                 {
                     'u1': '$\\mathrm{U}_1$',
@@ -249,7 +249,7 @@ def circuit_drawer(circuit,
             the text color, such as 'u1': '#FA74A6', in which case the text color
             will always be `gatetextcolor`. The `displaycolor` dict can contain
             any number of elements from one to the entire dict above. The default
-            values are::
+            values are:: `default.json`
 
                 {
                     'u1': ('#FA74A6', '#000000'),

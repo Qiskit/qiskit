@@ -235,13 +235,13 @@ class MatplotlibDrawer:
         config = user_config.get_config()
         if style is False:
             style_name = 'bw'
-        elif isinstance(style, dict) and 'name' in style.keys():
+        elif isinstance(style, dict) and 'name' in style:
             style_name = style['name']
         elif isinstance(style, str):
             style_name = style
         elif config:
             style_name = config.get('circuit_mpl_style', 'default')
-        if style_name[-5:] == '.json':
+        if style_name.endswith('.json'):
             style_name = style_name[:-5]
 
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
@@ -260,25 +260,24 @@ class MatplotlibDrawer:
 
             found_path = False
             for path in style_path:
-                if os.path.isfile(os.path.expanduser(path)):
+                exp_user = os.path.expanduser(path)
+                if os.path.isfile(exp_user):
                     found_path = True
                     try:
-                        with open(os.path.expanduser(path)) as infile:
+                        with open(exp_user) as infile:
                             json_style = json.load(infile)
                         set_style(current_style, json_style)
                         break
-                    except FileNotFoundError:
-                        warn("Style JSON file '{}' not found. Will use default style.".format(
-                            style_name), UserWarning, 2)
                     except json.JSONDecodeError as e:
                         warn("Could not decode JSON in file '{}': {}. ".format(
-                            style_name, str(e)) + "Will use default style.", UserWarning, 2)
-                    except OSError:
+                            path, str(e)) + "Will use default style.", UserWarning, 2)
+                    except (OSError, FileNotFoundError):
                         warn("Error loading JSON file '{}'. Will use default style.".format(
-                            style_name), UserWarning, 2)
+                            path), UserWarning, 2)
             if not found_path:
-                warn("Style JSON file '{}' not found. Will use default style.".format(
-                    style_name), UserWarning, 2)
+                warn("Style JSON file '{}' not found in any of these locations: {}."
+                    " Will use default style.".format(
+                    style_name, ', '.join(style_path)), UserWarning, 2)
 
         if isinstance(style, dict):
             set_style(current_style, style)

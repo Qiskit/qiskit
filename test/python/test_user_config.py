@@ -129,7 +129,7 @@ class TestUserConfig(QiskitTestCase):
         [default]
         circuit_drawer = latex
         circuit_mpl_style = default
-        circuit_mpl_style_path = ~;~/.qiskit
+        circuit_mpl_style_path = ~:~/.qiskit
         transpile_optimization_level = 3
         suppress_packaging_warnings = true
         """
