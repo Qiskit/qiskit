@@ -204,10 +204,10 @@ class OneQubitEulerDecomposer:
                 mat[0, 0] + mat[0, 1] + mat[1, 0] + mat[1, 1],
                 mat[0, 0] - mat[0, 1] + mat[1, 0] - mat[1, 1]
             ],
-                [
-                mat[0, 0] + mat[0, 1] - mat[1, 0] - mat[1, 1],
-                mat[0, 0] - mat[0, 1] - mat[1, 0] + mat[1, 1]
-            ]],
+             [
+                 mat[0, 0] + mat[0, 1] - mat[1, 0] - mat[1, 1],
+                 mat[0, 0] - mat[0, 1] - mat[1, 0] + mat[1, 1]
+             ]],
             dtype=complex)
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
         return -theta, phi, lam, phase
