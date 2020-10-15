@@ -83,8 +83,6 @@ class Collapse1qChains(TransformationPass):
             DAGCircuit: a DAG with no single-qubit gate chains and only as single-qubit gates.
         """
         chains = []
-        from qiskit.converters import dag_to_circuit
-        #print(dag_to_circuit(dag))
 
         # collect chains of uninterrupted single-qubit gates
         topo_ops = list(dag.topological_op_nodes())
@@ -107,9 +105,7 @@ class Collapse1qChains(TransformationPass):
                 chains.append(chain)
 
         # cannot collapse parameterized gates yet
-        #print('before: ', [[g.name for g in chain] for chain in chains])
         chains = self._split_chains_on_unknown_matrix(chains, dag)
-        #print('after: ', [[g.name for g in chain] for chain in chains])
 
         # collapse chains into a single unitary operator
         for chain in chains:
@@ -124,20 +120,15 @@ class Collapse1qChains(TransformationPass):
             else:
                 dag.substitute_node(chain[0], op.to_instruction(), inplace=True)
 
-        #print(dag_to_circuit(dag))
-
         return dag
 
     def _split_chains_on_unknown_matrix(self, chains, dag):
         """Finds chains containing parameterized gates or opaque gates or pulse
         gates (i.e. everything without a known matrix definition). Splits them into
-        sequential chains excluding those gates.
+        sequential chains excluding those gates. Additionally splits those that are
+        in the basis and not recoverable by the one-qubit synthesizer.
         """
         # TODO: more elegant way of informing available synthesis basis
-        _known_synthesis_basis = [{'u'}, {'p', 'sx'}, {'r'},
-                                  {'rz', 'ry'}, {'rz', 'rx'},
-                                  {'rx', 'ry'}, {'u1', 'u2', 'u3'},
-                                  {'u3'}, {'u1', 'rx'}]
         _known_synthesis_basis = ['u', 'p', 'sx', 'r', 'rz', 'ry', 'rx', 'u1', 'u2', 'u3']
 
         def _unknown_matrix(op):
@@ -147,12 +138,9 @@ class Collapse1qChains(TransformationPass):
                 mat = op.to_matrix()
             except CircuitError:
                 mat = None
-            if mat is None:
-                return True
-            else:
-                return False
+            return mat is None
 
-        def _oneway_op(op):
+        def _unrecoverable_op(op):
             return (self.basis_gates and op.name in self.basis_gates and
                     op.name not in _known_synthesis_basis)
 
@@ -167,7 +155,9 @@ class Collapse1qChains(TransformationPass):
         out = []
         for chain in chains:
             groups = groupby(chain,
-                             lambda x: _unknown_matrix(x.op) or _oneway_op(x.op) or _calibrated_op(x)
+                             lambda x: (_unknown_matrix(x.op) or
+                                        _unrecoverable_op(x.op) or
+                                        _calibrated_op(x))
                              )
 
             for group_is_opaque, gates in groups:

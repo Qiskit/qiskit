@@ -29,7 +29,7 @@ from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate
+from qiskit.circuit.library import CXGate, U2Gate, U1Gate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap

@@ -19,7 +19,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
-from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
 
