@@ -61,10 +61,10 @@ class TestSuperOp(ChannelTestCase):
         target = SuperOp(Operator(np.kron(y90, np.kron(self.UX, self.UH))))
         self.assertEqual(target, op)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         op = SuperOp(circuit)
         target = SuperOp(Operator(np.diag([1, 1, 1, np.exp(1j * lam)])))
         self.assertEqual(target, op)
