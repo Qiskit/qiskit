@@ -244,7 +244,10 @@ class SPSA(Optimizer):
                 obj_minus = obj_fun(theta_minus)
             delta_obj += np.absolute(obj_plus - obj_minus) / stat
 
-        self._parameters[0] = target_update * 2 / delta_obj \
-            * self._parameters[1] * (self._parameters[4] + 1)
+        # only calibrate if delta_obj is larger than 0
+        if delta_obj > 0:
+            self._parameters[0] = target_update * 2 / delta_obj \
+                * self._parameters[1] * (self._parameters[4] + 1)
+            logger.debug('delta_obj is 0, not calibrating (since this would set c0 to inf)')
 
         logger.debug('Calibrated SPSA parameter c0 is %.7f', self._parameters[0])
