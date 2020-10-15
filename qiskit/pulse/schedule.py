@@ -27,6 +27,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.util import is_main_process
+from qiskit.circuit.parametervector import ParameterVector
 
 # pylint: disable=missing-return-doc
 
@@ -650,8 +651,10 @@ class Schedule(ScheduleComponent):
         Returns:
             Schedule with updated parameters (a new one if not inplace, otherwise self).
         """
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+        unrolled_param_dict = self._unroll_param_dict(value_dict)
         for _, inst in self.instructions:
-            inst.assign_parameters(value_dict)
+            inst.assign_parameters(unrolled_param_dict)
 
         for chan in copy.copy(self._timeslots):
             if isinstance(chan.index, ParameterExpression):
@@ -660,8 +663,8 @@ class Schedule(ScheduleComponent):
                 # Find the channel's new assignment
                 new_channel = chan
                 for param in chan.index.parameters:
-                    if param in value_dict:
-                        new_index = new_channel.index.assign(param, value_dict[param])
+                    if param in unrolled_param_dict:
+                        new_index = new_channel.index.assign(param, unrolled_param_dict[param])
                         if not new_index.parameters:
                             new_index = float(new_index)
                             if float(new_index).is_integer():
@@ -678,6 +681,19 @@ class Schedule(ScheduleComponent):
                     self._timeslots[new_channel] = chan_timeslots
 
         return self
+
+    def _unroll_param_dict(self, value_dict):
+        unrolled_value_dict = {}
+        for (param, value) in value_dict.items():
+            if isinstance(param, ParameterExpression):
+                unrolled_value_dict[param] = value
+            if isinstance(param, ParameterVector):
+                if not len(param) == len(value):
+                    raise PulseError('ParameterVector {} has length {}, which '
+                                     'differs from value list {} of '
+                                     'len {}'.format(param, len(param), value, len(value)))
+                unrolled_value_dict.update(zip(param, value))
+        return unrolled_value_dict
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
