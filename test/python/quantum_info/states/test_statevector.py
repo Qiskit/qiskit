@@ -22,6 +22,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import transpile
 from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
@@ -865,6 +866,17 @@ class TestStatevector(QiskitTestCase):
                 op = Operator.from_label(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+    def test_global_phase(self):
+        """Test global phase is handled correctly when evolving statevector."""
+
+        qc = QuantumCircuit(1)
+        qc.rz(0.5, 0)
+        qc2 = transpile(qc, basis_gates=['p'])
+        sv = Statevector.from_instruction(qc2)
+        expected = np.array([0.96891242-0.24740396j, 0])
+        self.assertEqual(float(qc2.global_phase), -1/4)
+        self.assertEqual(sv, Statevector(expected))
 
 
 if __name__ == '__main__':
