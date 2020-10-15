@@ -34,6 +34,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
@@ -60,6 +61,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
@@ -86,6 +88,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
@@ -118,6 +121,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
@@ -147,6 +151,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
@@ -179,6 +184,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     @ddt.data(
         ['cx', 'u3'],
         ['cz', 'u3'],
+        ['cx', 'u'],
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
