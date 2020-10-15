@@ -1,22 +1,42 @@
 ---
 features:
   - |
-    Added a feature for bloch vectors to be plotted using spherical coordinates.
-    Implements feature mentioned in issue `#4802 <https://github.com/Qiskit/qiskit-terra/issues/4802>`
-
-    Cartesian coordinates are still supported and made as the default mode.
-    for example::
+    A new kwarg, ``coord_type`` has been added to
+    :func:`qiskit.visualization.plot_bloch_vector`. This kwarg enables
+    changing the coordinate system used for the input parameter that
+    describes the positioning of the vector on the Bloch sphere in the
+    generated visualization. There are 2 supported values for this new kwarg,
+    ``'cartesian'`` (the default value) and ``'spherical'``. If the
+    ``coord_type`` kwarg is set to ``'spherical'`` the list of parameters
+    taken in are of the form ``[r, theta,  phi]`` where ``r`` is the
+    radius, ``theta`` is the inclination from +z direction, and ``phi`` is
+    the azimuth from +x direction. For example:
     
     .. jupyter-execute::
 
+      from numpy import pi
+
       from qiskit.visualization import plot_bloch_vector
 
-      # Cartesian coordinates, where (x,y,z) are cartesian coordinates for bloch vector 
+      x = 0
+      y = 0
+      z = 1
+      r = 1
+      theta = pi
+      phi = 0
+
+
+      # Cartesian coordinates, where (x,y,z) are cartesian coordinates
+      # for bloch vector 
       plot_bloch_vector([x,y,z])
+
+    .. jupyter-execute::
+
       plot_bloch_vector([x,y,z], coord_type="cartesian")  # Same as line above
 
-      # Spherical coordinates, where (r,theta,phi) are spherical coordinates for bloch vector
-      plot_bloch_vector([r,theta,phi], coord_type="spherical")
+    .. jupyter-execute::
 
-    It should be noted that angles should be in radians and r is radius, theta is inclination from +z direction,
-    and phi is azimuth from +x direction.
+      # Spherical coordinates, where (r,theta,phi) are spherical coordinates
+      # for bloch vector
+      plot_bloch_vector([r, theta, phi], coord_type="spherical")
+

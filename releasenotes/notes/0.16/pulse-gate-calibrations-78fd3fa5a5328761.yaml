@@ -1,11 +1,13 @@
 ---
 features:
   - |
-    Circuits now support a new feature: Pulse gates. This feature enables users who are working
-    primarily with ``QuantumCircuits`` to override (for basis gates) or specify (for standard
-    and custom gates) a definition of a ``Gate`` operation in terms of time-ordered signals
-    across hardware channels. In other words, it allow users to provide a pulse-level "custom
-    gate calibration."
+    Support for pulse gates has been added to the
+    :class:`~qiskit.circuit.QuantumCircuit` class. This enables a
+    :class:`~qiskit.circuit.QuantumCircuit` to override (for basis gates) or
+    specify (for standard and custom gates) a definition of a
+    :class:`~qiskit.circuit.Gate` operation in terms of time-ordered signals
+    across hardware channels. In other words, it enables the option to provide
+    pulse-level custom gate calibrations.
 
     The circuits are built exactly as before. For example::
 
@@ -18,11 +20,13 @@ features:
 
         circ = QuantumCircuit(1)
         circ.h(0)
-        circ.append(RxGate(3.14), [1])
+        circ.append(RxGate(3.14), [0])
 
-    Then, the user must register the calibration with the gate via the circuit method
-    ``add_calibration``, which takes a schedule definition as well as the specific qubits
-    and parameters that it is defined for::
+    Then, the calibration for the gate can be registered using the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.add_calibration` which takes a
+    :class:`~qiskit.pulse.Schedule` definition as well as the qubits and
+    parameters that it is defined for::
 
         # Define the gate implementation as a schedule
         with pulse.build() as custom_h_schedule:
@@ -35,17 +39,18 @@ features:
         circ.add_calibration('h', [0], custom_h_schedule)  # or gate.name string to register
         circ.add_calibration(RxGate(3.14), [0], q1_x180)   # Can accept gate
 
-    Previously, this functionality could only be capitalized on through complete Pulse
-    Schedules. With updates to the QASM Qobj and the assembler, jobs can now be sent as
-    circuit jobs, augmented with calibration libraries to communicate your custom definitions
-    to the backend.
+    Previously, this functionality could only be used through complete Pulse
+    Schedules. Additionally, circuits can now be submitted to backends with
+    your custom definitions (dependent on backend support).
 
-    Circuits with pulse gates may still be lowered to the Pulse Schedule representation by using
-    the :py:mod:`qiskit.scheduler`.
+    Circuits with pulse gates can still be lowered to a
+    :class:`~qiskit.pulse.Schedule` by using the
+    :func:`~qiskit.compiler.schedule` function.
 
-    The calibrated gate can also be transpiled using the regular transpilation process::
+    The calibrated gate can also be transpiled using the regular transpilation
+    process::
 
         transpiled_circuit = transpile(circ, backend)
 
-    The transpiled circuit will leave the calibrated gates on the same qubit as the original
-    circuit and will not unroll them to the basis gates.
+    The transpiled circuit will leave the calibrated gates on the same qubit as
+    the original circuit and will not unroll them to the basis gates.

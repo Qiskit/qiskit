@@ -1,11 +1,13 @@
 ---
 features:
   - |
-    The new method :meth:`~qiskit.transpiler.passmanager.PassManager.remove`
-    allows to remove a pass in a `PassManager` instance. It works with indexes, like
-    :meth:`~qiskit.transpiler.passmanager.PassManager.replace`. For example, let's 
-    remove the `RemoveResetInZeroState` pass from the pass manager used at
-    optimization level 1:
+    A new method :meth:`~qiskit.transpiler.PassManager.remove` has been added
+    to the :class:`qiskit.transpiler.PassManager` class. This method enables
+    removing a pass from a :class:`~qiskit.transpiler.PassManager` instance.
+    It works on indexes, similar to
+    :meth:`~qiskit.transpiler.PassManager.replace`. For example, to
+    remove the :class:`~qiskit.transpiler.passes.RemoveResetInZeroState` pass
+    from the pass manager used at optimization level 1:
 
     .. code-block:: python
 
@@ -21,7 +23,7 @@ features:
       [1] FlowLinear: RemoveResetInZeroState
       [2] DoWhile: Depth, FixedPoint, Optimize1qGates, CXCancellation
 
-    The stage `[1]` with `RemoveResetInZeroState` can be removed like this:
+    The stage ``[1]`` with ``RemoveResetInZeroState`` can be removed like this:
 
     .. code-block:: python
 
@@ -32,4 +34,4 @@ features:
 
       [0] FlowLinear: UnrollCustomDefinitions, BasisTranslator
       [1] DoWhile: Depth, FixedPoint, Optimize1qGates, CXCancellation
-    
+

@@ -27,19 +27,19 @@ features:
     :meth:`~qiskit.circuit.classicalfunction.ClassicalFunction.synth` creates a
     circuit with registers refering to the parameter names. For example::
 
-    .. jupyter-execute:
+    .. jupyter-execute::
 
       quantum_circuit = grover_oracle.synth(registerless=False)
-      quantum_circuit.draw()) 
+      quantum_circuit.draw()
 
-    A decorated classical function can be used the same way as any other quantum
-    gate when appending it to a circuit.
+    A decorated classical function can be used the same way as any other
+    quantum gate when appending it to a circuit.
 
-    .. jupyter-execute:
+    .. jupyter-execute::
 
       circuit = QuantumCircuit(5)
       circuit.append(grover_oracle, range(5))
-      quantum_circuit.draw()) 
+      quantum_circuit.draw()
 
     The feature requires ``tweedledum``, a library for synthesizing quantum
     circuits, that can be installed via pip with ``pip install tweedledum``.

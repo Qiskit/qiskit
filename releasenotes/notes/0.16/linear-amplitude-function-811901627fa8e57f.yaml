@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    Added a library circuit for mapping (piecewise) linear functions on 
-    qubit amplitudes,
+    A new class :class:`~qiskit.circuit.library.LinearAmplitudeFunction` was
+    added to the circuit library (:mod:`qiskit.circuit.library`) for mapping
+    (piecewise) linear functions on qubit amplitudes,
 
     .. math::
 
@@ -11,5 +12,5 @@ features:
     
     The mapping is based on a controlled Pauli Y-rotations and 
     a Taylor approximation, as described in https://arxiv.org/abs/1806.06893. 
-    This circuit can be used to compute expectation values of linear functions 
-    using the quantum amplitude estimation algorithm. 
+    This circuit can be used to compute expectation values of linear
+    functions using the quantum amplitude estimation algorithm.
