@@ -5,7 +5,7 @@ features:
     use :py:class:`~qiskit.circuit.ParameterExpression` objects
     for parameters.
 
-    For Example::
+    For example::
 
         from qiskit.circuit import Parameter
         from qiskit import pulse

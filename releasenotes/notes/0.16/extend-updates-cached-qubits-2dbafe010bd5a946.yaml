@@ -6,7 +6,7 @@ fixes:
     a circuit that had differing register would lead to a discrepency in the
     :attr:`~qiskit.circuit.QuantumCircuit.qubits`  and
     :attr:`~qiskit.circuit.QuantumCircuit.clbits` attributes because the
-    cached lists were not updated. THis has been fixed so that calling
+    cached lists were not updated. This has been fixed so that calling
     :meth:`~qiskit.circuit.QuantumCircuit.extend` updates
     :attr:`~qiskit.circuit.QuantumCircuit.qubits` and
     :attr:`~qiskit.circuit.QuantumCircuit.clbits` with any new bits from
