@@ -110,12 +110,12 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.h(1)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         target = Statevector.from_label('00').evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
