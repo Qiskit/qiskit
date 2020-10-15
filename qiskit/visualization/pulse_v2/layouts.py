@@ -14,11 +14,11 @@
 
 """
 A collection of functions that decide the layout of an output image.
+See :py:mod:`~qiskit.visualization.pulse_v2.types` for more info on the required data.
 
-Currently this module provides the below functions:
+There are 3 types of layout functions in this module.
 
-1. Arrange the order of channels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. layout.chart_channel_map
 
 An end-user can write arbitrary functions that output the custom channel ordering
 associated with group name. Layout function in this module are called with the
@@ -40,16 +40,7 @@ The layout function is restricted to:
             yield key, channels
     ```
 
-The user-defined layout function can be assigned to the layout field of the stylesheet:
-
-    ```python
-    my_custom_style = {
-        'layout.chart_channel_map' : my_channel_layout
-    }
-    ```
-
-2. Change horizontal axis format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. layout.time_axis_map
 
 An end-user can write arbitrary functions that output the `HorizontalAxis` data set that
 will be later consumed by the plotter API to update the horizontal axis appearance.
@@ -68,16 +59,7 @@ data.
         return horizontal_axis
     ```
 
-The user-defined layout function can be assigned to the layout field of of the stylesheet:
-
-    ```python
-    my_custom_style = {
-        'layout.time_axis_map' : my_horizontal_axis
-    }
-    ```
-
-3. Title of figure
-~~~~~~~~~~~~~~~~~~
+3. layout.figure_title
 
 An end-user can write arbitrary functions that output the string data that
 will be later consumed by the plotter API to output figure title.
@@ -85,21 +67,13 @@ Layout function in this module are called with the `program` and `device` kwargs
 These data provides input program and backend system configuration.
 
     ```python
-    def my_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
-                 device: DrawerBackendInfo) -> str:
+    def my_figure_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                        device: DrawerBackendInfo) -> str:
 
         return 'title'
     ```
 
-The user-defined layout function can be assigned to the layout field of of the stylesheet:
-
-    ```python
-    my_custom_style = {
-        'layout.figure_title' : my_title
-    }
-    ```
-
-The user can set the custom stylesheet to the drawer interface.
+Arbitrary layout function satisfying the above format can be accepted.
 """
 
 from collections import defaultdict

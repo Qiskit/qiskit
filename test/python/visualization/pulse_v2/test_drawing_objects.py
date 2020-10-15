@@ -16,7 +16,7 @@
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects, types
+from qiskit.visualization.pulse_v2 import drawings, types
 
 
 class TestDrawingObjects(QiskitTestCase):
@@ -43,21 +43,21 @@ class TestDrawingObjects(QiskitTestCase):
         xs = [0, 1, 2]
         ys = [3, 4, 5]
 
-        data1 = drawing_objects.LineData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         channels=self.ch_d0,
-                                         meta=self.meta1,
-                                         ignore_scaling=True,
-                                         styles=self.style1)
+        data1 = drawings.LineData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  channels=self.ch_d0,
+                                  meta=self.meta1,
+                                  ignore_scaling=True,
+                                  styles=self.style1)
 
-        data2 = drawing_objects.LineData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         channels=self.ch_d1,
-                                         meta=self.meta2,
-                                         ignore_scaling=True,
-                                         styles=self.style2)
+        data2 = drawings.LineData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  channels=self.ch_d1,
+                                  meta=self.meta2,
+                                  ignore_scaling=True,
+                                  styles=self.style2)
 
         self.assertEqual(data1, data2)
 
@@ -66,21 +66,21 @@ class TestDrawingObjects(QiskitTestCase):
         xs = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
         ys = [types.AbstractCoordinate.TOP, types.AbstractCoordinate.BOTTOM]
 
-        data1 = drawing_objects.LineData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         channels=self.ch_d0,
-                                         meta=self.meta1,
-                                         ignore_scaling=True,
-                                         styles=self.style1)
+        data1 = drawings.LineData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  channels=self.ch_d0,
+                                  meta=self.meta1,
+                                  ignore_scaling=True,
+                                  styles=self.style1)
 
-        data2 = drawing_objects.LineData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         channels=self.ch_d1,
-                                         meta=self.meta2,
-                                         ignore_scaling=True,
-                                         styles=self.style2)
+        data2 = drawings.LineData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  channels=self.ch_d1,
+                                  meta=self.meta2,
+                                  ignore_scaling=True,
+                                  styles=self.style2)
 
         self.assertEqual(data1, data2)
 
@@ -89,25 +89,25 @@ class TestDrawingObjects(QiskitTestCase):
         xs = [0]
         ys = [1]
 
-        data1 = drawing_objects.TextData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         text='test1',
-                                         latex=r'test_1',
-                                         channels=self.ch_d0,
-                                         meta=self.meta1,
-                                         ignore_scaling=True,
-                                         styles=self.style1)
+        data1 = drawings.TextData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  text='test1',
+                                  latex=r'test_1',
+                                  channels=self.ch_d0,
+                                  meta=self.meta1,
+                                  ignore_scaling=True,
+                                  styles=self.style1)
 
-        data2 = drawing_objects.TextData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         text='test2',
-                                         latex=r'test_2',
-                                         channels=self.ch_d1,
-                                         meta=self.meta2,
-                                         ignore_scaling=True,
-                                         styles=self.style2)
+        data2 = drawings.TextData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  text='test2',
+                                  latex=r'test_2',
+                                  channels=self.ch_d1,
+                                  meta=self.meta2,
+                                  ignore_scaling=True,
+                                  styles=self.style2)
 
         self.assertEqual(data1, data2)
 
@@ -116,24 +116,24 @@ class TestDrawingObjects(QiskitTestCase):
         xs = [types.AbstractCoordinate.RIGHT]
         ys = [types.AbstractCoordinate.TOP]
 
-        data1 = drawing_objects.TextData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         text='test1',
-                                         latex=r'test_1',
-                                         channels=self.ch_d0,
-                                         meta=self.meta1,
-                                         ignore_scaling=True,
-                                         styles=self.style1)
+        data1 = drawings.TextData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  text='test1',
+                                  latex=r'test_1',
+                                  channels=self.ch_d0,
+                                  meta=self.meta1,
+                                  ignore_scaling=True,
+                                  styles=self.style1)
 
-        data2 = drawing_objects.TextData(data_type='test',
-                                         xvals=xs,
-                                         yvals=ys,
-                                         text='test2',
-                                         latex=r'test_2',
-                                         channels=self.ch_d1,
-                                         meta=self.meta2,
-                                         ignore_scaling=True,
-                                         styles=self.style2)
+        data2 = drawings.TextData(data_type='test',
+                                  xvals=xs,
+                                  yvals=ys,
+                                  text='test2',
+                                  latex=r'test_2',
+                                  channels=self.ch_d1,
+                                  meta=self.meta2,
+                                  ignore_scaling=True,
+                                  styles=self.style2)
 
         self.assertEqual(data1, data2)

@@ -14,13 +14,12 @@
 
 """Waveform generators.
 
-A collection of functions that generate a drawing object for an input waveform instruction.
-See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
-data.
+A collection of functions that generate drawings from formatted input data.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required data.
 
 In this module the input data is `types.PulseInstruction`.
 
-An end-user can write arbitrary functions that generate custom drawing objects.
+An end-user can write arbitrary functions that generate custom drawings.
 Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
@@ -47,13 +46,13 @@ import numpy as np
 from qiskit import pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_filled_waveform_stepwise(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
                                  device: device_info.DrawerBackendInfo
-                                 ) -> List[drawing_objects.LineData]:
+                                 ) -> List[drawings.LineData]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
     The curve of envelope is not interpolated nor smoothed and presented
@@ -68,7 +67,10 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `LineData` drawing objects.
+        List of `LineData` drawings.
+
+    Raises:
+        VisualizationError: When waveform color is not defined.
     """
     fill_objs = []
 
@@ -99,7 +101,13 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
              'linewidth': formatter['line_width.fill_waveform'],
              'linestyle': formatter['line_style.fill_waveform']}
 
-    color_code = types.ComplexColors(*formatter[_fill_waveform_color(channel)])
+    try:
+        color_code = types.ComplexColors(
+            *formatter['color.waveforms'][channel.prefix.upper()]
+        )
+    except KeyError:
+        raise VisualizationError('Waveform color for channel type {name} is '
+                                 'not defined'.format(name=channel.prefix))
 
     # create real part
     if np.any(re_y):
@@ -116,13 +124,13 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         re_yvals = re_y[re_valid_inds]
 
         # object
-        real = drawing_objects.LineData(data_type=types.DrawingWaveform.REAL,
-                                        channels=channel,
-                                        xvals=re_xvals,
-                                        yvals=re_yvals,
-                                        fill=True,
-                                        meta=re_meta,
-                                        styles=re_style)
+        real = drawings.LineData(data_type=types.WaveformType.REAL,
+                                 channels=channel,
+                                 xvals=re_xvals,
+                                 yvals=re_yvals,
+                                 fill=True,
+                                 meta=re_meta,
+                                 styles=re_style)
         fill_objs.append(real)
 
     # create imaginary part
@@ -140,13 +148,13 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         im_yvals = im_y[im_valid_inds]
 
         # object
-        imag = drawing_objects.LineData(data_type=types.DrawingWaveform.IMAG,
-                                        channels=channel,
-                                        xvals=im_xvals,
-                                        yvals=im_yvals,
-                                        fill=True,
-                                        meta=im_meta,
-                                        styles=im_style)
+        imag = drawings.LineData(data_type=types.WaveformType.IMAG,
+                                 channels=channel,
+                                 xvals=im_xvals,
+                                 yvals=im_yvals,
+                                 fill=True,
+                                 meta=im_meta,
+                                 styles=im_style)
         fill_objs.append(imag)
 
     return fill_objs
@@ -155,7 +163,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
 def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
                                  device: device_info.DrawerBackendInfo
-                                 ) -> List[drawing_objects.TextData]:
+                                 ) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
     Channel name and ID string are removed and the rotation angle is expressed in units of pi.
@@ -183,7 +191,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     style = {'zorder': formatter['layer.annotate'],
              'color': formatter['color.annotate'],
@@ -236,14 +244,14 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
         else:
             latex_name = None
 
-    text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
-                                    channels=data.inst.channel,
-                                    xvals=[data.t0 + 0.5 * data.inst.duration],
-                                    yvals=[-formatter['label_offset.pulse_name']],
-                                    text=systematic_name,
-                                    latex=latex_name,
-                                    ignore_scaling=True,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.LabelType.PULSE_NAME,
+                             channels=data.inst.channel,
+                             xvals=[data.t0 + 0.5 * data.inst.duration],
+                             yvals=[-formatter['label_offset.pulse_name']],
+                             text=systematic_name,
+                             latex=latex_name,
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
@@ -251,7 +259,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
 def gen_waveform_max_value(data: types.PulseInstruction,
                            formatter: Dict[str, Any],
                            device: device_info.DrawerBackendInfo
-                           ) -> List[drawing_objects.TextData]:
+                           ) -> List[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
 
@@ -266,7 +274,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     style = {'zorder': formatter['layer.annotate'],
              'color': formatter['color.annotate'],
@@ -297,6 +305,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
     # max of real part
     re_maxind = np.argmax(np.abs(ydata.real))
     if np.abs(ydata.real[re_maxind]) > 0.01:
+        # generator shows only 2 digits after the decimal point.
         if ydata.real[re_maxind] > 0:
             max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.real[re_maxind])
             re_style = {'va': 'bottom'}
@@ -304,17 +313,18 @@ def gen_waveform_max_value(data: types.PulseInstruction,
             max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.real[re_maxind])
             re_style = {'va': 'top'}
         re_style.update(style)
-        re_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
-                                           channels=data.inst.channel,
-                                           xvals=[xdata[re_maxind]],
-                                           yvals=[ydata.real[re_maxind]],
-                                           text=max_val,
-                                           styles=re_style)
+        re_text = drawings.TextData(data_type=types.LabelType.PULSE_INFO,
+                                    channels=data.inst.channel,
+                                    xvals=[xdata[re_maxind]],
+                                    yvals=[ydata.real[re_maxind]],
+                                    text=max_val,
+                                    styles=re_style)
         texts.append(re_text)
 
     # max of imag part
     im_maxind = np.argmax(np.abs(ydata.imag))
     if np.abs(ydata.imag[im_maxind]) > 0.01:
+        # generator shows only 2 digits after the decimal point.
         if ydata.imag[im_maxind] > 0:
             max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.imag[im_maxind])
             im_style = {'va': 'bottom'}
@@ -322,12 +332,12 @@ def gen_waveform_max_value(data: types.PulseInstruction,
             max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.imag[im_maxind])
             im_style = {'va': 'top'}
         im_style.update(style)
-        im_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
-                                           channels=data.inst.channel,
-                                           xvals=[xdata[im_maxind]],
-                                           yvals=[ydata.imag[im_maxind]],
-                                           text=max_val,
-                                           styles=im_style)
+        im_text = drawings.TextData(data_type=types.LabelType.PULSE_INFO,
+                                    channels=data.inst.channel,
+                                    xvals=[xdata[im_maxind]],
+                                    yvals=[ydata.imag[im_maxind]],
+                                    text=max_val,
+                                    styles=im_style)
         texts.append(im_text)
 
     return texts
@@ -336,7 +346,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
 def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.ndarray:
     """A helper function to return non-consecutive index from the given list.
 
-    This drastically reduces memory footprint to represent a drawing object,
+    This drastically reduces memory footprint to represent a drawing,
     especially for samples of very long flat-topped Gaussian pulses.
     Tiny value fluctuation smaller than `resolution` threshold is removed.
 
@@ -371,7 +381,7 @@ def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
         VisualizationError: When invalid instruction type is loaded.
 
     Returns:
-        A data source to generate a drawing object.
+        A data source to generate a drawing.
     """
     inst = data.inst
 

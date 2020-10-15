@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects, types, stylesheet, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import (barrier,
                                                       chart,
                                                       frame,
@@ -123,8 +123,8 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(len(objs), 2)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.LineData)
-        self.assertEqual(type(objs[1]), drawing_objects.LineData)
+        self.assertEqual(type(objs[0]), drawings.LineData)
+        self.assertEqual(type(objs[1]), drawings.LineData)
 
         y_ref = np.array([0, 0, -0.5, -0.5, 0, 0])
 
@@ -170,7 +170,7 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(len(objs), 1)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.LineData)
+        self.assertEqual(type(objs[0]), drawings.LineData)
 
         y_ref = np.array([1, 1])
 
@@ -215,7 +215,7 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -241,7 +241,7 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -259,7 +259,7 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.ControlChannel(0)])
@@ -277,7 +277,7 @@ class TestWaveformGenerators(QiskitTestCase):
                                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -295,8 +295,8 @@ class TestWaveformGenerators(QiskitTestCase):
                                                device=self.device)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.TextData)
-        self.assertEqual(type(objs[1]), drawing_objects.TextData)
+        self.assertEqual(type(objs[0]), drawings.TextData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
 
         # data check, real part, positive max
         self.assertListEqual(objs[0].channels, [pulse.DriveChannel(0)])
@@ -361,7 +361,7 @@ class TestChartGenerators(QiskitTestCase):
                                  device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.LineData)
+        self.assertEqual(type(obj), drawings.LineData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -389,7 +389,7 @@ class TestChartGenerators(QiskitTestCase):
                                    device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -412,7 +412,7 @@ class TestChartGenerators(QiskitTestCase):
                                     device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -435,7 +435,7 @@ class TestChartGenerators(QiskitTestCase):
                                       device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -510,7 +510,7 @@ class TestFrameGenerators(QiskitTestCase):
                                         device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -536,7 +536,7 @@ class TestFrameGenerators(QiskitTestCase):
                                            device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -562,8 +562,8 @@ class TestFrameGenerators(QiskitTestCase):
                                                 device=self.device)
 
         # type check
-        self.assertEqual(type(objs[0]), drawing_objects.TextData)
-        self.assertEqual(type(objs[1]), drawing_objects.TextData)
+        self.assertEqual(type(objs[0]), drawings.TextData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
 
     def test_gen_raw_operand_values_compact(self):
         """Test gen_raw_operand_values_compact."""
@@ -576,7 +576,7 @@ class TestFrameGenerators(QiskitTestCase):
                                                    device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -593,7 +593,7 @@ class TestFrameGenerators(QiskitTestCase):
                                      device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
@@ -659,7 +659,7 @@ class TestSnapshotGenerators(QiskitTestCase):
                                          device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.channels.SnapshotChannel()])
@@ -684,7 +684,7 @@ class TestSnapshotGenerators(QiskitTestCase):
                                          device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.TextData)
+        self.assertEqual(type(obj), drawings.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.channels.SnapshotChannel()])
@@ -746,7 +746,7 @@ class TestBarrierGenerators(QiskitTestCase):
                                   device=self.device)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.LineData)
+        self.assertEqual(type(obj), drawings.LineData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0), pulse.ControlChannel(0)])

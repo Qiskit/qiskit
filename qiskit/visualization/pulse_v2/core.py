@@ -16,7 +16,7 @@
 Core module of the pulse drawer.
 
 This module provides the `DrawerCanvas` which is a collection of `Chart` object.
-The `Chart` object is a collection of drawing objects. A user can assign multiple channels
+The `Chart` object is a collection of drawings. A user can assign multiple channels
 to a single chart instance. For example, we can define a chart for specific qubit
 and assign all related channels to the chart. This chart-channel mapping is defined by
 the function specified by ``layout.chart_channel_map`` of the stylesheet.
@@ -26,7 +26,7 @@ we can arbitrarily place charts on the plotter canvas, i.e. if we want to create
 each chart may be placed on the X-Z plane and charts are arranged along the Y-axis.
 Thus this data model maximizes the flexibility to generate an output image.
 
-The chart instance is not just a container of drawing objects, as it also performs
+The chart instance is not just a container of drawings, as it also performs
 data processing like binding abstract coordinates and truncating long pulses for an axis break.
 Each chart object has `.parent` which points to the `DrawerCanvas` instance so that
 each child chart can refer to the global figure settings such as time range and axis break.
@@ -47,7 +47,7 @@ Chart instances are automatically generated when pulse program is loaded.
     canvas.update()
     ```
 
-Once all properties are set, `.update` method is called to apply changes to drawing objects.
+Once all properties are set, `.update` method is called to apply changes to drawings.
 If the `DrawDataContainer` is initialized without backend information, the output shows
 the time in units of the system cycle time `dt` and the frequencies are initialized to zero.
 
@@ -60,14 +60,15 @@ To update the image, a user can set new values to canvas and then call the `.upd
     canvas.update()
     ```
 
-All stored drawing objects are updated accordingly. The plotter API can access to
-drawing objects with `.collections` property of chart instance. This returns
-an iterator of drawing object with the unique data key.
+All stored drawings are updated accordingly. The plotter API can access to
+drawings with `.collections` property of chart instance. This returns
+an iterator of drawing with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
-the lookup table of the handler and the drawing object by using this data key.
+the lookup table of the handler and the drawing by using this data key.
 """
 
 from copy import deepcopy
+from enum import Enum
 from functools import partial
 from itertools import chain
 from typing import Union, List, Tuple, Iterator, Optional
@@ -75,7 +76,7 @@ from typing import Union, List, Tuple, Iterator, Optional
 import numpy as np
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, types, drawing_objects, device_info
+from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
 
 
@@ -390,13 +391,18 @@ class DrawerCanvas:
         Specified object in the blocked list will not be shown.
 
         Args:
-            data_type: A drawing object data type to disable.
+            data_type: A drawing data type to disable.
             remove: Set `True` to disable, set `False` to enable.
         """
-        if remove:
-            self.disable_types.add(data_type)
+        if isinstance(data_type, Enum):
+            data_type_str = str(data_type.value)
         else:
-            self.disable_types.discard(data_type)
+            data_type_str = data_type
+
+        if remove:
+            self.disable_types.add(data_type_str)
+        else:
+            self.disable_types.discard(data_type_str)
 
     def update(self):
         """Update all associated charts and generate actual drawing data from template object.
@@ -408,7 +414,7 @@ class DrawerCanvas:
 
 
 class Chart:
-    """A collection of drawing object to be shown on the same line.
+    """A collection of drawing to be shown on the same line.
 
     Multiple pulse channels can be assigned to a single `Chart`.
     The parent `DrawerCanvas` should be specified to refer to the current user preference.
@@ -418,6 +424,10 @@ class Chart:
     """
     # unique index of chart
     chart_index = 0
+
+    # list of waveform type names
+    waveform_types = [str(types.WaveformType.REAL.value),
+                      str(types.WaveformType.IMAG.value)]
 
     def __init__(self, parent: DrawerCanvas, name: Optional[str] = None):
         """Create new chart.
@@ -444,14 +454,14 @@ class Chart:
 
         self._increment_cls_index()
 
-    def add_data(self, data: drawing_objects.ElementaryData):
-        """Add drawing object to collections.
+    def add_data(self, data: drawings.ElementaryData):
+        """Add drawing to collections.
 
         If the given object already exists in the collections,
         this interface replaces the old object instead of adding new entry.
 
         Args:
-            data: New drawing object to add.
+            data: New drawing to add.
         """
         self._collections[data.data_key] = data
 
@@ -478,9 +488,9 @@ class Chart:
             obj_generator = partial(gen,
                                     formatter=self.parent.formatter,
                                     device=self.parent.device)
-            drawings = [obj_generator(waveform) for waveform in waveforms]
-            for data in list(chain.from_iterable(drawings)):
-                self.add_data(data)
+            drawing_items = [obj_generator(waveform) for waveform in waveforms]
+            for drawing_item in list(chain.from_iterable(drawing_items)):
+                self.add_data(drawing_item)
 
         # create objects associated with frame change
         for gen in self.parent.generator['frame']:
@@ -488,9 +498,9 @@ class Chart:
             obj_generator = partial(gen,
                                     formatter=self.parent.formatter,
                                     device=self.parent.device)
-            drawings = [obj_generator(frame) for frame in frames]
-            for data in list(chain.from_iterable(drawings)):
-                self.add_data(data)
+            drawing_items = [obj_generator(frame) for frame in frames]
+            for drawing_item in list(chain.from_iterable(drawing_items)):
+                self.add_data(drawing_item)
 
         self._channels.add(chan)
 
@@ -505,7 +515,7 @@ class Chart:
 
         # waveform
         for key, data in self._collections.items():
-            if not isinstance(data.data_type, types.DrawingWaveform):
+            if data.data_type not in Chart.waveform_types:
                 continue
 
             # truncate, assume no abstract coordinate in waveform sample
@@ -545,7 +555,7 @@ class Chart:
 
         # other data
         for key, data in self._collections.items():
-            if isinstance(data.data_type, types.DrawingWaveform):
+            if data.data_type in Chart.waveform_types:
                 continue
 
             # truncate
@@ -572,12 +582,12 @@ class Chart:
             Return `True` if there is any visible waveform in this chart.
         """
         for data in self._output_dataset.values():
-            if isinstance(data.data_type, types.DrawingWaveform) and self._check_visible(data):
+            if data.data_type in Chart.waveform_types and self._check_visible(data):
                 return True
         return False
 
     @property
-    def collections(self) -> Iterator[Tuple[str, drawing_objects.ElementaryData]]:
+    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
@@ -660,7 +670,7 @@ class Chart:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:
-            vals: Sequence of coordinate objects associated with a drawing object.
+            vals: Sequence of coordinate objects associated with a drawing.
 
         Returns:
             Numpy data array with substituted values.
@@ -678,10 +688,10 @@ class Chart:
 
         try:
             return np.asarray(vals, dtype=float)
-        except TypeError:
+        except (TypeError, ValueError):
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
-    def _check_visible(self, data: drawing_objects.ElementaryData) -> bool:
+    def _check_visible(self, data: drawings.ElementaryData) -> bool:
         """A helper function to check if the data is visible.
 
         Args:

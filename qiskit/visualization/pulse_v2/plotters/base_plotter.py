@@ -31,7 +31,7 @@ class BasePlotter(ABC):
 
     @abstractmethod
     def initialize_canvas(self):
-        """Format appearance of matplotlib canvas."""
+        """Format appearance of the canvas."""
         raise NotImplementedError
 
     @abstractmethod

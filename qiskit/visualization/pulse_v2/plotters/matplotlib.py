@@ -21,7 +21,7 @@ import matplotlib
 import numpy as np
 
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, drawing_objects, types
+from qiskit.visualization.pulse_v2 import core, drawings, types
 from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
 
 
@@ -73,7 +73,7 @@ class Mpl2DPlotter(BasePlotter):
         self.ax.yaxis.set_tick_params(left=False)
 
     def draw(self):
-        """Output drawing objects stored in canvas object."""
+        """Output drawings stored in canvas object."""
         # axis configuration
         axis_config = self.canvas.layout['time_axis_map'](
             time_window=self.canvas.time_range,
@@ -99,14 +99,14 @@ class Mpl2DPlotter(BasePlotter):
                 x = data.xvals
                 y = scale * data.yvals + current_y
 
-                if isinstance(data, drawing_objects.LineData):
+                if isinstance(data, drawings.LineData):
                     # line object
                     if data.fill:
                         self.ax.fill_between(x, y1=y, y2=current_y * np.ones_like(y),
                                              **data.styles)
                     else:
                         self.ax.plot(x, y, **data.styles)
-                elif isinstance(data, drawing_objects.TextData):
+                elif isinstance(data, drawings.TextData):
                     # text object
                     text = r'${s}$'.format(s=data.latex) if data.latex else data.text
                     # replace dynamic text

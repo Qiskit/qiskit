@@ -22,6 +22,7 @@ from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 import numpy as np
 from qiskit import pulse
 
+
 PhaseFreqTuple = NamedTuple(
     'PhaseFreqTuple',
     [('phase', float),
@@ -113,7 +114,7 @@ HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
 HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
-class DrawingWaveform(Enum):
+class WaveformType(str, Enum):
     """
     Waveform data type.
 
@@ -124,7 +125,7 @@ class DrawingWaveform(Enum):
     IMAG = 'Waveform.Imag'
 
 
-class DrawingLabel(Enum):
+class LabelType(str, Enum):
     """
     Label data type.
 
@@ -142,7 +143,7 @@ class DrawingLabel(Enum):
     SNAPSHOT = 'Label.Snapshot'
 
 
-class DrawingSymbol(Enum):
+class SymbolType(str, Enum):
     """
     Symbol data type.
 
@@ -153,7 +154,7 @@ class DrawingSymbol(Enum):
     SNAPSHOT = 'Symbol.Snapshot'
 
 
-class DrawingLine(Enum):
+class LineType(str, Enum):
     """
     Line data type.
 
@@ -164,7 +165,7 @@ class DrawingLine(Enum):
     BARRIER = 'Line.Barrier'
 
 
-class AbstractCoordinate(Enum):
+class AbstractCoordinate(str, Enum):
     """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
@@ -204,7 +205,7 @@ class Plotter(str, Enum):
 
 
 # convenient type to represent union of drawing data
-DataTypes = NewType('DataType', Union[DrawingWaveform, DrawingLabel, DrawingLine, DrawingSymbol])
+DataTypes = NewType('DataType', Union[WaveformType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])

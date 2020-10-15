@@ -14,13 +14,12 @@
 
 """Frame change generators.
 
-A collection of functions that generate a drawing object for an input frame change instructions.
-See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
-data.
+A collection of functions that generate drawings from formatted input data.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required data.
 
 In this module the input data is `types.PulseInstruction`.
 
-An end-user can write arbitrary functions that generate custom drawing objects.
+An end-user can write arbitrary functions that generate custom drawings.
 Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
@@ -44,13 +43,13 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_formatted_phase(data: types.PulseInstruction,
                         formatter: Dict[str, Any],
                         device: device_info.DrawerBackendInfo
-                        ) -> List[drawing_objects.TextData]:
+                        ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label from provided frame instruction.
 
     Rotation angle is expressed in units of pi.
@@ -75,7 +74,7 @@ def gen_formatted_phase(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     _max_denom = 10
 
@@ -87,14 +86,14 @@ def gen_formatted_phase(data: types.PulseInstruction,
 
     plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
 
-    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                    channels=data.inst[0].channel,
-                                    xvals=[data.t0],
-                                    yvals=[formatter['label_offset.frame_change']],
-                                    text='VZ({phase})'.format(phase=plain_phase),
-                                    latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
-                                    ignore_scaling=True,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.LabelType.FRAME,
+                             channels=data.inst[0].channel,
+                             xvals=[data.t0],
+                             yvals=[formatter['label_offset.frame_change']],
+                             text='VZ({phase})'.format(phase=plain_phase),
+                             latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
@@ -102,7 +101,7 @@ def gen_formatted_phase(data: types.PulseInstruction,
 def gen_formatted_freq_mhz(data: types.PulseInstruction,
                            formatter: Dict[str, Any],
                            device: device_info.DrawerBackendInfo
-                           ) -> List[drawing_objects.TextData]:
+                           ) -> List[drawings.TextData]:
     """Generate the formatted frequency change label from provided frame instruction.
 
     Frequency change is expressed in units of MHz.
@@ -120,7 +119,7 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     _unit = 'MHz'
 
@@ -132,14 +131,14 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
 
     plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
 
-    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                    channels=data.inst[0].channel,
-                                    xvals=[data.t0],
-                                    yvals=[formatter['label_offset.frame_change']],
-                                    text=u'\u0394f = {freq}'.format(freq=plain_freq),
-                                    latex=r'\Delta f = {freq}'.format(freq=latex_freq),
-                                    ignore_scaling=True,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.LabelType.FRAME,
+                             channels=data.inst[0].channel,
+                             xvals=[data.t0],
+                             yvals=[formatter['label_offset.frame_change']],
+                             text=u'\u0394f = {freq}'.format(freq=plain_freq),
+                             latex=r'\Delta f = {freq}'.format(freq=latex_freq),
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
@@ -147,7 +146,7 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
 def gen_formatted_frame_values(data: types.PulseInstruction,
                                formatter: Dict[str, Any],
                                device: device_info.DrawerBackendInfo
-                               ) -> List[drawing_objects.TextData]:
+                               ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
@@ -164,7 +163,7 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     texts = []
 
@@ -182,14 +181,14 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
         phase_style = {'va': 'center'}
         phase_style.update(style)
 
-        phase = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                         channels=data.inst[0].channel,
-                                         xvals=[data.t0],
-                                         yvals=[formatter['label_offset.frame_change']],
-                                         text='VZ({phase})'.format(phase=plain_phase),
-                                         latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
-                                         ignore_scaling=True,
-                                         styles=phase_style)
+        phase = drawings.TextData(data_type=types.LabelType.FRAME,
+                                  channels=data.inst[0].channel,
+                                  xvals=[data.t0],
+                                  yvals=[formatter['label_offset.frame_change']],
+                                  text='VZ({phase})'.format(phase=plain_phase),
+                                  latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
+                                  ignore_scaling=True,
+                                  styles=phase_style)
         texts.append(phase)
 
     # frequency value
@@ -198,14 +197,14 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
         freq_style = {'va': 'center'}
         freq_style.update(style)
 
-        freq = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                        channels=data.inst[0].channel,
-                                        xvals=[data.t0],
-                                        yvals=[-formatter['label_offset.frame_change']],
-                                        text=u'\u0394f = {freq}'.format(freq=plain_freq),
-                                        latex=r'\Delta f = {freq}'.format(freq=latex_freq),
-                                        ignore_scaling=True,
-                                        styles=freq_style)
+        freq = drawings.TextData(data_type=types.LabelType.FRAME,
+                                 channels=data.inst[0].channel,
+                                 xvals=[data.t0],
+                                 yvals=[-formatter['label_offset.frame_change']],
+                                 text=u'\u0394f = {freq}'.format(freq=plain_freq),
+                                 latex=r'\Delta f = {freq}'.format(freq=latex_freq),
+                                 ignore_scaling=True,
+                                 styles=freq_style)
         texts.append(freq)
 
     return texts
@@ -214,7 +213,7 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
 def gen_raw_operand_values_compact(data: types.PulseInstruction,
                                    formatter: Dict[str, Any],
                                    device: device_info.DrawerBackendInfo
-                                   ) -> List[drawing_objects.TextData]:
+                                   ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
@@ -234,7 +233,7 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
 
     style = {'zorder': formatter['layer.frame_change'],
@@ -253,13 +252,13 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
     frame_info = '{phase:.2f}\n{freq}'.format(phase=data.frame.phase,
                                               freq=freq_sci_notation)
 
-    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                    channels=data.inst[0].channel,
-                                    xvals=[data.t0],
-                                    yvals=[1.2*formatter['label_offset.frame_change']],
-                                    text=frame_info,
-                                    ignore_scaling=True,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.LabelType.FRAME,
+                             channels=data.inst[0].channel,
+                             xvals=[data.t0],
+                             yvals=[1.2*formatter['label_offset.frame_change']],
+                             text=frame_info,
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
@@ -267,7 +266,7 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
 def gen_frame_symbol(data: types.PulseInstruction,
                      formatter: Dict[str, Any],
                      device: device_info.DrawerBackendInfo
-                     ) -> List[drawing_objects.TextData]:
+                     ) -> List[drawings.TextData]:
     """Generate a frame change symbol with instruction meta data from provided frame instruction.
 
     Stylesheets:
@@ -281,7 +280,7 @@ def gen_frame_symbol(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
 
     style = {'zorder': formatter['layer.frame_change'],
@@ -303,15 +302,15 @@ def gen_frame_symbol(data: types.PulseInstruction,
             't0 (cycle time)': data.t0,
             't0 (sec)': data.t0 * data.dt if data.dt else 'N/A'}
 
-    text = drawing_objects.TextData(data_type=types.DrawingSymbol.FRAME,
-                                    channels=data.inst[0].channel,
-                                    xvals=[data.t0],
-                                    yvals=[0],
-                                    text=formatter['unicode_symbol.frame_change'],
-                                    latex=formatter['latex_symbol.frame_change'],
-                                    ignore_scaling=True,
-                                    meta=meta,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.SymbolType.FRAME,
+                             channels=data.inst[0].channel,
+                             xvals=[data.t0],
+                             yvals=[0],
+                             text=formatter['unicode_symbol.frame_change'],
+                             latex=formatter['latex_symbol.frame_change'],
+                             ignore_scaling=True,
+                             meta=meta,
+                             styles=style)
 
     return [text]
 

@@ -21,7 +21,7 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import (core,
                                            stylesheet,
                                            device_info,
-                                           drawing_objects,
+                                           drawings,
                                            types,
                                            layouts)
 
@@ -49,20 +49,20 @@ class TestChart(QiskitTestCase):
             })
 
         # objects
-        self.short_pulse = drawing_objects.LineData(
-            data_type=types.DrawingWaveform.REAL,
+        self.short_pulse = drawings.LineData(
+            data_type=types.WaveformType.REAL,
             xvals=[0, 0, 1, 4, 5, 5],
             yvals=[0, 0.5, 0.5, 0.5, 0.5, 0],
             channels=[pulse.DriveChannel(0)]
         )
-        self.long_pulse = drawing_objects.LineData(
-            data_type=types.DrawingWaveform.REAL,
+        self.long_pulse = drawings.LineData(
+            data_type=types.WaveformType.REAL,
             xvals=[8, 8, 9, 19, 20, 20],
             yvals=[0, 0.3, 0.3, 0.3, 0.3, 0],
             channels=[pulse.DriveChannel(1)]
         )
-        self.abstract_hline = drawing_objects.LineData(
-            data_type=types.DrawingLine.BASELINE,
+        self.abstract_hline = drawings.LineData(
+            data_type=types.LineType.BASELINE,
             xvals=[types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT],
             yvals=[0, 0],
             channels=[pulse.DriveChannel(0)]
@@ -132,28 +132,28 @@ class TestChart(QiskitTestCase):
         """Test pulse truncation."""
         fake_canvas = core.DrawerCanvas(stylesheet=self.style, device=self.device)
         fake_canvas.disable_chans = {pulse.DriveChannel(0)}
-        fake_canvas.disable_types = {types.DrawingWaveform.REAL}
+        fake_canvas.disable_types = {types.WaveformType.REAL}
 
         chart = core.Chart(parent=fake_canvas)
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.REAL,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.REAL,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(0)]
         )
         self.assertFalse(chart._check_visible(test_data))
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.IMAG,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.IMAG,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(0)]
         )
         self.assertFalse(chart._check_visible(test_data))
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.IMAG,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.IMAG,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(1)]
@@ -313,10 +313,10 @@ class TestDrawCanvas(QiskitTestCase):
             yield name, chan
 
     def generate_dummy_obj(self, data: types.PulseInstruction, **kwargs):
-        dummy_obj = drawing_objects.ElementaryData(data_type='test',
-                                                   xvals=np.arange(data.inst.pulse.duration),
-                                                   yvals=data.inst.pulse.samples,
-                                                   channels=[data.inst.channel])
+        dummy_obj = drawings.ElementaryData(data_type='test',
+                                            xvals=np.arange(data.inst.pulse.duration),
+                                            yvals=data.inst.pulse.samples,
+                                            channels=[data.inst.channel])
         return [dummy_obj]
 
     def test_load_program(self):
