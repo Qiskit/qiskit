@@ -218,6 +218,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = [np.pi/2]
                 if gate_class.__name__ in ['MSGate']:
                     params[0] = 2
+                if gate_class.__name__ in ['PauliGate']:
+                    params = ["IXYZ"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
