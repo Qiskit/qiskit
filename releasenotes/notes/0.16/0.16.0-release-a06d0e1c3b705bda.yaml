@@ -11,7 +11,11 @@ prelude: |
       Euler basis as well as the phase + square-root(X) basis (i.e.
       ``['p', 'sx']``), which will replace the older IBM Quantum basis of
       ``['u1', 'u2', 'u3']``.
-
+    * Tracking of :meth:`~qiskit.circuit.QuantumCircuit.global_phase` on the
+      :class:`~qiskit.circuit.QuantumCircuit` class has been extended through the
+      :mod:`~qiskit.transpiler`, :mod:`~qiskit.quantum_info`, and :mod:`~qiskit.assembler`
+      modules, as well as the BasicAer and Aer simulators. Unitary and state vector simulations
+      will now return global phase-correct unitary matrices and state vectors.
     Also of particular importance for this release is that Python 3.5 is no
     longer supported. If you're are using Qiskit Terra with Python 3.5 the
     0.15.2 release is that last version which will work.
@@ -28,7 +32,7 @@ upgrade:
     :class:`~qiskit.extensions.UnitaryGate` accepts a parameter of the type
     ``numpy.ndarray`` and defines a custom
     :meth:`~qiskit.extensionst.UnitaryGate.validate_parameter` method that
-    return the parameter if it's an ``numpy.ndarray``. This takes priorty
+    returns the parameter if it's an ``numpy.ndarray``. This takes priorty
     over the function defined in its parent class :class:`~qiskit.circuit.Gate`.
     If :class:`~qiskit.extensions.UnitaryGate` were to be used as parent
     for a new class, this ``validate_parameter`` method would be used unless
@@ -41,11 +45,10 @@ deprecations:
     was done as part of the refactoring of how ``parms`` type checking is
     handled for the :class:`~qiskit.circuit.Gate` class. If you have a custom
     gate class which is a subclass of :class:`~qiskit.circuit.Gate` directly
-    (or via different parent in the hiearchy) that accepts an ``ndarray``
-    parameter you should either change the parent class to be
-    :class:`~qiskit.extensions.UnitaryGate` or define a custom
+    (or via a different parent in the hiearchy) that accepts an ``ndarray``
+    parameter, you should define a custom
     :meth:`~qiskit.circuit.Gate.validate_parameter` method for your class
-    that will return the parameter type allowed. For example::
+    that will return the allowed parameter type. For example::
 
       def validate_parameter(self, parameter):
           """Custom gate parameter has to be an ndarray."""
