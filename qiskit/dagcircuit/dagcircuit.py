@@ -26,8 +26,8 @@ import itertools
 import warnings
 import math
 
-import retworkx as rx
 import networkx as nx
+import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
