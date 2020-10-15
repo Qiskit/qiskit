@@ -150,6 +150,14 @@ Functions on binary variables
 
    QuadraticForm
 
+Amplitude Functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+
 Particular Quantum Circuits
 ===========================
 
