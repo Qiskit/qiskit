@@ -22,7 +22,6 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
@@ -50,7 +49,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.h(qr[0])
 
         expected = QuantumCircuit(qr)
-        expected.append(U2Gate(0, np.pi), qr)
+        expected.u(np.pi / 2, 0, np.pi, qr)  # U2(0, pi)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -106,7 +105,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.h(qr)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), qr)
+        expected.p(0.7, qr)
         expected.h(qr)
 
         passmanager = PassManager()
