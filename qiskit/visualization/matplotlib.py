@@ -275,9 +275,8 @@ class MatplotlibDrawer:
                         warn("Error loading JSON file '{}'. Will use default style.".format(
                             path), UserWarning, 2)
             if not found_path:
-                warn("Style JSON file '{}' not found in any of these locations: {}."
-                    " Will use default style.".format(
-                    style_name, ', '.join(style_path)), UserWarning, 2)
+                warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
+                     " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
 
         if isinstance(style, dict):
             set_style(current_style, style)
