@@ -313,7 +313,7 @@ class OneQubitEulerDecomposer:
                     atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1)
-        circuit.append(UGate(theta, phi, lam), [0])
+        circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -325,12 +325,12 @@ class OneQubitEulerDecomposer:
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1)
         new_op = U3Gate(theta, phi, lam)
-        if np.isclose(theta, [0., 2*np.pi], atol=atol).any():
+        if simplify and np.isclose(theta, [0., 2*np.pi], atol=atol).any():
             if np.isclose(_mod2pi(phi+lam), [0., 2*np.pi], atol=atol).any():
                 new_op = None
             else:
                 new_op = U1Gate(_mod2pi(phi+lam))
-        elif np.isclose(theta, [np.pi/2, 3*np.pi/2], atol=atol).any():
+        elif simplify and np.isclose(theta, [np.pi/2, 3*np.pi/2], atol=atol).any():
             new_op = U2Gate(_mod2pi(phi+theta-np.pi/2), _mod2pi(lam+theta-np.pi/2))
         if new_op is not None:
             circuit.append(new_op, [0])
@@ -344,28 +344,26 @@ class OneQubitEulerDecomposer:
                      atol=DEFAULT_ATOL):
         # Shift theta and phi so decomposition is
         # Phase(phi+pi).SX.Phase(theta+pi).SX.Phase(lam)
-        theta += np.pi
-        phi += np.pi
-        # Check for decomposition into minimimal number required X90 pulses
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            # Zero X90 gate decomposition
-            circuit = QuantumCircuit(1)
-            circuit.append(PhaseGate(lam + phi + theta), [0])
-            return circuit
-        if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
-            # Single X90 gate decomposition
-            circuit = QuantumCircuit(1)
-            circuit.append(PhaseGate(lam + theta), [0])
-            circuit.append(SXGate(), [0])
-            circuit.append(PhaseGate(phi + theta), [0])
-            return circuit
-        # General two-X90 gate decomposition
+        theta = _mod2pi(theta + np.pi)
+        phi = _mod2pi(phi + np.pi)
+        print('theta, phi ', theta, phi)
         circuit = QuantumCircuit(1)
-        circuit.append(PhaseGate(lam), [0])
-        circuit.append(SXGate(), [0])
-        circuit.append(PhaseGate(theta), [0])
-        circuit.append(SXGate(), [0])
-        circuit.append(PhaseGate(phi), [0])
+        # Check for decomposition into minimimal number required SX gates
+        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
+            if np.isclose(_mod2pi(lam + phi + theta), [0., 2*np.pi], atol=atol).any():
+                pass
+            else:
+                circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
+        elif simplify and np.isclose(abs(theta), [np.pi/2, 3*np.pi/2], atol=atol).any():
+            circuit.append(PhaseGate(_mod2pi(lam + theta)), [0])
+            circuit.append(SXGate(), [0])
+            circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
+        else:
+            circuit.append(PhaseGate(lam), [0])
+            circuit.append(SXGate(), [0])
+            circuit.append(PhaseGate(theta), [0])
+            circuit.append(SXGate(), [0])
+            circuit.append(PhaseGate(phi), [0])
         return circuit
 
     @staticmethod

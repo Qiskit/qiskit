@@ -31,13 +31,42 @@ class Collapse1qChains(TransformationPass):
 
     If the chain evaluates to identity (e.g. U(0,0,0)), this pass simply
     collapses the chain to none.
+
+    The pass optionally accepts a basis_gates arg, whose purpose is to signal
+    which gates can be executed by the backend. This information, paired with
+    what basis the one-qubit synthesizer is able to synthesize into, will be
+    used to decide which gates to collapse. If a gate in the circuit is already
+    valid for the backend basis_gates, and the one-qubit synthesizer is not able
+    to synthesize over it later, then that gate will be kept as-is (because it
+    may be impossible to resynthesize that gate once it is collapsed). This may
+    come at the cost of some optimization. For example, the synthesizer is able
+    to target the Phase + Square-root(X) basis, but not any basis containing H.
+    Thus given the following circuit:
+
+    .. parsed-literal::
+             ┌───┐┌───┐┌───┐
+        q_0: ┤ H ├┤ H ├┤ H ├
+             └───┘└───┘└───┘
+
+    if basis_gates=['h'], this pass will not alter the circuit. On the other
+    hand, if basis_gates=['p', 'sx'], this pass will collapse the chain into
+    a unitary which will later synthesize into:
+
+    .. parsed-literal::
+
+             ┌─────────┐┌────┐┌─────────┐
+        q_0: ┤ P(pi/2) ├┤ √X ├┤ P(pi/2) ├
+             └─────────┘└────┘└─────────┘
     """
-    def __init__(self, ignore_solo=False):
+    def __init__(self, ignore_solo=False, basis_gates=None):
         """
         Args:
             ignore_solo (bool): If True, all solo gates (chains of length one)
                 are left untouched (faster). Otherwise, each will be converted
                 to a 2x2 matrix operator.
+            basis_gates (list[str]): the set of gates that are valid to keep
+                (i.e. target backend can execute them). If None, then all gates
+                will be considered for collapse.
         """
         self.ignore_solo = ignore_solo
         super().__init__()
