@@ -74,7 +74,7 @@ class QuantumInstance:
             seed_simulator (int, optional): Random seed for simulators
             max_credits (int, optional): Maximum credits to use
             basis_gates (list[str], optional): List of basis gate names supported by the
-                                               target. Default: ['u1', 'u2', 'u3', 'cx', 'id']
+                                               target. Defaults to basis gates of the backend.
             coupling_map (CouplingMap or list[list]): Coupling map (perhaps custom) to
                                                       target in mapping
             initial_layout (Layout or dict or list, optional): Initial layout of qubits in mapping
