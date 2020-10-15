@@ -87,6 +87,13 @@ class U3Gate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
+    def _define(self):
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        qc.u(self.params[0], self.params[1], self.params[2], 0)
+        self.definition = qc
+
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params

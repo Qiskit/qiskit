@@ -96,7 +96,7 @@ class TestGateDefinitions(QiskitTestCase):
         """Test cu1 gate matrix and definition.
         """
         circ = QuantumCircuit(2)
-        circ.cu1(1, 0, 1)
+        circ.append(CU1Gate(1), [0, 1])
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -104,7 +104,7 @@ class TestGateDefinitions(QiskitTestCase):
         """Test cu3 gate matrix and definition.
         """
         circ = QuantumCircuit(2)
-        circ.cu3(1, 1, 1, 0, 1)
+        circ.append(CU3Gate(1, 1, 1), [0, 1])
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
