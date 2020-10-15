@@ -39,6 +39,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self.euler_basis_names = {
             'U3': ['u3'],
             'U': ['u'],
+            'PSX': ['p', 'sx'],
             'U1X': ['u1', 'rx'],
             'RR': ['r'],
             'ZYZ': ['rz', 'ry'],
