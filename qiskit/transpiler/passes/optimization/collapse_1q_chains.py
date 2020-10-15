@@ -97,14 +97,22 @@ def _split_chains_on_unknown_matrix(chains, dag):
     gates (i.e. everything without a known matrix definition). Splits them into
     sequential chains excluding those gates.
     """
+    def _unknown_matrix(op):
+        if op.is_parameterized():
+            return True
+        try:
+            mat = op.to_matrix()
+        except:
+            mat = None
+        if mat is None:
+            return True
+        else:
+            return False
+
     out = []
     for chain in chains:
         groups = groupby(chain,
-                         lambda x: (
-                            x.op.is_parameterized() or
-                            x.op.definition is None or
-                            ((x.qargs[0].index, ), tuple(x.op.params)) in getattr(dag, 'calibrations', {}).get(x.name, {})
-                            )
+                         lambda x: _unknown_matrix(x.op)
                          )
 
         for group_is_opaque, gates in groups:
