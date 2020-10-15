@@ -330,26 +330,26 @@ class OneQubitEulerDecomposer:
         circuit = QuantumCircuit(1)
         # Check for decomposition into minimimal number required SX gates
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            if not np.isclose(_mod2pi(lam + phi + theta),
+            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
         elif simplify and np.isclose(abs(theta),
                                      [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if not np.isclose(_mod2pi(lam + theta),
+            if not np.isclose(_mod2pi(abs(lam + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(_mod2pi(lam + theta)), [0])
             circuit.append(SXGate(), [0])
-            if not np.isclose(_mod2pi(phi + theta),
+            if not np.isclose(_mod2pi(abs(phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
         else:
-            if not np.isclose(lam, [0., 2*np.pi], atol=atol).any():
+            if not np.isclose(abs(lam), [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(lam), [0])
             circuit.append(SXGate(), [0])
-            if not np.isclose(theta, [0., 2*np.pi], atol=atol).any():
+            if not np.isclose(abs(theta), [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(theta), [0])
             circuit.append(SXGate(), [0])
-            if not np.isclose(phi, [0., 2*np.pi], atol=atol).any():
+            if not np.isclose(abs(phi), [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(phi), [0])
         return circuit
 
