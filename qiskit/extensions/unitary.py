@@ -19,7 +19,8 @@ import numpy
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
@@ -138,8 +139,8 @@ class UnitaryGate(Gate):
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
-                                  definition=iso.definition, ctrl_state=ctrl_state)
-
+                                  definition=iso.definition, ctrl_state=ctrl_state,
+                                  base_gate=self.copy())
         from qiskit.quantum_info import Operator
         # hack to correct global phase; should fix to prevent need for correction here
         pmat = (Operator(iso.inverse()).data @ cmat)
@@ -150,8 +151,6 @@ class UnitaryGate(Gate):
         if phase:
             # need to apply to _definition since open controls creates temporary definition
             cunitary._definition.global_phase = phase
-        cunitary.base_gate = self.copy()
-        cunitary.base_gate.label = self.label
         return cunitary
 
     def qasm(self):
@@ -203,12 +202,25 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
+    def validate_parameter(self, parameter):
+        """Unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, numpy.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
+
 
 def unitary(self, obj, qubits, label=None):
     """Apply unitary gate to q."""
+    gate = UnitaryGate(obj, label=label)
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
-    return self.append(UnitaryGate(obj, label=label), qubits, [])
+    # for single qubit unitary gate, allow an 'int' or a 'list of ints' as qubits.
+    if gate.num_qubits == 1:
+        if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
+            qubits = [qubits]
+    return self.append(gate, qubits, [])
 
 
 QuantumCircuit.unitary = unitary

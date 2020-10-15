@@ -52,6 +52,21 @@ class ExperimentResultData:
         if unitary is not None:
             self.unitary = unitary
 
+    def __repr__(self):
+        string_list = []
+        if hasattr(self, 'counts'):
+            string_list.append("counts=%s" % self.counts)
+        if hasattr(self, 'snapshots'):
+            string_list.append("snapshots=%s" % self.snapshots)
+        if hasattr(self, 'memory'):
+            string_list.append("memory=%s" % self.memory)
+        if hasattr(self, 'statevector'):
+            string_list.append("statevector=%s" % self.statevector)
+        if hasattr(self, 'unitary'):
+            string_list.append("unitary=%s" % self.statevector)
+        out = "ExperimentResultData(%s)" % ', '.join(string_list)
+        return out
+
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResultData
 
@@ -131,6 +146,26 @@ class ExperimentResult:
                 raise QiskitError('%s not a valid meas_return value')
             self.meas_return = meas_return
         self._metadata.update(kwargs)
+
+    def __repr__(self):
+        out = "ExperimentResult(shots=%s, success=%s, meas_level=%s, data=%s" % (
+            self.shots, self.success, self.meas_level, self.data)
+        if hasattr(self, 'header'):
+            out += ", header=%s" % self.header
+        if hasattr(self, 'status'):
+            out += ", status=%s" % self.status
+        if hasattr(self, 'seed'):
+            out += ", seed=%s" % self.seed
+        if hasattr(self, 'meas_return'):
+            out += ", meas_return=%s" % self.meas_return
+        for key in self._metadata:
+            if isinstance(self._metadata[key], str):
+                value_str = "'%s'" % self._metadata[key]
+            else:
+                value_str = repr(self._metadata[key])
+            out += ", %s=%s" % (key, value_str)
+        out += ')'
+        return out
 
     def __getattr__(self, name):
         try:

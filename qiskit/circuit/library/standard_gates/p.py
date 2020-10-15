@@ -76,9 +76,10 @@ class PhaseGate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .u import UGate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.u1(self.params[0], 0)
+        qc.append(UGate(0, 0, self.params[0]), [0])
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -153,8 +154,7 @@ class CPhaseGate(ControlledGate):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CPhase gate."""
         super().__init__('cp', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = PhaseGate(theta)
+                         ctrl_state=ctrl_state, base_gate=PhaseGate(theta))
 
     def _define(self):
         """
@@ -241,8 +241,7 @@ class MCPhaseGate(ControlledGate):
     def __init__(self, lam, num_ctrl_qubits, label=None):
         """Create new MCPhase gate."""
         super().__init__('mcphase', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label)
-        self.base_gate = PhaseGate(lam)
+                         label=label, base_gate=PhaseGate(lam))
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -259,7 +258,7 @@ class MCPhaseGate(ControlledGate):
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CPhaseGate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-            qc._data = definition
+            qc.data = definition
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):

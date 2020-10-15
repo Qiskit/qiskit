@@ -51,7 +51,7 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
 
     .. math::
 
@@ -86,6 +86,13 @@ class U3Gate(Gate):
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+
+    def _define(self):
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        qc.u(self.params[0], self.params[1], self.params[2], 0)
+        self.definition = qc
 
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
@@ -128,7 +135,7 @@ class CU3Gate(ControlledGate):
                 1 & 0                   & 0 & 0 \\
                 0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     .. note::
@@ -154,15 +161,15 @@ class CU3Gate(ControlledGate):
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
                     0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
 
     def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = U3Gate(theta, phi, lam)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=U3Gate(theta, phi, lam))
 
     def _define(self):
         """
@@ -189,7 +196,9 @@ class CU3Gate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):

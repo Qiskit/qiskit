@@ -15,9 +15,10 @@
 """Piecewise-linearly-controlled rotation."""
 
 from typing import List, Optional
+import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -71,6 +72,15 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self._offsets = offsets if offsets is not None else [0]
 
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
+
+    @property
+    def num_ancilla_qubits(self):
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The PiecewiseLinearPauliRotations.num_ancilla_qubits property is deprecated '
+                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_ancillas
 
     @property
     def breakpoints(self) -> List[int]:
@@ -186,18 +196,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         return y
 
-    @property
-    def num_ancilla_qubits(self) -> int:
-        """The number of ancilla qubits.
-
-        Returns:
-            The number of ancilla qubits in the circuit.
-        """
-        num_ancilla_qubits = self.num_state_qubits - 1 + len(self.breakpoints)
-        if self.contains_zero_breakpoint:
-            num_ancilla_qubits -= 1
-        return num_ancilla_qubits
-
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
@@ -220,23 +218,31 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
-        if num_state_qubits:
+        if num_state_qubits is not None:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
+            self._qubits = qr_state[:] + qr_target[:]
+            self._ancillas = []
 
-            if self.num_ancilla_qubits > 0:
-                qr_ancilla = QuantumRegister(self.num_ancilla_qubits)
-                self.qregs += [qr_ancilla]
+            # add ancillas if required
+            if len(self.breakpoints) > 1:
+                num_ancillas = num_state_qubits - 1 + len(self.breakpoints)
+                if self.contains_zero_breakpoint:
+                    num_ancillas -= 1
+                qr_ancilla = AncillaRegister(num_ancillas)
+                self.add_register(qr_ancilla)
         else:
             self.qregs = []
+            self._qubits = []
+            self._ancillas = []
 
     def _build(self):
         super()._build()
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]
-        qr_ancilla = self.qubits[self.num_state_qubits + 1:]
+        qr_ancilla = self.ancillas
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints):
@@ -260,7 +266,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 qr_remaining_ancilla = qr_ancilla[i_compare + 1:]  # take remaining ancillas
 
                 self.append(comp.to_gate(),
-                            qr[:] + qr_remaining_ancilla[:comp.num_ancilla_qubits])
+                            qr[:] + qr_remaining_ancilla[:comp.num_ancillas])
 
                 # apply controlled rotation
                 lin_r = LinearPauliRotations(num_state_qubits=self.num_state_qubits,
@@ -272,4 +278,4 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
                 # uncompute comparator
                 self.append(comp.to_gate().inverse(),
-                            qr[:] + qr_remaining_ancilla[:comp.num_ancilla_qubits])
+                            qr[:] + qr_remaining_ancilla[:comp.num_ancillas])

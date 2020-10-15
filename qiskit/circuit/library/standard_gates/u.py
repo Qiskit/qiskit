@@ -16,6 +16,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
 
 
 class UGate(Gate):
@@ -87,14 +88,6 @@ class UGate(Gate):
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-
-    def _define(self):
-        """Alias for U3 until U becomes a basis gate."""
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q)
-        qc.u3(self.params[0], self.params[1], self.params[2], q[0])
-        self.definition = qc
 
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
@@ -172,8 +165,8 @@ class CUGate(ControlledGate):
     def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
         """Create new CU gate."""
         super().__init__('cu', 2, [theta, phi, lam, gamma], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = UGate(theta, phi, lam)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=UGate(theta, phi, lam))
 
     def _define(self):
         """
@@ -232,3 +225,38 @@ class CUGate(ControlledGate):
                                 [0, 1, 0, 0],
                                 [c, 0, d, 0],
                                 [0, 0, 0, 1]], dtype=complex)
+
+    @property
+    def params(self):
+        """Get parameters from base_gate.
+
+        Returns:
+            list: List of gate parameters.
+
+        Raises:
+            CircuitError: Controlled gate does not define a base gate
+        """
+        if self.base_gate:
+            # CU has one additional parameter to the U base gate
+            return self.base_gate.params + self._params
+        else:
+            raise CircuitError('Controlled gate does not define base gate '
+                               'for extracting params')
+
+    @params.setter
+    def params(self, parameters):
+        """Set base gate parameters.
+
+        Args:
+            parameters (list): The list of parameters to set.
+
+        Raises:
+            CircuitError: If controlled gate does not define a base gate.
+        """
+        # CU has one additional parameter to the U base gate
+        self._params = [parameters[-1]]
+        if self.base_gate:
+            self.base_gate.params = parameters[:-1]
+        else:
+            raise CircuitError('Controlled gate does not define base gate '
+                               'for extracting params')

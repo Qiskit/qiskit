@@ -16,13 +16,16 @@
 import numpy as np
 
 import qiskit.pulse.library as library
-from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.qobj import PulseQobjInstruction
-from qiskit.pulse import InstructionScheduleMap, Play, Waveform, Schedule, PulseError
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule,
+                          Waveform)
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.qobj import PulseQobjInstruction
+from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeOpenPulse2Q
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -151,6 +154,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_sequenced_parameterized_schedule(self):
         """Test parametrized schedule consists of multiple instruction. """
+
         converter = QobjToInstructionConverter([], buffer=0)
         qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
                  PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='P2'),
@@ -171,17 +175,20 @@ class TestInstructionScheduleMap(QiskitTestCase):
         with self.assertRaises(PulseError):
             inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
 
-        sched = inst_map.get('inst_seq', 0, 1, 2, 3)
+        p3_expr = Parameter('p3')
+        p3_expr = p3_expr.bind({p3_expr: 3})
+
+        sched = inst_map.get('inst_seq', 0, 1, 2, p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
         self.assertEqual(sched.instructions[2][-1].phase, 3)
 
-        sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3)
+        sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
         self.assertEqual(sched.instructions[2][-1].phase, 3)
 
-        sched = inst_map.get('inst_seq', 0, 1, 2, P3=3)
+        sched = inst_map.get('inst_seq', 0, 1, 2, P3=p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
         self.assertEqual(sched.instructions[2][-1].phase, 3)
@@ -189,19 +196,40 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_schedule_generator(self):
         """Test schedule generator functionalty."""
 
-        x_test = 10
-        amp_test = 1.0
+        dur_val = 10
+        amp = 1.0
 
-        def test_func(x):
+        def test_func(dur: int):
             sched = Schedule()
-            sched += Play(library.constant(int(x), amp_test), DriveChannel(0))
+            sched += Play(library.constant(int(dur), amp), DriveChannel(0))
             return sched
 
-        ref_sched = Schedule()
-        ref_sched += Play(library.constant(x_test, amp_test), DriveChannel(0))
+        expected_sched = Schedule()
+        expected_sched += Play(library.constant(dur_val, amp), DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add('f', (0,), test_func)
-        self.assertEqual(inst_map.get('f', (0,), x_test), ref_sched)
+        self.assertEqual(inst_map.get('f', (0,), dur_val), expected_sched)
 
-        self.assertEqual(inst_map.get_parameters('f', (0,)), ('x',))
+        self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur',))
+
+    def test_schedule_generator_supports_parameter_expressions(self):
+        """Test expression-based schedule generator functionalty."""
+
+        t_param = Parameter('t')
+        amp = 1.0
+
+        def test_func(dur: ParameterExpression, t_val: int):
+            dur_bound = dur.bind({t_param: t_val})
+            sched = Schedule()
+            sched += Play(library.constant(int(float(dur_bound)), amp), DriveChannel(0))
+            return sched
+
+        expected_sched = Schedule()
+        expected_sched += Play(library.constant(10, amp), DriveChannel(0))
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('f', (0,), test_func)
+        self.assertEqual(inst_map.get('f', (0,), dur=2*t_param, t_val=5), expected_sched)
+
+        self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur', 't_val',))
