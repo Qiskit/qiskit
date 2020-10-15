@@ -58,7 +58,8 @@ class ListOp(OperatorBase):
                  oplist: List[OperatorBase],
                  combo_fn: Callable = lambda x: x,
                  coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                 abelian: bool = False) -> None:
+                 abelian: bool = False,
+                 grad_combo_fn: Optional[Callable] = None) -> None:
         """
         Args:
             oplist: The list of ``OperatorBases`` defining this Operator's underlying function.
@@ -66,7 +67,8 @@ class ListOp(OperatorBase):
                 ``oplist`` Operators' eval functions (e.g. sum).
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
-
+            grad_combo_fn: The gradient of recombination function. If None, the gradient will
+                be computed automatically.
             Note that the default "recombination function" lambda above is essentially the
             identity - it accepts the list of values, and returns them in a list.
         """
@@ -74,6 +76,7 @@ class ListOp(OperatorBase):
         self._combo_fn = combo_fn
         self._coeff = coeff
         self._abelian = abelian
+        self._grad_combo_fn = grad_combo_fn
 
     @property
     def oplist(self) -> List[OperatorBase]:
@@ -95,6 +98,11 @@ class ListOp(OperatorBase):
             The combination function.
         """
         return self._combo_fn
+
+    @property
+    def grad_combo_fn(self) -> Optional[Callable]:
+        """ The gradient of ``combo_fn``. """
+        return self._grad_combo_fn
 
     @property
     def abelian(self) -> bool:
@@ -341,12 +349,29 @@ class ListOp(OperatorBase):
             NotImplementedError: Attempting to call ListOp's eval from a non-distributive subclass.
 
         """
+        # pylint: disable=cyclic-import
+        from ..state_fns.dict_state_fn import DictStateFn
+        from ..state_fns.vector_state_fn import VectorStateFn
+
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
-            raise NotImplementedError(r'ListOp\'s eval function is only defined for distributive '
-                                      r'Listops.')
+            raise NotImplementedError("ListOp's eval function is only defined for distributive "
+                                      "ListOps.")
 
         evals = [(self.coeff * op).eval(front) for op in self.oplist]  # type: ignore
+
+        # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
+        if self._combo_fn != ListOp([])._combo_fn:
+            if all(isinstance(op, DictStateFn) for op in evals) or \
+                    all(isinstance(op, VectorStateFn) for op in evals):
+                if not all(isinstance(op, type(evals[0])) for op in evals):
+                    raise NotImplementedError("Combo_fn not yet supported for mixed "
+                                              "VectorStateFn primitives")
+                if not all(op.is_measurement == evals[0].is_measurement for op in evals):
+                    raise NotImplementedError("Combo_fn not yet supported for mixed measurement "
+                                              "and non-measurement StateFns")
+                return self.combo_fn(evals)
+
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)
         elif any(isinstance(op, OperatorBase) for op in evals):
