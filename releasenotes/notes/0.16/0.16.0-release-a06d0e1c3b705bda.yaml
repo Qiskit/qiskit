@@ -12,10 +12,12 @@ prelude: |
       ``['p', 'sx']``), which will replace the older IBM Quantum basis of
       ``['u1', 'u2', 'u3']``.
     * Tracking of :meth:`~qiskit.circuit.QuantumCircuit.global_phase` on the
-      :class:`~qiskit.circuit.QuantumCircuit` class has been extended through the
-      :mod:`~qiskit.transpiler`, :mod:`~qiskit.quantum_info`, and :mod:`~qiskit.assembler`
-      modules, as well as the BasicAer and Aer simulators. Unitary and state vector simulations
-      will now return global phase-correct unitary matrices and state vectors.
+      :class:`~qiskit.circuit.QuantumCircuit` class has been extended through
+      the :mod:`~qiskit.transpiler`, :mod:`~qiskit.quantum_info`, and
+      :mod:`~qiskit.assembler` modules, as well as the BasicAer and Aer
+      simulators. Unitary and state vector simulations will now return global
+      phase-correct unitary matrices and state vectors.
+
     Also of particular importance for this release is that Python 3.5 is no
     longer supported. If you're are using Qiskit Terra with Python 3.5 the
     0.15.2 release is that last version which will work.
