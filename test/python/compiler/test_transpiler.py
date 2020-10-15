@@ -15,6 +15,7 @@
 import io
 import sys
 import math
+import numpy as np
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -891,6 +892,24 @@ class TestTranspile(QiskitTestCase):
                         optimization_level=optimization_level)
 
         self.assertEqual(out.duration, 1200)
+
+    @data(1, 2, 3)
+    def test_no_infinite_loop(self, optimization_level):
+        """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
+
+        qc = QuantumCircuit(1)
+        qc.ry(0.2, 0)
+
+        out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
+                        optimization_level=optimization_level)
+
+        expected = QuantumCircuit(1)
+        expected.sx(0)
+        expected.p(np.pi + 0.2, 0)
+        expected.sx(0)
+        expected.p(np.pi, 0)
+
+        self.assertEqual(out, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):
