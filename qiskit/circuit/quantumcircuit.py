@@ -2368,7 +2368,7 @@ class QuantumCircuit:
 
     def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.PauliGate`."""
-        from .library.standard_gates.pauli import PauliGate
+        from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         return self.append(PauliGate(pauli_string), qubits, [])
 
     def add_calibration(self, gate, qubits, schedule, params=None):

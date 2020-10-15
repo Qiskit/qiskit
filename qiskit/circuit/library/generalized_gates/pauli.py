@@ -35,11 +35,8 @@ class PauliGate(Gate):
         the pauli gates sequentially using standard Qiskit gates
         """
 
-    def __init__(self, label="I"):
-        if isinstance(label, float):
-            label = "I"
-        self.pauli_string = label
-        super().__init__('pauli', len(label), [self.pauli_string[::-1]])
+    def __init__(self, label):
+        super().__init__('pauli', len(label), [label])
 
     def _define(self):
         """
@@ -48,25 +45,25 @@ class PauliGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         gates = {'I': IGate, 'X': XGate, 'Y': YGate, 'Z': ZGate}
-        q = QuantumRegister(len(self.pauli_string), 'q')
+        q = QuantumRegister(len(self.params[0]), 'q')
         qc = QuantumCircuit(q,
-                            name='{}({})'.format(self.name, self.pauli_string))
+                            name='{}({})'.format(self.name, self.params[0]))
 
         rules = [(gates[p](), [q[i]], [])
-                 for (i, p) in enumerate(reversed(self.pauli_string))]
+                 for (i, p) in enumerate(reversed(self.params[0]))]
         qc._data = rules
         self.definition = qc
 
     def inverse(self):
         r"""Return inverted pauli gate (itself)."""
-        return PauliGate(self.pauli_string)  # self-inverse
+        return PauliGate(self.params[0])  # self-inverse
 
     def to_matrix(self):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Pauli
-        return Pauli(label=self.pauli_string).to_matrix()
+        return Pauli(label=self.params[0]).to_matrix()
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):

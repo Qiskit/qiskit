@@ -93,6 +93,5 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
-from .pauli import PauliGate
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
