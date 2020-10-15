@@ -697,7 +697,9 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
-        self.assertEqual(qc, out)
+        self.assertIn('rx', out.count_ops())
+        self.assertIn('ry', out.count_ops())
+        self.assertIn('rxx', out.count_ops())
 
     @data(
         ['cx', 'u3'],
