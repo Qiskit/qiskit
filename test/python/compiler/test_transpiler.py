@@ -15,13 +15,14 @@
 import io
 import sys
 import math
-import numpy as np
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 
 from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
+
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
