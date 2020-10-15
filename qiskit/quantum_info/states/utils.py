@@ -81,7 +81,7 @@ def shannon_entropy(pvec, base=2):
     The shannon entropy of a probability vector
     :math:`\vec{p} = [p_0, ..., p_{n-1}]` is defined as
 
-    .. math:
+    .. math::
 
         H(\vec{p}) = \sum_{i=0}^{n-1} p_i \log_b(p_i)
 
