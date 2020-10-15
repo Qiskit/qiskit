@@ -25,8 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import (U2Gate, XGate, MCXGate, HGate, RZZGate,
-                                    SwapGate, DCXGate)
+from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
@@ -249,14 +248,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_u_gates(self):
         """Test U 1, 2, & 3 gates"""
+        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.u1(3 * pi / 2, 0)
-        circuit.u2(3 * pi / 2, 2 * pi / 3, 1)
-        circuit.u3(3 * pi / 2, 4.5, pi / 4, 2)
-        circuit.cu1(pi / 4, 0, 1)
-        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1), [qr[2], qr[3]])
-        circuit.cu3(3 * pi / 2, -3 * pi / 4, -pi / 2, 0, 1)
+        circuit.append(U1Gate(3 * pi / 2), [0])
+        circuit.append(U2Gate(3 * pi / 2, 2 * pi / 3), [1])
+        circuit.append(U3Gate(3 * pi / 2, 4.5, pi / 4), [2])
+        circuit.append(CU1Gate(pi / 4), [0, 1])
+        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1), [2, 3])
+        circuit.append(CU3Gate(3 * pi / 2, -3 * pi / 4, -pi / 2), [0, 1])
 
         self.circuit_drawer(circuit, filename='u_gates.png')
 

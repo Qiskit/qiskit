@@ -782,7 +782,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.h(qr1[2])
         circ.t(qr1[2])
         circ.ch(qr1[2], qr1[1])
-        circ.u2(0.1, 0.2, qr1[3])
+        circ.u(0.0, 0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
         self.dag = circuit_to_dag(circ)
@@ -808,7 +808,7 @@ class TestCircuitProperties(QiskitTestCase):
         operations = {
             'h': 2,
             't': 1,
-            'u2': 1,
+            'u': 1,
             'cx': 1,
             'ch': 1,
             'ccx': 1
@@ -853,7 +853,7 @@ class TestDagEquivalence(QiskitTestCase):
         circ1.h(self.qr1[2])
         circ1.t(self.qr1[2])
         circ1.ch(self.qr1[2], self.qr1[1])
-        circ1.u2(0.1, 0.2, self.qr1[3])
+        circ1.u(0.0, 0.1, 0.2, self.qr1[3])
         circ1.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
         self.dag1 = circuit_to_dag(circ1)
 
@@ -861,7 +861,7 @@ class TestDagEquivalence(QiskitTestCase):
         """DAG equivalence check: True."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
-        circ2.u2(0.1, 0.2, self.qr1[3])
+        circ2.u(0.0, 0.1, 0.2, self.qr1[3])
         circ2.h(self.qr1[0])
         circ2.h(self.qr1[2])
         circ2.t(self.qr1[2])
@@ -875,7 +875,7 @@ class TestDagEquivalence(QiskitTestCase):
         """DAG equivalence check: False. Different topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
-        circ2.u2(0.1, 0.2, self.qr1[3])
+        circ2.u(0.0, 0.1, 0.2, self.qr1[3])
         circ2.h(self.qr1[0])
         circ2.h(self.qr1[2])
         circ2.t(self.qr1[2])
@@ -889,7 +889,7 @@ class TestDagEquivalence(QiskitTestCase):
         """DAG equivalence check: False. Same topology."""
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
-        circ2.u2(0.1, 0.2, self.qr1[3])
+        circ2.u(0.0, 0.1, 0.2, self.qr1[3])
         circ2.h(self.qr1[0])
         circ2.h(self.qr1[2])
         circ2.t(self.qr1[2])
@@ -1074,7 +1074,7 @@ class TestDagProperties(QiskitTestCase):
         circ.h(qr1[2])
         circ.t(qr1[2])
         circ.ch(qr1[2], qr1[1])
-        circ.u2(0.1, 0.2, qr1[3])
+        circ.u(0.0, 0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
         self.dag = circuit_to_dag(circ)
@@ -1100,7 +1100,7 @@ class TestDagProperties(QiskitTestCase):
         operations = {
             'h': 2,
             't': 1,
-            'u2': 1,
+            'u': 1,
             'cx': 1,
             'ch': 1,
             'ccx': 1
@@ -1124,7 +1124,7 @@ class TestDagProperties(QiskitTestCase):
         """Test dag idle_wires."""
         wires = list(self.dag.idle_wires())
         self.assertEqual(len(wires), 0)
-        wires = list(self.dag.idle_wires(['u2', 'cx']))
+        wires = list(self.dag.idle_wires(['u', 'cx']))
         self.assertEqual(len(wires), 1)
 
     def test_dag_depth1(self):
