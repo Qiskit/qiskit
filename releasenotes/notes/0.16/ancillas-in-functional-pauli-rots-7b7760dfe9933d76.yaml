@@ -6,7 +6,7 @@ deprecations:
     property of the :class:`~qiskit.circuit.library.PiecewiseLinearPauliRotations`
     and :class:`~qiskit.circuit.library.PolynomialPauliRotations` classes has been
     deprecated and will be removed in a future release. Instead the property
-    :attr:`~qiskit.circuit.library.PolynomialPauliRotations`num_ancillas` should
+    :attr:`~qiskit.circuit.library.PolynomialPauliRotations.num_ancillas` should
     be used instead. This was done to make it consistent with the
     :class:`~qiskit.circuit.QuantumCircuit` method
     :meth:`~qiskit.circuit.QuantumCircuit.num_ancillas`.

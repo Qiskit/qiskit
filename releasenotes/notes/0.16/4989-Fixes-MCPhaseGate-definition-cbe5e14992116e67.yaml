@@ -4,7 +4,7 @@ fixes:
     Previously, when creating a multiply controlled phase gate via
     :meth:`qiskit.circuit.library.PhaseGate.control`, an
     :class:`~qiskit.circuit.library.MCU1Gate` gate had been incorrectly
-    returned. This has beem fixed so that an
+    returned. This has been fixed so that an
     :class:`~qiskit.circuit.library.MCPhaseGate` is correctly returned now.
   - |
     Previously, attempting to call

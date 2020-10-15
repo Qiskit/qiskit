@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    A new visulazation function :func:`~qiskit.visualization.timeline_drawer`
+    A new visualization function :func:`~qiskit.visualization.timeline_drawer`
     was added to the :mod:`qiskit.visualization` module.
 
     For Example:
