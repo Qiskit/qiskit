@@ -676,7 +676,7 @@ class Statevector(QuantumState):
             raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
                 obj.name, type(obj.definition)))
         if obj.definition.global_phase:
-            statevec._data *= np.exp(1j * obj.definition.global_phase)
+            statevec._data *= np.exp(1j * float(obj.definition.global_phase))
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
