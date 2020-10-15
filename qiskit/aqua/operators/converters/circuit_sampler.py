@@ -24,10 +24,10 @@ from qiskit import QiskitError
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.aqua.operators.operator_base import OperatorBase
-from qiskit.aqua.operators.operator_globals import Zero
 from qiskit.aqua.operators.list_ops.list_op import ListOp
 from qiskit.aqua.operators.state_fns.state_fn import StateFn
 from qiskit.aqua.operators.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.aqua.operators.state_fns.dict_state_fn import DictStateFn
 from qiskit.aqua.operators.converters.converter_base import ConverterBase
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class CircuitSampler(ConverterBase):
     """
 
     def __init__(self,
-                 backend: Union[Backend, BaseBackend, QuantumInstance] = None,
+                 backend: Union[Backend, BaseBackend, QuantumInstance],
                  statevector: Optional[bool] = None,
                  param_qobj: bool = False,
                  attach_results: bool = False) -> None:
@@ -306,13 +306,16 @@ class CircuitSampler(ConverterBase):
                         avg = avg[0] + 1j * avg[1]
                     # Will be replaced with just avg when eval is called later
                     num_qubits = circuit_sfns[0].num_qubits
-                    result_sfn = (Zero ^ num_qubits).adjoint() * avg
+                    result_sfn = DictStateFn('0' * num_qubits,
+                                             is_measurement=op_c.is_measurement) * avg
                 elif self._statevector:
-                    result_sfn = StateFn(op_c.coeff * results.get_statevector(circ_index))
+                    result_sfn = StateFn(op_c.coeff * results.get_statevector(circ_index),
+                                         is_measurement=op_c.is_measurement)
                 else:
                     shots = self.quantum_instance._run_config.shots
                     result_sfn = StateFn({b: (v / shots) ** 0.5 * op_c.coeff
-                                          for (b, v) in results.get_counts(circ_index).items()})
+                                          for (b, v) in results.get_counts(circ_index).items()},
+                                         is_measurement=op_c.is_measurement)
                 if self._attach_results:
                     result_sfn.execution_results = circ_results
                 c_statefns.append(result_sfn)
