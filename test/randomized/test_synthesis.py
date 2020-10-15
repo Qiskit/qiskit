@@ -68,8 +68,8 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -82,13 +82,13 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -101,18 +101,18 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -125,23 +125,23 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[18], rnd[19], rnd[20], qr[0])
-        qc.u3(rnd[21], rnd[22], rnd[23], qr[1])
+        qc.u(rnd[18], rnd[19], rnd[20], qr[0])
+        qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
