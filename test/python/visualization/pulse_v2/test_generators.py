@@ -150,7 +150,7 @@ class TestWaveformGenerators(QiskitTestCase):
                      'zorder': self.formatter['layer.fill_waveform'],
                      'linewidth': self.formatter['line_width.fill_waveform'],
                      'linestyle': self.formatter['line_style.fill_waveform'],
-                     'color': self.formatter['color.fill_waveform_d'][0]}
+                     'color': self.formatter['color.waveforms']['D'][0]}
         self.assertDictEqual(objs[0].styles, ref_style)
 
     def test_gen_filled_waveform_stepwise_acquire(self):
@@ -201,7 +201,7 @@ class TestWaveformGenerators(QiskitTestCase):
                      'zorder': self.formatter['layer.fill_waveform'],
                      'linewidth': self.formatter['line_width.fill_waveform'],
                      'linestyle': self.formatter['line_style.fill_waveform'],
-                     'color': self.formatter['color.fill_waveform_a'][0]}
+                     'color': self.formatter['color.waveforms']['A'][0]}
         self.assertDictEqual(objs[0].styles, ref_style)
 
     def test_gen_iqx_latex_waveform_name_x90(self):
