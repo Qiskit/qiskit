@@ -133,6 +133,7 @@ class OneQubitEulerDecomposer:
         """Set the decomposition basis."""
         basis_methods = {
             'U3': (self._params_u3, self._circuit_u3),
+            'U': (self._params_u3, self._circuit_u),
             'U1X': (self._params_u1x, self._circuit_u1x),
             'RR': (self._params_zyz, self._circuit_rr),
             'ZYZ': (self._params_zyz, self._circuit_zyz),
@@ -203,10 +204,10 @@ class OneQubitEulerDecomposer:
                 mat[0, 0] + mat[0, 1] + mat[1, 0] + mat[1, 1],
                 mat[0, 0] - mat[0, 1] + mat[1, 0] - mat[1, 1]
             ],
-             [
-                 mat[0, 0] + mat[0, 1] - mat[1, 0] - mat[1, 1],
-                 mat[0, 0] - mat[0, 1] - mat[1, 0] + mat[1, 1]
-             ]],
+                [
+                mat[0, 0] + mat[0, 1] - mat[1, 0] - mat[1, 1],
+                mat[0, 0] - mat[0, 1] - mat[1, 0] + mat[1, 1]
+            ]],
             dtype=complex)
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
         return -theta, phi, lam, phase
@@ -294,6 +295,17 @@ class OneQubitEulerDecomposer:
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1)
         circuit.append(U3Gate(theta, phi, lam), [0])
+        return circuit
+
+    @staticmethod
+    def _circuit_u(theta,
+                   phi,
+                   lam,
+                   simplify=True,
+                   atol=DEFAULT_ATOL):
+        # pylint: disable=unused-argument
+        circuit = QuantumCircuit(1)
+        circuit.u(theta, phi, lam, 0)
         return circuit
 
     @staticmethod
