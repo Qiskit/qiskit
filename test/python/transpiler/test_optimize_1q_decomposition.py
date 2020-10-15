@@ -49,7 +49,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.h(qr[0])
 
         expected = QuantumCircuit(qr)
-        expected.u2(0, np.pi, qr[0])
+        expected.u(np.pi / 2, 0, np.pi, qr)  # U2(0, pi)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -71,10 +71,10 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
         cr = ClassicalRegister(2, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.u1(0.1, qr).c_if(cr, 1)
-        circuit.u1(0.2, qr).c_if(cr, 3)
-        circuit.u1(0.3, qr)
-        circuit.u1(0.4, qr)
+        circuit.p(0.1, qr).c_if(cr, 1)
+        circuit.p(0.2, qr).c_if(cr, 3)
+        circuit.p(0.3, qr)
+        circuit.p(0.4, qr)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -100,12 +100,12 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.u1(0.3, qr)
-        circuit.u1(0.4, qr)
+        circuit.p(0.3, qr)
+        circuit.p(0.4, qr)
         circuit.h(qr)
 
         expected = QuantumCircuit(qr)
-        expected.u1(0.7, qr)
+        expected.p(0.7, qr)
         expected.h(qr)
 
         passmanager = PassManager()
@@ -129,11 +129,11 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc = QuantumCircuit(qr)
         theta = Parameter('theta')
 
-        qc.u1(0.3, qr)
-        qc.u1(0.4, qr)
-        qc.u1(theta, qr)
-        qc.u1(0.1, qr)
-        qc.u1(0.2, qr)
+        qc.p(0.3, qr)
+        qc.p(0.4, qr)
+        qc.p(theta, qr)
+        qc.p(0.1, qr)
+        qc.p(0.2, qr)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -158,14 +158,14 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc = QuantumCircuit(qr)
         theta = Parameter('theta')
 
-        qc.u1(0.3, qr)
-        qc.u1(0.4, qr)
-        qc.u1(theta, qr)
-        qc.u1(0.1, qr)
-        qc.u1(0.2, qr)
-        qc.u1(theta, qr)
-        qc.u1(0.3, qr)
-        qc.u1(0.2, qr)
+        qc.p(0.3, qr)
+        qc.p(0.4, qr)
+        qc.p(theta, qr)
+        qc.p(0.1, qr)
+        qc.p(0.2, qr)
+        qc.p(theta, qr)
+        qc.p(0.3, qr)
+        qc.p(0.2, qr)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
@@ -193,14 +193,14 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         sum_ = theta + phi
         product_ = theta * phi
-        qc.u1(0.3, qr)
-        qc.u1(0.4, qr)
-        qc.u1(theta, qr)
-        qc.u1(phi, qr)
-        qc.u1(sum_, qr)
-        qc.u1(product_, qr)
-        qc.u1(0.3, qr)
-        qc.u1(0.2, qr)
+        qc.p(0.3, qr)
+        qc.p(0.4, qr)
+        qc.p(theta, qr)
+        qc.p(phi, qr)
+        qc.p(sum_, qr)
+        qc.p(product_, qr)
+        qc.p(0.3, qr)
+        qc.p(0.2, qr)
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
