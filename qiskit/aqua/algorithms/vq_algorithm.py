@@ -34,6 +34,7 @@ from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
 from qiskit.aqua.components.optimizers import Optimizer, SLSQP
 from qiskit.aqua.components.variational_forms import VariationalForm
+from qiskit.aqua.operators.gradients import GradientBase
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class VQAlgorithm(QuantumAlgorithm):
                  var_form: Union[QuantumCircuit, VariationalForm],
                  optimizer: Optimizer,
                  cost_fn: Optional[Callable] = None,
+                 gradient: Optional[Union[GradientBase, Callable]] = None,
                  initial_point: Optional[np.ndarray] = None,
                  quantum_instance: Optional[
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
@@ -56,6 +58,7 @@ class VQAlgorithm(QuantumAlgorithm):
             optimizer: A classical optimizer.
             cost_fn: An optional cost function for optimizer. If not supplied here must be
                 supplied on :meth:`find_minimum`.
+            gradient: An optional gradient operator or function for optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer.
             quantum_instance: Quantum Instance or Backend
@@ -70,6 +73,7 @@ class VQAlgorithm(QuantumAlgorithm):
             optimizer = SLSQP()
 
         self._optimizer = optimizer
+        self._gradient = gradient
         self._cost_fn = cost_fn
         self._initial_point = initial_point
         self._var_form = var_form
@@ -197,6 +201,9 @@ class VQAlgorithm(QuantumAlgorithm):
         start = time.time()
         if not optimizer.is_gradient_supported:  # ignore the passed gradient function
             gradient_fn = None
+        else:
+            if not gradient_fn:
+                gradient_fn = self._gradient
 
         logger.info('Starting optimizer.\nbounds=%s\ninitial point=%s', bounds, initial_point)
         opt_params, opt_val, num_optimizer_evals = optimizer.optimize(nparms,

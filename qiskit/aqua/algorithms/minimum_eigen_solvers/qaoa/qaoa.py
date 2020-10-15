@@ -20,6 +20,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import OperatorBase, ExpectationBase, LegacyBaseOperator
+from qiskit.aqua.operators.gradients import GradientBase
 from qiskit.aqua.components.initial_states import InitialState
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.utils.validation import validate_min
@@ -69,6 +70,8 @@ class QAOA(VQE):
                  initial_state: Optional[InitialState] = None,
                  mixer: Union[OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
+                 gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
+                                                                 List]]] = None,
                  expectation: Optional[ExpectationBase] = None,
                  include_custom: bool = False,
                  max_evals_grouped: int = 1,
@@ -88,6 +91,8 @@ class QAOA(VQE):
                 constrained subspaces as per https://arxiv.org/abs/1709.03489
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then it will simply compute a random one.
+            gradient: An optional gradient operator respectively a gradient function used for
+                      optimization.
             expectation: The Expectation converter for taking the average value of the
                 Observable over the var_form state function. When None (the default) an
                 :class:`~qiskit.aqua.operators.expectations.ExpectationFactory` is used to select
@@ -105,7 +110,8 @@ class QAOA(VQE):
                 potentially the expectation values can be computed in parallel. Typically this is
                 possible when a finite difference gradient is used by the optimizer such that
                 multiple points to compute the gradient can be passed and if computed in parallel
-                improve overall execution time.
+                improve overall execution time. Ignored if a gradient operator or function is
+                given.
             aux_operators: Optional list of auxiliary operators to be evaluated with the eigenstate
                 of the minimum eigenvalue main result and their expectation values returned.
                 For instance in chemistry these can be dipole operators, total particle count
@@ -129,6 +135,7 @@ class QAOA(VQE):
                          None,
                          optimizer,
                          initial_point=initial_point,
+                         gradient=gradient,
                          expectation=expectation,
                          include_custom=include_custom,
                          max_evals_grouped=max_evals_grouped,
