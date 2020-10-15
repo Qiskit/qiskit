@@ -1,6 +1,10 @@
 ---
 fixes:
   - |
-    ``QuantumCircuit.compose`` and ``DAGCircuit.compose`` had, in some cases,
+    The :meth:`qiskit.circuit.QuantumCircuit.compose` and
+    :meth:`qiskit.dagcircuit.DAGCircuit.compose` methods had, in some cases,
     incorrectly translated conditional gates if the input circuit contained
-    more than one ``ClassicalRegister``. This has been resolved.
+    more than one :class:`~qiskit.circuit.ClassicalRegister`. This has been
+    fixed so the multiple :class:`~qiskit.circuit.ClassicalRegister` objects
+    are correcly handled.
+    Fixes `#4964 <https://github.com/Qiskit/qiskit-terra/issues/4964>`__

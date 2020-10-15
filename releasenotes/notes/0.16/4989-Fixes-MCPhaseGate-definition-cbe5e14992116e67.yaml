@@ -2,9 +2,16 @@
 fixes:
   - |
     Previously, when creating a multiply controlled phase gate via
-    ``PhaseGate.control``, an ``MCU1Gate`` gate had been returned. This has been
-    had corrected so that an ``MCPhaseGate`` is returned.
+    :meth:`qiskit.circuit.library.PhaseGate.control`, an
+    :class:`~qiskit.circuit.library.MCU1Gate` gate had been incorrectly
+    returned. This has beem fixed so that an
+    :class:`~qiskit.circuit.library.MCPhaseGate` is correctly returned now.
   - |
-    Previously, attempting to decompose a circuit containing an
-    ``MCPhaseGate`` would raise an error due to an inconsistency in the
-    definition of the ``MCPhaseGate``. This has been corrected.
+    Previously, attempting to call
+    :meth:`~qiskit.circuit.QuantumCircuit.decompose` on a
+    :class:`~qiskit.circuit.QuantumCircuit` object containing an
+    :class:`~qiskit.circuit.library.MCPhaseGate` would would raise an error due
+    to an inconsistency in the
+    :attr:`~qiskit.circuit.library.MCPhaseGate.definition` attribute. This issue
+    has been fixed and the
+    :attr:`~qiskit.circuit.library.MCPhaseGate.definition` attribute corrected.

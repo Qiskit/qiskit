@@ -1,8 +1,12 @@
 ---
 fixes:
   - |
-    When accessing the ``definition`` attribute of a parameterized ``Gate``
-    instance, the generated ``QuantumCircuit`` had been generated with an invalid
-    ``ParameterTable``, such that reading from ``QuantumCircuit.parameters`` or
-    calling ``QuantumCircuit.bind_parameters`` would incorrectly report the
-    unbound parameters. This has been resolved.
+    Fixed an issue where previously When accessing the
+    :attr:`~qiskit.circuit.Gate.definition` attribute of a parameterized
+    :class:`~qiskit.circuit.Gate` instance, the generated
+    :class:`~qiskit.circuit.QuantumCircuit` object would be generated with an
+    invalid :class:`~qiskit.circuit.ParameterTable, such that reading from
+    :attr:`~qiskit.circuit.QuantumCircuit.parameters`` or
+    calling :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters` would
+    incorrectly report the unbound parameters.
+    Fixes `#4863 <https://github.com/Qiskit/qiskit-terra/issues/4863>`__

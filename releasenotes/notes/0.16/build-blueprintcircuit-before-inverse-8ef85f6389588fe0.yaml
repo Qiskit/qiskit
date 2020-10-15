@@ -1,6 +1,10 @@
 ---
 fixes:
   - |
-    Calling inverse or compose on a ``BlueprintCircuit`` could fail
-    if ``_data`` was not yet populated. This has been fixed by asserting
-    a call on ``_build`` method.
+    Previously, calling :meth:`~qiskit.circuit.library.BlueprintCircuit.inverse`
+    on a :class:`~qiskit.circuit.library.BlueprintCircuit` object
+    could fail if its internal data propert was not yet populated. This has
+    been fixed so that the calling
+    :meth:`~qiskit.circuit.library.BlueprintCircuit.inverse` will populate
+    the internal data before generating the inverse of the circuit.
+    Fixes `#5140 <https://github.com/Qiskit/qiskit-terra/issues/5140>`__
