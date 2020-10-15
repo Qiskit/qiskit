@@ -55,7 +55,9 @@ features:
   - |
     The :func:`~qiskit.compiler.schedule` has been updated so that it can
     schedule circuits with delays. Now there are two paths to schedule a
-    circuit with delay::
+    circuit with delay:
+    
+    .. code-block:: python
 
         qc = QuantumCircuit(1, 1)
         qc.h(0)

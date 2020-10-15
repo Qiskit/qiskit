@@ -2,6 +2,6 @@
 deprecations:
   - |
     The :class:`qiskit.circuit.library.MSGate` class has been
-    deprecated and will be removed in a future release. It has been replaced
+    deprecated, but will remain in place to allow loading of old jobs. It has been replaced
     with the :class:`qiskit.circuit.library.GMS` class which should be used
     instead.

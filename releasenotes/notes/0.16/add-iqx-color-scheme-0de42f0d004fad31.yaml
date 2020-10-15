@@ -3,7 +3,7 @@ features:
   - |
     A new color scheme, ``iqx``, has been added to the ``mpl`` backend for the
     circuit drawer :func:`qiskit.visualization.circuit_drawer` and
-    :meth:`qiskit.circuit.QuantumCircuit.draw` This uses the same color scheme
+    :meth:`qiskit.circuit.QuantumCircuit.draw`. This uses the same color scheme
     as the Circuit Composer on the IBM Quantum Experience website. There are
     now 3 available color schemes - ``default``, ``iqx``, and ``bw``.
 

@@ -11,7 +11,9 @@ features:
     defined on a number of qubits simultaneously, and act as a direct sum of
     R gates on each qubit.
 
-    For example::
+    For example:
+    
+    .. code-block :: python
 
       from qiskit import QuantumCircuit, QuantumRegister      
       import numpy as np
