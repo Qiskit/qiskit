@@ -24,7 +24,7 @@ upgrade:
     :class:`~qiskit.circuit.Instruction` class. Now a new method,
     :meth:`~qiskit.circuit.Gate.validate_parameter` is used to determine
     if a parameter type is valid or not. The definition of this method in
-    a subclass will take priority over it's parent. For example,
+    a subclass will take priority over its parent. For example,
     :class:`~qiskit.extensions.UnitaryGate` accepts a parameter of the type
     ``numpy.ndarray`` and defines a custom
     :meth:`~qiskit.extensionst.UnitaryGate.validate_parameter` method that
@@ -54,4 +54,3 @@ deprecations:
           else:
               raise CircuitError("invalid param type {0} in gate "
                                  "{1}".format(type(parameter), self.name))
-
