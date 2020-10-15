@@ -1,10 +1,11 @@
 ---
 features:
   - |
-    Pulse :py:class:`~qiskit.pulse.Schedule` s now support
-    :py:class:`~qiskit.circuit.ParameterExpression` s.
+    Pulse :py:class:`~qiskit.pulse.Schedule` objects now support
+    use :py:class:`~qiskit.circuit.ParameterExpression` objects
+    for parameters.
 
-    Examples::
+    For Example::
 
         from qiskit.circuit import Parameter
         from qiskit import pulse
@@ -21,7 +22,8 @@ features:
                          DriveChannel(qubit))
         schedule += ShiftPhase(-phi, DriveChannel(qubit))
 
-    Parameter assignment is done via ``assign_parameters``::
+    Parameter assignment is done via the
+    :meth:`~qiskit.pulse.Schedule.assign_parameters` method::
 
         schedule.assign_parameters({alpha: 4.5e9, phi: 1.57,
                                     qubit: 0, amp: 0.2})

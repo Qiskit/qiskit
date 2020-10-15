@@ -1,9 +1,16 @@
 ---
+features:
+  - A new kwarg, ``inplace``, has been added to the function
+    :func:`qiskit.result.marginal_counts`. This kwarg is used to control
+    whether the contents are marginalized in place or a new copy is returned,
+    for :class:`~qiskit.result.Result` object input. This parameter does not
+    have any effect for an input ``dict`` or :class:`~qiskit.result.Counts`
+    object.
 upgrade:
   - |
-    The function :func:`qiskit.result.utils.marginal_counts` now, by default, does not modify the 
-    :class:`qiskit.result.result.Result` instance parameter.  A new parameter `inplace` in
-    :func:`qiskit.result.utils.marginal_counts`  allows to conserve the previous behavior when set as
-    `inplace=True`. This behavior is limited
-    to :class:`qiskit.result.result.Result` parameters and does not affect if a dictionary is passed
-    as argument.
+    The function :func:`qiskit.result.marginal_counts` now, by default,
+    does not modify the :class:`qiskit.result.Result` instance
+    parameter. Previously, the ``Result`` object was always modified in place.
+    A new kwarg ``inplace`` has been added
+    :func:`~qiskit.result.marginal_counts` which enables using the previous
+    behavior when ``inplace=True`` is set.

@@ -1,16 +1,32 @@
 ---
-deprecations:
+upgrade:
   - |
-    In 0.13, the process to deprecate``n_qubits`` and ``numberofqubits`` parameters from some methods and functions started.
-    See https://github.com/Qiskit/qiskit-terra/pull/3927 . The
-    deprecation warning now was removed and the paremeters are not available anymore. 
-    The objects affected by this change are listed below.
+    The previously deprecated methods, arguments, and properties named
+    ``n_qubits`` and ``numberofqubits``  have been removed. These were
+    deprecated in the 0.13.0 release. The full set of changes are:
 
-    class                  | old method      | new method
-    -----------------------+-----------------+--------------------------------
-    QuantumCircuit         | n_qubits        | num_qubits
-    Pauli                  | numberofqubits  | num_qubits
-    function               | old argument   | new argument
-    -----------------------+----------------+-------------
-    random_circuit         | n_qubits       | num_qubits
-    MSGate.__init__        | n_qubit        | num_qubits
+    .. list-table::
+      :header-rows: 1
+
+      * - Class
+        - Old
+        - New
+      * - :class:`~qiskit.circuit.QuantumCircuit`
+        - ``n_qubits``
+        - :class:`~qiskit.circuit.QuantumCircuit.num_qubits`
+      * - :class:`~qiskit.quantum_info.Pauli`
+        - ``numberofqubits``
+        - :attr:`~qiskit.quantum_info.num_qubits`
+
+    .. list-table::
+      :header-rows: 1
+
+      * - Function
+        - Old Argument
+        - New Argument
+      * - :func:`qiskit.circuit.random.random_circuit`
+        - ``n_qubits``
+        - ``num_qubits``
+      * - :class:`qiskit.circuit.library.MSGate`
+        - ``n_qubits``
+        - ``num_qubits``

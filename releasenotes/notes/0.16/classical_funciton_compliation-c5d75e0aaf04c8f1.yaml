@@ -21,11 +21,10 @@ features:
       quantum_circuit = grover_oracle.synth()
       quantum_circuit.draw()
 
-
     The parameter ``registerless=False`` in the
     :class:`qiskit.circuit.classicalfunction.ClassicalFunction` method
     :meth:`~qiskit.circuit.classicalfunction.ClassicalFunction.synth` creates a
-    circuit with registers refering to the parameter names. For example::
+    circuit with registers refering to the parameter names. For example:
 
     .. jupyter-execute::
 

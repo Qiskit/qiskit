@@ -2,8 +2,8 @@
 features:
   - |
     A ``rep_delay`` parameter has been added to the
-    :class:`~qiskit.qobj.QASMQobj` class under the run configuration,
-    :class:`~qiskit.qobj.QASMQobjConfig`. This parameter is used to denote the
+    :class:`~qiskit.qobj.QasmQobj` class under the run configuration,
+    :class:`~qiskit.qobj.QasmQobjConfig`. This parameter is used to denote the
     time between program executions. It must be chosen from the backend range
     given by the :class:`~qiskit.providers.models.BackendConfiguration`
     method
