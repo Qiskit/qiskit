@@ -89,7 +89,7 @@ class QiskitPulseStyle(dict):
         return sub_dict
 
 
-class IqxStandard(dict):
+class IQXStandard(dict):
     """Standard pulse stylesheet.
 
     - Generate stepwise waveform envelope with latex pulse names.
@@ -127,8 +127,8 @@ class IqxStandard(dict):
         return 'Standard Pulse style sheet.'
 
 
-class IqxPublication(dict):
-    """Simple pulse stylesheet suited for publication.
+class IQXSimple(dict):
+    """Simple pulse stylesheet without channel notation.
 
     - Generate stepwise waveform envelope with latex pulse names.
     - Apply phase modulation to waveforms.
@@ -141,7 +141,8 @@ class IqxPublication(dict):
 
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'formatter.control.apply_phase_modulation': True,
+        style = {'formatter.general.fig_chart_height': 5,
+                 'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
                  'formatter.control.show_acquire_channel': False,
                  'formatter.control.show_empty_channel': False,
@@ -164,7 +165,7 @@ class IqxPublication(dict):
         return 'Simple pulse style sheet for publication.'
 
 
-class IqxDebugging(dict):
+class IQXDebugging(dict):
     """Pulse stylesheet for pulse programmers. Show details of instructions.
 
     # TODO: add more generators
@@ -231,6 +232,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.color.frame_change': '#000000',
         'formatter.color.snapshot': '#000000',
         'formatter.color.axis_label': '#000000',
+        'formatter.color.opaque_shape': ['#ffffff', '#000000'],
         'formatter.alpha.fill_waveform': 0.3,
         'formatter.alpha.baseline': 1.0,
         'formatter.alpha.barrier': 0.7,
@@ -261,15 +263,19 @@ def default_style() -> Dict[str, Any]:
         'formatter.line_width.axis_break': 6,
         'formatter.line_width.baseline': 1,
         'formatter.line_width.barrier': 1,
+        'formatter.line_width.opaque_shape': 1,
         'formatter.line_style.fill_waveform': '-',
         'formatter.line_style.baseline': '-',
         'formatter.line_style.barrier': ':',
+        'formatter.line_style.opaque_shape': '--',
         'formatter.channel_scaling.drive': 1.0,
         'formatter.channel_scaling.control': 1.0,
         'formatter.channel_scaling.measure': 1.0,
         'formatter.channel_scaling.acquire': 1.0,
         'formatter.channel_scaling.pos_spacing': 0.1,
         'formatter.channel_scaling.neg_spacing': -0.1,
+        'formatter.box_width.opaque_shape': 150,
+        'formatter.box_height.opaque_shape': 0.5,
         'formatter.axis_break.length': 3000,
         'formatter.axis_break.max_length': 1000,
         'formatter.control.apply_phase_modulation': True,

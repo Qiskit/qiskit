@@ -200,7 +200,7 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
         freq = drawings.TextData(data_type=types.LabelType.FRAME,
                                  channels=data.inst[0].channel,
                                  xvals=[data.t0],
-                                 yvals=[-formatter['label_offset.frame_change']],
+                                 yvals=[2*formatter['label_offset.frame_change']],
                                  text=u'\u0394f = {freq}'.format(freq=plain_freq),
                                  latex=r'\Delta f = {freq}'.format(freq=latex_freq),
                                  ignore_scaling=True,
@@ -282,7 +282,6 @@ def gen_frame_symbol(data: types.PulseInstruction,
     Returns:
         List of `TextData` drawings.
     """
-
     style = {'zorder': formatter['layer.frame_change'],
              'color': formatter['color.frame_change'],
              'size': formatter['text_size.frame_change'],

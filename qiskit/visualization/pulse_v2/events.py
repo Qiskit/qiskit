@@ -75,9 +75,9 @@ overlapped on the canvas. Thus it is convenient to plot a total frame change amo
 than plotting each operand value bound to the instruction.
 """
 from collections import defaultdict
-from typing import Dict, List, Iterator, Tuple
+from typing import Dict, List, Iterator, Tuple, Union
 
-from qiskit import pulse
+from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 
@@ -163,6 +163,8 @@ class ChannelEvents:
         phase = self._init_phase
         frequency = self._init_frequency
         for t0, inst in sorted_waveforms:
+            is_opaque = False
+
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 phase, frequency = ChannelEvents._calculate_current_frame(
@@ -171,15 +173,25 @@ class ChannelEvents:
                     frequency=frequency)
             frame = PhaseFreqTuple(phase, frequency)
 
-            yield PulseInstruction(t0, self._dt, frame, inst)
+            # Check if pulse has unbound parameters
+            if isinstance(inst, pulse.Play) and isinstance(inst.pulse, pulse.ParametricPulse):
+                params = inst.pulse.parameters
+                if any(isinstance(pval, circuit.Parameter) for pval in params.values()):
+                    is_opaque = True
+
+            yield PulseInstruction(t0, self._dt, frame, inst, is_opaque)
 
     def get_frame_changes(self) -> Iterator[PulseInstruction]:
         """Return frame change type instructions with total frame change amount."""
+        # TODO parse parametrised FCs correctly
+
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
         phase = self._init_phase
         frequency = self._init_frequency
         for t0, frame_changes in sorted_frame_changes:
+            is_opaque = False
+
             pre_phase = phase
             pre_frequency = frequency
             phase, frequency = ChannelEvents._calculate_current_frame(
@@ -188,7 +200,7 @@ class ChannelEvents:
                 frequency=frequency)
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            yield PulseInstruction(t0, self._dt, frame, frame_changes)
+            yield PulseInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
     @classmethod
     def _calculate_current_frame(cls,
@@ -196,6 +208,8 @@ class ChannelEvents:
                                  phase: float,
                                  frequency: float) -> Tuple[float, float]:
         """Calculate the current frame from the previous frame.
+
+        If parameter is unbound phase or frequency accumulation with this instruction is skipped.
 
         Args:
             frame_changes: List of frame change instructions at a specific time.
@@ -208,12 +222,24 @@ class ChannelEvents:
 
         for frame_change in frame_changes:
             if isinstance(frame_change, pulse.instructions.SetFrequency):
-                frequency = frame_change.frequency
+                try:
+                    frequency = float(frame_change.frequency)
+                except TypeError:
+                    continue
             elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
-                frequency += frame_change.frequency
+                try:
+                    frequency += float(frame_change.frequency)
+                except TypeError:
+                    continue
             elif isinstance(frame_change, pulse.instructions.SetPhase):
-                phase = frame_change.phase
+                try:
+                    phase = float(frame_change.phase)
+                except TypeError:
+                    continue
             elif isinstance(frame_change, pulse.instructions.ShiftPhase):
-                phase += frame_change.phase
+                try:
+                    phase += float(frame_change.phase)
+                except TypeError:
+                    continue
 
         return phase, frequency

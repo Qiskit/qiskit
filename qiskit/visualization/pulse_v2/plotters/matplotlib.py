@@ -16,9 +16,10 @@
 
 from typing import Optional
 
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle
 
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawings, types
@@ -113,6 +114,11 @@ class Mpl2DPlotter(BasePlotter):
                     text = text.replace(types.DynamicString.SCALE,
                                         '{val:.1f}'.format(val=chart.scale))
                     self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
+                elif isinstance(data, drawings.BoxData):
+                    xy = x[0], y[0]
+                    box = Rectangle(xy, width=x[1]-x[0], height=y[1]-y[0],
+                                    fill=True, **data.styles)
+                    self.ax.add_patch(box)
                 else:
                     VisualizationError('Data {name} is not supported '
                                        'by {plotter}'.format(name=data,

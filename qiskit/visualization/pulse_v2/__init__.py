@@ -19,7 +19,7 @@ from qiskit.visualization.pulse_v2.interface import draw
 
 # stylesheets
 from qiskit.visualization.pulse_v2.stylesheet import (
-    IqxStandard,
-    IqxPublication,
-    IqxDebugging
+    IQXStandard,
+    IQXSimple,
+    IQXDebugging
 )

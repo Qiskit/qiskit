@@ -37,12 +37,14 @@ PulseInstruction = NamedTuple(
     [('t0', int),
      ('dt', Optional[float]),
      ('frame', PhaseFreqTuple),
-     ('inst', Union[pulse.Instruction, List[pulse.Instruction]])])
+     ('inst', Union[pulse.Instruction, List[pulse.Instruction]]),
+     ('is_opaque', bool)])
 PulseInstruction.__doc__ = 'Data to represent pulse instruction for visualization.'
 PulseInstruction.t0.__doc__ = 'A time when the instruction is issued.'
 PulseInstruction.dt.__doc__ = 'System cycle time.'
 PulseInstruction.frame.__doc__ = 'A reference frame to run instruction.'
 PulseInstruction.inst.__doc__ = 'Pulse instruction.'
+PulseInstruction.is_opaque.__doc__ = 'If there is any unbound parameters.'
 
 
 BarrierInstruction = NamedTuple(
@@ -79,17 +81,8 @@ ChartAxis.name.__doc__ = 'Name of chart.'
 ChartAxis.channels.__doc__ = 'Channels associated with chart.'
 
 
-ComplexColors = NamedTuple(
-    'ComplexColors',
-    [('real', str),
-     ('imaginary', str)])
-ComplexColors.__doc__ = 'Data to represent a set of color codes for real and imaginary part.'
-ComplexColors.real.__doc__ = 'Color code of real part.'
-ComplexColors.imaginary.__doc__ = 'Color code of imaginary part.'
-
-
 ParsedInstruction = NamedTuple(
-    'ParsedWaveform',
+    'ParsedInstruction',
     [('xvals', np.ndarray),
      ('yvals', np.ndarray),
      ('meta', Dict[str, Any])]
@@ -98,6 +91,16 @@ ParsedInstruction.__doc__ = 'Data to represent a parsed pulse instruction for ob
 ParsedInstruction.xvals.__doc__ = 'Numpy array of x axis data.'
 ParsedInstruction.yvals.__doc__ = 'Numpy array of y axis data.'
 ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
+
+
+OpaqueShape = NamedTuple(
+    'OpaqueShape',
+    [('duration', np.ndarray),
+     ('meta', Dict[str, Any])]
+)
+OpaqueShape.__doc__ = 'Data to represent a pulse instruction with parametrized shape.'
+OpaqueShape.duration.__doc__ = 'Duration of instruction.'
+OpaqueShape.meta.__doc__ = 'Dictionary containing instruction details.'
 
 
 HorizontalAxis = NamedTuple(
@@ -120,9 +123,11 @@ class WaveformType(str, Enum):
 
     REAL: Assigned to objects that represent real part of waveform.
     IMAG: Assigned to objects that represent imaginary part of waveform.
+    OPAQUE: Assigned to objects that represent waveform with unbound parameters.
     """
     REAL = 'Waveform.Real'
     IMAG = 'Waveform.Imag'
+    OPAQUE = 'Waveform.Opaque'
 
 
 class LabelType(str, Enum):
@@ -130,6 +135,8 @@ class LabelType(str, Enum):
     Label data type.
 
     PULSE_NAME: Assigned to objects that represent name of waveform.
+    PULSE_INFO: Assigned to objects that represent extra info about waveform.
+    OPAQUE_BOXTEXT: Assigned to objects that represent box text of opaque shapes.
     CH_NAME: Assigned to objects that represent name of channel.
     CH_SCALE: Assigned to objects that represent scaling factor of channel.
     FRAME: Assigned to objects that represent value of frame.
@@ -137,6 +144,7 @@ class LabelType(str, Enum):
     """
     PULSE_NAME = 'Label.Pulse.Name'
     PULSE_INFO = 'Label.Pulse.Info'
+    OPAQUE_BOXTEXT = 'Label.Opaque.Boxtext'
     CH_NAME = 'Label.Channel.Name'
     CH_INFO = 'Label.Channel.Info'
     FRAME = 'Label.Frame.Value'

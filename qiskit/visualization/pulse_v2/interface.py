@@ -50,9 +50,9 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             such as :py:class:~`qiskit.pulse.Waveform`, :py:class:~`qiskit.pulse.ParametricPulse`,
             and :py:class:~`qiskit.pulse.Schedule`.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IqxStandard`,
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IqxPublication`, and
-            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IqxDebugging` for details of
+            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+            :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
             preset stylesheets. See also the stylesheet section for details of configuration keys.
         backend: Backend object to play the input pulse program. If this object is provided,
             the input program is visualized with the details of hardware information.
@@ -133,6 +133,8 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             (default `'#000000'`).
         formatter.color.snapshot: Color code of the symbol for snapshot
             (default `'#000000'`)
+        formatter.color.opaque_shape: Color code of the face and edge of opaque shape box
+            (default `['#fffacd', '#000000']`)
         formatter.color.axis_label: Color code of axis labels (default `'#000000'`).
         formatter.alpha.fill_waveform: Transparency of waveforms. A value in the range from
             `0` to `1`. The value `0` gives completely transparent waveforms (default `0.3`).
@@ -190,12 +192,15 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             face color (default `6`).
         formatter.line_width.baseline: Line width of base lines (default `1`)
         formatter.line_width.barrier: Line width of barrier lines (default `1`).
+        formatter.line_width.opaque_shape: Line width of opaque shape box (default `1`).
         formatter.line_style.fill_waveform: Line style of the fringe of filled waveforms. This
             conforms to the line style spec of matplotlib (default `'-'`).
         formatter.line_style.baseline: Line style of base lines. This
             conforms to the line style spec of matplotlib (default `'-'`).
         formatter.line_style.barrier: Line style of barrier lines. This
             conforms to the line style spec of matplotlib (default `':'`).
+        formatter.line_style.opaque_shape: Line style of opaque shape box. This
+            conforms to the line style spec of matplotlib (default `'--'`).
         formatter.channel_scaling.drive: Default scaling value of drive channel
             waveforms (default `1.0`).
         formatter.channel_scaling.control: Default scaling value of control channel
@@ -212,6 +217,11 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             Chart bottom is determined based on the minimum height of waveforms associated
             with the chart. If the minimum height is above this value, this value is set
             as the chart bottom (default -0.1).
+        formatter.box_width.opaque_shape: Default box length of the waveform representation
+            when the instruction is parametrized and duration is not bound or not defined.
+            Value is units in dt (default: 150).
+        formatter.box_height.opaque_shape: Default box height of the waveform representation
+            when the instruction is parametrized (default: 0.4).
         formatter.axis_break.length: Waveform or idle time duration that axis break is
             applied. Intervals longer than this value are truncated.
             The value is in units of data points (default `3000`).
@@ -306,7 +316,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit, transpile, schedule
-            from qiskit.visualization.pulse_v2 import draw, IqxPublication
+            from qiskit.visualization.pulse_v2 import draw, IQXSimple
             from qiskit.test.mock import FakeAlmaden
 
             qc = QuantumCircuit(2)
@@ -317,14 +327,14 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             sched = schedule(qc, FakeAlmaden())
 
             # draw
-            draw(sched, style=IqxPublication(), backend=FakeAlmaden())
+            draw(sched, style=IQXSimple(), backend=FakeAlmaden())
 
         Drawing with the stylesheet suited for program debugging.
 
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit, transpile, schedule
-            from qiskit.visualization.pulse_v2 import draw, IqxDebugging
+            from qiskit.visualization.pulse_v2 import draw, IQXDebugging
             from qiskit.test.mock import FakeAlmaden
 
             qc = QuantumCircuit(2)
@@ -335,7 +345,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             sched = schedule(qc, FakeAlmaden())
 
             # draw
-            draw(sched, style=IqxDebugging(), backend=FakeAlmaden())
+            draw(sched, style=IQXDebugging(), backend=FakeAlmaden())
 
         You can partially customize a preset stylesheet when call it.
 
@@ -345,7 +355,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
                 'formatter.channel_scaling.control': 1,
                 'formatter.channel_scaling.measure': 5
             }
-            style = IqxStandard(**my_style)
+            style = IQXStandard(**my_style)
 
             # draw
             draw(sched, style=style, backend=FakeAlmaden())
@@ -362,7 +372,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()
-    temp_style.update(style or stylesheet.IqxStandard())
+    temp_style.update(style or stylesheet.IQXStandard())
 
     if backend:
         device = device_info.OpenPulseBackendInfo.create_from_backend(backend)
