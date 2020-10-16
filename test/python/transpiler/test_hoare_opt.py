@@ -294,8 +294,7 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_control_removal(self):
-        """ Should replace CX by X
-            and CZ by Z. """
+        """ Should replace CX by X and CZ by Z. """
         circuit = QuantumCircuit(2)
         circuit.x(0)
         circuit.cx(0, 1)
