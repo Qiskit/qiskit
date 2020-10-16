@@ -241,11 +241,11 @@ class ChannelEvents:
             if isinstance(frame_change, pulse.instructions.SetFrequency):
                 frequency = frame_change.frequency
             elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
-                frequency += float(frame_change.frequency)
+                frequency += frame_change.frequency
             elif isinstance(frame_change, pulse.instructions.SetPhase):
-                phase = float(frame_change.phase)
+                phase = frame_change.phase
             elif isinstance(frame_change, pulse.instructions.ShiftPhase):
-                phase += float(frame_change.phase)
+                phase += frame_change.phase
 
         return phase, frequency
 

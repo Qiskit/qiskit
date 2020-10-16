@@ -282,6 +282,9 @@ def gen_frame_symbol(data: types.PulseInstruction,
     Returns:
         List of `TextData` drawings.
     """
+    if data.frame.phase == 0 and data.frame.freq == 0:
+        return []
+
     style = {'zorder': formatter['layer.frame_change'],
              'color': formatter['color.frame_change'],
              'size': formatter['text_size.frame_change'],
@@ -291,9 +294,17 @@ def gen_frame_symbol(data: types.PulseInstruction,
     program = []
     for inst in data.inst:
         if isinstance(inst, (instructions.SetFrequency, instructions.ShiftFrequency)):
-            program.append('{}({:.2e} Hz)'.format(inst.__class__.__name__, inst.frequency))
+            try:
+                program.append('{}({:.2e} Hz)'.format(inst.__class__.__name__, inst.frequency))
+            except TypeError:
+                # parameter expression
+                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency.name))
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
-            program.append('{}({:.2f} rad.)'.format(inst.__class__.__name__, inst.phase))
+            try:
+                program.append('{}({:.2f} rad.)'.format(inst.__class__.__name__, inst.phase))
+            except TypeError:
+                # parameter expression
+                program.append('{}({})'.format(inst.__class__.__name__, inst.phase.name))
 
     meta = {'total phase change': data.frame.phase,
             'total frequency change': data.frame.freq,
@@ -325,6 +336,12 @@ def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tupl
     Returns:
         Standard text and latex text of phase value.
     """
+    try:
+        phase = float(phase)
+    except TypeError:
+        # unbound parameter
+        return u'\u03b8', r'\theta'
+
     frac = Fraction(np.abs(phase) / np.pi)
 
     if phase == 0:
@@ -369,6 +386,12 @@ def _freq_to_text(freq: float, unit: str = 'MHz') -> Tuple[str, str]:
     Raises:
         VisualizationError: When unsupported unit is specified.
     """
+    try:
+        freq = float(freq)
+    except TypeError:
+        # unbound parameter
+        return 'f', 'f'
+
     unit_table = {'THz': 1e12, 'GHz': 1e9, 'MHz': 1e6, 'kHz': 1e3, 'Hz': 1}
 
     try:
