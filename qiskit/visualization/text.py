@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -25,7 +23,8 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate
+from qiskit.circuit import Delay as DelayInstruction
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
@@ -35,6 +34,11 @@ from .exceptions import VisualizationError
 class TextDrawerCregBundle(VisualizationError):
     """The parameter "cregbundle" was set to True in an imposible situation. For example, an
     instruction needs to refer to individual classical wires'"""
+    pass
+
+
+class TextDrawerEncodingError(VisualizationError):
+    """A problem with encoding"""
     pass
 
 
@@ -56,8 +60,10 @@ class DrawElement():
     @property
     def top(self):
         """ Constructs the top line of the element"""
-        ret = self.top_format % self.top_connect.center(
-            self.width, self.top_pad)
+        if (self.width % 2) == 0 and len(self.top_format) % 2 == 1 and len(self.top_connect) == 1:
+            ret = self.top_format % (self.top_pad+self.top_connect).center(self.width, self.top_pad)
+        else:
+            ret = self.top_format % self.top_connect.center(self.width, self.top_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
@@ -80,8 +86,10 @@ class DrawElement():
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
-        ret = self.bot_format % self.bot_connect.center(
-            self.width, self.bot_pad)
+        if (self.width % 2) == 0 and len(self.top_format) % 2 == 1:
+            ret = self.bot_format % (self.bot_pad+self.bot_connect).center(self.width, self.bot_pad)
+        else:
+            ret = self.bot_format % self.bot_connect.center(self.width, self.bot_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
@@ -249,7 +257,8 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.bot_connect = self.bot_pad = " "
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.left_fill = len(self.wire_label)
-        self.top_format = "┌{}%s──┐".format(self.top_pad * self.left_fill)
+        self.top_format = "┌─" + "s".center(self.left_fill + 1, '─') + "─┐"
+        self.top_format = self.top_format.replace('s', '%s')
         self.mid_format = "┤{} %s ├".format(self.wire_label)
         self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = top_connect if top_connect else '─'
@@ -290,7 +299,8 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.left_fill = len(self.wire_label)
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
+        self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
         self.bot_connect = '┬' if conditional else bot_connect
 
@@ -330,7 +340,8 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
         self.bot_pad = '─'
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
-        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
+        self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
         self.bot_connect = bot_connect
 
@@ -519,13 +530,12 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False, global_phase=None):
+                 cregbundle=False, global_phase=None, encoding=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
-
         self.cregbundle = cregbundle
         self.global_phase = global_phase
         self.plotbarriers = plotbarriers
@@ -533,6 +543,7 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        self.encoding = encoding if encoding else sys.stdout.encoding
 
     def __str__(self):
         return self.single_string()
@@ -550,20 +561,25 @@ class TextDrawing():
 
     def single_string(self):
         """Creates a long string with the ascii art.
-
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
-        return "\n".join(self.lines())
+        try:
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            warn('The encoding %s has a limited charset. Consider a different encoding in your '
+                 'environment. UTF-8 is being used instead' % self.encoding, RuntimeWarning)
+            self.encoding = 'utf-8'
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
 
-    def dump(self, filename, encoding="utf8"):
+    def dump(self, filename, encoding=None):
         """Dumps the ascii art in the file.
 
         Args:
             filename (str): File to dump the ascii art.
-            encoding (str): Optional. Default "utf-8".
+            encoding (str): Optional. Force encoding, instead of self.encoding.
         """
-        with open(filename, mode='w', encoding=encoding) as text_file:
+        with open(filename, mode='w', encoding=encoding or self.encoding) as text_file:
             text_file.write(self.single_string())
 
     def lines(self, line_length=None):
@@ -668,10 +684,14 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '{name}_{index} -> {physical} ' + initial_qubit_value
-                qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
-                                                 index=self.layout[bit.index].index,
-                                                 physical=bit.index))
+                if self.layout[bit.index]:
+                    label = '{name}_{index} -> {physical} ' + initial_qubit_value
+                    qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
+                                                     index=self.layout[bit.index].index,
+                                                     physical=bit.index))
+                else:
+                    qubit_labels.append('%s ' % bit.index + initial_qubit_value)
+
         clbit_labels = []
         previous_creg = None
         for bit in self.cregs:
@@ -772,7 +792,9 @@ class TextDrawing():
         labels = {IGate: 'I',
                   Initialize: 'initialize',
                   UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian'}
+                  HamiltonianGate: 'Hamiltonian',
+                  SXGate: '√X',
+                  SXdgGate: '√XDG'}
         instruction_type = type(instruction)
         if instruction_type in {Gate, Instruction}:
             return instruction.name
@@ -793,7 +815,10 @@ class TextDrawing():
         params = TextDrawing.params_for_label(instruction)
 
         if params:
-            label += "(%s)" % ','.join(params)
+            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
+                label += "(%s[%s])" % (params[0], instruction.op.unit)
+            else:
+                label += "(%s)" % ','.join(params)
         return label
 
     @staticmethod
@@ -884,7 +909,7 @@ class TextDrawing():
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
         args_qubits = instruction.qargs[num_ctrl_qubits:]
-        ctrl_state = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        ctrl_state = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
         in_box = list()
         top_box = list()
@@ -908,7 +933,7 @@ class TextDrawing():
         gates = []
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        cstate = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(len(ctrl_qubits)):
             if cstate[i] == '1':
                 gates.append(Bullet(conditional=conditional, label=ctrl_label,

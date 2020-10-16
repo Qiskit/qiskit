@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -19,7 +17,7 @@
 from typing import Union, List
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 

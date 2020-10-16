@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -45,5 +43,9 @@ def dag_to_dagdependency(dag):
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
 
     dagdependency._add_successors()
+
+    # copy metadata
+    dagdependency.global_phase = dag.global_phase
+    dagdependency.calibrations = dag.calibrations
 
     return dagdependency

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -289,7 +287,7 @@ class TwoQubitBasisDecomposer():
         gate (Gate): Two-qubit gate to be used in the KAK decomposition.
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
+            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'RR']. Default 'U3'.
     """
 
     def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):
@@ -382,7 +380,7 @@ class TwoQubitBasisDecomposer():
                 4]
 
     @staticmethod
-    def decomp0(target):
+    def decomp0(target, eps=1e-15):
         """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
         Result Ur has trace:
         :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
@@ -390,7 +388,10 @@ class TwoQubitBasisDecomposer():
 
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
-
+        U0l.real[abs(U0l.real) < eps] = 0.0
+        U0l.imag[abs(U0l.imag) < eps] = 0.0
+        U0r.real[abs(U0r.real) < eps] = 0.0
+        U0r.imag[abs(U0r.imag) < eps] = 0.0
         return U0r, U0l
 
     def decomp1(self, target):

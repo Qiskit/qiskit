@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -21,7 +19,7 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Parameter
+from qiskit.circuit import Instruction, Gate, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
@@ -37,10 +35,23 @@ from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, Fak
 from qiskit.validation.jsonschema import SchemaValidationError
 
 
+class RxGate(Gate):
+    """Used to test custom gate assembly.
+
+    Useful for testing pulse gates with parameters, as well.
+    Note: Parallel maps (e.g., in assemble_circuits) pickle their input,
+          so circuit features have to be defined top level.
+    """
+
+    def __init__(self, theta):
+        super().__init__('rxtheta', 1, [theta])
+
+
 class TestCircuitAssembler(QiskitTestCase):
     """Tests for assembling circuits to qobj."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(2, name='q')
         cr = ClassicalRegister(2, name='c')
         self.circ = QuantumCircuit(qr, cr, name='circ')
@@ -128,6 +139,51 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_backend_rep_delays(self):
+        """Check that rep_delay is properly set from backend values."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        rep_delay_range = [2.5e-3, 4.5e-3]  # sec
+        default_rep_delay = 3.0e-3
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(backend_config, 'default_rep_delay', default_rep_delay)
+
+        # dynamic rep rates off
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # dynamic rep rates on
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(qobj.config.rep_delay, default_rep_delay*1e6)
+
+    def test_assemble_user_rep_time_delay(self):
+        """Check that user runtime config rep_delay works."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        # set custom rep_delay in runtime config
+        rep_delay = 2.2e-6
+        rep_delay_range = [0, 3e-6]  # sec
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+
+        # dynamic rep rates off (no default so shouldn't be in qobj config)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # turn on dynamic rep rates, rep_delay should be set
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(qobj.config.rep_delay, 2.2)
+
+        # test ``rep_delay=0``
+        qobj = assemble(self.circ, backend, rep_delay=0)
+        self.assertEqual(qobj.config.rep_delay, 0)
+
+        # use ``rep_delay`` outside of ``rep_delay_range```
+        rep_delay_large = 5.0e-6
+        with self.assertRaises(SchemaValidationError):
+            assemble(self.circ, backend, rep_delay=rep_delay_large)
 
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
@@ -227,10 +283,10 @@ class TestCircuitAssembler(QiskitTestCase):
         full_param_circ = QuantumCircuit(qr)
         partial_param_circ = QuantumCircuit(qr)
 
-        partial_param_circ.u1(x, qr[0])
+        partial_param_circ.p(x, qr[0])
 
-        full_param_circ.u1(x, qr[0])
-        full_param_circ.u1(y, qr[1])
+        full_param_circ.p(x, qr[0])
+        full_param_circ.p(y, qr[1])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
         full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
@@ -266,7 +322,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         expr_circ = QuantumCircuit(qr)
 
-        expr_circ.u1(x+y, qr[0])
+        expr_circ.p(x+y, qr[0])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
 
@@ -289,12 +345,12 @@ class TestCircuitAssembler(QiskitTestCase):
         sum_ = x + y
         product_ = x * y
 
-        qc1.u2(x, y, qr[0])
+        qc1.u(x, y, 0, qr[0])
 
         qc2.rz(x, qr[0])
         qc2.rz(y, qr[0])
 
-        qc3.u2(sum_, product_, qr[0])
+        qc3.u(sum_, product_, 0, qr[0])
 
         bind_args = {'parameter_binds': [{x: 0, y: 0},
                                          {x: 1, y: 0},
@@ -312,9 +368,9 @@ class TestCircuitAssembler(QiskitTestCase):
             inst = expt.instructions[inst_no]
             return [float(p) for p in inst.params]
 
-        self.assertEqual(_qobj_inst_params(0, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(1, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(2, 0), [1, 1])
+        self.assertEqual(_qobj_inst_params(0, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(1, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(2, 0), [1, 1, 0])
 
         self.assertEqual(_qobj_inst_params(3, 0), [0])
         self.assertEqual(_qobj_inst_params(3, 1), [0])
@@ -323,9 +379,9 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(5, 0), [1])
         self.assertEqual(_qobj_inst_params(5, 1), [1])
 
-        self.assertEqual(_qobj_inst_params(6, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
+        self.assertEqual(_qobj_inst_params(6, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
@@ -355,11 +411,125 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
 
+    def test_circuit_global_phase_gate_definitions(self):
+        """Test circuit with global phase on gate definitions."""
+        class TestGate(Gate):
+            """dummy gate"""
+            def __init__(self):
+                super().__init__('test_gate', 1, [])
+
+            def _define(self):
+                circ_def = QuantumCircuit(1)
+                circ_def.x(0)
+                circ_def.global_phase = np.pi
+                self._definition = circ_def
+
+        gate = TestGate()
+        circ = QuantumCircuit(1)
+        circ.append(gate, [0])
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), 0)
+        circ.global_phase = np.pi / 2
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), np.pi/2)
+
+    def test_pulse_gates_single_circ(self):
+        """Test that we can add calibrations to circuits."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [0])
+        circ.append(RxGate(theta), [1])
+        circ = circ.assign_parameters({theta: 3.14})
+
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        with pulse.build() as x180:
+            pulse.play(pulse.library.Gaussian(50, 0.2, 5), pulse.DriveChannel(1))
+
+        circ.add_calibration('h', [0], custom_h_schedule)
+        circ.add_calibration(RxGate(3.14), [0], x180)
+        circ.add_calibration(RxGate(3.14), [1], x180)
+
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        # Only one circuit, so everything is stored at the job level
+        cals = qobj.config.calibrations
+        lib = qobj.config.pulse_library
+        self.assertFalse(hasattr(qobj.experiments[0].config, 'calibrations'))
+        self.assertEqual([gate.name == 'rxtheta' for gate in cals.gates].count(True), 2)
+        self.assertEqual([gate.name == 'h' for gate in cals.gates].count(True), 1)
+        self.assertEqual(len(lib), 2)
+        self.assertTrue(all(len(item.samples) == 50 for item in lib))
+
+    def test_pulse_gates_with_parameteric_pulses(self):
+        """Test that pulse gates are assembled efficiently for backends that enable
+        parametric pulses.
+        """
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.add_calibration('h', [0], custom_h_schedule)
+
+        backend = FakeOpenPulse2Q()
+        backend.configuration().parametric_pulses = ['drag']
+        qobj = assemble(circ, backend)
+        self.assertFalse(hasattr(qobj.config, 'pulse_library'))
+        self.assertTrue(hasattr(qobj.config, 'calibrations'))
+
+    def test_pulse_gates_multiple_circuits(self):
+        """Test one circuit with cals and another without."""
+        with pulse.build() as dummy_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [1])
+        circ.add_calibration('h', [0], dummy_sched)
+        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        circ2 = QuantumCircuit(2)
+        circ2.h(0)
+
+        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.pulse_library), 1)
+        self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 2)
+        self.assertFalse(hasattr(qobj.config, 'calibrations'))
+        self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
+
+    def test_pulse_gates_common_cals(self):
+        """Test that common calibrations are added at the top level."""
+        with pulse.build() as dummy_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [1])
+        circ.add_calibration('h', [0], dummy_sched)
+        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        circ2 = QuantumCircuit(2)
+        circ2.h(0)
+        circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        # Identical pulses are only added once
+        self.assertEqual(len(qobj.config.pulse_library), 1)
+        # Identical calibrations are only added once
+        self.assertEqual(qobj.config.calibrations.gates[0].name, 'rxtheta')
+        self.assertEqual(qobj.config.calibrations.gates[0].params, [3.14])
+        self.assertEqual(qobj.config.calibrations.gates[0].qubits, [1])
+        self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
+        self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
+
 
 class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
@@ -735,21 +905,24 @@ class TestPulseAssembler(QiskitTestCase):
         """Check that rep_time and rep_delay are properly set from backend values."""
         # use first entry from allowed backend values
         rep_times = [2.0, 3.0, 4.0]  # sec
-        rep_delays = [2.5e-3, 3.5e-3, 4.5e-3]
+        rep_delay_range = [2.5e-3, 4.5e-3]
+        default_rep_delay = 3.0e-3
         self.backend_config.rep_times = rep_times
-        self.backend_config.rep_delays = rep_delays
-        # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
-        with self.assertWarns(RuntimeWarning):
-            qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
-        self.assertEqual(qobj.config.rep_delay, rep_delays[0]*1e6)
+        setattr(self.backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(self.backend_config, 'default_rep_delay', default_rep_delay)
 
-        # remove rep_delays from backend config and make sure things work
-        # now no warning
-        del self.backend_config.rep_delays
+        # dynamic rep rates off
         qobj = assemble(self.schedule, self.backend)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # dynamic rep rates on
+        setattr(self.backend_config, 'dynamic_reprate_enabled', True)
+        # RuntimeWarning bc ``rep_time`` is specified`` when dynamic rep rates not enabled
+        with self.assertWarns(RuntimeWarning):
+            qobj = assemble(self.schedule, self.backend)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
+        self.assertEqual(qobj.config.rep_delay, default_rep_delay*1e6)
 
     def test_assemble_user_rep_time_delay(self):
         """Check that user runtime config rep_time and rep_delay work."""
@@ -758,30 +931,44 @@ class TestPulseAssembler(QiskitTestCase):
         rep_delay = 2.5e-6
         self.config['rep_time'] = rep_time
         self.config['rep_delay'] = rep_delay
-        # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
-        with self.assertWarns(RuntimeWarning):
-            qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
-        self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
-        # now remove rep_delay and set enable dynamic rep rates
-        # RuntimeWarning bc using ``rep_time`` when dynamic rep rates are enabled
-        del self.config['rep_delay']
-        self.backend_config.dynamic_reprate_enabled = True
+        # dynamic rep rates off
+        # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates off
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
-        # finally, only use rep_delay and verify that everything runs w/ no warning
-        # rep_time comes from allowed backed rep_times
+        # now remove rep_delay and enable dynamic rep rates
+        # RuntimeWarning bc using ``rep_time`` when dynamic rep rates are enabled
+        del self.config['rep_delay']
+        setattr(self.backend_config, 'dynamic_reprate_enabled', True)
+        with self.assertWarns(RuntimeWarning):
+            qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # use ``default_rep_delay``
+        # ``rep_time`` comes from allowed backend rep_times
         rep_times = [0.5, 1.0, 1.5]  # sec
         self.backend_config.rep_times = rep_times
+        setattr(self.backend_config, 'rep_delay_range', [0, 3.0e-6])
+        setattr(self.backend_config, 'default_rep_delay', 2.2e-6)
         del self.config['rep_time']
-        self.config['rep_delay'] = rep_delay
         qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
-        self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
+        self.assertEqual(qobj.config.rep_delay, 2.2)
+
+        # use qobj ``default_rep_delay``
+        self.config['rep_delay'] = 1.5e-6
+        qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
+        self.assertEqual(qobj.config.rep_delay, 1.5)
+
+        # use ``rep_delay`` outside of ``rep_delay_range
+        self.config['rep_delay'] = 5.0e-6
+        with self.assertRaises(SchemaValidationError):
+            assemble(self.schedule, self.backend, **self.config)
 
     def test_assemble_with_individual_discriminators(self):
         """Test that assembly works with individual discriminators."""
@@ -915,11 +1102,18 @@ class TestPulseAssembler(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      meas_map=[[0, 1, 2]])
 
+    def test_assemble_single_instruction(self):
+        """Test assembling schedules, no lo config."""
+        inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        qobj = assemble(inst, self.backend)
+        validate_qobj_against_schema(qobj)
+
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
 
     def setUp(self):
+        super().setUp()
         self.schedule = pulse.Schedule(name='fake_experiment')
 
         self.backend = FakeOpenPulse2Q()
@@ -1096,6 +1290,7 @@ class TestLogAssembler(QiskitTestCase):
     """Testing the log_assembly option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -487,7 +485,7 @@ class TestStochasticSwap(QiskitTestCase):
         pass_ = StochasticSwap(coupling, 20, 5)
         after = pass_.run(dag)
 
-        valid_couplings = [set([qr[a], qr[b]])
+        valid_couplings = [{qr[a], qr[b]}
                            for (a, b) in coupling.get_edges()]
 
         for _2q_gate in after.two_qubit_ops():
@@ -520,11 +518,11 @@ class TestStochasticSwap(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[0], qr[4])
         circuit.cx(qr[1], qr[2])
-        circuit.u3(1, 1.5, 0.7, qr[3])
+        circuit.u(1, 1.5, 0.7, qr[3])
 
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[1], qr[2])
-        expected.u3(1, 1.5, 0.7, qr[3])
+        expected.u(1, 1.5, 0.7, qr[3])
         expected.swap(qr[0], qr[1])
         expected.swap(qr[3], qr[4])
         expected.cx(qr[1], qr[3])

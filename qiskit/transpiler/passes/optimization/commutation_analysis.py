@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -37,7 +35,6 @@ class CommutationAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self.gates_on_wire = {}
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -56,7 +53,7 @@ class CommutationAnalysis(AnalysisPass):
         # commutation set that contains node.
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
+            wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
@@ -68,7 +65,7 @@ class CommutationAnalysis(AnalysisPass):
 
         # Construct the commutation set
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
+            wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
 
             for current_gate in dag.nodes_on_wire(wire):
 
@@ -98,7 +95,7 @@ def _commute(node1, node2, cache):
     if node1.type != "op" or node2.type != "op":
         return False
 
-    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy"}
+    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
             for nd in [node1, node2]]):
         return False
 

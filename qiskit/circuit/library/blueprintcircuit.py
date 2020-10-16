@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -101,6 +99,16 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().append(instruction, qargs, cargs)
+
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+        if self._data is None:
+            self._build()
+        return super().compose(other, qubits, clbits, front, inplace)
+
+    def inverse(self):
+        if self._data is None:
+            self._build()
+        return super().inverse()
 
     def __len__(self):
         return len(self.data)

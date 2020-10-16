@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -113,7 +111,7 @@ def control(operation: Union[Gate, ControlledGate],
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
-        basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
+        basis = ['p', 'u', 'x', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         for gate, qreg, _ in unrolled_gate.definition.data:
             if gate.name == 'x':
@@ -132,13 +130,15 @@ def control(operation: Union[Gate, ControlledGate],
                 controlled_circ.mcrz(gate.definition.data[0][0].params[0],
                                      q_control, q_target[qreg[0].index],
                                      use_basis_gates=True)
-            elif gate.name == 'u1':
-                controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
+            elif gate.name == 'p':
+                from qiskit.circuit.library import MCPhaseGate
+                controlled_circ.append(MCPhaseGate(gate.params[0], num_ctrl_qubits),
+                                       q_control[:] + [q_target[qreg[0].index]])
             elif gate.name == 'cx':
                 controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
                                     q_target[qreg[1].index],
                                     q_ancillae)
-            elif gate.name == 'u3':
+            elif gate.name == 'u':
                 theta, phi, lamb = gate.params
                 if phi == -pi / 2 and lamb == pi / 2:
                     controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
@@ -164,10 +164,10 @@ def control(operation: Union[Gate, ControlledGate],
     # apply controlled global phase
     if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
         if len(q_control) < 2:
-            controlled_circ.u1(operation.definition.global_phase + global_phase, q_control)
+            controlled_circ.p(operation.definition.global_phase + global_phase, q_control)
         else:
-            controlled_circ.mcu1(operation.definition.global_phase + global_phase,
-                                 q_control[:-1], q_control[-1])
+            controlled_circ.mcp(operation.definition.global_phase + global_phase,
+                                q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
@@ -183,18 +183,18 @@ def control(operation: Union[Gate, ControlledGate],
     # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
-        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
+        ctrl_substr = 'c{:d}'.format(new_num_ctrl_qubits)
     else:
         ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
-    new_name = '{0}{1}'.format(ctrl_substr, base_name)
+    new_name = '{}{}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
                                           controlled_circ.num_qubits,
                                           operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=controlled_circ,
-                                          ctrl_state=new_ctrl_state)
-    cgate.base_gate = base_gate
+                                          ctrl_state=new_ctrl_state,
+                                          base_gate=base_gate)
     return cgate
 
 

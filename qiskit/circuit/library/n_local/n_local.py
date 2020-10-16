@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -19,7 +17,8 @@ from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
 import numpy
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
 

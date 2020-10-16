@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -31,10 +29,13 @@ Standard Gates
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
+   CSXGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -42,8 +43,14 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Measure
    MSGate
+   PhaseGate
    RCCXGate
    RC3XGate
    Reset
@@ -58,8 +65,11 @@ Standard Gates
    SdgGate
    SwapGate
    iSwapGate
+   SXGate
+   SXdgGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
@@ -78,6 +88,10 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   GR
+   GRX
+   GRY
+   GRZ
 
 Boolean Logic Circuits
 ======================
@@ -136,6 +150,14 @@ Functions on binary variables
 
    QuadraticForm
 
+Amplitude Functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+
 Particular Quantum Circuits
 ===========================
 
@@ -148,6 +170,17 @@ Particular Quantum Circuits
    IQP
    QuantumVolume
    PhaseEstimation
+   GroverOperator
+
+Probability distributions
+=========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UniformDistribution
+   NormalDistribution
+   LogNormalDistribution
 
 
 N-local circuits
@@ -173,9 +206,65 @@ Data encoding circuits
    ZFeatureMap
    ZZFeatureMap
 
+NCT (Not-CNOT-Toffoli) template circuits
+========================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   templates.nct.template_nct_2a_1
+   templates.nct.template_nct_2a_2
+   templates.nct.template_nct_2a_3
+   templates.nct.template_nct_4a_1
+   templates.nct.template_nct_4a_2
+   templates.nct.template_nct_4a_3
+   templates.nct.template_nct_4b_1
+   templates.nct.template_nct_4b_2
+   templates.nct.template_nct_5a_1
+   templates.nct.template_nct_5a_2
+   templates.nct.template_nct_5a_3
+   templates.nct.template_nct_5a_4
+   templates.nct.template_nct_6a_1
+   templates.nct.template_nct_6a_2
+   templates.nct.template_nct_6a_3
+   templates.nct.template_nct_6a_4
+   templates.nct.template_nct_6b_1
+   templates.nct.template_nct_6b_2
+   templates.nct.template_nct_6c_1
+   templates.nct.template_nct_7a_1
+   templates.nct.template_nct_7b_1
+   templates.nct.template_nct_7c_1
+   templates.nct.template_nct_7d_1
+   templates.nct.template_nct_7e_1
+   templates.nct.template_nct_2a_1
+   templates.nct.template_nct_9a_1
+   templates.nct.template_nct_9c_1
+   templates.nct.template_nct_9c_2
+   templates.nct.template_nct_9c_3
+   templates.nct.template_nct_9c_4
+   templates.nct.template_nct_9c_5
+   templates.nct.template_nct_9c_6
+   templates.nct.template_nct_9c_7
+   templates.nct.template_nct_9c_8
+   templates.nct.template_nct_9c_9
+   templates.nct.template_nct_9c_10
+   templates.nct.template_nct_9c_11
+   templates.nct.template_nct_9c_12
+   templates.nct.template_nct_9d_1
+   templates.nct.template_nct_9d_2
+   templates.nct.template_nct_9d_3
+   templates.nct.template_nct_9d_4
+   templates.nct.template_nct_9d_5
+   templates.nct.template_nct_9d_6
+   templates.nct.template_nct_9d_7
+   templates.nct.template_nct_9d_8
+   templates.nct.template_nct_9d_9
+   templates.nct.template_nct_9d_10
+
 """
 
 from .standard_gates import *
+from .templates import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
@@ -186,7 +275,11 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
-    GMS
+    GMS,
+    GR,
+    GRX,
+    GRY,
+    GRZ
 )
 from .boolean_logic import (
     AND,
@@ -203,6 +296,7 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
     QuadraticForm,
+    LinearAmplitudeFunction,
 )
 from .n_local import (
     NLocal,
@@ -216,9 +310,15 @@ from .data_preparation import (
     ZFeatureMap,
     ZZFeatureMap
 )
+from .probability_distributions import (
+    LogNormalDistribution,
+    NormalDistribution,
+    UniformDistribution
+)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
+from .grover_operator import GroverOperator

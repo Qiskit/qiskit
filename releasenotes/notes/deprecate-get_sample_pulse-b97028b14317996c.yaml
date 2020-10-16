@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    Deprecated :meth:`qiskit.pulse.library.ParametricPulse.get_sample_pulse` in
-    favour of :meth:`qiskit.pulse.library.ParametricPulse.get_waveform`.

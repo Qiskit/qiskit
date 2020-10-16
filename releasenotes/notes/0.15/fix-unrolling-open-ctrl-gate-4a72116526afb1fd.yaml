@@ -1,0 +1,10 @@
+fixes:
+  - |
+    Open controls were implemented by modifying a :class:`~qiskit.circuit.Gate`
+    objects :attr:`~qiskit.circuit.Gate.definition`. However, when the gate
+    already exists in the basis set, this definition was not used, which
+    resulted in incorrect circuits being sent to a backend after transpilation.
+    This has been fixed by modifying the :class:`~qiskit.transpiler.Unroller`
+    pass to use the definition if it encounters a controlled gate with open
+    controls.
+    Fixes `#4437 <https://github.com/Qiskit/qiskit-terra/issues/4437>`__
