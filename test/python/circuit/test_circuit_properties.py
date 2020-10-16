@@ -63,7 +63,8 @@ class TestCircuitProperties(QiskitTestCase):
         """
         self.assertRaises(CircuitError, QuantumCircuit, 2.2)
         # but an integer float should pass
-        QuantumCircuit(2.0)
+        qc = QuantumCircuit(2.0)
+        self.assertEqual(qc.num_qubits, 2)
 
     def test_circuit_depth_empty(self):
         """Test depth of empty circuity
