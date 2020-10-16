@@ -281,6 +281,7 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(Operator(qc), Operator(qcd))
 
+
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
 
