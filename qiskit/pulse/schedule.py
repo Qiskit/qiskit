@@ -638,6 +638,18 @@ class Schedule(ScheduleComponent):
                     'overlapping instructions.'.format(
                         old=old, new=new)) from err
 
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the schedule behavior."""
+        params = set()
+        for _, inst in self.instructions:
+            params.update(inst.parameters)
+        return params
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType],
                           ) -> 'Schedule':
@@ -653,20 +665,16 @@ class Schedule(ScheduleComponent):
         for _, inst in self.instructions:
             inst.assign_parameters(value_dict)
 
+        # Update timeslots according to new channel keys
         for chan in copy.copy(self._timeslots):
             if isinstance(chan.index, ParameterExpression):
                 chan_timeslots = self._timeslots.pop(chan)
 
                 # Find the channel's new assignment
                 new_channel = chan
-                for param in chan.index.parameters:
-                    if param in value_dict:
-                        new_index = new_channel.index.assign(param, value_dict[param])
-                        if not new_index.parameters:
-                            new_index = float(new_index)
-                            if float(new_index).is_integer():
-                                new_index = int(new_index)
-                        new_channel = type(chan)(new_index)
+                for param, value in value_dict.items():
+                    if param in new_channel.parameters:
+                        new_channel = new_channel.assign(param, value)
 
                 # Merge with existing channel
                 if new_channel in self._timeslots:
