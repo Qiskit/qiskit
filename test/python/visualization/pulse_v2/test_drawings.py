@@ -137,3 +137,49 @@ class TestDrawingObjects(QiskitTestCase):
                                   styles=self.style2)
 
         self.assertEqual(data1, data2)
+
+    def test_box_data(self):
+        """Test for BoxData."""
+        xs = [0, 1]
+        ys = [-1, 1]
+
+        data1 = drawings.BoxData(data_type='test',
+                                 xvals=xs,
+                                 yvals=ys,
+                                 channels=self.ch_d0,
+                                 meta=self.meta1,
+                                 ignore_scaling=True,
+                                 styles=self.style1)
+
+        data2 = drawings.BoxData(data_type='test',
+                                 xvals=xs,
+                                 yvals=ys,
+                                 channels=self.ch_d1,
+                                 meta=self.meta2,
+                                 ignore_scaling=True,
+                                 styles=self.style2)
+
+        self.assertEqual(data1, data2)
+
+    def test_box_data_with_abstract_coordinate(self):
+        """Test for BoxData with abstract coordinate."""
+        xs = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
+        ys = [types.AbstractCoordinate.BOTTOM, types.AbstractCoordinate.TOP]
+
+        data1 = drawings.BoxData(data_type='test',
+                                 xvals=xs,
+                                 yvals=ys,
+                                 channels=self.ch_d0,
+                                 meta=self.meta1,
+                                 ignore_scaling=True,
+                                 styles=self.style1)
+
+        data2 = drawings.BoxData(data_type='test',
+                                 xvals=xs,
+                                 yvals=ys,
+                                 channels=self.ch_d1,
+                                 meta=self.meta2,
+                                 ignore_scaling=True,
+                                 styles=self.style2)
+
+        self.assertEqual(data1, data2)

@@ -16,7 +16,7 @@
 
 import numpy as np
 
-from qiskit import pulse
+from qiskit import pulse, circuit
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import (barrier,
@@ -321,6 +321,56 @@ class TestWaveformGenerators(QiskitTestCase):
                      'va': 'top',
                      'ha': 'center'}
         self.assertDictEqual(objs[1].styles, ref_style)
+
+    def gen_filled_waveform_stepwise_opaque(self):
+        """Test generating waveform with unbound parameter."""
+        amp = circuit.Parameter('amp')
+        my_pulse = pulse.Gaussian(10, amp, 3, name='my_pulse')
+        play = pulse.Play(my_pulse, pulse.DriveChannel(0))
+        inst_data = create_instruction(play, np.pi/2, 5e9, 5, 0.1)
+
+        objs = waveform.gen_filled_waveform_stepwise(inst_data,
+                                                     formatter=self.formatter,
+                                                     device=self.device)
+
+        self.assertEqual(len(objs), 2)
+
+        # type check
+        self.assertEqual(type(objs[0]), drawings.BoxData)
+        self.assertEqual(type(objs[1]), drawings.TextData)
+
+        x_ref = np.array([5, 15])
+        y_ref = np.array([-0.5 * self.formatter['box_height.opaque_shape'],
+                          0.5 * self.formatter['box_height.opaque_shape']])
+
+        # data check
+        np.testing.assert_array_equal(objs[0].xvals, x_ref)
+        np.testing.assert_array_equal(objs[0].yvals, y_ref)
+
+        # meta data check
+        ref_meta = {'duration (cycle time)': 4,
+                    'duration (sec)': 0.4,
+                    't0 (cycle time)': 5,
+                    't0 (sec)': 0.5,
+                    'pulse shape': 'Gaussian',
+                    'phase': np.pi/2,
+                    'frequency': 5e9,
+                    'qubit': 0,
+                    'name': 'my_pulse',
+                    'data': 'real'}
+        self.assertDictEqual(objs[0].meta, ref_meta)
+
+        # style check
+        ref_style = {'alpha': self.formatter['alpha.opaque_shape'],
+                     'zorder': self.formatter['layer.fill_waveform'],
+                     'linewidth': self.formatter['line_width.opaque_shape'],
+                     'linestyle': self.formatter['line_style.opaque_shape'],
+                     'facecolor': self.formatter['color.opaque_shape'][0],
+                     'edgecolor': self.formatter['color.opaque_shape'][1]}
+        self.assertDictEqual(objs[0].styles, ref_style)
+
+        # test label
+        self.assertEqual(objs[1].text, 'Gaussian(amp1)')
 
 
 class TestChartGenerators(QiskitTestCase):
