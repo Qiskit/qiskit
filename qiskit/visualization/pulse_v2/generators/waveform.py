@@ -165,6 +165,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         fc, ec = formatter['color.opaque_shape']
         # setup style options
         box_style = {'zorder': formatter['layer.fill_waveform'],
+                     'alpha': formatter['alpha.opaque_shape'],
                      'linewidth': formatter['line_width.opaque_shape'],
                      'linestyle': formatter['line_style.opaque_shape'],
                      'facecolor': fc,
@@ -271,7 +272,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
         systematic_name = 'Measure'
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name
+        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
 
         template = r'(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+'
         match_result = re.match(template, systematic_name)

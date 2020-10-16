@@ -323,6 +323,8 @@ def time_map_in_ns(time_window: Tuple[int, int],
     """
     # shift time axis
     t0, t1 = time_window
+    t0_shift = t0
+    t1_shift = t1
 
     axis_break_pos = []
     offset_accumulation = 0
@@ -330,20 +332,19 @@ def time_map_in_ns(time_window: Tuple[int, int],
         if t1b < t0 or t0b > t1:
             continue
         if t0 > t1b:
-            t0 -= t1b - t0b
+            t0_shift -= t1b - t0b
         if t1 > t1b:
-            t1 -= t1b - t0b
+            t1_shift -= t1b - t0b
         axis_break_pos.append(t0b - offset_accumulation)
-        offset_accumulation += t0b - t1b
+        offset_accumulation += t1b - t0b
 
     # axis label
-    axis_loc = np.linspace(max(t0, 0), t1, 6)
+    axis_loc = np.linspace(max(t0_shift, 0), t1_shift, 6)
     axis_label = axis_loc.copy()
 
-    offset_accumulation = 0
     for t0b, t1b in axis_breaks:
-        offset_accumulation += t1b - t0b
-        axis_label = np.where(axis_label > t0b, axis_label + offset_accumulation, axis_label)
+        offset = t1b - t0b
+        axis_label = np.where(axis_label > t0b, axis_label + offset, axis_label)
 
     # consider time resolution
     if dt:
@@ -355,7 +356,7 @@ def time_map_in_ns(time_window: Tuple[int, int],
     formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
 
     return types.HorizontalAxis(
-        window=(t0, t1),
+        window=(t0_shift, t1_shift),
         axis_map=dict(zip(axis_loc, formatted_label)),
         axis_break_pos=axis_break_pos,
         label=label

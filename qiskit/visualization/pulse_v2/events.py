@@ -171,6 +171,13 @@ class ChannelEvents:
                     frame_changes=frame_changes,
                     phase=phase,
                     frequency=frequency)
+
+            # Convert parameter expression into float
+            if isinstance(phase, circuit.ParameterExpression):
+                phase = float(phase.bind({param: 0 for param in phase.parameters}))
+            if isinstance(frequency, circuit.ParameterExpression):
+                frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
+
             frame = PhaseFreqTuple(phase, frequency)
 
             # Check if pulse has unbound parameters
@@ -198,7 +205,17 @@ class ChannelEvents:
                 frame_changes=frame_changes,
                 phase=phase,
                 frequency=frequency)
+
+            # keep parameter expression to check either phase or frequency is parametrized
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
+
+            # remove parameter expressions to find if next frame is parametrized
+            if isinstance(phase, circuit.ParameterExpression):
+                phase = float(phase.bind({param: 0 for param in phase.parameters}))
+                is_opaque = True
+            if isinstance(frequency, circuit.ParameterExpression):
+                frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
+                is_opaque = True
 
             yield PulseInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
@@ -222,24 +239,22 @@ class ChannelEvents:
 
         for frame_change in frame_changes:
             if isinstance(frame_change, pulse.instructions.SetFrequency):
-                try:
-                    frequency = float(frame_change.frequency)
-                except TypeError:
-                    continue
+                frequency = frame_change.frequency
             elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
-                try:
-                    frequency += float(frame_change.frequency)
-                except TypeError:
-                    continue
+                frequency += float(frame_change.frequency)
             elif isinstance(frame_change, pulse.instructions.SetPhase):
-                try:
-                    phase = float(frame_change.phase)
-                except TypeError:
-                    continue
+                phase = float(frame_change.phase)
             elif isinstance(frame_change, pulse.instructions.ShiftPhase):
-                try:
-                    phase += float(frame_change.phase)
-                except TypeError:
-                    continue
+                phase += float(frame_change.phase)
 
         return phase, frequency
+
+    @classmethod
+    def _remove_parameter(cls,
+                          value: circuit.ParameterExpression):
+        """Remove parameter from parameter expression.
+
+        Args:
+            value: A value to remove parameter.
+        """
+        return float(value.bind({param: 0 for param in value.parameters}))

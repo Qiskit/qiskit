@@ -142,6 +142,8 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             `0` to `1`. The value `0` gives completely transparent base lines (default `1.0`).
         formatter.alpha.barrier: Transparency of barrier lines. A value in the range from
             `0` to `1`. The value `0` gives completely transparent barrier lines (default `0.7`).
+        formatter.alpha.opaque_shape: Transparency of opaque shape box. A value in the range from
+            `0` to `1`. The value `0` gives completely transparent barrier lines (default `0.7`).
         formatter.layer.fill_waveform: Layer index of waveforms. Larger number comes
             in the front of the output image (default `2`).
         formatter.layer.baseline: Layer index of baselines. Larger number comes

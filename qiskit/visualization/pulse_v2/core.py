@@ -427,7 +427,8 @@ class Chart:
 
     # list of waveform type names
     waveform_types = [str(types.WaveformType.REAL.value),
-                      str(types.WaveformType.IMAG.value)]
+                      str(types.WaveformType.IMAG.value),
+                      str(types.WaveformType.OPAQUE.value)]
 
     def __init__(self, parent: DrawerCanvas, name: Optional[str] = None):
         """Create new chart.
@@ -519,7 +520,7 @@ class Chart:
                 continue
 
             # truncate, assume no abstract coordinate in waveform sample
-            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals, yvals=data.yvals)
+            trunc_x, trunc_y = self._truncate_data(data)
 
             # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
@@ -559,9 +560,7 @@ class Chart:
                 continue
 
             # truncate
-            trunc_x, trunc_y = self._truncate_data(
-                xvals=self._bind_coordinate(data.xvals),
-                yvals=self._bind_coordinate(data.yvals))
+            trunc_x, trunc_y = self._truncate_data(data)
 
             # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
@@ -610,9 +609,34 @@ class Chart:
         return list(self._channels)
 
     def _truncate_data(self,
-                       xvals: np.ndarray,
-                       yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """A helper function to remove data points according to time breaks.
+                       data: drawings.ElementaryData):
+        """A helper function to truncate drawings according to time breaks.
+
+        # TODO: move this function to common module to support axis break for timeline.
+
+        Args:
+            data: Drawing object to truncate.
+
+        Returns:
+            Set of truncated numpy arrays for x and y coordinate.
+        """
+        xvals = self._bind_coordinate(data.xvals)
+        yvals = self._bind_coordinate(data.yvals)
+
+        if isinstance(data, drawings.BoxData):
+            # truncate box data. these object don't require interpolation at axis break.
+            return self._truncate_boxes(xvals, yvals)
+        elif data.data_type in [types.LabelType.PULSE_NAME, types.LabelType.OPAQUE_BOXTEXT]:
+            # truncate pulse labels. these objects are not removed by truncation.
+            return self._truncate_pulse_labels(xvals, yvals)
+        else:
+            # other objects
+            return self._truncate_vectors(xvals, yvals)
+
+    def _truncate_pulse_labels(self,
+                               xvals: np.ndarray,
+                               yvals: np.ndarray):
+        """A helper function to remove text according to time breaks.
 
         Args:
             xvals: Time points.
@@ -621,48 +645,202 @@ class Chart:
         Returns:
             Set of truncated numpy arrays for x and y coordinate.
         """
+        xpos = xvals[0]
         t0, t1 = self.parent.time_range
-        time_breaks = [(-np.inf, t0)] + self.parent.time_breaks + [(t1, np.inf)]
 
+        if xpos < t0 or xpos > t1:
+            return np.array([]), np.array([])
+        offset_accumulation = 0
+        for tl, tr in self.parent.time_breaks:
+            if xpos < tl:
+                return np.array([xpos - offset_accumulation]), yvals
+            if tl < xpos < tr:
+                return np.array([tl - offset_accumulation]), yvals
+            else:
+                offset_accumulation += tr - tl
+        return np.array([xpos - offset_accumulation]), yvals
+
+    def _truncate_boxes(self,
+                        xvals: np.ndarray,
+                        yvals: np.ndarray):
+        """A helper function to clip box object according to time breaks.
+
+        Args:
+            xvals: Time points.
+            yvals: Data points.
+
+        Returns:
+            Set of truncated numpy arrays for x and y coordinate.
+        """
+        x0, x1 = xvals
+        t0, t1 = self.parent.time_range
+
+        if x1 < t0 or x0 > t1:
+            # out of drawing range
+            return np.array([]), np.array([])
+
+        # clip outside
+        x0 = max(t0, x0)
+        x1 = min(t1, x1)
+
+        offset_accumulate = 0
+        for tl, tr in self.parent.time_breaks:
+            tl -= offset_accumulate
+            tr -= offset_accumulate
+
+            #
+            # truncate, there are 5 patterns wrt the relative position of truncation and xvals
+            #
+            if x1 < tl:
+                break
+
+            if tl < x0 and tr > x1:
+                # case 1: all data points are truncated
+                #      :   +-----+   :
+                #      :   |/////|   :
+                # -----:---+-----+---:-----
+                #      l   0     1   r
+                return np.array([]), np.array([])
+            elif tl < x1 < tr:
+                # case 2: t < tl, right side is truncated
+                #      +---:-----+   :
+                #      |   ://///|   :
+                # -----+---:-----+---:-----
+                #      0   l     1   r
+                x1 = tl
+            elif tl < x0 < tr:
+                # case 3: tr > t, left side is truncated
+                #      :   +-----:---+
+                #      :   |/////:   |
+                # -----:---+-----:---+-----
+                #      l   0     r   1
+                x0 = tl
+                x1 = tl + t1 - tr
+            elif tl > x0 and tr < x1:
+                # case 4: tr > t > tl, middle part is truncated
+                #      +---:-----:---+
+                #      |   ://///:   |
+                # -----+---:-----:---+-----
+                #      0   l     r   1
+                x1 -= tr - tl
+            elif tr < x0:
+                # case 5: tr > t > tl, nothing truncated but need time shift
+                #      :   :     +---+
+                #      :   :     |   |
+                # -----:---:-----+---+-----
+                #      l   r     0   1
+                x0 -= tr - tl
+                x1 -= tr - tl
+
+            offset_accumulate += tr - tl
+
+        return np.asarray([x0, x1], dtype=float), yvals
+
+    def _truncate_vectors(self,
+                          xvals: np.ndarray,
+                          yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """A helper function to remove sequential data points according to time breaks.
+
+        Args:
+            xvals: Time points.
+            yvals: Data points.
+
+        Returns:
+            Set of truncated numpy arrays for x and y coordinate.
+        """
+        xvals = np.asarray(xvals, dtype=float)
+        yvals = np.asarray(yvals, dtype=float)
+        t0, t1 = self.parent.time_range
+
+        if max(xvals) < t0 or min(xvals) > t1:
+            # out of drawing range
+            return np.array([]), np.array([])
+
+        if min(xvals) < t0:
+            # truncate x less than left limit
+            inds = xvals > t0
+            xvals = np.append(t0, xvals[inds])
+            yvals = np.append(np.interp(t0, xvals, yvals), yvals[inds])
+
+        if max(xvals) > t1:
+            # truncate x larger than right limit
+            inds = xvals < t1
+            xvals = np.append(xvals[inds], t1)
+            yvals = np.append(yvals[inds], np.interp(t1, xvals, yvals))
+
+        # time breaks
         trunc_xvals = [xvals]
         trunc_yvals = [yvals]
-        for t0, t1 in time_breaks:
+        offset_accumulate = 0
+        for tl, tr in self.parent.time_breaks:
             sub_xs = trunc_xvals.pop()
             sub_ys = trunc_yvals.pop()
-            try:
-                trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
-            except TypeError:
-                # abstract coordinate is included
-                return sub_xs, sub_ys
-            # no overlap
-            if not np.any(trunc_inds):
+            tl -= offset_accumulate
+            tr -= offset_accumulate
+
+            #
+            # truncate, there are 5 patterns wrt the relative position of truncation and xvals
+            #
+            min_xs = min(sub_xs)
+            max_xs = max(sub_xs)
+            if max_xs < tl:
                 trunc_xvals.append(sub_xs)
                 trunc_yvals.append(sub_ys)
-                continue
-            # all data points are truncated
-            if np.all(trunc_inds):
+                break
+
+            if tl < min_xs and tr > max_xs:
+                # case 1: all data points are truncated
+                #      :   +-----+   :
+                #      :   |/////|   :
+                # -----:---+-----+---:-----
+                #      l  min   max  r
                 return np.array([]), np.array([])
-
-            # add left side
-            ind_l = np.where(sub_xs < t0, True, False)
-            if np.any(ind_l):
-                trunc_xvals.append(np.append(sub_xs[ind_l], t0))
-                trunc_yvals.append(np.append(sub_ys[ind_l], np.interp(t0, sub_xs, sub_ys)))
-
-            # add right side
-            ind_r = np.where(sub_xs > t1, True, False)
-            if np.any(ind_r):
-                trunc_xvals.append(np.insert(sub_xs[ind_r], 0, t1))
-                trunc_yvals.append(np.insert(sub_ys[ind_r], 0, np.interp(t1, sub_xs, sub_ys)))
+            elif tl < max_xs < tr:
+                # case 2: t < tl, right side is truncated
+                #      +---:-----+   :
+                #      |   ://///|   :
+                # -----+---:-----+---:-----
+                #     min  l    max  r
+                inds = sub_xs > tl
+                trunc_xvals.append(np.append(tl, sub_xs[inds]) - (tl - min_xs))
+                trunc_yvals.append(np.append(np.interp(tl, sub_xs, sub_ys), sub_ys[inds]))
+            elif tl < min_xs < tr:
+                # case 3: tr > t, left side is truncated
+                #      :   +-----:---+
+                #      :   |/////:   |
+                # -----:---+-----:---+-----
+                #      l  min    r  max
+                inds = sub_xs < tr
+                trunc_xvals.append(np.append(sub_xs[inds], tr))
+                trunc_yvals.append(np.append(sub_ys[inds], np.interp(tr, sub_xs, sub_ys)))
+            elif tl > min_xs and tr < max_xs:
+                # case 4: tr > t > tl, middle part is truncated
+                #      +---:-----:---+
+                #      |   ://///:   |
+                # -----+---:-----:---+-----
+                #     min  l     r  max
+                inds0 = sub_xs < tl
+                trunc_xvals.append(np.append(sub_xs[inds0], tl))
+                trunc_yvals.append(np.append(sub_ys[inds0], np.interp(tl, sub_xs, sub_ys)))
+                inds1 = sub_xs > tr
+                trunc_xvals.append(np.append(tr, sub_xs[inds1]) - (tr - tl))
+                trunc_yvals.append(np.append(np.interp(tr, sub_xs, sub_ys), sub_ys[inds1]))
+            elif tr < min_xs:
+                # case 5: tr > t > tl, nothing truncated but need time shift
+                #      :   :     +---+
+                #      :   :     |   |
+                # -----:---:-----+---+-----
+                #      l   r     0   1
+                trunc_xvals.append(sub_xs - (tr - tl))
+                trunc_yvals.append(sub_ys)
+            else:
+                # no need to truncate
+                trunc_xvals.append(sub_xs)
+                trunc_yvals.append(sub_ys)
+            offset_accumulate += tr - tl
 
         new_x = np.concatenate(trunc_xvals)
         new_y = np.concatenate(trunc_yvals)
-
-        # shift time axis
-        offset_accumulation = 0
-        for t0, t1 in time_breaks[1:-1]:
-            offset_accumulation += t1 - t0
-            new_x = np.where(new_x >= t1, new_x - offset_accumulation, new_x)
 
         return np.asarray(new_x, dtype=float), np.asarray(new_y, dtype=float)
 

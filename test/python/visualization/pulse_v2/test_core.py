@@ -120,7 +120,7 @@ class TestChart(QiskitTestCase):
         xvals = np.array([4, 5, 6, 7, 8, 9, 10, 11])
         yvals = np.array([1, 2, 3, 4, 5, 6, 7, 8])
 
-        new_xvals, new_yvals = chart._truncate_data(xvals, yvals)
+        new_xvals, new_yvals = chart._truncate_vectors(xvals, yvals)
 
         ref_xvals = np.array([4., 5., 5., 6.])
         ref_yvals = np.array([1., 2., 7., 8.])
