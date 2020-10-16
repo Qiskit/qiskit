@@ -759,14 +759,14 @@ class Chart:
         if min(xvals) < t0:
             # truncate x less than left limit
             inds = xvals > t0
-            xvals = np.append(t0, xvals[inds])
             yvals = np.append(np.interp(t0, xvals, yvals), yvals[inds])
+            xvals = np.append(t0, xvals[inds])
 
         if max(xvals) > t1:
             # truncate x larger than right limit
             inds = xvals < t1
-            xvals = np.append(xvals[inds], t1)
             yvals = np.append(yvals[inds], np.interp(t1, xvals, yvals))
+            xvals = np.append(xvals[inds], t1)
 
         # time breaks
         trunc_xvals = [xvals]

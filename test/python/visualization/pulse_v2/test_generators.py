@@ -26,10 +26,10 @@ from qiskit.visualization.pulse_v2.generators import (barrier,
                                                       waveform)
 
 
-def create_instruction(inst, phase, freq, t0, dt):
+def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
     """A helper function to create InstructionTuple."""
     frame_info = types.PhaseFreqTuple(phase=phase, freq=freq)
-    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=False)
+    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=is_opaque)
 
 
 class TestWaveformGenerators(QiskitTestCase):
@@ -322,12 +322,12 @@ class TestWaveformGenerators(QiskitTestCase):
                      'ha': 'center'}
         self.assertDictEqual(objs[1].styles, ref_style)
 
-    def gen_filled_waveform_stepwise_opaque(self):
+    def test_gen_filled_waveform_stepwise_opaque(self):
         """Test generating waveform with unbound parameter."""
         amp = circuit.Parameter('amp')
         my_pulse = pulse.Gaussian(10, amp, 3, name='my_pulse')
         play = pulse.Play(my_pulse, pulse.DriveChannel(0))
-        inst_data = create_instruction(play, np.pi/2, 5e9, 5, 0.1)
+        inst_data = create_instruction(play, np.pi/2, 5e9, 5, 0.1, True)
 
         objs = waveform.gen_filled_waveform_stepwise(inst_data,
                                                      formatter=self.formatter,
@@ -348,16 +348,17 @@ class TestWaveformGenerators(QiskitTestCase):
         np.testing.assert_array_equal(objs[0].yvals, y_ref)
 
         # meta data check
-        ref_meta = {'duration (cycle time)': 4,
-                    'duration (sec)': 0.4,
+        ref_meta = {'duration (cycle time)': 10,
+                    'duration (sec)': 1.0,
                     't0 (cycle time)': 5,
                     't0 (sec)': 0.5,
-                    'pulse shape': 'Gaussian',
+                    'waveform shape': 'Gaussian',
+                    'amp': 'amp',
+                    'sigma': 3,
                     'phase': np.pi/2,
                     'frequency': 5e9,
                     'qubit': 0,
-                    'name': 'my_pulse',
-                    'data': 'real'}
+                    'name': 'my_pulse'}
         self.assertDictEqual(objs[0].meta, ref_meta)
 
         # style check
@@ -370,7 +371,7 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertDictEqual(objs[0].styles, ref_style)
 
         # test label
-        self.assertEqual(objs[1].text, 'Gaussian(amp1)')
+        self.assertEqual(objs[1].text, 'Gaussian(amp)')
 
 
 class TestChartGenerators(QiskitTestCase):

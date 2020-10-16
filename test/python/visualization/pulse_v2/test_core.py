@@ -128,6 +128,31 @@ class TestChart(QiskitTestCase):
         np.testing.assert_array_almost_equal(new_xvals, ref_xvals)
         np.testing.assert_array_almost_equal(new_yvals, ref_yvals)
 
+    def test_truncate_multiple(self):
+        """Test pulse truncation."""
+        fake_canvas = core.DrawerCanvas(stylesheet=self.style, device=self.device)
+        fake_canvas.formatter = {
+            'margin.left_percent': 0,
+            'margin.right_percent': 0,
+            'axis_break.length': 20,
+            'axis_break.max_length': 10
+        }
+        fake_canvas.time_range = (2, 12)
+        fake_canvas.time_breaks = [(4, 7), (9, 11)]
+
+        chart = core.Chart(parent=fake_canvas)
+
+        xvals = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        yvals = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+        new_xvals, new_yvals = chart._truncate_vectors(xvals, yvals)
+
+        ref_xvals = np.array([2., 3., 4., 4., 5., 6., 6., 7.])
+        ref_yvals = np.array([1., 1., 1., 1., 1., 1., 1., 1.])
+
+        np.testing.assert_array_almost_equal(new_xvals, ref_xvals)
+        np.testing.assert_array_almost_equal(new_yvals, ref_yvals)
+
     def test_visible(self):
         """Test pulse truncation."""
         fake_canvas = core.DrawerCanvas(stylesheet=self.style, device=self.device)

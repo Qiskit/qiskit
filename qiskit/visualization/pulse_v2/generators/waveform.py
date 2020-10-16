@@ -462,14 +462,28 @@ def _parse_waveform(data: types.PulseInstruction
         if isinstance(operand, pulse.ParametricPulse):
             # parametric pulse
             params = operand.parameters
+            duration = params.pop('duration', None)
+            if isinstance(duration, circuit.Parameter):
+                duration = None
+
             meta.update({'waveform shape': operand.__class__.__name__})
-            meta.update(params)
+            meta.update({key: val.name if isinstance(val, circuit.Parameter) else val for
+                         key, val in params.items()})
             if data.is_opaque:
                 # parametric pulse with unbound parameter
-                if 'duration' not in params or isinstance(params['duration'], circuit.Parameter):
-                    duration = None
+                if duration:
+                    meta.update({'duration (cycle time)': inst.duration,
+                                 'duration (sec)': inst.duration * data.dt if data.dt else 'N/A'})
                 else:
-                    duration = params['duration']
+                    meta.update({'duration (cycle time)': 'N/A',
+                                 'duration (sec)': 'N/A'})
+
+                meta.update({'t0 (cycle time)': data.t0,
+                             't0 (sec)': data.t0 * data.dt if data.dt else 'N/A',
+                             'phase': data.frame.phase,
+                             'frequency': data.frame.freq,
+                             'name': inst.name})
+
                 return types.OpaqueShape(duration=duration, meta=meta)
             else:
                 # fixed shape parametric pulse
