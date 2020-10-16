@@ -24,9 +24,9 @@ For example::
 import warnings
 
 from abc import ABC
-
 from collections import defaultdict
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
+
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -140,16 +140,6 @@ class Instruction(ScheduleComponent, ABC):
         return self._duration
 
     @property
-    def parameters(self) -> Set:
-        """Parameters which determine the instruction behavior."""
-        return set(self._parameter_table.keys())
-
-    @property
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
-
-    @property
     def _children(self) -> Tuple[ScheduleComponent]:
         """Instruction has no child nodes."""
         return ()
@@ -239,6 +229,15 @@ class Instruction(ScheduleComponent, ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        return set(self._parameter_table.keys())
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -252,19 +251,25 @@ class Instruction(ScheduleComponent, ABC):
             Self with updated parameters.
         """
         new_operands = list(self.operands)
-        from copy import copy
-        for parameter, op_indices in copy(self._parameter_table).items():
+
+        for parameter in self.parameters:
             if parameter not in value_dict:
                 continue
 
             value = value_dict[parameter]
+            op_indices = self._parameter_table[parameter]
             for op_idx in op_indices:
                 new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
 
+            # Update parameter table
             if isinstance(value, ParameterExpression):
                 entry = self._parameter_table.pop(parameter)
                 for new_parameter in value.parameters:
-                    self._parameter_table[new_parameter] = entry
+                    if new_parameter in self._parameter_table:
+                        additions = set(entry) - set(self._parameter_table[new_parameter])
+                        self._parameter_table[new_parameter].extend(additions)
+                    else:
+                        self._parameter_table[new_parameter] = entry
             else:
                 del self._parameter_table[parameter]
 
