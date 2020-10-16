@@ -151,9 +151,10 @@ class HoareOptimizer(TransformationPass):
             trgtvar (list(BoolRef)): z3 variables corresponding to latest state
                                      of target qubits
         Returns:
-            bool: if controlled gate can be replaced.
-            DAGCircuit: with U applied to the target qubits.
-            List: with indices of target qubits.
+            Tuple(bool, DAGCircuit, List)::
+              * bool:if controlled gate can be replaced.
+              * DAGCircuit: with U applied to the target qubits.
+              * List: with indices of target qubits.
         """
         remove = False
 
