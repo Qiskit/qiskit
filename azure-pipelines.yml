@@ -71,7 +71,7 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -129,7 +129,7 @@ stages:
     dependsOn: []
     jobs:
     - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -197,7 +197,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'Lint'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -237,7 +237,7 @@ stages:
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -283,7 +283,7 @@ stages:
             Parallel: true
             ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       strategy:
         matrix:
           Python37:
@@ -353,7 +353,7 @@ stages:
     condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Tests'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       strategy:
         matrix:
           Python36:
@@ -426,7 +426,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Windows Python $(python.version)'
     - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python36:
@@ -498,7 +498,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       strategy:
         matrix:
           Python36:
