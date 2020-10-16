@@ -189,14 +189,14 @@ class TestChart(QiskitTestCase):
         np.testing.assert_array_almost_equal(yref, short_pulse.yvals)
 
         long_pulse = chart._output_dataset[self.long_pulse.data_key]
-        xref = np.array([8., 8., 9., 14., 15., 15.])
-        yref = np.array([0., 0.3, 0.3, 0.3, 0.3, 0.])
+        xref = np.array([8., 8., 9., 10., 10., 14., 15., 15.])
+        yref = np.array([0., 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.])
         np.testing.assert_array_almost_equal(xref, long_pulse.xvals)
         np.testing.assert_array_almost_equal(yref, long_pulse.yvals)
 
         abstract_hline = chart._output_dataset[self.abstract_hline.data_key]
-        xref = np.array([0., 15.])
-        yref = np.array([0., 0.])
+        xref = np.array([0., 10., 10., 15.])
+        yref = np.array([0., 0., 0., 0.])
         np.testing.assert_array_almost_equal(xref, abstract_hline.xvals)
         np.testing.assert_array_almost_equal(yref, abstract_hline.yvals)
 

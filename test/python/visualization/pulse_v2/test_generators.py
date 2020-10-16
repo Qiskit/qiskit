@@ -29,7 +29,7 @@ from qiskit.visualization.pulse_v2.generators import (barrier,
 def create_instruction(inst, phase, freq, t0, dt):
     """A helper function to create InstructionTuple."""
     frame_info = types.PhaseFreqTuple(phase=phase, freq=freq)
-    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst)
+    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=False)
 
 
 class TestWaveformGenerators(QiskitTestCase):
