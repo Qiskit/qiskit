@@ -1054,10 +1054,10 @@ class TestControlledGate(QiskitTestCase):
         theta = pi/4
         circ = QuantumCircuit(1, global_phase=theta)
         circ.z(0)
-        V = circ.to_gate()
+        v = circ.to_gate()
 
         qc = QuantumCircuit(1)
-        qc.append(V, [0])
+        qc.append(v, [0])
         ctrl_qc = qc.control(num_ctrl_qubits)
 
         base_mat = Operator(qc).data

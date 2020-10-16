@@ -139,9 +139,9 @@ class TestDecompose(QiskitTestCase):
         circ = QuantumCircuit(1, global_phase=pi / 2)
         circ.x(0)
         circ.h(0)
-        V = circ.to_gate()
+        v = circ.to_gate()
 
         qc = QuantumCircuit(1)
-        qc.append(V, [0])
+        qc.append(v, [0])
         qcd = qc.decompose()
         self.assertEqual(Operator(qc), Operator(qcd))
