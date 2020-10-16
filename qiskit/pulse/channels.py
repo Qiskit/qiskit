@@ -21,7 +21,7 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Set
+from typing import Any, Set
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -43,14 +43,8 @@ class Channel(metaclass=ABCMeta):
 
         Args:
             index: Index of channel.
-
-        Raises:
-            PulseError: If ``index`` is not a nonnegative integer.
         """
-        if not isinstance(index, ParameterExpression):
-            if not isinstance(index, int) or index < 0:
-                raise PulseError('Channel index must be a nonnegative integer')
-
+        self._validate_index(index)
         self._index = index
         self._hash = None
         self._parameters = set()
@@ -65,6 +59,24 @@ class Channel(metaclass=ABCMeta):
         """
         return self._index
 
+    def _validate_index(self, index: Any) -> None:
+        """Raise a PulseError if the channel index is invalid, namely, if it's not a positive
+        integer.
+
+        Raises:
+            PulseError: If ``index`` is not a nonnegative integer.
+        """
+        if isinstance(index, ParameterExpression) and index.parameters:
+            # Parameters are unbound
+            return
+        elif isinstance(index, ParameterExpression):
+            index = float(index)
+            if index.is_integer():
+                index = int(index)
+
+        if not isinstance(index, int) and index < 0:
+            raise PulseError('Channel index must be a nonnegative integer')
+
     @property
     def parameters(self) -> Set:
         """Parameters which determine the channel index."""
@@ -75,7 +87,7 @@ class Channel(metaclass=ABCMeta):
         return bool(self.parameters)
 
     def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
-        """Return a new channel with the parameter assigned according to the input.
+        """Return a new channel with the input Parameter assigned to value.
 
         Args:
             parameter (Parameter): A parameter in this expression whose value will be updated.
@@ -85,23 +97,18 @@ class Channel(metaclass=ABCMeta):
             A new channel with updated parameters.
 
         Raises:
-            PulseError: Todo
+            PulseError: If the parameter is not present in the channel.
         """
         if parameter not in self.parameters:
             raise PulseError('Cannot bind parameters ({}) not present in the channel.'
                              ''.format(parameter))
-        new_chan_idx = self.index.assign(parameter, value)
 
-        if not new_chan_idx.parameters:
-            new_chan_idx = float(new_chan_idx)
-            if float(new_chan_idx).is_integer():
-                # If it's not, allow Channel to raise an error upon initialization
-                new_chan_idx = int(new_chan_idx)
-            self.parameters.remove(parameter)
-        else:
-            self.parameters.add(new_chan_idx.parameters)
+        new_index = self.index.assign(parameter, value)
+        if not new_index.parameters:
+            self._validate_index(new_index)
+            new_index = int(new_index)
 
-        return type(self)(new_chan_idx)
+        return type(self)(new_index)
 
     @property
     def name(self) -> str:
