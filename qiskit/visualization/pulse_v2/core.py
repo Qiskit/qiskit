@@ -609,7 +609,7 @@ class Chart:
         return list(self._channels)
 
     def _truncate_data(self,
-                       data: drawings.ElementaryData):
+                       data: drawings.ElementaryData) -> Tuple[np.ndarray, np.ndarray]:
         """A helper function to truncate drawings according to time breaks.
 
         # TODO: move this function to common module to support axis break for timeline.
@@ -635,7 +635,7 @@ class Chart:
 
     def _truncate_pulse_labels(self,
                                xvals: np.ndarray,
-                               yvals: np.ndarray):
+                               yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """A helper function to remove text according to time breaks.
 
         Args:
@@ -662,7 +662,7 @@ class Chart:
 
     def _truncate_boxes(self,
                         xvals: np.ndarray,
-                        yvals: np.ndarray):
+                        yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """A helper function to clip box object according to time breaks.
 
         Args:

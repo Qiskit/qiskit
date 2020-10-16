@@ -75,7 +75,7 @@ overlapped on the canvas. Thus it is convenient to plot a total frame change amo
 than plotting each operand value bound to the instruction.
 """
 from collections import defaultdict
-from typing import Dict, List, Iterator, Tuple, Union
+from typing import Dict, List, Iterator, Tuple
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
@@ -248,13 +248,3 @@ class ChannelEvents:
                 phase += frame_change.phase
 
         return phase, frequency
-
-    @classmethod
-    def _remove_parameter(cls,
-                          value: circuit.ParameterExpression):
-        """Remove parameter from parameter expression.
-
-        Args:
-            value: A value to remove parameter.
-        """
-        return float(value.bind({param: 0 for param in value.parameters}))
