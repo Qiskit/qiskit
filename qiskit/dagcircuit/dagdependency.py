@@ -16,9 +16,9 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
+import numpy as np
 import networkx as nx
 import retworkx as rx
-import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
