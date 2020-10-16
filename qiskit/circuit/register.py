@@ -38,17 +38,10 @@ class Register:
         """
 
         # validate (or cast) size
-        try:
-            size_int = int(size)
-        except Exception:
-            raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
-                               % (type(size).__name__, size))
-
-        if not np.isclose(size_int, size):
-            raise CircuitError("Register size must be approximately an integer. " +
-                               "(%s '%s' was provided)"
-                               % (type(size).__name__, size))
-        size = size_int
+        if int(size) != size:
+            raise ValueError("Register size must be an integer. (%s '%s' was provided)"
+                             % (type(size).__name__, size))
+        size = int(size)  # cast to int
 
         if size <= 0:
             raise CircuitError("Register size must be positive (%s '%s' was provided)"
