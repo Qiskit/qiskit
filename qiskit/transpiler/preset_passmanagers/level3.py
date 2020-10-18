@@ -43,6 +43,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
@@ -174,13 +175,23 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    _opt = [
-        Collect2qBlocks(),
-        ConsolidateBlocks(basis_gates=basis_gates),
-        UnitarySynthesis(basis_gates),
-        Optimize1qGates(basis_gates),
-        CommutativeCancellation(),
-    ]
+    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
+                        'u3' in basis_gates):
+        _opt = [
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+            Optimize1qGates(basis_gates),
+            CommutativeCancellation(),
+        ]
+    else:
+        _opt = [
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+            Optimize1qGatesDecomposition(basis_gates),
+            CommutativeCancellation(),
+        ]
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:

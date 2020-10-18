@@ -13,6 +13,7 @@
 """Model for schema-conformant Results."""
 
 import copy
+import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
@@ -57,6 +58,27 @@ class Result:
         if header is not None:
             self.header = header
         self._metadata.update(kwargs)
+
+    def __repr__(self):
+        out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
+               "job_id='%s', success=%s, results=%s" % (
+                   self.backend_version,
+                   self.backend_version, self.qobj_id, self.job_id, self.success,
+                   self.results))
+        if hasattr(self, 'date'):
+            out += ", date=%s" % self.date
+        if hasattr(self, 'status'):
+            out += ", status=%s" % self.status
+        if hasattr(self, 'header'):
+            out += ", status=%s" % self.header
+        for key in self._metadata:
+            if isinstance(self._metadata[key], str):
+                value_str = "'%s'" % self._metadata[key]
+            else:
+                value_str = repr(self._metadata[key])
+            out += ", %s=%s" % (key, value_str)
+        out += ')'
+        return out
 
     def to_dict(self):
         """Return a dictionary format representation of the Result
@@ -332,14 +354,22 @@ class Result:
         if isinstance(key, int):
             exp = self.results[key]
         else:
-            try:
-                # Look into `result[x].header.name` for the names.
-                exp = next(result for result in self.results
-                           if getattr(getattr(result, 'header', None),
-                                      'name', '') == key)
-            except StopIteration:
+            # Look into `result[x].header.name` for the names.
+            exp = [result for result in self.results
+                   if getattr(getattr(result, 'header', None),
+                              'name', '') == key]
+
+            if len(exp) == 0:
                 raise QiskitError('Data for experiment "%s" could not be found.' %
                                   key)
+            if len(exp) == 1:
+                exp = exp[0]
+            else:
+                warnings.warn(
+                    'Result object contained multiple results matching name "%s", '
+                    'only first match will be returned. Use an integer index to '
+                    'retrieve results for all entries.' % key)
+                exp = exp[0]
 
         # Check that the retrieved experiment was successful
         if getattr(exp, 'success', False):

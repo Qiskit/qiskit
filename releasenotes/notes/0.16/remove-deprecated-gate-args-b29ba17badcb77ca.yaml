@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The keyword arguments for the circuit gate methods (for example:
+    :class:`qiskit.circuit.QuantumCircuit.cx`) ``q``, ``ctl*``, and
+    ``tgt*``, which were deprecated in the 0.12.0 release, have been removed.
+    Instead, only  ``qubit``, ``control_qubit*`` and ``target_qubit*`` can be
+    used as named arguments for these methods.

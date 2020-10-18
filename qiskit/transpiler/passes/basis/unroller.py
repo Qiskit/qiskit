@@ -52,7 +52,7 @@ class Unroller(TransformationPass):
             return dag
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+            basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
             if node.name in basic_insts:
                 # TODO: this is legacy behavior.Basis_insts should be removed that these
                 #  instructions should be part of the device-reported basis. Currently, no
@@ -73,7 +73,7 @@ class Unroller(TransformationPass):
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
-            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
+            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
                 if rule[0][0].name in self.basis:
                     if node.op.definition and node.op.definition.global_phase:
                         dag.global_phase += node.op.definition.global_phase

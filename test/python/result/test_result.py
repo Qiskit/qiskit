@@ -57,6 +57,34 @@ class TestResultOperations(QiskitTestCase):
 
         self.assertEqual(result.get_counts(0), processed_counts)
 
+    def test_counts_duplicate_name(self):
+        """Test results containing multiple entries of a single name will warn."""
+        data = models.ExperimentResultData(counts=dict())
+        exp_result_header = QobjExperimentHeader(name='foo')
+        exp_result = models.ExperimentResult(shots=14, success=True,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result] * 2, **self.base_result_args)
+
+        with self.assertWarnsRegex(UserWarning, r'multiple.*foo'):
+            result.get_counts('foo')
+
+    def test_result_repr(self):
+        """Test that repr is contstructed correctly for a results object."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4)
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+        expected = ("Result(backend_name='1.0.0', backend_version='1.0.0', "
+                    "qobj_id='id-123', job_id='job-123', success=True, "
+                    "results=[ExperimentResult(shots=14, success=True, "
+                    "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
+                    " '0x2': 10}), header=QobjExperimentHeader(creg_sizes="
+                    "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))])")
+        self.assertEqual(expected, repr(result))
+
     def test_multiple_circuits_counts(self):
         """"
         Test that counts are returned either as a list or a single item.
