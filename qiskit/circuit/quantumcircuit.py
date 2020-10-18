@@ -140,10 +140,16 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
-            if any(int(reg) != reg for reg in regs):
-                raise ValueError("Circuit args must be Registers or integers."
-                                 "(%s '%s' was provided)"
-                                 % ([type(reg).__name__ for reg in regs], regs))
+
+            try:
+                valid_reg_size = any(reg == int(reg) for reg in regs)
+            except Exception:
+                valid_reg_size = False
+
+            if not valid_reg_size:
+                raise CircuitError("Circuit args must be Registers or integers. (%s '%s' was "
+                                   "provided)" % ([type(reg).__name__ for reg in regs], regs))
+
             regs = tuple(int(reg) for reg in regs)  # cast to int
 
         if name is None:

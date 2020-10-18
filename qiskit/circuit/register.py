@@ -38,9 +38,14 @@ class Register:
         """
 
         # validate (or cast) size
-        if int(size) != size:
-            raise ValueError("Register size must be an integer. (%s '%s' was provided)"
-                             % (type(size).__name__, size))
+        try:
+            valid_size = size == int(size)
+        except Exception:
+            valid_size = False
+
+        if not valid_size:
+            raise CircuitError("Register size must be an integer. (%s '%s' was provided)"
+                               % (type(size).__name__, size))
         size = int(size)  # cast to int
 
         if size <= 0:
