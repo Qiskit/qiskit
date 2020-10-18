@@ -138,13 +138,27 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None, global_phase=0):
-        if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
-            # check if inputs are integers, but also allow e.g. 2.0
-            if any(int(reg) != reg for reg in regs):
-                raise ValueError("Circuit args must be Registers or integers."
-                                 "(%s '%s' was provided)"
-                                 % ([type(reg).__name__ for reg in regs], regs))
-            regs = tuple(int(reg) for reg in regs)  # cast to int
+        if all(isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs):
+            pass  # ``regs`` is given as registers
+        elif any(isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs):
+            # passing a mix of registers and sizes is disallowed
+            raise CircuitError("Passing both Registers and integers to a circuit is not supported."
+                               "(%s '%s' was provided)"
+                               % ([type(reg).__name__ for reg in regs], regs))
+        else:
+            try:
+                # check if inputs are integers, but also allow e.g. 2.0
+                if any(int(reg) != reg for reg in regs):
+                    raise CircuitError("If the circuit args are not registers, they must be "
+                                       "unambigously castable to integers (e.g. 2.0). "
+                                       "(%s '%s' was provided)"
+                                       % ([type(reg).__name__ for reg in regs], regs))
+                regs = tuple(int(reg) for reg in regs)  # cast to int
+            except Exception:
+                # something was passed that could not be cast to integers
+                raise CircuitError("Circuit args must be either Registers or integers."
+                                   "(%s '%s' was provided)"
+                                   % ([type(reg).__name__ for reg in regs], regs))
 
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
