@@ -181,20 +181,20 @@ class TestInstructionScheduleMap(QiskitTestCase):
         sched = inst_map.get('inst_seq', 0, 1, 2, p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
-        self.assertEqual(sched.instructions[2][-1].phase, 3)
+        self.assertEqual(sched.instructions[2][-1].phase, p3_expr)
 
         sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
-        self.assertEqual(sched.instructions[2][-1].phase, 3)
+        self.assertEqual(sched.instructions[2][-1].phase, p3_expr)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, P3=p3_expr)
         self.assertEqual(sched.instructions[0][-1].phase, 1)
         self.assertEqual(sched.instructions[1][-1].phase, 2)
-        self.assertEqual(sched.instructions[2][-1].phase, 3)
+        self.assertEqual(sched.instructions[2][-1].phase, p3_expr)
 
     def test_schedule_generator(self):
-        """Test schedule generator functionalty."""
+        """Test schedule generator functionality."""
 
         dur_val = 10
         amp = 1.0
@@ -214,7 +214,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur',))
 
     def test_schedule_generator_supports_parameter_expressions(self):
-        """Test expression-based schedule generator functionalty."""
+        """Test expression-based schedule generator functionality."""
 
         t_param = Parameter('t')
         amp = 1.0
