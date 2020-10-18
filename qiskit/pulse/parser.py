@@ -320,4 +320,3 @@ def _match_Num_or_Parameter(node: ast.AST) -> bool:
           isinstance(node.value, circuit.ParameterExpression)):
         return True
     return False
-    
