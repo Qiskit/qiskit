@@ -251,6 +251,23 @@ class TestContexts(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_phase_offset_parameter(self):
+        """Test the phase offset context with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            with pulse.phase_offset(param, d0):
+                pulse.delay(10, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftPhase(param, d0)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftPhase(-param, d0)
+
+        self.assertEqual(schedule, reference)
+
     def test_frequency_offset(self):
         """Test the frequency offset context."""
         d0 = pulse.DriveChannel(0)
@@ -260,9 +277,26 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_frequency_offset_parameter(self):
+        """Test the frequency offset context with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            with pulse.frequency_offset(param, d0):
+                pulse.delay(10, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftFrequency(param, d0)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftFrequency(-param, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -276,11 +310,11 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(
             -(1e9*10*self.configuration.dt % (2*np.pi)), d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
         self.assertEqual(schedule, reference)
 
 
@@ -415,7 +449,21 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    def test_shift_frequency(self):  # pylint: disable=no-member
+    def test_set_frequency_parameter(self):
+        """Test set frequency instruction with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            pulse.set_frequency(param, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.SetFrequency(param, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_shift_frequency(self):
         """Test shift frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -423,11 +471,25 @@ class TestInstructions(TestBuilder):
             pulse.shift_frequency(0.1e9, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(0.1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(0.1e9, d0)
 
         self.assertEqual(schedule, reference)
 
-    def test_set_phase(self):  # pylint: disable=no-member
+    def test_shift_frequency_parameter(self):
+        """Test shift frequency instruction with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            pulse.shift_frequency(param, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftFrequency(param, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_set_phase(self):
         """Test set phase instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -435,7 +497,21 @@ class TestInstructions(TestBuilder):
             pulse.set_phase(3.14, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.SetPhase(3.14, d0)  # pylint: disable=no-member
+        reference += instructions.SetPhase(3.14, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_set_phase_parameter(self):
+        """Test set phase instruction with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            pulse.set_phase(param, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.SetPhase(param, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -448,6 +524,20 @@ class TestInstructions(TestBuilder):
 
         reference = pulse.Schedule()
         reference += instructions.ShiftPhase(3.14, d0)
+
+        self.assertEqual(schedule, reference)
+
+    def test_shift_phase_parameter(self):
+        """Test shift phase instruction with parameter."""
+        d0 = pulse.DriveChannel(0)
+
+        param = circuit.Parameter('param')
+
+        with pulse.build() as schedule:
+            pulse.shift_phase(param, d0)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftPhase(param, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -790,6 +880,19 @@ class TestGates(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_u1_parameter(self):
+        """Test u1 gate with parameter."""
+        param = circuit.Parameter('param')
+
+        with pulse.build(self.backend) as schedule:
+            pulse.u1(param, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U1Gate(param), [0])
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
     def test_u2(self):
         """Test u2 gate."""
         with pulse.build(self.backend) as schedule:
@@ -801,10 +904,39 @@ class TestGates(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_u2_parameter(self):
+        """Test u2 gate with parameter."""
+        param1 = circuit.Parameter('param1')
+        param2 = circuit.Parameter('param2')
+
+        with pulse.build(self.backend) as schedule:
+            pulse.u2(param1, param2, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U2Gate(param1, param2), [0])
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
     def test_u3(self):
         """Test u3 gate."""
         with pulse.build(self.backend) as schedule:
             pulse.u3(np.pi, 0, np.pi/2, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U3Gate(np.pi, 0, np.pi/2), [0])
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
+    def test_u3_parameter(self):
+        """Test u3 gate with parameter."""
+        param1 = circuit.Parameter('param1')
+        param2 = circuit.Parameter('param2')
+        param3 = circuit.Parameter('param3')
+
+        with pulse.build(self.backend) as schedule:
+            pulse.u3(param1, param2, param3, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U3Gate(np.pi, 0, np.pi/2), [0])
@@ -825,7 +957,7 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_lazy_evaluation_with_transpiler(self):
-        """Test that the two cx gates are optimizied away by the transpiler."""
+        """Test that the two cx gates are optimized away by the transpiler."""
         with pulse.build(self.backend) as schedule:
             pulse.cx(0, 1)
             pulse.cx(0, 1)
@@ -858,7 +990,7 @@ class TestGates(TestBuilder):
                 pulse.x(0)
 
     def test_call_circuit_with_cregs(self):
-        """Test calling of circuit wiht classical registers."""
+        """Test calling of circuit with classical registers."""
 
         qc = circuit.QuantumCircuit(2, 2)
         qc.h(0)

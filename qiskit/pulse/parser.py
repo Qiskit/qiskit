@@ -20,6 +20,7 @@ import operator
 
 import cmath
 
+from qiskit import circuit
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -131,12 +132,16 @@ class PulseExpression(ast.NodeTransformer):
 
         expr = self.visit(self._tree)
 
-        if not isinstance(expr.body, ast.Num):
-            if self._partial_binding:
-                return PulseExpression(expr, self._partial_binding)
-            else:
-                raise PulseError('Parameters %s are not all bound.' % self.params)
-        return expr.body.n
+        node = expr.body
+        if isinstance(node, ast.Num):
+            return node.n
+        elif (isinstance(node, ast.Constant) and
+              isinstance(node.value, circuit.ParameterExpression)):
+            return node.value
+        elif self._partial_binding:
+            return PulseExpression(expr, self._partial_binding)
+
+        raise PulseError('Parameters %s are not all bound.' % self.params)
 
     @staticmethod
     def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> Union[float, complex]:
@@ -200,13 +205,15 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         elif node.id in self._locals_dict.keys():
             _val = self._locals_dict[node.id]
-            try:
-                _val = complex(_val)
-                if not _val.imag:
-                    _val = _val.real
-            except ValueError:
-                raise PulseError('Invalid parameter value %s = %s is specified.'
-                                 % (node.id, self._locals_dict[node.id]))
+
+            if not isinstance(_val, circuit.ParameterExpression):
+                try:
+                    _val = complex(_val)
+                    if not _val.imag:
+                        _val = _val.real
+                except ValueError:
+                    raise PulseError('Invalid parameter value %s = %s is specified.'
+                                     % (node.id, self._locals_dict[node.id]))
             val = ast.Num(n=_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)
@@ -222,7 +229,7 @@ class PulseExpression(ast.NodeTransformer):
             Evaluated value.
         """
         node.operand = self.visit(node.operand)
-        if isinstance(node.operand, ast.Num):
+        if _match_Num_or_Parameter(node.operand):
             val = ast.Num(n=self._match_ops(node.op, self._unary_ops,
                                             node.operand.n))
             return ast.copy_location(val, node)
@@ -239,7 +246,7 @@ class PulseExpression(ast.NodeTransformer):
         """
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
-        if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
+        if _match_Num_or_Parameter(node.left) and _match_Num_or_Parameter(node.right):
             val = ast.Num(n=self._match_ops(node.op, self._binary_ops,
                                             node.left.n, node.right.n))
             return ast.copy_location(val, node)
@@ -260,7 +267,7 @@ class PulseExpression(ast.NodeTransformer):
         if not isinstance(node.func, ast.Name):
             raise PulseError('Unsafe expression is detected.')
         node.args = [self.visit(arg) for arg in node.args]
-        if all(isinstance(arg, ast.Num) for arg in node.args):
+        if all(_match_Num_or_Parameter(arg) for arg in node.args):
             if node.func.id not in self._math_ops.keys():
                 raise PulseError('Function %s is not supported.' % node.func.id)
             _args = [arg.n for arg in node.args]
@@ -303,3 +310,14 @@ def parse_string_expr(source: str, partial_binding: bool = False):
         source = source.replace(match, sub)
 
     return PulseExpression(source, partial_binding)
+
+
+def _match_Num_or_Parameter(node: ast.AST) -> bool:
+    """Match number of circuit Parameter Expression."""
+    if isinstance(node, ast.Num):
+        return True
+    elif (isinstance(node, ast.Constant) and
+          isinstance(node.value, circuit.ParameterExpression)):
+        return True
+    return False
+    

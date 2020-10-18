@@ -275,7 +275,7 @@ class _PulseBuilder():
         """Initialize the builder context.
 
         .. note::
-            At some point we may consider incorpating the builder into
+            At some point we may consider incorporating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -946,7 +946,7 @@ def align_func(duration: int,
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
-    the associated fractional location witin [0, 1].
+    the associated fractional location within [0, 1].
     Delay instruction is automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of arbitrary dynamical decoupling
@@ -1148,7 +1148,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
 
 @contextmanager
-def phase_offset(phase: float,
+def phase_offset(phase: Union[float, circuit.ParameterExpression],
                  *channels: chans.PulseChannel
                  ) -> ContextManager[None]:
     """Shift the phase of input channels on entry into context and undo on exit.
@@ -1186,7 +1186,7 @@ def phase_offset(phase: float,
 
 
 @contextmanager
-def frequency_offset(frequency: float,
+def frequency_offset(frequency: Union[float, circuit.ParameterExpression],
                      *channels: chans.PulseChannel,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
@@ -1210,7 +1210,7 @@ def frequency_offset(frequency: float,
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted freqeuncy frame
+            # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
@@ -1436,7 +1436,7 @@ def acquire(duration: int,
             'Register of type: "{}" is not supported'.format(type(register)))
 
 
-def set_frequency(frequency: float,
+def set_frequency(frequency: Union[float, circuit.ParameterExpression],
                   channel: chans.PulseChannel):
     """Set the ``frequency`` of a pulse ``channel``.
 
@@ -1458,7 +1458,7 @@ def set_frequency(frequency: float,
     append_instruction(instructions.SetFrequency(frequency, channel))
 
 
-def shift_frequency(frequency: float,
+def shift_frequency(frequency: Union[float, circuit.ParameterExpression],
                     channel: chans.PulseChannel):
     """Shift the ``frequency`` of a pulse ``channel``.
 
@@ -1481,7 +1481,7 @@ def shift_frequency(frequency: float,
     append_instruction(instructions.ShiftFrequency(frequency, channel))
 
 
-def set_phase(phase: float,
+def set_phase(phase: Union[float, circuit.ParameterExpression],
               channel: chans.PulseChannel):
     """Set the ``phase`` of a pulse ``channel``.
 
@@ -1506,7 +1506,7 @@ def set_phase(phase: float,
     append_instruction(instructions.SetPhase(phase, channel))
 
 
-def shift_phase(phase: float,
+def shift_phase(phase: Union[float, circuit.ParameterExpression],
                 channel: chans.PulseChannel):
     """Shift the ``phase`` of a pulse ``channel``.
 
@@ -1697,7 +1697,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
-    scheduling aligment operations across channels. For example
+    scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
@@ -1782,7 +1782,7 @@ def measure(qubits: Union[List[int], int],
     Args:
         qubits: Physical qubit to measure.
         registers: Register to store result in. If not selected the current
-            behaviour is to return the :class:`MemorySlot` with the same
+            behavior is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -1968,7 +1968,7 @@ def cx(control: int, target: int):
     call_gate(gates.CXGate(), (control, target))
 
 
-def u1(theta: float, qubit: int):
+def u1(theta: Union[float, circuit.ParameterExpression], qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
     input physical qubit.
 
@@ -1995,7 +1995,9 @@ def u1(theta: float, qubit: int):
     call_gate(gates.U1Gate(theta), qubit)
 
 
-def u2(phi: float, lam: float, qubit: int):
+def u2(phi: Union[float, circuit.ParameterExpression],
+       lam: Union[float, circuit.ParameterExpression],
+       qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
     input physical qubit.
 
@@ -2022,7 +2024,10 @@ def u2(phi: float, lam: float, qubit: int):
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
-def u3(theta: float, phi: float, lam: float, qubit: int):
+def u3(theta: Union[float, circuit.ParameterExpression],
+       phi: Union[float, circuit.ParameterExpression],
+       lam: Union[float, circuit.ParameterExpression],
+       qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
     input physical qubit.
 
