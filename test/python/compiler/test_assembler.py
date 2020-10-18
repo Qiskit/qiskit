@@ -42,6 +42,7 @@ class RxGate(Gate):
     Note: Parallel maps (e.g., in assemble_circuits) pickle their input,
           so circuit features have to be defined top level.
     """
+
     def __init__(self, theta):
         super().__init__('rxtheta', 1, [theta])
 
@@ -282,10 +283,10 @@ class TestCircuitAssembler(QiskitTestCase):
         full_param_circ = QuantumCircuit(qr)
         partial_param_circ = QuantumCircuit(qr)
 
-        partial_param_circ.u1(x, qr[0])
+        partial_param_circ.p(x, qr[0])
 
-        full_param_circ.u1(x, qr[0])
-        full_param_circ.u1(y, qr[1])
+        full_param_circ.p(x, qr[0])
+        full_param_circ.p(y, qr[1])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
         full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
@@ -321,7 +322,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         expr_circ = QuantumCircuit(qr)
 
-        expr_circ.u1(x+y, qr[0])
+        expr_circ.p(x+y, qr[0])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
 
@@ -344,12 +345,12 @@ class TestCircuitAssembler(QiskitTestCase):
         sum_ = x + y
         product_ = x * y
 
-        qc1.u2(x, y, qr[0])
+        qc1.u(x, y, 0, qr[0])
 
         qc2.rz(x, qr[0])
         qc2.rz(y, qr[0])
 
-        qc3.u2(sum_, product_, qr[0])
+        qc3.u(sum_, product_, 0, qr[0])
 
         bind_args = {'parameter_binds': [{x: 0, y: 0},
                                          {x: 1, y: 0},
@@ -367,9 +368,9 @@ class TestCircuitAssembler(QiskitTestCase):
             inst = expt.instructions[inst_no]
             return [float(p) for p in inst.params]
 
-        self.assertEqual(_qobj_inst_params(0, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(1, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(2, 0), [1, 1])
+        self.assertEqual(_qobj_inst_params(0, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(1, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(2, 0), [1, 1, 0])
 
         self.assertEqual(_qobj_inst_params(3, 0), [0])
         self.assertEqual(_qobj_inst_params(3, 1), [0])
@@ -378,9 +379,9 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(5, 0), [1])
         self.assertEqual(_qobj_inst_params(5, 1), [1])
 
-        self.assertEqual(_qobj_inst_params(6, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
+        self.assertEqual(_qobj_inst_params(6, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
