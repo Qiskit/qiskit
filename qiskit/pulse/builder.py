@@ -1735,6 +1735,11 @@ def macro(func: Callable):
 
     This enables embedding Python functions as builder macros.
 
+    .. note:: 
+        This generates a new :class:`pulse.Schedule` that is embedded in the parent builder
+        context with every call of the decorated macro function.
+
+
     Examples:
 
     .. jupyter-execute::
