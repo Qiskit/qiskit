@@ -26,6 +26,7 @@ from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse import Schedule
 
@@ -39,7 +40,7 @@ def _log_assembly_time(start_time, end_time):
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
-             backend: Optional[BaseBackend] = None,
+             backend: Optional[Union[Backend, BaseBackend]] = None,
              qobj_id: Optional[str] = None,
              qobj_header: Optional[Union[QobjHeader, Dict]] = None,
              shots: Optional[int] = None, memory: Optional[bool] = False,

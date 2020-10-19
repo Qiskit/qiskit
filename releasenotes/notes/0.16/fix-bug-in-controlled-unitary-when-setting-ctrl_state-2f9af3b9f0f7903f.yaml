@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a bug where setting ``ctrl_state`` of a
+    :class:`~qiskit.extensions.UnitaryGate` would be applied twice; once
+    in the creation of the matrix for the controlled unitary and again
+    when calling the :meth:`~qiskit.circuit.ControlledGate.definition` method of
+    the :class:`qiskit.circuit.ControlledGate` class. This would give the
+    appearence that setting ``ctrl_state`` had no effect.
