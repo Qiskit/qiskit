@@ -1,0 +1,15 @@
+---
+deprecations:
+  - |
+    The JSONschema files and usage for the IBMQ API payloads are deprecated
+    and will be removed in a future release. This includes everything under
+    the :mod:`qiskit.schemas` module, both the validation methods, exception
+    classes, and actual json files. This also includes the ``validate`` kwargs
+    for :meth:`qiskit.qobj.QasmQobj.to_dict` and
+    :meth:`qiskit.qobj.QasmQobj.to_dict`. The schema files have been moved
+    to the `Qiskit/ibmq-schemas <https://github.com/Qiskit/ibmq-schemas>`__
+    repository and those should be treated as the canonical versions of the
+    API schemas, moving forward only those schemas will recieve updates and
+    will be used for the source of truth for the schemas. If you were relying
+    on the schemas bundled in qiskit-terra you should instead update to
+    use that repository instead.
