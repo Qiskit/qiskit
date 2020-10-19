@@ -104,15 +104,17 @@ class TestGeneral(QiskitTestCase):
         """Test a random (partial) mapping on a large randomly generated graph"""
         size = 100
         # Note that graph may have "gaps" in the node counts, i.e. the numbering is noncontiguous.
-        graph = nx.dense_gnm_random_graph(size, size ** 2 // 10)
-        graph.remove_edges_from((i, i) for i in graph.nodes)  # Remove self-loops.
+        graph = rx.undirected_gnm_random_graph(size, size ** 2 // 10)
+        for i in graph.node_indexes():
+            try:
+                graph.remove_edge(i, i)  # Remove self-loops.
+            except rx.NoEdgeBetweenNodes:
+                continue
         # Make sure the graph is connected by adding C_n
-        nodes = list(graph.nodes)
-        graph.add_edges_from((node, nodes[(i + 1) % len(nodes)]) for i, node in enumerate(nodes))
-        # TODO: Remove after retworkx has dense_gnm_random_graph function
-        test_graph = rx.PyGraph()
-        test_graph.extend_from_edge_list(list(graph.edges))
-        swapper = ApproximateTokenSwapper(test_graph)  # type: ApproximateTokenSwapper[int]
+        nodes = list(graph.nodes())
+        graph.add_edges_from_no_data(
+            [(i, i + 1) for i in range(len(graph) - 1)])
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         # Generate a randomized permutation.
         rand_perm = random.permutation(graph.nodes())
