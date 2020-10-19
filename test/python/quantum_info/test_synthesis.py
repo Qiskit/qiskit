@@ -351,6 +351,7 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                         a = Ud(aaa, aaa, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
+
 @ddt
 class TestTwoQubitDecomposeExact(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact decompositions
