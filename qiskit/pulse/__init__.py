@@ -426,6 +426,7 @@ from qiskit.pulse.builder import (
     phase_offset,
     transpiler_settings,
     # Macros.
+    macro,
     measure,
     measure_all,
     delay_qubits,
