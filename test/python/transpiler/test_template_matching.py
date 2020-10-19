@@ -233,7 +233,7 @@ class TestTemplateMatching(QiskitTestCase):
         """
 
         class CZp(Gate):
-            def __init__(str, num_qubits, params):
+            def __init__(self, num_qubits, params):
                 super().__init__('cz', num_qubits, params)
 
             def inverse(self):
