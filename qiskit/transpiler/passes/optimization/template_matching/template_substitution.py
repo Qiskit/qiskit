@@ -15,6 +15,8 @@ Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
 import copy
+import sympy as sym
+from sympy.parsing.sympy_parser import parse_expr
 
 from qiskit.circuit import ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -259,13 +261,11 @@ class TemplateSubstitution:
             circuit_sublist = [x[1] for x in current_match]
             circuit_sublist.sort()
 
-            # Fake bind the parameters in the template
-            template = self.fake_bind(template_sublist, circuit_sublist)
+            # Fake bind any parameters in the template
+            template = self._fake_bind(template_sublist, circuit_sublist)
 
             if template is None:
                 continue
-
-            original_template, self.template_dag_dep = self.template_dag_dep, template
 
             template_list = range(0, self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
@@ -283,9 +283,6 @@ class TemplateSubstitution:
                                             current_qubit,
                                             current_clbit)
                 self.substitution_list.append(config)
-
-            # restore unbound template
-            self.template_dag_dep = original_template
 
         # Remove incompatible matches.
         self._remove_impossible()
@@ -391,17 +388,41 @@ class TemplateSubstitution:
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
 
-    def fake_bind(self, template_sublist, circuit_sublist):
+    def _fake_bind(self, template_sublist, circuit_sublist):
         """
-        Copy's the template and fake binds the parameters if any.
-        When this is called the gates should be the same as well as their
-        parameters except that some are ParameterExpressions.
+        Copy's the template and fake binds any parameters.
+        template_sublist and circuit_sublist match up to the
+        assignment of the parameters. For example the template
+             ┌───────────┐                  ┌────────┐
+        q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
+             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
+        q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
+             └───────────┘└───┘└──────┘└───┘└────────┘
+        should only match once in the circuit
+             ┌───────┐
+        q_0: ┤ P(-2) ├──■────────────■────────────────────────────
+             ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
+        q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
+             └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
+        q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
+              └──────┘                          └───┘└──────┘└───┘
+        However, up until fake bind is called, the soft matching
+        will have found two matches due to the parameters.
+        The first match can be satisfied with β=2. However, the
+        second match would imply both β=3 and β=-3 which is impossible.
+        Fake bind detects inconsistencies by solving a system of equations
+        given by the parameter expressions in the sub-template and the
+        value of the parameters in the gates of the sub-circuit. If a
+        solution is found then the match is valid and the parameters
+        are assigned. If not, None is returned.
 
         Args:
             template_sublist: part of the matched template.
             circuit_sublist: part of the matched circuit.
 
         Returns:
+            template_dag_dep: A deep copy of the template with
+                the parameters bound.
         """
         circuit_params, template_params = [], []
 
@@ -413,15 +434,29 @@ class TemplateSubstitution:
             template_params += template_dag_dep.get_node(t_idx).op.params
 
         # Create the fake binding dict and check
-        fake_bind = {}
-        for t_idx, param in enumerate(template_params):
-            if isinstance(param, ParameterExpression):
-                # Check compatibility
-                if param in fake_bind:
-                    if fake_bind[param] != circuit_params[t_idx]:
-                        return None
-                else:
-                    fake_bind[param] = circuit_params[t_idx]
+        equations, symbols, sol, fake_bind = [], set(), {}, {}
+        for t_idx, params in enumerate(template_params):
+            if isinstance(params, ParameterExpression):
+                equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
+                for param in params.parameters:
+                    symbols.add(param)
+
+        if len(symbols) == 0:
+            return template_dag_dep
+
+        # Check compatibility by solving the resulting equation
+        sym_sol = sym.solve(equations)
+        for key in sym_sol:
+            try:
+                sol[str(key)] = float(sym_sol[key])
+            except TypeError:
+                return None
+
+        if len(sol) == 0:
+            return None
+
+        for param in symbols:
+            fake_bind[param] = sol[str(param)]
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
@@ -429,7 +464,7 @@ class TemplateSubstitution:
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     try:
-                        bound_params.append(fake_bind[param])
+                        bound_params.append(float(param.bind(fake_bind)))
                     except KeyError:
                         return None
                 else:

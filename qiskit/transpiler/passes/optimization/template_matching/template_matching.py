@@ -28,7 +28,6 @@ import itertools
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.transpiler.passes.optimization.template_matching.forward_match import ForwardMatch
 from qiskit.transpiler.passes.optimization.template_matching.backward_match import BackwardMatch
-from qiskit.transpiler.passes.optimization.template_matching.util import soft_compare
 
 
 class TemplateMatching:
@@ -243,12 +242,9 @@ class TemplateMatching:
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
-                # Operations match.
-                #if self.circuit_dag_dep.get_node(circuit_index).op == \
-                #        self.template_dag_dep.get_node(template_index).op:
-
-                if soft_compare(self.circuit_dag_dep.get_node(circuit_index).op,
-                                self.template_dag_dep.get_node(template_index).op):
+                # Operations match up to ParameterExpressions.
+                if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
+                        self.template_dag_dep.get_node(template_index).op):
 
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices

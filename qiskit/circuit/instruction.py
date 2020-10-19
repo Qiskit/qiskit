@@ -129,6 +129,54 @@ class Instruction:
 
         return True
 
+    def soft_compare(self, other: 'Instruction') -> bool:
+        """
+        Soft comparison between gates. Their names, number of qubits, and classical
+        bit numbers must match. The number of parameters must match. Each parameter
+        is compared. If one is a ParameterExpression then it is not taken int
+        account.
+
+        Args:
+            other (instruction): other instruction.
+
+        Returns:
+            bool: are self and other equal up to parameter expressions.
+        """
+        if self.name != other.name or \
+                other.num_qubits != other.num_qubits or \
+                other.num_clbits != other.num_clbits:
+            return False
+
+        for self_param, other_param in zip_longest(self.params, other.params):
+            try:
+                if self_param == other_param:
+                    continue
+            except ValueError:
+                pass
+
+            if not isinstance(self_param, ParameterExpression) and \
+                    not isinstance(other_param, ParameterExpression):
+                try:
+                    if numpy.shape(self_param) == numpy.shape(other_param) \
+                            and numpy.allclose(self_param, other_param,
+                                            atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
+
+                try:
+                    if numpy.isclose(float(self_param), float(other_param),
+                                  atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
+            else:
+                continue
+
+            return False
+
+        return True
+
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
         pass

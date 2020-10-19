@@ -30,7 +30,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGDependency
 from qiskit.transpiler.passes.optimization.template_matching import (TemplateMatching,
                                                                      TemplateSubstitution,
                                                                      MaximalMatches)
@@ -92,11 +91,14 @@ class TemplateOptimization(TransformationPass):
             if template.num_qubits > len(circuit_dag_dep.qubits):
                 continue
 
-            #identity = np.identity(2 ** template.num_qubits, dtype=complex)
-            #comparison = np.allclose(Operator(template).data, identity)
+            identity = np.identity(2 ** template.num_qubits, dtype=complex)
+            try:
+                comparison = np.allclose(Operator(template).data, identity)
 
-            #if not comparison:
-            #    raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
+                if not comparison:
+                    raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
+            except TypeError:
+                pass
 
             template_dag_dep = circuit_to_dagdependency(template)
 
