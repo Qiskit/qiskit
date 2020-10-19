@@ -247,8 +247,8 @@ class TestInitialLayouts(QiskitTestCase):
         ancilla = QuantumRegister(17, 'ancilla')
 
         qc = QuantumCircuit(qr, cr)
-        qc.u3(0.1, 0.2, 0.3, qr[0])
-        qc.u2(0.4, 0.5, qr[2])
+        qc.append(U3Gate(0.1, 0.2, 0.3), [qr[0]])
+        qc.append(U2Gate(0.4, 0.5), [qr[2]])
         qc.barrier()
         qc.cx(qr[0], qr[2])
         initial_layout = [6, 7, 12]
