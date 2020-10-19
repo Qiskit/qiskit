@@ -143,7 +143,7 @@ class QuantumCircuit:
 
             try:
                 valid_reg_size = all(reg == int(reg) for reg in regs)
-            except ValueError:
+            except (ValueError, TypeError):
                 valid_reg_size = False
 
             if not valid_reg_size:

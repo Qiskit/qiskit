@@ -40,7 +40,7 @@ class Register:
         # validate (or cast) size
         try:
             valid_size = size == int(size)
-        except ValueError:
+        except (ValueError, TypeError):
             valid_size = False
 
         if not valid_size:
