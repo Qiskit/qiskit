@@ -567,6 +567,7 @@ def build(backend=None,
         default_transpiler_settings=default_transpiler_settings,
         default_circuit_scheduler_settings=default_circuit_scheduler_settings)
 
+
 # Builder Utilities
 def _active_builder() -> _PulseBuilder:
     """Get the active builder in the active context.
@@ -1777,7 +1778,6 @@ def macro(func: Callable):
 
         _builder.call_schedule(built)
         return output
-
 
     return wrapper
 
