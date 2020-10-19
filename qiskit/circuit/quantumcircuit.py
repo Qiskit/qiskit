@@ -142,8 +142,8 @@ class QuantumCircuit:
             # check if inputs are integers, but also allow e.g. 2.0
 
             try:
-                valid_reg_size = any(reg == int(reg) for reg in regs)
-            except Exception:
+                valid_reg_size = all(reg == int(reg) for reg in regs)
+            except ValueError:
                 valid_reg_size = False
 
             if not valid_reg_size:
