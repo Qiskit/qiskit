@@ -14,7 +14,9 @@
 Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
+import copy
 
+from qiskit.circuit import ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
@@ -27,8 +29,9 @@ class SubstitutionConfig:
     in the circuit.
     """
 
-    def __init__(self, circuit_config, template_config, pred_block,
+    def __init__(self, template_dag_dep, circuit_config, template_config, pred_block,
                  qubit_config, clbit_config=None):
+        self.template_dag_dep = template_dag_dep
         self.circuit_config = circuit_config
         self.template_config = template_config
         self.qubit_config = qubit_config
@@ -95,7 +98,7 @@ class TemplateSubstitution:
                      'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1, 'r': 2, 'cx': 2,
                      'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8, 'rxx': 9, 'ryy': 9,
                      'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10, 'cry': 10, 'crz': 10,
-                     'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24, 'c4x': 312}
+                     'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24, 'c4x': 312, 'p': 1}
         cost_left = 0
         for i in left:
             cost_left += cost_dict[self.template_dag_dep.get_node(i).name]
@@ -256,6 +259,14 @@ class TemplateSubstitution:
             circuit_sublist = [x[1] for x in current_match]
             circuit_sublist.sort()
 
+            # Fake bind the parameters in the template
+            template = self.fake_bind(template_sublist, circuit_sublist)
+
+            if template is None:
+                continue
+
+            original_template, self.template_dag_dep = self.template_dag_dep, template
+
             template_list = range(0, self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
 
@@ -265,12 +276,16 @@ class TemplateSubstitution:
                                                                   template_sublist,
                                                                   template_complement)
 
-                config = SubstitutionConfig(circuit_sublist,
+                config = SubstitutionConfig(template,
+                                            circuit_sublist,
                                             template_sublist_inverse,
                                             [],
                                             current_qubit,
                                             current_clbit)
                 self.substitution_list.append(config)
+
+            # restore unbound template
+            self.template_dag_dep = original_template
 
         # Remove incompatible matches.
         self._remove_impossible()
@@ -343,19 +358,19 @@ class TemplateSubstitution:
                 # Then add the inverse of the template.
                 for index in template_inverse:
                     all_qubits = self.circuit_dag_dep.qubits
-                    qarg_t = self.template_dag_dep.get_node(index).qindices
+                    qarg_t = group.template_dag_dep.get_node(index).qindices
                     qarg_c = [qubit[x] for x in qarg_t]
                     qargs = [all_qubits[x] for x in qarg_c]
 
                     all_clbits = self.circuit_dag_dep.clbits
-                    carg_t = self.template_dag_dep.get_node(index).cindices
+                    carg_t = group.template_dag_dep.get_node(index).cindices
 
                     if all_clbits and clbit:
                         carg_c = [clbit[x] for x in carg_t]
                         cargs = [all_clbits[x] for x in carg_c]
                     else:
                         cargs = []
-                    node = self.template_dag_dep.get_node(index)
+                    node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
                     inst.condition = node.condition
 
@@ -375,3 +390,51 @@ class TemplateSubstitution:
 
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
+
+    def fake_bind(self, template_sublist, circuit_sublist):
+        """
+        Copy's the template and fake binds the parameters if any.
+        When this is called the gates should be the same as well as their
+        parameters except that some are ParameterExpressions.
+
+        Args:
+            template_sublist: part of the matched template.
+            circuit_sublist: part of the matched circuit.
+
+        Returns:
+        """
+        circuit_params, template_params = [], []
+
+        template_dag_dep = copy.deepcopy(self.template_dag_dep)
+
+        for idx, t_idx in enumerate(template_sublist):
+            qc_idx = circuit_sublist[idx]
+            circuit_params += self.circuit_dag_dep.get_node(qc_idx).op.params
+            template_params += template_dag_dep.get_node(t_idx).op.params
+
+        # Create the fake binding dict and check
+        fake_bind = {}
+        for t_idx, param in enumerate(template_params):
+            if isinstance(param, ParameterExpression):
+                # Check compatibility
+                if param in fake_bind:
+                    if fake_bind[param] != circuit_params[t_idx]:
+                        return None
+                else:
+                    fake_bind[param] = circuit_params[t_idx]
+
+        for node in template_dag_dep.get_nodes():
+            bound_params = []
+
+            for param in node.op.params:
+                if isinstance(param, ParameterExpression):
+                    try:
+                        bound_params.append(fake_bind[param])
+                    except KeyError:
+                        return None
+                else:
+                    bound_params.append(param)
+
+            node.op.params = bound_params
+
+        return template_dag_dep
