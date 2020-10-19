@@ -240,7 +240,7 @@ class PauliFeatureMap(NLocal):
 
         basis_change(evo)
         cx_chain(evo)
-        evo.u1(2.0 * time, indices[-1])
+        evo.p(2.0 * time, indices[-1])
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
