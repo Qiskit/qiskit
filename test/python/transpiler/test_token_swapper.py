@@ -28,7 +28,6 @@
 
 import itertools
 
-import networkx as nx
 import retworkx as rx
 from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
