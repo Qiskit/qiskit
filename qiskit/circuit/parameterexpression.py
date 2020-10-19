@@ -253,7 +253,7 @@ class ParameterExpression:
 
     def __pow__(self, power):
         return self._apply_operation(operator.pow, power)
-    
+
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
 
@@ -308,7 +308,7 @@ class ParameterExpression:
         return ParameterExpression(
             self._parameter_symbols,
             atan2(num, den))
-    
+
     def exp(self):
         """Exponential of a ParameterExpression"""
         from sympy import exp as _exp
@@ -323,7 +323,7 @@ class ParameterExpression:
         """Logarithm of a ParameterExpression"""
         from sympy import sqrt as _sqrt
         return self._call(_sqrt)
-    
+
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 

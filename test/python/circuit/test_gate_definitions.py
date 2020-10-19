@@ -22,7 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ParameterVector, Gate, ControlledGate
+from qiskit.circuit import Parameter, ParameterVector, Gate, ControlledGate
 
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
@@ -140,8 +140,15 @@ class TestGateDefinitions(QiskitTestCase):
         axis = np.array([math.cos(phi), math.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
-        self.assertTrue(numpy.array_equal(
-            self._su2so3(rgate.to_matrix()), rv._rot.as_matrix()))
+        np.set_printoptions(linewidth=250, precision=3, suppress=True)
+        print('')
+        print(rgate.to_matrix())
+        print(rv.to_matrix())
+        print(Operator(rv.definition).data)
+        # self.assertTrue(numpy.array_equal(
+        #     self._su2so3(rgate.to_matrix()), rv._rot.as_matrix()))
+        self.assertTrue(numpy.array_equal(rgate.to_matrix(), rv.to_matrix()))
+        #self.assertTrue(numpy.array_equal(rgate.to_matrix(), rv.to_matrix2()))
 
     def _su2so3(self, su2):
         """Convert su2 matrix to so3.
@@ -150,7 +157,7 @@ class TestGateDefinitions(QiskitTestCase):
         """
         a, b = su2[0, 0].real, su2[0, 0].imag
         c, d = su2[0, 1].real, su2[0, 1].imag
-        so3 = np.zeros([3,3], dtype=float)
+        so3 = np.zeros([3, 3], dtype=float)
         so3[0, 0] = a**2 - b**2 - c**2 + d**2
         so3[0, 1] = 2 * (a*b + c*d)
         so3[0, 2] = 2 * (-a*c + b*d)
@@ -162,6 +169,104 @@ class TestGateDefinitions(QiskitTestCase):
         so3[2, 2] = a**2 + b**2 - c**2 - d**2
         return so3
 
+    def test_rv_param_def(self):
+        """Test parameter expression definition agrees with numeric."""
+        from scipy.linalg import expm, norm
+        #θ, φ, ψ = Parameter('θ'), Parameter('φ'), Parameter('ψ')
+        np.set_printoptions(linewidth=250, precision=3, suppress=True)
+        # theta = np.pi / 5
+        # phi = np.pi / 3
+        thetar = np.pi / 2
+        phi = np.pi
+        rgate = RGate(thetar, phi)
+        #axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
+        axis = np.array([0,0,-1])
+        axis = axis/norm(axis)
+        rotvec = thetar * axis
+
+        print('\nrotvec: ', rotvec)
+        #vec_num = np.array([0.1, 0.2, 0.3])
+        vec_num = rotvec
+        #vec_num = np.array([1, 0, 0])
+        #vec_num = np.array([0, 1, 0])
+
+        from scipy.spatial.transform import Rotation
+        rot = Rotation.from_rotvec(vec_num)
+        euler = rot.as_euler('zyz')
+        
+        pm = np.array((
+            ((0, 1), (1, 0)),
+            ((0, -1j), (1j, 0)),
+            ((1, 0), (0, -1))
+        ))
+        vx, vy, vz = vec_num
+        from numpy import sqrt, tan, cos, sin, arctan2, arccos, arcsin
+        L = sqrt(vx**2 + vy**2 + vz**2)
+        tanL = tan(L/2)
+        Rv = expm(-1j * np.einsum('i,ijk', vec_num, pm)/2)
+        Rv2 = cos(L/2) * np.eye(2) - 1j*sin(L/2)*np.einsum('i,ijk', vec_num/L, pm)
+
+        if vy or vz
+            theta = arctan2(vy*vz*(1-cos(L)) - vx*L*sin(L), vx*vz*(1-cos(L)) + vy*L*sin(L))
+        else:
+            #theta = -thetar
+            theta = arctan2(vy*vz*(1-cos(L)) - vx*L*sin(L), vx*vz*(1-cos(L)) + vy*L*sin(L))
+        if vy or vz:
+            phi = 2*arctan2(vx*vz*(1-cos(L)) + vy*L*sin(L),
+                            (vx**2 * cos(L) + vx**2 + vy**2 * cos(L) + vy**2 + 2*vz**2) * cos(theta))
+        else:
+            phi = -thetar
+        qc2 = QuantumCircuit(1)
+        if vx or vy:
+            lam = 2*arccos(np.round(L*sin(phi/2) * (vx*sin(theta/2) + vy*cos(theta/2)) / ((vx**2 + vy**2)*sin(L/2)),
+                                    decimals=8))
+        else:
+            lam = thetar
+        # if not (vy and vz):
+        #     qc2.global_phase = thetar
+        # numerator = vy*vz*tanL - L*vx - sqrt(vx**4 + 2*(vx*vy)**2 + vy**4 +
+        #                                      ((vx*vz)**2 + (vy*vz)**2)/cos(L/2)**2)
+        # denominator = vx*vz*tanL + L*vy
+        # theta = 2*arctan2(numerator, denominator)
+        # lam = 2*arctan2(vx + tan(theta/2) - vy, vx+vy*tan(theta/2))
+        # phi = 2 * arcsin((vx * sin((lam-theta)/2) + vy * cos((lam-theta)/2)) / L)
+        
+        if theta:
+            qc2.rz(theta,0)
+        if phi:
+            qc2.ry(phi, 0)
+        if lam:
+            qc2.rz(lam, 0)
+        print(theta, phi, lam)
+        print('qc2:\n', Operator(qc2).data)
+        #print(Operator(qc2).data @ np.linalg.inv(Rv))
+#        import ipdb; ipdb.set_trace()
+        
+        # vec_sym = ParameterVector('vec', length=3)
+        # rv_sym = RVGate(*vec_sym)
+        # qc_sym = rv_sym.definition
+
+        rv_num = RVGate(*vec_num)
+        qc_num = rv_num.definition
+
+ #       binding = {key:value for key, value in zip(vec_sym, vec_num)}
+  #      qc_sym2 = qc_sym.bind_parameters(binding)
+        
+        from scipy.spatial.transform import Rotation
+        print('')
+        print('Rv\n', Rv)
+        print('Rv2\n', Rv2)
+        print('unitary check Rv\n', Rv @ np.linalg.inv(Rv))
+        print('rgate.to_matrix()\n', rgate.to_matrix())
+        return
+        import ipdb; ipdb.set_trace()
+        print(qc_sym2)
+        print(qc_num)
+        print('rv_num.to_matrix()\n', rv_num.to_matrix())
+        import ipdb; ipdb.set_trace()
+        print(Operator(qc_sym2).data)
+        print(Operator(qc_num).data)
+ #      import ipdb; ipdb.set_trace()
 
 @ddt
 class TestStandardGates(QiskitTestCase):
