@@ -2408,6 +2408,11 @@ class QuantumCircuit:
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
+    def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
+        """Apply :class:`~qiskit.circuit.library.PauliGate`."""
+        from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        return self.append(PauliGate(pauli_string), qubits, [])
+
     def add_calibration(self, gate, qubits, schedule, params=None):
         """Register a low-level, custom pulse definition for the given gate.
 
