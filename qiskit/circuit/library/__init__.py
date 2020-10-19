@@ -150,6 +150,14 @@ Functions on binary variables
 
    QuadraticForm
 
+Amplitude Functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+
 Particular Quantum Circuits
 ===========================
 
@@ -163,6 +171,16 @@ Particular Quantum Circuits
    QuantumVolume
    PhaseEstimation
    GroverOperator
+
+Probability distributions
+=========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UniformDistribution
+   NormalDistribution
+   LogNormalDistribution
 
 
 N-local circuits
@@ -291,6 +309,11 @@ from .data_preparation import (
     PauliFeatureMap,
     ZFeatureMap,
     ZZFeatureMap
+)
+from .probability_distributions import (
+    LogNormalDistribution,
+    NormalDistribution,
+    UniformDistribution
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
