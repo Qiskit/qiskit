@@ -154,10 +154,10 @@ class TestOperator(OperatorTestCase):
             op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         op = Operator(circuit)
         target = np.diag([1, 1, 1, np.exp(1j * lam)])
         global_phase_equivalent = matrix_equal(
