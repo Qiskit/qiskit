@@ -169,7 +169,7 @@ class TwoQubitWeylDecomposition:
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
             state = np.random.default_rng(i)
             M2real = state.normal()*M2.real + state.normal()*M2.imag
-            _, P = la.eigh(M2real)
+            _, P = la.eigh(M2real, driver='evd')
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
                 break
