@@ -110,7 +110,6 @@ class TestGeneral(QiskitTestCase):
             except rx.NoEdgeBetweenNodes:
                 continue
         # Make sure the graph is connected by adding C_n
-        nodes = list(graph.nodes())
         graph.add_edges_from_no_data(
             [(i, i + 1) for i in range(len(graph) - 1)])
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
