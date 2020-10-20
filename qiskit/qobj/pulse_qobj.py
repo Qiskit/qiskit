@@ -611,7 +611,8 @@ class PulseQobj:
                 "is deprecated and will be removed in a future release. "
                 "If you're relying on this schema validation you should "
                 "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                "validate your payloads with that", DeprecationWarning)
+                "validate your payloads with that", DeprecationWarning,
+                stacklevel=2)
             self._validate_json_schema(out_dict)
 
         return out_dict

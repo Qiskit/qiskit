@@ -134,7 +134,8 @@ def validate_json_against_schema(json_dict, schema,
                   "deprecated and will be removed in a future release. "
                   "If you're relying on this schema validation you should "
                   "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                  "validate your payloads with that", DeprecationWarning)
+                  "validate your payloads with that", DeprecationWarning,
+                  stacklevel=2)
     if isinstance(schema, str):
         schema_name = schema
         schema = _SCHEMAS[schema_name]
