@@ -1,12 +1,7 @@
 ---
 deprecations:
   - |
-    The use of `numpy.ndarray` as a parameter type for the class
-    :class:`~qiskit.circuit.gate.Gate` is being deprecated.
-    If your custom gates takes a unitary matrix as a parameter, consider instantiating
-    :class:`~qiskit.extensions.UnitaryGate`. Otherwise, you might have to create your
-    own :class:`~qiskit.circuit.gate.Gate` subclass and implement
-    `validate_parameter` method accordingly.  
-  - |
     The class :class:`~qiskit.circuit.instruction.Instruction` should be consider
-    abstract and it should not be instantiated directly.
+    abstract and it should not be instantiated directly. If you want to create a
+    custom Instruction you can subclass :class:`~qiskit.circuit.instruction.Instruction`
+    or instantiate :class:`~qiskit.circuit.opaque_instruction. OpaqueInstruction`.
