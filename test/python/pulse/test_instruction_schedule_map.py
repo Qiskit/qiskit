@@ -125,7 +125,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('x', 0, sched)
 
         self.assertEqual(sched, inst_map.get('x', (0,)))
-    
+
     def test_get_from_gate(self):
         """Test `get` with a full gate obj inpput (as opposed to a string)"""
         sched = Schedule()
@@ -137,7 +137,6 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add(gate_name, 0, sched)
 
         self.assertEqual(sched, inst_map.get(gate, (0,)))
- 
 
     def test_remove(self):
         """Test removing a defined operation and removing an undefined operation."""
@@ -246,4 +245,3 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.get('f', (0,), dur=2*t_param, t_val=5), expected_sched)
 
         self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur', 't_val',))
-    
