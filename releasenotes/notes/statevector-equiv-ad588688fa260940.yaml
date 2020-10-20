@@ -1,9 +1,6 @@
 ---
 features:
-  - | 
-    Add support for circuits and labels (e.g. '00') passed into ``Statevector.equiv``.
-
-fixes:
   - |
-    Previously, passing a circuit that creates the same statevector yielded
-    ``False``, which has been fixed.
+    Allow constructing :class:`~qiskit.quantum_info.Statevector` objects from circuits, assuming
+    that the qubits are initialized in :math:`|0\rangle`. This also allows to call
+    ``Statevector.equiv`` with a circuit as argument.
