@@ -36,7 +36,10 @@ class Statevector(QuantumState):
         """Initialize a statevector object.
 
         Args:
-            data (vector_like): a complex statevector.
+            data (vector_like or QuantumCircuit): A complex vector, an ``Operator`` with only one
+                column or a ``QuantumCircuit``. If ``data`` is a ``QuantumCircuit``, the
+                statevector is constructed by assuming that all qubits in the circuit are
+                initialized to the zero state.
             dims (int or tuple or list): Optional. The subsystem dimension of
                                          the state (See additional information).
 
@@ -70,6 +73,8 @@ class Statevector(QuantumState):
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
             self._data = np.ravel(data.data)
+        elif isinstance(data, QuantumCircuit):
+            self._data = Statevector.from_instruction(data).data
         else:
             raise QiskitError("Invalid input data format for Statevector")
         # Check that the input is a numpy vector or column-vector numpy
@@ -242,21 +247,23 @@ class Statevector(QuantumState):
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
     def equiv(self, other, rtol=None, atol=None):
-        """Return True if statevectors are equivalent up to global phase.
+        """Return True if the statevector of other and self are equivalent up to global phase.
+
+        .. note::
+
+            If ``other`` is a ``QuantumCircuit``, the statevector is constructed by assuming that
+            all qubits in the circuit are initialized to the zero state.
 
         Args:
-            other (Statevector): a statevector object.
+            other (Statevector or vector_like or QuantumCircuit): an object from which a
+                ``Statevector`` can be constructed.
             rtol (float): relative tolerance value for comparison.
             atol (float): absolute tolerance value for comparison.
 
         Returns:
             bool: True if statevectors are equivalent up to global phase.
         """
-        if isinstance(other, QuantumCircuit):
-            other = Statevector.from_instruction(other)
-        elif isinstance(other, str):
-            other = Statevector.from_label(other)
-        elif not isinstance(other, Statevector):
+        if not isinstance(other, Statevector):
             try:
                 other = Statevector(other)
             except QiskitError:

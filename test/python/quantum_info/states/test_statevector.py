@@ -75,6 +75,17 @@ class TestStatevector(QiskitTestCase):
         self.assertEqual(state.dims(), (2, 3, 4))
         self.assertIsNone(state.num_qubits)
 
+    def test_init_circuit(self):
+        """Test initialization from circuit."""
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        state = Statevector(circuit)
+
+        self.assertEqual(state.dim, 8)
+        self.assertEqual(state.dims(), (2, 2, 2))
+        self.assertTrue(all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex)))
+        self.assertEqual(state.num_qubits, 3)
+
     def test_init_array_except(self):
         """Test initialization exception from array."""
         vec = self.rand_vec(4)
@@ -354,19 +365,14 @@ class TestStatevector(QiskitTestCase):
         self.assertTrue(statevec.equiv(Statevector(phase * vec)))
         self.assertFalse(statevec.equiv(2 * vec))
 
-    def test_equiv_different_input_types(self):
+    def test_equiv_on_circuit(self):
         """Test the equiv method on different types of input."""
         statevec = Statevector([1, 0])
 
-        with self.subTest('circuit'):
-            qc = QuantumCircuit(1)
-            self.assertTrue(statevec.equiv(qc))
-            qc.x(0)
-            self.assertFalse(statevec.equiv(qc))
-
-        with self.subTest('label'):
-            self.assertTrue(statevec.equiv('0'))
-            self.assertFalse(statevec.equiv('+'))
+        qc = QuantumCircuit(1)
+        self.assertTrue(statevec.equiv(qc))
+        qc.x(0)
+        self.assertFalse(statevec.equiv(qc))
 
     def test_to_dict(self):
         """Test to_dict method"""
