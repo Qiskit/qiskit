@@ -139,12 +139,19 @@ class QuantumCircuit:
 
     def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
+            # check if inputs are integers, but also allow e.g. 2.0
+
             try:
-                regs = tuple(int(reg) for reg in regs)
-            except Exception:
-                raise CircuitError("Circuit args must be Registers or be castable to an int" +
-                                   "(%s '%s' was provided)"
-                                   % ([type(reg).__name__ for reg in regs], regs))
+                valid_reg_size = all(reg == int(reg) for reg in regs)
+            except (ValueError, TypeError):
+                valid_reg_size = False
+
+            if not valid_reg_size:
+                raise CircuitError("Circuit args must be Registers or integers. (%s '%s' was "
+                                   "provided)" % ([type(reg).__name__ for reg in regs], regs))
+
+            regs = tuple(int(reg) for reg in regs)  # cast to int
+
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             if sys.platform != "win32" and not is_main_process():
@@ -2081,6 +2088,13 @@ class QuantumCircuit:
         return self.append(CPhaseGate(theta, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
+    def mcp(self, lam, control_qubits, target_qubit):
+        """Apply :class:`~qiskit.circuit.library.MCPhaseGate`."""
+        from .library.standard_gates.p import MCPhaseGate
+        num_ctrl_qubits = len(control_qubits)
+        return self.append(MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit],
+                           [])
+
     def r(self, theta, phi, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
@@ -2222,33 +2236,61 @@ class QuantumCircuit:
     def u1(self, theta, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U1Gate`."""
         from .library.standard_gates.u1 import U1Gate
+        warnings.warn('The QuantumCircuit.u1 method is deprecated as of 0.16.0. It will be removed '
+                      'no earlier than 3 months after the release date. You should use the '
+                      'QuantumCircuit.p method instead, which acts identically.',
+                      DeprecationWarning, stacklevel=2)
         return self.append(U1Gate(theta), [qubit], [])
 
     def cu1(self, theta, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CU1Gate`."""
         from .library.standard_gates.u1 import CU1Gate
+        warnings.warn('The QuantumCircuit.cu1 method is deprecated as of 0.16.0. It will be '
+                      'removed no earlier than 3 months after the release date. You should use the '
+                      'QuantumCircuit.cp method instead, which acts identically.',
+                      DeprecationWarning, stacklevel=2)
         return self.append(CU1Gate(theta, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
     def mcu1(self, lam, control_qubits, target_qubit):
         """Apply :class:`~qiskit.circuit.library.MCU1Gate`."""
         from .library.standard_gates.u1 import MCU1Gate
+        warnings.warn('The QuantumCircuit.mcu1 method is deprecated as of 0.16.0. It will be '
+                      'removed no earlier than 3 months after the release date. You should use the '
+                      'QuantumCircuit.mcp method instead, which acts identically.',
+                      DeprecationWarning, stacklevel=2)
         num_ctrl_qubits = len(control_qubits)
         return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
 
     def u2(self, phi, lam, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
+        warnings.warn('The QuantumCircuit.u2 method is deprecated as of 0.16.0. It will be '
+                      'removed no earlier than 3 months after the release date. You can use the '
+                      'general 1-qubit gate QuantumCircuit.u instead: u2(φ,λ) = u(π/2, φ, λ). '
+                      'Alternatively, you can decompose it in terms of QuantumCircuit.p and '
+                      'QuantumCircuit.sx: u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).',
+                      DeprecationWarning, stacklevel=2)
         return self.append(U2Gate(phi, lam), [qubit], [])
 
     def u3(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
+        warnings.warn('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
+                      'removed no earlier than 3 months after the release date. You should use '
+                      'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
+                      'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                      'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).',
+                      DeprecationWarning, stacklevel=2)
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
     def cu3(self, theta, phi, lam, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CU3Gate`."""
         from .library.standard_gates.u3 import CU3Gate
+        warnings.warn('The QuantumCircuit.cu3 method is deprecated as of 0.16.0. It will be '
+                      'removed no earlier than 3 months after the release date. You should use the '
+                      'QuantumCircuit.cu method instead, where cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0).',
+                      DeprecationWarning, stacklevel=2)
         return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
@@ -2365,6 +2407,11 @@ class QuantumCircuit:
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
+
+    def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
+        """Apply :class:`~qiskit.circuit.library.PauliGate`."""
+        from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        return self.append(PauliGate(pauli_string), qubits, [])
 
     def add_calibration(self, gate, qubits, schedule, params=None):
         """Register a low-level, custom pulse definition for the given gate.
