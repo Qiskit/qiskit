@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The minimum required version of numpy has been increased from 1.17.0 to
+    1.18.0. This was done to leverage the ``numpy.linalg.eigh()`` function [#]_
+    for use in :class:`qiskit.quantum_info.TwoQubitBasisDecomposer` which was
+    needed to provide consistent results.
+
+    .. [#] https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html
