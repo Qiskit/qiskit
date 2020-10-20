@@ -127,7 +127,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(sched, inst_map.get('x', (0,)))
     
     def test_get_from_gate(self):
-        """Test `get` with a full gate instruction obj inpput (as opposed to a string)"""
+        """Test `get` with a full gate obj inpput (as opposed to a string)"""
         sched = Schedule()
         sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)))
         inst_map = InstructionScheduleMap()
