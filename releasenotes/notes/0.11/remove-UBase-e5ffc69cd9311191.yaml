@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The previously deprecated gate ``UBase``, which was deprecated
+    in the 0.9 release, has been removed. The gate ``U3Gate``
+    should be used instead.

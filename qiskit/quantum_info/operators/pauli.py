@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -155,8 +153,8 @@ class Pauli:
 
     def __repr__(self):
         """Return the representation of self."""
-        z = [p for p in self._z]
-        x = [p for p in self._x]
+        z = list(self._z)
+        x = list(self._x)
 
         ret = self.__class__.__name__ + "(z={}, x={})".format(z, x)
         return ret
@@ -256,7 +254,7 @@ class Pauli:
         return new_pauli, phase
 
     @property
-    def numberofqubits(self):
+    def num_qubits(self):
         """Number of qubits."""
         return len(self)
 
@@ -312,11 +310,11 @@ class Pauli:
     def to_instruction(self):
         """Convert to Pauli circuit instruction."""
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
-        gates = {'I': IdGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
+        from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+        gates = {'I': IGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
         label = self.to_label()
-        n_qubits = self.numberofqubits
-        qreg = QuantumRegister(n_qubits)
+        num_qubits = self.num_qubits
+        qreg = QuantumRegister(num_qubits)
         circuit = QuantumCircuit(qreg, name='Pauli:{}'.format(label))
         for i, pauli in enumerate(reversed(label)):
             circuit.append(gates[pauli], [qreg[i]])
@@ -461,10 +459,9 @@ class Pauli:
         Returns:
             Pauli: the random pauli
         """
-        if seed is not None:
-            np.random.seed(seed)
-        z = np.random.randint(2, size=num_qubits).astype(np.bool)
-        x = np.random.randint(2, size=num_qubits).astype(np.bool)
+        rng = np.random.default_rng(seed)
+        z = rng.integers(2, size=num_qubits).astype(np.bool)
+        x = rng.integers(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
 
     @classmethod

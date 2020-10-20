@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -14,4 +12,6 @@
 
 """State and Unitary synthesis methods."""
 
-from .two_qubit_decompose import TwoQubitBasisDecomposer, euler_angles_1q, two_qubit_cnot_decompose
+from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
+from .one_qubit_decompose import OneQubitEulerDecomposer
+from .two_qubit_decompose import euler_angles_1q  # DEPRECATED

@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The Exception ``TranspilerAccessError`` has been deprecated. An
+    alternative function ``TranspilerError`` can be used instead to provide
+    the same functionality. This alternative function provides the exact same
+    functionality but with greater generality.

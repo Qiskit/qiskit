@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,20 +13,11 @@
 """
 Exception for errors raised by the transpiler.
 """
-import warnings
 from qiskit.exceptions import QiskitError
 
 
 class TranspilerAccessError(QiskitError):
-    """Exception of access error in the transpiler passes."""
-
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(' '.join(message))
-        warnings.warn('The exception TranspilerAccessError is deprecated as of 0.11.0 '
-                      'and will be removed no earlier than 3 months after that release '
-                      'date. You should use the exception TranspilerError instead.',
-                      DeprecationWarning, stacklevel=2)
+    """DEPRECATED: Exception of access error in the transpiler passes."""
 
 
 class TranspilerError(TranspilerAccessError):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -14,7 +12,7 @@
 
 # pylint: disable=arguments-differ
 
-"""Contains a (slow) python simulator.
+"""Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
@@ -318,11 +316,8 @@ class QasmSimulatorPy(BaseBackend):
                                        self._number_of_qubits * [2])
 
     def _get_statevector(self):
-        """Return the current statevector in JSON Result spec format"""
+        """Return the current statevector"""
         vec = np.reshape(self._statevector, 2 ** self._number_of_qubits)
-        # Expand complex numbers
-        vec = np.stack([vec.real, vec.imag], axis=1)
-        # Truncate small values
         vec[abs(vec) < self._chop_threshold] = 0.0
         return vec
 
@@ -461,6 +456,7 @@ class QasmSimulatorPy(BaseBackend):
         self._classical_memory = 0
         self._classical_register = 0
         self._sample_measure = False
+        global_phase = experiment.header.global_phase
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
@@ -490,6 +486,8 @@ class QasmSimulatorPy(BaseBackend):
             shots = self._shots
         for _ in range(shots):
             self._initialize_statevector()
+            # apply global_phase
+            self._statevector *= np.exp(1j * global_phase)
             # Initialize classical memory to all 0
             self._classical_memory = 0
             self._classical_register = 0

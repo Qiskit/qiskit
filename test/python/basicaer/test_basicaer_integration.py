@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -20,6 +18,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit.result import Result
+from qiskit.providers.basicaer import BasicAerError
 from qiskit.test import QiskitTestCase
 
 
@@ -27,6 +26,7 @@ class TestBasicAerIntegration(QiskitTestCase):
     """Qiskit BasicAer simulator integration tests."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         self._qc1 = QuantumCircuit(qr, cr, name='qc1')
@@ -69,6 +69,14 @@ class TestBasicAerIntegration(QiskitTestCase):
         job = execute([qc, qc_extra], self.backend)
         result = job.result()
         self.assertIsInstance(result, Result)
+
+    def test_basicaer_num_qubits(self):
+        """Test BasicAerError is raised if num_qubits too large to simulate."""
+        qc = QuantumCircuit(50, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        job = execute(qc, self.backend)
+        self.assertRaises(BasicAerError, job.result)
 
 
 if __name__ == '__main__':

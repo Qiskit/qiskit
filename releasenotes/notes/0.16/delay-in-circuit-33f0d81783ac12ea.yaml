@@ -1,0 +1,74 @@
+---
+features:
+  - |
+    A new class :class:`qiskit.circuit.Delay` for representing a delay
+    instruction in a circuit has been added. A new method
+    :meth:`~qiskit.circuit.QuantumCircuit.delay` is now available for easily
+    appending delays to circuits. This makes it possible to describe
+    timing-sensitive experiments (e.g. T1/T2 experiment) in the circuit level.
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+
+        qc = QuantumCircuit(1, 1)
+        qc.delay(500, 0, unit='ns')
+        qc.measure(0, 0)
+
+        qc.draw()
+
+  - |
+    A new argument ``scheduling_method`` for
+    :func:`qiskit.compiler.transpile` has been added. It is required when
+    transpiling circuits with delays.  If ``scheduling_method`` is specified,
+    the transpiler returns a scheduled circuit such that all idle times in it
+    are padded with delays (i.e. start time of each instruction is uniquely
+    determined). This makes it possible to see how scheduled instructions
+    (gates) look in the circuit level.
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit, transpile
+        from qiskit.test.mock.backends import FakeAthens
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        scheduled_circuit = transpile(qc, backend=FakeAthens(), scheduling_method="alap")
+        print("Duration in dt:", scheduled_circuit.duration)
+        scheduled_circuit.draw(idle_wires=False)
+
+    See also :func:`~qiskit.visualization.timeline_drawer` for the best visualization
+    of scheduled circuits.
+
+  - |
+    A new fuction :func:`qiskit.compiler.sequence` has been also added so that
+    we can convert a scheduled circuit into a :class:`~qiskit.pulse.Schedule`
+    to make it executable on a pulse-enabled backend.
+
+    .. code-block:: python
+
+        from qiskit.compiler import sequence
+
+        sched = sequence(scheduled_circuit, pulse_enabled_backend)
+  - |
+    The :func:`~qiskit.compiler.schedule` has been updated so that it can
+    schedule circuits with delays. Now there are two paths to schedule a
+    circuit with delay:
+    
+    .. code-block:: python
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.delay(500, 0, unit='ns')
+        qc.h(0)
+        qc.measure(0, 0)
+
+        sched_path1 = schedule(qc.decompose(), backend)
+        sched_path2 = sequence(transpile(qc, backend, scheduling_method='alap'), backend)
+        assert pad(sched_path1) == sched_path2
+
+    Refer to the release notes and documentation for
+    :func:`~qiskit.compiler.transpile` and :func:`~qiskit.compiler.sequence`
+    for the details on the other path.

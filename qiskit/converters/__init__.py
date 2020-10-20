@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -25,14 +23,23 @@ Circuit Converters (:mod:`qiskit.converters`)
    circuit_to_dag
    dag_to_circuit
    circuit_to_instruction
+   circuit_to_gate
    ast_to_dag
+   dagdependency_to_circuit
+   circuit_to_dagdependency
+   dag_to_dagdependency
+   dagdependency_to_dag
 """
 
 from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
-from .ast_to_dag import ast_to_dag
 from .circuit_to_instruction import circuit_to_instruction
-from .instruction_to_gate import instruction_to_gate
+from .circuit_to_gate import circuit_to_gate
+from .ast_to_dag import ast_to_dag
+from .circuit_to_dagdependency import circuit_to_dagdependency
+from .dagdependency_to_circuit import dagdependency_to_circuit
+from .dag_to_dagdependency import dag_to_dagdependency
+from .dagdependency_to_dag import dagdependency_to_dag
 
 
 def isinstanceint(obj):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -29,52 +27,24 @@ from .exceptions import TranspilerError
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager():
+class RunningPassManager:
     """A RunningPassManager is a running pass manager."""
 
-    def __init__(self, max_iteration, callback):
+    def __init__(self, max_iteration):
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
-            max_iteration (int): The schedule looping iterates until the condition
-                is met or until max_iteration is reached.
-            callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments:
-                    pass_ (Pass): the pass being run
-                    dag (DAGCircuit): the dag output of the pass
-                    time (float): the time to execute the pass
-                    property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
-
-                The exact arguments pass expose the internals of the pass
-                manager and are subject to change as the pass manager internals
-                change. If you intend to reuse a callback function over
-                multiple releases be sure to check that the arguments being
-                passed are the same.
-
-                To use the callback feature you define a function that will
-                take in kwargs dict and access the variables. For example::
-
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-
-                    PassManager(callback=callback_func)
-
+            max_iteration (int): The schedule looping iterates until the condition is met or until
+                max_iteration is reached.
         """
-        self.callback = callback
+        self.callback = None
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. Analysis passes may update the property_set,
-        # but transformation passes have read-only access (via the fenced_property_set).
+        # as it runs through its scheduled passes. The flow controller
+        # have read-only access (via the fenced_property_set).
         self.property_set = PropertySet()
 
         # passes already run that have not been invalidated
@@ -133,12 +103,14 @@ class RunningPassManager():
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
         return flow_controller
 
-    def run(self, circuit):
+    def run(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
-
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
+            callback (callable): A callback function that will be called after each pass execution.
         Returns:
             QuantumCircuit: Transformed circuit.
         """
@@ -146,12 +118,19 @@ class RunningPassManager():
         dag = circuit_to_dag(circuit)
         del circuit
 
+        if callback:
+            self.callback = callback
+
         for passset in self.working_list:
             dag = passset.do_passes(self, dag, FencedPropertySet(self.property_set))
 
         circuit = dag_to_circuit(dag)
-        circuit.name = name
+        if output_name:
+            circuit.name = output_name
+        else:
+            circuit.name = name
         circuit._layout = self.property_set['layout']
+
         return circuit
 
     def _do_pass(self, pass_, dag):
@@ -181,8 +160,8 @@ class RunningPassManager():
         return dag
 
     def _run_this_pass(self, pass_, dag):
+        pass_.property_set = self.property_set
         if pass_.is_transformation_pass:
-            pass_.property_set = FencedPropertySet(self.property_set)
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
@@ -196,13 +175,14 @@ class RunningPassManager():
                               count=self.count)
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
-            if not isinstance(new_dag, DAGCircuit):
+            if isinstance(new_dag, DAGCircuit):
+                new_dag.calibrations = dag.calibrations
+            else:
                 raise TranspilerError("Transformation passes should return a transformed dag."
                                       "The pass %s is returning a %s" % (type(pass_).__name__,
                                                                          type(new_dag)))
             dag = new_dag
         elif pass_.is_analysis_pass:
-            pass_.property_set = self.property_set
             # Measure time if we have a callback or logging set
             start_time = time()
             pass_.run(FencedDAGCircuit(dag))
@@ -247,8 +227,7 @@ class FlowController():
         self.property_set = None
 
     def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
+        yield from self.passes
 
     def do_passes(self, pass_manager, dag, property_set):
         """ In the context of pass_manager, runs the pass on the dag
@@ -350,9 +329,7 @@ class DoWhileController(FlowController):
 
     def __iter__(self):
         for _ in range(self.max_iteration):
-            self.passes.property_set = self.property_set
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
             if not self.do_while(self.property_set):
                 return
@@ -367,10 +344,8 @@ class ConditionalController(FlowController):
         super().__init__(passes, options, **flow_controller)
 
     def __iter__(self):
-        if self.condition(self.property_set):
-            self.passes.property_set = self.property_set
-            for pass_ in self.passes:
-                yield pass_
+        if self.condition():
+            yield from self.passes
 
 
 class BestOfController(FlowController):

@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added method ``Instruction.is_parameterized()`` reducing repeated code.
-    Method returns ``True`` .IFF. instruction has a ``ParameterExpression``
-    or ``Parameter`` object for one of its params.

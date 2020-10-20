@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -39,27 +37,31 @@ class FakeAlmaden(FakeBackend):
         """
         dirname = os.path.dirname(__file__)
         filename = "conf_almaden.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
+        with open(os.path.join(dirname, filename)) as f_conf:
             conf = json.load(f_conf)
 
         configuration = PulseBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_almaden'
+        self._defaults = None
+        self._properties = None
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 10/24/19.
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "props_almaden.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
+        """Returns a snapshot of device properties"""
+        if not self._properties:
+            dirname = os.path.dirname(__file__)
+            filename = "props_almaden.json"
+            with open(os.path.join(dirname, filename)) as f_prop:
+                props = json.load(f_prop)
+            self._properties = BackendProperties.from_dict(props)
+        return self._properties
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 11/15/19.
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "defs_almaden.json"
-        with open(os.path.join(dirname, filename), "r") as f_defs:
-            defs = json.load(f_defs)
-        return PulseDefaults.from_dict(defs)
+        """Returns a snapshot of device defaults"""
+        if not self._defaults:
+            dirname = os.path.dirname(__file__)
+            filename = "defs_almaden.json"
+            with open(os.path.join(dirname, filename)) as f_defs:
+                defs = json.load(f_defs)
+            self._defaults = PulseDefaults.from_dict(defs)
+        return self._defaults

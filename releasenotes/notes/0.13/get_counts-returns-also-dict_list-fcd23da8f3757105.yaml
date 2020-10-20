@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    The :meth:`qiskit.result.Result` method
+    :meth:`~qiskit.result.Result.get_counts` will now return a list of all the
+    counts available when there are multiple circuits in a job. This works when
+    ``get_counts()`` is called with no arguments.
+
+    The main consideration for this feature was for drawing all the results
+    from multiple circuits in the same histogram. For example it is now
+    possible to do something like:
+
+    .. jupyter-execute::
+
+        from qiskit import execute
+        from qiskit import QuantumCircuit
+        from qiskit.providers.basicaer import BasicAer
+        from qiskit.visualization import plot_histogram
+
+        sim = BasicAer.get_backend('qasm_simulator')
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        result = execute([qc, qc, qc], sim).result()
+
+        plot_histogram(result.get_counts())
+

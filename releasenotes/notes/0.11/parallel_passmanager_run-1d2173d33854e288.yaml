@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    When ``passmanager.run(...)`` is invoked with more than one circuit, the
+    transpilation of these circuits will run in parallel.
+upgrade:
+  - |
+    `dill <https://pypi.org/project/dill/>`__ was added as a requirement. This
+    is needed to enable running ``passmanager.run()`` in parallel for more than
+    one circuit.
+issues:
+  - |
+    The feature for transpiling in parallel when ``passmanager.run(...)`` is
+    invoked with more than one circuit is not supported under Windows. See
+    `#2988 <https://github.com/Qiskit/qiskit-terra/issues/2988>`__ for more
+    details.

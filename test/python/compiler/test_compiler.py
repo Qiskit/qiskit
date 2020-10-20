@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -20,6 +18,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit import execute
+from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
@@ -30,6 +29,7 @@ class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
 
     def setUp(self):
+        super().setUp()
         self.seed_simulator = 42
         self.backend = BasicAer.get_backend("qasm_simulator")
 
@@ -171,6 +171,18 @@ class TestCompiler(QiskitTestCase):
         qobj = assemble(transpile(qlist, backend=backend))
         self.assertEqual(len(qobj.experiments), 10)
 
+    def test_no_conflict_backend_passmanager(self):
+        """execute(qc, backend=..., passmanager=...)
+        See: https://github.com/Qiskit/qiskit-terra/issues/5037
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc = QuantumCircuit(2)
+        qc.append(U1Gate(0), [0])
+        qc.measure_all()
+        job = execute(qc, backend=backend, pass_manager=PassManager())
+        result = job.result().get_counts()
+        self.assertEqual(result, {'00': 1024})
+
     def test_compile_single_qubit(self):
         """ Compile a single-qubit circuit in a non-trivial layout
         """
@@ -196,17 +208,15 @@ class TestCompiler(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        qc.u1(3.14, qr[0])
-        qc.u2(3.14, 1.57, qr[0])
+        qc.append(U1Gate(3.14), [qr[0]])
+        qc.append(U2Gate(3.14, 1.57), [qr[0]])
         qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend('qasm_simulator')
         qrtrue = assemble(transpile(qc, backend, seed_transpiler=8),
                           seed_simulator=42)
         rtrue = backend.run(qrtrue).result()
-        qrfalse = assemble(transpile(qc, backend, seed_transpiler=8,
-                                     pass_manager=PassManager()),
-                           seed_simulator=42)
+        qrfalse = assemble(PassManager().run(qc), seed_simulator=42)
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 

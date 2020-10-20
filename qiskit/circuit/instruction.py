@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -25,25 +23,25 @@ Instructions are identified by the following:
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
-    num_qubits, num_clbits: dimensions of the instruction
+    num_qubits, num_clbits: dimensions of the instruction.
 
     params: List of parameters to specialize a specific instruction instance.
 
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+import warnings
 import copy
 from itertools import zip_longest
-import warnings
 
 import numpy
 
-from qiskit.qasm.node import node
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.qobj.models.qasm import QasmQobjInstruction
-from qiskit.circuit.parameter import ParameterExpression, Parameter
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+from qiskit.circuit.parameter import ParameterExpression
+from .tools import pi_check
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -51,14 +49,17 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[int|float|complex|str|ndarray|ParameterExpression]): list of parameters
+            params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
+                list of parameters
+            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
+            unit (str): time unit of duration
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -81,6 +82,9 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
+
+        self._duration = duration
+        self._unit = unit
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -108,8 +112,8 @@ class Instruction:
 
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
-                   and numpy.allclose(self_param, other_param,
-                                      atol=_CUTOFF_PRECISION):
+                        and numpy.allclose(self_param, other_param,
+                                           atol=_CUTOFF_PRECISION):
                     continue
             except TypeError:
                 pass
@@ -131,82 +135,27 @@ class Instruction:
 
     @property
     def params(self):
-        """return instruction params"""
+        """return instruction params."""
         return self._params
 
     @params.setter
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression)):
+            if isinstance(single_param, ParameterExpression):
                 self._params.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, node.Node):
-                warnings.warn('Using qasm ast node as a circuit.Instruction '
-                              'parameter is deprecated as of the 0.11.0, and '
-                              'will be removed no earlier than 3 months after '
-                              'that release date. You should convert the qasm '
-                              'node to a supported type int, float, complex, '
-                              'str, circuit.ParameterExpression, or ndarray '
-                              'before setting Instruction.parameters',
-                              DeprecationWarning, stacklevel=3)
-
-                self._params.append(single_param.sym())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self._params.append(single_param)
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self._params.append(single_param)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self._params.append(Parameter(single_param))
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
-            elif 'sympy' in str(type(single_param)):
-                import sympy
-                if isinstance(single_param, sympy.Basic):
-                    warnings.warn('Parameters of sympy.Basic is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert this to a '
-                                  'supported type prior to using it as a '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                elif isinstance(single_param, sympy.Matrix):
-                    warnings.warn('Parameters of sympy.Matrix is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Matrix '
-                                  'to a numpy matrix with sympy.matrix2numpy '
-                                  'prior to using it as a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    matrix = sympy.matrix2numpy(single_param, dtype=complex)
-                    self._params.append(matrix)
-                elif isinstance(single_param, sympy.Expr):
-                    warnings.warn('Parameters of sympy.Expr is deprecated '
-                                  'as of the 0.11.0, and will be removed no '
-                                  'earlier than 3 months after that release '
-                                  'date. You should convert the sympy Expr '
-                                  'to a supported type prior to using it as '
-                                  'a parameter.',
-                                  DeprecationWarning, stacklevel=3)
-                    self._params.append(single_param)
-                else:
-                    raise CircuitError("invalid param type {0} in instruction "
-                                       "{1}".format(type(single_param), self.name))
             else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+                self._params.append(self.validate_parameter(single_param))
+
+    def validate_parameter(self, parameter):
+        """Instruction parameters has no validation or normalization."""
+        return parameter
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
-        return any(isinstance(param, ParameterExpression) for param in self.params)
+        return any(isinstance(param, ParameterExpression)
+                   and param.parameters
+                   for param in self.params)
 
     @property
     def definition(self):
@@ -217,12 +166,52 @@ class Instruction:
 
     @definition.setter
     def definition(self, array):
-        """Set matrix representation"""
+        """Set gate representation"""
         self._definition = array
+
+    @property
+    def decompositions(self):
+        """Get the decompositions of the instruction from the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        return sel.get_entry(self)
+
+    @decompositions.setter
+    def decompositions(self, decompositions):
+        """Set the decompositions of the instruction from the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        sel.set_entry(self, decompositions)
+
+    def add_decomposition(self, decomposition):
+        """Add a decomposition of the instruction to the SessionEquivalenceLibrary."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        sel.add_equivalence(self, decomposition)
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        """Set the duration."""
+        self._duration = duration
+
+    @property
+    def unit(self):
+        """Get the time unit of duration."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit):
+        """Set the time unit of duration."""
+        self._unit = unit
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name, validate=False)
+        instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [
@@ -241,21 +230,33 @@ class Instruction:
         return instruction
 
     def mirror(self):
-        """For a composite instruction, reverse the order of sub-gates.
+        """DEPRECATED: use instruction.reverse_ops().
 
-        This is done by recursively mirroring all sub-instructions.
+        Return:
+            qiskit.circuit.Instruction: a new instruction with sub-instructions
+                reversed.
+        """
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
+                      'to reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """For a composite instruction, reverse the order of sub-instructions.
+
+        This is done by recursively reversing all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            Instruction: a fresh gate with sub-gates reversed
+            qiskit.circuit.Instruction: a new instruction with
+                sub-instructions reversed.
         """
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_mirror')
-        reverse_inst.definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+        reverse_inst = self.copy(name=self.name + '_reverse')
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -268,7 +269,7 @@ class Instruction:
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
 
         Returns:
-            Instruction: a fresh instruction for the inverse
+            qiskit.circuit.Instruction: a fresh instruction for the inverse
 
         Raises:
             CircuitError: if the instruction is not composite
@@ -276,10 +277,23 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -293,20 +307,27 @@ class Instruction:
 
     def copy(self, name=None):
         """
-        shallow copy of the instruction.
+        Copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
-            if None then the name stays the same
+            if None then the name stays the same.
 
         Returns:
-          Instruction: a shallow copy of the current instruction, with the name
+          qiskit.circuit.Instruction: a copy of the current instruction, with the name
             updated if it was provided
         """
-        cpy = copy.copy(self)
-        cpy.params = copy.copy(self.params)
+        cpy = self.__deepcopy__()
+
         if name:
             cpy.name = name
+        return cpy
+
+    def __deepcopy__(self, _memo=None):
+        cpy = copy.copy(self)
+        cpy._params = copy.copy(self._params)
+        if self._definition:
+            cpy._definition = copy.deepcopy(self._definition, _memo)
         return cpy
 
     def _qasmif(self, string):
@@ -324,7 +345,7 @@ class Instruction:
         name_param = self.name
         if self.params:
             name_param = "%s(%s)" % (name_param, ",".join(
-                [str(i) for i in self.params]))
+                [pi_check(i, ndigits=8, output='qasm') for i in self.params]))
 
         return self._qasmif(name_param)
 
@@ -363,7 +384,7 @@ class Instruction:
             n (int): Number of times to repeat the instruction
 
         Returns:
-            Instruction: Containing the definition.
+            qiskit.circuit.Instruction: Containing the definition.
 
         Raises:
             CircuitError: If n < 1.
@@ -377,33 +398,14 @@ class Instruction:
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
-        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        if instruction.definition is None:
+            # pylint: disable=cyclic-import
+            from qiskit import QuantumCircuit
+            qc = QuantumCircuit()
+            if qargs:
+                qc.add_register(qargs)
+            if cargs:
+                qc.add_register(cargs)
+            qc.data = [(self, qargs[:], cargs[:])] * n
+        instruction.definition = qc
         return instruction
-
-    # def to_gate(self):
-    #     """Create a Gate out of this Instruction if possible.
-
-    #     Returns:
-    #         Gate: cast of Instruction to Gate
-
-    #     Raises:
-    #         QiskitError: if any instruction in its definition can't be represented
-    #             as a Gate.
-    #     """
-    #     import qiskit.converters.instruction_to_gate as converters
-    #     return converters.instruction_to_gate(self)
-
-    @property
-    def control(self):
-        """temporary classical control. Will be deprecated."""
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        return self.condition
-
-    @control.setter
-    def control(self, value):
-        warnings.warn('The instruction attribute, "control", will be renamed '
-                      'to "condition". The "control" method will later be used '
-                      'to create quantum controlled gates')
-        self.condition = value

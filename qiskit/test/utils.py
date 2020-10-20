@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -95,17 +93,19 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
 
 
 class Case(dict):
-    """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
+    """<no description>"""
     pass
 
 
-def generate_cases(dsc=None, name=None, **kwargs):
+def generate_cases(docstring, dsc=None, name=None, **kwargs):
     """Combines kwargs in cartesian product and creates Case with them"""
     ret = []
     keys = kwargs.keys()
     vals = kwargs.values()
     for values in product(*vals):
         case = Case(zip(keys, values))
+        if docstring is not None:
+            setattr(case, "__doc__", docstring.format(**case))
         if dsc is not None:
             setattr(case, "__doc__", dsc.format(**case))
         if name is not None:

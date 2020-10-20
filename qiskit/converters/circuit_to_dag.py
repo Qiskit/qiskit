@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -25,15 +23,39 @@ def circuit_to_dag(circuit):
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.dagcircuit import DAGCircuit
+            from qiskit.converters import circuit_to_dag
+            from qiskit.visualization import dag_drawer
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            dag = circuit_to_dag(circ)
+            dag_drawer(dag)
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
+    dagcircuit.global_phase = circuit.global_phase
+    dagcircuit.calibrations = circuit.calibrations
+
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
     for instruction, qargs, cargs in circuit.data:
-        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
-                                        instruction.condition)
+        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
+
+    dagcircuit.duration = circuit.duration
+    dagcircuit.unit = circuit.unit
     return dagcircuit

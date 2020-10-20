@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -17,16 +15,22 @@ Tests for the Collect2qBlocks transpiler pass.
 """
 
 import unittest
+from math import pi
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from ddt import ddt, data, unpack
+
+from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.circuit.library import (
+    CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
+)
 
 
+@ddt
 class TestCollect2qBlocks(QiskitTestCase):
     """
     Tests to verify that blocks of 2q interactions are found correctly.
@@ -35,21 +39,21 @@ class TestCollect2qBlocks(QiskitTestCase):
     def test_blocks_in_topological_order(self):
         """the pass returns blocks in correct topological order
                                                      ______
-         q0:--[u1]-------.----      q0:-------------|      |--
-                         |                 ______   |  U2  |
-         q1:--[u2]--(+)-(+)---   =  q1:---|      |--|______|--
-                     |                    |  U1  |
-         q2:---------.--------      q2:---|______|------------
+         q0:--[p]-------.----      q0:-------------|      |--
+                        |                 ______   |  U2  |
+         q1:--[u]--(+)-(+)---   =  q1:---|      |--|______|--
+                    |                    |  U1  |
+         q2:--------.--------      q2:---|______|------------
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
-        qc.u1(0.5, qr[0])
-        qc.u2(0.2, 0.6, qr[1])
+        qc.p(0.5, qr[0])
+        qc.u(0.0, 0.2, 0.6, qr[1])
         qc.cx(qr[2], qr[1])
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        topo_ops = [i for i in dag.topological_op_nodes()]
+        topo_ops = list(dag.topological_op_nodes())
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
 
@@ -67,21 +71,21 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         blocks : [['cx', 'id', 'id', 'id'], ['id', 'cx']]
 
-                ┌───┐┌────┐┌─┐      ┌────┐┌───┐
-        q_0: |0>┤ X ├┤ Id ├┤M├──────┤ Id ├┤ X ├
-                └─┬─┘├────┤└╥┘┌────┐└────┘└─┬─┘
-        q_1: |0>──■──┤ Id ├─╫─┤ Id ├────────■──
-                     └────┘ ║ └────┘
-         c_0: 0 ════════════╩══════════════════
+                ┌───┐┌───┐┌─┐     ┌───┐┌───┐
+        q_0: |0>┤ X ├┤ I ├┤M├─────┤ I ├┤ X ├
+                └─┬─┘├───┤└╥┘┌───┐└───┘└─┬─┘
+        q_1: |0>──■──┤ I ├─╫─┤ I ├───────■──
+                     └───┘ ║ └───┘
+         c_0: 0 ═══════════╩════════════════
 
         """
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
-        qc.iden(0)
-        qc.iden(1)
+        qc.i(0)
+        qc.i(1)
         qc.measure(0, 0)
-        qc.iden(0)
-        qc.iden(1)
+        qc.i(0)
+        qc.i(1)
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)
@@ -89,7 +93,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
-        good_names = ["cx", "u1", "u2", "u3", "id"]
+        good_names = ['cx', 'u1', 'u2', 'u3', 'id']
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
@@ -130,16 +134,99 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
         qc = QuantumCircuit.from_qasm_str(qasmstr)
-        backend = FakeMelbourne()
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
 
-        transpile(qc, backend, pass_manager=pass_manager)
+        pass_manager.run(qc)
 
-        self.assertEqual([['cx', 'u1']],
+        self.assertEqual([['cx']],
                          [[n.name for n in block]
                           for block in pass_manager.property_set['block_list']])
+
+    def test_do_not_merge_conditioned_gates(self):
+        """Validate that classically conditioned gates are never considered for
+        inclusion in a block. Note that there are cases where gates conditioned
+        on the same (register, value) pair could be correctly merged, but this is
+        not yet implemented.
+
+                 ┌────────┐┌────────┐┌────────┐      ┌───┐
+        qr_0: |0>┤ P(0.1) ├┤ P(0.2) ├┤ P(0.3) ├──■───┤ X ├────■───
+                 └────────┘└───┬────┘└───┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
+        qr_1: |0>──────────────┼─────────┼─────┤ X ├───■────┤ X ├─
+                               │         │     └───┘   │    └─┬─┘
+        qr_2: |0>──────────────┼─────────┼─────────────┼──────┼───
+                            ┌──┴──┐   ┌──┴──┐       ┌──┴──┐┌──┴──┐
+         cr_0: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
+                            │ = 0 │   │ = 0 │       │ = 0 ││ = 1 │
+         cr_1: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
+                            └─────┘   └─────┘       └─────┘└─────┘
+
+        Previously the blocks collected were : [['p', 'p', 'p', 'cx', 'cx', 'cx']]
+        This is now corrected to : [['cx']]
+        """
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
+
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+
+        qc = QuantumCircuit(qr, cr)
+        qc.p(0.1, 0)
+        qc.p(0.2, 0).c_if(cr, 0)
+        qc.p(0.3, 0).c_if(cr, 0)
+        qc.cx(0, 1)
+        qc.cx(1, 0).c_if(cr, 0)
+        qc.cx(0, 1).c_if(cr, 1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+
+        pass_manager.run(qc)
+        self.assertEqual([['cx']],
+                         [[n.name for n in block]
+                          for block in pass_manager.property_set['block_list']])
+
+    @unpack
+    @data(
+        (CXGate(), U1Gate(0.1), U2Gate(0.2, 0.3)),
+        (RXXGate(pi/2), RZGate(0.1), RXGate(pi/2)),
+        (
+            Gate('custom2qgate', 2, []),
+            Gate('custom1qgate1', 1, []),
+            Gate('custom1qgate2', 1, []),
+        ),
+    )
+    def test_collect_arbitrary_gates(self, twoQ_gate, oneQ_gate1, oneQ_gate2):
+        """Validate we can collect blocks irrespective of gate types in the circuit."""
+
+        qc = QuantumCircuit(3)
+
+        # Block 1 - q[0] and q[1]
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+        qc.append(twoQ_gate, [0, 1])
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+
+        # Block 2 - q[1] and q[2]
+        qc.append(oneQ_gate1, [1])
+        qc.append(oneQ_gate2, [2])
+        qc.append(twoQ_gate, [1, 2])
+        qc.append(oneQ_gate1, [1])
+        qc.append(oneQ_gate2, [2])
+
+        # Block 3 - q[0] and q[1]
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+        qc.append(twoQ_gate, [0, 1])
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+
+        pass_manager.run(qc)
+        self.assertEqual(len(pass_manager.property_set['block_list']), 3)
 
 
 if __name__ == '__main__':

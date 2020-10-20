@@ -46,6 +46,8 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test
+	tools/verify_headers.py qiskit test tools
+	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
 
 style:
 	pycodestyle --max-line-length=100 qiskit test
@@ -53,14 +55,22 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -s test/python -v
+	python3 -m unittest discover -s test/python -t . -v
+
+# Use pytest to run tests
+pytest:
+	pytest test/python
+
+# Use pytest to run randomized tests
+pytest_randomized:
+	pytest test/randomized
 
 test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
-	stestr run --concurrency $(CONCURRENCY)
+	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run --concurrency $(CONCURRENCY)
 
 test_randomized:
-	python3 -m unittest discover -s test/randomized -v
+	python3 -m unittest discover -s test/randomized -t . -v
 
 coverage:
 	coverage3 run --source qiskit -m unittest discover -s test/python -q

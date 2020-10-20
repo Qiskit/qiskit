@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -19,16 +17,13 @@ Models and Schemas (:mod:`qiskit.validation`)
 
 .. currentmodule:: qiskit.validation
 
-Base
-====
+JSON Schema
+===========
 
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseModel
-   BaseSchema
-   bind_schema
-   ModelTypeValidator
+   jsonschema.validate_json_against_schema
 
 Exceptions
 ==========
@@ -36,8 +31,5 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   ModelValidationError
+   jsonschema.SchemaValidationError
 """
-
-from .base import BaseModel, BaseSchema, bind_schema, ModelTypeValidator
-from .exceptions import ModelValidationError

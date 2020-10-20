@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -29,6 +27,7 @@ class TestQuaternions(QiskitTestCase):
     """Tests qiskit.quantum_info.operators.quaternion"""
 
     def setUp(self):
+        super().setUp()
         self.rnd_array = np.array([0.5, 0.8, 0.9, -0.3])
         self.quat_unnormalized = Quaternion(self.rnd_array)
         axes = ['x', 'y', 'z']
@@ -83,8 +82,8 @@ class TestQuaternions(QiskitTestCase):
             assert_allclose(abs(quat1.data.dot(quat2.data)), 1)
 
     def test_mul_by_quat(self):
-        """Quarternions should multiply correctly."""
-        # multiplication of quarternions is equivalent to the
+        """Quaternions should multiply correctly."""
+        # multiplication of quaternions is equivalent to the
         # multiplication of corresponding rotation matrices.
         other_quat = Quaternion(np.array([0.4, 0.2, -0.7, 0.8]))
         other_mat = other_quat.to_matrix()

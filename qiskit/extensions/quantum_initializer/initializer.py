@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -18,15 +16,15 @@ Initialize qubit registers to desired arbitrary state.
 
 import math
 import numpy as np
-import scipy
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.library.standard_gates.ry import RYGate
+from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -38,6 +36,8 @@ class Initialize(Instruction):
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
+    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
+    which is not unitary.
     """
 
     def __init__(self, params):
@@ -83,15 +83,13 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit.data
+        self.definition = initialize_circuit
 
     def gates_to_uncompute(self):
-        """
-        Call to create a circuit with gates that take the
-        desired vector to zero.
+        """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
-            QuantumCircuit: circuit to take self.params vector to |00..0>
+            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
         """
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q, name='disentangler')
@@ -108,10 +106,19 @@ class Initialize(Instruction):
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
-            rz_mult = self._multiplex(RZGate, phis)
-            ry_mult = self._multiplex(RYGate, thetas)
-            circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
-            circuit.append(ry_mult.to_instruction(), q[i:self.num_qubits])
+
+            add_last_cnot = True
+            if np.linalg.norm(phis) != 0 and np.linalg.norm(thetas) != 0:
+                add_last_cnot = False
+
+            if np.linalg.norm(phis) != 0:
+                rz_mult = self._multiplex(U1Gate, phis, last_cnot=add_last_cnot)
+                circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
+
+            if np.linalg.norm(thetas) != 0:
+                ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
+
         return circuit
 
     @staticmethod
@@ -156,7 +163,7 @@ class Initialize(Instruction):
     @staticmethod
     def _bloch_angles(pair_of_complex):
         """
-        Static internal method to work out rotation to create the passed in
+        Static internal method to work out rotation to create the passed-in
         qubit from the zero vector.
         """
         [a_complex, b_complex] = pair_of_complex
@@ -179,7 +186,7 @@ class Initialize(Instruction):
 
         return final_r * np.exp(1.J * final_t / 2), theta, phi
 
-    def _multiplex(self, target_gate, list_of_angles):
+    def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
         """
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
@@ -191,6 +198,7 @@ class Initialize(Instruction):
             target_gate (Gate): Ry or Rz gate to apply to target qubit, multiplexed
                 over all other "select" qubits
             list_of_angles (list[float]): list of rotation angles to apply Ry and Rz
+            last_cnot (bool): add the last cnot if last_cnot = True
 
         Returns:
             DAGCircuit: the circuit implementing the multiplexor's action
@@ -211,30 +219,31 @@ class Initialize(Instruction):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = scipy.kron([[0.5, 0.5], [0.5, -0.5]],
-                                  np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]],
+                               np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)])
+        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], False)
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):])
+        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
         if list_len > 1:
-            circuit.append(multiplex_2.to_instruction().mirror(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        circuit.append(CnotGate(), [msb, lsb])
+        if last_cnot:
+            circuit.append(CXGate(), [msb, lsb])
 
         return circuit
 
@@ -246,6 +255,16 @@ class Initialize(Instruction):
                               "qubits. However, %s were provided." %
                               (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
+
+    def validate_parameter(self, parameter):
+        """Initialize instruction parameter can be int, float, and complex."""
+        if isinstance(parameter, (int, float, complex)):
+            return complex(parameter)
+        elif isinstance(parameter, np.number):
+            return complex(parameter.item())
+        else:
+            raise CircuitError("invalid param type {0} for instruction  "
+                               "{1}".format(type(parameter), self.name))
 
 
 def initialize(self, params, qubits):

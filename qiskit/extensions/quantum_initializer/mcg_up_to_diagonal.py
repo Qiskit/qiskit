@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -29,7 +27,8 @@ from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.ucg import UCG
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.extensions.quantum_initializer.uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -73,7 +72,22 @@ class MCGupDiag(Gate):
         q = QuantumRegister(self.num_qubits)
         mcg_up_diag_circuit = QuantumCircuit(q)
         mcg_up_diag_circuit.append(gate, q[:])
-        self.definition = mcg_up_diag_circuit.data
+        self.definition = mcg_up_diag_circuit
+
+    def inverse(self):
+        """Return the inverse.
+
+        Note that the resulting Gate object has an empty ``params`` property.
+        """
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # removing the params because arrays are deprecated
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
 
     # Returns the diagonal up to which the gate is implemented.
     def _get_diagonal(self):
@@ -94,14 +108,14 @@ class MCGupDiag(Gate):
         circuit = QuantumCircuit(q)
         (q_target, q_controls, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         # ToDo: Keep this threshold updated such that the lowest gate count is achieved:
-        # ToDo: we implement the MCG with a UCG up to diagonal if the number of controls is
+        # ToDo: we implement the MCG with a UCGate up to diagonal if the number of controls is
         # ToDo: smaller than the threshold.
         threshold = float("inf")
         if self.num_controls < threshold:
-            # Implement the MCG as a UCG (up to diagonal)
+            # Implement the MCG as a UCGate (up to diagonal)
             gate_list = [np.eye(2, 2) for i in range(2 ** self.num_controls)]
             gate_list[-1] = self.params[0]
-            ucg = UCG(gate_list, up_to_diagonal=True)
+            ucg = UCGate(gate_list, up_to_diagonal=True)
             circuit.append(ucg, [q_target] + q_controls)
             diag = ucg._get_diagonal()
             # else:
@@ -116,3 +130,11 @@ class MCGupDiag(Gate):
         q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
         q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
+
+    def validate_parameter(self, parameter):
+        """Multi controlled single-qubit unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))

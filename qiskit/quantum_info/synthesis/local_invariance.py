@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -30,10 +28,10 @@ MAGIC = 1.0/sqrt(2)*np.array([
 
 
 def two_qubit_local_invariants(U):
-    """Computes the local invarants for a two qubit unitary.
+    """Computes the local invariants for a two-qubit unitary.
 
     Args:
-        U (ndarray): Input two qubit unitary.
+        U (ndarray): Input two-qubit unitary.
 
     Returns:
         ndarray: NumPy array of local invariants [g0, g1, g2].
@@ -47,7 +45,7 @@ def two_qubit_local_invariants(U):
     """
     U = np.asarray(U)
     if U.shape != (4, 4):
-        raise ValueError('Unitary must correspond to a two qubit gate.')
+        raise ValueError('Unitary must correspond to a two-qubit gate.')
 
     # Transform to bell basis
     Um = MAGIC.conj().T.dot(U.dot(MAGIC))

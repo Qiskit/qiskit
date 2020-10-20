@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,6 +25,5 @@ def combine(**kwargs):
     """
 
     def deco(func):
-        return data(*generate_cases(**kwargs))(unpack(func))
-
+        return data(*generate_cases(docstring=func.__doc__, **kwargs))(unpack(func))
     return deco

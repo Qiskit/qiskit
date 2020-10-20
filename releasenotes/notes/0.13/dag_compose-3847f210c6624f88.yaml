@@ -1,0 +1,52 @@
+---
+features:
+  - |
+    A new method :meth:`~qiskit.dagcircuit.DAGCircuit.compose` has been added to
+    the :class:`~qiskit.dagcircuit.DAGCircuit` class for composing two circuits
+    via their DAGs.
+
+    .. code-block:: python
+
+        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit1,
+                                          right_qubit1: self.left_qubit4,
+                                          right_clbit0: self.left_clbit1,
+                                          right_clbit1: self.left_clbit0})
+
+    .. parsed-literal::
+
+                    ┌───┐                    ┌─────┐┌─┐
+        lqr_1_0: ───┤ H ├───     rqr_0: ──■──┤ Tdg ├┤M├
+                    ├───┤               ┌─┴─┐└─┬─┬─┘└╥┘
+        lqr_1_1: ───┤ X ├───     rqr_1: ┤ X ├──┤M├───╫─
+                 ┌──┴───┴──┐            └───┘  └╥┘   ║
+        lqr_1_2: ┤ U1(0.1) ├  +  rcr_0: ════════╬════╩═  =
+                 └─────────┘                    ║
+        lqr_2_0: ─────■─────     rcr_1: ════════╩══════
+                    ┌─┴─┐
+        lqr_2_1: ───┤ X ├───
+                    └───┘
+        lcr_0:   ═══════════
+
+        lcr_1:   ═══════════
+
+                    ┌───┐
+        lqr_1_0: ───┤ H ├──────────────────
+                    ├───┤        ┌─────┐┌─┐
+        lqr_1_1: ───┤ X ├─────■──┤ Tdg ├┤M├
+                 ┌──┴───┴──┐  │  └─────┘└╥┘
+        lqr_1_2: ┤ U1(0.1) ├──┼──────────╫─
+                 └─────────┘  │          ║
+        lqr_2_0: ─────■───────┼──────────╫─
+                    ┌─┴─┐   ┌─┴─┐  ┌─┐   ║
+        lqr_2_1: ───┤ X ├───┤ X ├──┤M├───╫─
+                    └───┘   └───┘  └╥┘   ║
+        lcr_0:   ═══════════════════╩════╬═
+                                         ║
+        lcr_1:   ════════════════════════╩═
+
+deprecations:
+  - |
+    The ``DAGCircuit.compose_back()`` and ``DAGCircuit.extend_back()`` methods
+    are deprecated and will be removed in a future release. Instead you should
+    use the :meth:`qiskit.dagcircuit.DAGCircuit.compose` method, which is a more
+    general and more flexible method that provides the same functionality.

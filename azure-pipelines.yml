@@ -11,6 +11,12 @@ trigger:
   tags:
     include:
       - '*'
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
 
 stages:
   - stage: 'Wheel_Builds'
@@ -22,7 +28,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -30,7 +36,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==1.3.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -62,11 +68,11 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.13'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -74,7 +80,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==0.11.1
+          pip install cibuildwheel==1.3.0
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -89,22 +95,22 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==0.11.1
+            pip install cibuildwheel==1.3.0
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -115,31 +121,47 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    dependsOn: []
     jobs:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install -c constraints.txt .
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -158,6 +180,7 @@ stages:
             artifactName: 'drop_linux'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -170,80 +193,128 @@ stages:
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            tools/verify_headers.py qiskit test
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - checkout: self
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
-            tox -edocs -- -j auto
+            tox -edocs
           displayName: 'Run Docs build'
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'docs/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
+            verbose: true
         - task: PublishBuildArtifacts@1
           displayName: 'Publish docs'
           inputs:
-            pathtoPublish: 'docs/_build/html'
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'html_docs'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+            Parallel: true
+            ParallelCount: 8
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
+          Python37:
+            python.version: '3.7'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -262,6 +333,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -277,30 +349,46 @@ stages:
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
           Python36:
             python.version: '3.6'
           Python37:
             python.version: '3.7'
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/Scripts/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/Scripts/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -319,6 +407,7 @@ stages:
             artifactName: 'drop_windows'
         - bash: |
             set -e
+            source test-job/Scripts/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
@@ -331,29 +420,45 @@ stages:
             testRunTitle: 'Test results for Windows Python $(python.version)'
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -372,6 +477,7 @@ stages:
             artifactName: 'drop_linux'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -382,30 +488,46 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
-    - job: 'MacOS_HighSierra_Tests'
-      pool: {vmImage: 'macOS-10.13'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    - job: 'MacOS_Catalina_Tests'
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
           Python36:
             python.version: '3.6'
-          Python37:
-            python.version: '3.7'
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
+            pip check
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run --concurrency 2
@@ -424,6 +546,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -434,3 +557,87 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+    - job: 'Tutorials'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            cd qiskit-tutorials
+            sphinx-build -b html . _build/html
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'qiskit-tutorials/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_tutorials.tar.gz'
+            verbose: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'html_tutorials'
+            Parallel: true
+            ParallelCount: 8
+    - job: 'Image_tests'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "matplotlib<3.3.0" pylatexenc pillow
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: python -m unittest discover -v test/ipynb
+          displayName: 'Run image test'

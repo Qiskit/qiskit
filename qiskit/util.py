@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,19 +12,15 @@
 
 """Common utilities for Qiskit."""
 
+import multiprocessing as mp
 import platform
 import re
 import socket
 import sys
 import warnings
+import functools
 
 import psutil
-
-
-def _check_python_version():
-    """Check for Python version 3.5+."""
-    if sys.version_info < (3, 5):
-        raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
 def _filter_deprecation_warnings():
@@ -54,7 +49,6 @@ def _filter_deprecation_warnings():
         pass
 
 
-_check_python_version()
 _filter_deprecation_warnings()
 
 
@@ -95,3 +89,105 @@ def _has_connection(hostname, port):
         return True
     except Exception:  # pylint: disable=broad-except
         return False
+
+
+def deprecate_arguments(kwarg_map):
+    """Decorator to automatically alias deprecated agrument names and warn upon use."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if kwargs:
+                _rename_kwargs(func.__name__, kwargs, kwarg_map)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def deprecate_function(msg):
+    """Emit a warning prior to calling decorated function.
+
+    Args:
+        msg (str): Warning message to emit.
+
+    Returns:
+        Callable: The decorated, deprecated callable.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # warn only once
+            if not wrapper._warned:
+                warnings.warn(msg, DeprecationWarning, stacklevel=2)
+                wrapper._warned = True
+            return func(*args, **kwargs)
+        wrapper._warned = False
+        return wrapper
+    return decorator
+
+
+def _rename_kwargs(func_name, kwargs, kwarg_map):
+    for old_arg, new_arg in kwarg_map.items():
+        if old_arg in kwargs:
+            if new_arg in kwargs:
+                raise TypeError('{} received both {} and {} (deprecated).'.format(
+                    func_name, new_arg, old_arg))
+
+            warnings.warn('{} keyword argument {} is deprecated and '
+                          'replaced with {}.'.format(
+                              func_name, old_arg, new_arg),
+                          DeprecationWarning, stacklevel=3)
+
+            kwargs[new_arg] = kwargs.pop(old_arg)
+
+
+def is_main_process():
+    """Checks whether the current process is the main one"""
+
+    return not (
+        isinstance(mp.current_process(),
+                   (mp.context.ForkProcess, mp.context.SpawnProcess))
+
+        # In python 3.5 and 3.6, processes created by "ProcessPoolExecutor" are not
+        # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
+        # "name" of the process is checked instead.
+        or (sys.version_info[0] == 3
+            and (sys.version_info[1] == 5 or sys.version_info[1] == 6)
+            and mp.current_process().name != 'MainProcess')
+    )
+
+
+def apply_prefix(value: float, unit: str) -> float:
+    """
+    Given a SI unit prefix and value, apply the prefix to convert to
+    standard SI unit.
+
+    Args:
+        value: The number to apply prefix to.
+        unit: String prefix.
+
+    Returns:
+        Converted value.
+
+    Raises:
+        Exception: If the units aren't recognized.
+    """
+    downfactors = {
+        'p': 1e12,
+        'n': 1e9,
+        'u': 1e6,
+        'µ': 1e6,
+        'm': 1e3
+    }
+    upfactors = {
+        'k': 1e3,
+        'M': 1e6,
+        'G': 1e9
+    }
+    if not unit:
+        return value
+    if unit[0] in downfactors:
+        return value / downfactors[unit[0]]
+    elif unit[0] in upfactors:
+        return value * upfactors[unit[0]]
+    else:
+        raise Exception("Could not understand units: {u}".format(u=unit))

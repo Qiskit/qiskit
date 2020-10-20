@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM custom gate statement."""
+import warnings
 
 from .node import Node
 
@@ -43,10 +42,13 @@ class CustomUnitary(Node):
             self.arguments = None
             self.bitlist = children[1]
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+        if prec is not None:
+            warnings.warn('Parameter \'CustomUnitary.qasm(..., prec)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         string = self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm(prec) + ")"
-        string += " " + self.bitlist.qasm(prec) + ";"
+            string += "(" + self.arguments.qasm() + ")"
+        string += " " + self.bitlist.qasm() + ";"
         return string

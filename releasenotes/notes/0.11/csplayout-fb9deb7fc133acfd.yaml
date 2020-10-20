@@ -1,0 +1,63 @@
+---
+features:
+  - |
+    A new layout selector based on constraint solving is included. `CSPLayout` models the problem
+    of finding a layout as a constraint problem and uses recursive backtracking to solve it.
+
+    .. code-block:: python
+
+       cmap16 = CouplingMap(FakeRueschlikon().configuration().coupling_map)
+
+       qr = QuantumRegister(5, 'q')
+       circuit = QuantumCircuit(qr)
+       circuit.cx(qr[0], qr[1])
+       circuit.cx(qr[0], qr[2])
+       circuit.cx(qr[0], qr[3])
+
+       pm = PassManager(CSPLayout(cmap16))
+       circuit_after = pm.run(circuit)
+       print(pm.property_set['layout'])
+
+
+    .. code-block:: python
+
+        Layout({
+        1: Qubit(QuantumRegister(5, 'q'), 1),
+        2: Qubit(QuantumRegister(5, 'q'), 0),
+        3: Qubit(QuantumRegister(5, 'q'), 3),
+        4: Qubit(QuantumRegister(5, 'q'), 4),
+        15: Qubit(QuantumRegister(5, 'q'), 2)
+        })
+
+
+    The parameter ``CSPLayout(...,strict_direction=True)`` is more restrictive
+    but it will guarantee there is no need of running ``CXDirection`` after.
+
+    .. code-block:: python
+
+        pm = PassManager(CSPLayout(cmap16, strict_direction=True))
+        circuit_after = pm.run(circuit)
+        print(pm.property_set['layout'])
+
+    .. code-block:: python
+
+        Layout({
+        8: Qubit(QuantumRegister(5, 'q'), 4),
+        11: Qubit(QuantumRegister(5, 'q'), 3),
+        5: Qubit(QuantumRegister(5, 'q'), 1),
+        6: Qubit(QuantumRegister(5, 'q'), 0),
+        7: Qubit(QuantumRegister(5, 'q'), 2)
+        })
+
+    If the constraint system is not solvable, the `layout` property is not set.
+
+    .. code-block:: python
+
+        circuit.cx(qr[0], qr[4])
+        pm = PassManager(CSPLayout(cmap16))
+        circuit_after = pm.run(circuit)
+        print(pm.property_set['layout'])
+
+    .. code-block:: python
+
+        None

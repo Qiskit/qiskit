@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -28,9 +26,7 @@ class FakeQasmSimulator(FakeBackend):
             backend_name='fake_qasm_simulator',
             backend_version='0.0.0',
             n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
-                         'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
-                         'snapshot', 'unitary'],
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
             coupling_map=None,
             simulator=True,
             local=True,
@@ -38,7 +34,12 @@ class FakeQasmSimulator(FakeBackend):
             open_pulse=False,
             memory=True,
             max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')]
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            dt=1.3333,
+            dtm=10.5
         )
 
         super().__init__(configuration)
+
+    def properties(self):
+        return None

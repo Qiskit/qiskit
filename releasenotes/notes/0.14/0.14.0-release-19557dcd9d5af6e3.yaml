@@ -1,0 +1,72 @@
+---
+prelude: |
+  The 0.14.0 release includes several new features and bug fixes. The biggest
+  change for this release is the introduction of a quantum circuit library
+  in :mod:`qiskit.circuit.library`, containing some circuit families of
+  interest.
+  
+  The circuit library gives users access to a rich set of well-studied
+  circuit families, instances of which can be used as benchmarks,
+  as building blocks in building more complex circuits, or
+  as a tool to explore quantum computational advantage over classical.
+  The contents of this library will continue to grow and mature.
+  
+  The initial release of the circuit library contains:
+  
+  * ``standard_gates``: these are fixed-width gates commonly used as primitive
+    building blocks, consisting of 1, 2, and 3 qubit gates. For example
+    the :class:`~qiskit.circuit.library.XGate`,
+    :class:`~qiskit.circuit.library.RZZGate` and
+    :class:`~qiskit.circuit.library.CSWAPGate`. The old location of these
+    gates under ``qiskit.extensions.standard`` is deprecated.
+  * ``generalized_gates``: these are families that can generalize to arbitrarily
+    many qubits, for example a :class:`~qiskit.circuit.library.Permutation` or
+    :class:`~qiskit.circuit.library.GMS` (Global Molmer-Sorensen gate).
+  * ``boolean_logic``: circuits that transform basis states according to simple
+    Boolean logic functions, such as :class:`~qiskit.circuit.library.ADD` or
+    :class:`~qiskit.circuit.library.XOR`.
+  * ``arithmetic``: a set of circuits for doing classical arithmetic such as
+    :class:`~qiskit.circuit.library.WeightedAdder` and
+    :class:`~qiskit.circuit.library.IntegerComparator`.
+  * ``basis_changes``: circuits such as the quantum Fourier transform,
+    :class:`~qiskit.circuit.library.QFT`, that mathematically apply basis
+    changes.
+  * ``n_local``: patterns to easily create large circuits with rotation and
+    entanglement layers, such as  :class:`~qiskit.circuit.library.TwoLocal`
+    which uses single-qubit rotations and two-qubit entanglements.
+  * ``data_preparation``: circuits that take classical input data and encode it
+    in a quantum state that is difficult to simulate, e.g.
+    :class:`~qiskit.circuit.library.PauliFeatureMap` or
+    :class:`~qiskit.circuit.library.ZZFeatureMap`.
+  * Other circuits that have proven interesting in the literature, such as
+    :class:`~qiskit.circuit.library.QuantumVolume`,
+    :class:`~qiskit.circuit.library.GraphState`, or
+    :class:`~qiskit.circuit.library.IQP`.
+  
+  To allow easier use of these circuits as building blocks, we have introduced
+  a :meth:`~qiskit.circuit.QuantumCircuit.compose` method of
+  :class:`qiskit.circuit.QuantumCircuit` for composition of circuits either
+  with other circuits (by welding them at the ends and optionally permuting
+  wires) or with other simpler gates::
+  
+    >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+  
+  .. parsed-literal::
+                    ┌───┐                   ┌─────┐                ┌───┐
+        lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                    ├───┤              ┌─┴─┐└─────┘                ├───┤
+        lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                 ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+        lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                 └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+        lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                    ┌─┴─┐                                          ┌─┴─┐        └─────┘
+        lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                    └───┘                                          └───┘
+        lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+        lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+
+  With this, Qiskit's circuits no longer assume an implicit
+  initial state of :math:`|0\rangle`, and will not be drawn with this
+  initial state. The all-zero initial state is still assumed on a backend
+  when a circuit is executed.

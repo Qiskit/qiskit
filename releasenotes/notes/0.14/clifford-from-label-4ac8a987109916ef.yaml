@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add :meth:`~qiskit.quantum_info.Clifford.from_label` method to the
+    :class:`qiskit.quantum_info.Clifford` class for initializing as the
+    tensor product of single-qubit I, X, Y, Z, H, or S gates.

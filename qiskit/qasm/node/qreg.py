@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM qreg statement."""
+import warnings
 
 from .node import Node
 
@@ -43,6 +42,9 @@ class Qreg(Node):
         print(ind, 'qreg')
         self.children[0].to_string(indent + 3)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return "qreg " + self.id.qasm(prec) + ";"
+        if prec is not None:
+            warnings.warn('Parameter \'Qreg.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return "qreg " + self.id.qasm() + ";"

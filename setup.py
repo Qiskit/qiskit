@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -25,24 +23,25 @@ except ImportError:
     from Cython.Build import cythonize
 
 REQUIREMENTS = [
+    "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
-    "marshmallow>=3,<4",
-    "marshmallow_polyfield>=5.7,<6",
-    "networkx>=2.2;python_version>'3.5'",
-    # Networkx 2.4 is the final version with python 3.5 support.
-    "networkx>=2.2,<2.4;python_version=='3.5'",
-    "numpy>=1.13",
+    "networkx>=2.2",
+    "retworkx>=0.5.0",
+    "numpy>=1.17",
     "ply>=3.10",
     "psutil>=5",
-    "scipy>=1.0",
+    "scipy>=1.4",
     "sympy>=1.3",
     "dill>=0.3",
+    "fastjsonschema>=2.10",
+    "python-constraint>=1.4",
+    "python-dateutil>=2.8.0",
 ]
 
 # Add Cython extensions here
 CYTHON_EXTS = ['utils', 'swap_trial']
-CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
-CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
+CYTHON_MODULE = 'qiskit.transpiler.passes.routing.cython.stochastic_swap'
+CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/routing/cython/stochastic_swap'
 
 INCLUDE_DIRS = []
 # Extra link args
@@ -70,16 +69,21 @@ for ext in CYTHON_EXTS:
                     language='c++')
     EXT_MODULES.append(mod)
 
+# Read long description from README.
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                           'README.md')
+with open(README_PATH) as readme_file:
+    README = readme_file.read()
 
 setup(
     name="qiskit-terra",
-    version="0.11.0",
+    version="0.17.0",
     description="Software for developing quantum computing programs",
-    long_description="""Terra provides the foundations for Qiskit. It allows the user to write
-        quantum circuits easily, and takes care of the constraints of real hardware.""",
+    long_description=README,
+    long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
-    author_email="qiskit@qiskit.org",
+    author_email="hello@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -89,9 +93,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -99,12 +104,14 @@ setup(
     install_requires=REQUIREMENTS,
     setup_requires=['Cython>=0.27.1'],
     include_package_data=True,
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     extras_require={
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0"],
-        'full-featured-simulators': ['qiskit-aer>=0.1']
+                          "seaborn>=0.9.0", "pygments>=2.4"],
+        'classical-function-compiler': ['tweedledum'],
+        'full-featured-simulators': ['qiskit-aer>=0.1'],
+        'crosstalk-pass': ['z3-solver>=4.7'],
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

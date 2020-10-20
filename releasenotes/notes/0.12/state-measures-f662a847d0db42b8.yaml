@@ -1,0 +1,59 @@
+---
+features:
+  - |
+    Added new state measure functions to the :mod:`qiskit.quantum_info`
+    module: :func:`qiskit.quantum_info.entropy`,
+    :func:`qiskit.quantum_info.mutual_information`,
+    :func:`qiskit.quantum_info.concurrence`, and
+    :func:`qiskit.quantum_info.entanglement_of_formation`. These functions work
+    with the :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes.
+
+deprecations:
+  - |
+    The :mod:`qiskit.tools.qi.qi` module is deprecated and will be removed in a
+    future release. The legacy functions in the module have all been superseded
+    by functions and classes in the :mod:`qiskit.quantum_info` module. A table
+    of the deprecated functions and their replacement are below:
+
+    .. list-table:: ``qiskit.tools.qi.qi`` replacements
+       :header-rows: 1
+
+       * - Deprecated
+         - Replacement
+       * - :func:`qiskit.tools.partial_trace`
+         - :func:`qiskit.quantum_info.partial_trace`
+       * - :func:`qiskit.tools.choi_to_pauli`
+         - :class:`qiskit.quantum_info.Choi` and :class:`quantum_info.PTM`
+       * - :func:`qiskit.tools.chop`
+         - ``numpy.round``
+       * - ``qiskit.tools.qi.qi.outer``
+         - ``numpy.outer``
+       * - :func:`qiskit.tools.concurrence`
+         - :func:`qiskit.quantum_info.concurrence`
+       * - :func:`qiskit.tools.shannon_entropy`
+         - :func:`qiskit.quantum_info.shannon_entropy`
+       * - :func:`qiskit.tools.entropy`
+         - :func:`qiskit.quantum_info.entropy`
+       * - :func:`qiskit.tools.mutual_information`
+         - :func:`qiskit.quantum_info.mutual_information`
+       * - :func:`qiskit.tools.entanglement_of_formation`
+         - :func:`qiskit.quantum_info.entanglement_of_formation`
+       * - :func:`qiskit.tools.is_pos_def`
+         - ``quantum_info.operators.predicates.is_positive_semidefinite_matrix``
+
+  - |
+    The :mod:`qiskit.quantum_info.states.states` module is deprecated and will
+    be removed in a future release. The legacy functions in the module have
+    all been superseded by functions and classes in the
+    :mod:`qiskit.quantum_info` module.
+
+    .. list-table:: ``qiskit.quantum_info.states.states`` replacements
+       :header-rows: 1
+
+       * - Deprecated
+         - Replacement
+       * - ``qiskit.quantum_info.states.states.basis_state``
+         - :meth:`qiskit.quantum_info.Statevector.from_label`
+       * - ``qiskit.quantum_info.states.states.projector``
+         - :class:`qiskit.quantum_info.DensityMatrix`

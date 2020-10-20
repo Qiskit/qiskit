@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Setting the ``scale`` parameter for
+    :meth:`qiskit.circuit.QuantumCircuit.draw` and
+    :func:`qiskit.visualization.circuit_drawer` as the first positional
+    argument is deprecated and will be removed in a future release. Instead you
+    should use ``scale`` as keyword argument.
