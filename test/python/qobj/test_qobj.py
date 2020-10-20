@@ -171,17 +171,6 @@ class TestQASMQobj(QiskitTestCase):
         }
         self.assertEqual(expected_qobj, QasmQobj.from_dict(qobj_dict))
 
-    def test_simjob_raises_error_when_sending_bad_qobj(self):
-        """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.
-        """
-        job_id = str(uuid.uuid4())
-        backend = FakeRueschlikon()
-        self.bad_qobj.header = QobjHeader(backend_name=backend.name())
-
-        with self.assertRaises(SchemaValidationError):
-            job = basicaerjob.BasicAerJob(backend, job_id, _nop, self.bad_qobj)
-            job.submit()
-
     def test_change_qobj_after_compile(self):
         """Test modifying Qobj parameters after compile."""
         qr = QuantumRegister(3)
