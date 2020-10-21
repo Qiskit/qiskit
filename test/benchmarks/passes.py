@@ -44,11 +44,6 @@ class Collect2QPassBenchmarks:
         _pass.property_set['block_list'] = self.block_list
         _pass.run(self.dag)
 
-    def peakmem_consolidate_blocks(self, _, __):
-        _pass = ConsolidateBlocks()
-        _pass.property_set['block_list'] = self.block_list
-        _pass.run(self.dag)
-
     def track_consolidate_blocks_depth(self, _, __):
         _pass = ConsolidateBlocks()
         _pass.property_set['block_list'] = self.block_list
@@ -78,11 +73,6 @@ class CommutativeAnalysisPassBenchmarks:
         _pass.property_set['commutation_set'] = self.commutation_set
         _pass.run(self.dag)
 
-    def peakmem_commutative_cancellation(self, _, __):
-        _pass = CommutativeCancellation()
-        _pass.property_set['commutation_set'] = self.commutation_set
-        _pass.run(self.dag)
-
     def track_commutative_cancellation_depth(self, _, __):
         _pass = CommutativeCancellation()
         _pass.property_set['commutation_set'] = self.commutation_set
@@ -107,9 +97,6 @@ class UnrolledPassBenchmarks:
     def time_optimize_1q(self, _, __):
         Optimize1qGates().run(self.unrolled_dag)
 
-    def peakmem_optimize_1q(self, _, __):
-        Optimize1qGates().run(self.unrolled_dag)
-
     def track_optimize_1q_depth(self, _, __):
         return Optimize1qGates().run(self.unrolled_dag).depth()
 
@@ -131,76 +118,40 @@ class PassBenchmarks:
     def time_unroller(self, _, __):
         Unroller(self.basis_gates).run(self.dag)
 
-    def peakmem_unroller(self, _, __):
-        Unroller(self.basis_gates).run(self.dag)
-
     def track_unroller_depth(self, _, __):
         return Unroller(self.basis_gates).run(self.dag).depth()
 
     def time_depth_pass(self, _, __):
         Depth().run(self.dag)
 
-    def peakmem_depth_pass(self, _, __):
-        Depth().run(self.dag)
-
     def time_size_pass(self, _, __):
-        Size().run(self.dag)
-
-    def peakmem_size_pass(self, _, __):
         Size().run(self.dag)
 
     def time_width_pass(self, _, __):
         Width().run(self.dag)
 
-    def peakmem_width_pass(self, _, __):
-        Width().run(self.dag)
-
     def time_count_ops_pass(self, _, __):
-        CountOps().run(self.dag)
-
-    def peakmem_count_ops_pass(self, _, __):
         CountOps().run(self.dag)
 
     def time_count_ops_longest_path(self, _, __):
         CountOpsLongestPath().run(self.dag)
 
-    def peakmem_count_ops_longest_path(self, _, __):
-        CountOpsLongestPath().run(self.dag)
-
     def time_num_tensor_factors(self, _, __):
-        NumTensorFactors().run(self.dag)
-
-    def peakmem_num_tensor_factors(self, _, __):
         NumTensorFactors().run(self.dag)
 
     def time_resource_optimization(self, _, __):
         ResourceEstimation().run(self.dag)
 
-    def peakmem_resoure_optimization(self, _, __):
-        ResourceEstimation().run(self.dag)
-
     def time_cx_cancellation(self, _, __):
-        CXCancellation().run(self.dag)
-
-    def peakmem_cx_cancellation(self, _, __):
         CXCancellation().run(self.dag)
 
     def time_dag_longest_path(self, _, __):
         DAGLongestPath().run(self.dag)
 
-    def peakmem_dag_longest_path(self, _, __):
-        DAGLongestPath().run(self.dag)
-
     def time_merge_adjacent_barriers(self, _, __):
         MergeAdjacentBarriers().run(self.dag)
 
-    def peakmem_merge_adjacent_barriers(self, _, __):
-        MergeAdjacentBarriers().run(self.dag)
-
     def time_decompose_pass(self, _, __):
-        Decompose().run(self.dag)
-
-    def peakmem_decompose_pass(self, _, __):
         Decompose().run(self.dag)
 
     def track_decompose_depth(self, _, __):
@@ -209,22 +160,13 @@ class PassBenchmarks:
     def time_unroll_3q_or_more(self, _, __):
         Unroll3qOrMore().run(self.dag)
 
-    def peakmem_unroll_3q_or_more(self, _, __):
-        Unroll3qOrMore().run(self.dag)
-
     def track_unroll_3q_or_more_depth(self, _, __):
         return Unroll3qOrMore().run(self.dag).depth()
 
     def time_commutation_analysis(self, _, __):
         CommutationAnalysis().run(self.dag)
 
-    def peakmem_commutation_analysis(self, _, __):
-        CommutationAnalysis().run(self.dag)
-
     def time_remove_reset_in_zero_state(self, _, __):
-        RemoveResetInZeroState().run(self.dag)
-
-    def peakmem_remove_reset_in_zero_state(self, _, __):
         RemoveResetInZeroState().run(self.dag)
 
     def track_remove_reset_in_zero_state(self, _, __):
@@ -233,13 +175,7 @@ class PassBenchmarks:
     def time_collect_2q_blocks(self, _, __):
         Collect2qBlocks().run(self.dag)
 
-    def peakmem_collect_2q_blocks(self, _, __):
-        Collect2qBlocks().run(self.dag)
-
     def time_optimize_swap_before_measure(self, _, __):
-        OptimizeSwapBeforeMeasure().run(self.dag)
-
-    def peakmem_optimize_swap_before_measure(self, _, __):
         OptimizeSwapBeforeMeasure().run(self.dag)
 
     def track_optimize_swap_before_measure_depth(self, _, __):
@@ -248,25 +184,16 @@ class PassBenchmarks:
     def time_barrier_before_final_measurements(self, _, __):
         BarrierBeforeFinalMeasurements().run(self.dag)
 
-    def peakmem_barrier_before_final_measurement(self, _, __):
-        BarrierBeforeFinalMeasurements().run(self.dag)
-
     def track_barrier_before_final_measurement(self, _, __):
         BarrierBeforeFinalMeasurements().run(self.dag).depth()
 
     def time_remove_diagonal_gates_before_measurement(self, _, __):
         RemoveDiagonalGatesBeforeMeasure().run(self.dag)
 
-    def peakmem_remove_diagonal_gates_before_measurement(self, _, __):
-        RemoveDiagonalGatesBeforeMeasure().run(self.dag)
-
     def track_remove_diagonal_gates_before_measurement(self, _, __):
         return RemoveDiagonalGatesBeforeMeasure().run(self.dag).depth()
 
     def time_remove_final_measurements(self, _, __):
-        RemoveFinalMeasurements().run(self.dag)
-
-    def peakmem_remove_final_measurements(self, _, __):
         RemoveFinalMeasurements().run(self.dag)
 
     def track_remove_final_measurements_depth(self, _, __):

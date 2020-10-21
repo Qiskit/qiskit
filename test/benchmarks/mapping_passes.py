@@ -68,11 +68,6 @@ class PassBenchmarks:
         swap.property_set['layout'] = self.layout
         swap.run(self.dag)
 
-    def peakmem_stochastic_swap(self, _, __):
-        swap = StochasticSwap(self.coupling_map, seed=42)
-        swap.property_set['layout'] = self.layout
-        swap.run(self.dag)
-
     def track_stochastic_swap_depth(self, _, __):
         swap = StochasticSwap(self.coupling_map, seed=42)
         swap.property_set['layout'] = self.layout
@@ -85,11 +80,6 @@ class PassBenchmarks:
 
     # Disable lookahead swap benchmarks due to timeout.
     # def time_lookahead_swap(self, _, __):
-    #     swap = LookaheadSwap(self.coupling_map)
-    #     swap.property_set['layout'] = self.layout
-    #     swap.run(self.dag)
-
-    # def peakmem_lookahead_swap(self, _, __):
     #     swap = LookaheadSwap(self.coupling_map)
     #     swap.property_set['layout'] = self.layout
     #     swap.run(self.dag)
@@ -109,11 +99,6 @@ class PassBenchmarks:
         swap.property_set['layout'] = self.layout
         swap.run(self.dag)
 
-    def peakmem_basic_swap(self, _, __):
-        swap = BasicSwap(self.coupling_map)
-        swap.property_set['layout'] = self.layout
-        swap.run(self.dag)
-
     def track_basic_swap_depth(self, _, __):
         swap = BasicSwap(self.coupling_map)
         swap.property_set['layout'] = self.layout
@@ -127,13 +112,7 @@ class PassBenchmarks:
     def time_csp_layout(self, _, __):
         CSPLayout(self.coupling_map, seed=42).run(self.fresh_dag)
 
-    def peakmem_csp_layout(self, _, __):
-        CSPLayout(self.coupling_map, seed=42).run(self.fresh_dag)
-
     def time_dense_layout(self, _, __):
-        DenseLayout(self.coupling_map).run(self.fresh_dag)
-
-    def peakmem_dense_layout(self, _, __):
         DenseLayout(self.coupling_map).run(self.fresh_dag)
 
     def time_layout_2q_distance(self, _, __):
@@ -141,15 +120,7 @@ class PassBenchmarks:
         layout.property_set['layout'] = self.layout
         layout.run(self.dag)
 
-    def peakmem_layout_2q_distance(self, _, __):
-        layout = Layout2qDistance(self.coupling_map)
-        layout.property_set['layout'] = self.layout
-        layout.run(self.dag)
-
     def time_cxdirection(self, _, __):
-        CXDirection(self.coupling_map).run(self.dag)
-
-    def peakmem_cxdirection(self, _, __):
         CXDirection(self.coupling_map).run(self.dag)
 
     def track_cxdirection_depth(self, _, __):
@@ -164,17 +135,7 @@ class PassBenchmarks:
         layout.property_set['layout'] = self.layout
         layout.run(self.dag)
 
-    def peakmem_apply_layout(self, _, __):
-        layout = ApplyLayout()
-        layout.property_set['layout'] = self.layout
-        layout.run(self.dag)
-
     def time_full_ancilla_allocation(self, _, __):
-        ancilla = FullAncillaAllocation(self.coupling_map)
-        ancilla.property_set['layout'] = self.layout
-        ancilla.run(self.fresh_dag)
-
-    def peakmem_full_ancilla_allocation(self, _, __):
         ancilla = FullAncillaAllocation(self.coupling_map)
         ancilla.property_set['layout'] = self.layout
         ancilla.run(self.fresh_dag)
@@ -184,37 +145,17 @@ class PassBenchmarks:
         ancilla.property_set['layout'] = self.layout
         ancilla.run(self.full_ancilla_dag)
 
-    def peakmem_enlarge_with_ancilla(self, _, __):
-        ancilla = EnlargeWithAncilla()
-        ancilla.property_set['layout'] = self.layout
-        ancilla.run(self.full_ancilla_dag)
-
     def time_check_map(self, _, __):
-        CheckMap(self.coupling_map).run(self.dag)
-
-    def peakmem_check_map(self, _, __):
         CheckMap(self.coupling_map).run(self.dag)
 
     def time_check_cx_direction(self, _, __):
         CheckCXDirection(self.coupling_map).run(self.dag)
 
-    def peakmem_check_cx_direction(self, _, __):
-        CheckCXDirection(self.coupling_map).run(self.dag)
-
     def time_trivial_layout(self, _, __):
-        TrivialLayout(self.coupling_map).run(self.fresh_dag)
-
-    def peakmem_trivial_layout(self, _, __):
         TrivialLayout(self.coupling_map).run(self.fresh_dag)
 
     def time_set_layout(self, _, __):
         SetLayout(self.layout).run(self.fresh_dag)
 
-    def peakmem_set_layout(self, _, __):
-        SetLayout(self.layout).run(self.fresh_dag)
-
     def time_noise_adaptive_layout(self, _, __):
-        NoiseAdaptiveLayout(self.backend_props).run(self.fresh_dag)
-
-    def peakmem_noise_adaptive_layout(self, _, __):
         NoiseAdaptiveLayout(self.backend_props).run(self.fresh_dag)

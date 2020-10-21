@@ -162,12 +162,6 @@ class TranspilerLevelBenchmarks:
                   seed_transpiler=0,
                   optimization_level=transpiler_level)
 
-    def peakmem_quantum_volume_transpile_50_x_20(self, transpiler_level):
-        transpile(self.qv_50_x_20, basis_gates=self.basis_gates,
-                  coupling_map=self.rochester_coupling_map,
-                  seed_transpiler=0,
-                  optimization_level=transpiler_level)
-
     def track_depth_quantum_volume_transpile_50_x_20(self, transpiler_level):
         return transpile(self.qv_50_x_20, basis_gates=self.basis_gates,
                          coupling_map=self.rochester_coupling_map,
@@ -175,12 +169,6 @@ class TranspilerLevelBenchmarks:
                          optimization_level=transpiler_level).depth()
 
     def time_transpile_from_large_qasm(self, transpiler_level):
-        transpile(self.large_qasm, basis_gates=self.basis_gates,
-                  coupling_map=self.rochester_coupling_map,
-                  seed_transpiler=0,
-                  optimization_level=transpiler_level)
-
-    def peakmem_transpile_from_large_qasm(self, transpiler_level):
         transpile(self.large_qasm, basis_gates=self.basis_gates,
                   coupling_map=self.rochester_coupling_map,
                   seed_transpiler=0,
@@ -197,21 +185,12 @@ class TranspilerLevelBenchmarks:
         transpile(self.large_qasm, self.melbourne, seed_transpiler=0,
                   optimization_level=transpiler_level)
 
-    def peakmem_transpile_from_large_qasm_backend_with_prop(self,
-                                                            transpiler_level):
-        transpile(self.large_qasm, self.melbourne, seed_transpiler=0,
-                  optimization_level=transpiler_level)
-
     def track_depth_transpile_from_large_qasm_backend_with_prop(
             self, transpiler_level):
         return transpile(self.large_qasm, self.melbourne, seed_transpiler=0,
                          optimization_level=transpiler_level).depth()
 
     def time_transpile_qv_14_x_14(self, transpiler_level):
-        transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
-                  optimization_level=transpiler_level)
-
-    def peakmem_transpile_qv_14_x_14(self, transpiler_level):
         transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
                   optimization_level=transpiler_level)
 
