@@ -109,7 +109,7 @@ class QuantumCircuit:
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-        Construct a 4-qubit Berstein-Vazirani circuit using registers.
+        Construct a 4-qubit Bernstein-Vazirani circuit using registers.
 
         .. jupyter-execute::
 
