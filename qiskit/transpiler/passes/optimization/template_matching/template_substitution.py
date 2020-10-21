@@ -417,11 +417,11 @@ class TemplateSubstitution:
         are assigned. If not, None is returned.
 
         Args:
-            template_sublist: part of the matched template.
-            circuit_sublist: part of the matched circuit.
+            template_sublist (list): part of the matched template.
+            circuit_sublist (list): part of the matched circuit.
 
         Returns:
-            template_dag_dep: A deep copy of the template with
+            DAGDependency: A deep copy of the template with
                 the parameters bound.
         """
         circuit_params, template_params = [], []
@@ -441,7 +441,7 @@ class TemplateSubstitution:
                 for param in params.parameters:
                     symbols.add(param)
 
-        if len(symbols) == 0:
+        if not symbols:
             return template_dag_dep
 
         # Check compatibility by solving the resulting equation
@@ -452,7 +452,7 @@ class TemplateSubstitution:
             except TypeError:
                 return None
 
-        if len(sol) == 0:
+        if not sol:
             return None
 
         for param in symbols:

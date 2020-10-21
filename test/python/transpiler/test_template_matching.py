@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """Test the TemplateOptimization pass."""
-import numpy as np
 
 import unittest
+import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
 from qiskit.extensions import UnitaryGate
@@ -233,6 +233,7 @@ class TestTemplateMatching(QiskitTestCase):
         """
 
         class CZp(Gate):
+            """CZ gates used for the test."""
             def __init__(self, num_qubits, params):
                 super().__init__('cz', num_qubits, params)
 

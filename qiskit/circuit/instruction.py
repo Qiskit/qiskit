@@ -158,15 +158,13 @@ class Instruction:
                     not isinstance(other_param, ParameterExpression):
                 try:
                     if numpy.shape(self_param) == numpy.shape(other_param) \
-                            and numpy.allclose(self_param, other_param,
-                                            atol=_CUTOFF_PRECISION):
+                            and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
                         continue
                 except TypeError:
                     pass
 
                 try:
-                    if numpy.isclose(float(self_param), float(other_param),
-                                  atol=_CUTOFF_PRECISION):
+                    if numpy.isclose(float(self_param), float(other_param), atol=_CUTOFF_PRECISION):
                         continue
                 except TypeError:
                     pass
