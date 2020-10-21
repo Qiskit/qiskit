@@ -1844,8 +1844,8 @@ class QuantumCircuit:
             CircuitError: If param_dict contains parameters not present in the circuit
 
         Returns:
-            optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-                ``inplace`` is True, otherwise None.
+            Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
+            ``inplace`` is True, otherwise None.
 
         Examples:
 
@@ -1900,7 +1900,7 @@ class QuantumCircuit:
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
-        circuit, use the assign_parameters method.
+        circuit, use the :meth:`assign_parameters` method.
 
         Args:
             value_dict (dict): {parameter: value, ...}
@@ -1913,7 +1913,7 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
-            raise TypeError('Found ParameterExpression in values; use assign_parameters instead.')
+            raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
         return self.assign_parameters(value_dict)
 
     def _unroll_param_dict(self, value_dict):
