@@ -32,9 +32,6 @@ class RippleAdderConstruction:
     def time_build_ripple_adder(self, size):
         build_ripple_adder_circuit(size)
 
-    def peakmem_build_ripple_adder(self, size):
-        build_ripple_adder_circuit(size)
-
 
 class RippleAdderTranspile:
     params = ([10, 20],
@@ -53,21 +50,11 @@ class RippleAdderTranspile:
         transpile(self.circuit, self.sim_backend,
                   optimization_level=level)
 
-    def peakmem_transpile_simulator_ripple_adder(self, _, level):
-        transpile(self.circuit, self.sim_backend,
-                  optimization_level=level)
-
     def track_depth_transpile_simulator_ripple_adder(self, _, level):
         return transpile(self.circuit, self.sim_backend,
                          optimization_level=level).depth()
 
     def time_transpile_square_grid_ripple_adder(self, _, level):
-        transpile(self.circuit,
-                  coupling_map=self.coupling_map,
-                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  optimization_level=level)
-
-    def peakmem_transpile_square_grid_ripple_adder(self, _, level):
         transpile(self.circuit,
                   coupling_map=self.coupling_map,
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
