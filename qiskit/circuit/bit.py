@@ -76,6 +76,4 @@ class Bit:
         return self._hash
 
     def __eq__(self, other):
-        if isinstance(other, Bit):
-            return other._index == self._index and other._register == self._register
-        return False
+        return self._repr == other._repr
