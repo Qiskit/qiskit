@@ -1247,12 +1247,12 @@ class QuantumCircuit:
             subfontsize (int): The font size to use for subtext. Defaults to 8.
             displaytext (dict): A dictionary of the text to use for each
                 element type in the output visualization.
-                See :class:`~qiskit.visualization.qcstyle.DefaultStyle` for the defaults.
+                See :mod:`~qiskit.visualization.qcstyle` for the defaults.
                 You must specify all the necessary values if using this. There
                 is no provision for passing an incomplete dict in.
             displaycolor (dict): The color codes to use for each circuit
                 element in the form (gate_color, text_color).
-                See :class:`~qiskit.visualization.qcstyle.DefaultStyle` for the defaults.
+                See :mod:`~qiskit.visualization.qcstyle` for the defaults.
                 Colors can also be entered without the text color, such as
                 'u1': '#FA74A6', in which case the text color will always
                 be 'gatetextcolor'. The 'displaycolor' dict can contain any
