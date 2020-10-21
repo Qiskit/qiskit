@@ -42,6 +42,7 @@ class RxGate(Gate):
     Note: Parallel maps (e.g., in assemble_circuits) pickle their input,
           so circuit features have to be defined top level.
     """
+
     def __init__(self, theta):
         super().__init__('rxtheta', 1, [theta])
 
@@ -138,6 +139,51 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_backend_rep_delays(self):
+        """Check that rep_delay is properly set from backend values."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        rep_delay_range = [2.5e-3, 4.5e-3]  # sec
+        default_rep_delay = 3.0e-3
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+        setattr(backend_config, 'default_rep_delay', default_rep_delay)
+
+        # dynamic rep rates off
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # dynamic rep rates on
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend)
+        self.assertEqual(qobj.config.rep_delay, default_rep_delay*1e6)
+
+    def test_assemble_user_rep_time_delay(self):
+        """Check that user runtime config rep_delay works."""
+        backend = FakeYorktown()
+        backend_config = backend.configuration()
+        # set custom rep_delay in runtime config
+        rep_delay = 2.2e-6
+        rep_delay_range = [0, 3e-6]  # sec
+        setattr(backend_config, 'rep_delay_range', rep_delay_range)
+
+        # dynamic rep rates off (no default so shouldn't be in qobj config)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # turn on dynamic rep rates, rep_delay should be set
+        setattr(backend_config, 'dynamic_reprate_enabled', True)
+        qobj = assemble(self.circ, backend, rep_delay=rep_delay)
+        self.assertEqual(qobj.config.rep_delay, 2.2)
+
+        # test ``rep_delay=0``
+        qobj = assemble(self.circ, backend, rep_delay=0)
+        self.assertEqual(qobj.config.rep_delay, 0)
+
+        # use ``rep_delay`` outside of ``rep_delay_range```
+        rep_delay_large = 5.0e-6
+        with self.assertRaises(SchemaValidationError):
+            assemble(self.circ, backend, rep_delay=rep_delay_large)
 
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
@@ -237,10 +283,10 @@ class TestCircuitAssembler(QiskitTestCase):
         full_param_circ = QuantumCircuit(qr)
         partial_param_circ = QuantumCircuit(qr)
 
-        partial_param_circ.u1(x, qr[0])
+        partial_param_circ.p(x, qr[0])
 
-        full_param_circ.u1(x, qr[0])
-        full_param_circ.u1(y, qr[1])
+        full_param_circ.p(x, qr[0])
+        full_param_circ.p(y, qr[1])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
         full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
@@ -276,7 +322,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         expr_circ = QuantumCircuit(qr)
 
-        expr_circ.u1(x+y, qr[0])
+        expr_circ.p(x+y, qr[0])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
 
@@ -299,12 +345,12 @@ class TestCircuitAssembler(QiskitTestCase):
         sum_ = x + y
         product_ = x * y
 
-        qc1.u2(x, y, qr[0])
+        qc1.u(x, y, 0, qr[0])
 
         qc2.rz(x, qr[0])
         qc2.rz(y, qr[0])
 
-        qc3.u2(sum_, product_, qr[0])
+        qc3.u(sum_, product_, 0, qr[0])
 
         bind_args = {'parameter_binds': [{x: 0, y: 0},
                                          {x: 1, y: 0},
@@ -322,9 +368,9 @@ class TestCircuitAssembler(QiskitTestCase):
             inst = expt.instructions[inst_no]
             return [float(p) for p in inst.params]
 
-        self.assertEqual(_qobj_inst_params(0, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(1, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(2, 0), [1, 1])
+        self.assertEqual(_qobj_inst_params(0, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(1, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(2, 0), [1, 1, 0])
 
         self.assertEqual(_qobj_inst_params(3, 0), [0])
         self.assertEqual(_qobj_inst_params(3, 1), [0])
@@ -333,9 +379,9 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(5, 0), [1])
         self.assertEqual(_qobj_inst_params(5, 1), [1])
 
-        self.assertEqual(_qobj_inst_params(6, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
+        self.assertEqual(_qobj_inst_params(6, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
@@ -364,6 +410,28 @@ class TestCircuitAssembler(QiskitTestCase):
                          0)
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
+
+    def test_circuit_global_phase_gate_definitions(self):
+        """Test circuit with global phase on gate definitions."""
+        class TestGate(Gate):
+            """dummy gate"""
+            def __init__(self):
+                super().__init__('test_gate', 1, [])
+
+            def _define(self):
+                circ_def = QuantumCircuit(1)
+                circ_def.x(0)
+                circ_def.global_phase = np.pi
+                self._definition = circ_def
+
+        gate = TestGate()
+        circ = QuantumCircuit(1)
+        circ.append(gate, [0])
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), 0)
+        circ.global_phase = np.pi / 2
+        qobj = assemble([circ])
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'), np.pi/2)
 
     def test_pulse_gates_single_circ(self):
         """Test that we can add calibrations to circuits."""

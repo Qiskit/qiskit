@@ -13,7 +13,8 @@
 """Choose a noise-adaptive Layout based on current calibration data for the backend."""
 
 import math
-import networkx as nx
+
+import retworkx as rx
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -64,15 +65,15 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         super().__init__()
         self.backend_prop = backend_prop
-        self.swap_graph = nx.DiGraph()
+        self.swap_graph = rx.PyDiGraph()
         self.cx_reliability = {}
         self.readout_reliability = {}
         self.available_hw_qubits = []
         self.gate_list = []
         self.gate_reliability = {}
-        self.swap_paths = {}
         self.swap_reliabs = {}
-        self.prog_graph = nx.Graph()
+        self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
         self.qarg_to_id = {}
         self.pending_program_edges = []
         self.prog2hw = {}
@@ -80,6 +81,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
     def _initialize_backend_prop(self):
         """Extract readout and CNOT errors and compute swap costs."""
         backend_prop = self.backend_prop
+        edge_list = []
         for ginfo in backend_prop.gates:
             if ginfo.gate == 'cx':
                 for item in ginfo.parameters:
@@ -91,10 +93,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
                 # convert swap reliability to edge weight
                 # for the Floyd-Warshall shortest weighted paths algorithm
                 swap_cost = -math.log(swap_reliab) if swap_reliab != 0 else math.inf
-                self.swap_graph.add_edge(ginfo.qubits[0], ginfo.qubits[1], weight=swap_cost)
-                self.swap_graph.add_edge(ginfo.qubits[1], ginfo.qubits[0], weight=swap_cost)
+                edge_list.append((ginfo.qubits[0], ginfo.qubits[1], swap_cost))
+                edge_list.append((ginfo.qubits[1], ginfo.qubits[0], swap_cost))
                 self.cx_reliability[(ginfo.qubits[0], ginfo.qubits[1])] = g_reliab
                 self.gate_list.append((ginfo.qubits[0], ginfo.qubits[1]))
+        self.swap_graph.extend_from_weighted_edge_list(edge_list)
         idx = 0
         for q in backend_prop.qubits:
             for nduv in q:
@@ -106,22 +109,25 @@ class NoiseAdaptiveLayout(AnalysisPass):
             self.gate_reliability[edge] = self.cx_reliability[edge] * \
                                           self.readout_reliability[edge[0]] * \
                                           self.readout_reliability[edge[1]]
-        self.swap_paths, swap_reliabs_temp = nx.algorithms.shortest_paths.dense.\
-            floyd_warshall_predecessor_and_distance(self.swap_graph, weight='weight')
-        for i in swap_reliabs_temp:
+
+        swap_reliabs_ro = rx.digraph_floyd_warshall_numpy(self.swap_graph,
+                                                          lambda weight: weight)
+        for i in range(swap_reliabs_ro.shape[0]):
             self.swap_reliabs[i] = {}
-            for j in swap_reliabs_temp[i]:
+            for j in range(swap_reliabs_ro.shape[1]):
                 if (i, j) in self.cx_reliability:
                     self.swap_reliabs[i][j] = self.cx_reliability[(i, j)]
                 elif (j, i) in self.cx_reliability:
                     self.swap_reliabs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
-                    for n in self.swap_graph.neighbors(j):
+                    # TODO: Replace with neighbors_directed() after
+                    # https://github.com/Qiskit/retworkx/pull/147 is released
+                    for n in self.swap_graph.adj_direction(j, False):
                         if (n, j) in self.cx_reliability:
-                            reliab = math.exp(-swap_reliabs_temp[i][n])*self.cx_reliability[(n, j)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(n, j)]
                         else:
-                            reliab = math.exp(-swap_reliabs_temp[i][n])*self.cx_reliability[(j, n)]
+                            reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(j, n)]
                         if reliab > best_reliab:
                             best_reliab = reliab
                     self.swap_reliabs[i][j] = best_reliab
@@ -141,6 +147,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         for q in dag.qubits:
             self.qarg_to_id[q.register.name + str(q.index)] = idx
             idx += 1
+        edge_list = []
         for gate in dag.two_qubit_ops():
             qid1 = self._qarg_to_id(gate.qargs[0])
             qid2 = self._qarg_to_id(gate.qargs[1])
@@ -149,7 +156,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
             edge_weight = 1
             if self.prog_graph.has_edge(min_q, max_q):
                 edge_weight = self.prog_graph[min_q][max_q]['weight'] + 1
-            self.prog_graph.add_edge(min_q, max_q, weight=edge_weight)
+            edge_list.append((min_q, max_q, edge_weight))
+        self.prog_graph.extend_from_weighted_edge_list(edge_list)
         return idx
 
     def _select_next_edge(self):
@@ -185,9 +193,13 @@ class NoiseAdaptiveLayout(AnalysisPass):
     def _select_best_remaining_qubit(self, prog_qubit):
         """Select the best remaining hardware qubit for the next program qubit."""
         reliab_store = {}
+        if prog_qubit not in self.prog_neighbors:
+            # TODO: Replace with neighbors() after
+            # https://github.com/Qiskit/retworkx/pull/147 is released
+            self.prog_neighbors[prog_qubit] = self.prog_graph.adj(prog_qubit)
         for hw_qubit in self.available_hw_qubits:
             reliab = 1
-            for n in self.prog_graph.neighbors(prog_qubit):
+            for n in self.prog_neighbors[prog_qubit]:
                 if n in self.prog2hw:
                     reliab *= self.swap_reliabs[self.prog2hw[n]][hw_qubit]
             reliab *= self.readout_reliability[hw_qubit]
@@ -202,6 +214,19 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
     def run(self, dag):
         """Run the NoiseAdaptiveLayout pass on `dag`."""
+        self.swap_graph = rx.PyDiGraph()
+        self.cx_reliability = {}
+        self.readout_reliability = {}
+        self.available_hw_qubits = []
+        self.gate_list = []
+        self.gate_reliability = {}
+        self.swap_reliabs = {}
+        self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
+        self.qarg_to_id = {}
+        self.pending_program_edges = []
+        self.prog2hw = {}
+
         self._initialize_backend_prop()
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):
@@ -209,8 +234,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
         # sort by weight, then edge name for determinism (since networkx on python 3.5 returns
         # different order of edges)
-        self.pending_program_edges = sorted(self.prog_graph.edges(data=True),
-                                            key=lambda x: [x[2]['weight'], -x[0], -x[1]],
+        self.pending_program_edges = sorted(self.prog_graph.weighted_edge_list(),
+                                            key=lambda x: [x[2], -x[0], -x[1]],
                                             reverse=True)
 
         while self.pending_program_edges:

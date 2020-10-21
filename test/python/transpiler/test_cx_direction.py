@@ -15,6 +15,7 @@ import unittest
 from math import pi
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import U2Gate
 from qiskit.transpiler import TranspilerError
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CXDirection
@@ -105,11 +106,11 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.u2(0, pi, qr[0])
-        expected.u2(0, pi, qr[1])
+        expected.append(U2Gate(0, pi), [qr[0]])
+        expected.append(U2Gate(0, pi), [qr[1]])
         expected.cx(qr[0], qr[1])
-        expected.u2(0, pi, qr[0])
-        expected.u2(0, pi, qr[1])
+        expected.append(U2Gate(0, pi), [qr[0]])
+        expected.append(U2Gate(0, pi), [qr[1]])
 
         pass_ = CXDirection(coupling)
         after = pass_.run(dag)
@@ -142,11 +143,11 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.u2(0, pi, qr[0])
-        expected.u2(0, pi, qr[1])
+        expected.append(U2Gate(0, pi), [qr[0]])
+        expected.append(U2Gate(0, pi), [qr[1]])
         expected.cx(qr[0], qr[1])
-        expected.u2(0, pi, qr[0])
-        expected.u2(0, pi, qr[1])
+        expected.append(U2Gate(0, pi), [qr[0]])
+        expected.append(U2Gate(0, pi), [qr[1]])
         expected.measure(qr[0], cr[0])
 
         pass_ = CXDirection(coupling)
@@ -186,14 +187,14 @@ class TestCXDirection(QiskitTestCase):
         # Ordering of u2 is important because DAG comparison will consider
         # different conditional order on a creg to be a different circuit.
         # See https://github.com/Qiskit/qiskit-terra/issues/3164
-        expected.u2(0, pi, [qr[1], qr[0]]).c_if(cr, 0)
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
-        expected.u2(0, pi, [qr[1], qr[0]]).c_if(cr, 0)
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
 
         expected.cx(qr[0], qr[1])
-        expected.u2(0, pi, [qr[1], qr[0]])
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
         expected.cx(qr[0], qr[1])
-        expected.u2(0, pi, [qr[1], qr[0]])
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
 
         pass_ = CXDirection(coupling)
         after = pass_.run(dag)
