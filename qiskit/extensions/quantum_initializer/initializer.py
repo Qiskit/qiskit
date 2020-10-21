@@ -45,7 +45,7 @@ class Initialize(Instruction):
     def __init__(self, params):
         """Create new initialize composite.
 
-        params (str or list)::
+        params (str or list):
           * list: vector of complex amplitudes to initialize to.
           * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
