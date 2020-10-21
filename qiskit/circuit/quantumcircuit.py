@@ -284,16 +284,6 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
-    def mirror(self):
-        """DEPRECATED: use circuit.reverse_ops().
-
-        Returns:
-            QuantumCircuit: the reversed circuit.
-        """
-        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
-                      'reverse the order of gates.', DeprecationWarning)
-        return self.reverse_ops()
-
     def reverse_ops(self):
         """Reverse the circuit by reversing the order of instructions.
 
@@ -603,7 +593,7 @@ class QuantumCircuit:
 
         Examples:
 
-            >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+            lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -1057,10 +1047,11 @@ class QuantumCircuit:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
         """
-        existing_gate_names = ['ch', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap', 'ms',
-                               'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg',
-                               'swap', 'x', 'y', 'z', 't', 'tdg', 'u1', 'u2', 'u3']
+        existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
+                               'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
+                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
+                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
+                               'u3']
 
         existing_composite_circuits = []
 
@@ -1162,7 +1153,6 @@ class QuantumCircuit:
                 a dictionary of style, then that will be opened, parsed, and used
                 as the input dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
-
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
@@ -1256,77 +1246,13 @@ class QuantumCircuit:
             fontsize (int): The font size to use for text. Defaults to 13.
             subfontsize (int): The font size to use for subtext. Defaults to 8.
             displaytext (dict): A dictionary of the text to use for each
-                element type in the output visualization. The default values
-                are::
-
-                    {
-                        'id': 'id',
-                        'u0': 'U_0',
-                        'u1': 'U_1',
-                        'u2': 'U_2',
-                        'u3': 'U_3',
-                        'x': 'X',
-                        'y': 'Y',
-                        'z': 'Z',
-                        'h': 'H',
-                        's': 'S',
-                        'sdg': 'S^\\dagger',
-                        't': 'T',
-                        'tdg': 'T^\\dagger',
-                        'rx': 'R_x',
-                        'ry': 'R_y',
-                        'rz': 'R_z',
-                        'reset': '\\left|0\\right\\rangle'
-                    }
-
+                element type in the output visualization.
+                See :class:`~qiskit.visualization.qcstyle.DefaultStyle` for the defaults.
                 You must specify all the necessary values if using this. There
                 is no provision for passing an incomplete dict in.
             displaycolor (dict): The color codes to use for each circuit
                 element in the form (gate_color, text_color).
-                The default values are::
-
-                    {
-                        'u1': ('#FA74A6', '#000000'),
-                        'u2': ('#FA74A6', '#000000'),
-                        'u3': ('#FA74A6', '#000000'),
-                        'id': ('#05BAB6', '#000000'),
-                        'x': ('#05BAB6', '#000000'),
-                        'y': ('#05BAB6', '#000000'),
-                        'z': ('#05BAB6', '#000000'),
-                        'h': ('#6FA4FF', '#000000'),
-                        'cx': ('#6FA4FF', '#000000'),
-                        'cy': ('#6FA4FF', '#000000'),
-                        'cz': ('#6FA4FF', '#000000'),
-                        'swap': ('#6FA4FF', '#000000'),
-                        's': ('#6FA4FF', '#000000'),
-                        'sdg': ('#6FA4FF', '#000000'),
-                        'dcx': ('#6FA4FF', '#000000'),
-                        'iswap': ('#6FA4FF', '#000000'),
-                        't': ('#BB8BFF', '#000000'),
-                        'tdg': ('#BB8BFF', '#000000'),
-                        'r': ('#BB8BFF', '#000000'),
-                        'rx': ('#BB8BFF', '#000000'),
-                        'ry': ('#BB8BFF', '#000000'),
-                        'rz': ('#BB8BFF', '#000000'),
-                        'rxx': ('#BB8BFF', '#000000'),
-                        'ryy': ('#BB8BFF', '#000000'),
-                        'rzx': ('#BB8BFF', '#000000'),
-                        'reset': ('#000000', #FFFFFF'),
-                        'target': ('#FFFFFF, '#FFFFFF'),
-                        'measure': ('#000000', '#FFFFFF'),
-                        'ccx': ('#BB8BFF', '#000000'),
-                        'cdcx': ('#BB8BFF', '#000000'),
-                        'ccdcx': ('#BB8BFF', '#000000'),
-                        'cswap': ('#BB8BFF', '#000000'),
-                        'ccswap': ('#BB8BFF', '#000000'),
-                        'mcx': ('#BB8BFF', '#000000'),
-                        'mcx_gray': ('#BB8BFF', '#000000),
-                        'u': ('#BB8BFF', '#000000'),
-                        'p': ('#BB8BFF', '#000000'),
-                        'sx': ('#BB8BFF', '#000000'),
-                        'sxdg': ('#BB8BFF', '#000000')
-                    }
-
+                See :class:`~qiskit.visualization.qcstyle.DefaultStyle` for the defaults.
                 Colors can also be entered without the text color, such as
                 'u1': '#FA74A6', in which case the text color will always
                 be 'gatetextcolor'. The 'displaycolor' dict can contain any
@@ -1351,12 +1277,6 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
-        if isinstance(output, (int, float, np.number)):
-            warnings.warn("Setting 'scale' as the first argument is deprecated. "
-                          "Use scale=%s instead." % output,
-                          DeprecationWarning)
-            scale = output
-            output = None
 
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
@@ -1849,35 +1769,43 @@ class QuantumCircuit:
 
         Examples:
 
-            >>> from qiskit.circuit import QuantumCircuit, Parameter
-            >>> circuit = QuantumCircuit(2)
-            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
-            >>> circuit.ry(params[0], 0)
-            >>> circuit.crx(params[1], 0, 1)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(A) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(C) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
-            >>> bound_circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(2) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(1) ├
-                             └───────┘
-            >>> bound_circuit.parameters  # this one has no free parameters anymore
-            set()
-            >>> circuit.parameters  # the original one is still parameterized
-            {Parameter(A), Parameter(C)}
+            Create a parameterized circuit and assign the parameters in-place.
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                circuit = QuantumCircuit(2)
+                params = [Parameter('A'), Parameter('B'), Parameter('C')]
+                circuit.ry(params[0], 0)
+                circuit.crx(params[1], 0, 1)
+
+                print('Original circuit:')
+                print(circuit.draw())
+
+                circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+
+                print('Assigned in-place:')
+                print(circuit.draw())
+
+            Bind the values out-of-place and get a copy of the original circuit.
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                circuit = QuantumCircuit(2)
+                params = [Parameter('A'), Parameter('B'), Parameter('C')]
+                circuit.ry(params[0], 0)
+                circuit.crx(params[1], 0, 1)
+
+                bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+                print('Bound circuit:')
+                print(bound_circuit.draw())
+
+                print('The original circuit is unchanged:')
+                print(circuit.draw())
+
         """
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
