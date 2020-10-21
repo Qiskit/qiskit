@@ -19,7 +19,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Bit:
     """Implement a generic bit."""
 
-    __slots__ = {'_register', '_index', '_hash'}
+    __slots__ = {'_register', '_index', '_hash', '_repr'}
 
     def __init__(self, register, index):
         """Create a new generic bit.
@@ -43,6 +43,8 @@ class Bit:
 
     def _update_hash(self):
         self._hash = hash((self._register, self._index))
+        self._repr = "%s(%s, %s)" % (self.__class__.__name__,
+                                     self._register, self._index)
 
     @property
     def register(self):
@@ -68,7 +70,7 @@ class Bit:
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        return "%s(%s, %s)" % (self.__class__.__name__, self._register, self._index)
+        return self._repr
 
     def __hash__(self):
         return self._hash
