@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Remove the deprecated ``QuantumCircuit.mirror`` method and drop support for 
+    ``scale`` being the first argument in ``QuantumCircuit.draw``.
