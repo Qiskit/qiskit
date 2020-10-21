@@ -14,13 +14,11 @@
 """Qobj tests."""
 
 import copy
-import uuid
 
 import jsonschema
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.basicaer import basicaerjob
 
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
@@ -29,10 +27,8 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          QasmQobjExperiment, QasmQobjConfig,
                          QasmExperimentCalibrations, GateCalibration)
 from qiskit.qobj import validate_qobj_against_schema
-from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeRueschlikon
 
 
 class TestQASMQobj(QiskitTestCase):
