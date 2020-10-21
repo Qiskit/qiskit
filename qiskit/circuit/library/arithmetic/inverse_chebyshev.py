@@ -23,8 +23,6 @@ from qiskit.circuit.exceptions import CircuitError
 from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
 from .integer_comparator import IntegerComparator
 
-# pylint: disable=invalid-name
-
 
 class InverseChebyshev(BlueprintCircuit):
     r"""Piecewise Chebyshev approximation of the inverse function.
@@ -37,14 +35,13 @@ class InverseChebyshev(BlueprintCircuit):
 
     Examples:
         >>> from qiskit import QuantumCircuit
-        >>> from qiskit.circuit.library.arithmetic.inverse_chebyshev import InverseChebyshev
+        >>> from qiskit.circuit.library import InverseChebyshev
         >>> num_qubits = 4
         >>> err_tolerance = 0.1
         >>> inv_cheb = InverseChebyshev(num_qubits, err_tolerance)
         >>> inv_cheb._build()
         >>> qc = QuantumCircuit(num_qubits + 1 + inv_cheb.num_ancillas)
-        >>> qc.h(list(range(num_qubits)))
-        <qiskit.circuit.instructionset.InstructionSet object at 0x00000297722900B8>
+        >>> qc.h(list(range(num_qubits)));
         >>> qc.append(inv_cheb.to_instruction(), list(range(qc.num_qubits)))
         >>> qc.draw()
               ┌───┐┌────────────┐
@@ -96,10 +93,10 @@ class InverseChebyshev(BlueprintCircuit):
                  name: str = 'inv_cheb') -> None:
         """
         Args:
-            num_state_qubits: number of qubits representing the state.
-            epsilon: accuracy of the approximation.
+            num_state_qubits: Number of qubits representing the state.
+            epsilon: Accuracy of the approximation.
             constant: :math:`C` in :math:`arcsin(C/x)`.
-            kappa: condition number of the system.
+            kappa: Condition number of the system.
             name: The name of the circuit object.
         """
         super().__init__(name=name)
@@ -143,13 +140,13 @@ class InverseChebyshev(BlueprintCircuit):
     def epsilon(self) -> float:
         """The error tolerance.
 
-                Returns:
-                    The error tolerance.
+        Returns:
+            The error tolerance.
         """
         return self._epsilon
 
     @epsilon.setter
-    def epsilon(self, epsilon: Optional[float]) -> None:
+    def epsilon(self, epsilon: float) -> None:
         """Set the error tolerance.
 
         Note that this may change the underlying quantum register, if the number of state qubits
@@ -174,7 +171,7 @@ class InverseChebyshev(BlueprintCircuit):
         return self._constant
 
     @constant.setter
-    def constant(self, constant: Optional[float]) -> None:
+    def constant(self, constant: float) -> None:
         r"""Set the constant :math:`C` in :math:`arcsin(C/x)`.
 
         Note that this may change the underlying quantum register, if the number of state qubits
@@ -199,7 +196,7 @@ class InverseChebyshev(BlueprintCircuit):
         return self._num_state_qubits
 
     @num_state_qubits.setter
-    def num_state_qubits(self, num_state_qubits: Optional[int]) -> None:
+    def num_state_qubits(self, num_state_qubits: int) -> None:
         """Set the number of state qubits.
 
         Note that this may change the underlying quantum register, if the number of state qubits
@@ -214,7 +211,7 @@ class InverseChebyshev(BlueprintCircuit):
 
             self._reset_registers(num_state_qubits)
 
-    def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+    def _reset_registers(self, num_state_qubits: int) -> None:
         if num_state_qubits:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
@@ -230,20 +227,22 @@ class InverseChebyshev(BlueprintCircuit):
             self.qregs = []
 
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is
-        :math:`|1>`."""
+        """Build the circuit.
+
+        The operation is considered successful when q_objective is :math:`|1>`.
+        """
         # We perform the identity operation on [1,a].
         # int(round()) necessary to compensate for computer precision.
         if self.num_state_qubits is not None:
-            N_l = 2 ** self.num_state_qubits
-            a = int(round(N_l ** (2 / 3)))
+            num_values = 2 ** self.num_state_qubits
+            a = int(round(num_values ** (2 / 3)))  # pylint: disable=invalid-name
 
             # Calculate the degree of the polynomial and the number of intervals
             r = 2 * self._constant / a + np.sqrt(np.abs(1 - (2 * self._constant / a) ** 2))
             degree = int(np.log(1 + (16.23 * np.sqrt(np.log(r) ** 2 + (np.pi / 2) ** 2) *
                                      self._kappa * (2 * self._kappa - self._epsilon)) /
                                 self._epsilon))
-            num_intervals = int(np.ceil(np.log((N_l - 1) / a) / np.log(5)))
+            num_intervals = int(np.ceil(np.log((num_values - 1) / a) / np.log(5)))
 
             # Calculate breakpoints and polynomials
             self._breakpoints = []
@@ -251,16 +250,20 @@ class InverseChebyshev(BlueprintCircuit):
             for i in range(0, num_intervals):
                 # Add the breakpoint to the list
                 self._breakpoints.append(a * (5 ** i))
+
                 # Define the right breakpoint of the interval
                 if i == num_intervals - 1:
-                    r_breakpoint = N_l - 1
+                    r_breakpoint = num_values - 1
                 else:
                     r_breakpoint = a * (5 ** (i + 1))
+
                 # Calculate the polynomial approximating the function on the current interval
                 poly = Chebyshev.interpolate(lambda x: np.arcsin(self._constant / x), degree,
                                              domain=[self._breakpoints[i], r_breakpoint])
+
                 # Convert polynomial to the standard basis and rescale it for the rotation gates
                 poly = 2 * poly.convert(kind=np.polynomial.Polynomial).coef
+
                 # Convert to list and append
                 self._polynomials.append(poly.tolist())
 
