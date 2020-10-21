@@ -591,7 +591,7 @@ class QuantumCircuit:
             CircuitError: if composing on the front.
             QiskitError: if ``other`` is wider or there are duplicate edge mappings.
 
-        Examples:
+        Examples::
 
             lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
