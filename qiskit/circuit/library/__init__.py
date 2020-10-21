@@ -115,6 +115,16 @@ Basis Change Circuits
 Arithmetic Circuits
 ===================
 
+Amplitude Functions
++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+   InverseChebyshev
+
+
 Functional Pauli Rotations
 ++++++++++++++++++++++++++
 
@@ -125,6 +135,7 @@ Functional Pauli Rotations
    LinearPauliRotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
+   PiecewisePolynomialPauliRotations
 
 Adders
 ++++++
@@ -274,11 +285,13 @@ from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
+    PiecewisePolynomialPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    InverseChebyshev,
 )
 from .n_local import (
     NLocal,
