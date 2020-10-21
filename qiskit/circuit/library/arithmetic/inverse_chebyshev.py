@@ -90,19 +90,16 @@ class InverseChebyshev(BlueprintCircuit):
 
     def __init__(self,
                  num_state_qubits: Optional[int] = None,
-                 epsilon: Optional[float] = None,
-                 constant: Optional[float] = None,
-                 kappa: Optional[float] = None,
+                 epsilon: float = 1e-2,
+                 constant: float = 1,
+                 kappa: float = 1,
                  name: str = 'inv_cheb') -> None:
         """
         Args:
             num_state_qubits: number of qubits representing the state.
             epsilon: accuracy of the approximation.
-                Defaults to ``1e-2``.
             constant: :math:`C` in :math:`arcsin(C/x)`.
-                Defaults to ``1``.
             kappa: condition number of the system.
-                Defaults to ``1``.
             name: The name of the circuit object.
         """
         super().__init__(name=name)
@@ -111,9 +108,9 @@ class InverseChebyshev(BlueprintCircuit):
         self._num_state_qubits = None
 
         # Store parameters
-        self._epsilon = epsilon if epsilon is not None else 1e-2
-        self._kappa = kappa if kappa is not None else 1
-        self._constant = constant if constant is not None else 1
+        self._epsilon = epsilon
+        self._kappa = kappa
+        self._constant = constant
 
         self._breakpoints = None
         self._polynomials = None
@@ -237,7 +234,7 @@ class InverseChebyshev(BlueprintCircuit):
         :math:`|1>`."""
         # We perform the identity operation on [1,a].
         # int(round()) necessary to compensate for computer precision.
-        if self.num_state_qubits:
+        if self.num_state_qubits is not None:
             N_l = 2 ** self.num_state_qubits
             a = int(round(N_l ** (2 / 3)))
 
@@ -269,6 +266,7 @@ class InverseChebyshev(BlueprintCircuit):
 
             self._poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
                                                              self._breakpoints, self._polynomials)
+            # poly_r has been updated, so we need to update the ancilla register
             self._reset_registers(self.num_state_qubits)
 
         super()._build()
