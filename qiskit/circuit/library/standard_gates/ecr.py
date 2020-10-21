@@ -17,7 +17,7 @@
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from .rzx import RZXGate
 from .x import XGate
 
@@ -87,11 +87,16 @@ class ECRGate(Gate):
         gate ecr a, b { rzx(pi/4) a, b; x a; rzx(-pi/4) a, b;}
         """
         q = QuantumRegister(2, 'q')
-        self.definition = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (RZXGate(np.pi/4), [q[0], q[1]], []),
             (XGate(), [q[0]], []),
             (RZXGate(-np.pi/4), [q[0], q[1]], [])
         ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def to_matrix(self):
        """Return a numpy.array for the ECR gate."""

@@ -58,7 +58,7 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(self,
                  basis_gates: List[str],
-                 synthesis_fidelity: float = 1):
+                 fidelity: float = 1):
         """
         This pass can approximate 2-qubit unitaries given some approximation
         error budget (expressed as synthesis_fidelity). Other unitaries are
@@ -66,11 +66,11 @@ class UnitarySynthesis(TransformationPass):
 
         Args:
             basis_gates: List of gate names to target.
-            synthesis_fidelity: minimum synthesis fidelity due to approximation.
+            fidelity: minimum synthesis fidelity due to approximation.
         """
         super().__init__()
         self._basis_gates = basis_gates
-        self._fidelity = synthesis_fidelity
+        self._fidelity = fidelity
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.

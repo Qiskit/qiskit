@@ -646,7 +646,7 @@ for inst, qargs, cargs in [
 _sel.add_equivalence(CXGate(), cx_to_iswap)
 
 q = QuantumRegister(2, 'q')
-cx_to_ecr = QuantumCircuit(q)
+cx_to_ecr = QuantumCircuit(q, global_phase=-pi/4)
 for inst, qargs, cargs in [
         (RZGate(-pi/2), [q[0]], []),
         (RYGate(pi), [q[0]], []),
