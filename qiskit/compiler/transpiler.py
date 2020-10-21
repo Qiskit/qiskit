@@ -145,7 +145,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.configuration().dt`` is used.
         synthesis_fidelity (float): tolerable fidelity for approximate synthesis.
-        translation_method: Name of translation pass ('unroller', 'translator')
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,

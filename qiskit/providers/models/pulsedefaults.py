@@ -108,7 +108,7 @@ class Command:
         Args:
             name (str): The name of the command
             qubits: The qubits for the command
-            sequence (list[PulseQobjInstruction]): The sequence for the Command
+            sequence (PulseQobjInstruction): The sequence for the Command
             kwargs: Optional additional fields
         """
         self._data = {}
