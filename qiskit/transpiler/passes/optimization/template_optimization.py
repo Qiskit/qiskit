@@ -96,7 +96,8 @@ class TemplateOptimization(TransformationPass):
                 comparison = np.allclose(Operator(template).data, identity)
 
                 if not comparison:
-                    raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
+                    raise TranspilerError('A template is a Quantumciruit() that '
+                                          'performs the identity.')
             except TypeError:
                 pass
 
