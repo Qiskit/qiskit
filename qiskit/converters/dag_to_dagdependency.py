@@ -25,7 +25,8 @@ def dag_to_dagdependency(dag):
     """
 
     dagdependency = DAGDependency()
-    DAGDependency.name = dag.name
+    dagdependency.name = dag.name
+    dagdependency.metadata = dag.metadata
 
     qregs = list(dag.qregs.values())
     cregs = list(dag.cregs.values())

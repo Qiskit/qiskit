@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    The :class:`qiskit.circuit.QuantumCircuit` class now supports arbitrary
+    free form metadata with the :attr:`~qiskit.circuit.QuantumCircuit.metadata`
+    attribute. A user (or program built on top of
+    :class:`~qiskit.circuit.QuantumCircuit`) can attach metadata to a circuit
+    for use in tracking the circuit. For example::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(2, user_metadata_field_1='my_metadata',
+                          user_metadata_field_2='my_other_value')
+
+    or::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(2)
+      qc.metadata = {'user_metadata_field_1': 'my_metadata',
+                     'user_metadata_field_2': 'my_other_value'}
+
+    This metadata will **not** be used for influencing the execution of the
+    circuit but is just used for tracking the circuit for the lifetime of the
+    object. The ``metadata`` attribute will persist between any circuit
+    transforms including :func:`~qiskit.compiler.transpile` and
+    :func:`~qiskit.compiler.assemble`. The expectation is for providers to
+    associate the metadata in the result it returns, so that users can
+    filter results based on circuit metadata the same way they can currently
+    do with ``QuantumCircuit.name``.

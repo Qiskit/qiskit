@@ -26,6 +26,7 @@ def dagdependency_to_dag(dagdependency):
 
     dagcircuit = DAGCircuit()
     dagcircuit.name = dagdependency.name
+    dagcircuit.metadata = dagdependency.metadata
 
     qregs = list(dagdependency.qregs.values())
     cregs = list(dagdependency.cregs.values())

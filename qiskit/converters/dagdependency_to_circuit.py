@@ -27,6 +27,7 @@ def dagdependency_to_circuit(dagdependency):
     name = dagdependency.name or None
     circuit = QuantumCircuit(*dagdependency.qregs.values(), *dagdependency.cregs.values(),
                              name=name)
+    circuit.metadata = dagdependency.metadata
 
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
