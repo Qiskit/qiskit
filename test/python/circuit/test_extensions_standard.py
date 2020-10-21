@@ -14,6 +14,7 @@
 
 import unittest
 from inspect import signature
+import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
@@ -21,6 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
@@ -219,14 +221,14 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.cswap, 'a', self.qr[1], self.qr[2])
 
     def test_cu1(self):
-        self.circuit.cu1(1, self.qr[1], self.qr[2])
+        self.circuit.append(CU1Gate(1), [self.qr[1], self.qr[2]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'cu1')
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[1], self.qr[2]])
 
     def test_cu1_wires(self):
-        self.circuit.cu1(1, 1, 2)
+        self.circuit.append(CU1Gate(1), [1, 2])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'cu1')
         self.assertEqual(op.params, [1])
@@ -234,6 +236,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cu1_invalid(self):
         qc = self.circuit
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         self.assertRaises(CircuitError, qc.cu1, self.cr[0], self.cr[1], self.cr[2])
         self.assertRaises(CircuitError, qc.cu1, 1, self.qr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.cu1, self.qr[1], 0, self.qr[0])
@@ -244,17 +247,18 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.cu1, 0, self.qr[1], self.cr[2])
         self.assertRaises(CircuitError, qc.cu1, 0, (self.qr, 3), self.qr[1])
         self.assertRaises(CircuitError, qc.cu1, 0, self.cr, self.qr)
+        warnings.filterwarnings('always', category=DeprecationWarning)
         # TODO self.assertRaises(CircuitError, qc.cu1, 'a', self.qr[1], self.qr[2])
 
     def test_cu3(self):
-        self.circuit.cu3(1, 2, 3, self.qr[1], self.qr[2])
+        self.circuit.append(CU3Gate(1, 2, 3), [self.qr[1], self.qr[2]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'cu3')
         self.assertEqual(op.params, [1, 2, 3])
         self.assertEqual(qargs, [self.qr[1], self.qr[2]])
 
     def test_cu3_wires(self):
-        self.circuit.cu3(1, 2, 3, 1, 2)
+        self.circuit.append(CU3Gate(1, 2, 3), [1, 2])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'cu3')
         self.assertEqual(op.params, [1, 2, 3])
@@ -262,6 +266,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cu3_invalid(self):
         qc = self.circuit
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[0], self.qr[1], self.cr[2])
         self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[1], 0, self.qr[0])
@@ -270,6 +275,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, (self.qr, 3), self.qr[1])
         self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.cr, self.qr)
         # TODO self.assertRaises(CircuitError, qc.cu3, 0, 0, 'a', self.qr[1], self.qr[2])
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_cx(self):
         self.circuit.cx(self.qr[1], self.qr[2])
@@ -719,14 +725,14 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[2].params, [])
 
     def test_u1(self):
-        self.circuit.u1(1, self.qr[1])
+        self.circuit.append(U1Gate(1), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u1')
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[1]])
 
     def test_u1_wires(self):
-        self.circuit.u1(1, 1)
+        self.circuit.append(U1Gate(1), [1])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u1')
         self.assertEqual(op.params, [1])
@@ -734,6 +740,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u1_invalid(self):
         qc = self.circuit
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         # CHECKME? self.assertRaises(CircuitError, qc.u1, self.cr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.u1, self.cr[0], self.cr[1])
         self.assertRaises(CircuitError, qc.u1, self.qr[1], 0)
@@ -744,36 +751,37 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.u1, 0, self.cr)
         # TODO self.assertRaises(CircuitError, qc.u1, 'a', self.qr[1])
         self.assertRaises(CircuitError, qc.u1, 0, 'a')
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_u1_reg(self):
-        instruction_set = self.circuit.u1(1, self.qr)
+        instruction_set = self.circuit.append(U1Gate(1), [self.qr])
         self.assertEqual(instruction_set.instructions[0].name, 'u1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1])
 
     def test_u1_reg_inv(self):
-        instruction_set = self.circuit.u1(1, self.qr).inverse()
+        instruction_set = self.circuit.append(U1Gate(1), [self.qr]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'u1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
     def test_u1_pi(self):
         qc = self.circuit
-        qc.u1(pi / 2, self.qr[1])
+        qc.append(U1Gate(pi / 2), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u1')
         self.assertEqual(op.params, [pi / 2])
         self.assertEqual(qargs, [self.qr[1]])
 
     def test_u2(self):
-        self.circuit.u2(1, 2, self.qr[1])
+        self.circuit.append(U2Gate(1, 2), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u2')
         self.assertEqual(op.params, [1, 2])
         self.assertEqual(qargs, [self.qr[1]])
 
     def test_u2_wires(self):
-        self.circuit.u2(1, 2, 1)
+        self.circuit.append(U2Gate(1, 2), [1])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u2')
         self.assertEqual(op.params, [1, 2])
@@ -781,6 +789,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u2_invalid(self):
         qc = self.circuit
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.cr[1])
         self.assertRaises(CircuitError, qc.u2, 0, self.qr[1], 0)
@@ -791,35 +800,36 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.u2, 0, 0, self.cr)
         # TODO self.assertRaises(CircuitError, qc.u2, 0, 'a', self.qr[1])
         self.assertRaises(CircuitError, qc.u2, 0, 0, 'a')
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_u2_reg(self):
-        instruction_set = self.circuit.u2(1, 2, self.qr)
+        instruction_set = self.circuit.append(U2Gate(1, 2), [self.qr])
         self.assertEqual(instruction_set.instructions[0].name, 'u2')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1, 2])
 
     def test_u2_reg_inv(self):
-        instruction_set = self.circuit.u2(1, 2, self.qr).inverse()
+        instruction_set = self.circuit.append(U2Gate(1, 2), [self.qr]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'u2')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-pi - 2, -1 + pi])
 
     def test_u2_pi(self):
-        self.circuit.u2(pi / 2, 0.3 * pi, self.qr[1])
+        self.circuit.append(U2Gate(pi / 2, 0.3 * pi), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u2')
         self.assertEqual(op.params, [pi / 2, 0.3 * pi])
         self.assertEqual(qargs, [self.qr[1]])
 
     def test_u3(self):
-        self.circuit.u3(1, 2, 3, self.qr[1])
+        self.circuit.append(U3Gate(1, 2, 3), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u3')
         self.assertEqual(op.params, [1, 2, 3])
         self.assertEqual(qargs, [self.qr[1]])
 
     def test_u3_wires(self):
-        self.circuit.u3(1, 2, 3, 1)
+        self.circuit.append(U3Gate(1, 2, 3), [1])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u3')
         self.assertEqual(op.params, [1, 2, 3])
@@ -827,6 +837,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u3_invalid(self):
         qc = self.circuit
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         # TODO self.assertRaises(CircuitError, qc.u3, 0, self.cr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.u3, 0, 0, self.cr[0], self.cr[1])
         self.assertRaises(CircuitError, qc.u3, 0, 0, self.qr[1], 0)
@@ -837,21 +848,22 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.u3, 0, 0, 0, self.cr)
         # TODO self.assertRaises(CircuitError, qc.u3, 0, 0, 'a', self.qr[1])
         self.assertRaises(CircuitError, qc.u3, 0, 0, 0, 'a')
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_u3_reg(self):
-        instruction_set = self.circuit.u3(1, 2, 3, self.qr)
+        instruction_set = self.circuit.append(U3Gate(1, 2, 3), [self.qr])
         self.assertEqual(instruction_set.instructions[0].name, 'u3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1, 2, 3])
 
     def test_u3_reg_inv(self):
-        instruction_set = self.circuit.u3(1, 2, 3, self.qr).inverse()
+        instruction_set = self.circuit.append(U3Gate(1, 2, 3), [self.qr]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'u3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1, -3, -2])
 
     def test_u3_pi(self):
-        self.circuit.u3(pi, pi / 2, 0.3 * pi, self.qr[1])
+        self.circuit.append(U3Gate(pi, pi / 2, 0.3 * pi), [self.qr[1]])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u3')
         self.assertEqual(op.params, [pi, pi / 2, 0.3 * pi])
@@ -1106,73 +1118,73 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
     def test_cu1_reg_reg(self):
-        instruction_set = self.circuit.cu1(1, self.qr, self.qr2)
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr, self.qr2])
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1])
 
     def test_cu1_reg_reg_inv(self):
-        instruction_set = self.circuit.cu1(1, self.qr, self.qr2).inverse()
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr, self.qr2]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
     def test_cu1_reg_bit(self):
-        instruction_set = self.circuit.cu1(1, self.qr, self.qr2[1])
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr, self.qr2[1]])
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1])
 
     def test_cu1_reg_bit_inv(self):
-        instruction_set = self.circuit.cu1(1, self.qr, self.qr2[1]).inverse()
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr, self.qr2[1]]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
     def test_cu1_bit_reg(self):
-        instruction_set = self.circuit.cu1(1, self.qr[1], self.qr2)
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr[1], self.qr2])
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1])
 
     def test_cu1_bit_reg_inv(self):
-        instruction_set = self.circuit.cu1(1, self.qr[1], self.qr2).inverse()
+        instruction_set = self.circuit.append(CU1Gate(1), [self.qr[1], self.qr2]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu1')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1])
 
     def test_cu3_reg_reg(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr, self.qr2)
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr, self.qr2])
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1, 2, 3])
 
     def test_cu3_reg_reg_inv(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr, self.qr2).inverse()
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr, self.qr2]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1, -3, -2])
 
     def test_cu3_reg_bit(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr, self.qr2[1])
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr, self.qr2[1]])
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1, 2, 3])
 
     def test_cu3_reg_bit_inv(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr, self.qr2[1]).inverse()
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr, self.qr2[1]]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1, -3, -2])
 
     def test_cu3_bit_reg(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr[1], self.qr2)
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr[1], self.qr2])
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [1, 2, 3])
 
     def test_cu3_bit_reg_inv(self):
-        instruction_set = self.circuit.cu3(1, 2, 3, self.qr[1], self.qr2).inverse()
+        instruction_set = self.circuit.append(CU3Gate(1, 2, 3), [self.qr[1], self.qr2]).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cu3')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [-1, -3, -2])
@@ -1344,6 +1356,7 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
+        from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
@@ -1351,7 +1364,11 @@ class TestStandardMethods(QiskitTestCase):
             sig = signature(gate_class)
             free_params = len(set(sig.parameters) - {'label'})
             try:
-                gate = gate_class(*params[0:free_params])
+                if gate_class == PauliGate:
+                    # special case due to PauliGate using string parameters
+                    gate = gate_class("IXYZ")
+                else:
+                    gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
                 self.log.info(
                     'Cannot init gate with params only. Skipping %s',
@@ -1380,6 +1397,7 @@ class TestStandardMethods(QiskitTestCase):
         definition using Operator."""
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
+        from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 
         params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
@@ -1393,7 +1411,11 @@ class TestStandardMethods(QiskitTestCase):
             else:
                 free_params = len(set(sig.parameters) - {'label'})
             try:
-                gate = gate_class(*params[0:free_params])
+                if gate_class == PauliGate:
+                    # special case due to PauliGate using string parameters
+                    gate = gate_class("IXYZ")
+                else:
+                    gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
                 self.log.info(
                     'Cannot init gate with params only. Skipping %s',
