@@ -25,18 +25,17 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.schedule import Schedule
 # pylint: disable=missing-return-doc
 
 
-class Instruction(ScheduleComponent, ABC):
+class Instruction(ABC):
     """The smallest schedulable unit: a single instruction. It has a fixed duration and specified
     channels.
     """
@@ -130,7 +129,7 @@ class Instruction(ScheduleComponent, ABC):
         return self._duration
 
     @property
-    def _children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[Union[Schedule, 'Instruction']]:
         """Instruction has no child nodes."""
         return ()
 
@@ -147,12 +146,18 @@ class Instruction(ScheduleComponent, ABC):
         """
         return self.ch_stop_time(*channels)
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(
+            self,
+            *channels: List[Channel]
+    ) -> int:
+        # pylint: disable=unused-argument
         """Return minimum start time for supplied channels.
 
         Args:
             *channels: Supplied channels
         """
+        warnings.warn("``ch_start_time`` channels argument has been deprecated and will be "
+                      "removed in a future release", DeprecationWarning)
         return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
@@ -181,7 +186,8 @@ class Instruction(ScheduleComponent, ABC):
         """Return itself as already single instruction."""
         return self
 
-    def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
+    def shift(self: Union[Schedule, 'Instruction'],
+              time: int, name: Optional[str] = None) -> Schedule:
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -192,7 +198,7 @@ class Instruction(ScheduleComponent, ABC):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent,
+    def insert(self, start_time: int, schedule: Union[Schedule, 'Instruction'],
                name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
@@ -206,7 +212,7 @@ class Instruction(ScheduleComponent, ABC):
             name = self.name
         return Schedule(self, (start_time, schedule), name=name)
 
-    def append(self, schedule: ScheduleComponent,
+    def append(self, schedule: Union[Schedule, 'Instruction'],
                name: Optional[str] = None) -> Schedule:
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
@@ -301,11 +307,11 @@ class Instruction(ScheduleComponent, ABC):
             self._hash = hash((type(self), self.operands, self.name))
         return self._hash
 
-    def __add__(self, other: ScheduleComponent) -> Schedule:
+    def __add__(self, other: Union[Schedule, 'Instruction']) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> Schedule:
+    def __or__(self, other: Union[Schedule, 'Instruction']) -> Schedule:
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
