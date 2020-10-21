@@ -39,6 +39,10 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        raise NotImplementedError
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Pulse':

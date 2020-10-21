@@ -50,6 +50,12 @@ class Play(Instruction):
         if name is None:
             name = pulse.name
         super().__init__((pulse, channel), pulse.duration, (channel,), name=name)
+        if pulse.is_parameterized():
+            for value in pulse.parameters.values():
+                if isinstance(value, ParameterExpression):
+                    for param in value.parameters:
+                        # Table maps parameter to operand index, 0 for ``pulse``
+                        self._parameter_table[param].append(0)
 
     @property
     def pulse(self) -> Pulse:
