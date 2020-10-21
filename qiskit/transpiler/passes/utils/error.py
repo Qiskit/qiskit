@@ -1,0 +1,58 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Error pass to be called when an error happens."""
+
+import logging
+import string
+import warnings
+
+from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import TranspilerError
+
+
+class Error(AnalysisPass):
+    """Error pass to be called when an error happens."""
+
+    def __init__(self, msg=None, action='raise'):
+        """Error pass.
+
+        Args:
+            msg (str): Error message, if not provided a generic error will be used
+            action (str): the action to perform. Default: 'raise'. The options are:
+              * 'raise': Raises a `TranspilerError` exception with msg
+              * 'warning': Raises a non-fatal warning with msg
+              * 'logger': logs in `logging.getLogger(__name__)`
+              * other: logs in `logging.getLogger(action)`
+        """
+        super().__init__()
+        self.msg = msg
+        self.action = action
+
+    def run(self, _):
+        """Run the CheckMap pass on `dag`.
+        """
+        msg = self.msg if self.msg else "An error occurred while the passmanager was running."
+        prop_names = [tup[1] for tup in string.Formatter().parse(msg) if tup[1] is not None]
+        properties = {prop_name: self.property_set[prop_name] for prop_name in prop_names}
+        msg = msg.format(**properties)
+
+        if self.action == 'raise':
+            raise TranspilerError(msg)
+        if self.action == 'warning':
+            warnings.warn(msg, Warning)
+        if self.action == 'logger':
+            logger = logging.getLogger(__name__)
+            logger.info(msg)
+        else:
+            logger = logging.getLogger(self.action)
+            logger.info(msg)

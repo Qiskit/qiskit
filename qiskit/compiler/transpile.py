@@ -124,7 +124,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
-        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
+        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre', 'none')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
