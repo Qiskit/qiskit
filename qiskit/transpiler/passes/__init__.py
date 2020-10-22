@@ -64,6 +64,7 @@ Optimizations
    :toctree: ../stubs/
 
    Optimize1qGates
+   Optimize1qGatesDecomposition
    Collect2qBlocks
    ConsolidateBlocks
    CXCancellation
@@ -149,6 +150,7 @@ from .basis import BasisTranslator
 
 # optimization
 from .optimization import Optimize1qGates
+from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis

@@ -12,8 +12,8 @@
 
 """Test operations on circuit.data."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import HGate, XGate, CXGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
+from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -396,3 +396,16 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
             qc.data = [(HGate(), [qr[0], qr[1]], [])]
         with self.assertRaises(CircuitError):
             qc.data = [(HGate(), [], [qr[0]])]
+
+    def test_param_gate_instance(self):
+        """Verify that the same Parameter gate instance is not being used in
+           multiple circuits."""
+        a, b = Parameter('a'), Parameter('b')
+        rx = RXGate(a)
+        qc0, qc1 = QuantumCircuit(1), QuantumCircuit(1)
+        qc0.append(rx, [0])
+        qc1.append(rx, [0])
+        qc0.assign_parameters({a: b}, inplace=True)
+        qc0_instance = qc0._parameter_table[b][0][0]
+        qc1_instance = qc1._parameter_table[a][0][0]
+        self.assertNotEqual(qc0_instance, qc1_instance)

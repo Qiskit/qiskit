@@ -36,6 +36,12 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
         self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
+    def test_simple_config_qasm(self):
+        """Test the most basic getters for qasm."""
+        qasm_conf = self.provider.get_backend('fake_qasm_simulator').configuration()
+        self.assertEqual(qasm_conf.dt, 1.3333 * 1.e-9)
+        self.assertEqual(qasm_conf.dtm, 10.5 * 1.e-9)
+
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""
         self.assertEqual(self.config.sample_rate, 1. / self.config.dt)
@@ -107,6 +113,15 @@ class TestBackendConfiguration(QiskitTestCase):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
 
+    def test_supported_instructions(self):
+        """Test that supported instructions get entered into config dict properly."""
+        # verify the supported instructions is not in the config dict when the flag is not set
+        self.assertNotIn("supported_instructions", self.config.to_dict())
+        # verify that supported instructions get added to config dict when set
+        supp_instrs = ["u1", "u2", "play", "acquire"]
+        setattr(self.config, "supported_instructions", supp_instrs)
+        self.assertEqual(supp_instrs, self.config.to_dict()["supported_instructions"])
+
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
         _rep_times_us = [100, 250, 500, 1000]
@@ -147,7 +162,4 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_deepcopy(self):
         """Ensure that a deepcopy succeeds and results in an identical object."""
         copy_config = copy.deepcopy(self.config)
-        print(copy_config.to_dict())
-        print("Original:")
-        print(self.config.to_dict())
         self.assertEqual(copy_config, self.config)
