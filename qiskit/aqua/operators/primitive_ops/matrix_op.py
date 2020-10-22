@@ -12,7 +12,7 @@
 
 """ MatrixOp Class """
 
-from typing import Union, Optional, Set, Dict, List, cast
+from typing import Union, Optional, Set, Dict, List, cast, get_type_hints
 import logging
 import numpy as np
 from scipy.sparse import spmatrix
@@ -40,8 +40,8 @@ class MatrixOp(PrimitiveOp):
     """
 
     def __init__(self,
-                 primitive: Union[list, np.ndarray, spmatrix, Operator] = None,
-                 coeff: Optional[Union[int, float, complex, ParameterExpression]] = 1.0) -> None:
+                 primitive: Union[list, np.ndarray, spmatrix, Operator],
+                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The matrix-like object which defines the behavior of the underlying function.
@@ -51,6 +51,7 @@ class MatrixOp(PrimitiveOp):
             TypeError: invalid parameters.
             ValueError: invalid parameters.
         """
+        primitive_orig = primitive
         if isinstance(primitive, spmatrix):
             primitive = primitive.toarray()
 
@@ -58,9 +59,10 @@ class MatrixOp(PrimitiveOp):
             primitive = Operator(primitive)
 
         if not isinstance(primitive, Operator):
-            raise TypeError(
-                'MatrixOp can only be instantiated with MatrixOperator, '
-                'not {}'.format(type(primitive)))
+            type_hints = get_type_hints(MatrixOp.__init__).get('primitive')
+            valid_cls = [cls.__name__ for cls in type_hints.__args__]
+            raise TypeError(f"MatrixOp can only be instantiated with {valid_cls}, "
+                            f"not '{primitive_orig.__class__.__name__}'")
 
         if not primitive.input_dims() == primitive.output_dims():
             raise ValueError('Cannot handle non-square matrices yet.')

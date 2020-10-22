@@ -35,9 +35,8 @@ class CircuitOp(PrimitiveOp):
     """
 
     def __init__(self,
-                 primitive: Union[Instruction, QuantumCircuit] = None,
-                 coeff: Optional[Union[int, float, complex,
-                                       ParameterExpression]] = 1.0) -> None:
+                 primitive: Union[Instruction, QuantumCircuit],
+                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The QuantumCircuit which defines the

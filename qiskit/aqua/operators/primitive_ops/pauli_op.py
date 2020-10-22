@@ -39,7 +39,7 @@ class PauliOp(PrimitiveOp):
     """
 
     def __init__(self,
-                 primitive: Union[Pauli] = None,
+                 primitive: Union[Pauli],
                  coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
             Args:

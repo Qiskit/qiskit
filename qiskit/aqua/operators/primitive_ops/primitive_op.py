@@ -48,8 +48,9 @@ class PrimitiveOp(OperatorBase):
     @staticmethod
     # pylint: disable=unused-argument
     def __new__(cls,
-                primitive: Union[Instruction, QuantumCircuit, List,
-                                 np.ndarray, spmatrix, MatrixOperator, Pauli] = None,
+                primitive:
+                Optional[Union[Instruction, QuantumCircuit, List,
+                               np.ndarray, spmatrix, MatrixOperator, Pauli]] = None,
                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> 'PrimitiveOp':
         """ A factory method to produce the correct type of PrimitiveOp subclass
         based on the primitive passed in. Primitive and coeff arguments are passed into
@@ -85,9 +86,10 @@ class PrimitiveOp(OperatorBase):
                         'factory constructor'.format(type(primitive)))
 
     def __init__(self,
-                 primitive: Union[Instruction, QuantumCircuit, List,
-                                  np.ndarray, spmatrix, MatrixOperator, Pauli] = None,
-                 coeff: Optional[Union[int, float, complex, ParameterExpression]] = 1.0) -> None:
+                 primitive:
+                 Optional[Union[Instruction, QuantumCircuit, List,
+                                np.ndarray, spmatrix, MatrixOperator, Pauli]] = None,
+                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
             Args:
                 primitive: The operator primitive being wrapped.
