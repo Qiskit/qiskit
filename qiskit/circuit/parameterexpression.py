@@ -139,7 +139,7 @@ class ParameterExpression:
         self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
 
         from sympy import Symbol
-        new_parameter_symbols = {p: Symbol(p.name, real=True)
+        new_parameter_symbols = {p: Symbol(p.name)
                                  for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
