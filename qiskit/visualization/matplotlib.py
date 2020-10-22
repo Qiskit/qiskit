@@ -252,9 +252,11 @@ class MatplotlibDrawer:
 
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
         style_path = []
+        print(style_name)
         if style_name != 'default':
             style_name = style_name + '.json'
             style_path.append(os.path.join(__path__[0], 'visualization', 'styles', style_name))
+            print('path1', style_path)
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
@@ -263,9 +265,12 @@ class MatplotlibDrawer:
                         style_path.append(os.path.join(path, style_name))
             style_path.append(os.path.join('', style_name))
 
+            print('path2', style_path)
             for path in style_path:
                 exp_user = os.path.expanduser(path)
+                print('exp1', exp_user)
                 if os.path.isfile(exp_user):
+                    print('exp2', exp_user)
                     try:
                         with open(exp_user) as infile:
                             json_style = json.load(infile)
