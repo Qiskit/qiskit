@@ -45,6 +45,7 @@ from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit import __path__
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +244,7 @@ class MatplotlibDrawer:
             style_name = style
         elif config:
             style_name = config.get('circuit_mpl_style', 'default')
-        elif style and not isinstance(style, (str, dict)):
+        else:
             warn("style parameter '{}' must be a str or a dictionary."
                  " Will use default style.".format(style), UserWarning, 2)
         if style_name.endswith('.json'):
@@ -253,8 +254,7 @@ class MatplotlibDrawer:
         style_path = []
         if style_name != 'default':
             style_name = style_name + '.json'
-            dirname = os.path.dirname(__file__)
-            style_path.append(os.path.join(dirname, 'styles', style_name))
+            style_path.append(os.path.join(__path__[0], 'visualization', 'styles', style_name))
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
