@@ -118,7 +118,7 @@ class PauliFeatureMap(NLocal):
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
-            alpha: The rotational velocity factor
+            alpha: The Pauli rotation factor
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.NLocal` for detail.
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
