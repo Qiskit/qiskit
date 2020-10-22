@@ -1939,7 +1939,7 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         for instr, param_index in self._parameter_table[parameter]:
-            new_param[param_index] = instr.params[param_index].assign(parameter, value)
+            new_param = instr.params[param_index].assign(parameter, value)
             # if fully bound, validate
             if len(new_param.parameters) == 0:
                 instr.params[param_index] = instr.validate_parameter(new_param)
