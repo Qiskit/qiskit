@@ -399,9 +399,6 @@ class ParameterExpression:
         return self._symbol_expr
 
     def __bool__(self):
-        # if self.parameters:
-        #     raise TypeError('ParameterExpression with unbound parameters ({}) '
-        #                     'cannot be cast to a boolean.'.format(self.parameters))
         return bool(self._symbol_expr)
 
     def __float__(self):
