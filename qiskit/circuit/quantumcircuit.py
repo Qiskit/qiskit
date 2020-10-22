@@ -1246,13 +1246,77 @@ class QuantumCircuit:
             fontsize (int): The font size to use for text. Defaults to 13.
             subfontsize (int): The font size to use for subtext. Defaults to 8.
             displaytext (dict): A dictionary of the text to use for each
-                element type in the output visualization.
-                See :mod:`~qiskit.visualization.qcstyle` for the defaults.
+                element type in the output visualization. The default values
+                are::
+
+                    {
+                        'id': 'id',
+                        'u0': 'U_0',
+                        'u1': 'U_1',
+                        'u2': 'U_2',
+                        'u3': 'U_3',
+                        'x': 'X',
+                        'y': 'Y',
+                        'z': 'Z',
+                        'h': 'H',
+                        's': 'S',
+                        'sdg': 'S^\\dagger',
+                        't': 'T',
+                        'tdg': 'T^\\dagger',
+                        'rx': 'R_x',
+                        'ry': 'R_y',
+                        'rz': 'R_z',
+                        'reset': '\\left|0\\right\\rangle'
+                    }
+
                 You must specify all the necessary values if using this. There
                 is no provision for passing an incomplete dict in.
             displaycolor (dict): The color codes to use for each circuit
                 element in the form (gate_color, text_color).
-                See :mod:`~qiskit.visualization.qcstyle` for the defaults.
+                The default values are::
+
+                    {
+                        'u1': ('#FA74A6', '#000000'),
+                        'u2': ('#FA74A6', '#000000'),
+                        'u3': ('#FA74A6', '#000000'),
+                        'id': ('#05BAB6', '#000000'),
+                        'x': ('#05BAB6', '#000000'),
+                        'y': ('#05BAB6', '#000000'),
+                        'z': ('#05BAB6', '#000000'),
+                        'h': ('#6FA4FF', '#000000'),
+                        'cx': ('#6FA4FF', '#000000'),
+                        'cy': ('#6FA4FF', '#000000'),
+                        'cz': ('#6FA4FF', '#000000'),
+                        'swap': ('#6FA4FF', '#000000'),
+                        's': ('#6FA4FF', '#000000'),
+                        'sdg': ('#6FA4FF', '#000000'),
+                        'dcx': ('#6FA4FF', '#000000'),
+                        'iswap': ('#6FA4FF', '#000000'),
+                        't': ('#BB8BFF', '#000000'),
+                        'tdg': ('#BB8BFF', '#000000'),
+                        'r': ('#BB8BFF', '#000000'),
+                        'rx': ('#BB8BFF', '#000000'),
+                        'ry': ('#BB8BFF', '#000000'),
+                        'rz': ('#BB8BFF', '#000000'),
+                        'rxx': ('#BB8BFF', '#000000'),
+                        'ryy': ('#BB8BFF', '#000000'),
+                        'rzx': ('#BB8BFF', '#000000'),
+                        'reset': ('#000000', #FFFFFF'),
+                        'target': ('#FFFFFF, '#FFFFFF'),
+                        'measure': ('#000000', '#FFFFFF'),
+                        'ccx': ('#BB8BFF', '#000000'),
+                        'cdcx': ('#BB8BFF', '#000000'),
+                        'ccdcx': ('#BB8BFF', '#000000'),
+                        'cswap': ('#BB8BFF', '#000000'),
+                        'ccswap': ('#BB8BFF', '#000000'),
+                        'mcx': ('#BB8BFF', '#000000'),
+                        'mcx_gray': ('#BB8BFF', '#000000),
+                        'u': ('#BB8BFF', '#000000'),
+                        'p': ('#BB8BFF', '#000000'),
+                        'sx': ('#BB8BFF', '#000000'),
+                        'sxdg': ('#BB8BFF', '#000000')
+                    }
+
                 Colors can also be entered without the text color, such as
                 'u1': '#FA74A6', in which case the text color will always
                 be 'gatetextcolor'. The 'displaycolor' dict can contain any
