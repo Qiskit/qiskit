@@ -253,6 +253,7 @@ class MatplotlibDrawer:
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
         style_path = []
         print(style_name)
+        print(__path__)
         if style_name != 'default':
             style_name = style_name + '.json'
             style_path.append(os.path.join(__path__[0], 'visualization', 'styles', style_name))
