@@ -504,16 +504,24 @@ class ListOp(OperatorBase):
 
     # Array operations:
 
-    def __getitem__(self, offset: int) -> OperatorBase:
+    def __getitem__(self, offset: Union[int, slice]) -> OperatorBase:
         """ Allows array-indexing style access to the Operators in ``oplist``.
 
         Args:
             offset: The index of ``oplist`` desired.
 
         Returns:
-            The ``OperatorBase`` at index ``offset`` of ``oplist``.
+            The ``OperatorBase`` at index ``offset`` of ``oplist``,
+            or another ListOp with the same properties as this one if offset is a slice.
         """
-        return self.oplist[offset]
+        if isinstance(offset, slice):
+            return ListOp(self._oplist[offset],
+                          self._combo_fn,
+                          self._coeff,
+                          self._abelian,
+                          self._grad_combo_fn)
+        else:
+            return self.oplist[offset]
 
     def __iter__(self) -> Iterator:
         """ Returns an iterator over the operators in ``oplist``.
