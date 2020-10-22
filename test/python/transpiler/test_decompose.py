@@ -17,8 +17,7 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import HGate
-from qiskit.circuit.library import CCXGate
+from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
 
@@ -82,7 +81,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.u2(0, pi, qr[0]).c_if(cr, 1)
+        ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
         ref_circuit.x(qr).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
@@ -101,6 +100,22 @@ class TestDecompose(QiskitTestCase):
         output = qc2.decompose()
 
         self.assertEqual(qc1, output)
+
+    def test_decomposition_preserves_qregs_order(self):
+        """Test decomposing a gate preserves it's definition registers order"""
+        qr = QuantumRegister(2, 'qr1')
+        qc = QuantumCircuit(qr)
+        qc.cx(1, 0)
+        gate = qc.to_gate()
+
+        qr2 = QuantumRegister(2, 'qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.append(gate, qr2)
+
+        expected = QuantumCircuit(qr2)
+        expected.cx(1, 0)
+
+        self.assertEqual(qc2.decompose(), expected)
 
     def test_decompose_global_phase_1q(self):
         """Test decomposition of circuit with global phase"""

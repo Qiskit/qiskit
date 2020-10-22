@@ -608,11 +608,11 @@ class TestTwoLocal(QiskitTestCase):
             shared_param = next(param_iter)
             expected.rxx(shared_param, 0, 1)
             expected.ryy(shared_param, 0, 1)
-            expected.cu1(next(param_iter), 0, 1)
+            expected.cp(next(param_iter), 0, 1)
             shared_param = next(param_iter)
             expected.rxx(shared_param, 1, 2)
             expected.ryy(shared_param, 1, 2)
-            expected.cu1(next(param_iter), 1, 2)
+            expected.cp(next(param_iter), 1, 2)
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
