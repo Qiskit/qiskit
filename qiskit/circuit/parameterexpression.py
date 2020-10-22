@@ -230,7 +230,24 @@ class ParameterExpression:
         else:
             expr = operation(self_expr, other_expr)
 
+        new_expr = ParameterExpression(parameter_symbols, expr)
         return ParameterExpression(parameter_symbols, expr)
+
+    def __lt__(self, other):
+        from sympy import Lt
+        return self._apply_operation(Lt, other)
+
+    def __le__(self, other):
+        from sympy import Le
+        return self._apply_operation(Le, other)
+
+    def __ge__(self, other):
+        from sympy import Ge
+        return self._apply_operation(Ge, other)
+
+    def __gt__(self, other):
+        from sympy import Gt
+        return self._apply_operation(Gt, other)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
@@ -261,11 +278,131 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def _call(self, ufunc):
+        return ParameterExpression(
+            self._parameter_symbols,
+            ufunc(self._symbol_expr)
+        )
+
+    def sin(self):
+        """Sine of a ParameterExpression"""
+        from sympy import sin as _sin
+        return self._call(_sin)
+
+    def cos(self):
+        """Cosine of a ParameterExpression"""
+        from sympy import cos as _cos
+        return self._call(_cos)
+
+    def tan(self):
+        """Tangent of a ParameterExpression"""
+        from sympy import tan as _tan
+        return self._call(_tan)
+
+    def arcsin(self):
+        """Arcsin of a ParameterExpression"""
+        from sympy import asin as _asin
+        return self._call(_asin)
+
+    def arccos(self):
+        """Arccos of a ParameterExpression"""
+        from sympy import acos as _acos
+        return self._call(_acos)
+
+    def arctan(self):
+        """Arctan of a ParameterExpression"""
+        from sympy import atan as _atan
+        return self._call(_atan)
+
+    def arctan2(self, denom):
+        """Arctan2 of a ParameterExpression"""
+        from sympy import atan2 as _atan2
+        if isinstance(denom, ParameterExpression):
+            symbol_map = {**self._parameter_symbols, **denom._parameter_symbols}
+            den = denom._symbol_expr
+        else:
+            symbol_map = self._parameter_symbols
+            den = denom
+        return ParameterExpression(symbol_map,
+                                   _atan2(self._symbol_expr, den))
+
+    def exp(self):
+        """Exponential of a ParameterExpression"""
+        from sympy import exp as _exp
+        return self._call(_exp)
+
+    def log(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import log as _log
+        return self._call(_log)
+
+    def sqrt(self):
+        """Return square root of ParameterExpression"""
+        from sympy import sqrt as _sqrt
+        return self._call(_sqrt)
+
+    def __floor__(self):
+        """Return floor of ParameterExpression."""
+        from sympy import floor as _floor
+        return self._call(_floor)
+
+    def __ceil__(self):
+        """Return floor of ParameterExpression."""
+        from sympy import ceiling as _ceil
+        return self._call(_ceil)
+
+    def max(self, **kwargs):
+        """Return max expression.
+
+        This is called as numpy.max(expr1, expr2).
+
+        Note: python's max(expr1, expr2) won't work.
+        """
+        from sympy import Max
+        expr1 = self._symbol_expr
+        other = kwargs['axis']  # bit hacky
+        if isinstance(other, ParameterExpression):
+            symbol_map = {**self._parameter_symbols, **other._parameter_symbols}
+            expr2 = other._symbol_expr
+        else:
+            symbol_map = self._parameter_symbols
+            expr2 = other
+        return ParameterExpression(symbol_map,
+                                   Max(expr1, expr2))
+
+    def min(self, **kwargs):
+        """Return min expression.
+
+        This is called as numpy.min(expr1, expr2).
+
+        Note: python's min(expr1, expr2) won't work.
+        """
+        from sympy import Min
+        expr1 = self._symbol_expr
+        other = kwargs['axis']  # bit hacky
+        if isinstance(other, ParameterExpression):
+            symbol_map = {**self._parameter_symbols, **other._parameter_symbols}
+            expr2 = other._symbol_expr
+        else:
+            symbol_map = self._parameter_symbols
+            expr2 = other
+        return ParameterExpression(symbol_map,
+                                   Min(expr1, expr2))
+
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 
     def __str__(self):
         return str(self._symbol_expr)
+
+    def _sympy_(self):
+        return self._symbol_expr
+
+    def __bool__(self):
+        # if self.parameters:
+        #     raise TypeError('ParameterExpression with unbound parameters ({}) '
+        #                     'cannot be cast to a boolean.'.format(self.parameters))
+        return bool(self._symbol_expr)
 
     def __float__(self):
         if self.parameters:

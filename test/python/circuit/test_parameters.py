@@ -1371,6 +1371,99 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
+    def test_arctan2(self):
+        """Test arctan2 of ParameterExpression."""
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.arctan2(x, y)
+        bexpr = expr.bind({x: 1, y: 2})
+        self.assertEqual(float(bexpr), numpy.arctan2(1, 2))
+
+    def test_sqrt(self):
+        """Test sqrt of ParameterExpression."""
+        from sympy import sqrt
+        x = Parameter('x')
+        expr = numpy.sqrt(x)
+        self.assertEqual(expr._symbol_expr, sqrt(x._symbol_expr))
+        bexpr = expr.bind({x: 2})
+        self.assertEqual(float(bexpr), numpy.sqrt(2))
+
+    def test_floor(self):
+        """Test ParameterExpression floor."""
+        a = 1.3
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.floor(x*y)
+        bexpr = expr.bind({x: a, y: b})
+        self.assertEqual(float(bexpr), numpy.floor(a * b))
+
+    def test_ceil(self):
+        """Test ParameterExpression ceil."""
+        a = 1.3
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.ceil(x*y)
+        bexpr = expr.bind({x: a, y: b})
+        self.assertEqual(float(bexpr), numpy.ceil(a * b))
+
+    def test_max(self):
+        """Test ParameterExpression max."""
+        a = 1
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.max(x, y)
+        bexpr = expr.bind({x: a, y: b})
+        self.assertEqual(float(bexpr), max(a, b))
+
+    def test_min(self):
+        """Test ParameterExpression min."""
+        a = 1
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.min(x, y)
+        bexpr = expr.bind({x: a, y: b})
+        self.assertEqual(float(bexpr), min(a, b))
+
+    def test_gt(self):
+        """Test ParameterExpression strictly greater than."""
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = x > y
+        self.assertTrue(bool(expr.bind({x: 2, y: 1})))
+        self.assertFalse(bool(expr.bind({x: 1, y: 2})))
+        self.assertFalse(bool(expr.bind({x: 1, y: 1})))
+
+    def test_ge(self):
+        """Test ParameterExpression greater than or equal."""
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = x >= y
+        self.assertTrue(bool(expr.bind({x: 2, y: 1})))
+        self.assertFalse(bool(expr.bind({x: 1, y: 2})))
+        self.assertTrue(bool(expr.bind({x: 1, y: 1})))
+
+    def test_lt(self):
+        """Test ParameterExpression strictly less than."""
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = x < y
+        self.assertTrue(bool(expr.bind({x: 1, y: 2})))
+        self.assertFalse(bool(expr.bind({x: 2, y: 1})))
+        self.assertFalse(bool(expr.bind({x: 1, y: 1})))
+
+    def test_le(self):
+        """Test ParameterExpression less than or equal."""
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = x <= y
+        self.assertTrue(bool(expr.bind({x: 1, y: 2})))
+        self.assertFalse(bool(expr.bind({x: 2, y: 1})))
+        self.assertTrue(bool(expr.bind({x: 1, y: 1})))
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
