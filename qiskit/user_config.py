@@ -31,8 +31,8 @@ class UserConfig:
     circuit_drawer = mpl
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
-    transpile_optimization_level = 2
-    suppress_packaging_warnings = True
+    transpile_optimization_level = 1
+    suppress_packaging_warnings = False
 
     """
     def __init__(self, filename=None):

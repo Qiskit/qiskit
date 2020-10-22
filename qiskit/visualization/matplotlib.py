@@ -232,6 +232,8 @@ class MatplotlibDrawer:
     def _load_style(self, style):
         current_style = DefaultStyle().style
         style_name = 'default'
+        def_font_ratio = current_style['fs'] / current_style['sfs']
+
         config = user_config.get_config()
         if style is False:
             style_name = 'bw'
@@ -241,6 +243,9 @@ class MatplotlibDrawer:
             style_name = style
         elif config:
             style_name = config.get('circuit_mpl_style', 'default')
+        elif style and not isinstance(style, (str, dict)):
+            warn("style parameter '{}' must be a str or a dictionary."
+                 " Will use default style.".format(style), UserWarning, 2)
         if style_name.endswith('.json'):
             style_name = style_name[:-5]
 
@@ -258,11 +263,9 @@ class MatplotlibDrawer:
                         style_path.append(os.path.join(path, style_name))
             style_path.append(os.path.join('', style_name))
 
-            found_path = False
             for path in style_path:
                 exp_user = os.path.expanduser(path)
                 if os.path.isfile(exp_user):
-                    found_path = True
                     try:
                         with open(exp_user) as infile:
                             json_style = json.load(infile)
@@ -271,15 +274,22 @@ class MatplotlibDrawer:
                     except json.JSONDecodeError as e:
                         warn("Could not decode JSON in file '{}': {}. ".format(
                             path, str(e)) + "Will use default style.", UserWarning, 2)
+                        break
                     except (OSError, FileNotFoundError):
                         warn("Error loading JSON file '{}'. Will use default style.".format(
                             path), UserWarning, 2)
-            if not found_path:
+                        break
+            else:
                 warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
                      " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
 
         if isinstance(style, dict):
             set_style(current_style, style)
+
+        # If font/subfont ratio changes from default, have to scale width calculations for
+        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
+        self._subfont_factor = current_style['sfs'] * def_font_ratio / current_style['fs']
+
         return current_style
 
     # This computes the width of a string in the default font
@@ -320,6 +330,8 @@ class MatplotlibDrawer:
                 except KeyError:
                     # if non-ASCII char, use width of 'c', an average size
                     sum_text += self._char_list['c'][f]
+            if f == 1:
+                sum_text *= self._subfont_factor
             return sum_text
 
     def _param_parse(self, v):
