@@ -230,7 +230,6 @@ class ParameterExpression:
         else:
             expr = operation(self_expr, other_expr)
 
-        new_expr = ParameterExpression(parameter_symbols, expr)
         return ParameterExpression(parameter_symbols, expr)
 
     def __lt__(self, other):
