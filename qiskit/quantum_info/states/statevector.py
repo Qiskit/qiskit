@@ -36,10 +36,12 @@ class Statevector(QuantumState):
         """Initialize a statevector object.
 
         Args:
-            data (vector_like or QuantumCircuit): A complex vector, an ``Operator`` with only one
-                column or a ``QuantumCircuit``. If ``data`` is a ``QuantumCircuit``, the
-                statevector is constructed by assuming that all qubits in the circuit are
-                initialized to the zero state.
+            data (np.array or list or Statevector or Operator or QuantumCircuit or Instruction):
+                Data from which the statevector can be constructed. This can be either a complex
+                vector, another statevector, a ``Operator` with only one column or a
+                ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
+                the statevector is constructed by assuming that all qubits are initialized to the
+                zero state.
             dims (int or tuple or list): Optional. The subsystem dimension of
                                          the state (See additional information).
 
@@ -73,7 +75,7 @@ class Statevector(QuantumState):
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
             self._data = np.ravel(data.data)
-        elif isinstance(data, QuantumCircuit):
+        elif isinstance(data, (QuantumCircuit, Instruction)):
             self._data = Statevector.from_instruction(data).data
         else:
             raise QiskitError("Invalid input data format for Statevector")
@@ -247,16 +249,16 @@ class Statevector(QuantumState):
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
     def equiv(self, other, rtol=None, atol=None):
-        """Return True if the statevector of other and self are equivalent up to global phase.
+        """Return True if other is equivalent as a statevector up to global phase.
 
         .. note::
 
-            If ``other`` is a ``QuantumCircuit``, the statevector is constructed by assuming that
-            all qubits in the circuit are initialized to the zero state.
+            If other is not a Statevector, but can be used to initialize a statevector object,
+            this will check that Statevector(other) is equivalent to the current statevector up
+            to global phase.
 
         Args:
-            other (Statevector or vector_like or QuantumCircuit): an object from which a
-                ``Statevector`` can be constructed.
+            other (Statevector): an object from which a ``Statevector`` can be constructed.
             rtol (float): relative tolerance value for comparison.
             atol (float): absolute tolerance value for comparison.
 
