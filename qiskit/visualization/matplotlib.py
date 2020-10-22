@@ -695,7 +695,7 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self._cregbundle:
-                    creg_name = '${}$'.format(reg.register.name)
+                    creg_name = '{}'.format(reg.register.name)
                     creg_name = _fix_double_script(creg_name) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
