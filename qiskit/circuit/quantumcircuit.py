@@ -697,6 +697,43 @@ class QuantumCircuit:
 
         return dest
 
+    def tensor(self, other, top=False, inplace=False):
+        """Tensor ``self`` with ``other``.
+
+        Args:
+            other (QuantumCircuit): The other circuit to tensor this circuit with.
+            top (bool): Whether to revert the order of the tensor elements.
+            inplace (bool): Overwrite this circuit with the tensored version.
+
+        Returns:
+            QuantumCircuit: the tensored circuit (returns None if inplace==True).
+        """
+        if top:
+            return other.tensor(self, inplace=inplace)
+
+        if inplace:
+            dest = self
+        else:
+            dest = self.copy()
+
+        # handle unnamed register (which are by default called "q")
+        if len(dest.qregs) == len(other.qregs) == 1 and \
+                dest.qregs[0].name == other.qregs[0].name == 'q':
+            qr = QuantumRegister(other.num_qubits)
+            dest.add_register(qr)
+
+            # check if classical registers are in the circuit
+            if other.num_clbits > 0:
+                cr = ClassicalRegister(other.num_clbits)
+                dest.add_register(cr)
+            else:
+                cr = []
+
+            return dest.compose(other, qr[:], cr[:], inplace=inplace)
+
+        dest.add_register(*other.qregs, *other.cregs)
+        return dest.compose(other, other.qubits, other.clbits, inplace=inplace)
+
     @property
     def qubits(self):
         """
