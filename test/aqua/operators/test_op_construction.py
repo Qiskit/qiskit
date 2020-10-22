@@ -35,6 +35,7 @@ from qiskit.aqua.operators import (
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp
 )
+from qiskit.aqua.operators import MatrixOperator
 
 
 # pylint: disable=invalid-name
@@ -908,6 +909,31 @@ class TestOpConstruction(QiskitAquaTestCase):
             np.testing.assert_array_almost_equal(
                 sfn.to_circuit_op().eval().primitive.data, vector
             )
+
+    def test_invalid_primitive(self):
+        """Test invalid MatrixOp construction"""
+        msg = "MatrixOp can only be instantiated with " \
+              "['list', 'ndarray', 'spmatrix', 'Operator'], not "
+
+        with self.assertRaises(TypeError) as cm:
+            _ = MatrixOp('invalid')
+
+        self.assertEqual(str(cm.exception), msg + "'str'")
+
+        with self.assertRaises(TypeError) as cm:
+            _ = MatrixOp(MatrixOperator(np.eye(2)))
+
+        self.assertEqual(str(cm.exception), msg + "'MatrixOperator'")
+
+        with self.assertRaises(TypeError) as cm:
+            _ = MatrixOp(None)
+
+        self.assertEqual(str(cm.exception), msg + "'NoneType'")
+
+        with self.assertRaises(TypeError) as cm:
+            _ = MatrixOp(2.0)
+
+        self.assertEqual(str(cm.exception), msg + "'float'")
 
 
 class TestOpMethods(QiskitAquaTestCase):
