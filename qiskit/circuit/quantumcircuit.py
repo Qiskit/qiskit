@@ -697,42 +697,49 @@ class QuantumCircuit:
 
         return dest
 
-    def tensor(self, other, top=False, inplace=False):
+    def tensor(self, other, top=False):
         """Tensor ``self`` with ``other``.
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
             top (bool): Whether to revert the order of the tensor elements.
-            inplace (bool): Overwrite this circuit with the tensored version.
 
         Returns:
             QuantumCircuit: the tensored circuit (returns None if inplace==True).
         """
         if top:
-            return other.tensor(self, inplace=inplace)
+            return other.tensor(self)
 
-        if inplace:
-            dest = self
-        else:
-            dest = self.copy()
+        num_qubits = self.num_qubits + other.num_qubits
+        num_clbits = self.num_clbits + other.num_clbits
 
-        # handle unnamed register (which are by default called "q")
-        if len(dest.qregs) == len(other.qregs) == 1 and \
-                dest.qregs[0].name == other.qregs[0].name == 'q':
-            qr = QuantumRegister(other.num_qubits)
-            dest.add_register(qr)
-
+        # If a user defined both circuits with via register sizes and not with named registers
+        # (e.g. QuantumCircuit(2, 2)) then we have a naming collision, as the registers are by
+        # default called "q" resp. "c". To still allow tensoring we define new registers of the
+        # correct sizes.
+        if len(self.qregs) == len(other.qregs) == 1 and \
+                self.qregs[0].name == other.qregs[0].name == 'q':
             # check if classical registers are in the circuit
-            if other.num_clbits > 0:
-                cr = ClassicalRegister(other.num_clbits)
-                dest.add_register(cr)
+            if num_clbits > 0:
+                dest = QuantumCircuit(num_qubits, num_clbits)
             else:
-                cr = []
+                dest = QuantumCircuit(num_qubits)
 
-            return dest.compose(other, qr[:], cr[:], inplace=inplace)
+        # handle case if ``measure_all`` was called on both circuits, in which case the
+        # registers are both named "meas"
+        elif len(self.cregs) == len(other.cregs) == 1 and \
+                self.cregs[0].name == other.cregs[0].name == 'meas':
+            cr = ClassicalRegister(self.num_clbits + other.num_clbits, 'meas')
+            dest = QuantumCircuit(*self.qregs, *other.qregs, cr)
 
-        dest.add_register(*other.qregs, *other.cregs)
-        return dest.compose(other, other.qubits, other.clbits, inplace=inplace)
+        # Now we don't have to handle any more cases arising from special implicit naming
+        else:
+            dest = QuantumCircuit(*self.qregs, *other.qregs, *self.cregs, *other.cregs)
+
+        # compose self onto the output, and then other
+        dest.compose(self, range(self.num_qubits), range(self.num_clbits), inplace=True)
+        return dest.compose(other, range(self.num_qubits, num_qubits),
+                            range(self.num_clbits, num_clbits))
 
     @property
     def qubits(self):
