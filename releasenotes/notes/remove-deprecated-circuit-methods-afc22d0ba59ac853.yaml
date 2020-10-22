@@ -1,5 +1,5 @@
 ---
-deprecations:
+upgrade:
   - |
     The previously deprecated ``mirror()`` method for :class:`qiskit.circuit.QuantumCircuit` has been removed.
     It was deprecated in the 0.15.0 release. The :meth:`qiskit.circuit.QuantumCircuit.reverse_ops` method
