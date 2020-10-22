@@ -259,6 +259,8 @@ class MatplotlibDrawer:
             style_name = style_name + '.json'
             style_path.append(os.path.join(__path__[0], 'visualization', 'styles', style_name))
             print('path1', style_path)
+            print(os.listdir(os.path.join(__path__[0], 'visualization', 'styles')))#, style_name))
+            print(os.listdir(os.path.join(__path__[0], 'visualization')))#, 'styles')))#, style_name))
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
