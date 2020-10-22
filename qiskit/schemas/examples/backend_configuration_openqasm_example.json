@@ -1,7 +1,7 @@
 {
     "backend_name": "quantumbackend1",
     "sample_name": "sample1",
-    "backend_version": "1.1.1",
+    "backend_version": "1.2.0",
     "n_qubits": 3,
     "basis_gates": ["u1","u2","u3","cx"],
     "coupling_map": [[0,1,2]],
@@ -35,5 +35,7 @@
     "n_registers": 1,
     "register_map": [[1],[1],[1]],
     "credits_required": false,
-    "open_pulse": false
+    "open_pulse": false,
+    "dt": 1.33,
+    "dtm": 10.5
 }
