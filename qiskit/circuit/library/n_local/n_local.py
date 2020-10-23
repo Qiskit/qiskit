@@ -137,7 +137,7 @@ class NLocal(BlueprintCircuit):
         self._bounds = None
 
         if reps <= 0:
-            raise ValueError('reps should be larger than or equal to 1')
+            raise ValueError('The value of reps should be larger than or equal to 1')
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -487,7 +487,7 @@ class NLocal(BlueprintCircuit):
             ValueError: If reps setter has parameter repetitions <= 0.
         """
         if repetitions <= 0:
-            raise ValueError('reps should be larger than or equal to 1')
+            raise ValueError('The repetitions should be larger than or equal to 1')
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions

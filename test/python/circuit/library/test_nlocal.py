@@ -36,7 +36,7 @@ class TestNLocal(QiskitTestCase):
     def test_if_reps_is_zero(self):
         """Test to check if error is raised for 0 or negative value of reps"""
         with self.assertRaises(ValueError):
-            NLocal(reps=-1)
+            _ = NLocal(reps=-1)
 
     def test_reps_setter_when_negative(self):
         """Test to check if setter raises error for reps <=0"""
