@@ -1016,7 +1016,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_expressions_of_parameter_with_constant(self):
         """Verify operating on a Parameter with a constant."""
 
-        good_constants = [2, 1.3, 0, -1, -1.0, numpy.pi]
+        good_constants = [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]
 
         x = Parameter('x')
 
@@ -1025,7 +1025,7 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(const, x)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(float(bound_expr),
+                self.assertEqual(complex(bound_expr),
                                  op(const, 2.3))
 
                 # Division by zero will raise. Tested elsewhere.
@@ -1036,7 +1036,7 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(x, const)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(float(bound_expr),
+                self.assertEqual(complex(bound_expr),
                                  op(2.3, const))
 
     def test_complex_parameter_bound_to_real(self):
