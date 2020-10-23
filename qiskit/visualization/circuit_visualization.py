@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 SCALE = 0.7
 
+
 def circuit_drawer(circuit,
                    scale=None,
                    filename=None,
@@ -434,17 +435,17 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 
 
 def _latex_circuit_drawer(
-    circuit,
-    scale=SCALE,
-    filename=None,
-    style=None,
-    plot_barriers=True,
-    reverse_bits=False,
-    justify=None,
-    idle_wires=True,
-    with_layout=True,
-    initial_state=False,
-    cregbundle=False,
+        circuit,
+        scale=SCALE,
+        filename=None,
+        style=None,
+        plot_barriers=True,
+        reverse_bits=False,
+        justify=None,
+        idle_wires=True,
+        with_layout=True,
+        initial_state=False,
+        cregbundle=False,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
@@ -477,8 +478,8 @@ def _latex_circuit_drawer(
         PopplerNotInstalledError: if poppler is not installed
     """
     tmpfilename = "circuit"
-    pdf2image_warning = "WARNING: Unable to convert pdf to image. "\
-        "Is %s installed? Skipping circuit drawing..."
+    pdf2image_warning = "WARNING: Unable to convert pdf to image. " \
+                        "Is %s installed? Skipping circuit drawing..."
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename)
         doc = _generate_document(
@@ -497,7 +498,7 @@ def _latex_circuit_drawer(
             doc.generate_pdf(filepath=tmppath)
         except PyLaTeXError:
             with open('latex_error.log', 'wb') as error_file:
-               traceback.print_exc(file=error_file)
+                traceback.print_exc(file=error_file)
             logger.warning(
                 "WARNING Unable to compile latex. "
                 "The output from the pylatex command can "
@@ -577,17 +578,17 @@ def _generate_document(circuit, reverse_bits=False, justify=None, idle_wires=Tru
 
 
 def _generate_latex_source(
-    circuit,
-    filename=None,
-    scale=SCALE,
-    style=None,
-    reverse_bits=False,
-    plot_barriers=True,
-    justify=None,
-    idle_wires=True,
-    with_layout=True,
-    initial_state=False,
-    cregbundle=False,
+        circuit,
+        filename=None,
+        scale=SCALE,
+        style=None,
+        reverse_bits=False,
+        plot_barriers=True,
+        justify=None,
+        idle_wires=True,
+        with_layout=True,
+        initial_state=False,
+        cregbundle=False,
 ):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -648,7 +649,6 @@ def _matplotlib_circuit_drawer(circuit,
                                ax=None,
                                initial_state=False,
                                cregbundle=True):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
