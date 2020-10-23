@@ -211,7 +211,6 @@ class ParameterExpression:
         Returns:
             A new expression describing the result of the operation.
         """
-
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
