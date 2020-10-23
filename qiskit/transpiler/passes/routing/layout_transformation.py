@@ -54,10 +54,14 @@ class LayoutTransformation(TransformationPass):
                 How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
-        self.coupling_map = coupling_map
         self.from_layout = from_layout
         self.to_layout = to_layout
-        graph = coupling_map.graph.to_undirected()
+        if coupling_map:
+            self.coupling_map = coupling_map
+            graph = coupling_map.graph.to_undirected()
+        else:
+            self.coupling_map = CouplingMap.from_full(len(to_layout))
+            graph = self.coupling_map.graph
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 
