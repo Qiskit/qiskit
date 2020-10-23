@@ -104,7 +104,6 @@ class LayoutTransformation(TransformationPass):
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
-        edge_map = {vqubit: dag.qubits[pqubit]
-                    for (pqubit, vqubit) in perm_circ.inputmap.items()}
-        dag.compose(perm_circ.circuit, edge_map=edge_map)
+        qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
+        dag.compose(perm_circ.circuit, qubits=qubits)
         return dag
