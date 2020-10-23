@@ -36,6 +36,7 @@ from .utils.backend_utils import (is_ibmq_provider,
                                   is_simulator_backend,
                                   is_local_backend,
                                   is_aer_qasm,
+                                  is_basicaer_provider,
                                   support_backend_options)
 from .utils.circuit_utils import summarize_circuits
 
@@ -170,7 +171,7 @@ class QuantumInstance:
         # setup noise config
         self._noise_config = {}
         if noise_model is not None:
-            if is_aer_qasm(self._backend):
+            if is_simulator_backend(self._backend) and not is_basicaer_provider(self._backend):
                 self._noise_config = {'noise_model': noise_model}
             else:
                 raise AquaError("The noise model is not supported on the selected backend {} ({}) "
@@ -427,7 +428,7 @@ class QuantumInstance:
                     self._backend_options['backend_options'] = {}
                 self._backend_options['backend_options'][k] = v
             elif k in QuantumInstance._NOISE_CONFIG:
-                if not is_aer_qasm(self._backend):
+                if not is_simulator_backend(self._backend) or is_basicaer_provider(self._backend):
                     raise AquaError(
                         "The noise model is not supported on the selected backend {} ({}) "
                         "only certain backends, such as Aer qasm support "
