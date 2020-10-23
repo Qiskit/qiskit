@@ -45,7 +45,7 @@ from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit import __path__
+from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -253,21 +253,24 @@ class MatplotlibDrawer:
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
         style_path = []
         print(style_name)
-        print(__path__)
-        print(__file__)
+        print('qpath', qiskit_path)
+        print('file', __file__)
         if style_name != 'default':
             style_name = style_name + '.json'
-            style_path.append(os.path.join(__path__[0], 'visualization', 'styles', style_name))
+            style_path.append(os.path.normpath(os.path.join(qiskit_path[0], 'visualization', 'styles', style_name)))
+            style_path.append(os.path.normpath(os.path.join(qiskit_path[0], 'visualization', style_name)))
+            #style_path.append(os.path.abspath(__file__))
+            #style_path.append(os.path.join(__path__[1], 'visualization', style_name))
             print('path1', style_path)
-            print(os.listdir(os.path.join(__path__[0], 'visualization', 'styles')))#, style_name))
-            print(os.listdir(os.path.join(__path__[0], 'visualization')))#, 'styles')))#, style_name))
+            #print(os.listdir(os.path.join(__path__[1], 'visualization', 'styles')))#, style_name))
+            #print(os.listdir(os.path.join(__path__[1], 'visualization')))#, 'styles')))#, style_name))
 
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
                 if config_path:
                     for path in config_path:
-                        style_path.append(os.path.join(path, style_name))
-            style_path.append(os.path.join('', style_name))
+                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
+            style_path.append(os.path.normpath(os.path.join('', style_name)))
 
             print('path2', style_path)
             for path in style_path:
