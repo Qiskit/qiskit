@@ -114,7 +114,6 @@ class NLocal(BlueprintCircuit):
             TypeError: If an ``initial_state`` is specified but not of the correct type,
                 ``qiskit.aqua.components.initial_states.InitialState``.
             ValueError: If reps parameter is less than or equal to 0.
-
         """
         super().__init__(name=name)
 
@@ -483,7 +482,12 @@ class NLocal(BlueprintCircuit):
 
         Args:
             repetitions: The new repetitions.
+
+        Raises:
+            ValueError: If reps setter has parameter repetitions <= 0.
         """
+        if repetitions <= 0:
+            raise ValueError('reps should be larger than or equal to 1')
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions
