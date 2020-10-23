@@ -12,12 +12,23 @@
 
 """ Quantum Instance module """
 
+from typing import Optional, List, Union, Dict, Callable
 import copy
 import logging
 import time
 
+from qiskit.providers import BaseBackend
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.layout import Layout
 from qiskit.assembler.run_config import RunConfig
+from qiskit.circuit import QuantumCircuit
+from qiskit.qobj import Qobj
 from qiskit import compiler
+
+try:
+    from qiskit.providers.aer.noise import NoiseModel  # pylint: disable=unused-import
+except ImportError as ex:
+    pass
 
 from .aqua_error import AquaError
 from .utils.backend_utils import (is_ibmq_provider,
@@ -35,7 +46,7 @@ class QuantumInstance:
     """Quantum Backend including execution setting."""
 
     _BACKEND_CONFIG = ['basis_gates', 'coupling_map']
-    _COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_transpiler', 'optimization_level']
+    _COMPILE_CONFIG = ['initial_layout', 'seed_transpiler', 'optimization_level']
     _RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed_simulator']
     _QJOB_CONFIG = ['timeout', 'wait']
     _NOISE_CONFIG = ['noise_model']
@@ -46,60 +57,68 @@ class QuantumInstance:
                         "max_parallel_experiments", "statevector_parallel_threshold",
                         "statevector_hpc_gate_opt"] + _BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend,
+    def __init__(self,
+                 backend: BaseBackend,
                  # run config
-                 shots=1024, seed_simulator=None, max_credits=10,
+                 shots: int = 1024,
+                 seed_simulator: Optional[int] = None,
+                 max_credits: int = 10,
                  # backend properties
-                 basis_gates=None, coupling_map=None,
+                 basis_gates: Optional[List[str]] = None,
+                 coupling_map: Optional[Union[CouplingMap, List[List]]] = None,
                  # transpile
-                 initial_layout=None, pass_manager=None,
-                 seed_transpiler=None, optimization_level=None,
+                 initial_layout: Optional[Union[Layout, Dict, List]] = None,
+                 pass_manager: Optional[PassManager] = None,
+                 seed_transpiler: Optional[int] = None,
+                 optimization_level: Optional[int] = None,
                  # simulation
-                 backend_options=None, noise_model=None,
+                 backend_options: Optional[Dict] = None,
+                 noise_model: Optional['NoiseModel'] = None,
                  # job
-                 timeout=None, wait=5,
+                 timeout: Optional[float] = None,
+                 wait: float = 5.,
                  # others
-                 skip_qobj_validation=True,
-                 measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
-                 measurement_error_mitigation_shots=None,
-                 job_callback=None):
+                 skip_qobj_validation: bool = True,
+                 measurement_error_mitigation_cls: Optional[Callable] = None,
+                 cals_matrix_refresh_period: int = 30,
+                 measurement_error_mitigation_shots: Optional[int] = None,
+                 job_callback: Optional[Callable] = None) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
         transpilation and execution. When provided to an Aqua algorithm the algorithm will
         execute the circuits it needs to run using the instance.
 
         Args:
-            backend (BaseBackend): Instance of selected backend
-            shots (int, optional): Number of repetitions of each circuit, for sampling
-            seed_simulator (int, optional): Random seed for simulators
-            max_credits (int, optional): Maximum credits to use
-            basis_gates (list[str], optional): List of basis gate names supported by the
+            backend: Instance of selected backend
+            shots: Number of repetitions of each circuit, for sampling
+            seed_simulator: Random seed for simulators
+            max_credits: Maximum credits to use
+            basis_gates: List of basis gate names supported by the
                                                target. Defaults to basis gates of the backend.
-            coupling_map (CouplingMap or list[list]): Coupling map (perhaps custom) to
+            coupling_map: Coupling map (perhaps custom) to
                                                       target in mapping
-            initial_layout (Layout or dict or list, optional): Initial layout of qubits in mapping
-            pass_manager (PassManager, optional): Pass manager to handle how to compile the circuits
-            seed_transpiler (int, optional): The random seed for circuit mapper
-            optimization_level (int, optional): How much optimization to perform on the circuits.
+            initial_layout: Initial layout of qubits in mapping
+            pass_manager: Pass manager to handle how to compile the circuits
+            seed_transpiler: The random seed for circuit mapper
+            optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
                 transpilation time.
-            backend_options (dict, optional): All running options for backend, please refer
+            backend_options: All running options for backend, please refer
                 to the provider of the backend for information as to what options it supports.
-            noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model
-                                                                                      for simulator
-            timeout (float, optional): Seconds to wait for job. If None, wait indefinitely.
-            wait (float, optional): Seconds between queries for job result
-            skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease circuit
+            noise_model: noise model for simulator
+            timeout: Seconds to wait for job. If None, wait indefinitely.
+            wait: Seconds between queries for job result
+            skip_qobj_validation: Bypass Qobj validation to decrease circuit
                 processing time during submission to backend.
-            measurement_error_mitigation_cls (Callable, optional): The approach to mitigate
+            measurement_error_mitigation_cls: The approach to mitigate
                 measurement errors. Qiskit Ignis provides fitter classes for this functionality
                 and CompleteMeasFitter from qiskit.ignis.mitigation.measurement module can be used
                 here. (TensoredMeasFitter is not supported).
-            cals_matrix_refresh_period (int, optional): How often to refresh the calibration
+            cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
-            measurement_error_mitigation_shots (int, optional): The number of shots number for
+            measurement_error_mitigation_shots: The number of shots number for
                 building calibration matrix. If None, the main `shots` parameter value is used.
-            job_callback (Callable, optional): Optional user supplied callback which can be used
+            job_callback: Optional user supplied callback which can be used
                 to monitor job progress as jobs are submitted for processing by an Aqua algorithm.
                 The callback is provided the following arguments: `job_id, job_status,
                 queue_position, job`
@@ -110,6 +129,7 @@ class QuantumInstance:
             AquaError: set backend_options but the backend does not support that
         """
         self._backend = backend
+        self._pass_manager = pass_manager
 
         # setup run config
         if shots is not None:
@@ -138,7 +158,6 @@ class QuantumInstance:
 
         # setup compile config
         self._compile_config = {
-            'pass_manager': pass_manager,
             'initial_layout': initial_layout,
             'seed_transpiler': seed_transpiler,
             'optimization_level': optimization_level
@@ -175,7 +194,7 @@ class QuantumInstance:
                                 "with the statevector simulation.")
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
-        self._meas_error_mitigation_fitters = {}
+        self._meas_error_mitigation_fitters: Dict = {}
         # TODO: support different fitting method in error mitigation?
         self._meas_error_mitigation_method = 'least_squares'
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
@@ -219,17 +238,22 @@ class QuantumInstance:
 
         return info
 
-    def transpile(self, circuits):
+    def transpile(self,
+                  circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> List[QuantumCircuit]:
         """
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
-            circuits (QuantumCircuit or list[QuantumCircuit]): circuits to transpile
+            circuits: circuits to transpile
         Returns:
-            list[QuantumCircuit]: the transpiled circuits, it is always a list even though
-                                  the length is one.
+            The transpiled circuits, it is always a list even though the length is one.
         """
-        transpiled_circuits = compiler.transpile(circuits, self._backend, **self._backend_config,
-                                                 **self._compile_config)
+        if self._pass_manager is not None:
+            transpiled_circuits = self._pass_manager.run(circuits)
+        else:
+            transpiled_circuits = compiler.transpile(circuits,
+                                                     self._backend,
+                                                     **self._backend_config,
+                                                     **self._compile_config)
         if not isinstance(transpiled_circuits, list):
             transpiled_circuits = [transpiled_circuits]
 
@@ -242,20 +266,23 @@ class QuantumInstance:
 
         return transpiled_circuits
 
-    def assemble(self, circuits):
+    def assemble(self,
+                 circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> Qobj:
         """ assemble circuits """
         return compiler.assemble(circuits, **self._run_config.to_dict())
 
-    def execute(self, circuits, had_transpiled=False):
+    def execute(self,
+                circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+                had_transpiled: bool = False) -> Qobj:
         """
         A wrapper to interface with quantum backend.
 
         Args:
-            circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-            had_transpiled (bool, optional): whether or not circuits had been transpiled
+            circuits: circuits to execute
+            had_transpiled: whether or not circuits had been transpiled
 
         Returns:
-            Result: Result object
+            Result object
 
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
