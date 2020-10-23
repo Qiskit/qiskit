@@ -91,7 +91,7 @@ class ParameterExpression:
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        # self._raise_if_passed_non_real_value(parameter_values)
+        self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -166,12 +166,12 @@ class ParameterExpression:
             raise CircuitError('Cannot bind Parameters ({}) not present in '
                                'expression.'.format([str(p) for p in unknown_parameters]))
 
-    def _raise_if_passed_non_real_value(self, parameter_values):
-        nonreal_parameter_values = {p: v for p, v in parameter_values.items()
-                                    if not isinstance(v, numbers.Real)}
-        if nonreal_parameter_values:
-            raise CircuitError('Expression cannot bind non-real or non-numeric '
-                               'values ({}).'.format(nonreal_parameter_values))
+    def _raise_if_passed_nan(self, parameter_values):
+        nan_parameter_values = {p: v for p, v in parameter_values.items()
+                                if not isinstance(v, numbers.Number)}
+        if nan_parameter_values:
+            raise CircuitError('Expression cannot bind non-numeric values ({})'.format(
+                nan_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:

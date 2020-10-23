@@ -491,7 +491,7 @@ class TestParameters(QiskitTestCase):
 
         qc.p(theta1, 0)
 
-        self.assertRaises(CircuitError, qc.u1, theta2, 0)
+        self.assertRaises(CircuitError, qc.p, theta2, 0)
 
     def test_bind_ryrz_vector(self):
         """Test binding a list of floats to a ParameterVector"""
@@ -903,9 +903,9 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name='theta')
 
         qc = QuantumCircuit(2)
-        qc.u1(numpy.cos(phi), 0)
-        qc.u1(numpy.sin(phi), 0)
-        qc.u1(numpy.tan(phi), 0)
+        qc.p(numpy.cos(phi), 0)
+        qc.p(numpy.sin(phi), 0)
+        qc.p(numpy.tan(phi), 0)
         qc.rz(numpy.arccos(theta), 1)
         qc.rz(numpy.arctan(theta), 1)
         qc.rz(numpy.arcsin(theta), 1)
@@ -914,9 +914,9 @@ class TestParameters(QiskitTestCase):
                              inplace=True)
 
         qc_ref = QuantumCircuit(2)
-        qc_ref.u1(-1, 0)
-        qc_ref.u1(0, 0)
-        qc_ref.u1(0, 0)
+        qc_ref.p(-1, 0)
+        qc_ref.p(0, 0)
+        qc_ref.p(0, 0)
         qc_ref.rz(0, 1)
         qc_ref.rz(pi / 4, 1)
         qc_ref.rz(pi / 2, 1)
@@ -1038,6 +1038,27 @@ class TestParameterExpressions(QiskitTestCase):
 
                 self.assertEqual(float(bound_expr),
                                  op(2.3, const))
+
+    def test_complex_parameter_bound_to_real(self):
+        """Test a complex parameter expression can be real if bound correctly."""
+
+        x, y = Parameter('x'), Parameter('y')
+
+        with self.subTest('simple 1j * x'):
+            qc = QuantumCircuit(1)
+            qc.rx(1j * x, 0)
+            bound = qc.bind_parameters({x: 1j})
+            ref = QuantumCircuit(1)
+            ref.rx(-1, 0)
+            self.assertEqual(bound, ref)
+
+        with self.subTest('more complex expression'):
+            qc = QuantumCircuit(1)
+            qc.rx(0.5j * x - y * y + 2 * y, 0)
+            bound = qc.bind_parameters({x: -4, y: 1j})
+            ref = QuantumCircuit(1)
+            ref.rx(1, 0)
+            self.assertEqual(bound, ref)
 
     def test_complex_angle_raises_when_not_supported(self):
         """Test parameters are validated when fully bound and errors are raised accordingly."""
