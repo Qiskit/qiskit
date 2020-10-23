@@ -34,6 +34,7 @@ from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
+from qiskit.transpiler.passes import LayoutTransformation
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
@@ -122,6 +123,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
+    _swap += [LayoutTransformation(coupling_map, 'layout', 'out_layout', seed=3, trials=4)]
 
     # 5. Unroll to the basis
     if translation_method == 'unroller':

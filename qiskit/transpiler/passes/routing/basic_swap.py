@@ -58,8 +58,7 @@ class BasicSwap(TransformationPass):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
-        trivial_layout = Layout.generate_trivial_layout(canonical_register)
-        current_layout = trivial_layout.copy()
+        current_layout = Layout.generate_trivial_layout(canonical_register)
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -95,5 +94,6 @@ class BasicSwap(TransformationPass):
 
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
+            self.property_set['out_layout'] = current_layout
 
         return new_dag
