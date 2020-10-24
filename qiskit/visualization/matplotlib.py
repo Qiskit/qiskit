@@ -259,10 +259,14 @@ class MatplotlibDrawer:
         if style_name != 'default':
             style_name = style_name + '.json'
             try:
+                print('Name', __name__)
                 data = pkgutil.get_data(__name__, "styles/"+style_name)
-                json_style = json.loads(data)
-                print(json_style)
-                set_style(current_style, json_style)
+                if not data:
+                    print('No data')
+                else:
+                    json_style = json.loads(data)
+                    print(json_style)
+                    set_style(current_style, json_style)
             except FileNotFoundError:
                 """import qiskit
                 style_path.append(os.path.join(os.path.dirname(sys.modules['qiskit'].__file__),style_name))
