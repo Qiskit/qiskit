@@ -123,7 +123,6 @@ class TestGateDefinitions(QiskitTestCase):
         qreg = QuantumRegister(1)
         circ = QuantumCircuit(qreg)
         vec = np.array([0.1, 0.2, 0.3], dtype=float)
-        rvgate = RVGate(*vec)
         circ.rv(*vec, 0)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
@@ -140,27 +139,7 @@ class TestGateDefinitions(QiskitTestCase):
         axis = np.array([math.cos(phi), math.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
-        self.assertTrue(numpy.array_equal(
-            self._su2so3(rgate.to_matrix()), rv._rot.as_matrix()))
-
-    def _su2so3(self, su2):
-        """Convert su2 matrix to so3.
-
-        see 'Topology, Geometry and Gauge fields', Gregory Naber
-        """
-        a, b = su2[0, 0].real, su2[0, 0].imag
-        c, d = su2[0, 1].real, su2[0, 1].imag
-        so3 = np.zeros([3,3], dtype=float)
-        so3[0, 0] = a**2 - b**2 - c**2 + d**2
-        so3[0, 1] = 2 * (a*b + c*d)
-        so3[0, 2] = 2 * (-a*c + b*d)
-        so3[1, 0] = 2 * (-a*b + c*d)
-        so3[1, 1] = a**2 - b**2 + c**2 - d**2
-        so3[1, 2] = 2 * (a*d + b*c)
-        so3[2, 0] = 2 * (a*c - b*d)
-        so3[2, 1] = 2 * (b*c - a*d)
-        so3[2, 2] = a**2 + b**2 - c**2 - d**2
-        return so3
+        self.assertTrue(numpy.array_equal(rgate.to_matrix(), rv.to_matrix()))
 
 
 @ddt
