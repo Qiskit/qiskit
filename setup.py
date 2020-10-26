@@ -35,9 +35,9 @@ REQUIREMENTS = [
     "dill>=0.3",
     "fastjsonschema>=2.10",
     "python-constraint>=1.4",
-    "python-dateutil>=2.8.0",
-    "pylatex>=1.3.1",
-    "pdf2image>=1.12.1"
+    "python-dateutil>=2.8",
+    "pylatex>=1.3",
+    "pdf2image>=1.12"
 ]
 
 # Add Cython extensions here
