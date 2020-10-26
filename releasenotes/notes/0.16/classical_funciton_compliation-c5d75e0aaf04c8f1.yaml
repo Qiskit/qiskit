@@ -46,5 +46,5 @@ features:
 
       circuit.decompose().draw()
 
-      The feature requires ``tweedledum``, a library for synthesizing quantum
-      circuits, that can be installed via pip with ``pip install tweedledum``.
+    The feature requires ``tweedledum``, a library for synthesizing quantum
+    circuits, that can be installed via pip with ``pip install tweedledum``.
