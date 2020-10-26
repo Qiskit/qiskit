@@ -1456,6 +1456,14 @@ class TestParameterExpressions(QiskitTestCase):
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), max(a, b))
 
+    def test_python_max_raises(self):
+        """Test ParameterExpression max."""
+        x = Parameter('x')
+        y = Parameter('y')
+        self.assertRaisesRegex(TypeError,
+                               'cannot determine truth value of Relational',
+                               max, x, y)
+
     def test_min(self):
         """Test ParameterExpression min."""
         a = 1
