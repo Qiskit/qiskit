@@ -258,7 +258,7 @@ class MatplotlibDrawer:
         print('file', __file__)
         if style_name != 'default':
             style_name = style_name + '.json'
-            try:
+            """try:
                 print('Name', __name__)
                 data = pkgutil.get_data(__name__, "styles/"+style_name)
                 if not data:
@@ -267,46 +267,57 @@ class MatplotlibDrawer:
                     json_style = json.loads(data)
                     print(json_style)
                     set_style(current_style, json_style)
-            except FileNotFoundError:
-                """import qiskit
-                style_path.append(os.path.join(os.path.dirname(sys.modules['qiskit'].__file__),style_name))
-                #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', 'styles', style_name)))
-                #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', style_name)))
-                #style_path.append(os.path.abspath(__file__))
-                #style_path.append(os.path.join(__path__[1], 'visualization', style_name))
-                print('path1', style_path)
-                #print(os.listdir(os.path.join(__path__[1], 'visualization', 'styles')))#, style_name))
-                #print(os.listdir(os.path.join(__path__[1], 'visualization')))#, 'styles')))#, style_name))"""
+            except FileNotFoundError:"""
+            """import qiskit
+            style_path.append(os.path.join(os.path.dirname(sys.modules['qiskit'].__file__),style_name))
+            #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', 'styles', style_name)))
+            #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', style_name)))
+            #style_path.append(os.path.abspath(__file__))
+            #style_path.append(os.path.join(__path__[1], 'visualization', style_name))
+            print('path1', style_path)
+            #print(os.listdir(os.path.join(__path__[1], 'visualization', 'styles')))#, style_name))
+            #print(os.listdir(os.path.join(__path__[1], 'visualization')))#, 'styles')))#, style_name))"""
 
-                if config:
-                    config_path = config.get('circuit_mpl_style_path', '')
-                    if config_path:
-                        for path in config_path:
-                            style_path.append(os.path.normpath(os.path.join(path, style_name)))
-                style_path.append(os.path.normpath(os.path.join('', style_name)))
+            SWD = os.path.dirname(os.path.abspath(__file__))
+            datafilename = os.path.join(SWD, 'styles', style_name)
+            print('dataname', datafilename)
+            if os.path.exists(datafilename):
+                print('exists')
+                with open(datafilename) as datafile:
+                    print('opened')
+                    jstyle = json.load(datafile)
+                    #print(jstyle)
+                set_style(current_style, jstyle)
 
-                print('path2', style_path)
-                for path in style_path:
-                    exp_user = os.path.expanduser(path)
-                    print('exp1', exp_user)
-                    if os.path.isfile(exp_user):
-                        print('exp2', exp_user)
-                        try:
-                            with open(exp_user) as infile:
-                                json_style = json.load(infile)
-                            set_style(current_style, json_style)
-                            break
-                        except json.JSONDecodeError as e:
-                            warn("Could not decode JSON in file '{}': {}. ".format(
-                                path, str(e)) + "Will use default style.", UserWarning, 2)
-                            break
-                        except (OSError, FileNotFoundError):
-                            warn("Error loading JSON file '{}'. Will use default style.".format(
-                                path), UserWarning, 2)
-                            break
-                else:
-                    warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
-                         " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
+            else:
+                warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
+                     " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
+            """if config:
+                config_path = config.get('circuit_mpl_style_path', '')
+                if config_path:
+                    for path in config_path:
+                        style_path.append(os.path.normpath(os.path.join(path, style_name)))
+            style_path.append(os.path.normpath(os.path.join('', style_name)))
+
+            print('path2', style_path)
+            for path in style_path:
+                exp_user = os.path.expanduser(path)
+                print('exp1', exp_user)
+                if os.path.isfile(exp_user):
+                    print('exp2', exp_user)
+                    try:
+                        with open(exp_user) as infile:
+                            json_style = json.load(infile)
+                        set_style(current_style, json_style)
+                        break
+                    except json.JSONDecodeError as e:
+                        warn("Could not decode JSON in file '{}': {}. ".format(
+                            path, str(e)) + "Will use default style.", UserWarning, 2)
+                        break
+                    except (OSError, FileNotFoundError):
+                        warn("Error loading JSON file '{}'. Will use default style.".format(
+                            path), UserWarning, 2)
+                        break"""
 
         if isinstance(style, dict):
             set_style(current_style, style)
