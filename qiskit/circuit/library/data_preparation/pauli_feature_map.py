@@ -106,8 +106,8 @@ class PauliFeatureMap(NLocal):
     def __init__(self,
                  feature_dimension: Optional[int] = None,
                  reps: int = 2,
-                 alpha: float = 2.0,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
+                 alpha: float = 2.0,
                  paulis: Optional[List[str]] = None,
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  parameter_prefix: str = 'x',
@@ -118,9 +118,9 @@ class PauliFeatureMap(NLocal):
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
-            alpha: The Pauli rotation factor
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.NLocal` for detail.
+            alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
             data_map_func: A mapping function for data x which can be supplied to override the
