@@ -39,7 +39,7 @@ class TestErrorPass(QiskitTestCase):
 
     def test_warning(self):
         """Warning error (message with variable)"""
-        pass_ = Error(msg='a {variable}', action='warning')
+        pass_ = Error(msg='a {variable}', action='warn')
         pass_.property_set['variable'] = 'message'
         with self.assertWarns(Warning) as warn:
             pass_.run(None)
@@ -47,19 +47,11 @@ class TestErrorPass(QiskitTestCase):
 
     def test_logger(self):
         """Logger error (message with variable)"""
-        pass_ = Error(msg='a {variable}', action='logger')
+        pass_ = Error(msg='a {variable}', action='log')
         pass_.property_set['variable'] = 'message'
         with self.assertLogs('qiskit.transpiler.passes.utils.error', level='INFO') as log:
             pass_.run(None)
         self.assertEqual(log.output, ['INFO:qiskit.transpiler.passes.utils.error:a message'])
-
-    def test_custom(self):
-        """Custom logger error (message with variable)"""
-        pass_ = Error(msg='a {variable}', action='custom')
-        pass_.property_set['variable'] = 'message'
-        with self.assertLogs('custom', level='INFO') as log:
-            pass_.run(None)
-        self.assertEqual(log.output, ['INFO:custom:a message'])
 
 
 if __name__ == '__main__':

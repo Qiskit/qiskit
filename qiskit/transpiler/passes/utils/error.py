@@ -35,7 +35,7 @@ class Error(AnalysisPass):
         """
         super().__init__()
         self.msg = msg
-        if action in ['raise, warn', 'log']:
+        if action in ['raise', 'warn', 'log']:
             self.action = action
         else:
             raise TranspilerError('Unknown action: %s' % action)
@@ -51,7 +51,7 @@ class Error(AnalysisPass):
             raise TranspilerError(msg)
         if self.action == 'warn':
             warnings.warn(msg, Warning)
-        if self.action == 'log':
+        elif self.action == 'log':
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
