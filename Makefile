@@ -55,6 +55,7 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
+	@echo Consider using tox as suggested in the CONTRIBUTING.MD guideline. For running the tests as the CI, use test_ci
 	python3 -m unittest discover -s test/python -t . -v
 
 # Use pytest to run tests
@@ -66,7 +67,7 @@ pytest_randomized:
 	pytest test/randomized
 
 test_ci:
-	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
+	@echo Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers
 	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run --concurrency $(CONCURRENCY)
 
 test_randomized:
