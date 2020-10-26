@@ -663,7 +663,7 @@ class TestTranspile(QiskitTestCase):
     def test_ccx_routing_method_none_failed(self, optimization_level):
         """CCX without routing method cannot be routed."""
 
-        qc = QuantumCircuit(3)
+        qc = QuantumCircuit(3   )
         qc.ccx(0, 1, 2)
 
         with self.assertRaises(TranspilerError):

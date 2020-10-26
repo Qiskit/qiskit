@@ -30,17 +30,18 @@ class Error(AnalysisPass):
             msg (str): Error message, if not provided a generic error will be used
             action (str): the action to perform. Default: 'raise'. The options are:
               * 'raise': Raises a `TranspilerError` exception with msg
-              * 'warning': Raises a non-fatal warning with msg
-              * 'logger': logs in `logging.getLogger(__name__)`
-              * other: logs in `logging.getLogger(action)`
+              * 'warn': Raises a non-fatal warning with msg
+              * 'log': logs in `logging.getLogger(__name__)`
         """
         super().__init__()
         self.msg = msg
-        self.action = action
+        if action in ['raise, warn', 'log']:
+            self.action = action
+        else:
+            raise TranspilerError('Unknown action: %s' % action)
 
     def run(self, _):
-        """Run the Error pass on `dag`.
-        """
+        """Run the Error pass on `dag`."""
         msg = self.msg if self.msg else "An error occurred while the passmanager was running."
         prop_names = [tup[1] for tup in string.Formatter().parse(msg) if tup[1] is not None]
         properties = {prop_name: self.property_set[prop_name] for prop_name in prop_names}
@@ -48,11 +49,10 @@ class Error(AnalysisPass):
 
         if self.action == 'raise':
             raise TranspilerError(msg)
-        if self.action == 'warning':
+        if self.action == 'warn':
             warnings.warn(msg, Warning)
-        if self.action == 'logger':
+        if self.action == 'log':
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
-            logger = logging.getLogger(self.action)
-            logger.info(msg)
+            raise TranspilerError('Unknown action: %s' % self.action)
