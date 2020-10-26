@@ -39,7 +39,7 @@ class Error(AnalysisPass):
         self.action = action
 
     def run(self, _):
-        """Run the CheckMap pass on `dag`.
+        """Run the Error pass on `dag`.
         """
         msg = self.msg if self.msg else "An error occurred while the passmanager was running."
         prop_names = [tup[1] for tup in string.Formatter().parse(msg) if tup[1] is not None]
