@@ -315,14 +315,7 @@ class ParameterExpression:
     def arctan2(self, denom):
         """Arctan2 of a ParameterExpression"""
         from sympy import atan2 as _atan2
-        if isinstance(denom, ParameterExpression):
-            symbol_map = {**self._parameter_symbols, **denom._parameter_symbols}
-            den = denom._symbol_expr
-        else:
-            symbol_map = self._parameter_symbols
-            den = denom
-        return ParameterExpression(symbol_map,
-                                   _atan2(self._symbol_expr, den))
+        return self._apply_operation(_atan2, denom)
 
     def exp(self):
         """Exponential of a ParameterExpression"""
