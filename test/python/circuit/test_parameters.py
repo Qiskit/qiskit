@@ -1464,6 +1464,17 @@ class TestParameterExpressions(QiskitTestCase):
                                'cannot determine truth value of Relational',
                                max, x, y)
 
+    def test_max_iterable_raises(self):
+        """Test max of iterable of ParameterExpression raises."""
+        x = Parameter('x')
+        y = Parameter('y')
+        self.assertRaisesRegex(TypeError,
+                               'cannot determine truth value of Relational',
+                               max, [x, y])
+        self.assertRaisesRegex(TypeError,
+                               'cannot determine truth value of Relational',
+                               numpy.max, [x, y])
+
     def test_min(self):
         """Test ParameterExpression min."""
         a = 1

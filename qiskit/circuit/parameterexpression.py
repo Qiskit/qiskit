@@ -342,7 +342,7 @@ class ParameterExpression:
         from sympy import ceiling as _ceil
         return self._call(_ceil)
 
-    def max(self, **kwargs):
+    def max(self, *args, **kwargs):
         """Return max expression.
 
         This is called as numpy.max(expr1, expr2).
@@ -350,6 +350,7 @@ class ParameterExpression:
         Note: python's max(expr1, expr2) won't work.
         """
         from sympy import Max
+        import ipdb; ipdb.set_trace()
         expr1 = self._symbol_expr
         other = kwargs['axis']  # bit hacky
         if isinstance(other, ParameterExpression):
