@@ -127,29 +127,22 @@ class TestPauliProperties(QiskitTestCase):
         self.assertEqual(pauli1.equiv(pauli2), target)
 
     @data(*pauli_group_labels(1))
-    def test_group_phase(self, label):
-        """Test group_phase attribute"""
+    def test_phase(self, label):
+        """Test phase attribute"""
         pauli = Pauli(label)
         _, coeff = split_pauli_label(str(pauli))
         target = coeff_phase_from_label(coeff)
-        self.assertEqual(pauli.group_phase, target)
+        self.assertEqual(pauli.phase, target)
 
     @data(*[(p, q) for p in ['I', 'X', 'Y', 'Z'] for q in range(4)])
     @unpack
-    def test_group_phase_setter(self, pauli, group_phase):
-        """Test group_phase setter"""
+    def test_phase_setter(self, pauli, phase):
+        """Test phase setter"""
         pauli = Pauli(pauli)
-        pauli.group_phase = group_phase
+        pauli.phase = phase
         _, coeff = split_pauli_label(str(pauli))
         value = coeff_phase_from_label(coeff)
-        self.assertEqual(value, group_phase)
-
-    @data(*pauli_group_labels(3, full_group=False))
-    def test_phase(self, label):
-        """Test group_phase attribute"""
-        pauli = Pauli(label)
-        target = np.sum(pauli.X & pauli.Z)
-        self.assertEqual(pauli.phase, target)
+        self.assertEqual(value, phase)
 
     def test_array_setter_raises(self):
         """Test changing array size raises"""
@@ -163,13 +156,13 @@ class TestPauliProperties(QiskitTestCase):
     def test_x_setter(self):
         """Test phase attribute"""
         pauli = Pauli('II')
-        pauli.X = True
+        pauli.x = True
         self.assertEqual(pauli, Pauli('XX'))
 
     def test_z_setter(self):
         """Test phase attribute"""
         pauli = Pauli('II')
-        pauli.Z = True
+        pauli.z = True
         self.assertEqual(pauli, Pauli('ZZ'))
 
     @data(*[('IXYZ', i) for i in [0, 1, 2, 3, slice(None, None, None),
@@ -251,6 +244,19 @@ class TestPauli(QiskitTestCase):
         target = op1.dot(op2)
         self.assertEqual(value, target)
 
+    @data(*pauli_group_labels(1))
+    def test_dot_qargs(self, label2):
+        """Test dot method with qargs."""
+        label1 = '-iXYZ'
+        p1 = Pauli(label1)
+        p2 = Pauli(label2)
+        qargs = [0]
+        value = Operator(p1.dot(p2, qargs=qargs))
+        op1 = operator_from_label(label1)
+        op2 = operator_from_label(label2)
+        target = op1.dot(op2, qargs=qargs)
+        self.assertEqual(value, target)
+
     @data(*it.product(pauli_group_labels(2, full_group=False), repeat=2))
     @unpack
     def test_compose(self, label1, label2):
@@ -261,6 +267,19 @@ class TestPauli(QiskitTestCase):
         op1 = operator_from_label(label1)
         op2 = operator_from_label(label2)
         target = op1.compose(op2)
+        self.assertEqual(value, target)
+
+    @data(*pauli_group_labels(1))
+    def test_compose_qargs(self, label2):
+        """Test compose method with qargs."""
+        label1 = '-XYZ'
+        p1 = Pauli(label1)
+        p2 = Pauli(label2)
+        qargs = [0]
+        value = Operator(p1.compose(p2, qargs=qargs))
+        op1 = operator_from_label(label1)
+        op2 = operator_from_label(label2)
+        target = op1.compose(op2, qargs=qargs)
         self.assertEqual(value, target)
 
     @data(*it.product(pauli_group_labels(1, full_group=False), repeat=2))
@@ -309,7 +328,7 @@ class TestPauli(QiskitTestCase):
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):
         """Test multiply method."""
-        op = val * Pauli([True, True, False, False], phase=0)
+        op = val * Pauli([True, True], [False, False], phase=0)
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
 
@@ -321,7 +340,7 @@ class TestPauli(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_negate(self, phase):
         """Test negate method"""
-        op = Pauli([False, True], phase)
+        op = Pauli([False], [True], phase)
         neg = -op
         self.assertTrue(op.equiv(neg))
         self.assertEqual(neg.phase, (op.phase + 2) % 4)

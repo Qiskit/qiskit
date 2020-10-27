@@ -145,7 +145,7 @@ class PauliTable(BaseOperator):
             # Share underlying array
             self._array = data._array
         elif isinstance(data, Pauli):
-            self._array = data.array
+            self._array = np.hstack([data.x, data.z])
         elif isinstance(data, ScalarOp):
             # Initialize an N-qubit identity
             if data.num_qubits is None:

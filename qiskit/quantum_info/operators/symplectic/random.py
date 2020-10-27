@@ -44,12 +44,10 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
         rng = seed
     else:
         rng = default_rng(seed)
-    array = rng.integers(2, size=2 * num_qubits).astype(np.bool)
+    z = rng.integers(2, size=num_qubits).astype(np.bool)
+    x = rng.integers(2, size=num_qubits).astype(np.bool)
     phase = rng.integers(4) if group_phase else 0
-    pauli = Pauli(array, phase=phase)
-    # Shift phase by Number of Y Pauli's so that the coefficient is +1
-    # when the random phase is 0
-    phase += np.sum(pauli.X & pauli.Z)
+    pauli = Pauli(z, x, phase)
     return pauli
 
 

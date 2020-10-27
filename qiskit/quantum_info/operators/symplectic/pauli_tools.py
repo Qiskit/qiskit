@@ -65,8 +65,19 @@ def phase_to_coeff_label(phase: int) -> str:
     return labels[phase % 4]
 
 
-def pauli_from_label(label: str) -> Tuple[np.ndarray, int]:
-    """Return the symplectic representation of Pauli string."""
+def pauli_from_label(label: str) -> Tuple[np.ndarray, np.ndarray, int]:
+    """Return the symplectic representation of Pauli string.
+
+    Args:
+        label: the Pauli string label.
+
+    Returns:
+        (z, x, q): the z vector, x vector, and phase integer q for the
+                   symplectic representation P = (-i)^{q + z.x} Z^z.x^x.
+
+    Raises:
+        QiskitError: if Pauli string is not valid.
+    """
     # Split string into coefficient and Pauli
     span = re.search(r'[IXYZ]+', label).span()
     pauli, coeff = split_pauli_label(label)
@@ -79,31 +90,29 @@ def pauli_from_label(label: str) -> Tuple[np.ndarray, int]:
 
     # Convert to Symplectic representation
     num_qubits = len(pauli)
-    arr = np.zeros(2 * num_qubits, dtype=np.bool)
-    xs = arr[0:num_qubits]
-    zs = arr[num_qubits:2 * num_qubits]
+    z = np.zeros(num_qubits, dtype=np.bool)
+    x = np.zeros(num_qubits, dtype=np.bool)
     for i, char in enumerate(pauli):
         if char == 'X':
-            xs[num_qubits - 1 - i] = True
+            x[num_qubits - 1 - i] = True
         elif char == 'Z':
-            zs[num_qubits - 1 - i] = True
+            z[num_qubits - 1 - i] = True
         elif char == 'Y':
-            xs[num_qubits - 1 - i] = True
-            zs[num_qubits - 1 - i] = True
-            phase += 1
-    return arr, phase % 4
+            x[num_qubits - 1 - i] = True
+            z[num_qubits - 1 - i] = True
+    return z, x, phase % 4
 
 
-def pauli_to_label(array: np.ndarray,
+def pauli_to_label(z: np.ndarray,
+                   x: np.ndarray,
                    phase: int = 0,
                    full_group: bool = True,
                    return_phase: bool = False) -> Union[str, Tuple[str, int]]:
     """Return the label string for a Pauli.
 
-    The pauli operator is given by P = (-1j) ** phase * array
-
     Args:
-        array: The symplectic :math:`[X, Z]` array of a Pauli.
+        z: The symplectic representation z vector.
+        x: The symplectic representation x vector.
         phase: the phase coefficient :math:`(-i)^q` of the Pauli.
         full_group: If True return the Pauli label from the full Pauli group
                     including complex coefficient from [1, -1, 1j, -1j]. If
@@ -118,14 +127,11 @@ def pauli_to_label(array: np.ndarray,
              from the unsigned Pauli group (if ``full_group=False``).
         Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
                          label (from either the full or unsigned Pauli group) and
-                         the phase ``q`` for the coefficient :math:`(-i)^q` for the
-                         label from the full Pauli group.
+                         the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
+                         for the label from the full Pauli group.
     """
-    num_qubits = array.size // 2
-    x = array[0:num_qubits]
-    z = array[num_qubits:2 * num_qubits]
+    num_qubits = z.size
     label = ''
-
     for i in range(num_qubits):
         if not z[num_qubits - 1 - i]:
             if not x[num_qubits - 1 - i]:
@@ -136,23 +142,28 @@ def pauli_to_label(array: np.ndarray,
             label += 'Z'
         else:
             label += 'Y'
-            phase -= 1
-    if full_group:
+    if phase and full_group:
         label = phase_to_coeff_label(phase) + label
     if return_phase:
         return label, phase
     return label
 
 
-def pauli_to_matrix(pauli: np.ndarray, phase: int = 0,
-                    sparse=False) -> Union[np.ndarray, csr_matrix]:
+def pauli_to_matrix(z: np.ndarray,
+                    x: np.ndarray,
+                    phase: int = 0,
+                    sparse: bool =False) -> Union[np.ndarray, csr_matrix]:
     """Return the matrix matrix from symplectic representation.
 
+    The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
+    where ``array = [x, z]``.
+
     Args:
-        pauli (array): symplectic Pauli vector.
-        phase (int): Pauli phase.
-        sparse (bool): if True return a sparse CSR matrix, otherwise
-                        return a dense Numpy array (default: False).
+        z: The symplectic representation z vector.
+        x: The symplectic representation x vector.
+        phase: Pauli phase.
+        sparse: if True return a sparse CSR matrix, otherwise
+                return a dense Numpy array (default: False).
     Returns:
         array: if sparse=False.
         csr_matrix: if sparse=True.
@@ -163,10 +174,8 @@ def pauli_to_matrix(pauli: np.ndarray, phase: int = 0,
         i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
         return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
 
-    symp = np.asarray(pauli, dtype=np.bool)
-    num_qubits = symp.size // 2
-    x = symp[0:num_qubits]
-    z = symp[num_qubits:2 * num_qubits]
+    num_qubits = z.size
+    zx_phase = phase + np.sum(x & z)
 
     dim = 2**num_qubits
     twos_array = 1 << np.arange(num_qubits)
@@ -176,8 +185,8 @@ def pauli_to_matrix(pauli: np.ndarray, phase: int = 0,
     indptr = np.arange(dim + 1, dtype=np.uint)
     indices = indptr ^ x_indices
     data = (-1)**np.mod(count1(z_indices & indptr), 2)
-    if phase:
-        data = (-1j)**phase * data
+    if zx_phase:
+        data = (-1j)**zx_phase * data
 
     if sparse:
         # Return sparse matrix
@@ -295,26 +304,26 @@ def evolve_pauli(pauli, circuit, qargs=None):
 
 def _evolve_h(pauli, qubit):
     """Evolve by HGate"""
-    x = pauli.X[qubit]
-    z = pauli.Z[qubit]
-    pauli.X[qubit] = z
-    pauli.Z[qubit] = x
+    x = pauli.x[qubit]
+    z = pauli.z[qubit]
+    pauli.x[qubit] = z
+    pauli.z[qubit] = x
     pauli.phase += 2 * (x and z)
     return pauli
 
 
 def _evolve_s(pauli, qubit):
     """Evolve by SGate"""
-    x = pauli.X[qubit]
-    pauli.Z[qubit] ^= x
+    x = pauli.x[qubit]
+    pauli.z[qubit] ^= x
     pauli.phase += x
     return pauli
 
 
 def _evolve_sdg(pauli, qubit):
     """Evolve by SdgGate"""
-    x = pauli.X[qubit]
-    pauli.Z[qubit] ^= x
+    x = pauli.x[qubit]
+    pauli.z[qubit] ^= x
     pauli.phase -= x
     return pauli
 
@@ -327,57 +336,57 @@ def _evolve_i(pauli, qubit):
 
 def _evolve_x(pauli, qubit):
     """Evolve by XGate"""
-    pauli.phase += 2 * pauli.Z[qubit]
+    pauli.phase += 2 * pauli.z[qubit]
     return pauli
 
 
 def _evolve_y(pauli, qubit):
     """Evolve by YGate"""
-    pauli.phase += 2 * pauli.X[qubit] + 2 * pauli.Z[qubit]
+    pauli.phase += 2 * pauli.x[qubit] + 2 * pauli.z[qubit]
     return pauli
 
 
 def _evolve_z(pauli, qubit):
     """Evolve by ZGate"""
-    pauli.phase += 2 * pauli.X[qubit]
+    pauli.phase += 2 * pauli.x[qubit]
     return pauli
 
 
 def _evolve_cx(pauli, qctrl, qtrgt):
     """Evolve by CXGate"""
-    pauli.X[qtrgt] ^= pauli.X[qctrl]
-    pauli.Z[qctrl] ^= pauli.Z[qtrgt]
+    pauli.x[qtrgt] ^= pauli.x[qctrl]
+    pauli.z[qctrl] ^= pauli.z[qtrgt]
     return pauli
 
 
 def _evolve_cz(pauli, q1, q2):
     """Evolve by CZGate"""
-    x1 = pauli.X[q1]
-    x2 = pauli.X[q2]
-    pauli.Z[q1] ^= x1
-    pauli.Z[q2] ^= x2
+    x1 = pauli.x[q1]
+    x2 = pauli.x[q2]
+    pauli.z[q1] ^= x1
+    pauli.z[q2] ^= x2
     pauli.phase += 2 * (x1 & x2)
     return pauli
 
 
 def _evolve_cy(pauli, qctrl, qtrgt):
     """Evolve by CYGate"""
-    x1 = pauli.X[qctrl]
-    x2 = pauli.X[qtrgt]
-    z2 = pauli.Z[qtrgt]
-    pauli.X[qtrgt] ^= x1
-    pauli.Z[qtrgt] ^= x1
-    pauli.Z[qctrl] ^= (x2 ^ z2)
+    x1 = pauli.x[qctrl]
+    x2 = pauli.x[qtrgt]
+    z2 = pauli.z[qtrgt]
+    pauli.x[qtrgt] ^= x1
+    pauli.z[qtrgt] ^= x1
+    pauli.z[qctrl] ^= (x2 ^ z2)
     pauli.phase += x1 + 2 * (x1 & x2)
     return pauli
 
 
 def _evolve_swap(pauli, q1, q2):
     """Evolve by SwapGate"""
-    x1 = pauli.X[q1]
-    z1 = pauli.Z[q1]
-    pauli.X[q1] = pauli.X[q2]
-    pauli.Z[q1] = pauli.Z[q2]
-    pauli.X[q2] = x1
-    pauli.Z[q2] = z1
+    x1 = pauli.x[q1]
+    z1 = pauli.z[q1]
+    pauli.x[q1] = pauli.x[q2]
+    pauli.z[q1] = pauli.z[q2]
+    pauli.x[q2] = x1
+    pauli.z[q2] = z1
     return pauli
