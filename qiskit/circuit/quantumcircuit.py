@@ -697,19 +697,15 @@ class QuantumCircuit:
 
         return dest
 
-    def tensor(self, other, top=False):
+    def tensor(self, other):
         """Tensor ``self`` with ``other``.
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
-            top (bool): Whether to revert the order of the tensor elements.
 
         Returns:
             QuantumCircuit: the tensored circuit (returns None if inplace==True).
         """
-        if top:
-            return other.tensor(self)
-
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
 

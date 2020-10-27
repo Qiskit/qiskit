@@ -41,9 +41,6 @@ class TestCircuitCompose(QiskitTestCase):
         with self.subTest('top.tensor(bottom)'):
             self.assertEqual(top.tensor(bottom), expect)
 
-        with self.subTest('bottom.tensor(top, top=True)'):
-            self.assertEqual(bottom.tensor(top, top=True), expect)
-
         expect = QuantumCircuit(3, 1)
         expect.y(0)
         expect.z(1)
@@ -52,9 +49,6 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.subTest('bottom.tensor(top)'):
             self.assertEqual(bottom.tensor(top), expect)
-
-        with self.subTest('top.tensor(bottom, top=True)'):
-            self.assertEqual(top.tensor(bottom, top=True), expect)
 
     def test_mixed(self):
         """Test composing on named and unnamed registers."""
