@@ -31,7 +31,6 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule
 # pylint: disable=missing-return-doc
 
 
@@ -129,7 +128,7 @@ class Instruction(ABC):
         return self._duration
 
     @property
-    def _children(self) -> Tuple[Union[Schedule, 'Instruction']]:
+    def _children(self) -> Tuple[Union['Schedule', 'Instruction']]:
         """Instruction has no child nodes."""
         return ()
 
@@ -177,8 +176,8 @@ class Instruction(ABC):
             time: Shifted time of this node due to parent
 
         Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`
+            Tuple[int, Union['Schedule, 'Instruction']]: Tuple of the form
+                (start_time, instruction).
         """
         yield (time, self)
 
@@ -186,20 +185,22 @@ class Instruction(ABC):
         """Return itself as already single instruction."""
         return self
 
-    def shift(self: Union[Schedule, 'Instruction'],
-              time: int, name: Optional[str] = None) -> Schedule:
+    def shift(self: Union['Schedule', 'Instruction'],
+              time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of self
         """
+        from qiskit.pulse.schedule import Schedule
+
         if name is None:
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule: Union[Schedule, 'Instruction'],
-               name: Optional[str] = None) -> Schedule:
+    def insert(self, start_time: int, schedule: Union['Schedule', 'Instruction'],
+               name: Optional[str] = None) -> 'Schedule':
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
 
@@ -208,12 +209,14 @@ class Instruction(ABC):
             schedule: Schedule to insert
             name: Name of the new schedule. Defaults to name of self
         """
+        from qiskit.pulse.schedule import Schedule
+
         if name is None:
             name = self.name
         return Schedule(self, (start_time, schedule), name=name)
 
-    def append(self, schedule: Union[Schedule, 'Instruction'],
-               name: Optional[str] = None) -> Schedule:
+    def append(self, schedule: Union['Schedule', 'Instruction'],
+               name: Optional[str] = None) -> 'Schedule':
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
 
@@ -307,15 +310,15 @@ class Instruction(ABC):
             self._hash = hash((type(self), self.operands, self.name))
         return self._hash
 
-    def __add__(self, other: Union[Schedule, 'Instruction']) -> Schedule:
+    def __add__(self, other: Union['Schedule', 'Instruction']) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
         return self.append(other)
 
-    def __or__(self, other: Union[Schedule, 'Instruction']) -> Schedule:
+    def __or__(self, other: Union['Schedule', 'Instruction']) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
-    def __lshift__(self, time: int) -> Schedule:
+    def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
