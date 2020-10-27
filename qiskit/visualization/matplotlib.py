@@ -20,7 +20,6 @@ import json
 import logging
 import re
 import os
-import pkgutil
 from warnings import warn
 
 import numpy as np
@@ -46,7 +45,6 @@ from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
