@@ -25,7 +25,7 @@ from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse import instructions as instructions_ 
+from qiskit.pulse import instructions as instructions_
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.util import is_main_process
