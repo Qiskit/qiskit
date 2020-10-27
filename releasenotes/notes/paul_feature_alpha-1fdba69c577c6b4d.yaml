@@ -1,7 +1,6 @@
 ---
 features:
   - |
-    Introducing alpha, rotational factor, instead of "hard-coded" 2 to control the rotational speed of Pauli Feature
-    maps.
-    This allows better control of decision boundaries and provide additonal flexiblity handle the input features
-    without explicit scaling input features in the data set.
+    Allow modifying the rotational factor :math:`\alpha` in the Pauli feature map, instead of using the hardcoded value of 2.
+    This allows better control of decision boundaries and provide additional flexibility handle the input features
+    without explicit scaling them in the data set.
