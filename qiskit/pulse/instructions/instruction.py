@@ -155,8 +155,6 @@ class Instruction(ABC):
         Args:
             *channels: Supplied channels
         """
-        warnings.warn("``ch_start_time`` channels argument has been deprecated and will be "
-                      "removed in a future release", DeprecationWarning)
         return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
