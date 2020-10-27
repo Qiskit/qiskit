@@ -170,10 +170,11 @@ class CouplingMap:
         Raises:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
-        if physical_qubit1 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit1,))
-        if physical_qubit2 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
+        size = self.size()
+        if physical_qubit1 >= size:
+            raise CouplingError("%s not in coupling graph" % physical_qubit1)
+        if physical_qubit2 >= size:
+            raise CouplingError("%s not in coupling graph" % physical_qubit2)
         if self._dist_matrix is None:
             self._compute_distance_matrix()
         return int(self._dist_matrix[physical_qubit1, physical_qubit2])
