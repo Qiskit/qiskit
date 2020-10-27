@@ -27,7 +27,6 @@ from . import (
     PhaseGate,
     CPhaseGate,
     RGate,
-    RVGate,
     RCCXGate,
     RXGate,
     CRXGate,
@@ -140,16 +139,6 @@ phi = Parameter('phi')
 def_r = QuantumCircuit(q)
 def_r.append(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]])
 _sel.add_equivalence(RGate(theta, phi), def_r)
-
-# # RVGate
-
-# q = QuantumRegister(1, 'q')
-# vx = Parameter('vx')
-# vy = Parameter('vy')
-# vz = Parameter('vz')
-# def_r = QuantumCircuit(q)
-# def_r., [q[0]])
-# _sel.add_equivalence(RGate(theta, phi), def_r)
 
 # RCCXGate
 

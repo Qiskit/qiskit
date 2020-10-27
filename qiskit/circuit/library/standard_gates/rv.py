@@ -14,10 +14,7 @@
 
 import math
 import numpy
-from scipy.spatial.transform import Rotation
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RVGate(Gate):
@@ -57,10 +54,9 @@ class RVGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
-        θ = numpy.sqrt(v.dot(v))
-        nx, ny, nz = v / θ
-        sin = numpy.sin(θ/2)
-        cos = numpy.cos(θ/2)
-        return numpy.array([[cos -1j * nz * sin, (-ny - 1j*nx) * sin],
-                            [(ny - 1j*nx) * sin, cos + 1j * nz * sin]])
-
+        angle = numpy.sqrt(v.dot(v))
+        nx, ny, nz = v / angle
+        sin = numpy.sin(angle / 2)
+        cos = numpy.cos(angle / 2)
+        return numpy.array([[cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
+                            [(ny - 1j * nx) * sin, cos + 1j * nz * sin]])

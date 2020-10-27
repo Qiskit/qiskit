@@ -16,7 +16,6 @@
 import inspect
 
 import numpy as np
-import scipy
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
@@ -130,13 +129,10 @@ class TestGateDefinitions(QiskitTestCase):
     def test_rv_r_equiv(self):
         """Test R(v) gate is equivalent to R gate.
         """
-        import math
-        import numpy
-        from scipy.spatial.transform import Rotation
         theta = np.pi / 5
         phi = np.pi / 3
         rgate = RGate(theta, phi)
-        axis = np.array([math.cos(phi), math.sin(phi), 0])  # RGate axis
+        axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
         self.assertTrue(numpy.array_equal(rgate.to_matrix(), rv.to_matrix()))
