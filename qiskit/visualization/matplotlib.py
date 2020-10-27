@@ -486,7 +486,7 @@ class MatplotlibDrawer:
                          color=linecolor, linewidth=self._lwidth2,
                          linestyle=linestyle, zorder=zorder)
 
-    def _measure(self, qxy, cxy, cid, fc=None, ec=None, gt=None, sc=None):
+    def _measure(self, qxy, cxy, cid, fc=None, ec=None, gt=None, sc=None, basis='z'):
         qx, qy = qxy
         cx, cy = cxy
 
@@ -500,6 +500,7 @@ class MatplotlibDrawer:
         self.ax.add_patch(arc)
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.not_gate_lc, linewidth=self._lwidth2, zorder=PORDER_GATE)
+
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
@@ -511,6 +512,13 @@ class MatplotlibDrawer:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
                          fontsize=0.8 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
+
+        # measurement basis label
+        if basis != 'z':
+            self.ax.text(qx - 0.4 * WID, qy + 0.25 * HIG, basis.upper(),
+                         color=self._style.not_gate_lc,
+                         clip_on=True, zorder=PORDER_TEXT, fontsize=0.5 * self._style.fs,
+                         fontweight='bold')
 
     def _conds(self, xy, istrue=False):
         xpos, ypos = xy
@@ -781,7 +789,8 @@ class MatplotlibDrawer:
             # compute the layer_width for this layer
             #
             for op in layer:
-                if op.name in [*_barrier_gates, 'measure']:
+
+                if op.name in [*_barrier_gates, 'measure', 'measure_x', 'measure_y', 'measure_z']:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -920,9 +929,14 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-                if op.name == 'measure':
+                if op.name[:7] == 'measure':
+                    if len(op.name) == 9:
+                        basis = op.name[-1]
+                    else:
+                        basis = 'z'
+                        
                     vv = self._creg_dict[c_idxs[0]]['index']
-                    self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
+                    self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc, basis=basis)
 
                 elif op.name in _barrier_gates:
                     _barriers = {'coord': [], 'group': []}

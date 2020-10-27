@@ -205,12 +205,17 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self):
+    def __init__(self, basis='Z'):
         super().__init__()
         self.top_format = self.mid_format = self.bot_format = "%s"
-        self.top_connect = "┌─┐"
-        self.mid_content = "┤M├"
-        self.bot_connect = "└╥┘"
+        if basis == 'Z':
+            self.top_connect = "┌─┐"
+            self.mid_content = "┤M├"
+            self.bot_connect = "└╥┘"
+        else:
+            self.top_connect = "┌───┐"
+            self.mid_content = "┤M_{}├".format(basis)
+            self.bot_connect = "└─╥─┘"
 
         self.top_pad = self.bot_pad = " "
         self._mid_padding = '─'
@@ -985,8 +990,13 @@ class TextDrawing():
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
 
+        # elif isinstance(instruction.op, MeasureInstruction):
         if isinstance(instruction.op, MeasureInstruction):
-            gate = MeasureFrom()
+            if len(instruction.name) == 9:  # measure_x or measure_y or measure_z
+                basis = instruction.name[8].upper()
+                gate = MeasureFrom(basis)
+            else:
+                gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             if self.cregbundle:
                 layer.set_clbit(instruction.cargs[0], MeasureTo(str(instruction.cargs[0].index)))

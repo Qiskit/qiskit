@@ -13,6 +13,7 @@
 """
 Quantum measurement in the computational basis.
 """
+from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -21,9 +22,9 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self):
+    def __init__(self, name='measure'):
         """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [])
+        super().__init__(name, 1, 1, [])
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
@@ -57,3 +58,73 @@ def measure(self, qubit, cbit):
 
 
 QuantumCircuit.measure = measure
+
+
+class MeasurePauli(Measure):
+    """Perform a measurement with preceding basis change operations."""
+
+    def __init__(self, basis):
+        """Create a new basis transformation measurement.
+
+        Args:
+            basis (str): The target measurement basis, can be 'X', 'Y' or 'Z'.
+
+        Raises:
+            ValueError: If an unsupported basis is specified.
+        """
+        super().__init__(name='measure_' + basis)
+
+        transformations = []
+
+        from .library import HGate, SGate, SdgGate
+
+        for qubit_basis in basis:
+            if qubit_basis.lower() == 'x':
+                pre_rotation = post_rotation = [HGate()]
+            elif qubit_basis.lower() == 'y':
+                # since measure and S commute, S and Sdg cancel each other
+                pre_rotation = [SdgGate(), HGate()]
+                post_rotation = [HGate(), SGate()]
+            elif qubit_basis.lower() == 'z':
+                pre_rotation = post_rotation = []
+            else:
+                raise ValueError('Unsupported measurement basis choose either of X, Y or Z.')
+
+            transformations += [(pre_rotation, post_rotation)]
+
+        self.basis = basis
+        self.transformations = transformations
+
+    def _define(self):
+        definition = []
+        q = QuantumRegister(self.num_qubits, 'q')
+        c = ClassicalRegister(self.num_clbits, 'c')
+
+        for i, transformation in enumerate(self.transformations):
+            pre_rotation, post_rotation = transformation
+
+            # switch to the measurement basis
+            for gate in pre_rotation:
+                definition += [(gate, [q[i]], [])]
+
+            # measure
+            definition += [(Measure(), [q[i]], [c[i]])]
+
+            # apply inverse basis transformation for correct post-measurement state
+            for gate in post_rotation:
+                definition += [(gate, [q[i]], [])]
+
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+
+        qc = QuantumCircuit(q, c)
+        qc._data = definition
+        self.definition = qc
+
+
+def measure_pauli(self, basis, qubit, cbit):
+    """Measure in the the Pauli X, Y or Z basis."""
+    return self.append(MeasurePauli(basis=basis), [qubit], [cbit])
+
+
+QuantumCircuit.measure_pauli = measure_pauli
