@@ -17,6 +17,7 @@ import unittest
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Operator
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -159,6 +160,18 @@ class TestCircuitCompose(QiskitTestCase):
         expect.measure(5, 1)
 
         self.assertEqual(bottom.tensor(top), expect)
+
+    def test_consistent_with_quantum_info(self):
+        """Test that the ordering is consistent with quantum_info's Operator."""
+        x = QuantumCircuit(1)
+        x.x(0)
+
+        i = QuantumCircuit(1)
+
+        circuit = x.tensor(i)
+        operator = Operator(x).tensor(Operator(i))
+
+        self.assertEqual(Operator(circuit), operator)
 
 
 if __name__ == '__main__':
