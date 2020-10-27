@@ -281,7 +281,6 @@ class MatplotlibDrawer:
             SWD = os.path.dirname(os.path.abspath(__file__))
             datafilename = os.path.join(SWD, 'styles', style_name)
             print(os.listdir(SWD))
-            print(os.listdir(os.path.join(SWD, 'styles')))
             print('dataname', datafilename)
             if os.path.exists(datafilename):
                 print('exists')
