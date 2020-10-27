@@ -38,8 +38,8 @@ class TestCircuitCompose(QiskitTestCase):
         expect.z(2)
         expect.measure(0, 0)
 
-        with self.subTest('top.tensor(bottom)'):
-            self.assertEqual(top.tensor(bottom), expect)
+        with self.subTest('bottom.tensor(top)'):
+            self.assertEqual(bottom.tensor(top), expect)
 
         expect = QuantumCircuit(3, 1)
         expect.y(0)
@@ -47,8 +47,8 @@ class TestCircuitCompose(QiskitTestCase):
         expect.x(2)
         expect.measure(2, 0)
 
-        with self.subTest('bottom.tensor(top)'):
-            self.assertEqual(bottom.tensor(top), expect)
+        with self.subTest('top.tensor(bottom)'):
+            self.assertEqual(top.tensor(bottom), expect)
 
     def test_mixed(self):
         """Test composing on named and unnamed registers."""
@@ -68,7 +68,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.z(2)
         expect.measure(0, 0)
 
-        self.assertEqual(top.tensor(bottom), expect)
+        self.assertEqual(bottom.tensor(top), expect)
 
     def test_named(self):
         """Test composing on named and unnamed registers."""
@@ -85,7 +85,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.subTest('same name raises'):
             with self.assertRaises(CircuitError):
-                _ = top.tensor(bottom)
+                _ = bottom.tensor(top)
 
         qr1 = QuantumRegister(2, 'other_qr')
         bottom = QuantumCircuit(qr1)
@@ -99,7 +99,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.measure(0, 0)
 
         with self.subTest('assert circuit is correct'):
-            self.assertEqual(top.tensor(bottom), expect)
+            self.assertEqual(bottom.tensor(top), expect)
 
     def test_measure_all(self):
         """Test ``tensor`` works if ``measure_all`` is called on both circuits."""
@@ -123,7 +123,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.barrier([1, 2])
         expect.measure([0, 1, 2], [0, 1, 2])
 
-        self.assertEqual(top.tensor(bottom), expect)
+        self.assertEqual(bottom.tensor(top), expect)
 
     def test_multiple_registers(self):
         """Test tensoring circuits with multiple registers."""
@@ -158,7 +158,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.cx(4, 5)
         expect.measure(5, 1)
 
-        self.assertEqual(top.tensor(bottom), expect)
+        self.assertEqual(bottom.tensor(top), expect)
 
 
 if __name__ == '__main__':

@@ -716,16 +716,16 @@ class QuantumCircuit:
         elif len(self.cregs) == len(other.cregs) == 1 and \
                 self.cregs[0].name == other.cregs[0].name == 'meas':
             cr = ClassicalRegister(self.num_clbits + other.num_clbits, 'meas')
-            dest = QuantumCircuit(*self.qregs, *other.qregs, cr)
+            dest = QuantumCircuit(*other.qregs, *self.qregs, cr)
 
         # Now we don't have to handle any more cases arising from special implicit naming
         else:
-            dest = QuantumCircuit(*self.qregs, *other.qregs, *self.cregs, *other.cregs)
+            dest = QuantumCircuit(*other.qregs, *self.qregs, *other.cregs, *self.cregs)
 
         # compose self onto the output, and then other
-        dest.compose(self, range(self.num_qubits), range(self.num_clbits), inplace=True)
-        return dest.compose(other, range(self.num_qubits, num_qubits),
-                            range(self.num_clbits, num_clbits))
+        dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
+        return dest.compose(self, range(other.num_qubits, num_qubits),
+                            range(other.num_clbits, num_clbits))
 
     @property
     def qubits(self):
