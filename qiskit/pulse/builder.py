@@ -1733,11 +1733,11 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 def macro(func: Callable):
     """Wrap a Python function and activate the parent builder context at calling time.
 
-    This enables embedding Python functions as builder macros.
-
-    .. note::
-        This generates a new :class:`pulse.Schedule` that is embedded in the parent builder
-        context with every call of the decorated macro function.
+    This enables embedding Python functions as builder macros. This generates a new 
+    :class:`pulse.Schedule` that is embedded in the parent builder context with 
+    every call of the decorated macro function. The decorated macro function will
+    behave as if the function code was embedded inline in the parent builder context
+    after parameter substitution.
 
 
     Examples:
@@ -1748,9 +1748,10 @@ def macro(func: Callable):
 
         @pulse.macro
         def measure(qubit: int):
-            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.MeasureChannel(qubit))
-            mem_slot = pulse.MemorySlot(0)
-            pulse.acquire(16384, pulse.AcquireChannel(0), mem_slot)
+            pulse.play(pulse.GaussianSquare(16384, 256, 15872), pulse.measure_channel(qubit))
+            mem_slot = pulse.MemorySlot(qubit)
+            pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
+            
             return mem_slot
 
         with pulse.build(backend=backend) as sched:
