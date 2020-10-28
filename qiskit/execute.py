@@ -249,14 +249,6 @@ def execute(experiments, backend,
                                     initial_layout=initial_layout)
         experiments = pass_manager.run(experiments)
     else:
-        if 'delay' not in backend.configuration().basis_gates and _any_delay_in(experiments):
-            if schedule_circuit and backend.configuration().open_pulse:
-                pass  # the delay will be handled in the Pulse schedule
-            else:
-                raise QiskitError("Backend {} does not support delay instruction. "
-                                  "Use 'schedule_circuit=True' for pulse-enabled backends."
-                                  .format(backend.name()))
-
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
