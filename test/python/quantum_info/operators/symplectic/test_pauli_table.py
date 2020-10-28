@@ -1228,6 +1228,98 @@ class TestPauliTableMethods(QiskitTestCase):
             target = []
             self.assertEqual(value, target)
 
+    def test_is_commutative(self):
+        """Test is_commutative method."""
+        # 1-qubit
+        pauli = PauliTable.from_labels(['I', 'X'])
+        with self.subTest(msg='[I, X] are commutative'):
+            value = pauli.is_commutative()
+            target = True
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[I, X] are qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = True
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['I', 'Y'])
+        with self.subTest(msg='[I, Y] are commutative'):
+            value = pauli.is_commutative()
+            target = True
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[I, Y] are qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = True
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['I', 'Z'])
+        with self.subTest(msg='[I, Z] are commutative'):
+            value = pauli.is_commutative()
+            target = True
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[I, Z] are qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = True
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['X', 'Y'])
+        with self.subTest(msg='[X, Y] are not commutative'):
+            value = pauli.is_commutative()
+            target = False
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[X, Y] are not qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = False
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['X', 'Z'])
+        with self.subTest(msg='[X, Z] are not commutative'):
+            value = pauli.is_commutative()
+            target = False
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[X, Z] are not qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = False
+            self.assertEqual(value, target)
+
+        # 2-qubit Pauli
+        pauli = PauliTable.from_labels(['II', 'IX', 'XI', 'XX'])
+        with self.subTest(msg='[II, IX, XI, XX] are commutative'):
+            value = pauli.is_commutative()
+            target = True
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[II, IX, XI, XX] are qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = True
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['II', 'XX', 'YY', 'ZZ'])
+        with self.subTest(msg='[II, XX, YY, ZZ] are commutative'):
+            value = pauli.is_commutative()
+            target = True
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[II, IX, XI, XX] are not qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = False
+            self.assertEqual(value, target)
+
+        pauli = PauliTable.from_labels(['II', 'XI', 'IY', 'ZZ'])
+        with self.subTest(msg='[II, XI, IY, ZZ] are not commutative'):
+            value = pauli.is_commutative()
+            target = False
+            self.assertEqual(value, target)
+
+        with self.subTest(msg='[II, XI, IY, ZZ] are not qubit-wise commutative'):
+            value = pauli.is_commutative(qubit_wise=True)
+            target = False
+            self.assertEqual(value, target)
+
 
 if __name__ == '__main__':
     unittest.main()

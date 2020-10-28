@@ -798,6 +798,26 @@ class PauliTable(BaseOperator):
             ret2 = array2
         return ret1, ret2
 
+    def is_commutative(self, qubit_wise: bool = False) -> bool:
+        """Return True if Pauli Table is commutative.
+
+        Args:
+            qubit_wise (bool): if True, return qubit-wise commutativity.
+
+        Returns:
+            bool: whether Pauli Table is (qubit-wise) commutative or not.
+        """
+        mat1 = np.array([op.Z[0] + 2 * op.X[0] for op in self], dtype=np.int8)
+        mat2 = mat1[:, None]
+        mat3 = (mat1 * mat2) * (mat1 - mat2)
+        if qubit_wise:
+            return (mat3 == 0).all()
+        else:
+            mat4 = mat3.copy()
+            mat4[mat3 == 0] = 1
+            mat4[mat3 != 0] = -1
+            return (np.multiply.reduce(mat4, axis=2) == 1).all()
+
     # ---------------------------------------------------------------------
     # Representation conversions
     # ---------------------------------------------------------------------
