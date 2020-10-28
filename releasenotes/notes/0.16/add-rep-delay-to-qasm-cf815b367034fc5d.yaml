@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    A ``rep_delay`` parameter has been added to the
+    :class:`~qiskit.qobj.QasmQobj` class under the run configuration,
+    :class:`~qiskit.qobj.QasmQobjConfig`. This parameter is used to denote the
+    time between program executions. It must be chosen from the backend range
+    given by the :class:`~qiskit.providers.models.BackendConfiguration`
+    method
+    :meth:`~qiskit.providers.models.BackendConfiguration.rep_delay_range`. If a
+    value is not provided a backend default,
+    :attr:`qiskit.providers.models.BackendConfiguration.default_rep_delay`,
+    will be used. ``rep_delay`` will only work on backends which allow for
+    dynamic repetition time. This is can be checked with the
+    :class:`~qiskit.providers.models.BackendConfiguration` property
+    :attr:`~qiskit.providers.models.BackendConfiguration.dynamic_reprate_enabled`.
+  - |
+    The ``qobj_schema.json`` JSON Schema file in :mod:`qiskit.schemas` has
+    been updated to include the ``rep_delay`` as an optional configuration
+    property for QASM Qobjs.
+  - |
+    The ``backend_configuration_schema.json`` JSON Schema file in
+    mod:`qiskit.schemas` has been updated to include ``dynamic_reprate_enabled``,
+    ``rep_delay_range`` and ``default_rep_delay`` as optional properties for a QASM
+    backend configuration payload.

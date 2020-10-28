@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Previously, calling :meth:`~qiskit.circuit.library.BlueprintCircuit.inverse`
+    on a :class:`~qiskit.circuit.library.BlueprintCircuit` object
+    could fail if its internal data property was not yet populated. This has
+    been fixed so that the calling
+    :meth:`~qiskit.circuit.library.BlueprintCircuit.inverse` will populate
+    the internal data before generating the inverse of the circuit.
+    Fixes `#5140 <https://github.com/Qiskit/qiskit-terra/issues/5140>`__
