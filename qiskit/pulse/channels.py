@@ -90,7 +90,7 @@ class Channel(metaclass=ABCMeta):
         """Return a new channel with the input Parameter assigned to value.
 
         Args:
-            parameter (Parameter): A parameter in this expression whose value will be updated.
+            parameter: A parameter in this expression whose value will be updated.
             value: The new value to bind to.
 
         Returns:
