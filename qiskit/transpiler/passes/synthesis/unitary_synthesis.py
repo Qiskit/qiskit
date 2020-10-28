@@ -47,6 +47,8 @@ def _choose_euler_basis(basis_gates):
 
     euler_basis_names = {
         'U3': ['u3'],
+        'U': ['u'],
+        'PSX': ['p', 'sx'],
         'U1X': ['u1', 'rx'],
         'RR': ['r'],
         'ZYZ': ['rz', 'ry'],
@@ -84,7 +86,6 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
-
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
 

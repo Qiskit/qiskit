@@ -22,15 +22,18 @@ from unittest.mock import patch
 from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
 
+import numpy as np
+
+from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.circuit.library import CXGate
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate
 from qiskit.test import QiskitTestCase, Path
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
+from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -133,7 +136,7 @@ class TestTranspile(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         for i, _ in enumerate(qr):
             for j in range(i):
-                circuit.cu1(math.pi / float(2 ** (i - j)), qr[i], qr[j])
+                circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
         coupling_map = FakeMelbourne().configuration().coupling_map
@@ -197,7 +200,7 @@ class TestTranspile(QiskitTestCase):
         qc.h(q[0])
         qc.h(q[5])
         qc.cx(q[0], q[5])
-        qc.u1(2, q[5])
+        qc.p(2, q[5])
         qc.cx(q[0], q[5])
         qc.h(q[0])
         qc.h(q[5])
@@ -261,56 +264,56 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(name='qr', size=11)
         cr = ClassicalRegister(name='qc', size=11)
         circuit = QuantumCircuit(qr, cr)
-        circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
-        circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
+        circuit.u(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
+        circuit.u(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
         circuit.cx(qr[5], qr[3])
-        circuit.u1(0.856768317675967, qr[3])
-        circuit.u3(-3.3911273825190915, 0.0, 0.0, qr[5])
+        circuit.p(0.856768317675967, qr[3])
+        circuit.u(-3.3911273825190915, 0.0, 0.0, qr[5])
         circuit.cx(qr[3], qr[5])
-        circuit.u3(2.159209321625547, 0.0, 0.0, qr[5])
+        circuit.u(2.159209321625547, 0.0, 0.0, qr[5])
         circuit.cx(qr[5], qr[3])
-        circuit.u3(0.30949966910232335, 1.1706201763833217, 1.738408691990081, qr[3])
-        circuit.u3(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, qr[5])
-        circuit.u3(1.330181833806101, 0.6003162754946363, -3.181264980452862, qr[7])
-        circuit.u3(0.4885914820775024, 3.133297443244865, -2.794457469189904, qr[8])
+        circuit.u(0.30949966910232335, 1.1706201763833217, 1.738408691990081, qr[3])
+        circuit.u(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, qr[5])
+        circuit.u(1.330181833806101, 0.6003162754946363, -3.181264980452862, qr[7])
+        circuit.u(0.4885914820775024, 3.133297443244865, -2.794457469189904, qr[8])
         circuit.cx(qr[8], qr[7])
-        circuit.u1(2.2196187596178616, qr[7])
-        circuit.u3(-3.152367609631023, 0.0, 0.0, qr[8])
+        circuit.p(2.2196187596178616, qr[7])
+        circuit.u(-3.152367609631023, 0.0, 0.0, qr[8])
         circuit.cx(qr[7], qr[8])
-        circuit.u3(1.2646005789809263, 0.0, 0.0, qr[8])
+        circuit.u(1.2646005789809263, 0.0, 0.0, qr[8])
         circuit.cx(qr[8], qr[7])
-        circuit.u3(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, qr[7])
-        circuit.u3(0.9267400575390405, 2.0526277839695153, 2.034202361069533, qr[8])
-        circuit.u3(2.550304293455634, 3.8250017126569698, -2.1351609599720054, qr[1])
-        circuit.u3(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, qr[4])
+        circuit.u(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, qr[7])
+        circuit.u(0.9267400575390405, 2.0526277839695153, 2.034202361069533, qr[8])
+        circuit.u(2.550304293455634, 3.8250017126569698, -2.1351609599720054, qr[1])
+        circuit.u(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, qr[4])
         circuit.cx(qr[4], qr[1])
-        circuit.u1(2.1899329069137394, qr[1])
-        circuit.u3(-1.8371715243173294, 0.0, 0.0, qr[4])
+        circuit.p(2.1899329069137394, qr[1])
+        circuit.u(-1.8371715243173294, 0.0, 0.0, qr[4])
         circuit.cx(qr[1], qr[4])
-        circuit.u3(0.4717053496327104, 0.0, 0.0, qr[4])
+        circuit.u(0.4717053496327104, 0.0, 0.0, qr[4])
         circuit.cx(qr[4], qr[1])
-        circuit.u3(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, qr[1])
-        circuit.u3(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, qr[4])
-        circuit.u3(2.4204244021892807, -2.211701932616922, 3.8297006565735883, qr[10])
-        circuit.u3(0.36660280497727255, 3.273119149343493, -1.8003362351299388, qr[6])
+        circuit.u(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, qr[1])
+        circuit.u(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, qr[4])
+        circuit.u(2.4204244021892807, -2.211701932616922, 3.8297006565735883, qr[10])
+        circuit.u(0.36660280497727255, 3.273119149343493, -1.8003362351299388, qr[6])
         circuit.cx(qr[6], qr[10])
-        circuit.u1(1.067395863586385, qr[10])
-        circuit.u3(-0.7044917541291232, 0.0, 0.0, qr[6])
+        circuit.p(1.067395863586385, qr[10])
+        circuit.u(-0.7044917541291232, 0.0, 0.0, qr[6])
         circuit.cx(qr[10], qr[6])
-        circuit.u3(2.1830003849921527, 0.0, 0.0, qr[6])
+        circuit.u(2.1830003849921527, 0.0, 0.0, qr[6])
         circuit.cx(qr[6], qr[10])
-        circuit.u3(2.1538343756723917, 2.2653381826084606, -3.550087952059485, qr[10])
-        circuit.u3(1.307627685019188, -0.44686656993522567, -2.3238098554327418, qr[6])
-        circuit.u3(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, qr[9])
-        circuit.u3(2.1665254613904126, -1.281337664694577, -1.2424905413631209, qr[0])
+        circuit.u(2.1538343756723917, 2.2653381826084606, -3.550087952059485, qr[10])
+        circuit.u(1.307627685019188, -0.44686656993522567, -2.3238098554327418, qr[6])
+        circuit.u(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, qr[9])
+        circuit.u(2.1665254613904126, -1.281337664694577, -1.2424905413631209, qr[0])
         circuit.cx(qr[0], qr[9])
-        circuit.u1(2.6209599970201007, qr[9])
-        circuit.u3(0.04680566321901303, 0.0, 0.0, qr[0])
+        circuit.p(2.6209599970201007, qr[9])
+        circuit.u(0.04680566321901303, 0.0, 0.0, qr[0])
         circuit.cx(qr[9], qr[0])
-        circuit.u3(1.7728411151289603, 0.0, 0.0, qr[0])
+        circuit.u(1.7728411151289603, 0.0, 0.0, qr[0])
         circuit.cx(qr[0], qr[9])
-        circuit.u3(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, qr[9])
-        circuit.u3(1.7369112924273789, -4.239660866163805, 1.0623389015296005, qr[0])
+        circuit.u(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, qr[9])
+        circuit.u(1.7369112924273789, -4.239660866163805, 1.0623389015296005, qr[0])
         circuit.barrier(qr)
         circuit.measure(qr, cr)
 
@@ -418,7 +421,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(theta, qr[0])
+        expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -435,7 +438,7 @@ class TestTranspile(QiskitTestCase):
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(theta, qr[0])
+        expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -452,7 +455,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(square, qr[0])
+        expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -470,7 +473,7 @@ class TestTranspile(QiskitTestCase):
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(square, qr[0])
+        expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
@@ -566,9 +569,9 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.u3(1.5708, 0, 0, qr[0])
+        expected.append(U3Gate(1.5708, 0, 0), [qr[0]])
         expected.reset(qr[0])
-        expected.u3(1.5708, 3.1416, 0, qr[0])
+        expected.append(U3Gate(1.5708, 3.1416, 0), [qr[0]])
 
         after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
         self.assertEqual(after, expected)
@@ -617,7 +620,7 @@ class TestTranspile(QiskitTestCase):
         qc.x(qr[0])
         qc.t(qr[0])
 
-        layout = [4, 5, 6, 8, 9, 10]
+        layout = [4]
 
         cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9],
                 [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
@@ -690,7 +693,6 @@ class TestTranspile(QiskitTestCase):
         qc.ry(math.pi / 4, 1)
         qc.rxx(math.pi / 4, 0, 1)
         qc.measure([0, 1], [0, 1])
-
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertEqual(qc, out)
@@ -745,7 +747,6 @@ class TestTranspile(QiskitTestCase):
     )
     def test_translation_method_synthesis(self, optimization_level, basis_gates):
         """Verify translation_method='synthesis' gets to the basis."""
-
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
@@ -756,6 +757,160 @@ class TestTranspile(QiskitTestCase):
 
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
+    def test_transpiled_custom_gates_calibration(self):
+        """Test if transpiled calibrations is equal to custom gates circuit calibrations."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(custom_180, [0], q0_x180)
+        circ.add_calibration(custom_90, [1], q1_y90)
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(list(transpiled_circuit.count_ops().keys()), ['mycustom'])
+        self.assertEqual(list(transpiled_circuit.count_ops().values()), [2])
+
+    def test_transpiled_basis_gates_calibrations(self):
+        """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration("h", [0], q0_x180)
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+
+    def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
+        """Test if the custom, non calibrated gate raises QiskitError."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+
+        circ = QuantumCircuit(2)
+        circ.append(custom_180, [0])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration(custom_180, [1], q0_x180)
+
+        backend = FakeAlmaden()
+        with self.assertRaises(QiskitError):
+            transpile(circ, backend=backend)
+
+    def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
+        """Test if the non-basis gates are transpiled if they are on different qubit that
+        is not calibrated."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.h(1)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration("h", [1], q0_x180)
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {'u2', 'h'})
+
+    def test_transpile_subset_of_calibrated_gates(self):
+        """Test transpiling a circuit with both basis gate (not-calibrated) and
+        a calibrated gate on different qubits."""
+        x_180 = Gate('mycustom', 1, [3.14])
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(x_180, [0])
+        circ.h(1)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        circ.add_calibration(x_180, [0], q0_x180)
+        circ.add_calibration('h', [1], q0_x180)  # 'h' is calibrated on qubit 1
+
+        transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
+
+    def test_parameterized_calibrations_transpile(self):
+        """Check that gates can be matched to their calibrations before and after parameter
+        assignment."""
+        tau = Parameter('tau')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [2*3.14*tau]), [0])
+
+        def q0_rxt(tau):
+            with pulse.build() as q0_rxt:
+                pulse.play(pulse.library.Gaussian(20, 0.4*tau, 3.0), pulse.DriveChannel(0))
+            return q0_rxt
+        circ.add_calibration('rxt', [0], q0_rxt(tau), [2*3.14*tau])
+
+        transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
+        circ = circ.assign_parameters({tau: 1})
+        transpiled_circ = transpile(circ, FakeAlmaden())
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
+
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay(self, optimization_level):
+        """Verify a circuit with delay can transpile to a scheduled circuit."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, scheduling_method='alap', basis_gates=['h', 'cx'],
+                        instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)],
+                        optimization_level=optimization_level)
+
+        self.assertEqual(out.duration, 1200)
+
+    @data(1, 2, 3)
+    def test_no_infinite_loop(self, optimization_level):
+        """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
+
+        qc = QuantumCircuit(1)
+        qc.ry(0.2, 0)
+
+        out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
+                        optimization_level=optimization_level)
+
+        expected = QuantumCircuit(1)
+        expected.sx(0)
+        expected.p(np.pi + 0.2, 0)
+        expected.sx(0)
+        expected.p(np.pi, 0)
+
+        self.assertEqual(out, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -769,6 +924,7 @@ class TestLogTranspile(QiskitTestCase):
     """Testing the log_transpile option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
@@ -813,7 +969,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         transpiled = passmanager.run([qc, qc])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
-        expected.u2(0, 3.141592653589793, 0)
+        expected.append(U2Gate(0, 3.141592653589793), [0])
         expected.cx(0, 1)
 
         self.assertEqual(len(transpiled), 2)

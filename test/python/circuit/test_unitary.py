@@ -32,10 +32,6 @@ from qiskit.transpiler.passes import CXCancellation
 class TestUnitaryGate(QiskitTestCase):
     """Tests for the Unitary class."""
 
-    def setUp(self):
-        """Setup."""
-        pass
-
     def test_set_matrix(self):
         """Test instantiation"""
         try:
@@ -148,6 +144,23 @@ class TestUnitaryCircuit(QiskitTestCase):
         for qubit in dnode.qargs:
             self.assertIn(qubit.index, [0, 1, 3])
         assert_allclose(dnode.op.to_matrix(), matrix)
+
+    def test_1q_unitary_int_qargs(self):
+        """test single qubit unitary matrix with 'int' and 'list of ints' qubits argument"""
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmaz = numpy.array([[1, 0], [0, -1]])
+        # new syntax
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.unitary(sigmax, 0)
+        qc.unitary(sigmax, qr[1])
+        qc.unitary(sigmaz, [0, 1])
+        # expected circuit
+        qc_target = QuantumCircuit(qr)
+        qc_target.append(UnitaryGate(sigmax), [0])
+        qc_target.append(UnitaryGate(sigmax), [qr[1]])
+        qc_target.append(UnitaryGate(sigmaz), [[0, 1]])
+        self.assertEqual(qc, qc_target)
 
     def test_qobj_with_unitary_matrix(self):
         """test qobj output with unitary matrix"""
@@ -273,3 +286,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
         self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))
+
+    def test_unitary_decomposition_via_definition(self):
+        """Test decomposition for 1Q unitary via definition."""
+        mat = numpy.array([[0, 1], [1, 0]])
+        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)

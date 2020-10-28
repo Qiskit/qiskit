@@ -35,7 +35,6 @@ class CommutationAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self.gates_on_wire = {}
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -96,7 +95,7 @@ def _commute(node1, node2, cache):
     if node1.type != "op" or node2.type != "op":
         return False
 
-    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy"}
+    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
             for nd in [node1, node2]]):
         return False
 

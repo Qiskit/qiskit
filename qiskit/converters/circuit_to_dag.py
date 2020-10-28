@@ -46,6 +46,7 @@ def circuit_to_dag(circuit):
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
     dagcircuit.global_phase = circuit.global_phase
+    dagcircuit.calibrations = circuit.calibrations
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
@@ -54,4 +55,7 @@ def circuit_to_dag(circuit):
 
     for instruction, qargs, cargs in circuit.data:
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
+
+    dagcircuit.duration = circuit.duration
+    dagcircuit.unit = circuit.unit
     return dagcircuit
