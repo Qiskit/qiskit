@@ -60,7 +60,9 @@ class RXGate(Gate):
         rules = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -96,17 +98,7 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-class CRXMeta(type):
-    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
-
-    Can be removed when CrxGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRXGate, CrxGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRXGate(ControlledGate, metaclass=CRXMeta):
+class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
 
     **Circuit symbol:**
@@ -164,8 +156,8 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRX gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = RXGate(theta)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=RXGate(theta))
 
     def _define(self):
         """
@@ -191,16 +183,18 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
-        """Return inverse RX gate (i.e. with the negative rotation angle)."""
-        return CRXGate(-self.params[0])
+        """Return inverse CRX gate (i.e. with the negative rotation angle)."""
+        return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRX gate."""
-        half_theta = self.params[0] / 2
+        half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         isin = 1j * numpy.sin(half_theta)
         if self.ctrl_state:
@@ -215,15 +209,3 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
                                 [-isin, 0, cos, 0],
                                 [0, 0, 0, 1]],
                                dtype=complex)
-
-
-class CrxGate(CRXGate, metaclass=CRXMeta):
-    """The deprecated CRXGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrxGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)

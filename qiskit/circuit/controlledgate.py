@@ -12,13 +12,16 @@
 
 """Controlled unitary gate."""
 
+import copy
 from typing import List, Optional, Union
+
 from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from .quantumregister import QuantumRegister
+from ._utils import _ctrl_state_to_int
 
 # pylint: disable=missing-return-doc
 
@@ -29,7 +32,8 @@ class ControlledGate(Gate):
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None, num_ctrl_qubits: Optional[int] = 1,
                  definition: Optional['QuantumCircuit'] = None,
-                 ctrl_state: Optional[Union[int, str]] = None):
+                 ctrl_state: Optional[Union[int, str]] = None,
+                 base_gate: Optional[Gate] = None):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
 
@@ -46,6 +50,7 @@ class ControlledGate(Gate):
                 a bitstring (e.g. '111'). If specified as a bitstring the length
                 must equal num_ctrl_qubits, MSB on left. If None, use
                 2**num_ctrl_qubits-1.
+            base_gate: Gate object to be controlled.
 
         Raises:
             CircuitError: If ``num_ctrl_qubits`` >= ``num_qubits``.
@@ -82,18 +87,11 @@ class ControlledGate(Gate):
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw()
         """
+        self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
         self._num_ctrl_qubits = 1
         self.num_ctrl_qubits = num_ctrl_qubits
-        self.base_gate = None
-        if definition:
-            self.definition = definition
-            if len(definition) == 1:
-                base_gate = definition.data[0][0]
-                if isinstance(base_gate, ControlledGate):
-                    self.base_gate = base_gate.base_gate
-                else:
-                    self.base_gate = base_gate
+        self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
 
@@ -169,25 +167,46 @@ class ControlledGate(Gate):
         Raises:
             CircuitError: ctrl_state is invalid.
         """
-        if isinstance(ctrl_state, str):
-            try:
-                assert len(ctrl_state) == self.num_ctrl_qubits
-                ctrl_state = int(ctrl_state, 2)
-            except ValueError:
-                raise CircuitError('invalid control bit string: ' + ctrl_state)
-            except AssertionError:
-                raise CircuitError('invalid control bit string: length != '
-                                   'num_ctrl_qubits')
-        if isinstance(ctrl_state, int):
-            if 0 <= ctrl_state < 2**self.num_ctrl_qubits:
-                self._ctrl_state = ctrl_state
-            else:
-                raise CircuitError('invalid control state specification')
-        elif ctrl_state is None:
-            self._ctrl_state = 2**self.num_ctrl_qubits - 1
+        self._ctrl_state = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
+
+    @property
+    def params(self):
+        """Get parameters from base_gate.
+
+        Returns:
+            list: List of gate parameters.
+
+        Raises:
+            CircuitError: Controlled gate does not define a base gate
+        """
+        if self.base_gate:
+            return self.base_gate.params
         else:
-            raise CircuitError('invalid control state specification: {}'.format(
-                repr(ctrl_state)))
+            raise CircuitError('Controlled gate does not define base gate '
+                               'for extracting params')
+
+    @params.setter
+    def params(self, parameters):
+        """Set base gate parameters.
+
+        Args:
+            parameters (list): The list of parameters to set.
+
+        Raises:
+            CircuitError: If controlled gate does not define a base gate.
+        """
+        if self.base_gate:
+            self.base_gate.params = parameters
+        else:
+            raise CircuitError('Controlled gate does not define base gate '
+                               'for extracting params')
+
+    def __deepcopy__(self, _memo=None):
+        cpy = copy.copy(self)
+        cpy.base_gate = self.base_gate.copy()
+        if self._definition:
+            cpy._definition = copy.deepcopy(self._definition, _memo)
+        return cpy
 
     @property
     def _open_ctrl(self) -> bool:

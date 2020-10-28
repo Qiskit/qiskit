@@ -169,7 +169,7 @@ class TwoQubitWeylDecomposition:
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
             state = np.random.default_rng(i)
             M2real = state.normal()*M2.real + state.normal()*M2.imag
-            _, P = la.eigh(M2real)
+            _, P = np.linalg.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
                 break
@@ -287,7 +287,7 @@ class TwoQubitBasisDecomposer():
         gate (Gate): Two-qubit gate to be used in the KAK decomposition.
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
+            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'RR']. Default 'U3'.
     """
 
     def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):

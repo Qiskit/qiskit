@@ -63,7 +63,9 @@ class HGate(Gate):
         rules = [
             (U2Gate(0, pi), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -141,12 +143,11 @@ class CHGate(ControlledGate):
 
             CH\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes H =
-                \frac{1}{\sqrt{2}}
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & 1 & 1 \\
-                    0 & 0 & 1 & -1
+                    0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\
+                    0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
@@ -165,8 +166,7 @@ class CHGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CH gate."""
         super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = HGate()
+                         ctrl_state=ctrl_state, base_gate=HGate())
 
     def _define(self):
         """
@@ -194,12 +194,14 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CH gate (itself)."""
-        return CHGate()  # self-inverse
+        return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""

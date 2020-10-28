@@ -171,7 +171,7 @@ class _LayerSpooler(list):
 
     def __init__(self, dag, justification):
         """Create spool"""
-        super(_LayerSpooler, self).__init__()
+        super().__init__()
         self.dag = dag
         self.qregs = dag.qubits
         self.justification = justification
@@ -307,8 +307,11 @@ def _bloch_multivector_data(state):
     pauli_singles = PauliTable.from_labels(['X', 'Y', 'Z'])
     bloch_data = []
     for i in range(num):
-        paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=np.bool)).insert(
-            i, pauli_singles, qubit=True)
+        if num > 1:
+            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=np.bool)).insert(
+                i, pauli_singles, qubit=True)
+        else:
+            paulis = pauli_singles
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
         bloch_data.append(bloch_state)
     return bloch_data

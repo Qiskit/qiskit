@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Callable, Union, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
-from ..exceptions import PulseError
-from .pulse import Pulse
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Waveform(Pulse):
@@ -93,11 +94,18 @@ class Waveform(Pulse):
 
         return samples
 
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Waveform':
+        # Waveforms don't accept parameters
+        return self
+
     def draw(self, dt: float = 1,
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             draw_title: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -107,7 +115,8 @@ class Waveform(Pulse):
             interp_method: A function for interpolation.
             scale: Relative visual scaling of waveform amplitudes.
             interactive: When set true show the circuit in a new window.
-                         (This depends on the matplotlib backend being used.)
+                (This depends on the matplotlib backend being used.)
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
