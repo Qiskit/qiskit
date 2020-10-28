@@ -25,7 +25,7 @@ from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse import instructions as instructions_
+from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.util import is_main_process
@@ -47,8 +47,8 @@ class Schedule(abc.ABC):
     prefix = 'sched'
 
     def __init__(self,
-                 *schedules: Union[Union['Schedule', 'instructions_.Instruction'],
-                                   Tuple[int, Union['Schedule', 'instructions_.Instruction']]],
+                 *schedules: Union[Union['Schedule', Instruction],
+                                   Tuple[int, Union['Schedule', Instruction]]],
                  name: Optional[str] = None):
         """Create an empty schedule.
 
@@ -107,7 +107,7 @@ class Schedule(abc.ABC):
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, Union['Schedule', 'instructions_.Instruction']], ...]:
+    def _children(self) -> Tuple[Tuple[int, Union['Schedule', Instruction]], ...]:
         """Return the child``NamedValues``s of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -123,7 +123,7 @@ class Schedule(abc.ABC):
         """Get the time-ordered instructions from self.
 
         ReturnType:
-            Tuple[Tuple[int, 'instructions_.Instruction'], ...]
+            Tuple[Tuple[int, Instruction], ...]
         """
 
         def key(time_inst_pair):
@@ -244,7 +244,7 @@ class Schedule(abc.ABC):
     # pylint: disable=arguments-differ
     def insert(self,
                start_time: int,
-               schedule: Union['Schedule', 'instructions_.Instruction'],
+               schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'Schedule':
@@ -263,7 +263,7 @@ class Schedule(abc.ABC):
 
     def _mutable_insert(self,
                         start_time: int,
-                        schedule: Union['Schedule', 'instructions_.Instruction']
+                        schedule: Union['Schedule', Instruction]
                         ) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
@@ -277,7 +277,7 @@ class Schedule(abc.ABC):
 
     def _immutable_insert(self,
                           start_time: int,
-                          schedule: Union['Schedule', 'instructions_.Instruction'],
+                          schedule: Union['Schedule', Instruction],
                           name: Optional[str] = None,
                           ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -294,7 +294,7 @@ class Schedule(abc.ABC):
         return new_sched
 
     # pylint: disable=arguments-differ
-    def append(self, schedule: Union['Schedule', 'instructions_.Instruction'],
+    def append(self, schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
@@ -391,7 +391,7 @@ class Schedule(abc.ABC):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable['instructions_.Instruction']] = None,
+                          instruction_types: Optional[Iterable[Instruction]] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -473,7 +473,7 @@ class Schedule(abc.ABC):
 
     def _add_timeslots(self,
                        time: int,
-                       schedule: Union['Schedule', 'instructions_.Instruction']) -> None:
+                       schedule: Union['Schedule', Instruction]) -> None:
         """Update all time tracking within this schedule based on the given schedule.
 
         Args:
@@ -522,7 +522,7 @@ class Schedule(abc.ABC):
 
     def _remove_timeslots(self,
                           time: int,
-                          schedule: Union['Schedule', 'instructions_.Instruction']):
+                          schedule: Union['Schedule', Instruction]):
         """Delete the timeslots if present for the respective schedule component.
 
         Args:
@@ -560,8 +560,8 @@ class Schedule(abc.ABC):
 
     def _replace_timeslots(self,
                            time: int,
-                           old: Union['Schedule', 'instructions_.Instruction'],
-                           new: Union['Schedule', 'instructions_.Instruction']):
+                           old: Union['Schedule', Instruction],
+                           new: Union['Schedule', Instruction]):
         """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
 
         Args:
@@ -573,8 +573,8 @@ class Schedule(abc.ABC):
         self._add_timeslots(time, new)
 
     def replace(self,
-                old: Union['Schedule', 'instructions_.Instruction'],
-                new: Union['Schedule', 'instructions_.Instruction'],
+                old: Union['Schedule', Instruction],
+                new: Union['Schedule', Instruction],
                 inplace: bool = False,
                 ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
@@ -749,7 +749,7 @@ class Schedule(abc.ABC):
                                           show_framechange_channels=show_framechange_channels,
                                           draw_title=draw_title)
 
-    def __eq__(self, other: Union['Schedule', 'instructions_.Instruction']) -> bool:
+    def __eq__(self, other: Union['Schedule', Instruction]) -> bool:
         """Test if two ScheduleComponents are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -786,11 +786,11 @@ class Schedule(abc.ABC):
 
         return True
 
-    def __add__(self, other: Union['Schedule', 'instructions_.Instruction']) -> 'Schedule':
+    def __add__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: Union['Schedule', 'instructions_.Instruction']) -> 'Schedule':
+    def __or__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
