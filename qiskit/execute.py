@@ -324,22 +324,3 @@ def _check_conflicting_argument(**kargs):
     if conflicting_args:
         raise QiskitError("The parameters pass_manager conflicts with the following "
                           "parameter(s): {}.".format(', '.join(conflicting_args)))
-
-
-def _any_delay_in(circuits):
-    """Check if the circuits have any delay instruction.
-
-    Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): Circuits to be checked
-
-    Returns:
-        bool: True if there is any delay in either of the circuit, otherwise False.
-    """
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-    has_delay = False
-    for qc in circuits:
-        if 'delay' in qc.count_ops():
-            has_delay = True
-            break
-    return has_delay
