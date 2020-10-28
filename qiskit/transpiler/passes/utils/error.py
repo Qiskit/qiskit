@@ -32,6 +32,9 @@ class Error(AnalysisPass):
               * 'raise': Raises a `TranspilerError` exception with msg
               * 'warn': Raises a non-fatal warning with msg
               * 'log': logs in `logging.getLogger(__name__)`
+
+        Raises:
+            TranspilerError: if action is not valid.
         """
         super().__init__()
         self.msg = msg
