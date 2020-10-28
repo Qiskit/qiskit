@@ -190,7 +190,7 @@ class Instruction(ABC):
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of self
-        
+
         Returns:
             Schedule: The shifted schedule.
         """
