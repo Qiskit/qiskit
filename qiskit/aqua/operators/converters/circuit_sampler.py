@@ -266,14 +266,14 @@ class CircuitSampler(ConverterBase):
                 start_time = time()
                 ready_circs = self._prepare_parameterized_run_config(param_bindings)
                 end_time = time()
-                logger.info('Parameter conversion %.5f (ms)', (end_time - start_time) * 1000)
+                logger.debug('Parameter conversion %.5f (ms)', (end_time - start_time) * 1000)
             else:
                 start_time = time()
                 ready_circs = [circ.assign_parameters(binding)
                                for circ in self._transpiled_circ_cache
                                for binding in param_bindings]
                 end_time = time()
-                logger.info('Parameter binding %.5f (ms)', (end_time - start_time) * 1000)
+                logger.debug('Parameter binding %.5f (ms)', (end_time - start_time) * 1000)
         else:
             ready_circs = self._transpiled_circ_cache
 
