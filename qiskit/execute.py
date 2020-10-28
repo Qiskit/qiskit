@@ -21,7 +21,6 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 import logging
 from time import time
-from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
