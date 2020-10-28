@@ -509,13 +509,14 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
-        # Check registers in LHS are compatible with RHS
-        self._check_compatible_regs(rhs)
-
         warnings.warn("The QuantumCircuit.combine() method is being deprecated."
                       "Use the compose() method which is more flexible w.r.t "
                       "circuit register compatibility.", DeprecationWarning,
                       stacklevel=2)
+
+        # Check registers in LHS are compatible with RHS
+        self._check_compatible_regs(rhs)
+
         return self.compose(rhs)
 
     def extend(self, rhs):
@@ -537,13 +538,14 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
-        # Check registers in LHS are compatible with RHS
-        self._check_compatible_regs(rhs)
-
-        warnings.warn("The QuantumCircuit.extend() method is being deprecated."
-                      "Use the compose(inplace=True) method which is more flexible w.r.t "
+        warnings.warn("The QuantumCircuit.extend() method is being deprecated. Use the "
+                      "compose() (potentially with the inplace=True argument) and tensor() "
+                      "methods which are more flexible w.r.t "
                       "circuit register compatibility.", DeprecationWarning,
                       stacklevel=2)
+
+        # Check registers in LHS are compatible with RHS
+        self._check_compatible_regs(rhs)
 
         # Add new registers
         for element in rhs.qregs:
