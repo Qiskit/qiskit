@@ -163,15 +163,54 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_consistent_with_quantum_info(self):
         """Test that the ordering is consistent with quantum_info's Operator."""
-        x = QuantumCircuit(1)
-        x.x(0)
 
-        i = QuantumCircuit(1)
+        with self.subTest(msg='simple, single register example'):
+            x = QuantumCircuit(1)
+            x.x(0)
 
-        circuit = x.tensor(i)
-        operator = Operator(x).tensor(Operator(i))
+            i = QuantumCircuit(1)
 
-        self.assertEqual(Operator(circuit), operator)
+            circuit = x.tensor(i)
+            operator = Operator(x).tensor(Operator(i))
+
+            self.assertEqual(Operator(circuit), operator)
+
+        with self.subTest(msg='multi register example'):
+            qrs = [QuantumRegister(1) for _ in range(6)]
+
+            top = QuantumCircuit(*qrs[:4])
+            top.h(0)
+            top.x(1)
+            top.h(1)
+            top.ccx(0, 1, 3)
+            top.cry(-1.2, 3, 2)
+
+            bottom = QuantumCircuit(*qrs[4:])
+            bottom.sx(0)
+            bottom.p(3.01, 0)
+            bottom.cx(0, 1)
+
+            circuit = bottom.tensor(top)
+            operator = Operator(bottom).tensor(Operator(top))
+
+            self.assertEqual(Operator(circuit), operator)
+
+        with self.subTest(msg='nested circuits'):
+            sub = QuantumCircuit(3)
+            sub.h(0)
+            sub.swap(0, 1)
+            sub.cx(1, 2)
+            sub.cx(2, 0)
+
+            larger = QuantumCircuit(4)
+            larger.h(range(3))
+            larger.append(sub.to_instruction(), [3, 2, 1])
+            larger.append(sub.control(), [0, 1, 2, 3])
+
+            circuit = larger.tensor(larger)
+            operator = Operator(larger).tensor(Operator(larger))
+
+            self.assertEqual(Operator(circuit), operator)
 
 
 if __name__ == '__main__':
