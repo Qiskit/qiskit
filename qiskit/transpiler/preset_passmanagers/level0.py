@@ -122,8 +122,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
     elif routing_method == 'none':
-        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. CheckMap Error: '
-                            '{check_map_msg}', action='raise')]
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
