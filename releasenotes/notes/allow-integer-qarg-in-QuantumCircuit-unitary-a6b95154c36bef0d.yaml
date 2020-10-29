@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Allow an integer, a ``Qubit`` or a list of integers as qargs
-    in `QuantumCircuit.unitary` for 1-qubit unitaries
-    similar to other standard 1-qubit gates.

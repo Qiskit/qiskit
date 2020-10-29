@@ -89,14 +89,6 @@ class UGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def _define(self):
-        """Alias for U3 until U becomes a basis gate."""
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q)
-        qc.u3(self.params[0], self.params[1], self.params[2], q[0])
-        self.definition = qc
-
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = [float(param) for param in self.params]

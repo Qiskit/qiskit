@@ -96,7 +96,7 @@ class TestGateDefinitions(QiskitTestCase):
         """Test cu1 gate matrix and definition.
         """
         circ = QuantumCircuit(2)
-        circ.cu1(1, 0, 1)
+        circ.append(CU1Gate(1), [0, 1])
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -104,7 +104,7 @@ class TestGateDefinitions(QiskitTestCase):
         """Test cu3 gate matrix and definition.
         """
         circ = QuantumCircuit(2)
-        circ.cu3(1, 1, 1, 0, 1)
+        circ.append(CU3Gate(1, 1, 1), [0, 1])
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
@@ -176,6 +176,9 @@ class TestStandardGates(QiskitTestCase):
             num_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_qubits, *float_vector)
+        elif class_name == 'PauliGate':
+            pauli_string = "IXYZ"
+            gate = gate_class(pauli_string)
         else:
             gate = gate_class(*float_vector)
 
@@ -215,6 +218,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = [np.pi/2]
                 if gate_class.__name__ in ['MSGate']:
                     params[0] = 2
+                if gate_class.__name__ in ['PauliGate']:
+                    params = ["IXYZ"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
