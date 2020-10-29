@@ -1448,11 +1448,12 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_max(self):
         """Test ParameterExpression max."""
+        from qiskit.circuit.parameterexpression import Max
         a = 1
         b = 2
         x = Parameter('x')
         y = Parameter('y')
-        expr = numpy.max(x, y)
+        expr = Max(x, y)
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), max(a, b))
 
@@ -1464,24 +1465,54 @@ class TestParameterExpressions(QiskitTestCase):
                                'cannot determine truth value of Relational',
                                max, x, y)
 
+    def test_max_with_number(self):
+        """Test ParameterExpression max."""
+        from qiskit.circuit.parameterexpression import Max
+        x = Parameter('x')
+        expr = Max(x, 1)
+        bexpr = expr.bind({x: 2})
+        self.assertEqual(int(bexpr), 2)
+
+        expr = Max(1, x)
+        bexpr = expr.bind({x: 2})
+        self.assertEqual(bexpr, 2)
+
+    def test_min_with_number(self):
+        """Test ParameterExpression max."""
+        from qiskit.circuit.parameterexpression import Min
+        x = Parameter('x')
+        expr = Min(x, 1)
+        bexpr = expr.bind({x: 2})
+        self.assertEqual(int(bexpr), 1)
+
+        expr = Min(1, x)
+        bexpr = expr.bind({x: 2})
+        self.assertEqual(bexpr, 1)
+
     def test_max_iterable_raises(self):
         """Test max of iterable of ParameterExpression raises."""
+        from qiskit.circuit.parameterexpression import Max
         x = Parameter('x')
         y = Parameter('y')
-        self.assertRaisesRegex(TypeError,
-                               'cannot determine truth value of Relational',
-                               max, [x, y])
-        self.assertRaisesRegex(TypeError,
-                               'cannot determine truth value of Relational',
-                               numpy.max, [x, y])
+        self.assertRaises(TypeError, Max, [x, y])
+        self.assertRaises(TypeError, numpy.max, [x, y])
+
+    def test_min_iterable_raises(self):
+        """Test min of iterable of ParameterExpression raises."""
+        from qiskit.circuit.parameterexpression import Min
+        x = Parameter('x')
+        y = Parameter('y')
+        self.assertRaises(TypeError, Min, [x, y])
+        self.assertRaises(TypeError, numpy.min, [x, y])
 
     def test_min(self):
         """Test ParameterExpression min."""
+        from qiskit.circuit.parameterexpression import Min
         a = 1
         b = 2
         x = Parameter('x')
         y = Parameter('y')
-        expr = numpy.min(x, y)
+        expr = Min(x, y)
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), min(a, b))
 
@@ -1521,7 +1552,131 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertFalse(bool(expr.bind({x: 2, y: 1})))
         self.assertTrue(bool(expr.bind({x: 1, y: 1})))
 
+    def test_piecewise(self):
+        """Test piecewise ParameterExpression"""
+        from qiskit.circuit.parameterexpression import Piecewise
+        x = Parameter('x')
+        expr1 = x + 1
+        expr2 = 5 * x
+        cond1 = (x > 0) & (x < 3)
+        cond2 = x >= 3
+        pexpr = Piecewise((expr1, cond1), (expr2, cond2))
+        self.assertEqual(pexpr.bind({x: 2}), 3)
+        self.assertEqual(pexpr.bind({x: 4}), 20)
 
+    def test_piecewise_catch(self):
+        """Test piecewise ParameterExpression with catch-all"""
+        from qiskit.circuit.parameterexpression import Piecewise
+        x = Parameter('x')
+        expr1 = x + 1
+        expr2 = 5 * x
+        cond1 = (x > 0) & (x < 3)
+        cond2 = x >= 3
+        expr3 = x
+        cond3 = True
+        pexpr = Piecewise((expr1, cond1), (expr2, cond2), (expr3, cond3))
+        self.assertEqual(pexpr.bind({x: -1}), -1)
+
+    def test_Eq(self):
+        """Test Equality expression."""
+        from qiskit.circuit.parameterexpression import Eq
+        x = Parameter('x')
+        expr1 = 2 * x + 1
+        expr2 = x + 5
+        self.assertIsInstance(Eq(expr1, 1), ParameterExpression)
+        self.assertTrue(Eq(expr1, expr2).bind({x: 4}))
+        self.assertFalse(Eq(expr1, expr2).bind({x: 0}))
+
+    def test_Sign(self):
+        """Test sign of expression"""
+        from qiskit.circuit.parameterexpression import Sign
+        x = Parameter('x')
+        self.assertEqual(float(Sign(x).bind({x: 1})), 1)
+        self.assertEqual((Sign(-x).bind({x: 1})), -1)
+        self.assertEqual(float(Sign(-x).bind({x: -1})), 1)
+
+    def test_piecewise(self):
+        """Test piecewise ParameterExpression with catch-all"""
+        from qiskit.circuit.parameterexpression import Piecewise, Eq
+        x = Parameter('x')
+        y = Parameter('y')
+        expr1 = x
+        cond1 = Eq(y, 0)
+        expr2 = x / y
+        cond2 = True
+        pexpr = Piecewise((expr1, cond1), (expr2, cond2))
+        self.assertEqual(float(pexpr.bind({x: 1, y: 2})), 0.5)
+        pexpr = Piecewise((expr1, cond1), (expr2, cond2))
+        self.assertEqual(float(pexpr.bind({x: 1, y: 0})), 1)
+
+    def test_piecewise_const(self):
+        """Test piecewise ParameterExpression with catch-all"""
+        from qiskit.circuit.parameterexpression import Piecewise, Eq
+        x = Parameter('x')
+        y = Parameter('y')
+        pexpr = Piecewise((10, x > 0), (y, x <= 0))
+        self.assertEqual(float(pexpr.bind({x: 1, y: 2})), 10)
+        self.assertEqual(float(pexpr.bind({x: -1, y: 2})), 2)
+
+    def test_piecewise_gate(self):
+        """Test piecewise gate definition"""
+        from qiskit.circuit import Gate
+        from qiskit.quantum_info import Operator
+
+        class PWGate(Gate):
+
+            def __init__(self, vx, vy, vz):
+                super().__init__('pw', 1, [vx, vy, vz])                
+                
+            def _define(self):
+                from qiskit.circuit.parameterexpression import Piecewise, Eq, Ne, Sign
+                from numpy import sin, cos, arctan2, arccos, pi
+                angle = numpy.sqrt(vx*vx + vy*vy + vz*vz)
+                axis = [vx/angle, vy/angle, vz/angle]
+                vx, vy, vz = self.params
+                
+                ex, ey, ez = self.axis
+                angle = self.angle
+                qi, qj, qk, qr = ex*sin(angle/2), ey*sin(angle/2), ez*sin(angle/2), cos(angle/2)
+                angle = self.angle
+                theta_denom = -qi*qk + qr*qj
+                theta = Piecewise((arctan2(qj*qk + qr*qi, theta_denom), Ne(theta_denom, 0)),
+                                  (Sign(vx) * pi/2, Ne(vx, 0) & Eq(vy, 0) & Eq(vz, 0)),
+                                  (-angle / 2, (vz < 0) & Eq(vx, 0) & Eq(vy, 0)),
+                                  (angle / 2, True))
+                phi = arccos(qk*qk - qj*qj - qi*qi + qr*qr)
+                lam_denom = qi*qk + qr*qj
+                lam = Piecewise((arctan2(qj*qk - qr*qi, lam_denom), Ne(lam_denom, 0)),
+                                (-Sign(vx) * pi/2,  Ne(vx, 0) & Eq(vy, 0) & Eq(vz, 0)),
+                                (-angle / 2, (vz < 0) & Eq(vx, 0) & Eq(vy, 0)),
+                                (angle / 2, True))
+                qc = QuantumCircuit(1)
+                qc.global_phase = Piecewise((pi, (vy < 0) & Ne(vz, 0) & Eq(vx, 0)),
+                                            (0, True))
+                qc.rz(theta, 0)
+                qc.ry(phi, 0)
+                qc.rz(lam, 0)
+                self._definition = qc
+
+            def to_matrix(self):
+                v = numpy.asarray(self.params, dtype=float)
+                angle = numpy.sqrt(v.dot(v))
+                nx, ny, nz = v / angle
+                sin = numpy.sin(angle/2)
+                cos = numpy.cos(angle/2)
+                return numpy.array([[cos -1j * nz * sin, (-ny - 1j*nx) * sin],
+                                    [(ny - 1j*nx) * sin, cos + 1j * nz * sin]])
+        
+        vx, vy, vz = ParameterVector('vec', length=3)
+        pwgate = PWGate(vx, vy, vz)
+        #pwgate._define()
+        qc = QuantumCircuit(1)
+        qc.append(pwgate, [0])
+        qc2 = qc.assign_parameters({vx: 0, vy: 0, vz: 1})
+        print(Operator(qc2))
+        import ipdb;ipdb.set_trace()
+        self.assertEqual(Operator(pwgate.decomposition), Operator(pwgate))
+        
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
 
