@@ -34,9 +34,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.circuit.gate import Gate
-from qiskit.circuit import Instruction
-
-
 
 class InstructionScheduleMap():
     """Mapping from :py:class:`~qiskit.circuit.QuantumCircuit`
