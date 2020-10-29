@@ -24,7 +24,6 @@ from . import bad_examples as examples
 class TestParseFail(QiskitTestCase):
     """Tests bad_examples with the classicalfunction parser."""
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, 'tweedledum not available')
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""
         self.assertTrue(message in context.exception.args[0])
