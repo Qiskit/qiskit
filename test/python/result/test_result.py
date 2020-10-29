@@ -77,7 +77,7 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              data=data, header=exp_result_header)
         result = Result(results=[exp_result], **self.base_result_args)
-        expected = ("Result(backend_name='1.0.0', backend_version='1.0.0', "
+        expected = ("Result(backend_name='test_backend', backend_version='1.0.0', "
                     "qobj_id='id-123', job_id='job-123', success=True, "
                     "results=[ExperimentResult(shots=14, success=True, "
                     "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
