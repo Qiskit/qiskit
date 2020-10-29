@@ -529,3 +529,21 @@ def Piecewise(*args):
                   for expr, cond in args)
     expr = sympy.Piecewise(*sympy_args)
     return ParameterExpression(parameter_symbols, expr)
+
+
+def _sympy2qiskit(expr):
+    """
+    Convert simple sympy expressions to qiskit.
+
+    Args:
+        expr (sympy.Expr): sympy expression.
+
+    Returns:
+        ParameterExpression
+    """
+    from sympy import Expr
+    if not isinstance(expr, Expr):
+        raise TypeError('expression of type "{0}" '
+                        'is not a sympy expression'.format(expr))
+    symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
+    return ParameterExpression(symbol_map, expr)
