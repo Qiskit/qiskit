@@ -17,6 +17,8 @@ import re
 from qiskit.result import postprocess
 from qiskit import exceptions
 
+BITSTRING_REGEX = re.compile(r'^[01\s]+$')
+
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__
 # this can cause unexpected behavior and issues as the cPython dict
@@ -87,11 +89,10 @@ class Counts(dict):
                         self.int_raw = None
                         bin_data = data
                     else:
-                        bitstring_regex = re.compile(r'^[01\s]+$')
                         hex_dict = {}
                         int_dict = {}
                         for bitstring, value in data.items():
-                            if not bitstring_regex.search(bitstring):
+                            if not BITSTRING_REGEX.search(bitstring):
                                 raise exceptions.QiskitError(
                                     'Counts objects with dit strings do not '
                                     'currently support dit string formatting parameters '
@@ -148,10 +149,9 @@ class Counts(dict):
         if self.hex_raw:
             return {key.lower(): value for key, value in self.hex_raw.items()}
         else:
-            bitstring_regex = re.compile(r'^[01\s]+$')
             out_dict = {}
             for bitstring, value in self.items():
-                if not bitstring_regex.search(bitstring):
+                if not BITSTRING_REGEX.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to hexadecimal')
@@ -170,10 +170,9 @@ class Counts(dict):
         if self.int_raw:
             return self.int_raw
         else:
-            bitstring_regex = re.compile(r'^[01\s]+$')
             out_dict = {}
             for bitstring, value in self.items():
-                if not bitstring_regex.search(bitstring):
+                if not BITSTRING_REGEX.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to integer')

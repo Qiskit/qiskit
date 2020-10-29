@@ -21,6 +21,8 @@ import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
+NAME_FORMAT = re.compile('[a-z][a-zA-Z0-9_]*')
+
 
 class Register:
     """Implement a generic register."""
@@ -61,8 +63,7 @@ class Register:
             except Exception:
                 raise CircuitError("The circuit name should be castable to a string "
                                    "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
-            if name_format.match(name) is None:
+            if NAME_FORMAT.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
         self._name = name
