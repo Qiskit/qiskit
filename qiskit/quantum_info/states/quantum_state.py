@@ -450,7 +450,16 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
     @classmethod
     def _automatic_dims(cls, dims, size):
         """Check if input dimension corresponds to qubit subsystems."""
-        return BaseOperator._automatic_dims(dims, size)
+        if dims is None:
+            dims = size
+        elif np.product(dims) != size:
+            raise QiskitError("dimensions do not match size.")
+        if isinstance(dims, (int, np.integer)):
+            num_qubits = int(np.log2(dims))
+            if 2 ** num_qubits == size:
+                return num_qubits * (2,)
+            return (dims,)
+        return tuple(dims)
 
     def _set_dims(self, dims):
         """Set dimension attribute"""
