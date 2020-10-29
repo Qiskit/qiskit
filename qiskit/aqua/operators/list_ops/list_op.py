@@ -514,14 +514,19 @@ class ListOp(OperatorBase):
             The ``OperatorBase`` at index ``offset`` of ``oplist``,
             or another ListOp with the same properties as this one if offset is a slice.
         """
-        if isinstance(offset, slice):
-            return ListOp(self._oplist[offset],
-                          self._combo_fn,
-                          self._coeff,
-                          self._abelian,
-                          self._grad_combo_fn)
-        else:
+        if isinstance(offset, int):
             return self.oplist[offset]
+
+        if self.__class__ == ListOp:
+            return ListOp(oplist=self._oplist[offset],
+                          combo_fn=self._combo_fn,
+                          coeff=self._coeff,
+                          abelian=self._abelian,
+                          grad_combo_fn=self._grad_combo_fn)
+
+        return self.__class__(oplist=self._oplist[offset],
+                              coeff=self._coeff,
+                              abelian=self._abelian)
 
     def __iter__(self) -> Iterator:
         """ Returns an iterator over the operators in ``oplist``.
