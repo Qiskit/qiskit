@@ -255,8 +255,6 @@ class MatplotlibDrawer:
         if style_name != 'default':
             style_name = style_name + '.json'
             spath = os.path.dirname(os.path.abspath(__file__))
-            print('style file', os.path.join(spath, 'styles', style_name),
-                  os.path.isfile(os.path.join(spath, 'styles', style_name)))
             style_path.append(os.path.join(spath, 'styles', style_name))
             if config:
                 config_path = config.get('circuit_mpl_style_path', '')
