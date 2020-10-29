@@ -21,7 +21,6 @@ Executing Experiments (:mod:`qiskit.execute`)
 """
 import logging
 from time import time
-from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
@@ -249,14 +248,6 @@ def execute(experiments, backend,
                                     initial_layout=initial_layout)
         experiments = pass_manager.run(experiments)
     else:
-        if 'delay' not in backend.configuration().basis_gates and _any_delay_in(experiments):
-            if schedule_circuit and backend.configuration().open_pulse:
-                pass  # the delay will be handled in the Pulse schedule
-            else:
-                raise QiskitError("Backend {} does not support delay instruction. "
-                                  "Use 'schedule_circuit=True' for pulse-enabled backends."
-                                  .format(backend.name()))
-
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
@@ -332,22 +323,3 @@ def _check_conflicting_argument(**kargs):
     if conflicting_args:
         raise QiskitError("The parameters pass_manager conflicts with the following "
                           "parameter(s): {}.".format(', '.join(conflicting_args)))
-
-
-def _any_delay_in(circuits):
-    """Check if the circuits have any delay instruction.
-
-    Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): Circuits to be checked
-
-    Returns:
-        bool: True if there is any delay in either of the circuit, otherwise False.
-    """
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-    has_delay = False
-    for qc in circuits:
-        if 'delay' in qc.count_ops():
-            has_delay = True
-            break
-    return has_delay
