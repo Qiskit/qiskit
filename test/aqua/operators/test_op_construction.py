@@ -954,30 +954,30 @@ class TestOpMethods(QiskitAquaTestCase):
                 X @ op  # pylint: disable=pointless-statement
 
 
+@ddt
 class TestListOpMethods(QiskitAquaTestCase):
     """Test ListOp accessing methods"""
 
-    def test_indexing(self):
+    @data(ListOp, SummedOp, ComposedOp, TensoredOp)
+    def test_indexing(self, list_op_type):
         """Test indexing and slicing"""
         coeff = 3 + .2j
-        states_op = ListOp([X, Y, Z, I], coeff=coeff)
+        states_op = list_op_type([X, Y, Z, I], coeff=coeff)
 
         single_op = states_op[1]
         self.assertIsInstance(single_op, OperatorBase)
         self.assertNotIsInstance(single_op, ListOp)
 
         list_one_element = states_op[1:2]
-        self.assertIsInstance(list_one_element, ListOp)
+        self.assertIsInstance(list_one_element, list_op_type)
         self.assertEqual(len(list_one_element), 1)
         self.assertEqual(list_one_element[0], Y)
 
         list_two_elements = states_op[::2]
-        self.assertIsInstance(list_two_elements, ListOp)
+        self.assertIsInstance(list_two_elements, list_op_type)
         self.assertEqual(len(list_two_elements), 2)
         self.assertEqual(list_two_elements[0], X)
         self.assertEqual(list_two_elements[1], Z)
-
-        states_op = ListOp([X, Y, Z, I], coeff=coeff)
 
         self.assertEqual(list_one_element.coeff, coeff)
         self.assertEqual(list_two_elements.coeff, coeff)
