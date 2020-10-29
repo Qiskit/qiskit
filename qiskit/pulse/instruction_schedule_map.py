@@ -35,6 +35,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.circuit.gate import Gate
 
+
 class InstructionScheduleMap():
     """Mapping from :py:class:`~qiskit.circuit.QuantumCircuit`
     :py:class:`qiskit.circuit.Instruction` names and qubits to
@@ -68,7 +69,7 @@ class InstructionScheduleMap():
         """
         return list(self._map.keys())
 
-    def qubits_with_instruction(self, 
+    def qubits_with_instruction(self,
                                 instruction: Union[str, Gate]) -> List[Union[int, Tuple[int]]]:
         """Return a list of the qubits for which the given instruction is defined. Single qubit
         instructions return a flat list, and multiqubit instructions return a list of ordered
@@ -232,7 +233,7 @@ class InstructionScheduleMap():
         return schedule
 
     def get_parameters(self,
-                       instruction: Union[str, Gate], 
+                       instruction: Union[str, Gate],
                        qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """Return the list of parameters taken by the given instruction on the given qubits.
 
