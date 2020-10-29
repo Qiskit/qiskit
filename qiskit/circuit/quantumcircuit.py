@@ -284,16 +284,6 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
-    def mirror(self):
-        """DEPRECATED: use circuit.reverse_ops().
-
-        Returns:
-            QuantumCircuit: the reversed circuit.
-        """
-        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
-                      'reverse the order of gates.', DeprecationWarning)
-        return self.reverse_ops()
-
     def reverse_ops(self):
         """Reverse the circuit by reversing the order of instructions.
 
@@ -601,9 +591,9 @@ class QuantumCircuit:
             CircuitError: if composing on the front.
             QiskitError: if ``other`` is wider or there are duplicate edge mappings.
 
-        Examples:
+        Examples::
 
-            >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+            lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -1057,10 +1047,11 @@ class QuantumCircuit:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
         """
-        existing_gate_names = ['ch', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap', 'ms',
-                               'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg',
-                               'swap', 'x', 'y', 'z', 't', 'tdg', 'u1', 'u2', 'u3']
+        existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
+                               'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
+                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
+                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
+                               'u3']
 
         existing_composite_circuits = []
 
@@ -1162,7 +1153,6 @@ class QuantumCircuit:
                 a dictionary of style, then that will be opened, parsed, and used
                 as the input dict. See: :ref:`Style Dict Doc <style-dict-circ-doc>` for more
                 information on the contents.
-
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
@@ -1351,12 +1341,6 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
-        if isinstance(output, (int, float, np.number)):
-            warnings.warn("Setting 'scale' as the first argument is deprecated. "
-                          "Use scale=%s instead." % output,
-                          DeprecationWarning)
-            scale = output
-            output = None
 
         return circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
@@ -1849,35 +1833,43 @@ class QuantumCircuit:
 
         Examples:
 
-            >>> from qiskit.circuit import QuantumCircuit, Parameter
-            >>> circuit = QuantumCircuit(2)
-            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
-            >>> circuit.ry(params[0], 0)
-            >>> circuit.crx(params[1], 0, 1)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(A) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(C) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
-            >>> bound_circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(2) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(1) ├
-                             └───────┘
-            >>> bound_circuit.parameters  # this one has no free parameters anymore
-            set()
-            >>> circuit.parameters  # the original one is still parameterized
-            {Parameter(A), Parameter(C)}
+            Create a parameterized circuit and assign the parameters in-place.
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                circuit = QuantumCircuit(2)
+                params = [Parameter('A'), Parameter('B'), Parameter('C')]
+                circuit.ry(params[0], 0)
+                circuit.crx(params[1], 0, 1)
+
+                print('Original circuit:')
+                print(circuit.draw())
+
+                circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+
+                print('Assigned in-place:')
+                print(circuit.draw())
+
+            Bind the values out-of-place and get a copy of the original circuit.
+
+            .. jupyter-execute::
+
+                from qiskit.circuit import QuantumCircuit, ParameterVector
+
+                circuit = QuantumCircuit(2)
+                params = ParameterVector('P', 2)
+                circuit.ry(params[0], 0)
+                circuit.crx(params[1], 0, 1)
+
+                bound_circuit = circuit.assign_parameters({params[0]: 1, params[1]: 2})
+                print('Bound circuit:')
+                print(bound_circuit.draw())
+
+                print('The original circuit is unchanged:')
+                print(circuit.draw())
+
         """
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
