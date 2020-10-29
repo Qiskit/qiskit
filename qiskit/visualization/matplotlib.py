@@ -20,7 +20,6 @@ import json
 import logging
 import re
 import os
-import pkgutil
 from warnings import warn
 
 import numpy as np
@@ -46,7 +45,6 @@ from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit import __path__ as qiskit_path
 
 logger = logging.getLogger(__name__)
 
@@ -237,75 +235,37 @@ class MatplotlibDrawer:
         def_font_ratio = current_style['fs'] / current_style['sfs']
 
         config = user_config.get_config()
-        if style is False:
-            style_name = 'bw'
-        elif isinstance(style, dict) and 'name' in style:
-            style_name = style['name']
-        elif isinstance(style, str):
-            style_name = style
-        elif config:
-            style_name = config.get('circuit_mpl_style', 'default')
-        else:
-            warn("style parameter '{}' must be a str or a dictionary."
-                 " Will use default style.".format(style), UserWarning, 2)
+        if style is not None:
+            if style is False:
+                style_name = 'bw'
+            elif isinstance(style, dict) and 'name' in style:
+                style_name = style['name']
+            elif isinstance(style, str):
+                style_name = style
+            elif config:
+                style_name = config.get('circuit_mpl_style', 'default')
+            elif not isinstance(style, (str, dict)):
+                warn("style parameter '{}' must be a str or a dictionary."
+                     " Will use default style.".format(style), UserWarning, 2)
         if style_name.endswith('.json'):
             style_name = style_name[:-5]
 
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
         style_path = []
-        print(style_name)
-        print('qpath', qiskit_path)
-        print('file', __file__)
         if style_name != 'default':
             style_name = style_name + '.json'
-            """try:
-                print('Name', __name__)
-                data = pkgutil.get_data(__name__, "styles/"+style_name)
-                if not data:
-                    print('No data')
-                else:
-                    json_style = json.loads(data)
-                    print(json_style)
-                    set_style(current_style, json_style)
-            except FileNotFoundError:"""
-            """import qiskit
-            style_path.append(os.path.join(os.path.dirname(sys.modules['qiskit'].__file__),style_name))
-            #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', 'styles', style_name)))
-            #style_path.append(os.path.normpath(os.path.join(qiskit_path[1], 'visualization', style_name)))
-            #style_path.append(os.path.abspath(__file__))
-            #style_path.append(os.path.join(__path__[1], 'visualization', style_name))
-            print('path1', style_path)
-            #print(os.listdir(os.path.join(__path__[1], 'visualization', 'styles')))#, style_name))
-            #print(os.listdir(os.path.join(__path__[1], 'visualization')))#, 'styles')))#, style_name))"""
-
-            SWD = os.path.dirname(os.path.abspath(__file__))
-            datafilename = os.path.join(SWD, 'styles', style_name)
-            print(os.listdir(SWD))
-            print('dataname', datafilename)
-            if os.path.exists(datafilename):
-                print('exists')
-                with open(datafilename) as datafile:
-                    print('opened')
-                    jstyle = json.load(datafile)
-                    #print(jstyle)
-                set_style(current_style, jstyle)
-
-            else:
-                warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
-                     " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
-            """if config:
+            spath = os.path.dirname(os.path.abspath(__file__))
+            style_path.append(os.path.join(spath, 'styles', style_name))
+            if config:
                 config_path = config.get('circuit_mpl_style_path', '')
                 if config_path:
                     for path in config_path:
                         style_path.append(os.path.normpath(os.path.join(path, style_name)))
             style_path.append(os.path.normpath(os.path.join('', style_name)))
 
-            print('path2', style_path)
             for path in style_path:
                 exp_user = os.path.expanduser(path)
-                print('exp1', exp_user)
                 if os.path.isfile(exp_user):
-                    print('exp2', exp_user)
                     try:
                         with open(exp_user) as infile:
                             json_style = json.load(infile)
@@ -318,7 +278,10 @@ class MatplotlibDrawer:
                     except (OSError, FileNotFoundError):
                         warn("Error loading JSON file '{}'. Will use default style.".format(
                             path), UserWarning, 2)
-                        break"""
+                        break
+            else:
+                warn("Style JSON file '{}' not found in any of these locations: {}. Will use"
+                     " default style.".format(style_name, ', '.join(style_path)), UserWarning, 2)
 
         if isinstance(style, dict):
             set_style(current_style, style)

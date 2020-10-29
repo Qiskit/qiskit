@@ -1367,7 +1367,7 @@ class QuantumCircuit:
                 qc = QuantumCircuit(q, c)
                 qc.h(q)
                 qc.measure(q, c)
-                qc.draw('mpl', style={'showindex': 'True'})
+                qc.draw('mpl', style={'showindex': True})
         """
 
         # pylint: disable=cyclic-import
