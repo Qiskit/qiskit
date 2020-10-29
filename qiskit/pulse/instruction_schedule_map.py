@@ -284,12 +284,11 @@ def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
     except TypeError:
         return (values,)
 
-def _get_instruction_string(inst: Union[str, Gate, Instruction]):
+
+def _get_instruction_string(inst: Union[str, Gate]):
     if isinstance(inst, str):
         return inst
-    elif isinstance(inst, Gate):
-        assert(inst.name), "Gate has no name"
-        return inst.name
     else:
-        assert(inst.name), "Instruction has no name"
+        assert(isinstance(inst, Gate)), "Instruction must be Gate obj or str"
+        assert(inst.name), "Gate has no name"
         return inst.name
