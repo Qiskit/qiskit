@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -19,12 +17,15 @@ Base register reference object.
 """
 import re
 import itertools
+import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
 
 class Register:
     """Implement a generic register."""
+
+    __slots__ = ['_name', '_size', '_bits', '_hash']
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -38,10 +39,15 @@ class Register:
 
         # validate (or cast) size
         try:
-            size = int(size)
-        except Exception:
-            raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
+            valid_size = size == int(size)
+        except (ValueError, TypeError):
+            valid_size = False
+
+        if not valid_size:
+            raise CircuitError("Register size must be an integer. (%s '%s' was provided)"
                                % (type(size).__name__, size))
+        size = int(size)  # cast to int
+
         if size <= 0:
             raise CircuitError("Register size must be positive (%s '%s' was provided)"
                                % (type(size).__name__, size))
@@ -59,10 +65,39 @@ class Register:
             if name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
-        self.name = name
-        self.size = size
+        self._name = name
+        self._size = size
 
+        self._hash = hash((type(self), self._name, self._size))
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
+    def _update_bits_hash(self):
+        for bit in self._bits:
+            bit._update_hash()
+
+    @property
+    def name(self):
+        """Get the register name."""
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Set the register name."""
+        self._name = value
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
+
+    @property
+    def size(self):
+        """Get the register size."""
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        """Set the register size."""
+        self._size = value
+        self._hash = hash((type(self), self._name, self._size))
+        self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -70,7 +105,7 @@ class Register:
 
     def __len__(self):
         """Return register size."""
-        return self.size
+        return self._size
 
     def __getitem__(self, key):
         """
@@ -86,7 +121,7 @@ class Register:
             CircuitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
-        if not isinstance(key, (int, slice, list)):
+        if not isinstance(key, (int, np.int, np.int32, np.int64, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]
@@ -99,8 +134,8 @@ class Register:
             return self._bits[key]
 
     def __iter__(self):
-        for bit in range(self.size):
-            yield self[bit]
+        for idx in range(self._size):
+            yield self._bits[idx]
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
@@ -114,11 +149,11 @@ class Register:
         """
         res = False
         if type(self) is type(other) and \
-                self.name == other.name and \
-                self.size == other.size:
+                self._name == other._name and \
+                self._size == other._size:
             res = True
         return res
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash((type(self), self.name, self.size))
+        return self._hash

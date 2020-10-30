@@ -1,0 +1,20 @@
+---
+feature:
+  - |
+    The pulse drawers :func:`qiskit.visualization.pulse_drawer` and
+    :meth:`qiskit.pulse.Schedule.draw` have been updated to show a plot title.
+    The title is automatically generated from the
+    :class:`~qiskit.pulse.Schedule` instance's ``name`` property.
+    The fontsize is controllable with the pulse drawer style sheet. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.pulse import pulse_lib
+      from qiskit.pulse.schedule import Schedule
+
+      schedule = Schedule(name='Gausian Parametric Pulses')
+      schedule += pulse_lib.Gaussian(duration=25, sigma=4,
+                                     amp=0.5j)(DriveChannel(0))
+      schedule += pulse_lib.Gaussian(duration=25, sigma=4,
+                                     amp=0.5j)(DriveChannel(0))
+      schedule.draw()

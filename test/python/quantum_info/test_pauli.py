@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -30,7 +28,7 @@ class TestPauliAPI(QiskitTestCase):
     def check(self, result):
         """checks for result to be a Pauli 'IY' """
         self.assertIsInstance(result, Pauli)
-        self.assertEqual(result.numberofqubits, 2)
+        self.assertEqual(result.num_qubits, 2)
         self.assertEqual(result.to_label(), 'IY')
 
     def test_ndarray_bool(self):
@@ -68,6 +66,7 @@ class TestPauli(QiskitTestCase):
 
     def setUp(self):
         """Setup."""
+        super().setUp()
         z = np.asarray([1, 0, 1, 0]).astype(np.bool)
         x = np.asarray([1, 1, 0, 0]).astype(np.bool)
         self.ref_p = Pauli(z, x)
@@ -161,7 +160,7 @@ class TestPauli(QiskitTestCase):
         length = 4
         q = Pauli.random(length, seed=42)
         self.log.info(q)
-        self.assertEqual(q.numberofqubits, length)
+        self.assertEqual(q.num_qubits, length)
         self.assertEqual(len(q.z), length)
         self.assertEqual(len(q.x), length)
         self.assertEqual(len(q.to_label()), length)

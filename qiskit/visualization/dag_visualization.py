@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,8 +19,6 @@ Visualization function for DAG circuit representation.
 import os
 import sys
 import tempfile
-
-from networkx.drawing.nx_pydot import to_pydot
 
 from .exceptions import VisualizationError
 
@@ -86,34 +82,74 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     except ImportError:
         raise ImportError("dag_drawer requires pydot. "
                           "Run 'pip install pydot'.")
+    # NOTE: use type str checking to avoid potential cyclical import
+    # the two tradeoffs ere that it will not handle subclasses and it is
+    # slower (which doesn't matter for a visualization function)
+    type_str = str(type(dag))
+    if 'DAGDependency' in type_str:
+        graph_attrs = {'dpi': str(100 * scale)}
 
-    G = dag.to_networkx()
-    G.graph['dpi'] = 100 * scale
+        def node_attr_func(node):
+            if style == 'plain':
+                return {}
+            if style == 'color':
+                n = {}
+                n['label'] = str(node.node_id) + ': ' + str(node.name)
+                if node.name == 'measure':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.name == 'barrier':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.name == 'snapshot':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+                if node.condition:
+                    n['label'] = str(node.node_id) + ': ' + str(node.name) + ' (conditional)'
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightgreen'
+                return n
+            else:
+                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+        edge_attr_func = None
 
-    if style == 'plain':
-        pass
-    elif style == 'color':
-        for node in G.nodes:
-            n = G.nodes[node]
-            n['label'] = node.name
-            if node.type == 'op':
-                n['color'] = 'blue'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'lightblue'
-            if node.type == 'in':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'green'
-            if node.type == 'out':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'red'
-        for e in G.edges(data=True):
-            e[2]['label'] = e[2]['name']
     else:
-        raise VisualizationError("Unrecognized style for the dag_drawer.")
+        graph_attrs = {'dpi': str(100 * scale)}
 
-    dot = to_pydot(G)
+        def node_attr_func(node):
+            if style == 'plain':
+                return {}
+            if style == 'color':
+                n = {}
+                n['label'] = node.name
+                if node.type == 'op':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.type == 'in':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.type == 'out':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+                return n
+            else:
+                raise VisualizationError('Invalid style %s' % style)
+
+        def edge_attr_func(edge):
+            e = {}
+            e['label'] = str(edge['name'])
+            return e
+
+    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,
+                                      graph_attrs)
+    dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
         extension = filename.split('.')[-1]
@@ -140,6 +176,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
             image = Image.open(tmp_path)
-            os.remove(tmp_path)
             image.show()
+            os.remove(tmp_path)
             return None

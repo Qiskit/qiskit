@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -23,6 +21,7 @@ class TestFixedPointPass(QiskitTestCase):
     """ Tests for FixedPoint pass. """
 
     def setUp(self):
+        super().setUp()
         self.pass_ = FixedPoint('property')
         self.pset = self.pass_.property_set
         self.dag = None  # The pass do not read the DAG.

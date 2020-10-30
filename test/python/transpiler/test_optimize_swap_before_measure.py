@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -18,7 +16,6 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -123,7 +120,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile(circuit, pass_manager=pass_manager)
+        after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
 
@@ -151,7 +148,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile(circuit, pass_manager=pass_manager)
+        after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
 

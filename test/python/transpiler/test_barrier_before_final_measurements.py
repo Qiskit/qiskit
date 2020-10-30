@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -159,8 +157,8 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
     def test_preserve_measure_for_conditional(self):
         """Test barrier is inserted after any measurements used for conditionals
 
-         q0:--[H]--[m]------------     q0:--[H]--[m]---------------
-                    |                             |
+         q0:--[H]--[m]------------     q0:--[H]--[m]-------|-------
+                    |                             |        |
          q1:--------|--[ z]--[m]--  -> q1:--------|--[ z]--|--[m]--
                     |    |    |                   |    |       |
          c0:--------.--[=1]---|---     c0:--------.--[=1]------|---
@@ -182,7 +180,7 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
         expected.h(qr0)
         expected.measure(qr0, cr0)
         expected.z(qr1).c_if(cr0, 1)
-        expected.barrier(qr1)
+        expected.barrier(qr0, qr1)
         expected.measure(qr1, cr1)
 
         pass_ = BarrierBeforeFinalMeasurements()
@@ -337,15 +335,15 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
     def test_barrier_doesnt_reorder_gates(self):
         """ A barrier should not allow the reordering of gates, as pointed out in #2102
 
-         q:--[u1(0)]-----------[m]---------      q:--[u1(0)]------------|--[m]---------
-           --[u1(1)]------------|-[m]------  ->    --[u1(1)]------------|---|-[m]------
-           --[u1(2)]-|----------|--|-[m]----       --[u1(2)]-|----------|---|--|-[m]----
-           ----------|-[u1(03)]-|--|--|-[m]-       ----------|-[u1(03)]-|---|--|--|-[m]-
-                                |  |  |  |                                  |  |  |  |
-         c:---------------------.--|--|--|-     c:--------------------------.--|--|--|-
-           ------------------------.--|--|-       -----------------------------.--|--|-
-           ---------------------------.--|-       --------------------------------.--|-
-           ------------------------------.-       -----------------------------------.-
+         q:--[p(0)]----------[m]---------      q:--[p(0)]-----------|--[m]---------
+           --[p(1)]-----------|-[m]------  ->    --[p(1)]-----------|---|-[m]------
+           --[p(2)]-|---------|--|-[m]----       --[p(2)]-|---------|---|--|-[m]----
+           ---------|-[p(03)]-|--|--|-[m]-       ---------|-[p(03)]-|---|--|--|-[m]-
+                              |  |  |  |                                |  |  |  |
+         c:-------------------.--|--|--|-     c:------------------------.--|--|--|-
+           ----------------------.--|--|-       ---------------------------.--|--|-
+           -------------------------.--|-       ------------------------------.--|-
+           ----------------------------.-       ---------------------------------.-
 
         """
 
@@ -353,11 +351,11 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
         cr = ClassicalRegister(4)
         circuit = QuantumCircuit(qr, cr)
 
-        circuit.u1(0, qr[0])
-        circuit.u1(1, qr[1])
-        circuit.u1(2, qr[2])
+        circuit.p(0, qr[0])
+        circuit.p(1, qr[1])
+        circuit.p(2, qr[2])
         circuit.barrier(qr[2], qr[3])
-        circuit.u1(3, qr[3])
+        circuit.p(3, qr[3])
 
         test_circuit = circuit.copy()
         test_circuit.measure(qr, cr)

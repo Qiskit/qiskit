@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -19,13 +17,11 @@ import copy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
-from qiskit.transpiler import PropertySet
-from qiskit.compiler import transpile
+from qiskit.circuit.library import U2Gate
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
 
@@ -40,13 +36,13 @@ class TestPassManager(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
         expected_start = QuantumCircuit(qr)
-        expected_start.u2(0, np.pi, qr[0])
-        expected_start.u2(0, np.pi, qr[0])
-        expected_start.u2(0, np.pi, qr[0])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_dag = circuit_to_dag(expected_start)
 
         expected_end = QuantumCircuit(qr)
-        expected_end.u2(0, np.pi, qr[0])
+        expected_end.append(U2Gate(0, np.pi), [qr[0]])
         expected_end_dag = circuit_to_dag(expected_end)
 
         calls = []
@@ -56,10 +52,10 @@ class TestPassManager(QiskitTestCase):
             out_dict['dag'] = copy.deepcopy(kwargs['dag'])
             calls.append(out_dict)
 
-        passmanager = PassManager(callback=callback)
+        passmanager = PassManager()
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
-        transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]['count'], 0)
@@ -100,9 +96,9 @@ class TestPassManager(QiskitTestCase):
             out_dict['dag'] = copy.deepcopy(kwargs['dag'])
             calls.append(out_dict)
 
-        passmanager = PassManager(callback=callback)
+        passmanager = PassManager()
         passmanager.append(CommutativeCancellation())
-        passmanager.run(circuit)
+        passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]['count'], 0)

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.unitary` method has been fixed
+    to accept a single integer for the ``qarg`` argument (when adding a
+    1-qubit unitary). The allowed types for the ``qargs`` argument are now
+    ``int``, :class:`~qiskit.circuit.Qubit`, or a list of integers.
+    Fixes `#4944 <https://github.com/Qiskit/qiskit-terra/issues/4944>`__

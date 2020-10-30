@@ -17,7 +17,7 @@ features:
     the '$' pair. Also if you want to use a dollar sign in your label make sure
     you escape it in the label string (ie ``'\$'``).
 
-    You can mix and match this passthrough with the utf8 -> latex conversion to
+    You can mix and match this passthrough with the utf8 to latex conversion to
     create the exact label you want, for example::
 
         from qiskit import circuit

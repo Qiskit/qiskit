@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -23,13 +21,12 @@ import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
-from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
     FlowController
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
-                            PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
+                            PassI_Bad_AP, PassJ_Bad_NoReturn,
                             PassK_check_fixed_point_property, PassM_AP_NR_NP)
 
 
@@ -48,7 +45,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            out = transpile(circuit, pass_manager=passmanager)
+            out = passmanager.run(circuit)
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
@@ -65,7 +62,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            self.assertRaises(exception_type, transpile, circuit, pass_manager=passmanager)
+            self.assertRaises(exception_type, passmanager.run, circuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
 
@@ -94,6 +91,7 @@ class TestUseCases(SchedulerTestCase):
     in the right order."""
 
     def setUp(self):
+        super().setUp()
         self.circuit = QuantumCircuit(QuantumRegister(1))
         self.passmanager = PassManager()
 
@@ -277,13 +275,6 @@ class TestUseCases(SchedulerTestCase):
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 3'])
 
-    def test_fenced_property_set(self):
-        """Transformation passes are not allowed to modify the property set."""
-        self.passmanager.append(PassH_Bad_TP())
-        self.assertSchedulerRaises(self.circuit, self.passmanager,
-                                   ['run transformation pass PassH_Bad_TP'],
-                                   TranspilerError)
-
     def test_fenced_dag(self):
         """Analysis passes are not allowed to modified the DAG."""
         qr = QuantumRegister(2)
@@ -296,7 +287,7 @@ class TestUseCases(SchedulerTestCase):
         self.passmanager.append(PassI_Bad_AP())
         self.assertSchedulerRaises(circ, self.passmanager,
                                    ['run analysis pass PassI_Bad_AP',
-                                    'cx_runs: {(5, 6, 7, 8)}'],
+                                    'cx_runs: {(4, 5, 6, 7)}'],
                                    TranspilerError)
 
     def test_analysis_pass_is_idempotent(self):
@@ -425,14 +416,14 @@ class DoXTimesController(FlowController):
 
     def __iter__(self):
         for _ in range(self.do_x_times):
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
 
 class TestControlFlowPlugin(SchedulerTestCase):
     """Testing the control flow plugin system."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -471,6 +462,15 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_remove_nonexistent_plugin(self):
         """Tries to remove a plugin that does not exist."""
         self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
+
+    def test_bad_conditional(self):
+        """Flow controller are not allowed to modify the property set."""
+
+        def bad_condition(property_set):
+            property_set['property'] = 'forbidden write'
+
+        self.passmanager.append(PassA_TP_NR_NP(), condition=bad_condition)
+        self.assertRaises(TranspilerError, self.passmanager.run, self.circuit)
 
 
 class TestDumpPasses(SchedulerTestCase):
@@ -541,6 +541,7 @@ class TestLogPasses(QiskitTestCase):
     """Testing the log_passes option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
@@ -550,7 +551,7 @@ class TestLogPasses(QiskitTestCase):
     def assertPassLog(self, passmanager, list_of_passes):
         """ Runs the passmanager and checks that the elements in
         passmanager.property_set['pass_log'] match list_of_passes (the names)."""
-        transpile(self.circuit, pass_manager=passmanager)
+        passmanager.run(self.circuit)
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()
@@ -614,6 +615,7 @@ class TestPassManagerReuse(SchedulerTestCase):
     """The PassManager instance should be reusable."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -697,10 +699,11 @@ class TestPassManagerReuse(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
 
-class TestPassManagerReplace(SchedulerTestCase):
-    """Test PassManager.replace"""
+class TestPassManagerChanges(SchedulerTestCase):
+    """Test PassManager manipulation with changes"""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -724,6 +727,38 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove0(self):
+        """ Test passmanager.remove(0)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(0)
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove1(self):
+        """ Test passmanager.remove(1)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(1)
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove_minus_1(self):
+        """ Test passmanager.remove(-1)."""
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(-1)
+
+        expected = ['run transformation pass PassA_TP_NR_NP']
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_setitem(self):
@@ -761,6 +796,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
     """test PassManager slicing."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -889,6 +925,7 @@ class TestPassManagerConcatenation(SchedulerTestCase):
     """test PassManager concatenation by + operator."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager1 = PassManager()
         self.passmanager2 = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))

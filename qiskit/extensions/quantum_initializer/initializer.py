@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -23,9 +21,12 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates.x import CXGate, XGate
+from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
+from qiskit.circuit.library.standard_gates.ry import RYGate
+from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -37,29 +38,68 @@ class Initialize(Instruction):
     Class that implements the (complex amplitude) initialization of some
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
+    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
+    which is not unitary.
     """
 
     def __init__(self, params):
         """Create new initialize composite.
 
-        params (list): vector of complex amplitudes to initialize to
+        params (str or list):
+          * list: vector of complex amplitudes to initialize to.
+          * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+               :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+               Notice the order of the labels is reversed with respect to the qubit index to
+               be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+               qubit one to `|0>`
         """
-        num_qubits = math.log2(len(params))
+        if isinstance(params, str):
+            self._fromlabel = True
+            num_qubits = len(params)
+        else:
+            self._fromlabel = False
+            num_qubits = math.log2(len(params))
 
-        # Check if param is a power of 2
-        if num_qubits == 0 or not num_qubits.is_integer():
-            raise QiskitError("Desired statevector length not a positive power of 2.")
+            # Check if param is a power of 2
+            if num_qubits == 0 or not num_qubits.is_integer():
+                raise QiskitError("Desired statevector length not a positive power of 2.")
 
-        # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
-                            abs_tol=_EPS):
-            raise QiskitError("Sum of amplitudes-squared does not equal one.")
+            # Check if probabilities (amplitudes squared) sum to 1
+            if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
+                                abs_tol=_EPS):
+                raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
-        num_qubits = int(num_qubits)
+            num_qubits = int(num_qubits)
 
         super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):
+        self.definition = self._define_fromlabel() if self._fromlabel else self._define_synthesis()
+
+    def _define_fromlabel(self):
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
+
+        for qubit, param in enumerate(reversed(self.params)):
+            initialize_circuit.append(Reset(), [q[qubit]])
+
+            if param == '1':
+                initialize_circuit.append(XGate(), [q[qubit]])
+            elif param == '+':
+                initialize_circuit.append(HGate(), [q[qubit]])
+            elif param == '-':
+                initialize_circuit.append(XGate(), [q[qubit]])
+                initialize_circuit.append(HGate(), [q[qubit]])
+            elif param == 'r':  # |+i>
+                initialize_circuit.append(HGate(), [q[qubit]])
+                initialize_circuit.append(SGate(), [q[qubit]])
+            elif param == 'l':  # |-i>
+                initialize_circuit.append(HGate(), [q[qubit]])
+                initialize_circuit.append(SdgGate(), [q[qubit]])
+
+        return initialize_circuit
+
+    def _define_synthesis(self):
         """Calculate a subcircuit that implements this initialization
 
         Implements a recursive initialization algorithm, including optimizations,
@@ -82,15 +122,13 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit.data
+        return initialize_circuit
 
     def gates_to_uncompute(self):
-        """
-        Call to create a circuit with gates that take the
-        desired vector to zero.
+        """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
-            QuantumCircuit: circuit to take self.params vector to |00..0>
+            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
         """
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q, name='disentangler')
@@ -107,10 +145,19 @@ class Initialize(Instruction):
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
-            rz_mult = self._multiplex(RZGate, phis)
-            ry_mult = self._multiplex(RYGate, thetas)
-            circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
-            circuit.append(ry_mult.to_instruction(), q[i:self.num_qubits])
+
+            add_last_cnot = True
+            if np.linalg.norm(phis) != 0 and np.linalg.norm(thetas) != 0:
+                add_last_cnot = False
+
+            if np.linalg.norm(phis) != 0:
+                rz_mult = self._multiplex(U1Gate, phis, last_cnot=add_last_cnot)
+                circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
+
+            if np.linalg.norm(thetas) != 0:
+                ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
+
         return circuit
 
     @staticmethod
@@ -178,7 +225,7 @@ class Initialize(Instruction):
 
         return final_r * np.exp(1.J * final_t / 2), theta, phi
 
-    def _multiplex(self, target_gate, list_of_angles):
+    def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
         """
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
@@ -190,6 +237,7 @@ class Initialize(Instruction):
             target_gate (Gate): Ry or Rz gate to apply to target qubit, multiplexed
                 over all other "select" qubits
             list_of_angles (list[float]): list of rotation angles to apply Ry and Rz
+            last_cnot (bool): add the last cnot if last_cnot = True
 
         Returns:
             DAGCircuit: the circuit implementing the multiplexor's action
@@ -217,23 +265,24 @@ class Initialize(Instruction):
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)])
+        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], False)
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
-        circuit.append(CnotGate(), [msb, lsb])
+        circuit.append(CXGate(), [msb, lsb])
 
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):])
+        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
         if list_len > 1:
-            circuit.append(multiplex_2.to_instruction().mirror(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        circuit.append(CnotGate(), [msb, lsb])
+        if last_cnot:
+            circuit.append(CXGate(), [msb, lsb])
 
         return circuit
 
@@ -245,6 +294,25 @@ class Initialize(Instruction):
                               "qubits. However, %s were provided." %
                               (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
+
+    def validate_parameter(self, parameter):
+        """Initialize instruction parameter can be str, int, float, and complex."""
+
+        # Initialize instruction parameter can be str
+        if self._fromlabel:
+            if parameter in ['0', '1', '+', '-', 'l', 'r']:
+                return parameter
+            raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
+                               "0, 1, +, -, l, or r ".format(type(parameter), self.name))
+
+        # Initialize instruction parameter can be int, float, and complex.
+        if isinstance(parameter, (int, float, complex)):
+            return complex(parameter)
+        elif isinstance(parameter, np.number):
+            return complex(parameter.item())
+        else:
+            raise CircuitError("invalid param type {0} for instruction  "
+                               "{1}".format(type(parameter), self.name))
 
 
 def initialize(self, params, qubits):

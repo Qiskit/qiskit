@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new :meth:`~qiskit.circuit.QuantumCircuit.compose` method has been added
+    to :class:`qiskit.circuit.QuantumCircuit`. It allows
+    composition of two quantum circuits without having to turn one into
+    a gate or instruction. It also allows permutations of qubits/clbits
+    at the point of composition, as well as optional inplace modification.
+    It can also be used in place of
+    :meth:`~qiskit.circuit.QuantumCircuit.append()`, as it allows
+    composing instructions and operators onto the circuit as well.
+deprecations:
+  - |
+    The :meth:`qiskit.dagcircuit.DAGCircuit.compose` method now takes a list
+    of qubits/clbits that specify the positional order of bits to compose onto.
+    The dictionary-based method of mapping using the ``edge_map`` argument is
+    deprecated and will be removed in a future release.

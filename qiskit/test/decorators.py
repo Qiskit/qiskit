@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -11,6 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+#  pylint: disable=E1101
 
 """Decorator for using with Qiskit unit tests."""
 
@@ -90,7 +90,9 @@ def _get_credentials():
                                                        discover_credentials)
     except ImportError:
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
-                                'and is required for executing online tests.')
+                                'and is required for executing online tests. '
+                                'To install, run "pip install qiskit-ibmq-provider" '
+                                'or check your installation.')
 
     if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))

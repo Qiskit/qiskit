@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -137,10 +135,10 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
-        n_qubits = qobj.config.n_qubits
+        num_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
+        if num_qubits > max_qubits:
+            raise BasicAerError('Number of qubits {} '.format(num_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:

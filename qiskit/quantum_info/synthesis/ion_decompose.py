@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -21,9 +19,9 @@ Decomposition methods for trapped-ion basis gates RXXGate, RXGate, RYGate.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.ry import RYGate
+from qiskit.circuit.library.standard_gates.rx import RXGate
+from qiskit.circuit.library.standard_gates.rxx import RXXGate
 
 
 def cnot_rxx_decompose(plus_ry=True, plus_rxx=True):
@@ -49,8 +47,7 @@ def cnot_rxx_decompose(plus_ry=True, plus_rxx=True):
         sgn_rxx = 1
     else:
         sgn_rxx = -1
-
-    circuit = QuantumCircuit(2)
+    circuit = QuantumCircuit(2, global_phase=-sgn_ry * sgn_rxx * np.pi / 4)
     circuit.append(RYGate(sgn_ry * np.pi / 2), [0])
     circuit.append(RXXGate(sgn_rxx * np.pi / 2), [0, 1])
     circuit.append(RXGate(-sgn_rxx * np.pi / 2), [0])

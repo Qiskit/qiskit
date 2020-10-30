@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -19,8 +17,8 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
-from qiskit.extensions.standard import HGate
-from qiskit.extensions.standard import ToffoliGate
+from qiskit.circuit.library import HGate, CCXGate, U2Gate
+from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
 
 
@@ -63,7 +61,7 @@ class TestDecompose(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose(ToffoliGate)
+        pass_ = Decompose(CCXGate)
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
@@ -83,7 +81,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.u2(0, pi, qr[0]).c_if(cr, 1)
+        ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
         ref_circuit.x(qr).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
@@ -102,3 +100,36 @@ class TestDecompose(QiskitTestCase):
         output = qc2.decompose()
 
         self.assertEqual(qc1, output)
+
+    def test_decomposition_preserves_qregs_order(self):
+        """Test decomposing a gate preserves it's definition registers order"""
+        qr = QuantumRegister(2, 'qr1')
+        qc = QuantumCircuit(qr)
+        qc.cx(1, 0)
+        gate = qc.to_gate()
+
+        qr2 = QuantumRegister(2, 'qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.append(gate, qr2)
+
+        expected = QuantumCircuit(qr2)
+        expected.cx(1, 0)
+
+        self.assertEqual(qc2.decompose(), expected)
+
+    def test_decompose_global_phase_1q(self):
+        """Test decomposition of circuit with global phase"""
+        qc = QuantumCircuit(1)
+        qc.rz(0.1, 0)
+        qc.ry(0.5, 0)
+        qc.global_phase += pi/4
+        qcd = qc.decompose()
+        self.assertEqual(Operator(qc), Operator(qcd))
+
+    def test_decompose_global_phase_2q(self):
+        """Test decomposition of circuit with global phase"""
+        qc = QuantumCircuit(2, global_phase=pi/4)
+        qc.rz(0.1, 0)
+        qc.rxx(0.2, 0, 1)
+        qcd = qc.decompose()
+        self.assertEqual(Operator(qc), Operator(qcd))

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -48,6 +46,7 @@ class FakeMelbourne(FakeBackend):
             open_pulse=False,
             memory=False,
             max_shots=65536,
+            max_experiments=900,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=cmap,
         )
@@ -55,10 +54,9 @@ class FakeMelbourne(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 8/30/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_melbourne.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
+        with open(os.path.join(dirname, filename)) as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
