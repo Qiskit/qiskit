@@ -63,12 +63,12 @@ class InitializeGate(Gate):
             self._fromlabel = False
             try:
                 num_qubits = math.log2(len(params))
-            except:
+            except ValueError:
                 raise QiskitError("Given params are not a statevector")
 
             # Check if param is a power of 2
             if num_qubits == 0 or not num_qubits.is_integer():
-                raise QiskitError("Desired statevector length is {} which is not a positive power of 2.".format(params))
+                raise QiskitError("Desired statevector length is not a power of 2.")
 
             # Check if probabilities (amplitudes squared) sum to 1
             if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
@@ -335,7 +335,7 @@ class Initialize(Instruction):
             self._fromlabel = False
             try:
                 num_qubits = math.log2(len(params))
-            except:
+            except ValueError:
                 raise QiskitError("Given params are not a statevector")
 
             # Check if param is a power of 2
