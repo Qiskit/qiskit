@@ -70,7 +70,8 @@ class InstructionScheduleMap():
         return list(self._map.keys())
 
     def qubits_with_instruction(self,
-                                instruction: Union[str, Instruction]) -> List[Union[int, Tuple[int]]]:
+                                instruction: Union[str, Instruction]) -> List[Union[int,
+                                                                              Tuple[int]]]:
         """Return a list of the qubits for which the given instruction is defined. Single qubit
         instructions return a flat list, and multiqubit instructions return a list of ordered
         tuples.
@@ -122,7 +123,9 @@ class InstructionScheduleMap():
         return instruction in self._map and \
             _to_tuple(qubits) in self._map[instruction]
 
-    def assert_has(self, instruction: Union[str, Instruction], qubits: Union[int, Iterable[int]]) -> None:
+    def assert_has(self,
+                   instruction: Union[str, Instruction],
+                   qubits: Union[int, Iterable[int]]) -> None:
         """Error if the given instruction is not defined.
 
         Args:
@@ -193,7 +196,9 @@ class InstructionScheduleMap():
         self._map[instruction][qubits] = schedule
         self._qubit_instructions[qubits].add(instruction)
 
-    def remove(self, instruction: Union[str, Instruction], qubits: Union[int, Iterable[int]]) -> None:
+    def remove(self,
+               instruction: Union[str, Instruction],
+               qubits: Union[int, Iterable[int]]) -> None:
         """Remove the given instruction from the listing of instructions defined in self.
 
         Args:
@@ -290,4 +295,5 @@ def _get_instruction_string(inst: Union[str, Instruction]):
         try:
             return inst.name
         except AttributeError:
-            raise PulseError('Input "inst" has no attribute "name". This should be a circuit "Instruction".')
+            raise PulseError('Input "inst" has no attribute "name".'
+                             'This should be a circuit "Instruction".')
