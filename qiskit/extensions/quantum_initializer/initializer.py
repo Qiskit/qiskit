@@ -63,7 +63,7 @@ class InitializeGate(Gate):
             self._fromlabel = False
             try:
                 num_qubits = math.log2(len(params))
-            except ValueError:
+            except (ValueError, TypeError):
                 raise QiskitError("Given params are not a statevector")
 
             # Check if param is a power of 2
@@ -335,7 +335,7 @@ class Initialize(Instruction):
             self._fromlabel = False
             try:
                 num_qubits = math.log2(len(params))
-            except ValueError:
+            except (ValueError, TypeError):
                 raise QiskitError("Given params are not a statevector")
 
             # Check if param is a power of 2
