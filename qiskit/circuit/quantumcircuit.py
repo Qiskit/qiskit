@@ -1338,7 +1338,6 @@ class QuantumCircuit:
                 registers. Choices are `'solid'`, `'doublet'`, or any valid
                 matplotlib `linestyle` kwarg value. Defaults to `doublet`
         """
-
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 

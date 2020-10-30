@@ -32,8 +32,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.tools.latex.array import _matrix_to_latex
 
 
 class Statevector(QuantumState):
@@ -103,14 +101,15 @@ class Statevector(QuantumState):
             pad, self._dims)
 
     def _repr_latex_(self):
+        from qiskit.visualization.array import _matrix_to_latex
+
         latex_str = _matrix_to_latex(self._data)
         return latex_str
 
     def _ipython_display_(self):
-        if HAS_IPYTHON:
-            latex_str = _matrix_to_latex(self._data)
-            display(Markdown("Statevector object: dims={}".format(self._dims)))
-            display(Math(latex_str))
+        latex_str = self._repr_latex_()
+        display(Markdown("Statevector object: dims={}".format(self._dims)))
+        display(Math(latex_str))
 
     @property
     def data(self):

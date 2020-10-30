@@ -26,7 +26,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.tools.latex.array import _matrix_to_latex
+from qiskit.visualization.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
