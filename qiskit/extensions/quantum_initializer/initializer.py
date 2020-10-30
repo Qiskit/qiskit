@@ -55,16 +55,20 @@ class InitializeGate(Gate):
         if isinstance(params, str):
             self._fromlabel = True
             num_qubits = len(params)
+        elif isinstance(params, list) and isinstance(params[0], str):
+            self._fromlabel = True
+            params = "".join(params)
+            num_qubits = len(params)
         else:
             self._fromlabel = False
             try:
-              num_qubits = math.log2(len(params))
-          except:
-              raise QiskitError("Given params are not a statevector")
+                num_qubits = math.log2(len(params))
+            except:
+                raise QiskitError("Given params are not a statevector")
 
             # Check if param is a power of 2
             if num_qubits == 0 or not num_qubits.is_integer():
-                raise QiskitError("Desired statevector length not a positive power of 2.")
+                raise QiskitError("Desired statevector length is {} which is not a positive power of 2.".format(params))
 
             # Check if probabilities (amplitudes squared) sum to 1
             if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
@@ -316,13 +320,7 @@ class InitializeGate(Gate):
 
 
 class Initialize(Instruction):
-    """Complex amplitude initialization.
-
-    Class that implements the (complex amplitude) initialization of some
-    flexible collection of qubit registers (assuming the qubits are in the
-    zero state).
-    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
-    which is not unitary.
+    """Apply reset then the complex amplitude initialization.
     """
 
     def __init__(self, params):
@@ -330,21 +328,26 @@ class Initialize(Instruction):
 
         params (list): vector of complex amplitudes to initialize to
         """
-        try:
-            num_qubits = math.log2(len(params))
-        except:
-            raise QiskitError("Given params are not a statevector")
+        if isinstance(params, str):
+            self._fromlabel = True
+            num_qubits = len(params)
+        else:
+            self._fromlabel = False
+            try:
+                num_qubits = math.log2(len(params))
+            except:
+                raise QiskitError("Given params are not a statevector")
 
-        # Check if param is a power of 2
-        if num_qubits == 0 or not num_qubits.is_integer():
-            raise QiskitError("Desired statevector length not a positive power of 2.")
+            # Check if param is a power of 2
+            if num_qubits == 0 or not num_qubits.is_integer():
+                raise QiskitError("Desired statevector length not a positive power of 2.")
 
-        # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
-                            abs_tol=_EPS):
-            raise QiskitError("Sum of amplitudes-squared does not equal one.")
+            # Check if probabilities (amplitudes squared) sum to 1
+            if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
+                                abs_tol=_EPS):
+                raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
-        num_qubits = int(num_qubits)
+            num_qubits = int(num_qubits)
 
         super().__init__("initialize", num_qubits, 0, params)
 
@@ -376,7 +379,16 @@ class Initialize(Instruction):
         yield flat_qargs, []
 
     def validate_parameter(self, parameter):
-        """Initialize instruction parameter can be int, float, and complex."""
+        """Initialize instruction parameter can be str, int, float, and complex."""
+
+        # Initialize instruction parameter can be str
+        if self._fromlabel:
+            if parameter in ['0', '1', '+', '-', 'l', 'r']:
+                return parameter
+            raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
+                               "0, 1, +, -, l, or r ".format(type(parameter), self.name))
+
+        # Initialize instruction parameter can be int, float, and complex.
         if isinstance(parameter, (int, float, complex)):
             return complex(parameter)
         elif isinstance(parameter, np.number):

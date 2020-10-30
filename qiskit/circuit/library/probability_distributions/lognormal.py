@@ -156,8 +156,8 @@ class LogNormalDistribution(QuantumCircuit):
         if upto_diag:
             self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
         else:
-            from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
-            initialize = Initialize(np.sqrt(normalized_probabilities))
+            from qiskit.extensions import InitializeGate  # pylint: disable=cyclic-import
+            initialize = InitializeGate(np.sqrt(normalized_probabilities))
             circuit = initialize.gates_to_uncompute().inverse()
             self.compose(circuit, inplace=True)
 
