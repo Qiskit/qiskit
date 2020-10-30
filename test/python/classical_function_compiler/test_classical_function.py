@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """Tests ClassicalFunction as a gate."""
+import unittest
 
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
+from qiskit.circuit.classicalfunction.classicalfunction import HAS_TWEEDLEDUM
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import XGate
@@ -25,6 +27,7 @@ from . import examples
 class TestOracleDecomposition(QiskitTestCase):
     """Tests ClassicalFunction.decomposition."""
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, 'tweedledum not available')
     def test_grover_oracle(self):
         """ grover_oracle.decomposition"""
         oracle = compile_classical_function(examples.grover_oracle)

@@ -349,7 +349,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.h(1)
         transpiled = transpile(circuit, backend=FakeTenerife(),
-                               optimization_level=0, initial_layout=list(range(3)),
+                               optimization_level=0, initial_layout=[1, 2, 0],
                                seed_transpiler=0)
 
         self.circuit_drawer(transpiled, filename='partial_layout.png')
@@ -400,6 +400,70 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.reset(5)
 
         self.circuit_drawer(circuit, style={'name': 'iqx'}, filename='iqx_color.png')
+
+    def test_reverse_bits(self):
+        """Tests reverse_bits parameter"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.ccx(2, 1, 0)
+
+        self.circuit_drawer(circuit, reverse_bits=True, filename='reverse_bits.png')
+
+    def test_bw(self):
+        """Tests black and white style parameter"""
+        circuit = QuantumCircuit(3, 3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.sdg(2)
+        circuit.cx(0, 1)
+        circuit.ccx(2, 1, 0)
+        circuit.swap(1, 2)
+        circuit.measure_all()
+
+        self.circuit_drawer(circuit, style={'name': 'bw'}, filename='bw.png')
+
+    def test_user_style(self):
+        """Tests loading a user style"""
+        circuit = QuantumCircuit(7)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.cx(0, 1)
+        circuit.ccx(0, 1, 2)
+        circuit.swap(0, 1)
+        circuit.cswap(0, 1, 2)
+        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        circuit.dcx(0, 1)
+        circuit.append(DCXGate().control(1), [0, 1, 2])
+        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+        circuit.z(4)
+        circuit.s(4)
+        circuit.sdg(4)
+        circuit.t(4)
+        circuit.tdg(4)
+        circuit.p(pi/2, 4)
+        circuit.u1(pi/2, 4)
+        circuit.cz(5, 6)
+        circuit.cu1(pi/2, 5, 6)
+        circuit.y(5)
+        circuit.rx(pi/3, 5)
+        circuit.rzx(pi/2, 5, 6)
+        circuit.u2(pi/2, pi/2, 5)
+        circuit.barrier(5, 6)
+        circuit.reset(5)
+
+        self.circuit_drawer(circuit, style={'name': 'user_style'}, filename='user_style.png')
+
+    def test_subfont_change(self):
+        """Tests changing the subfont size"""
+
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.u(pi/2, pi/2, pi/2, 1)
+        circuit.p(pi/2, 2)
+        self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
+                            filename='subfont.png')
 
 
 if __name__ == '__main__':
