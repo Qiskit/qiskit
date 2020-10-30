@@ -172,7 +172,7 @@ def circuit_drawer(circuit,
             qc = QuantumCircuit(q, c)
             qc.h(q)
             qc.measure(q, c)
-            circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE')
+            circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE'})
     """
     image = None
     config = user_config.get_config()

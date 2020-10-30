@@ -1236,7 +1236,7 @@ class QuantumCircuit:
                 qc = QuantumCircuit(q, c)
                 qc.h(q)
                 qc.measure(q, c)
-                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE')
+                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
         # pylint: disable=cyclic-import
