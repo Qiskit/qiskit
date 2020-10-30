@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The method :meth:`~qiskit.circuit.QuantumCircuit.draw` now tries display if `IPython` is available. This allows to 
+    run `draw` in a loop making :meth:`~qiskit.tools.jupyter.monospace.MonospacedOutput.monospaced_output` redundant.
