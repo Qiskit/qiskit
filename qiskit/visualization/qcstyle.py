@@ -16,10 +16,13 @@ from warnings import warn
 
 
 class DefaultStyle:
-    """The style dict contains numerous options that define the style of the
+    """**Style Dict Details**
+
+    The style dict contains numerous options that define the style of the
     output circuit visualization. The style dict is only used by the `mpl`
     output. The options available in the style dict are defined below:
 
+    Args:
         name (str): the name of the style. The name can be set to ``iqx``,
             ``bw``, ``default``, or the name of a user-created json file. This
             overrides the setting in the user config file (usually
