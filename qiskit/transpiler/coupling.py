@@ -50,6 +50,8 @@ class CouplingMap:
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
+        # number of qubits in the graph
+        self._size = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._is_symmetric = None
 
@@ -59,7 +61,9 @@ class CouplingMap:
 
     def size(self):
         """Return the number of physical qubits in this graph."""
-        return len(self.graph.nodes)
+        if self._size is None:
+            self._size = len(self.graph.nodes)
+        return self._size
 
     def get_edges(self):
         """
@@ -86,6 +90,7 @@ class CouplingMap:
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
+        self._size = None # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -170,10 +175,9 @@ class CouplingMap:
         Raises:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
-        size = self.size()
-        if physical_qubit1 >= size:
+        if physical_qubit1 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit1)
-        if physical_qubit2 >= size:
+        if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         if self._dist_matrix is None:
             self._compute_distance_matrix()
