@@ -481,6 +481,7 @@ def Ne(expr1, expr2):
     pexpr2 = expr2 if ispe2 else ParameterExpression(dict(), expr2)
     return pexpr1._apply_operation(sympy.Ne, pexpr2)
 
+
 # pylint: disable=invalid-name
 def Sign(expr):
     """
