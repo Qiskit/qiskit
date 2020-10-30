@@ -1250,7 +1250,7 @@ class Z2Symmetries:
                         "Return the empty operator back.")
             return operator
 
-        if isinstance(num_particles, list):
+        if isinstance(num_particles, (tuple, list)):
             num_alpha = num_particles[0]
             num_beta = num_particles[1]
         else:
