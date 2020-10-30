@@ -12,10 +12,11 @@
 
 """Global X phases and parameterized problem hamiltonian."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.aqua.operators import (OperatorBase, X, I, H, CircuitStateFn,
                                    EvolutionFactory, LegacyBaseOperator)
 from qiskit.aqua.components.variational_forms import VariationalForm
@@ -31,7 +32,7 @@ class QAOAVarForm(VariationalForm):
     def __init__(self,
                  cost_operator: OperatorBase,
                  p: int,
-                 initial_state: Optional[InitialState] = None,
+                 initial_state: Optional[Union[QuantumCircuit, InitialState]] = None,
                  mixer_operator: Optional[OperatorBase] = None):
         """
         Constructor, following the QAOA paper https://arxiv.org/abs/1411.4028
@@ -81,9 +82,10 @@ class QAOAVarForm(VariationalForm):
             ))
 
         # initialize circuit, possibly based on given register/initial state
-        if self._initial_state is not None:
-            stateVector = CircuitStateFn(self._initial_state.construct_circuit('circuit'))
-            circuit = stateVector.to_circuit_op()
+        if isinstance(self._initial_state, QuantumCircuit):
+            circuit = CircuitStateFn(self._initial_state)
+        elif self._initial_state is not None:
+            circuit = CircuitStateFn(self._initial_state.construct_circuit('circuit'))
         else:
             circuit = (H ^ self._num_qubits)
 

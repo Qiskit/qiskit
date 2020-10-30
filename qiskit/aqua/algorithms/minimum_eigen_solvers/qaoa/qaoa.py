@@ -16,6 +16,7 @@ from typing import List, Callable, Optional, Union
 import logging
 import numpy as np
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.aqua import QuantumInstance
@@ -67,7 +68,7 @@ class QAOA(VQE):
                  operator: Union[OperatorBase, LegacyBaseOperator] = None,
                  optimizer: Optimizer = None,
                  p: int = 1,
-                 initial_state: Optional[InitialState] = None,
+                 initial_state: Optional[Union[QuantumCircuit, InitialState]] = None,
                  mixer: Union[OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
