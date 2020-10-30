@@ -18,6 +18,7 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -272,7 +273,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     def test_identity_u3(self):
         """Test lone identity gates in u3 basis are removed."""
         circuit = QuantumCircuit(1)
-        circuit.u3(0, 0, 0, 0)
+        circuit.append(U3Gate(0, 0, 0), [0])
         basis = ['cx', 'u3']
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
