@@ -71,7 +71,7 @@ class InstructionScheduleMap():
 
     def qubits_with_instruction(self,
                                 instruction: Union[str, Instruction]) -> List[Union[int,
-                                                                              Tuple[int]]]:
+                                                                                    Tuple[int]]]:
         """Return a list of the qubits for which the given instruction is defined. Single qubit
         instructions return a flat list, and multiqubit instructions return a list of ordered
         tuples.
