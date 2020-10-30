@@ -14,7 +14,6 @@
 
 import copy
 import itertools
-import sys
 import warnings
 import numbers
 import multiprocessing as mp
