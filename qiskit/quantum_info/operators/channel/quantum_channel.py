@@ -45,7 +45,7 @@ class QuantumChannel(BaseOperator):
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
             num_qubits (int): the number of qubits if N-qubit channel.
-                              [Default: None]                     
+                              [Default: None]
             channel_rep (str): quantum channel representation name string.
 
         Raises:

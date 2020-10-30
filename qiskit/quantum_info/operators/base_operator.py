@@ -96,7 +96,7 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
         # Set dimension attributes
         if num_qubits:
             self._set_qubit_dims(num_qubits)
-        else:
+        elif input_dims is not None and output_dims is not None:
             self._set_dims(input_dims, output_dims)
 
     def __call__(self, qargs):
@@ -132,10 +132,7 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
     @property
     def dim(self):
         """Return tuple (input_shape, output_shape)."""
-        if self.num_qubits:
-            dim = 2 ** self.num_qubits
-            return dim, dim
-        return np.product(self._input_dims), np.product(self._output_dims)
+        return self._input_dim, self._output_dim
 
     @property
     def num_qubits(self):
@@ -541,9 +538,8 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
                 input_dims = other.input_dims()
             else:
                 input_dims = list(self.input_dims())
-                new_dims = other.input_dims()
-                for i, qubit in enumerate(qargs):
-                    input_dims[qubit] = new_dims[i]
+                for qubit, dim in zip(qargs, other.input_dims()):
+                    input_dims[qubit] = dim
         else:
             if other.input_dims() != self.output_dims(qargs):
                 raise QiskitError(
@@ -555,9 +551,8 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
                 output_dims = other.output_dims()
             else:
                 output_dims = list(self.output_dims())
-                new_dims = other.output_dims()
-                for i, qubit in enumerate(qargs):
-                    output_dims[qubit] = new_dims[i]
+                for qubit, dim in zip(qargs, other.output_dims()):
+                    output_dims[qubit] = dim
         return input_dims, output_dims
 
     def _validate_add_dims(self, other, qargs=None):
