@@ -141,7 +141,11 @@ def control(operation: Union[Gate, ControlledGate],
             elif gate.name == 'u':
                 theta, phi, lamb = gate.params
                 if num_ctrl_qubits == 1:
-                    controlled_circ.cu(theta, phi, lamb, 0, q_control[0], q_target[qreg[0].index])
+                    if theta == 0 and phi == 0:
+                        controlled_circ.cp(lamb, q_control[0], q_target[qreg[0].index])
+                    else:
+                        controlled_circ.cu(theta, phi, lamb, 0, q_control[0],
+                                           q_target[qreg[0].index])
                 else:
                     if phi == -pi / 2 and lamb == pi / 2:
                         controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
