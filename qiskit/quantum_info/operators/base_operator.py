@@ -188,7 +188,7 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
     def reshape(self, input_dims=None, output_dims=None, num_qubits=None):
         """Return a shallow copy with reshaped input and output subsystem dimensions.
 
-        Arg:
+        Args:
             input_dims (None or tuple): new subsystem input dimensions.
                 If None the original input dims will be preserved [Default: None].
             output_dims (None or tuple): new subsystem output dimensions.
