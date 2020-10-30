@@ -190,11 +190,9 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
 
         Arg:
             input_dims (None or tuple): new subsystem input dimensions.
-                If None the original input dims will be preserved
-                [Default: None].
+                If None the original input dims will be preserved [Default: None].
             output_dims (None or tuple): new subsystem output dimensions.
-                If None the original output dims will be preserved
-                [Default: None].
+                If None the original output dims will be preserved [Default: None].
             num_qubits (None or int): reshape to an N-qubit operator [Default: None].
 
         Returns:
@@ -518,7 +516,7 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
                     "Other operator number of qubits does not match the "
                     "number of qargs ({} != {})".format(
                         other.num_qubits, len(qargs)))
-            elif qargs is None and self.num_qubits != other.num_qubits:
+            if qargs is None and self.num_qubits != other.num_qubits:
                 raise QiskitError(
                     "Other operator number of qubits does not match the "
                     "current operator ({} != {})".format(

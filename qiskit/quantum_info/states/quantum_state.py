@@ -21,7 +21,7 @@ from abc import abstractmethod
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator, AbstractTolerancesMeta
+from qiskit.quantum_info.operators.base_operator import AbstractTolerancesMeta
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
 
