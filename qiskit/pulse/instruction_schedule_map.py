@@ -287,6 +287,7 @@ def _get_instruction_string(inst: Union[str, Gate]):
     if isinstance(inst, str):
         return inst
     else:
-        assert(isinstance(inst, Gate)), "Instruction must be Gate obj or str"
-        assert(inst.name), "Gate has no name"
-        return inst.name
+        try:
+            return inst.name
+        except AttributeError:
+            raise PulseError('Input "inst" has no attribute "name". This should be a circuit "Instruction".')
