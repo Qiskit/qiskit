@@ -81,7 +81,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex',
-                              'parallel_enabled': True},
+                              'parallel_enabled': user_config.parallel_default},
                              config.settings)
 
     def test_optimization_level_valid(self):
@@ -127,9 +127,9 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                    {'parallel_enabled': user_config.parallel_default,
-                     'suppress_packaging_warnings': True},
-                    config.settings)
+                {'parallel_enabled': user_config.parallel_default,
+                 'suppress_packaging_warnings': True},
+                config.settings)
 
     def test_invalid_num_processes(self):
         test_config = """
