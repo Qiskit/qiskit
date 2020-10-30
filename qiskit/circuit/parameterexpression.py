@@ -510,7 +510,7 @@ def Piecewise(*args):
             arguments should be >= 2.
 
     Returns:
-        ParameterExpression
+        ParameterExpression: piecewise conditioned parameter expression
     """
     import sympy
     expr1, cond1 = args[0]
@@ -524,26 +524,32 @@ def Piecewise(*args):
         if not isinstance(cond2, ParameterExpression):
             cond2 = ParameterExpression(dict(), cond2)
         expr1._raise_if_parameter_names_conflict(expr2._parameter_symbols.keys())
-        parameter_symbols = {**parameter_symbols, **expr2._parameter_symbols, **cond2._parameter_symbols}
+        parameter_symbols = {**parameter_symbols,
+                             **expr2._parameter_symbols,
+                             **cond2._parameter_symbols}
     sympy_args = ((sympy.sympify(expr), sympy.sympify(cond))
                   for expr, cond in args)
     expr = sympy.Piecewise(*sympy_args)
     return ParameterExpression(parameter_symbols, expr)
 
 
-def _sympy2qiskit(expr):
-    """
-    Convert simple sympy expressions to qiskit.
+# def _sympy2qiskit(expr):
+#     """
+#     Convert simple sympy expressions to qiskit.
 
-    Args:
-        expr (sympy.Expr): sympy expression.
+#     Args:
+#         expr (sympy.Expr): sympy expression.
 
-    Returns:
-        ParameterExpression
-    """
-    from sympy import Expr
-    if not isinstance(expr, Expr):
-        raise TypeError('expression of type "{0}" '
-                        'is not a sympy expression'.format(expr))
-    symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
-    return ParameterExpression(symbol_map, expr)
+#     Returns:
+#         ParameterExpression: converted expression
+
+#     Raises:
+#         TypeError: if expr is not a sympy expression
+#     """
+#     from sympy import Expr
+#     from qiskit.circuit import Parameter
+#     if not isinstance(expr, Expr):
+#         raise TypeError('expression of type "{0}" '
+#                         'is not a sympy expression'.format(expr))
+#     symbol_map = {Parameter(param.name): param for param in expr.free_symbols}
+#     return ParameterExpression(symbol_map, expr)

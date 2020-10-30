@@ -1595,7 +1595,7 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual((Sign(-x).bind({x: 1})), -1)
         self.assertEqual(float(Sign(-x).bind({x: -1})), 1)
 
-    def test_piecewise(self):
+    def test_piecewise_default(self):
         """Test piecewise ParameterExpression with catch-all"""
         from qiskit.circuit.parameterexpression import Piecewise, Eq
         x = Parameter('x')
@@ -1611,7 +1611,7 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_piecewise_const(self):
         """Test piecewise ParameterExpression with catch-all"""
-        from qiskit.circuit.parameterexpression import Piecewise, Eq
+        from qiskit.circuit.parameterexpression import Piecewise
         x = Parameter('x')
         y = Parameter('y')
         pexpr = Piecewise((10, x > 0), (y, x <= 0))
@@ -1620,35 +1620,35 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_piecewise_gate(self):
         """Test piecewise gate definition"""
-        from qiskit.circuit import Gate
-        from qiskit.quantum_info import Operator
+        import itertools
+        from scipy.linalg import expm
 
         class PWGate(Gate):
+            """Test class with piecewise usage"""
 
             def __init__(self, vx, vy, vz):
-                super().__init__('pw', 1, [vx, vy, vz])                
-                
+                super().__init__('pw', 1, [vx, vy, vz])
+
             def _define(self):
                 from qiskit.circuit.parameterexpression import Piecewise, Eq, Ne, Sign
                 from numpy import sin, cos, arctan2, arccos, pi
+
+                vx, vy, vz = self.params
                 angle = numpy.sqrt(vx*vx + vy*vy + vz*vz)
                 axis = [vx/angle, vy/angle, vz/angle]
-                vx, vy, vz = self.params
-                
-                ex, ey, ez = self.axis
-                angle = self.angle
+                ex, ey, ez = axis
+
                 qi, qj, qk, qr = ex*sin(angle/2), ey*sin(angle/2), ez*sin(angle/2), cos(angle/2)
-                angle = self.angle
                 theta_denom = -qi*qk + qr*qj
                 theta = Piecewise((arctan2(qj*qk + qr*qi, theta_denom), Ne(theta_denom, 0)),
-                                  (Sign(vx) * pi/2, Ne(vx, 0) & Eq(vy, 0) & Eq(vz, 0)),
-                                  (-angle / 2, (vz < 0) & Eq(vx, 0) & Eq(vy, 0)),
+                                  (Sign(vx) * pi/2, Ne(vx, 0) & (Eq(vy, 0) | Eq(vz, 0))),
+                                  (-angle / 2, (vz < 0) & (Eq(vx, 0) | Eq(vy, 0))),
                                   (angle / 2, True))
                 phi = arccos(qk*qk - qj*qj - qi*qi + qr*qr)
                 lam_denom = qi*qk + qr*qj
                 lam = Piecewise((arctan2(qj*qk - qr*qi, lam_denom), Ne(lam_denom, 0)),
-                                (-Sign(vx) * pi/2,  Ne(vx, 0) & Eq(vy, 0) & Eq(vz, 0)),
-                                (-angle / 2, (vz < 0) & Eq(vx, 0) & Eq(vy, 0)),
+                                (-Sign(vx) * pi/2, Ne(vx, 0) & (Eq(vy, 0) | Eq(vz, 0))),
+                                (-angle / 2, (vz < 0) & (Eq(vx, 0) | Eq(vy, 0))),
                                 (angle / 2, True))
                 qc = QuantumCircuit(1)
                 qc.global_phase = Piecewise((pi, (vy < 0) & Ne(vz, 0) & Eq(vx, 0)),
@@ -1666,17 +1666,24 @@ class TestParameterExpressions(QiskitTestCase):
                 cos = numpy.cos(angle/2)
                 return numpy.array([[cos -1j * nz * sin, (-ny - 1j*nx) * sin],
                                     [(ny - 1j*nx) * sin, cos + 1j * nz * sin]])
-        
-        vx, vy, vz = ParameterVector('vec', length=3)
+
+        rotvec = ParameterVector('vec', length=3)
+        vx, vy, vz = rotvec
         pwgate = PWGate(vx, vy, vz)
-        #pwgate._define()
-        qc = QuantumCircuit(1)
-        qc.append(pwgate, [0])
-        qc2 = qc.assign_parameters({vx: 0, vy: 0, vz: 1})
-        print(Operator(qc2))
-        import ipdb;ipdb.set_trace()
-        self.assertEqual(Operator(pwgate.decomposition), Operator(pwgate))
-        
+        pauli_matrices = numpy.array((((0, 1), (1, 0)),
+                                      ((0, -1j), (1j, 0)),
+                                      ((1, 0), (0, -1))))
+
+        for vec in itertools.product([1, 0, -1], repeat=3):
+            if vec in [(0, 0, 0), (1, 1, 1), (0, -1, 0)]:
+                continue
+            qc = pwgate.definition.assign_parameters({vx: vec[0],
+                                                      vy: vec[1],
+                                                      vz: vec[2]})
+            rotmat = expm(-1j * numpy.einsum('i,ijk', vec, pauli_matrices)/2)
+            self.assertTrue(numpy.allclose(Operator(qc).data, rotmat))
+
+
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
 
