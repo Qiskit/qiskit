@@ -48,6 +48,12 @@ try:
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
+try:
+    from IPython.display import display
+    HAS_DISPLAY = True
+except ImportError:
+    HAS_DISPLAY = False
+
 
 class QuantumCircuit:
     """Create a new circuit.
@@ -1124,6 +1130,17 @@ class QuantumCircuit:
         else:
             return string_temp
 
+    def display(self, output=None, scale=None, filename=None, style=None,
+             interactive=False, plot_barriers=True,
+             reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+
+        from IPython.display import display
+        display(self.draw(output, scale, None, style,
+                          interactive, plot_barriers,
+                          reverse_bits, justify, vertical_compression, idle_wires,
+                          with_layout, fold, ax, initial_state, cregbundle))
+
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
@@ -1373,7 +1390,7 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 
-        return circuit_drawer(self, scale=scale,
+        obj = circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,
                               interactive=interactive,
@@ -1387,6 +1404,10 @@ class QuantumCircuit:
                               ax=ax,
                               initial_state=initial_state,
                               cregbundle=cregbundle)
+        if HAS_DISPLAY:
+            display(obj)
+        else:
+            return obj
 
     def size(self):
         """Returns total number of gate operations in circuit.
