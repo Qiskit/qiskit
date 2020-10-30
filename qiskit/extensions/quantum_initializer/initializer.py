@@ -358,7 +358,6 @@ class Initialize(Instruction):
         Additionally implements some extra optimizations: remove zero rotations and
         double cnots.
         """
-        InitializeGate(self.params)
         q = QuantumRegister(self.num_qubits, 'q')
         initialize_circuit = QuantumCircuit(q, name='init_def')
         for qubit in q:
