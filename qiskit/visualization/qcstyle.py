@@ -142,7 +142,9 @@ class DefaultStyle:
                 'target': ('#FFFFFF, '#FFFFFF'),
                 'measure': ('#000000', '#FFFFFF'),
             }
+
     """
+
     def __init__(self):
         """Creates a Default Style dictionary
         """
