@@ -1665,7 +1665,7 @@ class TestParameterExpressions(QiskitTestCase):
                 sin = numpy.sin(angle/2)
                 cos = numpy.cos(angle/2)
                 return numpy.array([[cos -1j * nz * sin, (-ny - 1j * nx) * sin],
-                                    [(ny - 1j*nx) * sin, cos + 1j * nz * sin]])
+                                    [(ny - 1j * nx) * sin, cos + 1j * nz * sin]])
 
         rotvec = ParameterVector('vec', length=3)
         vx, vy, vz = rotvec
