@@ -246,7 +246,8 @@ class QuantumCircuit:
             self.append(inst, qargs, cargs)
 
     def __str__(self):
-        return str(self.draw(output='text'))
+        from qiskit.visualization import circuit_drawer
+        return str(circuit_drawer(self, output='text'))
 
     def __eq__(self, other):
         if not isinstance(other, QuantumCircuit):
