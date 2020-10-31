@@ -1390,7 +1390,7 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 
-        obj = circuit_drawer(self, scale=scale,
+        draw = circuit_drawer(self, scale=scale,
                               filename=filename, style=style,
                               output=output,
                               interactive=interactive,
@@ -1405,9 +1405,9 @@ class QuantumCircuit:
                               initial_state=initial_state,
                               cregbundle=cregbundle)
         if HAS_DISPLAY:
-            display(obj)
+            display(draw)
         else:
-            return obj
+            return draw
 
     def size(self):
         """Returns total number of gate operations in circuit.
