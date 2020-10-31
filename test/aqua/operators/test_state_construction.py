@@ -146,10 +146,10 @@ class TestStateConstruction(QiskitAquaTestCase):
 
     def test_sampling(self):
         """ state fn circuit from dict initialize test """
-        statedict = {'101': .5,
-                     '100': .1,
-                     '000': .2,
-                     '111': .5}
+        statedict = {'101': .5 + 1.j,
+                     '100': .1 + 2.j,
+                     '000': .2 + 0.j,
+                     '111': .5 + 1.j}
         sfc = CircuitStateFn.from_dict(statedict)
         circ_samples = sfc.sample()
         dict_samples = StateFn(statedict).sample()

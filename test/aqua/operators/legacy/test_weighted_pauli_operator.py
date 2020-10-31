@@ -25,6 +25,7 @@ from qiskit.aqua import aqua_globals, QuantumInstance
 from qiskit.aqua.operators import WeightedPauliOperator
 from qiskit.aqua.operators.legacy import op_converter
 from qiskit.aqua.components.initial_states import Custom
+from qiskit.aqua.operators import I, X, Y, Z
 
 
 @ddt
@@ -609,6 +610,22 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         wpo2 = WeightedPauliOperator(pauli_string)
         expectation_value, _ = eval_op(wpo2)
         self.assertAlmostEqual(expectation_value, -3.0, places=2)
+
+    def test_to_opflow(self):
+        """Test for to_opflow() in WeightedPauliOperator"""
+        pauli_a = 'IXYZ'
+        pauli_b = 'ZYIX'
+        coeff_a = 0.5 + 1j
+        coeff_b = -0.5 - 1j
+        pauli_term_a = [coeff_a, Pauli.from_label(pauli_a)]
+        pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
+        op_a = WeightedPauliOperator(paulis=[pauli_term_a])
+        op_b = WeightedPauliOperator(paulis=[pauli_term_b])
+        legacy_op = op_a + op_b
+
+        op = coeff_a * (I ^ X ^ Y ^ Z) + coeff_b * (Z ^ Y ^ I ^ X)
+
+        self.assertEqual(op, legacy_op.to_opflow())
 
 
 if __name__ == '__main__':
