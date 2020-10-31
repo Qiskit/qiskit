@@ -21,7 +21,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit import QiskitError
-from qiskit.aqua import QuantumInstance
+from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.aqua.operators.operator_base import OperatorBase
 from qiskit.aqua.operators.list_ops.list_op import ListOp
@@ -165,6 +165,8 @@ class CircuitSampler(ConverterBase):
 
         Returns:
             The converted Operator with CircuitStateFns replaced by DictStateFns or VectorStateFns.
+        Raises:
+            AquaError: if extracted circuits are empty.
         """
         if self._last_op is None or id(operator) != id(self._last_op):
             # Clear caches
@@ -181,6 +183,11 @@ class CircuitSampler(ConverterBase):
         if not self._circuit_ops_cache:
             self._circuit_ops_cache = {}
             self._extract_circuitstatefns(self._reduced_op_cache)
+            if not self._circuit_ops_cache:
+                raise AquaError(
+                    'Circuits are empty. '
+                    'Check that the operator is an instance of CircuitStateFn or its ListOp.'
+                )
 
         if params:
             p_0 = list(params.values())[0]  # type: ignore
@@ -243,8 +250,13 @@ class CircuitSampler(ConverterBase):
 
         Returns:
             The dictionary mapping ids of the CircuitStateFns to their replacement StateFns.
+        Raises:
+            AquaError: if extracted circuits are empty.
         """
-        if circuit_sfns or not self._transpiled_circ_cache:
+        if not circuit_sfns and not self._transpiled_circ_cache:
+            raise AquaError('CircuitStateFn is empty and there is no cache.')
+
+        if circuit_sfns:
             if self._statevector:
                 circuits = [op_c.to_circuit(meas=False) for op_c in circuit_sfns]
             else:

@@ -252,7 +252,7 @@ class DictStateFn(StateFn):
                shots: int = 1024,
                massive: bool = False,
                reverse_endianness: bool = False) -> dict:
-        probs = np.array(list(self.primitive.values()))**2
+        probs = np.square(np.abs(np.array(list(self.primitive.values()))))
         unique, counts = np.unique(aqua_globals.random.choice(list(self.primitive.keys()),
                                                               size=shots,
                                                               p=(probs / sum(probs))),

@@ -101,9 +101,19 @@ class WeightedPauliOperator(LegacyBaseOperator):
         pauli_ops = []
         for [w, p] in self.paulis:
             pauli = Pauli.from_label(str(p)[::-1]) if reverse_endianness else p
-            # Adding the imaginary is necessary to handle the imaginary coefficients in UCCSD.
-            # TODO fix these or add support for them in Terra.
-            pauli_ops += [PrimitiveOp(pauli, coeff=np.real(w) + np.imag(w))]
+            # This weighted pauli operator has the coeff stored as a complex type
+            # irrespective of whether the value has any imaginary part or not.
+            # For many operators the coeff will be real. Hence below the coeff is made real,
+            # when creating the PrimitiveOp, since it can be stored then as a float, if its
+            # value is real, i.e. has no imaginary part. This avoids any potential issues around
+            # complex - but if there are complex coeffs then maybe that using the opflow
+            # later will fail if it happens to be used where complex is not supported.
+            # Now there are imaginary coefficients in UCCSD that would need to be handled
+            # when this is converted to opflow (evolution of hopping operators) where currently
+            # Terra does not handle complex.
+            # TODO fix these or add support for them in Terra
+            coeff = np.real(w) if np.isreal(w) else w
+            pauli_ops += [PrimitiveOp(pauli, coeff=coeff)]
         return sum(pauli_ops)
 
     @property
