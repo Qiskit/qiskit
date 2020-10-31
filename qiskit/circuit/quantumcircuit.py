@@ -1131,17 +1131,6 @@ class QuantumCircuit:
         else:
             return string_temp
 
-    def display(self, output=None, scale=None, filename=None, style=None,
-             interactive=False, plot_barriers=True,
-             reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
-
-        from IPython.display import display
-        display(self.draw(output, scale, None, style,
-                          interactive, plot_barriers,
-                          reverse_bits, justify, vertical_compression, idle_wires,
-                          with_layout, fold, ax, initial_state, cregbundle))
-
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
