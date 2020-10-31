@@ -16,13 +16,15 @@ from warnings import warn
 
 
 class DefaultStyle:
-    """**Style Dict Details**
+    """Creates a Default Style dictionary
+
+    **Style Dict Details**
 
     The style dict contains numerous options that define the style of the
     output circuit visualization. The style dict is only used by the `mpl`
     output. The options available in the style dict are defined below:
 
-    Args:
+    Attributes:
         name (str): the name of the style. The name can be set to ``iqx``,
             ``bw``, ``default``, or the name of a user-created json file. This
             overrides the setting in the user config file (usually
@@ -148,8 +150,6 @@ class DefaultStyle:
 
     """
     def __init__(self):
-        """Creates a Default Style dictionary
-        """
         colors = {
             '### Default Colors': 'Default Colors',
             'basis': '#FA74A6',         # Red
