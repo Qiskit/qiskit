@@ -1275,7 +1275,7 @@ class TestTextDrawerParams(QiskitTestCase):
         x, y = Parameter('x'), Parameter('y')
         circuit = QuantumCircuit(1)
         circuit.rx((pi - x) * (pi - y), 0)
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
@@ -1906,7 +1906,8 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
 
     def test_text_complex_pireal(self):
         """Complex numbers including pi show up in the text
@@ -1920,7 +1921,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.1 * numpy.pi, 0, 0, 0.9493702944526474 * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text', initial_state=True).single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=True)), expected)
 
     def test_text_complex_piimaginary(self):
         """Complex numbers including pi show up in the text
@@ -1934,7 +1935,7 @@ class TestTextNonRational(QiskitTestCase):
         ket = numpy.array([0.9493702944526474, 0, 0, 0.1 * numpy.pi * 1j])
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
-        self.assertEqual(circuit.draw(output='text', initial_state=True).single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=True)), expected)
 
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
@@ -2977,7 +2978,8 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0, seed_transpiler=0)
-        self.assertEqual(qc_result.draw(output='text', cregbundle=False).single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(qc_result, cregbundle=False,
+                                                  initial_state=False)), expected)
 
 
 class TestTextInitialValue(QiskitTestCase):
@@ -3001,9 +3003,8 @@ class TestTextInitialValue(QiskitTestCase):
                               "         ║ ",
                               "c_1: ════╩═",
                               "           "])
-
-        self.assertEqual(self.circuit.draw(output='text', cregbundle=False).single_string(),
-                         expected)
+        self.assertEqual(str(_text_circuit_drawer(self.circuit, cregbundle=False,
+                                                  initial_state=False)), expected)
 
     def test_draw_initial_value_true(self):
         """ Text drawer .draw(initial_state=True). """
@@ -3016,9 +3017,8 @@ class TestTextInitialValue(QiskitTestCase):
                               "            ║ ",
                               " c_1: 0 ════╩═",
                               "              "])
-        self.assertEqual(self.circuit.draw(output='text',
-                                           initial_state=True,
-                                           cregbundle=False).single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_state=True,
+                                                  cregbundle=False)), expected)
 
     def test_initial_value_false(self):
         """ Text drawer with initial_state parameter False. """
@@ -3050,7 +3050,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         theta = Parameter('theta')
         circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
         circuit = circuit.bind_parameters({theta: 1})
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_draw_hamiltonian_multi(self):
         """Text Hamiltonian gate with mutiple qubits."""
@@ -3066,8 +3066,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         theta = Parameter('theta')
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
         circuit = circuit.bind_parameters({theta: 1})
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
-
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
 class TestTextPhase(QiskitTestCase):
     """Testing the draweing a circuit with phase"""
@@ -3087,7 +3086,7 @@ class TestTextPhase(QiskitTestCase):
 
         circuit.h(0)
         circuit.cx(0, 1)
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_empty(self):
         """Text empty circuit (two registers) with phase."""
@@ -3102,7 +3101,7 @@ class TestTextPhase(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.global_phase = 3
 
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_empty_noregs(self):
         """Text empty circuit (no registers) with phase."""
@@ -3111,7 +3110,7 @@ class TestTextPhase(QiskitTestCase):
         circuit = QuantumCircuit()
         circuit.global_phase = 4.21
 
-        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 if __name__ == '__main__':
