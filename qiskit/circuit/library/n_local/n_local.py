@@ -922,11 +922,12 @@ class NLocal(BlueprintCircuit):
             A single string representing this NLocal.
         """
         from qiskit.compiler import transpile
+        from qiskit.visualization import circuit_drawer
         basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-        return transpile(self, basis_gates=basis_gates,
-                         optimization_level=0).draw(output='text').single_string()
+        transpiled = transpile(self, basis_gates=basis_gates, optimization_level=0)
+        return str(circuit_drawer(transpiled, output='text'))
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:
