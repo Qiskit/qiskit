@@ -1396,6 +1396,7 @@ class QuantumCircuit:
                               cregbundle=cregbundle)
         if HAS_DISPLAY:
             display(draw)
+            return None
         else:
             return draw
 
