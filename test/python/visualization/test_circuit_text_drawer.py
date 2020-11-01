@@ -1908,7 +1908,6 @@ class TestTextNonRational(QiskitTestCase):
         circuit.initialize(ket, [0, 1])
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
-
     def test_text_complex_pireal(self):
         """Complex numbers including pi show up in the text
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
@@ -3067,6 +3066,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
         circuit = circuit.bind_parameters({theta: 1})
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
 
 class TestTextPhase(QiskitTestCase):
     """Testing the draweing a circuit with phase"""
