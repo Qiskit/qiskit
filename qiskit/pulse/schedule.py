@@ -16,6 +16,7 @@ instruction occuring in parallel over multiple signal *channels*.
 """
 
 import abc
+
 import copy
 from collections import defaultdict
 import itertools
@@ -24,9 +25,10 @@ import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+# pylint: disable=cyclic-import, unused-import
+from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.util import is_main_process
 
 # pylint: disable=missing-return-doc
@@ -35,7 +37,7 @@ Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
 
-class Schedule(ScheduleComponent):
+class Schedule(abc.ABC):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
     """
@@ -45,7 +47,9 @@ class Schedule(ScheduleComponent):
     # Prefix to use for auto naming.
     prefix = 'sched'
 
-    def __init__(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+    def __init__(self,
+                 *schedules: Union[Union['Schedule', Instruction],
+                                   Tuple[int, Union['Schedule', Instruction]]],
                  name: Optional[str] = None):
         """Create an empty schedule.
 
@@ -76,6 +80,7 @@ class Schedule(ScheduleComponent):
 
     @property
     def name(self) -> str:
+        """Name of this Schedule"""
         return self._name
 
     @property
@@ -85,14 +90,17 @@ class Schedule(ScheduleComponent):
 
     @property
     def duration(self) -> int:
+        """Duration of this schedule."""
         return self._duration
 
     @property
     def start_time(self) -> int:
+        """Starting time of this schedule."""
         return self.ch_start_time(*self.channels)
 
     @property
     def stop_time(self) -> int:
+        """Stopping time of this schedule."""
         return self.duration
 
     @property
@@ -101,13 +109,13 @@ class Schedule(ScheduleComponent):
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        """Return the child``ScheduleComponent``s of this ``Schedule`` in the
+    def _children(self) -> Tuple[Tuple[int, Union['Schedule', Instruction]], ...]:
+        """Return the child``NamedValues``s of this ``Schedule`` in the
         order they were added to the schedule.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
-            scheduled time of each ``ScheduleComponent`` and the component
+            scheduled time of each ``NamedValue`` and the component
             itself.
         """
         return tuple(self.__children)
@@ -238,7 +246,7 @@ class Schedule(ScheduleComponent):
     # pylint: disable=arguments-differ
     def insert(self,
                start_time: int,
-               schedule: ScheduleComponent,
+               schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'Schedule':
@@ -257,7 +265,7 @@ class Schedule(ScheduleComponent):
 
     def _mutable_insert(self,
                         start_time: int,
-                        schedule: ScheduleComponent
+                        schedule: Union['Schedule', Instruction]
                         ) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
@@ -272,7 +280,7 @@ class Schedule(ScheduleComponent):
 
     def _immutable_insert(self,
                           start_time: int,
-                          schedule: ScheduleComponent,
+                          schedule: Union['Schedule', Instruction],
                           name: Optional[str] = None,
                           ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -289,7 +297,7 @@ class Schedule(ScheduleComponent):
         return new_sched
 
     # pylint: disable=arguments-differ
-    def append(self, schedule: ScheduleComponent,
+    def append(self, schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
@@ -329,8 +337,8 @@ class Schedule(ScheduleComponent):
         If no arguments are provided, ``self`` is returned.
 
         Args:
-            filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
-                          return a bool.
+            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
+                 tuple and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
             instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
@@ -356,8 +364,8 @@ class Schedule(ScheduleComponent):
             self.filter(args) | self.exclude(args) == self
 
         Args:
-            filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
-                          return a bool.
+            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
+                tuple and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
             instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
@@ -377,7 +385,7 @@ class Schedule(ScheduleComponent):
         ``filter_func`` returns ``True``.
 
         Args:
-            filter_func: Function of the form (int, ScheduleComponent) -> bool.
+            filter_func: Function of the form (int, Union['Schedule', Instruction]) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
         subschedules = self.flatten()._children
@@ -386,7 +394,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable['Instruction']] = None,
+                          instruction_types: Optional[Iterable[Instruction]] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -466,7 +474,9 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
-    def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
+    def _add_timeslots(self,
+                       time: int,
+                       schedule: Union['Schedule', Instruction]) -> None:
         """Update all time tracking within this schedule based on the given schedule.
 
         Args:
@@ -513,7 +523,9 @@ class Schedule(ScheduleComponent):
 
         _check_nonnegative_timeslot(self._timeslots)
 
-    def _remove_timeslots(self, time: int, schedule: ScheduleComponent):
+    def _remove_timeslots(self,
+                          time: int,
+                          schedule: Union['Schedule', Instruction]):
         """Delete the timeslots if present for the respective schedule component.
 
         Args:
@@ -551,8 +563,8 @@ class Schedule(ScheduleComponent):
 
     def _replace_timeslots(self,
                            time: int,
-                           old: ScheduleComponent,
-                           new: ScheduleComponent):
+                           old: Union['Schedule', Instruction],
+                           new: Union['Schedule', Instruction]):
         """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
 
         Args:
@@ -564,8 +576,8 @@ class Schedule(ScheduleComponent):
         self._add_timeslots(time, new)
 
     def replace(self,
-                old: ScheduleComponent,
-                new: ScheduleComponent,
+                old: Union['Schedule', Instruction],
+                new: Union['Schedule', Instruction],
                 inplace: bool = False,
                 ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
@@ -773,7 +785,7 @@ class Schedule(ScheduleComponent):
                                           show_framechange_channels=show_framechange_channels,
                                           draw_title=draw_title)
 
-    def __eq__(self, other: ScheduleComponent) -> bool:
+    def __eq__(self, other: Union['Schedule', Instruction]) -> bool:
         """Test if two ScheduleComponents are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -810,11 +822,11 @@ class Schedule(ScheduleComponent):
 
         return True
 
-    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+    def __add__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+    def __or__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -900,7 +912,8 @@ class ParameterizedSchedule:
             else:
                 # assuming no other parametrized instructions
                 predefined = self.parameters
-            sub_params = {k: v for k, v in named_parameters.items() if k in predefined}
+            sub_params = {k: v for k, v in named_parameters.items()
+                          if k in predefined}
             schedules.append(param_sched(**sub_params))
 
         # construct evaluated schedules
