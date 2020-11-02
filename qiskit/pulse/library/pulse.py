@@ -20,6 +20,8 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
+
 
 T_num = TypeVar('T_num', int, float, np.integer, np.float)
 
@@ -105,5 +107,8 @@ def to_integer(duration: T_num):
             warn('Pulse duration should be integer. Input value {raw:f} is rounded to {round:d}.'
                  ''.format(raw=_raw_duration, round=int(duration)),
                  SyntaxWarning)
+
+    if duration < 0:
+        raise PulseError('Pulse duration must be greater than zero.')
 
     return int(duration)

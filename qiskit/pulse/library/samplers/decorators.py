@@ -127,15 +127,15 @@ still seeing the signature for the continuous pulse function and all of its argu
 """
 
 import functools
-from typing import Callable
-import textwrap
 import pydoc
+import textwrap
+from typing import Callable
 
 import numpy as np
 
-from ...exceptions import PulseError
-from ..waveform import Waveform
+from qiskit.pulse.library.pulse import to_integer
 from . import strategies
+from ..waveform import Waveform
 
 
 def functional_pulse(func: Callable) -> Callable:
@@ -150,12 +150,9 @@ def functional_pulse(func: Callable) -> Callable:
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return Waveform."""
-        if isinstance(duration, (int, np.integer)) and duration > 0:
-            samples = func(duration, *args, **kwargs)
-            samples = np.asarray(samples, dtype=np.complex128)
-            return Waveform(samples=samples, name=name)
-        raise PulseError('The first argument must be an integer value representing duration.')
-
+        samples = func(to_integer(duration), *args, **kwargs)
+        samples = np.asarray(samples, dtype=np.complex128)
+        return Waveform(samples=samples, name=name)
     return to_pulse
 
 
