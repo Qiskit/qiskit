@@ -23,6 +23,8 @@ assembler.
 from abc import ABCMeta
 from typing import Any, Set
 
+import numpy as np
+
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
@@ -74,7 +76,7 @@ class Channel(metaclass=ABCMeta):
             if index.is_integer():
                 index = int(index)
 
-        if not isinstance(index, int) and index < 0:
+        if not isinstance(index, (int, np.integer)) and index < 0:
             raise PulseError('Channel index must be a nonnegative integer')
 
     @property
