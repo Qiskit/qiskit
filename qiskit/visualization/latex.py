@@ -16,14 +16,12 @@
 
 import collections
 import io
-import json
 import math
 import re
 
 import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
@@ -38,8 +36,8 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
+    def __init__(self, qubits, clbits, ops, scale,
+                 plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
@@ -48,9 +46,6 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
-            style (dict or str): dictionary of style or file name of style file
-            reverse_bits (bool): When set to True reverse the bit order inside
-               registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
@@ -61,16 +56,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        # style sheet
-        self._style = _qcstyle.BWStyle()
-        if style:
-            if isinstance(style, dict):
-                self._style.set_style(style)
-            elif isinstance(style, str):
-                with open(style) as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
-
         # list of lists corresponding to layers of the circuit
         self.ops = ops
 
@@ -113,7 +98,6 @@ class QCircuitImage:
         # presence of "box" or "target" determines row spacing
         self.has_box = False
         self.has_target = False
-        self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
         self.plot_barriers = plot_barriers
