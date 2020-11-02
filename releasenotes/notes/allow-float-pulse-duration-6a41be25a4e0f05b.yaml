@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Allow float data type for pulse duration. Number after decimal point is rounded and
+    the input value is internally cast into Python integer.
+    SyntaxWarning is raised when a non-integer value is specified as duration.
