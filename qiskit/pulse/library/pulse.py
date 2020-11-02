@@ -104,15 +104,11 @@ def to_integer(duration: TNum) -> int:
         Duration casted into python integer.
 
     Raises:
-        PulseError: When negative duration is given.
+        PulseError: When negative of non-integer duration is given.
     """
     if isinstance(duration, (float, np.float)):
         if not duration.is_integer():
-            _raw_duration = duration
-            duration = np.round(duration)
-            warn('Pulse duration should be integer. Input value {raw:f} is rounded to {round:d}.'
-                 ''.format(raw=_raw_duration, round=int(duration)),
-                 SyntaxWarning)
+            raise PulseError('Pulse duration must be integer representing system cycle time.')
 
     if duration < 0:
         raise PulseError('Pulse duration must be greater than zero.')

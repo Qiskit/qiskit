@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.pulse import library
+from qiskit.pulse.exceptions import PulseError
 import qiskit.pulse.library.samplers as samplers
 
 
@@ -93,7 +94,7 @@ class TestSampler(QiskitTestCase):
         self.assertIsInstance(pulse, library.Waveform)
         np.testing.assert_array_almost_equal(pulse.samples, reference)
 
-    def test_samplers_with_float_duration(self):
+    def test_samplers_with_non_integer_float_duration(self):
         """Test samplers with float type duration."""
         m = 0.1
         b = 0.1
@@ -101,15 +102,36 @@ class TestSampler(QiskitTestCase):
 
         # right sampler
         right_linear_pulse_fun = samplers.right(linear)
-        with self.assertWarns(SyntaxWarning):
+        with self.assertRaises(PulseError):
             right_linear_pulse_fun(duration, m=m, b=b)
 
         # left sampler
         left_linear_pulse_fun = samplers.left(linear)
-        with self.assertWarns(SyntaxWarning):
+        with self.assertRaises(PulseError):
             left_linear_pulse_fun(duration, m=m, b=b)
 
         # midpoint sampler
         midpoint_linear_pulse_fun = samplers.midpoint(linear)
-        with self.assertWarns(SyntaxWarning):
+        with self.assertRaises(PulseError):
             midpoint_linear_pulse_fun(duration, m=m, b=b)
+
+    def test_samplers_with_integer_float_duration(self):
+        """Test samplers with float type duration."""
+        m = 0.1
+        b = 0.1
+        duration = 2.00
+
+        # right sampler
+        right_linear_pulse_fun = samplers.right(linear)
+        # no error
+        right_linear_pulse_fun(duration, m=m, b=b)
+
+        # left sampler
+        left_linear_pulse_fun = samplers.left(linear)
+        # no error
+        left_linear_pulse_fun(duration, m=m, b=b)
+
+        # midpoint sampler
+        midpoint_linear_pulse_fun = samplers.midpoint(linear)
+        # no error
+        midpoint_linear_pulse_fun(duration, m=m, b=b)
