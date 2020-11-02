@@ -59,7 +59,6 @@ class TestUserConfig(QiskitTestCase):
         test_config = """
         [default]
         circuit_drawer = MSPaint
-        circuit_mpl_style = default
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -73,7 +72,6 @@ class TestUserConfig(QiskitTestCase):
         test_config = """
         [default]
         circuit_drawer = latex
-        circuit_mpl_style = default
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -81,8 +79,8 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'circuit_drawer': 'latex',
-                              'circuit_mpl_style': 'default'}, config.settings)
+            self.assertEqual({'circuit_drawer': 'latex'},
+                             config.settings)
 
     def test_optimization_level_valid(self):
         test_config = """
@@ -131,6 +129,7 @@ class TestUserConfig(QiskitTestCase):
         [default]
         circuit_drawer = latex
         circuit_mpl_style = default
+        circuit_mpl_style_path = ~:~/.qiskit
         transpile_optimization_level = 3
         suppress_packaging_warnings = true
         """
@@ -142,6 +141,7 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex',
                               'circuit_mpl_style': 'default',
+                              'circuit_mpl_style_path': ['~', '~/.qiskit'],
                               'transpile_optimization_level': 3,
                               'suppress_packaging_warnings': True},
                              config.settings)
