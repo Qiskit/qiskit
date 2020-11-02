@@ -223,6 +223,16 @@ class TestParametricPulses(QiskitTestCase):
             self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
             self.assertEqual(len(const.get_waveform().samples), 150)
 
+    def test_float_duration(self):
+        """Test constructing parametric pulse with float type duration."""
+        duration = 160.001
+        ref_duration = 160
+
+        with self.assertWarns(SyntaxWarning):
+            gaus_float = Gaussian(duration=duration, amp=0.7, sigma=40)
+        gaus_int = Gaussian(duration=ref_duration, amp=0.7, sigma=40)
+
+        self.assertEqual(gaus_float, gaus_int)
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
 

@@ -13,13 +13,15 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-from typing import Callable, Dict, Optional
 from abc import ABC, abstractmethod
+from typing import Callable, Dict, Optional, TypeVar
+from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.exceptions import PulseError
+
+T_num = TypeVar('T_num', int, float, np.integer, np.float)
 
 
 class Pulse(ABC):
@@ -29,9 +31,7 @@ class Pulse(ABC):
 
     @abstractmethod
     def __init__(self, duration: int, name: Optional[str] = None):
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError('Pulse duration should be integer.')
-        self.duration = int(duration)
+        self.duration = to_integer(duration)
         self.name = name
 
     @property
@@ -88,3 +88,22 @@ class Pulse(ABC):
     @abstractmethod
     def __repr__(self) -> str:
         raise NotImplementedError
+
+
+def to_integer(duration: T_num):
+    """A helper function to cast float duration data type into integer.
+
+    The number after decimal point is rounded.
+
+    Args:
+        duration: Duration of waveform.
+    """
+    if isinstance(duration, (float, np.float)):
+        if not duration.is_integer():
+            _raw_duration = duration
+            duration = np.round(duration)
+            warn('Pulse duration should be integer. Input value {raw:f} is rounded to {round:d}.'
+                 ''.format(raw=_raw_duration, round=int(duration)),
+                 SyntaxWarning)
+
+    return int(duration)

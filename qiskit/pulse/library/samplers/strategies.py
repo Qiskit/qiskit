@@ -32,6 +32,8 @@ from typing import Callable
 
 import numpy as np
 
+from qiskit.pulse.library.pulse import to_integer
+
 
 def left_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
     """Left sample a continuous function.
@@ -42,6 +44,8 @@ def left_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) -> n
         *args: Continuous pulse function args.
         **kwargs: Continuous pulse function kwargs.
     """
+    duration = to_integer(duration)
+
     times = np.arange(duration)
     return continuous_pulse(times, *args, **kwargs)
 
@@ -55,6 +59,8 @@ def right_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) -> 
         *args: Continuous pulse function args.
         **kwargs: Continuous pulse function kwargs.
     """
+    duration = to_integer(duration)
+
     times = np.arange(1, duration+1)
     return continuous_pulse(times, *args, **kwargs)
 
@@ -68,5 +74,7 @@ def midpoint_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) 
         *args: Continuous pulse function args.
         **kwargs: Continuous pulse function kwargs.
     """
+    duration = to_integer(duration)
+
     times = np.arange(1/2, duration + 1/2)
     return continuous_pulse(times, *args, **kwargs)
