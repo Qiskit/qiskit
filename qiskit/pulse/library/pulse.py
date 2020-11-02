@@ -15,13 +15,11 @@ to the device.
 """
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, Optional, TypeVar
-from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
-
 
 TNum = TypeVar('TNum', int, float, np.integer, np.float)
 
