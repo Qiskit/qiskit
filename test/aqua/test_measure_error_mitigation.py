@@ -70,6 +70,8 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         grover = Grover(oracle)
 
         result_wo_mitigation = grover.run(quantum_instance)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         prob_top_meas_wo_mitigation = result_wo_mitigation.measurement[
             result_wo_mitigation.top_measurement]
 
@@ -106,6 +108,8 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         oracle = LogicalExpressionOracle('a & b & c')
         grover = Grover(oracle)
         _ = grover.run(quantum_instance)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         cals_matrix_1, timestamp_1 = quantum_instance.cals_matrix(qubit_index=[0, 1, 2])
 
         time.sleep(15)
@@ -148,6 +152,8 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         oracle = LogicalExpressionOracle('a & b & c')
         grover = Grover(oracle)
         _ = grover.run(quantum_instance)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         cals_matrix_1, timestamp_1 = quantum_instance.cals_matrix(qubit_index=[0, 1, 2])
 
         quantum_instance.measurement_error_mitigation_shots = 1000
@@ -199,6 +205,8 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
 
         # this should run smoothly
         quantum_instance.execute([qc1, qc2])
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
 
         # failure case
         qc3 = QuantumCircuit(3, 3)
@@ -251,6 +259,8 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
             optimizer=optimizer,
         )
         result = vqe.compute_minimum_eigenvalue()
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
 
 

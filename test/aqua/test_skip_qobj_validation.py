@@ -59,9 +59,12 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
                                            shots=1024)
         # run without backend_options and without noise
         res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_wo_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_wo_bo, res_wo_bo_skip_validation))
 
     def test_w_backend_options(self):
@@ -72,8 +75,12 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
                                            backend_options={
                                                'initial_statevector': [.5, .5, .5, .5]})
         res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+        self.assertGreater(quantum_instance.time_taken, 0.)
+        quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_w_bo, res_w_bo_skip_validation))
 
     def test_w_noise(self):
