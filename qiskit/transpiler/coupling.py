@@ -90,7 +90,7 @@ class CouplingMap:
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
-        self._size = None # invalidate
+        self._size = None  # invalidate
 
     def add_edge(self, src, dst):
         """
