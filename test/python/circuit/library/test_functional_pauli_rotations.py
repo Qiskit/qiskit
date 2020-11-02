@@ -31,8 +31,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
     def assertFunctionIsCorrect(self, function_circuit, reference):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
-        num_state_qubits = function_circuit.num_state_qubits
-        num_ancilla_qubits = function_circuit.num_ancilla_qubits
+        num_state_qubits = function_circuit.num_qubits - function_circuit.num_ancillas - 1
+        num_ancilla_qubits = function_circuit.num_ancillas
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
@@ -153,6 +153,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                                                             [2 * slope for slope in slopes],
                                                             [2 * offset for offset in offsets])
 
+        print(pw_linear_rotations.draw())
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
     def test_piecewise_linear_rotations_mutability(self):
