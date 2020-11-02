@@ -17,7 +17,7 @@ matplotlib pulse visualization.
 """
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
+from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
@@ -30,7 +30,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def pulse_drawer(data: Union[Waveform, ScheduleComponent],
+def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
                  dt: int = 1,
                  style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
