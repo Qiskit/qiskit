@@ -23,7 +23,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 
 
-T_num = TypeVar('T_num', int, float, np.integer, np.float)
+TNum = TypeVar('TNum', int, float, np.integer, np.float)
 
 
 class Pulse(ABC):
@@ -92,13 +92,19 @@ class Pulse(ABC):
         raise NotImplementedError
 
 
-def to_integer(duration: T_num):
+def to_integer(duration: TNum) -> int:
     """A helper function to cast float duration data type into integer.
 
     The number after decimal point is rounded.
 
     Args:
         duration: Duration of waveform.
+
+    Returns:
+        Duration casted into python integer.
+
+    Raises:
+        PulseError: When negative duration is given.
     """
     if isinstance(duration, (float, np.float)):
         if not duration.is_integer():
