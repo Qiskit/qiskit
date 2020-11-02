@@ -246,9 +246,16 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name='state')
             qr_target = QuantumRegister(1, name='target')
-            num_ancillas = max(1, self.degree - 1)
-            qr_ancilla = AncillaRegister(num_ancillas)
-            self.qregs = [qr_state, qr_target, qr_ancilla]
+            num_ancillas = min(self.degree - 1, num_state_qubits - 2)
+
+            self.qregs = [qr_state, qr_target]
+
+            if num_ancillas > 0:
+                qr_ancilla = AncillaRegister(num_ancillas)
+                self.qregs.append(qr_ancilla)
+            else:
+                qr_ancilla = []
+
             self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
             self._ancillas = qr_ancilla[:]
         else:
@@ -338,11 +345,11 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # apply controlled rotations
             if len(qr_control) > 1:
                 if self.basis == 'x':
-                    self.mcrx(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
+                    self.mcrx(rotation_coeffs[c], qr_control, qr_target)
                 elif self.basis == 'y':
                     self.mcry(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
                 else:
-                    self.mcrz(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
+                    self.mcrz(rotation_coeffs[c], qr_control, qr_target)
 
             elif len(qr_control) == 1:
                 if self.basis == 'x':

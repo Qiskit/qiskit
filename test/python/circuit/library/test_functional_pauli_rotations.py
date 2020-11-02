@@ -61,6 +61,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
     @data(([1, 0.1], 3),
           ([0, 0.4, 2], 2),
+          ([1, 0.5, 0.2, -0.2, 0.4, 2.5], 5),
           )
     @unpack
     def test_polynomial_function(self, coeffs, num_state_qubits):
@@ -153,7 +154,6 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                                                             [2 * slope for slope in slopes],
                                                             [2 * offset for offset in offsets])
 
-        print(pw_linear_rotations.draw())
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
     def test_piecewise_linear_rotations_mutability(self):
