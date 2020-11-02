@@ -29,8 +29,9 @@ from qiskit.circuit.library import (
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
-    SXGate, SXdgGate, CSXGate, RVGate
+    SXGate, SXdgGate, CSXGate
 )
+from qiskit.extensions.rv import RVGate
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib
@@ -135,7 +136,7 @@ class TestGateDefinitions(QiskitTestCase):
         axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
-        self.assertTrue(numpy.array_equal(rgate.to_matrix(), rv.to_matrix()))
+        self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
 
 
 @ddt
