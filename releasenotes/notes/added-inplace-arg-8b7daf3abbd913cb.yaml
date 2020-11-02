@@ -1,9 +1,0 @@
----
-upgrade:
-  - |
-    The function :func:`qiskit.result.utils.marginal_counts` now, by default, does not modify the 
-    :class:`qiskit.result.result.Result` instance parameter.  A new parameter `inplace` in
-    :func:`qiskit.result.utils.marginal_counts`  allows to conserve the previous behavior when set as
-    `inplace=True`. This behavior is limited
-    to :class:`qiskit.result.result.Result` parameters and does not affect if a dictionary is passed
-    as argument.

@@ -18,7 +18,6 @@ import numbers
 import operator
 
 import numpy
-import sympy
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -30,7 +29,7 @@ class ParameterExpression:
 
     __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
 
-    def __init__(self, symbol_map: Dict, expr: sympy.Expr):
+    def __init__(self, symbol_map: Dict, expr):
         """Create a new ParameterExpression.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -39,7 +38,7 @@ class ParameterExpression:
         Args:
             symbol_map: Mapping of Parameter instances to the sympy.Symbol
                         serving as their placeholder in expr.
-            expr: Expression of sympy.Symbols.
+            expr (sympy.Expr): Expression of sympy.Symbols.
         """
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
@@ -212,7 +211,6 @@ class ParameterExpression:
         Returns:
             A new expression describing the result of the operation.
         """
-
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
@@ -261,6 +259,52 @@ class ParameterExpression:
 
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
+
+    def _call(self, ufunc):
+        return ParameterExpression(
+            self._parameter_symbols,
+            ufunc(self._symbol_expr)
+        )
+
+    def sin(self):
+        """Sine of a ParameterExpression"""
+        from sympy import sin as _sin
+        return self._call(_sin)
+
+    def cos(self):
+        """Cosine of a ParameterExpression"""
+        from sympy import cos as _cos
+        return self._call(_cos)
+
+    def tan(self):
+        """Tangent of a ParameterExpression"""
+        from sympy import tan as _tan
+        return self._call(_tan)
+
+    def arcsin(self):
+        """Arcsin of a ParameterExpression"""
+        from sympy import asin as _asin
+        return self._call(_asin)
+
+    def arccos(self):
+        """Arccos of a ParameterExpression"""
+        from sympy import acos as _acos
+        return self._call(_acos)
+
+    def arctan(self):
+        """Arctan of a ParameterExpression"""
+        from sympy import atan as _atan
+        return self._call(_atan)
+
+    def exp(self):
+        """Exponential of a ParameterExpression"""
+        from sympy import exp as _exp
+        return self._call(_exp)
+
+    def log(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import log as _log
+        return self._call(_log)
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))

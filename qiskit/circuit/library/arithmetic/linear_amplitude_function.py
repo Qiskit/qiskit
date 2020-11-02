@@ -173,8 +173,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         value *= 2 / np.pi / self._rescaling_factor
 
         # map the value from [0, 1] back to the original domain
-        value *= self._domain[1] - self._domain[0]
-        value += self._domain[0]
+        value *= self._image[1] - self._image[0]
+        value += self._image[0]
 
         return value
 

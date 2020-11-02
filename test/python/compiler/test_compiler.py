@@ -18,6 +18,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit import execute
+from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
@@ -176,7 +177,7 @@ class TestCompiler(QiskitTestCase):
         """
         backend = BasicAer.get_backend('qasm_simulator')
         qc = QuantumCircuit(2)
-        qc.u1(0, 0)
+        qc.append(U1Gate(0), [0])
         qc.measure_all()
         job = execute(qc, backend=backend, pass_manager=PassManager())
         result = job.result().get_counts()
@@ -207,8 +208,8 @@ class TestCompiler(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
-        qc.u1(3.14, qr[0])
-        qc.u2(3.14, 1.57, qr[0])
+        qc.append(U1Gate(3.14), [qr[0]])
+        qc.append(U2Gate(3.14, 1.57), [qr[0]])
         qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend('qasm_simulator')
