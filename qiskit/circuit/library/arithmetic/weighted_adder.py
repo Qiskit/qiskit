@@ -15,9 +15,10 @@
 """Compute the weighted sum of qubit states."""
 
 from typing import List, Optional
+import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -162,15 +163,25 @@ class WeightedAdder(BlueprintCircuit):
             qr_state = QuantumRegister(self.num_state_qubits, name='state')
             qr_sum = QuantumRegister(self.num_sum_qubits, name='sum')
             self.qregs = [qr_state, qr_sum]
+            self._qubits = qr_state[:] + qr_sum[:]
+            self._ancillas = []
+
             if self.num_carry_qubits > 0:
-                qr_carry = QuantumRegister(self.num_carry_qubits, name='carry')
+                qr_carry = AncillaRegister(self.num_carry_qubits, name='carry')
                 self.qregs += [qr_carry]
+                self._qubits += qr_carry[:]
+                self._ancillas += qr_carry[:]
 
             if self.num_control_qubits > 0:
-                qr_control = QuantumRegister(self.num_control_qubits, name='control')
+                qr_control = AncillaRegister(self.num_control_qubits, name='control')
                 self.qregs += [qr_control]
+                self._qubits += qr_control[:]
+                self._ancillas += qr_control[:]
+
         else:
             self.qregs = []
+            self._qubits = []
+            self._ancillas = []
 
     @property
     def num_carry_qubits(self) -> int:
@@ -198,12 +209,13 @@ class WeightedAdder(BlueprintCircuit):
 
     @property
     def num_ancilla_qubits(self) -> int:
-        """The number of ancilla qubits required to implement the weighted sum.
-
-        Returns:
-            The number of ancilla qubits in the circuit.
-        """
-        return self.num_carry_qubits + self.num_control_qubits
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The WeightedAdder.num_ancilla_qubits property is deprecated '
+                      'as of 0.17.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_control_qubits + self.num_carry_qubits
+        # return self.num_ancillas
 
     def _check_configuration(self, raise_on_failure=True):
         valid = True
@@ -262,7 +274,8 @@ class WeightedAdder(BlueprintCircuit):
                         # - controlled by q_state[i]
                         self.x(qr_sum[j])
                         self.x(qr_carry[j - 1])
-                        self.mct([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control)
+                        self.mct([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control,
+                                 mode='v-chain')
                         self.cx(q_state, qr_carry[j])
                         self.x(qr_sum[j])
                         self.x(qr_carry[j - 1])
@@ -281,7 +294,8 @@ class WeightedAdder(BlueprintCircuit):
                     else:
                         # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
                         # - controlled by q_state[i]
-                        self.mct([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control)
+                        self.mcx([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control,
+                                 mode='v-chain')
                         self.ccx(q_state, qr_carry[j - 1], qr_sum[j])
 
             # uncompute carry qubits
@@ -298,7 +312,8 @@ class WeightedAdder(BlueprintCircuit):
                         pass
                     else:
                         self.x(qr_carry[j - 1])
-                        self.mct([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control)
+                        self.mcx([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control,
+                                 mode='v-chain')
                         self.cx(q_state, qr_carry[j])
                         self.x(qr_carry[j - 1])
                 else:
@@ -312,5 +327,6 @@ class WeightedAdder(BlueprintCircuit):
                         # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
                         # - controlled by q_state[i]
                         self.x(qr_sum[j])
-                        self.mct([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control)
+                        self.mcx([q_state, qr_sum[j], qr_carry[j - 1]], qr_carry[j], qr_control,
+                                 mode='v-chain')
                         self.x(qr_sum[j])
