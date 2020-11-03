@@ -39,7 +39,7 @@ class ApplyLayout(TransformationPass):
         Raises:
             TranspilerError: if no layout is found in `property_set` or no full physical qubits.
         """
-        layout = self.property_set["layout"]
+        layout = self.property_set["layout_out"] = self.property_set["layout"]
         if not layout:
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance.")

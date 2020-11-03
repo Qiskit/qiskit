@@ -58,6 +58,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               pass_manager: Optional[PassManager] = None,
               callback: Optional[Callable[[BasePass, DAGCircuit, float,
                                            PropertySet, int], Any]] = None,
+              restore_layout: Optional[str] = None,
               output_name: Optional[Union[str, List[str]]] = None) -> Union[QuantumCircuit,
                                                                             List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
@@ -181,6 +182,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                     ...
                 transpile(circ, callback=callback_func)
 
+        restore_layout: Restores the layout to the option. The options are `'trivial'`, `'initial'`,
+            or `None`.
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
 
@@ -204,6 +207,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         end_time = time()
         _log_transpile_time(start_time, end_time)
         return circuits
+
+    if initial_layout is None and restore_layout == 'initial':
+        raise TranspilerError("The parameter restore_layout='initial' conflicts with "
+                              "initial_layout=None.")
 
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
@@ -235,7 +242,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                            layout_method, routing_method, translation_method,
                                            scheduling_method, instruction_durations, dt,
                                            seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           callback, restore_layout, output_name)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
@@ -392,7 +399,7 @@ def _parse_transpile_args(circuits, backend,
                           initial_layout, layout_method, routing_method, translation_method,
                           scheduling_method, instruction_durations, dt,
                           seed_transpiler, optimization_level,
-                          callback, output_name) -> List[Dict]:
+                          callback, restore_layout, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -427,11 +434,12 @@ def _parse_transpile_args(circuits, backend,
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
+    restore_layout = _parse_restore_layout(restore_layout, num_circuits)
 
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
                     layout_method, routing_method, translation_method, scheduling_method,
-                    durations, seed_transpiler, optimization_level,
+                    durations, seed_transpiler, restore_layout, optimization_level,
                     output_name, callback, backend_num_qubits, faulty_qubits_map):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
@@ -442,12 +450,13 @@ def _parse_transpile_args(circuits, backend,
                                                                    translation_method=args[6],
                                                                    scheduling_method=args[7],
                                                                    instruction_durations=args[8],
-                                                                   seed_transpiler=args[9]),
-                          'optimization_level': args[10],
-                          'output_name': args[11],
-                          'callback': args[12],
-                          'backend_num_qubits': args[13],
-                          'faulty_qubits_map': args[14]}
+                                                                   seed_transpiler=args[9],
+                                                                   restore_layout=args[10]),
+                          'optimization_level': args[11],
+                          'output_name': args[12],
+                          'callback': args[13],
+                          'backend_num_qubits': args[14],
+                          'faulty_qubits_map': args[15]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -664,6 +673,12 @@ def _parse_callback(callback, num_circuits):
     if not isinstance(callback, list):
         callback = [callback] * num_circuits
     return callback
+
+
+def _parse_restore_layout(restore_layout, num_circuits):
+    if not isinstance(restore_layout, list):
+        restore_layout = [restore_layout] * num_circuits
+    return restore_layout
 
 
 def _parse_faulty_qubits_map(backend, num_circuits):

@@ -91,6 +91,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    restore_layout = pass_manager_config.restore_layout
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -141,8 +142,16 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [SabreSwap(coupling_map, heuristic='lookahead', seed=seed_transpiler)]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
-    _swap += [LayoutTransformation(coupling_map, 'layout', 'out_layout', seed=seed_transpiler,
-                                   trials=4)]
+
+    _restore_layout = []
+    if restore_layout == 'initial':
+        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', 'layout',
+                                                 seed=seed_transpiler, trials=4)]
+    elif restore_layout == 'trivial':
+        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', 'TRIVIAL',
+                                                 seed=seed_transpiler, trials=4)]
+    elif restore_layout is not None:
+        raise TranspilerError("Invalid restore_layout option %s." % restore_layout)
 
     # 6. Unroll to the basis
     if translation_method == 'unroller':
@@ -204,6 +213,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_unroll3q)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
+        pm1.append(_restore_layout)
     pm1.append(_unroll)
     if coupling_map and not coupling_map.is_symmetric:
         pm1.append(_direction_check)

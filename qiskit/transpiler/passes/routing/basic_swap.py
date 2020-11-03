@@ -94,6 +94,6 @@ class BasicSwap(TransformationPass):
 
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
-            self.property_set['out_layout'] = current_layout
+            self.property_set['layout_out'] = current_layout
 
         return new_dag

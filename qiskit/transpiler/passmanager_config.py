@@ -27,7 +27,8 @@ class PassManagerConfig:
                  scheduling_method=None,
                  instruction_durations=None,
                  backend_properties=None,
-                 seed_transpiler=None):
+                 seed_transpiler=None,
+                 restore_layout=None):
         """Initialize a PassManagerConfig object
 
         Args:
@@ -50,6 +51,7 @@ class PassManagerConfig:
                 qubit coherence times, etc.
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
+            restore_layout (str): `trivial`, `initial`, or None
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -61,3 +63,4 @@ class PassManagerConfig:
         self.instruction_durations = instruction_durations
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler
+        self.restore_layout = restore_layout

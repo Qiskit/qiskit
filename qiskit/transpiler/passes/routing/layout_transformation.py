@@ -46,6 +46,7 @@ class LayoutTransformation(TransformationPass):
             to_layout (Union[Layout, str]):
                 The final layout of qubits on phyiscal qubits.
                 If the type is str, look up `property_set` when this pass runs.
+                if None, use trivial.
 
             seed (Union[int, np.random.default_rng]):
                 Seed to use for random trials.
@@ -86,16 +87,19 @@ class LayoutTransformation(TransformationPass):
 
         from_layout = self.from_layout
         if isinstance(from_layout, str):
-            try:
+            if self.property_set[from_layout] is None:
+                raise TranspilerError('No property_set["{}"] (from_layout).'.format(from_layout))
+            else:
                 from_layout = self.property_set[from_layout]
-            except Exception:
-                raise TranspilerError('No {} (from_layout) in property_set.'.format(from_layout))
 
         to_layout = self.to_layout
+
+        if self.to_layout == 'TRIVIAL':
+            to_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         if isinstance(to_layout, str):
-            try:
-                to_layout = self.property_set[to_layout]
-            except Exception:
+            to_layout = self.property_set[to_layout]
+            if to_layout is None:
                 raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
 
         # Find the permutation between the initial physical qubits and final physical qubits.
