@@ -33,7 +33,7 @@ Terra 0.16.0
 Prelude
 -------
 
-The 0.16.0 release includes serveral new features and bug fixes. The
+The 0.16.0 release includes several new features and bug fixes. The
 major features in this release are the following:
 
 * Introduction of scheduled circuits, where delays can be used to control
@@ -52,7 +52,7 @@ major features in this release are the following:
   phase-correct unitary matrices and state vectors.
 
 Also of particular importance for this release is that Python 3.5 is no
-longer supported. If you're are using Qiskit Terra with Python 3.5 the
+longer supported. If you are using Qiskit Terra with Python 3.5, the
 0.15.2 release is that last version which will work.
 
 
@@ -174,7 +174,7 @@ New Features
   property for QASM Qobjs.
 
 - The ``backend_configuration_schema.json`` JSON Schema file in
-  mod:`qiskit.schemas` has been updated to include ``dynamic_reprate_enabled``,
+  :mod:`qiskit.schemas` has been updated to include ``dynamic_reprate_enabled``,
   ``rep_delay_range`` and ``default_rep_delay`` as optional properties for a QASM
   backend configuration payload.
 
@@ -347,7 +347,7 @@ New Features
   in addition to numerical values for schedule generator parameters. If the
   generator is a function, expressions may be bound before or within the
   function call. If the generator is a
-  :class:`~qiskit.pulse.ParamerizedSchedule`, expressions must be
+  :class:`~qiskit.pulse.ParametrizedSchedule`, expressions must be
   bound before the schedule itself is bound/called.
 
 - A new class :class:`~qiskit.circuit.library.LinearAmplitudeFunction` was
@@ -553,7 +553,7 @@ New Features
     plot_bloch_vector([r, theta, phi], coord_type="spherical")
 
 - Pulse :py:class:`~qiskit.pulse.Schedule` objects now support
-  use :py:class:`~qiskit.circuit.ParameterExpression` objects
+  using :py:class:`~qiskit.circuit.ParameterExpression` objects
   for parameters.
 
   For example::
@@ -589,7 +589,7 @@ New Features
 - A new visualization function :func:`~qiskit.visualization.timeline_drawer`
   was added to the :mod:`qiskit.visualization` module.
 
-  For Example:
+  For example:
 
   .. jupyter-execute::
 
@@ -619,7 +619,7 @@ Upgrade Notes
   :class:`~qiskit.extensions.UnitaryGate` accepts a parameter of the type
   ``numpy.ndarray`` and defines a custom
   :meth:`~qiskit.extensionst.UnitaryGate.validate_parameter` method that
-  returns the parameter if it's an ``numpy.ndarray``. This takes priorty
+  returns the parameter if it's an ``numpy.ndarray``. This takes priority
   over the function defined in its parent class :class:`~qiskit.circuit.Gate`.
   If :class:`~qiskit.extensions.UnitaryGate` were to be used as parent
   for a new class, this ``validate_parameter`` method would be used unless
@@ -729,7 +729,7 @@ Deprecation Notes
   was done as part of the refactoring of how ``parms`` type checking is
   handled for the :class:`~qiskit.circuit.Gate` class. If you have a custom
   gate class which is a subclass of :class:`~qiskit.circuit.Gate` directly
-  (or via a different parent in the hiearchy) that accepts an ``ndarray``
+  (or via a different parent in the hierarchy) that accepts an ``ndarray``
   parameter, you should define a custom
   :meth:`~qiskit.circuit.Gate.validate_parameter` method for your class
   that will return the allowed parameter type. For example::
