@@ -81,6 +81,7 @@ Timeline Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
+   timeline_drawer
    ~qiskit.visualization.timeline.draw
 
 Single Qubit State Transition Visualizations
