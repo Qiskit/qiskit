@@ -41,23 +41,23 @@ class RVGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis='U3'):
-        """Create new rv single-qubit gate."""
+    def __init__(self, v_x, v_y, v_z, basis='U'):
+        """Create new rv single-qubit gate.
+
+        Args:
+            v_x (float): x-component
+            v_y (float): y-component
+            v_z (float): z-component
+            basis (str, optional): basis (see 
+                :class:`~qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer`)
+        """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
         super().__init__('rv', 1, [v_x, v_y, v_z])
-        self._decomposer = OneQubitEulerDecomposer(basis)
+        self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumRegister, QuantumCircuit
-        from qiskit.circuit.library.standard_gates import U3Gate
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        theta, phi, lam, global_phase = self._decomposer.angles_and_phase(self.to_matrix())
-        qc._append(U3Gate(theta, phi, lam), [q[0]], [])
-        qc.global_phase = global_phase
-        self.definition = qc
+        self.definition = self._decomposer(self.to_matrix())
 
     def inverse(self):
         """Invert this gate."""

@@ -125,10 +125,11 @@ class OneQubitEulerDecomposer:
         if not is_unitary_matrix(unitary):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
-        theta, phi, lam, _ = self._params(unitary)
+        theta, phi, lam, phase = self._params(unitary)
         circuit = self._circuit(theta, phi, lam,
                                 simplify=simplify,
                                 atol=atol)
+        circuit.global_phase = phase
         return circuit
 
     @property

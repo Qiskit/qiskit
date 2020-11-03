@@ -279,7 +279,8 @@ from .generalized_gates import (
     GR,
     GRX,
     GRY,
-    GRZ
+    GRZ,
+    RVGate
 )
 from .boolean_logic import (
     AND,

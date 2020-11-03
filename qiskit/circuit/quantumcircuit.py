@@ -2124,8 +2124,8 @@ class QuantumCircuit:
         return self.append(RGate(theta, phi), [qubit], [])
 
     def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
-        """Apply :class:`~qiskit.extensions.RVGate`."""
-        from qiskit.extensions.rv import RVGate
+        """Apply :class:`~qiskit.circuit.library.RVGate`."""
+        from .library.generalized_gates.rv import RVGate
         return self.append(RVGate(vx, vy, vz), [qubit], [])
 
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
