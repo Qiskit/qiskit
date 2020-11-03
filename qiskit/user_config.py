@@ -22,15 +22,13 @@ from qiskit import exceptions
 DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
                                 '.qiskit', 'settings.conf')
 
-
-parallel_env_var = os.getenv('QISKIT_PARALLEL', None)
-if parallel_env_var is not None:
-    parallel_default = parallel_env_var.lower() == 'true'
+if os.getenv('QISKIT_PARALLEL', None) is not None:
+    PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
 else:
     if sys.platform in {'darwin', 'win32'}:
-        parallel_default = False
+        PARALLEL_DEFAULT = False
     else:
-        parallel_default = True
+        PARALLEL_DEFAULT = True
 
 
 class UserConfig:
@@ -126,7 +124,7 @@ class UserConfig:
 
             # Parse parallel
             parallel_enabled = self.config_parser.getboolean(
-                'default', 'parallel', fallback=parallel_default)
+                'default', 'parallel', fallback=PARALLEL_DEFAULT)
             self.settings['parallel_enabled'] = parallel_enabled
 
             # Parse num_processes
@@ -152,7 +150,7 @@ def get_config():
     """
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     if not os.path.isfile(filename):
-        return {'parallel_enabled': parallel_default}
+        return {'parallel_enabled': PARALLEL_DEFAULT}
     user_config = UserConfig(filename)
     user_config.read_config_file()
     return user_config.settings

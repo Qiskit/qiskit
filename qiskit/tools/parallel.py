@@ -119,7 +119,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
     # Run in parallel if not Win and not in parallel already
     if num_processes > 1 and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE' \
-            and CONFIG.get('parallel_enabled', user_config.parallel_default):
+            and CONFIG.get('parallel_enabled', user_config.PARALLEL_DEFAULT):
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             results = []

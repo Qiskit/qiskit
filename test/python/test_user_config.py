@@ -81,7 +81,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex',
-                              'parallel_enabled': user_config.parallel_default},
+                              'parallel_enabled': user_config.PARALLEL_DEFAULT},
                              config.settings)
 
     def test_optimization_level_valid(self):
@@ -97,7 +97,7 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual(
                 {'transpile_optimization_level': 1,
-                 'parallel_enabled': user_config.parallel_default},
+                 'parallel_enabled': user_config.PARALLEL_DEFAULT},
                 config.settings)
 
     def test_valid_suppress_packaging_warnings_false(self):
@@ -112,7 +112,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'parallel_enabled': user_config.parallel_default},
+                {'parallel_enabled': user_config.PARALLEL_DEFAULT},
                 config.settings)
 
     def test_valid_suppress_packaging_warnings_true(self):
@@ -127,7 +127,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'parallel_enabled': user_config.parallel_default,
+                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
                  'suppress_packaging_warnings': True},
                 config.settings)
 
@@ -156,7 +156,7 @@ class TestUserConfig(QiskitTestCase):
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual(
-                {'parallel_enabled': user_config.parallel_default,
+                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
                  'num_processes': 31},
                 config.settings)
 
