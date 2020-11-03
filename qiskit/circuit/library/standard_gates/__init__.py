@@ -72,7 +72,6 @@ from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
 from .ms import MSGate
 from .r import RGate
-#from .rv import RVGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
 from .ry import RYGate, CRYGate

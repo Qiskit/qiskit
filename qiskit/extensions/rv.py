@@ -12,7 +12,6 @@
 
 """Rotation around an axis in x-y plane."""
 
-import math
 import numpy
 from qiskit.circuit.gate import Gate
 
@@ -44,13 +43,14 @@ class RVGate(Gate):
 
     def __init__(self, v_x, v_y, v_z, basis='U3'):
         """Create new rv single-qubit gate."""
+        # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
         super().__init__('rv', 1, [v_x, v_y, v_z])
         self._decomposer = OneQubitEulerDecomposer(basis)
 
     def _define(self):
+        # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumRegister, QuantumCircuit
-        from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
         from qiskit.circuit.library.standard_gates import U3Gate
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
@@ -58,7 +58,6 @@ class RVGate(Gate):
         qc._append(U3Gate(theta, phi, lam), [q[0]], [])
         qc.global_phase = global_phase
         self.definition = qc
-
 
     def inverse(self):
         """Invert this gate."""
