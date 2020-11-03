@@ -30,15 +30,16 @@ class ParameterExpression:
     __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
 
     def __init__(self, symbol_map: Dict, expr):
-        """Create a new ParameterExpression.
+        """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
-        on other Parameter or ParameterExpression objects.
+        on other :class:`Parameter` or :class:`ParameterExpression` objects.
 
         Args:
-            symbol_map: Mapping of Parameter instances to the sympy.Symbol
-                        serving as their placeholder in expr.
-            expr (sympy.Expr): Expression of sympy.Symbols.
+            symbol_map (Dict[Parameter, [ParameterExpression, float, or int]]):
+                Mapping of :class:`Parameter` instances to the :class:`sympy.Symbol`
+                serving as their placeholder in expr.
+            expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
