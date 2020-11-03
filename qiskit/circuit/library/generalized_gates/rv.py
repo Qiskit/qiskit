@@ -68,6 +68,8 @@ class RVGate(Gate):
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
         angle = numpy.sqrt(v.dot(v))
+        if angle == 0:
+            return numpy.array([[1, 0], [0, 1]])
         nx, ny, nz = v / angle
         sin = numpy.sin(angle / 2)
         cos = numpy.cos(angle / 2)

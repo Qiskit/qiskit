@@ -137,6 +137,12 @@ class TestGateDefinitions(QiskitTestCase):
         rv = RVGate(*rotvec)
         self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
 
+    def test_rv_zero(self):
+        """Test R(v) gate with zero vector returns identity
+        """
+        rv = RVGate(0, 0, 0)
+        self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
