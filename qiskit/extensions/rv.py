@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Rotation around an axis in x-y plane."""
+"""Rotation around an arbitrary axis on the Bloch sphere."""
 
 import numpy
 from qiskit.circuit.gate import Gate
