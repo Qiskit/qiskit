@@ -2,7 +2,7 @@
 features:
   - |
     Pulse :py:class:`~qiskit.pulse.Schedule` objects now support
-    use :py:class:`~qiskit.circuit.ParameterExpression` objects
+    using :py:class:`~qiskit.circuit.ParameterExpression` objects
     for parameters.
 
     For example::
