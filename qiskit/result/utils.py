@@ -28,14 +28,15 @@ def marginal_counts(result, indices=None, inplace=False):
         result (dict or Result): result to be marginalized
             (a Result object or a dict of counts).
         indices (list(int) or None): The bit positions of interest
-            to marginalize over. If None, do not marginalize at all.
+            to marginalize over. If ``None`` (default), do not marginalize at all.
         inplace (bool): Default: False. Operates on the original Result
             argument if True, leading to loss of original Job Result.
-            It has not effect if result is dict.
+            It has no effect if ``result`` is a dict.
+
     Returns:
-        Result or dict[str:int]: a dictionary with the observed counts,
-            marginalized to only account for frequency of observations
-            of bits of interest.
+        Result or dict[str, int]: a dictionary with the observed counts,
+        marginalized to only account for frequency of observations
+        of bits of interest.
 
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
