@@ -21,8 +21,12 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
+from typing import Any, Set
 
-from qiskit.circuit import ParameterExpression
+import numpy as np
+
+from qiskit.circuit import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -41,15 +45,13 @@ class Channel(metaclass=ABCMeta):
 
         Args:
             index: Index of channel.
-
-        Raises:
-            PulseError: If ``index`` is not a nonnegative integer.
         """
-        if not isinstance(index, ParameterExpression):
-            if not isinstance(index, int) or index < 0:
-                raise PulseError('Channel index must be a nonnegative integer')
+        self._validate_index(index)
         self._index = index
         self._hash = None
+        self._parameters = set()
+        if isinstance(index, ParameterExpression):
+            self._parameters = index.parameters
 
     @property
     def index(self) -> int:
@@ -58,6 +60,57 @@ class Channel(metaclass=ABCMeta):
         the signal line driving the qubit labeled with index 0.
         """
         return self._index
+
+    def _validate_index(self, index: Any) -> None:
+        """Raise a PulseError if the channel index is invalid, namely, if it's not a positive
+        integer.
+
+        Raises:
+            PulseError: If ``index`` is not a nonnegative integer.
+        """
+        if isinstance(index, ParameterExpression) and index.parameters:
+            # Parameters are unbound
+            return
+        elif isinstance(index, ParameterExpression):
+            index = float(index)
+            if index.is_integer():
+                index = int(index)
+
+        if not isinstance(index, (int, np.integer)) and index < 0:
+            raise PulseError('Channel index must be a nonnegative integer')
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the channel index."""
+        return self._parameters
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the channel is parameterized."""
+        return bool(self.parameters)
+
+    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
+        """Return a new channel with the input Parameter assigned to value.
+
+        Args:
+            parameter: A parameter in this expression whose value will be updated.
+            value: The new value to bind to.
+
+        Returns:
+            A new channel with updated parameters.
+
+        Raises:
+            PulseError: If the parameter is not present in the channel.
+        """
+        if parameter not in self.parameters:
+            raise PulseError('Cannot bind parameters ({}) not present in the channel.'
+                             ''.format(parameter))
+
+        new_index = self.index.assign(parameter, value)
+        if not new_index.parameters:
+            self._validate_index(new_index)
+            new_index = int(new_index)
+
+        return type(self)(new_index)
 
     @property
     def name(self) -> str:
