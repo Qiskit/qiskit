@@ -48,7 +48,7 @@ class RVGate(Gate):
             v_x (float): x-component
             v_y (float): y-component
             v_z (float): z-component
-            basis (str, optional): basis (see 
+            basis (str, optional): basis (see
                 :class:`~qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
         # pylint: disable=cyclic-import
