@@ -18,6 +18,7 @@ instruction occuring in parallel over multiple signal *channels*.
 import abc
 
 import copy
+from collections import defaultdict
 import itertools
 import multiprocessing as mp
 import sys
@@ -65,9 +66,10 @@ class Schedule(abc.ABC):
         self._name = name
         self._duration = 0
 
+        # These attributes are populated by ``_mutable_insert``
         self._timeslots = {}
         self.__children = []
-
+        self._parameter_table = defaultdict(list)
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -273,6 +275,7 @@ class Schedule(abc.ABC):
         """
         self._add_timeslots(start_time, schedule)
         self.__children.append((start_time, schedule))
+        self._update_parameter_table(schedule)
         return self
 
     def _immutable_insert(self,
@@ -640,6 +643,9 @@ class Schedule(abc.ABC):
 
         if inplace:
             self.__children = new_children
+            self._parameter_table.clear()
+            for _, child in new_children:
+                self._update_parameter_table(child)
             return self
         else:
             try:
@@ -649,6 +655,15 @@ class Schedule(abc.ABC):
                     'Replacement of {old} with {new} results in '
                     'overlapping instructions.'.format(
                         old=old, new=new)) from err
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the schedule behavior."""
+        return set(self._parameter_table.keys())
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType],
@@ -662,23 +677,33 @@ class Schedule(abc.ABC):
         Returns:
             Schedule with updated parameters (a new one if not inplace, otherwise self).
         """
-        for _, inst in self.instructions:
-            inst.assign_parameters(value_dict)
+        for parameter in self.parameters:
+            if parameter not in value_dict:
+                continue
 
+            value = value_dict[parameter]
+            for inst in self._parameter_table[parameter]:
+                inst.assign_parameters({parameter: value})
+
+            entry = self._parameter_table.pop(parameter)
+            if isinstance(value, ParameterExpression):
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        new_entry = set(entry + self._parameter_table[new_parameter])
+                        self._parameter_table[new_parameter] = list(new_entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
+
+        # Update timeslots according to new channel keys
         for chan in copy.copy(self._timeslots):
             if isinstance(chan.index, ParameterExpression):
                 chan_timeslots = self._timeslots.pop(chan)
 
                 # Find the channel's new assignment
                 new_channel = chan
-                for param in chan.index.parameters:
-                    if param in value_dict:
-                        new_index = new_channel.index.assign(param, value_dict[param])
-                        if not new_index.parameters:
-                            new_index = float(new_index)
-                            if float(new_index).is_integer():
-                                new_index = int(new_index)
-                        new_channel = type(chan)(new_index)
+                for param, value in value_dict.items():
+                    if param in new_channel.parameters:
+                        new_channel = new_channel.assign(param, value)
 
                 # Merge with existing channel
                 if new_channel in self._timeslots:
@@ -690,6 +715,17 @@ class Schedule(abc.ABC):
                     self._timeslots[new_channel] = chan_timeslots
 
         return self
+
+    def _update_parameter_table(self, schedule: 'Schedule'):
+        """
+
+        Args:
+            schedule:
+        """
+        schedule = schedule.flatten()
+        for _, inst in schedule.instructions:
+            for param in inst.parameters:
+                self._parameter_table[param].append(inst)
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
