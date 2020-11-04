@@ -24,9 +24,9 @@ class RVGate(Gate):
 
     .. parsed-literal::
 
-             ┌──────┐
-        q_0: ┤ R(v) ├
-             └──────┘
+             ┌─────────────────┐
+        q_0: ┤ RV(v_x,v_y,v_z) ├
+             └─────────────────┘
 
     **Matrix Representation:**
 
@@ -57,7 +57,14 @@ class RVGate(Gate):
         self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
-        self.definition = self._decomposer(self.to_matrix())
+        try:
+            self.definition = self._decomposer(self.to_matrix())
+        except TypeError as terr:
+            if 'unbound parameters' in terr:
+                raise CircuitError('The {} gate cannot be decomposed '
+                                   'with unbound parameters'.foramt(self.name))
+            else:
+                raise
 
     def inverse(self):
         """Invert this gate."""
