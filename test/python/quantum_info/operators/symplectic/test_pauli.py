@@ -23,12 +23,14 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.library import IGate, XGate, YGate, ZGate
+from qiskit.circuit.library import (
+    IGate, XGate, YGate, ZGate, HGate, SGate, SdgGate,
+    CXGate, CZGate, CYGate, SwapGate)
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator
+from qiskit.quantum_info.operators import Pauli, Operator, Clifford
 from qiskit.quantum_info.operators.symplectic.pauli_tools import (
     split_pauli_label, coeff_phase_from_label)
 
@@ -113,7 +115,8 @@ class TestPauliProperties(QiskitTestCase):
         """Test __eq__ method"""
         pauli1 = Pauli(label1)
         pauli2 = Pauli(label2)
-        target = np.all(pauli1.array == pauli2.array) and pauli1.phase == pauli2.phase
+        target = np.all(pauli1.z == pauli2.z) and np.all(
+            pauli1.x == pauli2.x) and pauli1.phase == pauli2.phase
         self.assertEqual(pauli1 == pauli2, target)
 
     @data(*it.product(pauli_group_labels(1, full_group=False),
@@ -123,7 +126,8 @@ class TestPauliProperties(QiskitTestCase):
         """Test equiv method"""
         pauli1 = Pauli(label1)
         pauli2 = Pauli(label2)
-        target = np.all(pauli1.array == pauli2.array)
+        target = np.all(pauli1.z == pauli2.z) and np.all(
+            pauli1.x == pauli2.x)
         self.assertEqual(pauli1.equiv(pauli2), target)
 
     @data(*pauli_group_labels(1))
@@ -143,15 +147,6 @@ class TestPauliProperties(QiskitTestCase):
         _, coeff = split_pauli_label(str(pauli))
         value = coeff_phase_from_label(coeff)
         self.assertEqual(value, phase)
-
-    def test_array_setter_raises(self):
-        """Test changing array size raises"""
-        pauli = Pauli('IX')
-
-        def bad_assign():
-            pauli.array = np.array([False, True])
-
-        self.assertRaises(ValueError, bad_assign)
 
     def test_x_setter(self):
         """Test phase attribute"""
@@ -361,13 +356,39 @@ class TestPauli(QiskitTestCase):
         P2 = Pauli(p2)
         self.assertEqual(P1.anticommutes(P2), P1.dot(P2) == -P2.dot(P1))
 
-    def test_evolve_clifford(self):
-        """Test evolve method"""
-        cliff = random_clifford(3, seed=10)
-        op = Operator(cliff)
-        pauli = random_pauli(3, seed=10)
+    @data(*it.product((IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate()),
+                      pauli_group_labels(1, False)))
+    @unpack
+    def test_evolve_clifford1(self, gate, label):
+        """Test evolve method for 1-qubit Clifford gates."""
+        cliff = Clifford(gate)
+        op = Operator(gate)
+        pauli = Pauli(label)
         value = Operator(pauli.evolve(cliff))
         target = op.dot(pauli).dot(op.adjoint())
+        self.assertEqual(value, target)
+
+    @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()),
+                      pauli_group_labels(2, False)))
+    @unpack
+    def test_evolve_clifford2(self, gate, label):
+        """Test evolve method for 2-qubit Clifford gates."""
+        cliff = Clifford(gate)
+        op = Operator(gate)
+        pauli = Pauli(label)
+        value = Operator(pauli.evolve(cliff))
+        target = op.dot(pauli).dot(op.adjoint())
+        self.assertEqual(value, target)
+
+    def test_evolve_clifford_qargs(self):
+        """Test evolve method for random Clifford"""
+        cliff = random_clifford(3, seed=10)
+        op = Operator(cliff)
+        pauli = random_pauli(5, seed=10)
+        qargs = [3, 0, 1]
+        value = Operator(pauli.evolve(cliff, qargs=qargs))
+        target = Operator(pauli).compose(op, qargs=qargs).dot(
+            op.adjoint(), qargs=qargs)
         self.assertEqual(value, target)
 
 
