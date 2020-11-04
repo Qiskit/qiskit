@@ -122,7 +122,6 @@ Amplitude Functions
    :toctree: ../stubs/
 
    LinearAmplitudeFunction
-   InverseChebyshev
 
 
 Functional Pauli Rotations
@@ -291,7 +290,6 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
-    InverseChebyshev,
 )
 from .n_local import (
     NLocal,

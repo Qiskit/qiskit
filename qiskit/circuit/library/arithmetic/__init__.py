@@ -18,7 +18,6 @@ from .linear_pauli_rotations import LinearPauliRotations
 from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
 from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
 from .polynomial_pauli_rotations import PolynomialPauliRotations
-from .inverse_chebyshev import InverseChebyshev
 from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm
 from .linear_amplitude_function import LinearAmplitudeFunction

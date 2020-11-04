@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Piecewise-polynomially-controlled rotation."""
+"""Piecewise-polynomially-controlled Pauli rotations."""
 
 from typing import List, Optional
 import numpy as np
@@ -18,19 +18,21 @@ import numpy as np
 from qiskit.circuit import QuantumRegister, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
 
-from qiskit.circuit.library.arithmetic.functional_pauli_rotations import FunctionalPauliRotations
-from qiskit.circuit.library.arithmetic.polynomial_pauli_rotations import PolynomialPauliRotations
-from qiskit.circuit.library.arithmetic.integer_comparator import IntegerComparator
+from .functional_pauli_rotations import FunctionalPauliRotations
+from .polynomial_pauli_rotations import PolynomialPauliRotations
+from .integer_comparator import IntegerComparator
 
 
 class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
     r"""Piecewise-polynomially-controlled Pauli rotations.
 
-    For a piecewise polynomial (not necessarily continuous) function :math:`f(x)`, which is defined
-    through breakpoints and coefficients as follows.
+    This class implements a piecewise polynomial (not necessarily continuous) function,
+    :math:`f(x)`, on qubit amplitudes, which is defined through breakpoints and coefficients as
+    follows.
     Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
     :math:`n` is the number of state qubits. Further on, denote the corresponding coefficients by
     :math:`[a_{j,1},...,a_{j,d}]`, where :math:`d` is the highest degree among all polynomials.
+
     Then :math:`f(x)` is defined as:
 
     .. math::
@@ -86,8 +88,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                  coeffs: Optional[List[List[float]]] = None,
                  basis: str = 'Y',
                  name: str = 'pw_poly') -> None:
-        """Construct piecewise-linearly-controlled Pauli rotations.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
             breakpoints: The breakpoints to define the piecewise-linear function.
@@ -117,6 +118,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         The function is polynomial in the intervals ``[point_i, point_{i+1}]`` where the last
         point implicitly is ``2**(num_state_qubits + 1)``.
+
+        Returns:
+            The list of breakpoints.
         """
         return self._breakpoints
 
@@ -137,8 +141,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
     def coeffs(self) -> List[List[float]]:
         """The coefficients of the polynomials.
 
-        The function is polynomial in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitly is ``2**(num_state_qubits + 1)``.
+        Returns:
+            The polynomial coefficients per interval as nested lists.
         """
         return self._coeffs
 
