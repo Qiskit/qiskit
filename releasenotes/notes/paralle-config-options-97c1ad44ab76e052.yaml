@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The user config file has 2 new configuration options, ``num_processes`` and
+    ``parallel``, which are used to control the default behavior of
+    :func:`~qiskit.tools.parallel_map`. The ``parallel`` option is a boolean
+    that is used to dictate whether :func:`~qiskit.tools.parallel_map` will
+    run in multiple processes or not. If it set to ``False`` calls to
+    :func:`~qiskit.tools.parallel_map` will be executed serially, while setting
+    it to ``True`` will enable parallel execution. The ``num_processes`` option
+    takes an integer which sets how many CPUs to use when executing in parallel.
+    By default it will use the number of CPU cores on a system.
+upgrade:
+  - |
+    By default on macOS :func:`~qiskit.tools.parallel_map` will no longer run
+    in multiple processes. This is a change from previous releases where the
+    default behavior was that :func:`~qiskit.tools.parallel_map` would launch
+    multiple processes. This change was made because with newer versions of
+    macOS (especially with Python 3.8) multiprocessing is either unreliable
+    or adds significant overhead because of the change in Python 3.8 to launch
+    new processes with ``spawn`` instead of ``fork``. To re-enable parallel
+    execution on macOS you can use the user config file ``parallel` option or
+    set the environment variable ``QISKIT_PARALLEL`` to ``True``.
