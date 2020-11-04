@@ -33,6 +33,17 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
+    def test_if_reps_is_zero(self):
+        """Test to check if error is raised for 0 or negative value of reps"""
+        with self.assertRaises(ValueError):
+            _ = NLocal(reps=-1)
+
+    def test_reps_setter_when_negative(self):
+        """Test to check if setter raises error for reps <=0"""
+        nlocal = NLocal(reps=1)
+        with self.assertRaises(ValueError):
+            nlocal.reps = -1
+
     def assertCircuitEqual(self, qc1, qc2, visual=False, transpiled=True):
         """An equality test specialized to circuits."""
         if transpiled:
@@ -608,11 +619,11 @@ class TestTwoLocal(QiskitTestCase):
             shared_param = next(param_iter)
             expected.rxx(shared_param, 0, 1)
             expected.ryy(shared_param, 0, 1)
-            expected.cu1(next(param_iter), 0, 1)
+            expected.cp(next(param_iter), 0, 1)
             shared_param = next(param_iter)
             expected.rxx(shared_param, 1, 2)
             expected.ryy(shared_param, 1, 2)
-            expected.cu1(next(param_iter), 1, 2)
+            expected.cp(next(param_iter), 1, 2)
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 

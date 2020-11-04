@@ -73,7 +73,7 @@ class Unroller(TransformationPass):
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
-            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
+            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
                 if rule[0][0].name in self.basis:
                     if node.op.definition and node.op.definition.global_phase:
                         dag.global_phase += node.op.definition.global_phase

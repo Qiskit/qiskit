@@ -76,9 +76,10 @@ class PhaseGate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .u import UGate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.u1(self.params[0], 0)
+        qc.append(UGate(0, 0, self.params[0]), [0])
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
