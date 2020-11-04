@@ -55,23 +55,23 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs: list(:class:`Register`) or list(``int``) The registers to be
+        regs (list(:class:`Register`) or list(``int``)): The registers to be
             included in the circuit.
 
-                * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
-                  and/or :class:`ClassicalRegister` objects to include in the circuit.
+            * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
+              and/or :class:`ClassicalRegister` objects to include in the circuit.
 
-                For example:
+              For example:
 
                 * ``QuantumCircuit(QuantumRegister(4))``
                 * ``QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))``
                 * ``QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))``
 
-                * If a list of ``int``, the amount of qubits and/or classical bits to include in
-                  the circuit. It can either be a single int for just the number of quantum bits,
-                  or 2 ints for the number of quantum bits and classical bits, respectively.
+            * If a list of ``int``, the amount of qubits and/or classical bits to include in
+              the circuit. It can either be a single int for just the number of quantum bits,
+              or 2 ints for the number of quantum bits and classical bits, respectively.
 
-                For example:
+              For example:
 
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
@@ -109,7 +109,7 @@ class QuantumCircuit:
             qc.cx(0, range(1, 5))
             qc.measure_all()
 
-        Construct a 4-qubit Berstein-Vazirani circuit using registers.
+        Construct a 4-qubit Bernstein-Vazirani circuit using registers.
 
         .. jupyter-execute::
 
@@ -1859,8 +1859,8 @@ class QuantumCircuit:
             CircuitError: If param_dict contains parameters not present in the circuit
 
         Returns:
-            optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-                ``inplace`` is True, otherwise None.
+            Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
+            ``inplace`` is True, otherwise None.
 
         Examples:
 
@@ -1923,7 +1923,7 @@ class QuantumCircuit:
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
-        circuit, use the assign_parameters method.
+        circuit, use the :meth:`assign_parameters` method.
 
         Args:
             value_dict (dict): {parameter: value, ...}
@@ -1936,7 +1936,7 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
-            raise TypeError('Found ParameterExpression in values; use assign_parameters instead.')
+            raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
         return self.assign_parameters(value_dict)
 
     def _unroll_param_dict(self, value_dict):
