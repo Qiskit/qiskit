@@ -167,6 +167,20 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('ApplyLayout', self.passes)
         self.assertNotIn('CheckCXDirection', self.passes)
 
+    @data(0, 1, 2, 3)
+    def test_inital_layout_fully_connected_cm(self, level):
+        """Honor initial_layout when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        _ = transpile(qc, initial_layout=[0, 1], optimization_level=level, callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
