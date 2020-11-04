@@ -123,7 +123,6 @@ Amplitude Functions
 
    LinearAmplitudeFunction
 
-
 Functional Pauli Rotations
 ++++++++++++++++++++++++++
 
