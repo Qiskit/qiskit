@@ -69,8 +69,8 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 
 from .h import HGate, CHGate
 from .i import IGate
-from .ms import MSGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
@@ -95,16 +95,3 @@ from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
-
-# deprecated gates
-from .boolean_logical_gates import logical_and, logical_or
-from .u1 import Cu1Gate
-from .u3 import Cu3Gate
-from .x import CnotGate, ToffoliGate
-from .swap import FredkinGate
-from .i import IdGate
-from .rx import CrxGate
-from .ry import CryGate
-from .rz import CrzGate
-from .y import CyGate
-from .z import CzGate

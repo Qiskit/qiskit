@@ -23,12 +23,6 @@ import functools
 import psutil
 
 
-def _check_python_version():
-    """Check for Python version 3.5+."""
-    if sys.version_info < (3, 5):
-        raise Exception('Qiskit requires Python version 3.5 or greater.')
-
-
 def _filter_deprecation_warnings():
     """Apply filters to deprecation warnings.
 
@@ -55,7 +49,6 @@ def _filter_deprecation_warnings():
         pass
 
 
-_check_python_version()
 _filter_deprecation_warnings()
 
 
@@ -161,3 +154,40 @@ def is_main_process():
             and (sys.version_info[1] == 5 or sys.version_info[1] == 6)
             and mp.current_process().name != 'MainProcess')
     )
+
+
+def apply_prefix(value: float, unit: str) -> float:
+    """
+    Given a SI unit prefix and value, apply the prefix to convert to
+    standard SI unit.
+
+    Args:
+        value: The number to apply prefix to.
+        unit: String prefix.
+
+    Returns:
+        Converted value.
+
+    Raises:
+        Exception: If the units aren't recognized.
+    """
+    downfactors = {
+        'p': 1e12,
+        'n': 1e9,
+        'u': 1e6,
+        'µ': 1e6,
+        'm': 1e3
+    }
+    upfactors = {
+        'k': 1e3,
+        'M': 1e6,
+        'G': 1e9
+    }
+    if not unit:
+        return value
+    if unit[0] in downfactors:
+        return value / downfactors[unit[0]]
+    elif unit[0] in upfactors:
+        return value * upfactors[unit[0]]
+    else:
+        raise Exception("Could not understand units: {u}".format(u=unit))

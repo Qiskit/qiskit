@@ -257,7 +257,7 @@ class QFT(BlueprintCircuit):
             num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
-                self.cu1(lam, j, k)
+                self.cp(lam, j, k)
 
             if self.insert_barriers:
                 self.barrier()

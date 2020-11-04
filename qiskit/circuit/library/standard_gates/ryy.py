@@ -91,7 +91,9 @@ class RYYGate(Gate):
             (RXGate(-np.pi / 2), [q[0]], []),
             (RXGate(-np.pi / 2), [q[1]], []),
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -100,7 +102,7 @@ class RYYGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the RYY gate."""
-        theta = self.params[0]
+        theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
         return np.array([

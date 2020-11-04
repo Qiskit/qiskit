@@ -13,12 +13,13 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..exceptions import PulseError
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
 
 
 class Pulse(ABC):
@@ -38,12 +39,27 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Pulse':
+        """Return a new pulse with parameters assigned.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            New pulse with updated parameters.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def draw(self, dt: float = 1,
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             draw_title: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -54,6 +70,7 @@ class Pulse(ABC):
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

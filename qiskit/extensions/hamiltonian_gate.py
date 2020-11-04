@@ -22,6 +22,7 @@ from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.exceptions import CircuitError
 
 from .unitary import UnitaryGate
 
@@ -112,6 +113,14 @@ class HamiltonianGate(Gate):
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
         raise ExtensionError("HamiltonianGate as no QASM definition.")
+
+    def validate_parameter(self, parameter):
+        """Hamiltonian parameter has to be an ndarray, operator or float."""
+        if isinstance(parameter, (float, int, numpy.ndarray)):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))
 
 
 def hamiltonian(self, operator, time, qubits, label=None):

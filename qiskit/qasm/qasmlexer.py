@@ -45,7 +45,7 @@ class QasmLexer:
         self.lineno = 1
 
         if filename:
-            with open(filename, 'r') as ifile:
+            with open(filename) as ifile:
                 self.data = ifile.read()
             self.lexer.input(self.data)
 

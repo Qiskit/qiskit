@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed a bug in the ``mpl`` output backend of the circuit drawer
+    :meth:`qiskit.circuit.QuantumCircuit.draw` and
+    :func:`qiskit.visualization.circuit_drawer` that would
+    cause the drawer to fail if the ``style`` kwarg was set to a string.
+    The correct behavior would be to treat that string as a path to
+    a JSON file containing the style sheet for the visualization. This has
+    been fixed, and warnings are raised if the JSON file for the style
+    sheet can't be loaded.

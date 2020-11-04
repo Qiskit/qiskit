@@ -88,11 +88,11 @@ class IQP(QuantumCircuit):
         for i in range(num_qubits):
             for j in range(i+1, num_qubits):
                 if interactions[i][j] % 4 != 0:
-                    inner.cu1(interactions[i][j] * np.pi / 2, i, j)
+                    inner.cp(interactions[i][j] * np.pi / 2, i, j)
 
         for i in range(num_qubits):
             if interactions[i][i] % 8 != 0:
-                inner.u1(interactions[i][i] * np.pi / 8, i)
+                inner.p(interactions[i][i] * np.pi / 8, i)
 
         inner.h(range(num_qubits))
         all_qubits = self.qubits

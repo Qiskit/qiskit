@@ -17,23 +17,6 @@ import sys
 from math import sin, cos, acos, sqrt
 import numpy as np
 
-try:
-    import matplotlib
-    from matplotlib import pyplot as plt
-    from matplotlib import animation
-    from mpl_toolkits.mplot3d import Axes3D
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.exceptions import VisualizationError
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
-
-try:
-    from IPython.display import HTML
-    HAS_IPYTHON = True
-except ImportError:
-    HAS_IPYTHON = False
-
 
 def _normalize(v, tolerance=0.00001):
     """Makes sure magnitude of the vector is 1 with given tolerance"""
@@ -86,10 +69,10 @@ class _Quaternion:
             return self._multiply_with_quaternion(b)
         elif isinstance(b, (list, tuple, np.ndarray)):
             if len(b) != 3:
-                raise Exception("Input vector has invalid length {0}".format(len(b)))
+                raise Exception("Input vector has invalid length {}".format(len(b)))
             return self._multiply_with_vector(b)
         else:
-            raise Exception("Multiplication with unknown type {0}".format(type(b)))
+            raise Exception("Multiplication with unknown type {}".format(type(b)))
 
     def _multiply_with_quaternion(self, q_2):
         """Multiplication of quaternion with quaternion"""
@@ -116,7 +99,7 @@ class _Quaternion:
 
     def __repr__(self):
         theta, v = self.get_axisangle()
-        return "(({0}; {1}, {2}, {3}))".format(theta, v[0], v[1], v[2])
+        return "(({}; {}, {}, {}))".format(theta, v[0], v[1], v[2])
 
     def get_axisangle(self):
         """Returns angle and vector of quaternion"""
@@ -168,13 +151,30 @@ def visualize_transition(circuit,
         VisualizationError: Given gate(s) are not supported.
 
     """
+    try:
+        from IPython.display import HTML
+        has_ipython = True
+    except ImportError:
+        has_ipython = False
+
+    try:
+        import matplotlib
+        from matplotlib import pyplot as plt
+        from matplotlib import animation
+        from mpl_toolkits.mplot3d import Axes3D
+        from qiskit.visualization.bloch import Bloch
+        from qiskit.visualization.exceptions import VisualizationError
+        has_matplotlib = True
+    except ImportError:
+        has_matplotlib = False
+
     jupyter = False
     if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         jupyter = True
 
-    if not HAS_MATPLOTLIB:
+    if not has_matplotlib:
         raise ImportError("Must have Matplotlib installed.")
-    if not HAS_IPYTHON and jupyter is True:
+    if not has_ipython and jupyter is True:
         raise ImportError("Must have IPython installed.")
     if len(circuit.qubits) != 1:
         raise VisualizationError("Only one qubit circuits are supported")
@@ -204,23 +204,22 @@ def visualize_transition(circuit,
 
     for gate in circuit._data:
         if gate[0].name not in implemented_gates:
-            raise VisualizationError("Gate {0} is not supported".format(gate[0].name))
+            raise VisualizationError("Gate {} is not supported".format(gate[0].name))
         if gate[0].name in simple_gates:
             list_of_circuit_gates.append(gates[gate[0].name])
         else:
             theta = gate[0].params[0]
-            rad = np.deg2rad(theta)
             if gate[0].name == 'rx':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [1, 0, 0])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [1, 0, 0])
                 list_of_circuit_gates.append(('rx:'+str(theta), quaternion, '#16a085'))
             elif gate[0].name == 'ry':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 1, 0])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 1, 0])
                 list_of_circuit_gates.append(('ry:'+str(theta), quaternion, '#27ae60'))
             elif gate[0].name == 'rz':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
                 list_of_circuit_gates.append(('rz:'+str(theta), quaternion, '#2980b9'))
             elif gate[0].name == 'u1':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
                 list_of_circuit_gates.append(('u1:'+str(theta), quaternion, '#f1c40f'))
 
     if len(list_of_circuit_gates) == 0:

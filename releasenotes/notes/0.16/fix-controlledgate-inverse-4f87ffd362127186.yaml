@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Previously the :class:`~qiskit.circuit.ControlledGate` method
+    :meth:`~qiskit.circuit.ControlledGate.inverse` would not preserve the
+    ``ctrl_state`` parameter in some cases. This has been fixed so that
+    calling :meth:`~qiskit.circuit.ControlledGate.inverse` will preserve
+    the value ``ctrl_state`` in its output.

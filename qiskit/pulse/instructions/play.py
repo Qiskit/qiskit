@@ -13,12 +13,13 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Optional
+from typing import Dict, Optional
 
-from ..channels import PulseChannel
-from ..exceptions import PulseError
-from ..library.pulse import Pulse
-from .instruction import Instruction
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class Play(Instruction):
@@ -46,8 +47,6 @@ class Play(Instruction):
         """
         if not isinstance(pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
-        self._pulse = pulse
-        self._channel = channel
         if name is None:
             name = pulse.name
         super().__init__((pulse, channel), pulse.duration, (channel,), name=name)
@@ -55,11 +54,19 @@ class Play(Instruction):
     @property
     def pulse(self) -> Pulse:
         """A description of the samples that will be played."""
-        return self._pulse
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Play':
+        super().assign_parameters(value_dict)
+        pulse = self.pulse.assign_parameters(value_dict)
+        self._operands = (pulse, self.channel)
+        return self

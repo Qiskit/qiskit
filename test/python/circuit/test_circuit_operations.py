@@ -135,7 +135,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
-        """Test extending a circuits fails if registers incompatible.
+        """Test extending a circuit fails if registers incompatible.
 
         If two circuits have same name register of different size or type
         it should raise a CircuitError.
@@ -149,6 +149,15 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertRaises(CircuitError, qc1.__iadd__, qc2)
         self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
+
+    def test_extend_circuit_adds_qubits(self):
+        """Test extending a circuits with differing registers adds the qubits."""
+        qr = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qr)
+        empty = QuantumCircuit()
+        empty.extend(qc)
+
+        self.assertListEqual(empty.qubits, qr[:])
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
@@ -586,6 +595,38 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(0)
         expected.global_phase = -0.5
         self.assertEqual(qc.inverse(), expected)
+
+    def test_compare_two_equal_circuits(self):
+        """Test to compare that 2 circuits are equal.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h(0)
+
+        self.assertTrue(qc1 == qc2)
+
+    def test_compare_two_different_circuits(self):
+        """Test to compare that 2 circuits are different.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.x(0)
+
+        self.assertFalse(qc1 == qc2)
+
+    def test_compare_a_circuit_with_none(self):
+        """Test to compare that a circuit is different to None.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = None
+
+        self.assertFalse(qc1 == qc2)
 
 
 class TestCircuitBuilding(QiskitTestCase):

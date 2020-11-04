@@ -64,6 +64,7 @@ Optimizations
    :toctree: ../stubs/
 
    Optimize1qGates
+   Optimize1qGatesDecomposition
    Collect2qBlocks
    ConsolidateBlocks
    CXCancellation
@@ -72,6 +73,16 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   TemplateOptimization
+
+Scheduling
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ALAPSchedule
+   ASAPSchedule
 
 Circuit Analysis
 ================
@@ -139,6 +150,7 @@ from .basis import BasisTranslator
 
 # optimization
 from .optimization import Optimize1qGates
+from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
@@ -149,6 +161,7 @@ from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
+from .optimization import TemplateOptimization
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -162,6 +175,11 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+
+# circuit scheduling
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import TimeUnitAnalysis
 
 # additional utility passes
 from .utils import CheckMap
