@@ -14,6 +14,7 @@
 
 import numpy
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.exceptions import CircuitError
 
 
 class RVGate(Gate):
@@ -59,12 +60,9 @@ class RVGate(Gate):
     def _define(self):
         try:
             self.definition = self._decomposer(self.to_matrix())
-        except TypeError as terr:
-            if 'unbound parameters' in terr:
-                raise CircuitError('The {} gate cannot be decomposed '
-                                   'with unbound parameters'.foramt(self.name))
-            else:
-                raise
+        except TypeError:
+            raise CircuitError('The {} gate cannot be decomposed '
+                               'with unbound parameters'.format(self.name))
 
     def inverse(self):
         """Invert this gate."""
