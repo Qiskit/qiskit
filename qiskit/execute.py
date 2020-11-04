@@ -295,22 +295,29 @@ def execute(experiments, backend,
         _log_submission_time(start_time, end_time)
     elif isinstance(backend, Backend):
         start_time = time()
-        job = backend.run(experiments,
-                          shots=shots,
-                          memory=memory,
-                          seed_simulator=seed_simulator,
-                          default_qubit_los=default_qubit_los,
-                          default_meas_los=default_meas_los,
-                          schedule_los=schedule_los,
-                          meas_level=meas_level,
-                          meas_return=meas_return,
-                          memory_slots=memory_slots,
-                          memory_slot_size=memory_slot_size,
-                          rep_time=rep_time,
-                          rep_delay=rep_delay,
-                          parameter_binds=parameter_binds,
-                          init_qubits=init_qubits,
-                          **run_config)
+        run_kwargs = {
+            'shots': shots,
+            'memory': memory,
+            'seed_simulator': seed_simulator,
+            'default_qubit_los': default_qubit_los,
+            'default_meas_los': default_meas_los,
+            'schedule_los': schedule_los,
+            'meas_level': meas_level,
+            'meas_return': meas_return,
+            'memory_slots': memory_slots,
+            'memory_slot_size': memory_slot_size,
+            'rep_time': rep_time,
+            'rep_delay': rep_delay,
+            'parameter_binds': parameter_binds,
+            'init_qubits': init_qubits,
+        }
+        for key in run_kwargs:
+            if not hasattr(backend.options, key):
+                logger.info("%s backend doesn't support option %s so not "
+                            "passing that kwarg to run()", backend.name, key)
+                del run_kwargs[key]
+        run_kwargs.update(run_config)
+        job = backend.run(experiments, **run_kwargs)
         end_time = time()
         _log_submission_time(start_time, end_time)
     else:
