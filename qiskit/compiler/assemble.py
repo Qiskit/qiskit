@@ -189,8 +189,8 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-            memory. Also if shots exceeds max_shots for the configured backend.
-        TypeError: if the type of shots is not int.
+            memory. Also if shots exceeds max_shots for the configured backend. Also if
+            the type of shots is not int.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -222,7 +222,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
         else:
             shots = 1024
     elif not isinstance(shots, int):
-        raise TypeError(
+        raise QiskitError(
             "Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
