@@ -93,6 +93,16 @@ class ParametricPulse(Pulse):
         """Return a dictionary containing the pulse's parameters."""
         pass
 
+    def is_parameterized(self) -> bool:
+        return any(_is_parameterized(val) for val in self.parameters.values())
+
+    def assign(self, parameter: ParameterExpression,
+               value: ParameterValueType) -> 'ParametricPulse':
+        """Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+        """
+        return self.assign_parameters({parameter: value})
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'ParametricPulse':
@@ -105,7 +115,7 @@ class ParametricPulse(Pulse):
         Returns:
             New pulse with updated parameters.
         """
-        if not any([_is_parameterized(val) for val in self.parameters.values()]):
+        if not self.is_parameterized():
             return self
 
         new_parameters = {}
@@ -117,6 +127,7 @@ class ParametricPulse(Pulse):
                         # TODO: ParameterExpression doesn't support complex values
                         op_value = float(op_value)
                     except TypeError:
+                        # It's alright if the value is still parameterized
                         pass
                 new_parameters[op] = op_value
         return type(self)(**new_parameters)
@@ -125,7 +136,8 @@ class ParametricPulse(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+             scale: float = 1, interactive: bool = False,
+             draw_title: bool = False):
         """Plot the pulse.
 
         Args:
@@ -136,13 +148,14 @@ class ParametricPulse(Pulse):
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         return self.get_waveform().draw(dt=dt, style=style, filename=filename,
                                         interp_method=interp_method, scale=scale,
-                                        interactive=interactive)
+                                        interactive=interactive, draw_title=draw_title)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
