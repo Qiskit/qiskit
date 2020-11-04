@@ -160,7 +160,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm0 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
