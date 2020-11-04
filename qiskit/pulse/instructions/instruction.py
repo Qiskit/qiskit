@@ -24,8 +24,9 @@ For example::
 import warnings
 
 from abc import ABC
+from collections import defaultdict
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -63,17 +64,26 @@ class Instruction(ABC):
         if duration < 0:
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
-        self._duration = duration
 
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
+        self._duration = duration
         self._channels = channels
         self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
+
+        self._parameter_table = defaultdict(list)
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and op.is_parameterized():
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
 
     @property
     def name(self) -> str:
@@ -235,6 +245,15 @@ class Instruction(ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        return set(self._parameter_table.keys())
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -249,20 +268,24 @@ class Instruction(ABC):
         """
         new_operands = list(self.operands)
 
-        for idx, op in enumerate(self.operands):
-            for parameter, value in value_dict.items():
-                if isinstance(op, ParameterExpression) and parameter in op.parameters:
-                    new_operands[idx] = new_operands[idx].assign(parameter, value)
-                elif (isinstance(op, Channel)
-                      and isinstance(op.index, ParameterExpression)
-                      and parameter in op.index.parameters):
-                    new_index = new_operands[idx].index.assign(parameter, value)
-                    if not new_index.parameters:
-                        new_index = float(new_index)
-                        if float(new_index).is_integer():
-                            # If it's not, allow Channel to raise an error upon initialization
-                            new_index = int(new_index)
-                    new_operands[idx] = type(op)(new_index)
+        for parameter in self.parameters:
+            if parameter not in value_dict:
+                continue
+
+            value = value_dict[parameter]
+            op_indices = self._parameter_table[parameter]
+            for op_idx in op_indices:
+                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+
+            # Update parameter table
+            entry = self._parameter_table.pop(parameter)
+            if isinstance(value, ParameterExpression):
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        new_entry = set(entry + self._parameter_table[new_parameter])
+                        self._parameter_table[new_parameter] = list(new_entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
         return self
