@@ -895,6 +895,44 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.parameters, set())
         raise_if_parameter_table_invalid(qc)
 
+    def test_circuit_with_ufunc(self):
+        """Test construction of circuit and binding of parameters
+        after we apply universal functions."""
+        from math import pi
+        phi = Parameter(name='phi')
+        theta = Parameter(name='theta')
+
+        qc = QuantumCircuit(2)
+        qc.u1(numpy.cos(phi), 0)
+        qc.u1(numpy.sin(phi), 0)
+        qc.u1(numpy.tan(phi), 0)
+        qc.rz(numpy.arccos(theta), 1)
+        qc.rz(numpy.arctan(theta), 1)
+        qc.rz(numpy.arcsin(theta), 1)
+
+        qc.assign_parameters({phi: pi, theta: 1},
+                             inplace=True)
+
+        qc_ref = QuantumCircuit(2)
+        qc_ref.u1(-1, 0)
+        qc_ref.u1(0, 0)
+        qc_ref.u1(0, 0)
+        qc_ref.rz(0, 1)
+        qc_ref.rz(pi / 4, 1)
+        qc_ref.rz(pi / 2, 1)
+
+        self.assertEqual(qc, qc_ref)
+
+    def test_compile_with_ufunc(self):
+        """Test compiling of circuit with unbounded parameters
+        after we apply universal functions."""
+        phi = Parameter('phi')
+        qc = QuantumCircuit(1)
+        qc.rx(numpy.cos(phi), 0)
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+        self.assertIn(phi, qc_aer.parameters)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -1419,3 +1457,10 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr, theta)
         self.assertEqual(theta, expr)
+
+    def test_parameter_symbol_equal_after_ufunc(self):
+        """Verfiy ParameterExpression phi
+        and ParameterExpression cos(phi) have the same symbol map"""
+        phi = Parameter('phi')
+        cos_phi = numpy.cos(phi)
+        self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
