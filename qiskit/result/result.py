@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Model for schema-conformant Results."""
 
 import copy
@@ -42,8 +41,17 @@ class Result:
 
     _metadata = {}
 
-    def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, date=None, status=None, header=None, **kwargs):
+    def __init__(self,
+                 backend_name,
+                 backend_version,
+                 qobj_id,
+                 job_id,
+                 success,
+                 results,
+                 date=None,
+                 status=None,
+                 header=None,
+                 **kwargs):
         self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
@@ -61,10 +69,9 @@ class Result:
 
     def __repr__(self):
         out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
-               "job_id='%s', success=%s, results=%s" % (
-                   self.backend_name,
-                   self.backend_version, self.qobj_id, self.job_id, self.success,
-                   self.results))
+               "job_id='%s', success=%s, results=%s" %
+               (self.backend_name, self.backend_version, self.qobj_id,
+                self.job_id, self.success, self.results))
         if hasattr(self, 'date'):
             out += ", date=%s" % self.date
         if hasattr(self, 'status'):
@@ -124,7 +131,8 @@ class Result:
 
         in_data = copy.copy(data)
         in_data['results'] = [
-            ExperimentResult.from_dict(x) for x in in_data.pop('results')]
+            ExperimentResult.from_dict(x) for x in in_data.pop('results')
+        ]
         if 'header' in in_data:
             in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
         return cls(**in_data)
@@ -227,10 +235,12 @@ class Result:
             elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
-                raise QiskitError('Measurement level {} is not supported'.format(meas_level))
+                raise QiskitError(
+                    'Measurement level {} is not supported'.format(meas_level))
 
         except KeyError:
-            raise QiskitError('No memory for experiment "{}".'.format(experiment))
+            raise QiskitError(
+                'No memory for experiment "{}".'.format(experiment))
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
@@ -265,14 +275,20 @@ class Result:
             if 'counts' in self.data(key).keys():
                 if header:
                     counts_header = {
-                        k: v for k, v in header.items() if k in {
-                            'time_taken', 'creg_sizes', 'memory_slots'}}
+                        k: v
+                        for k, v in header.items()
+                        if k in {'time_taken', 'creg_sizes', 'memory_slots'}
+                    }
                 else:
                     counts_header = {}
-                dict_list.append(Counts(self.data(key)['counts'], **counts_header))
+                dict_list.append(
+                    Counts(self.data(key)['counts'], **counts_header))
             elif 'statevector' in self.data(key).keys():
-                vec = postprocess.format_statevector(self.data(key)['statevector'])
-                dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
+                vec = postprocess.format_statevector(
+                    self.data(key)['statevector'])
+                dict_list.append(
+                    statevector.Statevector(vec).probabilities_dict(
+                        decimals=15))
             else:
                 raise QiskitError('No counts for experiment "{}"'.format(key))
 
@@ -298,10 +314,11 @@ class Result:
             QiskitError: if there is no statevector for the experiment.
         """
         try:
-            return postprocess.format_statevector(self.data(experiment)['statevector'],
-                                                  decimals=decimals)
+            return postprocess.format_statevector(
+                self.data(experiment)['statevector'], decimals=decimals)
         except KeyError:
-            raise QiskitError('No statevector for experiment "{}"'.format(experiment))
+            raise QiskitError(
+                'No statevector for experiment "{}"'.format(experiment))
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
@@ -323,7 +340,8 @@ class Result:
             return postprocess.format_unitary(self.data(experiment)['unitary'],
                                               decimals=decimals)
         except KeyError:
-            raise QiskitError('No unitary for experiment "{}"'.format(experiment))
+            raise QiskitError(
+                'No unitary for experiment "{}"'.format(experiment))
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.
@@ -355,13 +373,14 @@ class Result:
             exp = self.results[key]
         else:
             # Look into `result[x].header.name` for the names.
-            exp = [result for result in self.results
-                   if getattr(getattr(result, 'header', None),
-                              'name', '') == key]
+            exp = [
+                result for result in self.results
+                if getattr(getattr(result, 'header', None), 'name', '') == key
+            ]
 
             if len(exp) == 0:
-                raise QiskitError('Data for experiment "%s" could not be found.' %
-                                  key)
+                raise QiskitError(
+                    'Data for experiment "%s" could not be found.' % key)
             if len(exp) == 1:
                 exp = exp[0]
             else:
