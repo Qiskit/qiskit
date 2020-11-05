@@ -125,8 +125,8 @@ class OneQubitEulerDecomposer:
         if not is_unitary_matrix(unitary):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
-        theta, phi, lam, _ = self._params(unitary)
-        circuit = self._circuit(theta, phi, lam,
+        theta, phi, lam, phase = self._params(unitary)
+        circuit = self._circuit(theta, phi, lam, phase,
                                 simplify=simplify,
                                 atol=atol)
         return circuit
@@ -244,9 +244,10 @@ class OneQubitEulerDecomposer:
     def _circuit_zyz(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and np.isclose(theta, 0.0, atol=atol):
             circuit.append(RZGate(phi + lam), [0])
             return circuit
@@ -262,13 +263,14 @@ class OneQubitEulerDecomposer:
     def _circuit_zxz(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=False,
                      atol=DEFAULT_ATOL):
         if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit = QuantumCircuit(1)
+            circuit = QuantumCircuit(1, global_phase=phase)
             circuit.append(RZGate(phi + lam), [0])
             return circuit
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.append(RZGate(lam), [0])
         if not simplify or not np.isclose(theta, 0.0, atol=atol):
@@ -281,9 +283,10 @@ class OneQubitEulerDecomposer:
     def _circuit_xyx(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and np.isclose(theta, 0.0, atol=atol):
             circuit.append(RXGate(phi + lam), [0])
             return circuit
@@ -299,10 +302,11 @@ class OneQubitEulerDecomposer:
     def _circuit_u3(theta,
                     phi,
                     lam,
+                    phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
 
@@ -310,10 +314,11 @@ class OneQubitEulerDecomposer:
     def _circuit_u(theta,
                    phi,
                    lam,
+                   phase,
                    simplify=True,
                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         circuit.u(theta, phi, lam, 0)
         return circuit
 
@@ -321,13 +326,14 @@ class OneQubitEulerDecomposer:
     def _circuit_psx(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
         # Shift theta and phi so decomposition is
         # Phase(phi+pi).SX.Phase(theta+pi).SX.Phase(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         # Check for decomposition into minimimal number required SX gates
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             if not np.isclose(_mod2pi(abs(lam + phi + theta)),
@@ -357,6 +363,7 @@ class OneQubitEulerDecomposer:
     def _circuit_u1x(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
         # Shift theta and phi so decomposition is
@@ -366,18 +373,18 @@ class OneQubitEulerDecomposer:
         # Check for decomposition into minimimal number required X90 pulses
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             # Zero X90 gate decomposition
-            circuit = QuantumCircuit(1)
+            circuit = QuantumCircuit(1, global_phase=phase)
             circuit.append(U1Gate(lam + phi + theta), [0])
             return circuit
         if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
             # Single X90 gate decomposition
-            circuit = QuantumCircuit(1)
+            circuit = QuantumCircuit(1, global_phase=phase)
             circuit.append(U1Gate(lam + theta), [0])
             circuit.append(RXGate(np.pi / 2), [0])
             circuit.append(U1Gate(phi + theta), [0])
             return circuit
         # General two-X90 gate decomposition
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         circuit.append(U1Gate(lam), [0])
         circuit.append(RXGate(np.pi / 2), [0])
         circuit.append(U1Gate(theta), [0])
@@ -389,9 +396,10 @@ class OneQubitEulerDecomposer:
     def _circuit_rr(theta,
                     phi,
                     lam,
+                    phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         if not simplify or not np.isclose(theta, -np.pi, atol=atol):
             circuit.append(RGate(theta + np.pi, np.pi / 2 - lam), [0])
         circuit.append(RGate(-np.pi, 0.5 * (phi - lam + np.pi)), [0])
