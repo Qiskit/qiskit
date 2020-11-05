@@ -146,7 +146,7 @@ class QuantumInstance:
                                 'but you specified {}'.format(max_shots, shots))
 
         run_config = RunConfig(shots=shots, max_credits=max_credits)
-        if seed_simulator:
+        if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
 
         self._run_config = run_config
