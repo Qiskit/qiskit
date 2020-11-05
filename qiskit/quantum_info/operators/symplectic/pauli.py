@@ -64,10 +64,12 @@ class Pauli(BasePauli):
         if isinstance(z, BasePauli):
             # BasePauli initialization
             base_z, base_x, base_phase = z._z, z._x, z._phase
-            if z._num_paulis != 1:
+            if base_z.shape[0] != 1:
                 raise QiskitError("Input is not a single Pauli")
         elif x is not None:
             base_z, base_x, base_phase = self._from_array(z, x, phase)
+            if base_z.shape[0] != 1:
+                raise QiskitError("Input is not a single Pauli")
         elif isinstance(z, str):
             base_z, base_x, base_phase = self._from_label(z)
         elif label is not None:
@@ -493,38 +495,6 @@ class Pauli(BasePauli):
                 base_phase += 1
         return base_z, base_x, base_phase % 4
 
-    @staticmethod
-    def _from_array(z, x, phase):
-        """Convert array data to BasePauli data."""
-        if isinstance(z, np.ndarray) and z.dtype == np.bool:
-            base_z = z
-        else:
-            base_z = np.asarray(z, dtype=np.bool)
-        if base_z.ndim == 1:
-            base_z = base_z.reshape((1, base_z.size))
-        elif base_z.ndim != 2 or base_z.shape[0] != 1:
-            raise QiskitError("Invalid Pauli z vector shape.")
-
-        if isinstance(x, np.ndarray) and x.dtype == np.bool:
-            base_x = x
-        else:
-            base_x = np.asarray(x, dtype=np.bool)
-        if base_x.ndim == 1:
-            base_x = base_x.reshape((1, base_x.size))
-        elif base_x.ndim != 2 or base_x.shape[0] != 1:
-            raise QiskitError("Invalid Pauli x vector shape.")
-
-        if base_z.shape != base_x.shape:
-            raise QiskitError("z and x vectors are different size.")
-
-        base_phase = None
-        if phase is None:
-            # Convert group phase convention to internal ZX-phase convertion.
-            # If phase is not None it will be converted later.
-            base_phase = np.mod(
-                np.sum(np.logical_and(base_x, base_z), axis=1, dtype=np.int), 4)
-        return base_z, base_x, base_phase
-
     @classmethod
     def _from_scalar_op(cls, op):
         """Convert a ScalarOp to BasePauli data."""
@@ -920,6 +890,7 @@ def _split_pauli_label(label):
     if span[1] != len(label):
         raise QiskitError('Pauli string is not valid.')
     return pauli, coeff
+
 
 def _phase_from_label(label):
     """Return the phase from a label"""
