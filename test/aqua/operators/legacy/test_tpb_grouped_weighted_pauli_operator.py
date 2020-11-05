@@ -30,7 +30,7 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
 
     def setUp(self):
         super().setUp()
-        seed = 0
+        seed = 1
         aqua_globals.random_seed = seed
 
         self.num_qubits = 3

@@ -34,7 +34,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
 
     def setUp(self):
         super().setUp()
-        seed = 0
+        seed = 3
         aqua_globals.random_seed = seed
 
         self.num_qubits = 3
