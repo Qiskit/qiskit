@@ -182,6 +182,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
 
+
 @ddt
 class TestInitialLayouts(QiskitTestCase):
     """Test transpiling with different layouts"""
