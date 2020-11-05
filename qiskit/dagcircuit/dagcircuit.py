@@ -892,11 +892,13 @@ class DAGCircuit:
         from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
 
         circuit_data = input_circuit.data
-        if len(circuit_data) == 1 and len(node.qargs) == len(circuit_data[0][1]) == 1:
-            self.substitute_node(node, circuit_data[0][0], inplace=True)
+        if len(circuit_data) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+            if node.op.definition.global_phase:
+                dag.global_phase += node.op.definition.global_phase
+            dag.substitute_node(node, circuit_data[0][0], inplace=True)
         else:
             decomposition = circuit_to_dag(input_circuit)
-            self.substitute_node_with_dag(node, decomposition, wires)
+            dag.substitute_node_with_dag(node, decomposition, wires)
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
