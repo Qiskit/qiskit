@@ -361,6 +361,7 @@ stages:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         QISKIT_TEST_CAPTURE_STREAMS: 1
+        QISKIT_PARALLEL: TRUE
       steps:
         - task: UsePythonVersion@0
           inputs:
