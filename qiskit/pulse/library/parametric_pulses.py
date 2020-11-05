@@ -93,6 +93,16 @@ class ParametricPulse(Pulse):
         """Return a dictionary containing the pulse's parameters."""
         pass
 
+    def is_parameterized(self) -> bool:
+        return any(_is_parameterized(val) for val in self.parameters.values())
+
+    def assign(self, parameter: ParameterExpression,
+               value: ParameterValueType) -> 'ParametricPulse':
+        """Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+        """
+        return self.assign_parameters({parameter: value})
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'ParametricPulse':
@@ -105,7 +115,7 @@ class ParametricPulse(Pulse):
         Returns:
             New pulse with updated parameters.
         """
-        if not any([_is_parameterized(val) for val in self.parameters.values()]):
+        if not self.is_parameterized():
             return self
 
         new_parameters = {}
@@ -117,6 +127,7 @@ class ParametricPulse(Pulse):
                         # TODO: ParameterExpression doesn't support complex values
                         op_value = float(op_value)
                     except TypeError:
+                        # It's alright if the value is still parameterized
                         pass
                 new_parameters[op] = op_value
         return type(self)(**new_parameters)

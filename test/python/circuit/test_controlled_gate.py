@@ -1046,6 +1046,24 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(Operator(cgate), Operator(target))
         self.assertEqual(Operator(ccirc), Operator(target))
 
+    @data(1, 2)
+    def test_nested_global_phase(self, num_ctrl_qubits):
+        """
+        Test controlling a gate with nested global phase.
+        """
+        theta = pi/4
+        circ = QuantumCircuit(1, global_phase=theta)
+        circ.z(0)
+        v = circ.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(v, [0])
+        ctrl_qc = qc.control(num_ctrl_qubits)
+
+        base_mat = Operator(qc).data
+        target = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertEqual(Operator(ctrl_qc), Operator(target))
+
 
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
