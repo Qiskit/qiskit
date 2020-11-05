@@ -28,21 +28,76 @@ from qiskit.circuit.barrier import Barrier
 
 
 class Pauli(BasePauli):
-    r"""N-qubit Pauli group operator.
+    r"""N-qubit Pauli operator.
 
-    **Symplectic Representation**
+    This class represents an operator from the full N-qubit Pauli group
+    consisting of the tensor-product of N single-qubit Pauli matrices and
+    a coefficient from :math:`[1, -i, -1, i]`.
 
-    The symplectic representation of a single-qubit Pauli matrix
-    is a pair of boolean values :math:`[x, z]` and phase `q` such that the
-    Pauli matrix is given by :math:`P = (-i)^{q + x.z} \sigma_z^z.\sigma_x^x`.
-    Where :math:`z, x \in \mathbb{Z}_2` and :math:`q \in \mathbb{Z}_4`.
+    **String representation**
+
+    An N-qubit Pauli may be represented by a string consisting of N
+    characters in ``['I', 'X', 'Y', 'Z']``, and optionally a group phase
+    coefficient in :math:`[1, -i, -1, i]`. For example: ``XYZ`` or
+    ``'-iZIZ'``.
+
+    In the string representation qubit-0 corresponds to the right-most
+    Pauli character, and qubit-:math:`(N-1)` to the left-most Pauli
+    character. For example ``'XYZ'`` represents ``'Z'`` for qubit-0,
+    ``'Y'`` for qubit-1, and ``'X'`` for qubit-3.
+
+    The string representaiton can be converted to a ``Pauli`` using the
+    class initialization ``Pauli('-iXYZ')``. A ``Pauli`` object can be
+    converted back to the string representation using ``str(Pauli('XYZ'))``.
+
+    **Array Representation**
+
+    The internal data structure of an N-qubit Pauli is two length-N boolean
+    vectors :math:`z \in \mathbb{Z}_2^N`, :math:`x \in \mathbb{Z}_2^N`, and
+    an integer :math:`q \in \mathbb{Z}_4` defining the Pauli operator
+
+    .. math::
+
+        P = (-i)^{q + z\cdot x} Z^z \cdot X^x
+
+    The :math:`k`th qubit corresponds to the :math:`k`th entry in the
+    :math:`z` and :math:`x` arrays
+
+    .. math::
+
+        P &= P_{N-1} \otimes ... \otimes P_{0} \\
+        P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+
+    where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
+
+    The :math:`z` and :math:`x` arrays can be accessed and updated using
+    the :attr:`z` and :attr:`x` properties respectively. The phase integer
+    :math:`q` can be accessed and updated using the :attr:`phase` property.
+
+    **Matrix Operator Representation**
+
+    Pauli's can be converted to :math:`(2^N, 2^N)`
+    :class:`~qiskit.quantum_info.Operator` using the :meth:`to_operator` method,
+    or to a dense or sparse complex matrix using the :meth:`to_matrix` method .
 
     **Data Access**
 
-    The individual qubit Paulis can be accessed using the list access ``[]`` operator.
-    The underlying Numpy array can be directly accessed using the :attr:`array` property,
-    and the sub-arrays for the `X` or `Z` part can be accessed using the
-    :attr:`X` and :attr:`Z` properties respectively.
+    The individual qubit Paulis can be accessed and updated using the ``[]``
+    operator which accepts integer, lists, or slices for selecting subsets
+    of Paulis. Note that selecting subsets of Pauli's will discard the
+    phase of the current Pauli.
+
+    For example
+
+    .. code:
+
+        p = Pauli('-iXYZ')
+
+        print('P[0] =', repr(P[0]))
+        print('P[1] =', repr(P[1]))
+        print('P[2] =', repr(P[2]))
+        print('P[:] =', repr(P[:]))
+        print('P[::-1] =, repr(P[::-1]))
     """
     # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, z=None, x=None, phase=None, *, label=None):
@@ -108,13 +163,13 @@ class Pauli(BasePauli):
                 and np.all(self._x == other._x))
 
     def equiv(self, other):
-        """Return True if Pauli's are equivalent up to global phase.
+        """Return True if Pauli's are equivalent up to group phase.
 
         Args:
             other (Pauli): an operator object.
 
         Returns:
-            bool: True if the Pauli's are equivalent up to global phase.
+            bool: True if the Pauli's are equivalent up to group phase.
         """
         if not isinstance(other, Pauli):
             try:
@@ -128,18 +183,18 @@ class Pauli(BasePauli):
     # ---------------------------------------------------------------------
     @property
     def phase(self):
-        """Return the phase exponent relative to the unsigned Pauli group element."""
+        """Return the group phase exponent for the Pauli."""
+        # Convert internal ZX-phase convention of BasePauli to group phase
         return np.mod(self._phase - self._count_y(), 4)[0]
 
     @phase.setter
     def phase(self, value):
-        """Set the phase exponent."""
         # Convert group phase convetion to internal ZX-phase convention
         self._phase[:] = np.mod(value + self._count_y(), 4)
 
     @property
     def x(self):
-        """The x vector for the symplectic representation."""
+        """The x vector for the Pauli."""
         return self._x[0]
 
     @x.setter
@@ -148,7 +203,7 @@ class Pauli(BasePauli):
 
     @property
     def z(self):
-        """The z vector for the symplectic representation."""
+        """The z vector for the Pauli."""
         return self._z[0]
 
     @z.setter
@@ -256,7 +311,7 @@ class Pauli(BasePauli):
         return hash(self.__str__())
 
     def to_matrix(self, sparse=False):
-        r"""Convert to a Numpy array.
+        r"""Convert to a Numpy array or sparse CSR matrix.
 
         Args:
             sparse (bool): if True return sparse CSR matrices, otherwise
