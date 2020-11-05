@@ -21,8 +21,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.symplectic.pauli_tools import (
-    coeff_phase_from_complex)
 
 
 class BasePauli(BaseOperator):
@@ -190,9 +188,9 @@ class BasePauli(BaseOperator):
             QiskitError: if the phase is not in the set [1, -1j, -1, 1j].
         """
         if isinstance(other, (np.ndarray, list, tuple)):
-            phase = np.array([coeff_phase_from_complex(phase) for phase in other])
+            phase = np.array([self._phase_from_complex(phase) for phase in other])
         else:
-            phase = coeff_phase_from_complex(other)
+            phase = self._phase_from_complex(other)
         return BasePauli(self._z, self._x, self._phase + phase)
 
     def conjugate(self):
@@ -273,9 +271,7 @@ class BasePauli(BaseOperator):
             return ret
 
         # Otherwise evolve by circuit evolution
-        ret = self.copy()
-        _evolve_circuit(ret, other, qargs=qargs)
-        return ret
+        return self.copy()._append_circuit(other, qargs=qargs)
 
     # ---------------------------------------------------------------------
     # Helper Methods
@@ -298,129 +294,224 @@ class BasePauli(BaseOperator):
         """Stack array."""
         if size == 1:
             return array
-        if array.ndim == 1:
-            return np.concatenate(size * [array])
         return np.vstack(size * [array])
 
     @staticmethod
-    def _block_stack(array1, array2):
-        """Stack two arrays along their first axis."""
-        sz1 = len(array1)
-        sz2 = len(array2)
-        out_shape1 = (sz1 * sz2, ) + array1.shape[1:]
-        out_shape2 = (sz1 * sz2, ) + array2.shape[1:]
-        if sz2 > 1:
-            # Stack blocks for output table
-            ret1 = np.reshape(np.stack(sz2 * [array1], axis=1),
-                              out_shape1)
-        else:
-            ret1 = array1
-        if sz1 > 1:
-            # Stack blocks for output table
-            ret2 = np.reshape(np.vstack(sz1 * [array2]), out_shape2)
-        else:
-            ret2 = array2
-        return ret1, ret2
+    def _phase_from_complex(coeff):
+        """Return the phase from a label"""
+        if np.isclose(coeff, 1):
+            return 0
+        if np.isclose(coeff, -1j):
+            return 1
+        if np.isclose(coeff, -1):
+            return 2
+        if np.isclose(coeff, 1j):
+            return 3
+        raise QiskitError("Pauli can only be multiplied by 1, -1j, -1, 1j.")
 
+    @staticmethod
+    def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
+        """Return the matrix matrix from symplectic representation.
 
-# ---------------------------------------------------------------------
-# Pauli Evolution by Clifford circuit
-# ---------------------------------------------------------------------
+        The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
+        where ``array = [x, z]``.
 
-def _evolve_circuit(base_pauli, circuit, qargs=None):
-    """Update Pauli inplace by applying a Clifford circuit.
+        Args:
+            z (array): The symplectic representation z vector.
+            x (array): The symplectic representation x vector.
+            phase (int): Pauli phase.
+            group_phase (bool): Optional. If True use group-phase convention
+                                instead of BasePauli ZX-phase convention.
+                                (default: False).
+            sparse (bool): Optional. Of True return a sparse CSR matrix,
+                           otherwise return a dense Numpy array
+                           (default: False).
 
-    Args:
-        base_pauli (BasePauli): the Pauli or PauliList to update.
-        circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
-        qargs (list or None): The qubits to apply gate to.
+        Returns:
+            array: if sparse=False.
+            csr_matrix: if sparse=True.
+        """
+        def count1(i):
+            """Count number of set bits in int or array"""
+            i = i - ((i >> 1) & 0x55555555)
+            i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
+            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
 
-    Returns:
-        BasePauli: the updated Pauli.
+        num_qubits = z.size
 
-    Raises:
-        QiskitError: if input gate cannot be decomposed into Clifford gates.
-    """
-    if isinstance(circuit, Barrier):
-        return base_pauli
+        # Convert to zx_phase
+        if group_phase:
+            phase += np.sum(x & z)
+            phase %= 4
 
-    if qargs is None:
-        qargs = list(range(base_pauli.num_qubits))
+        dim = 2**num_qubits
+        twos_array = 1 << np.arange(num_qubits)
+        x_indices = np.array(x).dot(twos_array)
+        z_indices = np.array(z).dot(twos_array)
 
-    if isinstance(circuit, QuantumCircuit):
-        phase = float(circuit.global_phase)
+        indptr = np.arange(dim + 1, dtype=np.uint)
+        indices = indptr ^ x_indices
+        data = (-1)**np.mod(count1(z_indices & indptr), 2)
         if phase:
-            base_pauli._phase += coeff_phase_from_complex(np.exp(1j * phase))
-        gate = circuit.to_instruction()
-    else:
-        gate = circuit
+            data = (-1j)**phase * data
 
-    # Basis Clifford Gates
-    basis_1q = {
-        'i': _evolve_i,
-        'id': _evolve_i,
-        'iden': _evolve_i,
-        'x': _evolve_x,
-        'y': _evolve_y,
-        'z': _evolve_z,
-        'h': _evolve_h,
-        's': _evolve_s,
-        'sdg': _evolve_sdg,
-        'sinv': _evolve_sdg
-    }
-    basis_2q = {
-        'cx': _evolve_cx,
-        'cz': _evolve_cz,
-        'cy': _evolve_cy,
-        'swap': _evolve_swap
-    }
+        if sparse:
+            # Return sparse matrix
+            from scipy.sparse import csr_matrix
+            return csr_matrix((data, indices, indptr), shape=(dim, dim),
+                              dtype=complex)
 
-    # Non-clifford gates
-    non_clifford = ['t', 'tdg', 'ccx', 'ccz']
+        # Build dense matrix using csr format
+        mat = np.zeros((dim, dim), dtype=complex)
+        for i in range(dim):
+            mat[i][indices[indptr[i]:indptr[i + 1]]] = data[indptr[i]:indptr[i + 1]]
+        return mat
 
-    if isinstance(gate, str):
-        # Check if gate is a valid Clifford basis gate string
-        if gate not in basis_1q and gate not in basis_2q:
+    @staticmethod
+    def _to_label(z, x, phase, group_phase=False,
+                  full_group=True, return_phase=False):
+        """Return the label string for a Pauli.
+
+        Args:
+            z (array): The symplectic representation z vector.
+            x (array): The symplectic representation x vector.
+            phase (int): Pauli phase.
+            group_phase (bool): Optional. If True use group-phase convention
+                                instead of BasePauli ZX-phase convention.
+                                (default: False).
+            full_group (bool): If True return the Pauli label from the full Pauli group
+                including complex coefficient from [1, -1, 1j, -1j]. If
+                False return the unsigned Pauli label with coefficient 1
+                (default: True).
+            return_phase (bool): If True return the adjusted phase for the coefficient
+                of the returned Pauli label. This can be used even if
+                ``full_group=False``.
+
+        Returns:
+            str: the Pauli label from the full Pauli group (if ``full_group=True``) or
+                from the unsigned Pauli group (if ``full_group=False``).
+            Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
+                            label (from either the full or unsigned Pauli group) and
+                            the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
+                            for the label from the full Pauli group.
+        """
+        num_qubits = z.size
+        coeff_labels = {0: '', 1: '-i', 2: '-', 3: 'i'}
+        label = ''
+        for i in range(num_qubits):
+            if not z[num_qubits - 1 - i]:
+                if not x[num_qubits - 1 - i]:
+                    label += 'I'
+                else:
+                    label += 'X'
+            elif not x[num_qubits - 1 - i]:
+                label += 'Z'
+            else:
+                label += 'Y'
+                if not group_phase:
+                    phase -= 1
+        phase %= 4
+        if phase and full_group:
+            label = coeff_labels[phase] + label
+        if return_phase:
+            return label, phase
+        return label
+
+    def _append_circuit(self, circuit, qargs=None):
+        """Update BasePauli inplace by applying a Clifford circuit.
+
+        Args:
+            circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
+            qargs (list or None): The qubits to apply gate to.
+
+        Returns:
+            BasePauli: the updated Pauli.
+
+        Raises:
+            QiskitError: if input gate cannot be decomposed into Clifford gates.
+        """
+        if isinstance(circuit, Barrier):
+            return self
+
+        if qargs is None:
+            qargs = list(range(self.num_qubits))
+
+        if isinstance(circuit, QuantumCircuit):
+            phase = float(circuit.global_phase)
+            if phase:
+                self._phase += self._phase_from_complex(np.exp(1j * phase))
+            gate = circuit.to_instruction()
+        else:
+            gate = circuit
+
+        # Basis Clifford Gates
+        basis_1q = {
+            'i': _evolve_i,
+            'id': _evolve_i,
+            'iden': _evolve_i,
+            'x': _evolve_x,
+            'y': _evolve_y,
+            'z': _evolve_z,
+            'h': _evolve_h,
+            's': _evolve_s,
+            'sdg': _evolve_sdg,
+            'sinv': _evolve_sdg
+        }
+        basis_2q = {
+            'cx': _evolve_cx,
+            'cz': _evolve_cz,
+            'cy': _evolve_cy,
+            'swap': _evolve_swap
+        }
+
+        # Non-clifford gates
+        non_clifford = ['t', 'tdg', 'ccx', 'ccz']
+
+        if isinstance(gate, str):
+            # Check if gate is a valid Clifford basis gate string
+            if gate not in basis_1q and gate not in basis_2q:
+                raise QiskitError(
+                    "Invalid Clifford gate name string {}".format(gate))
+            name = gate
+        else:
+            # Assume gate is an Instruction
+            name = gate.name
+
+        # Apply gate if it is a Clifford basis gate
+        if name in non_clifford:
             raise QiskitError(
-                "Invalid Clifford gate name string {}".format(gate))
-        name = gate
-    else:
-        # Assume gate is an Instruction
-        name = gate.name
+                "Cannot update Pauli with non-Clifford gate {}".format(name))
+        if name in basis_1q:
+            if len(qargs) != 1:
+                raise QiskitError("Invalid qubits for 1-qubit gate.")
+            return basis_1q[name](self, qargs[0])
+        if name in basis_2q:
+            if len(qargs) != 2:
+                raise QiskitError("Invalid qubits for 2-qubit gate.")
+            return basis_2q[name](self, qargs[0], qargs[1])
 
-    # Apply gate if it is a Clifford basis gate
-    if name in non_clifford:
-        raise QiskitError(
-            "Cannot update Pauli with non-Clifford gate {}".format(name))
-    if name in basis_1q:
-        if len(qargs) != 1:
-            raise QiskitError("Invalid qubits for 1-qubit gate.")
-        return basis_1q[name](base_pauli, qargs[0])
-    if name in basis_2q:
-        if len(qargs) != 2:
-            raise QiskitError("Invalid qubits for 2-qubit gate.")
-        return basis_2q[name](base_pauli, qargs[0], qargs[1])
-
-    # If not a Clifford basis gate we try to unroll the gate and
-    # raise an exception if unrolling reaches a non-Clifford gate.
-    # TODO: We could also check u3 params to see if they
-    # are a single qubit Clifford gate rather than raise an exception.
-    if gate.definition is None:
-        raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
-    if not isinstance(gate.definition, QuantumCircuit):
-        raise QiskitError(
-            '{} instruction definition is {}; expected QuantumCircuit'.format(
-                gate.name, type(gate.definition)))
-    for instr, qregs, cregs in gate.definition:
-        if cregs:
+        # If not a Clifford basis gate we try to unroll the gate and
+        # raise an exception if unrolling reaches a non-Clifford gate.
+        if gate.definition is None:
+            raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
+        if not isinstance(gate.definition, QuantumCircuit):
             raise QiskitError(
-                'Cannot apply Instruction with classical registers: {}'.format(
-                    instr.name))
-        # Get the integer position of the flat register
-        new_qubits = [qargs[tup.index] for tup in qregs]
-        _evolve_circuit(base_pauli, instr, new_qubits)
-    return base_pauli
+                '{} instruction definition is {}; expected QuantumCircuit'.format(
+                    gate.name, type(gate.definition)))
+        for instr, qregs, cregs in gate.definition:
+            if cregs:
+                raise QiskitError(
+                    'Cannot apply Instruction with classical registers: {}'.format(
+                        instr.name))
+            # Get the integer position of the flat register
+            new_qubits = [qargs[tup.index] for tup in qregs]
+            self._append_circuit(instr, new_qubits)
+        return self
 
+
+# ---------------------------------------------------------------------
+# Evolution by Clifford gates
+# ---------------------------------------------------------------------
 
 def _evolve_h(base_pauli, qubit):
     """Evolve by HGate"""

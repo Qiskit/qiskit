@@ -14,6 +14,7 @@ Symplectic Pauli Operator Class
 """
 # pylint: disable=invalid-name, abstract-method
 
+import re
 from warnings import warn
 import numpy as np
 
@@ -21,11 +22,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.barrier import Barrier
-from qiskit.quantum_info.operators.symplectic.pauli_tools import (
-    pauli_from_label, pauli_to_label, pauli_to_matrix,
-    coeff_phase_from_complex)
 
 
 class Pauli(BasePauli):
@@ -64,63 +63,26 @@ class Pauli(BasePauli):
         """
         if isinstance(z, BasePauli):
             # BasePauli initialization
-            base_z = z._z
-            base_x = z._x
-            base_phase = z._phase
+            base_z, base_x, base_phase = z._z, z._x, z._phase
             if z._num_paulis != 1:
                 raise QiskitError("Input is not a single Pauli")
         elif x is not None:
-            # Array initialization
-            if isinstance(z, np.ndarray) and z.dtype == np.bool:
-                base_z = z
-            else:
-                base_z = np.asarray(z, dtype=np.bool)
-            if base_z.ndim == 1:
-                base_z = base_z.reshape((1, base_z.size))
-
-            if isinstance(x, np.ndarray) and x.dtype == np.bool:
-                base_x = x
-            else:
-                base_x = np.asarray(x, dtype=np.bool)
-            if base_x.ndim == 1:
-                base_x = base_x.reshape((1, base_x.size))
-
-            if base_z.shape != base_x.shape:
-                raise QiskitError("z and x vectors are different size.")
-            if base_z.ndim != 2 or base_z.shape[0] != 1:
-                raise QiskitError("Invalid z and x vector shape")
-            if phase is None:
-                # Convert group phase convention to internal ZX-phase convertion.
-                base_phase = np.sum(np.logical_and(base_x, base_z),
-                                    axis=1, dtype=np.int) % 4
+            base_z, base_x, base_phase = self._from_array(z, x, phase)
         elif isinstance(z, str):
-            # String initialization
-            # TODO: reshape arrays
-            base_z, base_x, base_phase = pauli_from_label(z, zx_phase=True)
-        elif isinstance(z, ScalarOp):
-            # Initialize an N-qubit identity
-            if z.num_qubits is None:
-                raise QiskitError('{} is not an N-qubit identity'.format(z))
-            base_z = np.zeros((1, z.num_qubits), dtype=np.bool)
-            base_x = np.zeros((1, z.num_qubits), dtype=np.bool)
-            base_phase = coeff_phase_from_complex(z.coeff) + np.sum(
-                np.logical_and(base_z, base_x), axis=1)
-        elif isinstance(z, (QuantumCircuit, Instruction)):
-            tmp = self._from_circuit(z)
-            base_z = tmp._z
-            base_x = tmp._x
-            base_phase = tmp._phase
+            base_z, base_x, base_phase = self._from_label(z)
         elif label is not None:
             # Check for deprecated initialization from legacy Pauli
             warn('Initializing Pauli from label kwarg is deprecated '
                  'and will be removed no earlier than 3 months after the release date. '
                  'Use `Pauli(str)` instead.', DeprecationWarning)
-            tmp = Pauli(label)
-            base_z = tmp._z
-            base_x = tmp._x
-            base_phase = tmp._phase
+            base_z, base_x, base_phase = self._from_label(label)
+        elif isinstance(z, ScalarOp):
+            base_z, base_x, base_phase = self._from_scalar_op(z)
+        elif isinstance(z, (QuantumCircuit, Instruction)):
+            base_z, base_x, base_phase = self._from_circuit(z)
         else:
             raise QiskitError("Invalid input data for Pauli.")
+
         # Add phase
         if phase is not None:
             base_phase = np.mod(int(phase) + np.sum(
@@ -285,7 +247,7 @@ class Pauli(BasePauli):
 
     def __str__(self):
         """String representation."""
-        return pauli_to_label(self.z, self.x, self._phase[0], zx_phase=True)
+        return self._to_label(self.z, self.x, self._phase[0])
 
     def __hash__(self):
         """Make hashable based on string representation."""
@@ -301,9 +263,7 @@ class Pauli(BasePauli):
         Returns:
             array: The Pauli matrix.
         """
-        return pauli_to_matrix(self.z, self.x, self._phase[0],
-                               sparse=sparse, zx_phase=True)
-
+        return self._to_matrix(self.z, self.x, self._phase[0], sparse=sparse)
 
     def to_operator(self):
         """Convert to a matrix Operator object"""
@@ -313,9 +273,8 @@ class Pauli(BasePauli):
     def to_instruction(self):
         """Convert to Pauli circuit instruction."""
         from math import pi
-        pauli, phase = pauli_to_label(self.z, self.x, self._phase[0],
+        pauli, phase = self._to_label(self.z, self.x, self._phase[0],
                                       full_group=False,
-                                      zx_phase=True,
                                       return_phase=True)
         gate = PauliGate(pauli)
         if not phase:
@@ -325,64 +284,6 @@ class Pauli(BasePauli):
         circuit.global_phase = -phase * pi / 2
         circuit.append(gate, range(self.num_qubits))
         return circuit.to_instruction()
-
-    @classmethod
-    def _from_instruction(cls, instr):
-        """Convert compatible instruction to Pauli"""
-        from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-        zero = np.array([[False]], dtype=np.bool)
-        one = np.array([[True]], dtype=np.bool)
-        if isinstance(instr, PauliGate):
-            return Pauli(instr.params[0])
-        if isinstance(instr, IGate):
-            return Pauli(z=zero.copy(), x=zero.copy())
-        if isinstance(instr, XGate):
-            return Pauli(z=zero.copy(), x=one.copy())
-        if isinstance(instr, YGate):
-            return Pauli(z=one.copy(), x=one.copy())
-        if isinstance(instr, ZGate):
-            return Pauli(z=one.copy(), x=zero.copy())
-        return None
-
-    @classmethod
-    def _from_circuit(cls, instr):
-        """Initialize Pauli from compatible instruction by simulation"""
-        # Try and convert single instruction
-        if isinstance(instr, Instruction):
-            # Check if Pauli instruction
-            pauli = cls._from_instruction(instr)
-            if pauli:
-                return pauli
-            # If not check definition for unrolling
-            if instr.definition is None:
-                raise QiskitError('Cannot apply Instruction: {}'.format(
-                    instr.name))
-            # Convert to circuit
-            instr = instr.definition
-
-        # Initialize identity Pauli
-        ret = Pauli(BasePauli(
-            np.zeros((1, instr.num_qubits), dtype=np.bool),
-            np.zeros((1, instr.num_qubits), dtype=np.bool),
-            np.zeros(1, dtype=np.int)))
-
-        # Add circuit global phase if specified
-        if instr.global_phase:
-            ret.phase = coeff_phase_from_complex(
-                np.exp(1j * float(instr.global_phase)))
-
-        # Recursively apply instructions
-        for dinstr, qregs, cregs in instr.data:
-            if cregs:
-                raise QiskitError(
-                    'Cannot apply instruction with classical registers: {}'.
-                    format(dinstr.name))
-            if not isinstance(dinstr, Barrier):
-                next_instr = cls._from_circuit(dinstr)
-                if next_instr is not None:
-                    qargs = [tup.index for tup in qregs]
-                    ret = ret.compose(next_instr, qargs=qargs)
-        return ret
 
     # ---------------------------------------------------------------------
     # BaseOperator methods
@@ -550,6 +451,146 @@ class Pauli(BasePauli):
         return Pauli(super().evolve(other, qargs=qargs))
 
     # ---------------------------------------------------------------------
+    # Initialization helper functions
+    # ---------------------------------------------------------------------
+
+    @staticmethod
+    def _from_label(label):
+        """Return the symplectic representation of Pauli string.
+
+        Args:
+            label (str): the Pauli string label.
+
+        Returns:
+            BasePauli: the BasePauli corresponding to the label.
+
+        Raises:
+            QiskitError: if Pauli string is not valid.
+        """
+        # Split string into coefficient and Pauli
+        span = re.search(r'[IXYZ]+', label).span()
+        pauli, coeff = _split_pauli_label(label)
+        coeff = label[:span[0]]
+
+        # Convert coefficient to phase
+        phase = 0 if not coeff else _phase_from_label(coeff)
+        if phase is None:
+            raise QiskitError('Pauli string is not valid.')
+
+        # Convert to Symplectic representation
+        num_qubits = len(pauli)
+        base_z = np.zeros((1, num_qubits), dtype=np.bool)
+        base_x = np.zeros((1, num_qubits), dtype=np.bool)
+        base_phase = np.array([phase], dtype=np.int)
+        for i, char in enumerate(pauli):
+            if char == 'X':
+                base_x[0, num_qubits - 1 - i] = True
+            elif char == 'Z':
+                base_z[0, num_qubits - 1 - i] = True
+            elif char == 'Y':
+                base_x[0, num_qubits - 1 - i] = True
+                base_z[0, num_qubits - 1 - i] = True
+                base_phase += 1
+        return base_z, base_x, base_phase % 4
+
+    @staticmethod
+    def _from_array(z, x, phase):
+        """Convert array data to BasePauli data."""
+        if isinstance(z, np.ndarray) and z.dtype == np.bool:
+            base_z = z
+        else:
+            base_z = np.asarray(z, dtype=np.bool)
+        if base_z.ndim == 1:
+            base_z = base_z.reshape((1, base_z.size))
+        elif base_z.ndim != 2 or base_z.shape[0] != 1:
+            raise QiskitError("Invalid Pauli z vector shape.")
+
+        if isinstance(x, np.ndarray) and x.dtype == np.bool:
+            base_x = x
+        else:
+            base_x = np.asarray(x, dtype=np.bool)
+        if base_x.ndim == 1:
+            base_x = base_x.reshape((1, base_x.size))
+        elif base_x.ndim != 2 or base_x.shape[0] != 1:
+            raise QiskitError("Invalid Pauli x vector shape.")
+
+        if base_z.shape != base_x.shape:
+            raise QiskitError("z and x vectors are different size.")
+
+        base_phase = None
+        if phase is None:
+            # Convert group phase convention to internal ZX-phase convertion.
+            # If phase is not None it will be converted later.
+            base_phase = np.mod(
+                np.sum(np.logical_and(base_x, base_z), axis=1, dtype=np.int), 4)
+        return base_z, base_x, base_phase
+
+    @classmethod
+    def _from_scalar_op(cls, op):
+        """Convert a ScalarOp to BasePauli data."""
+        if op.num_qubits is None:
+            raise QiskitError('{} is not an N-qubit identity'.format(op))
+        base_z = np.zeros((1, op.num_qubits), dtype=np.bool)
+        base_x = np.zeros((1, op.num_qubits), dtype=np.bool)
+        base_phase = np.mod(cls._phase_from_complex(op.coeff) + np.sum(
+            np.logical_and(base_z, base_x), axis=1), 4)
+        return base_z, base_x, base_phase
+
+    @classmethod
+    def _from_pauli_instruction(cls, instr):
+        """Convert a Pauli instruction to BasePauli data."""
+        if isinstance(instr, PauliGate):
+            return cls._from_label(instr.params[0])
+        if isinstance(instr, IGate):
+            return np.array([[False]]), np.array([[False]]), np.array([0])
+        if isinstance(instr, XGate):
+            return np.array([[False]]), np.array([[True]]), np.array([0])
+        if isinstance(instr, YGate):
+            return np.array([[True]]), np.array([[True]]), np.array([1])
+        if isinstance(instr, ZGate):
+            return np.array([[True]]), np.array([[False]]), np.array([0])
+        raise QiskitError("Invalid Pauli instruction.")
+
+    @classmethod
+    def _from_circuit(cls, instr):
+        """Convert a Pauli circuit to BasePauli data."""
+        # Try and convert single instruction
+        if isinstance(instr, (PauliGate, IGate, XGate, YGate, ZGate)):
+            return cls._from_pauli_instruction(instr)
+
+        if isinstance(instr, Instruction):
+            # Convert other instructions to circuit definition
+            if instr.definition is None:
+                raise QiskitError('Cannot apply Instruction: {}'.format(
+                    instr.name))
+            # Convert to circuit
+            instr = instr.definition
+
+        # Initialize identity Pauli
+        ret = Pauli(BasePauli(
+            np.zeros((1, instr.num_qubits), dtype=np.bool),
+            np.zeros((1, instr.num_qubits), dtype=np.bool),
+            np.zeros(1, dtype=np.int)))
+
+        # Add circuit global phase if specified
+        if instr.global_phase:
+            ret.phase = cls._phase_from_complex(
+                np.exp(1j * float(instr.global_phase)))
+
+        # Recursively apply instructions
+        for dinstr, qregs, cregs in instr.data:
+            if cregs:
+                raise QiskitError(
+                    'Cannot apply instruction with classical registers: {}'.
+                    format(dinstr.name))
+            if not isinstance(dinstr, Barrier):
+                next_instr = BasePauli(*cls._from_circuit(dinstr))
+                if next_instr is not None:
+                    qargs = [tup.index for tup in qregs]
+                    ret = ret.compose(next_instr, qargs=qargs)
+        return ret._z, ret._x, ret._phase
+
+    # ---------------------------------------------------------------------
     # DEPRECATED methods from old Pauli class
     # ---------------------------------------------------------------------
 
@@ -579,8 +620,7 @@ class Pauli(BasePauli):
         warn('`from_label` is deprecated and will be removed no earlier than '
              '3 months after the release date. Use Pauli(label) instead.',
              DeprecationWarning, stacklevel=2)
-        base_z, base_x, base_phase = pauli_from_label(label, zx_phase=True)
-        return Pauli(BasePauli(base_z, base_x, base_phase))
+        return Pauli(label)
 
     def to_label(self):
         """DEPRECATED: Convert a Pauli to an unsigned string label.
@@ -592,11 +632,11 @@ class Pauli(BasePauli):
         Returns:
             str: the Pauli string label.
         """
-        # warn('`to_label` is deprecated and will be removed no earlier than '
-        #      '3 months after the release date. Use str(Pauli) to convert to '
-        #      'full Pauli group label, or str(Pauli[:]) to convert to the '
-        #      'unsigned Pauli group label (coeff = +1)',
-        #      DeprecationWarning, stacklevel=2)
+        warn('`to_label` is deprecated and will be removed no earlier than '
+             '3 months after the release date. Use str(Pauli) to convert to '
+             'full Pauli group label, or str(Pauli[:]) to convert to the '
+             'unsigned Pauli group label (coeff = +1)',
+             DeprecationWarning, stacklevel=2)
         return str(self[:])
 
     @staticmethod
@@ -866,3 +906,24 @@ class Pauli(BasePauli):
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.random import random_pauli
         return random_pauli(num_qubits, group_phase=False, seed=seed)
+
+
+# ---------------------------------------------------------------------
+# Label parsing helper functions
+# ---------------------------------------------------------------------
+
+def _split_pauli_label(label):
+    """Split Pauli label into unsigned group label and coefficient label"""
+    span = re.search(r'[IXYZ]+', label).span()
+    pauli = label[span[0]:]
+    coeff = label[:span[0]]
+    if span[1] != len(label):
+        raise QiskitError('Pauli string is not valid.')
+    return pauli, coeff
+
+def _phase_from_label(label):
+    """Return the phase from a label"""
+    # Returns None if label is invalid
+    label = label.replace('+', '', 1).replace('1', '', 1).replace('j', 'i', 1)
+    phases = {'': 0, '-i': 1, '-': 2, 'i': 3}
+    return phases.get(label)

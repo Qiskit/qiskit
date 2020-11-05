@@ -31,8 +31,8 @@ from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator, Clifford
-from qiskit.quantum_info.operators.symplectic.pauli_tools import (
-    split_pauli_label, coeff_phase_from_label)
+from qiskit.quantum_info.operators.symplectic.pauli import (
+    _split_pauli_label, _phase_from_label)
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +48,8 @@ def pauli_group_labels(nq, full_group=True):
 
 def operator_from_label(label):
     """Construct operator from full Pauli group label"""
-    pauli, coeff = split_pauli_label(label)
-    coeff = (-1j) ** coeff_phase_from_label(coeff)
+    pauli, coeff = _split_pauli_label(label)
+    coeff = (-1j) ** _phase_from_label(coeff)
     return coeff * Operator.from_label(pauli)
 
 
@@ -134,8 +134,8 @@ class TestPauliProperties(QiskitTestCase):
     def test_phase(self, label):
         """Test phase attribute"""
         pauli = Pauli(label)
-        _, coeff = split_pauli_label(str(pauli))
-        target = coeff_phase_from_label(coeff)
+        _, coeff = _split_pauli_label(str(pauli))
+        target = _phase_from_label(coeff)
         self.assertEqual(pauli.phase, target)
 
     @data(*[(p, q) for p in ['I', 'X', 'Y', 'Z'] for q in range(4)])
@@ -144,8 +144,8 @@ class TestPauliProperties(QiskitTestCase):
         """Test phase setter"""
         pauli = Pauli(pauli)
         pauli.phase = phase
-        _, coeff = split_pauli_label(str(pauli))
-        value = coeff_phase_from_label(coeff)
+        _, coeff = _split_pauli_label(str(pauli))
+        value = _phase_from_label(coeff)
         self.assertEqual(value, phase)
 
     def test_x_setter(self):
