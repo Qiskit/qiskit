@@ -23,6 +23,7 @@ Experiment Results (:mod:`qiskit.result`)
    Result
    ResultError
    Counts
+   marginal_counts
 """
 
 from .result import Result
