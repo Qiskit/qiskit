@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Symplectic Pauli Operator Class
+N-qubit Pauli Operator Class
 """
 # pylint: disable=invalid-name, abstract-method
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
@@ -31,45 +31,64 @@ from qiskit.circuit.barrier import Barrier
 class Pauli(BasePauli):
     r"""N-qubit Pauli operator.
 
-    This class represents an operator from the full N-qubit Pauli group
-    consisting of the tensor-product of N single-qubit Pauli matrices and
-    a coefficient from :math:`[1, -i, -1, i]`.
-
-    **String representation**
-
-    An N-qubit Pauli may be represented by a string consisting of N
-    characters in ``['I', 'X', 'Y', 'Z']``, and optionally a group phase
-    coefficient in :math:`[1, -i, -1, i]`. For example: ``XYZ`` or
-    ``'-iZIZ'``.
-
-    In the string representation qubit-0 corresponds to the right-most
-    Pauli character, and qubit-:math:`(N-1)` to the left-most Pauli
-    character. For example ``'XYZ'`` represents ``'Z'`` for qubit-0,
-    ``'Y'`` for qubit-1, and ``'X'`` for qubit-3.
-
-    The string representaiton can be converted to a ``Pauli`` using the
-    class initialization ``Pauli('-iXYZ')``. A ``Pauli`` object can be
-    converted back to the string representation using the
-    :meth:`to_label` method or ``str(pauli)``. Note that using ``str``
-    will truncate the returned string for large numbers of qubits while
-    :meth:`to_label` will not.
-
-    **Array Representation**
-
-    The internal data structure of an N-qubit Pauli is two length-N boolean
-    vectors :math:`z \in \mathbb{Z}_2^N`, :math:`x \in \mathbb{Z}_2^N`, and
-    an integer :math:`q \in \mathbb{Z}_4` defining the Pauli operator
+    This class represents an operator :math:`P` from the full :math:`n`-qubit
+    *Pauli* group
 
     .. math::
 
-        P = (-i)^{q + z\cdot x} Z^z \cdot X^x
+        P = (-i)^{q} P_{n-1} \otimes ... \otimes P_{0}
+
+    where :math:`q\in \mathbb{Z}_4` and :math:`P_i \in \{I, X, Y, Z\}`
+    are single-qubit Pauli matrices:
+
+    .. math::
+
+        I = \begin{pmatrix} 1 & 0  \\ 0 & 1  \end{pmatrix},
+        X = \begin{pmatrix} 0 & 1  \\ 1 & 0  \end{pmatrix},
+        Y = \begin{pmatrix} 0 & -i \\ i & 0  \end{pmatrix},
+        Z = \begin{pmatrix} 1 & 0  \\ 0 & -1 \end{pmatrix}.
+
+    **String representation**
+
+    An :math:`n`-qubit Pauli may be represented by a string consisting of
+    :math:`n` characters from ``['I', 'X', 'Y', 'Z']``, and optionally phase
+    coefficient in :math:`['', '-i', '-', 'i']`. For example: ``XYZ`` or
+    ``'-iZIZ'``.
+
+    In the string representation qubit-0 corresponds to the right-most
+    Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
+    character. For example ``'XYZ'`` represents
+    :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
+    ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
+
+    The string representaiton can be converted to a ``Pauli`` using the
+    class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
+    converted back to the string representation using the
+    :meth:`to_label` method or ``str(pauli)``.
+
+    .. note::
+
+        Using ``str`` to convert a ``Pauli`` to a string will truncate the
+        returned string for large numbers of qubits while :meth:`to_label`
+        will return the full string with no truncation.
+
+    **Array Representation**
+
+    The internal data structure of an :math:`n`-qubit Pauli is two
+    length-:math:`n` boolean vectors :math:`z \in \mathbb{Z}_2^N`,
+    :math:`x \in \mathbb{Z}_2^N`, and an integer :math:`q \in \mathbb{Z}_4`
+    defining the Pauli operator
+
+    .. math::
+
+        P &= (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
     The :math:`k`th qubit corresponds to the :math:`k`th entry in the
     :math:`z` and :math:`x` arrays
 
     .. math::
 
-        P &= P_{N-1} \otimes ... \otimes P_{0} \\
+        P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
@@ -80,9 +99,9 @@ class Pauli(BasePauli):
 
     **Matrix Operator Representation**
 
-    Pauli's can be converted to :math:`(2^N, 2^N)`
+    Pauli's can be converted to :math:`(2^n, 2^n)`
     :class:`~qiskit.quantum_info.Operator` using the :meth:`to_operator` method,
-    or to a dense or sparse complex matrix using the :meth:`to_matrix` method .
+    or to a dense or sparse complex matrix using the :meth:`to_matrix` method.
 
     **Data Access**
 
@@ -353,7 +372,11 @@ class Pauli(BasePauli):
                                       self._phase[0],
                                       full_group=False,
                                       return_phase=True)
-        gate = PauliGate(pauli)
+        if len(pauli) == 1:
+            gate = {'I': IGate(), 'X': XGate(),
+                    'Y': YGate(), 'Z': ZGate()}[pauli]
+        else:
+            gate = PauliGate(pauli)
         if not phase:
             return gate
         # Add global phase
