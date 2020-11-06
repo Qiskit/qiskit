@@ -53,7 +53,6 @@ class Initialize(Instruction):
                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
                qubit one to `|0>`
         """
-        
         if isinstance(params, Statevector):
             params = params.data
 
