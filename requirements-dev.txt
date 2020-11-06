@@ -20,5 +20,6 @@ Sphinx>=1.8.3,<3.1.0
 qiskit-sphinx-theme>=1.5
 sphinx-autodoc-typehints
 jupyter-sphinx
+sphinx-panels
 pygments>=2.4
 tweedledum

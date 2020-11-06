@@ -65,10 +65,11 @@ extensions = [
     'jupyter_sphinx',
     'sphinx_autodoc_typehints',
     'reno.sphinxext',
+    'sphinx_panels',
 ]
 html_static_path = ['_static']
 templates_path = ['_templates']
-html_css_files = ['custom.css']
+html_css_files = []
 
 # -----------------------------------------------------------------------------
 # Autosummary
