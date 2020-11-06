@@ -168,7 +168,7 @@ class TestPauli(QiskitTestCase):
         p2 = Pauli.from_label('ZXXI')
         p3 = p1 * p2
         self.assertEqual(len(p3), 4)
-        self.assertEqual(p3.to_label(), 'ZYIY')
+        self.assertEqual(p3[:].to_label(), 'ZYIY')
 
     def test_imul(self):
         """Test in-place multiplication."""
@@ -177,7 +177,7 @@ class TestPauli(QiskitTestCase):
         p3 = deepcopy(p2)
         p2 *= p1
         self.assertTrue(p2 != p3)
-        self.assertEqual(p2.to_label(), 'ZYIY')
+        self.assertEqual(p2[:].to_label(), 'ZYIY')
 
     def test_equality_equal(self):
         """Test equality operator: equal Paulis."""

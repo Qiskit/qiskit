@@ -164,7 +164,9 @@ class Pauli(BasePauli):
 
     def __eq__(self, other):
         """Test if two Paulis are equal."""
-        return (isinstance(other, Pauli) and self._phase[0] == other._phase[0]
+        if not isinstance(other, Pauli):
+            return False
+        return (np.all(self._phase == other._phase)
                 and np.all(self._z == other._z)
                 and np.all(self._x == other._x))
 
@@ -263,7 +265,7 @@ class Pauli(BasePauli):
             raise QiskitError("Cannot delete all qubits of Pauli")
         z = np.delete(self._z, qubits, axis=1)
         x = np.delete(self._x, qubits, axis=1)
-        return Pauli(BasePauli(z, x, phase=self._phase))
+        return Pauli(z, x, phase=self.phase)
 
     def insert(self, qubits, value):
         """Insert a Pauli at specific qubit value.
@@ -762,6 +764,7 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: when updating whole z, the number of qubits must be the same.
         """
+        phase = self.phase
         z = self._make_np_bool(z)
         if indices is None:
             if len(self.z) != len(z):
@@ -774,6 +777,7 @@ class Pauli(BasePauli):
                 indices = [indices]
             for p, idx in enumerate(indices):
                 self.z[idx] = z[p]
+        self.phase = phase
         return self
 
     @deprecate_function(
@@ -796,6 +800,7 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: when updating whole x, the number of qubits must be the same.
         """
+        phase = self.phase
         x = self._make_np_bool(x)
         if indices is None:
             if len(self.x) != len(x):
@@ -809,7 +814,7 @@ class Pauli(BasePauli):
                 indices = [indices]
             for p, idx in enumerate(indices):
                 self.x[idx] = x[p]
-
+        self.phase = phase
         return self
 
     @deprecate_function(
