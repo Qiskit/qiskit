@@ -44,7 +44,6 @@ class Initialize(Instruction):
 
     def __init__(self, params):
         """Create new initialize composite.
-        
         params (str or list):
           * Statevector: Statevector to initialize to.
           * list: vector of complex amplitudes to initialize to.
