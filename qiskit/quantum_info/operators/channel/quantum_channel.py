@@ -34,6 +34,7 @@ class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
     def __init__(self, data, input_dims=None, output_dims=None,
+                 num_qubits=None,
                  channel_rep=None):
         """Initialize a quantum channel Superoperator operator.
 
@@ -43,6 +44,8 @@ class QuantumChannel(BaseOperator):
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
+            num_qubits (int): the number of qubits if N-qubit channel.
+                              [Default: None]
             channel_rep (str): quantum channel representation name string.
 
         Raises:
@@ -54,7 +57,9 @@ class QuantumChannel(BaseOperator):
                 channel_rep.__class__))
         self._channel_rep = channel_rep
         self._data = data
-        super().__init__(input_dims, output_dims)
+        super().__init__(input_dims=input_dims,
+                         output_dims=output_dims,
+                         num_qubits=num_qubits)
 
     def __repr__(self):
         prefix = '{}('.format(self._channel_rep)
@@ -62,7 +67,7 @@ class QuantumChannel(BaseOperator):
         return '{}{},\n{}input_dims={}, output_dims={})'.format(
             prefix, np.array2string(
                 np.asarray(self.data), separator=', ', prefix=prefix),
-            pad, self._input_dims, self._output_dims)
+            pad, self.input_dims(), self.output_dims())
 
     def __eq__(self, other):
         """Test if two QuantumChannels are equal."""

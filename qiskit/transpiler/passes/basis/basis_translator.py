@@ -88,13 +88,8 @@ class BasisTranslator(TransformationPass):
 
         source_basis = set()
         for node in dag.op_nodes():
-            name = node.op.name
-            qubit_params = (tuple([node.qargs[0].index]), tuple(node.op.params))
-            if (dag.calibrations and name in dag.calibrations
-                    and qubit_params in dag.calibrations[name]):
-                pass
-            else:
-                source_basis.add((name, node.op.num_qubits))
+            if not dag.has_calibration_for(node):
+                source_basis.add((node.name, node.op.num_qubits))
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -130,11 +125,8 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
-            if dag.calibrations and node.name in dag.calibrations:
-                qubit = tuple([node.qargs[0].index])
-                params = tuple(node.op.params)
-                if (qubit, params) in dag.calibrations[node.name]:
-                    continue
+            if dag.has_calibration_for(node):
+                continue
 
             if (node.op.name, node.op.num_qubits) in instr_map:
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]

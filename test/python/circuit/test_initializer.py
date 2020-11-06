@@ -23,10 +23,9 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import transpile
 from qiskit import execute, assemble, BasicAer
-from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info import Statevector
 
 
 class TestInitialize(QiskitTestCase):
@@ -351,6 +350,20 @@ class TestInitialize(QiskitTestCase):
         max_cnots = 2 ** (num_qubits + 1) - 2 * num_qubits
 
         self.assertLessEqual(number_cnots, max_cnots)
+
+    def test_from_labels(self):
+        """Initialize from labels."""
+        desired_sv = Statevector.from_label('01+-lr')
+
+        qc = QuantumCircuit(6)
+        qc.initialize('01+-lr', range(6))
+        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_sv)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
 
 class TestInstructionParam(QiskitTestCase):

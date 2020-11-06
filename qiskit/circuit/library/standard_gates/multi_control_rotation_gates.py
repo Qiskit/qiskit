@@ -23,20 +23,21 @@ from qiskit.exceptions import QiskitError
 logger = logging.getLogger(__name__)
 
 
-def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
+def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
-        circuit.u1((lam + phi) / 2, control)
-        circuit.u1((lam - phi) / 2, target)
+        # pylint: disable=cyclic-import
+        circuit.p((lam + phi) / 2, [control])
+        circuit.p((lam - phi) / 2, [target])
         circuit.cx(control, target)
-        circuit.u3(-theta / 2, 0, -(phi + lam) / 2, target)
+        circuit.u(-theta / 2, 0, -(phi + lam) / 2, [target])
         circuit.cx(control, target)
-        circuit.u3(theta / 2, phi, 0, target)
+        circuit.u(theta / 2, phi, 0, [target])
     else:
         circuit.cu(theta, phi, lam, 0, control, target)
 
 
-def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
-    """Apply multi-controlled u3 gate from ctls to tgt using graycode
+def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
+    """Apply multi-controlled u gate from ctls to tgt using graycode
     pattern with single-step angles theta, phi, lam."""
 
     n = len(ctls)
@@ -67,12 +68,12 @@ def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
                     circuit.cx(ctls[idx], ctls[lm_pos])
         # check parity and undo rotation
         if pattern.count('1') % 2 == 0:
-            # inverse CU3: u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
-            _apply_cu3(circuit, -theta, -lam, -phi, ctls[lm_pos], tgt,
-                       use_basis_gates=use_basis_gates)
+            # inverse CU: u(theta, phi, lamb)^dagger = u(-theta, -lam, -phi)
+            _apply_cu(circuit, -theta, -lam, -phi, ctls[lm_pos], tgt,
+                      use_basis_gates=use_basis_gates)
         else:
-            _apply_cu3(circuit, theta, phi, lam, ctls[lm_pos], tgt,
-                       use_basis_gates=use_basis_gates)
+            _apply_cu(circuit, theta, phi, lam, ctls[lm_pos], tgt,
+                      use_basis_gates=use_basis_gates)
         last_pattern = pattern
 
 
@@ -85,7 +86,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
         theta (float): angle theta
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
-        use_basis_gates (bool): use u1, u2, u3, cx, id
+        use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
@@ -112,13 +113,13 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)
-    if n_c == 1:  # cu3
-        _apply_cu3(self, theta, -pi/2, pi/2, control_qubits[0],
-                   target_qubit, use_basis_gates=use_basis_gates)
+    if n_c == 1:  # cu
+        _apply_cu(self, theta, -pi/2, pi/2, control_qubits[0],
+                  target_qubit, use_basis_gates=use_basis_gates)
     else:
         theta_step = theta * (1 / (2 ** (n_c - 1)))
-        _apply_mcu3_graycode(self, theta_step, -pi/2, pi/2, control_qubits,
-                             target_qubit, use_basis_gates=use_basis_gates)
+        _apply_mcu_graycode(self, theta_step, -pi/2, pi/2, control_qubits,
+                            target_qubit, use_basis_gates=use_basis_gates)
 
 
 def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
@@ -133,7 +134,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
         q_target (Qubit): The target qubit
         q_ancillae (QuantumRegister or tuple(QuantumRegister, int)): The list of ancillary qubits.
         mode (string): The implementation mode to use
-        use_basis_gates (bool): use u1, u2, u3, cx, id
+        use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
@@ -186,13 +187,13 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
         self.mcx(q_controls, q_target, q_ancillae, mode='v-chain')
     elif mode == 'noancilla':
         n_c = len(control_qubits)
-        if n_c == 1:  # cu3
-            _apply_cu3(self, theta, 0, 0, control_qubits[0],
-                       target_qubit, use_basis_gates=use_basis_gates)
+        if n_c == 1:  # cu
+            _apply_cu(self, theta, 0, 0, control_qubits[0],
+                      target_qubit, use_basis_gates=use_basis_gates)
         else:
             theta_step = theta * (1 / (2 ** (n_c - 1)))
-            _apply_mcu3_graycode(self, theta_step, 0, 0, control_qubits,
-                                 target_qubit, use_basis_gates=use_basis_gates)
+            _apply_mcu_graycode(self, theta_step, 0, 0, control_qubits,
+                                target_qubit, use_basis_gates=use_basis_gates)
     else:
         raise QiskitError('Unrecognized mode for building MCRY circuit: {}.'.format(mode))
 
@@ -206,7 +207,7 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
         lam (float): angle lambda
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
-        use_basis_gates (bool): use u1, u2, u3, cx, id
+        use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
@@ -233,13 +234,13 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)
-    if n_c == 1:  # cu3
-        _apply_cu3(self, 0, 0, lam, control_qubits[0],
-                   target_qubit, use_basis_gates=use_basis_gates)
+    if n_c == 1:  # cu
+        _apply_cu(self, 0, 0, lam, control_qubits[0],
+                  target_qubit, use_basis_gates=use_basis_gates)
     else:
         lam_step = lam * (1 / (2 ** (n_c - 1)))
-        _apply_mcu3_graycode(self, 0, 0, lam_step, control_qubits,
-                             target_qubit, use_basis_gates=use_basis_gates)
+        _apply_mcu_graycode(self, 0, 0, lam_step, control_qubits,
+                            target_qubit, use_basis_gates=use_basis_gates)
 
 
 QuantumCircuit.mcrx = mcrx

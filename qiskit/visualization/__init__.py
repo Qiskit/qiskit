@@ -75,6 +75,15 @@ Pulse Visualizations
    ~qiskit.visualization.pulse.qcstyle
    ~qiskit.visualization.pulse.interpolation
 
+Timeline Visualizations
+=======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   timeline_drawer
+   ~qiskit.visualization.timeline.draw
+
 Single Qubit State Transition Visualizations
 ============================================
 
@@ -105,7 +114,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_qsphere)
 from qiskit.visualization.transition_visualization import visualize_transition
 
-from .circuit_visualization import circuit_drawer, qx_color_scheme
+from .circuit_visualization import circuit_drawer
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
@@ -114,6 +123,7 @@ from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer
+from .timeline import draw as timeline_drawer
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
         or os.getenv('QISKIT_DOCS') == 'TRUE':

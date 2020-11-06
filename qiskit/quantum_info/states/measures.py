@@ -77,16 +77,16 @@ def purity(state, validate=True):
 
     The purity of a density matrix :math:`\rho` is
 
-    ..code:
+    .. math::
 
-        \text{Purity}(\rho) = \Tr[\rho^2]
+        \text{Purity}(\rho) = Tr[\rho^2]
 
     Args:
         state (Statevector or DensityMatrix): a quantum state.
         validate (bool): check if input state is valid [Default: True]
 
     Returns:
-        float: the purity :math:`\Tr[\rho^2]`.
+        float: the purity :math:`Tr[\rho^2]`.
 
     Raises:
         QiskitError: if the input isn't a valid quantum state.
@@ -100,7 +100,7 @@ def entropy(state, base=2):
 
     The entropy :math:`S` is given by
 
-    .. math:
+    .. math::
 
         S(\rho) = - Tr[\rho \log(\rho)]
 
@@ -128,7 +128,7 @@ def mutual_information(state, base=2):
 
     The mutual information :math:`I` is given by:
 
-    .. math:
+    .. math::
 
         I(\rho_{AB}) = S(\rho_A) + S(\rho_B) - S(\rho_{AB})
 
@@ -162,7 +162,7 @@ def concurrence(state):
     :class:`~qiskit.quantum_info.Statevector` :math:`|\psi\rangle` is
     given by
 
-    .. math:
+    .. math::
 
         C(|\psi\rangle) = \sqrt{2(1 - Tr[\rho_0^2])}
 
@@ -173,13 +173,13 @@ def concurrence(state):
     For density matrices the concurrence is only defined for
     2-qubit states, it is given by:
 
-    .. math:
+    .. math::
 
         C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lamda_3 - \lambda_4)
 
     where  :math:`\lambda _1 \ge \lambda _2 \ge \lambda _3 \ge \lambda _4`
     are the ordered eigenvalues of the matrix
-    :math:`R=\sqrt{\sqrt{\rho }(Y\otimes Y)\overline{\rho}(Y\otimes Y)\sqrt{\rho}}}`.
+    :math:`R=\sqrt{\sqrt{\rho }(Y\otimes Y)\overline{\rho}(Y\otimes Y)\sqrt{\rho}}`.
 
     Args:
         state (Statevector or DensityMatrix): a 2-qubit quantum state.
