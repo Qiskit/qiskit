@@ -148,21 +148,29 @@ class Instruction:
                 len(self.params) != len(other.params):
             return False
 
-        for self_param, other_param in zip(self.params, other.params):
-            if isinstance(self_param, ParameterExpression) or \
-                    isinstance(other_param, ParameterExpression):
-                continue
-            elif isinstance(self_param, numpy.array) and \
-                    isinstance(other_param, numpy.array):
-                if numpy.shape(self_param) == numpy.shape(other_param) \
-                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+        for self_param, other_param in zip_longest(self.params, other.params):
+            try:
+                if self_param == other_param:
                     continue
-            else:
+            except ValueError:
+                pass
+
+            if not isinstance(self_param, ParameterExpression) and \
+                    not isinstance(other_param, ParameterExpression):
                 try:
-                    if numpy.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                    if numpy.shape(self_param) == numpy.shape(other_param) \
+                            and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
                         continue
                 except TypeError:
                     pass
+
+                try:
+                    if numpy.isclose(float(self_param), float(other_param), atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
+            else:
+                continue
 
             return False
 
