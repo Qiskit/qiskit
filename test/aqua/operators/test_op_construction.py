@@ -33,7 +33,7 @@ from qiskit.circuit.library import CZGate, ZGate
 from qiskit.aqua.operators import (
     X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
-    SummedOp, OperatorBase
+    SummedOp, OperatorBase, Zero
 )
 from qiskit.aqua.operators import MatrixOperator
 
@@ -808,15 +808,6 @@ class TestOpConstruction(QiskitAquaTestCase):
         self.assertRaises(AquaError, list_op.permute, [0, 1])
 
     @data(Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]))
-    def test_op_hashing(self, op):
-        """Regression test against faulty set comparison.
-
-        Set comparisons rely on a hash table which requires identical objects to have identical
-        hashes. Thus, the PrimitiveOp.__hash__ should support this requirement.
-        """
-        self.assertEqual(set([2 * op]), set([2 * op]))
-
-    @data(Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]))
     def test_op_indent(self, op):
         """Test that indentation correctly adds INDENTATION at the beginning of each line"""
         initial_str = str(op)
@@ -934,6 +925,22 @@ class TestOpConstruction(QiskitAquaTestCase):
             _ = MatrixOp(2.0)
 
         self.assertEqual(str(cm.exception), msg + "'float'")
+
+    def test_summedop_equals(self):
+        """Test SummedOp.equals """
+        ops = [Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]), Zero, Minus]
+        sum_op = sum(ops + [ListOp(ops)])
+        self.assertEqual(sum_op, sum_op)
+        self.assertEqual(sum_op + sum_op, 2 * sum_op)
+        self.assertEqual(sum_op + sum_op + sum_op, 3 * sum_op)
+        ops2 = [Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, 1]]), Zero, Minus]
+        sum_op2 = sum(ops2 + [ListOp(ops)])
+        self.assertNotEqual(sum_op, sum_op2)
+        self.assertEqual(sum_op2, sum_op2)
+        sum_op3 = sum(ops)
+        self.assertNotEqual(sum_op, sum_op3)
+        self.assertNotEqual(sum_op2, sum_op3)
+        self.assertEqual(sum_op3, sum_op3)
 
 
 class TestOpMethods(QiskitAquaTestCase):
