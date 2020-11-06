@@ -21,8 +21,6 @@ from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
 from .pauli_table import PauliTable
 
-DEFAULT_RNG = default_rng()
-
 
 def random_pauli(num_qubits, group_phase=False, seed=None):
     """Return a random Pauli.
@@ -39,7 +37,7 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
         Pauli: a random Pauli
     """
     if seed is None:
-        rng = DEFAULT_RNG
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -64,7 +62,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
         PauliTable: a random PauliTable.
     """
     if seed is None:
-        rng = DEFAULT_RNG
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -87,7 +85,7 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
         PauliTable: a random StabilizerTable.
     """
     if seed is None:
-        rng = DEFAULT_RNG
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -117,7 +115,7 @@ def random_clifford(num_qubits, seed=None):
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
     if seed is None:
-        rng = DEFAULT_RNG
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:

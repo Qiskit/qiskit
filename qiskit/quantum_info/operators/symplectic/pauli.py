@@ -16,7 +16,6 @@ Symplectic Pauli Operator Class
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
-from warnings import warn
 import numpy as np
 
 from qiskit.util import deprecate_function
