@@ -130,12 +130,8 @@ class Pauli(BasePauli):
                 raise QiskitError("Input is not a single Pauli")
         elif isinstance(z, str):
             base_z, base_x, base_phase = self._from_label(z)
-        elif label is not None:
-            warn(
-                'Initializing Pauli from `label` kwarg is deprecated '
-                'and will be removed no earlier than 3 months after the release date. '
-                'Use `Pauli(str)` instead.', DeprecationWarning)
-            base_z, base_x, base_phase = self._from_label(label)
+        elif label is not None:  # DEPRECATED
+            base_z, base_x, base_phase = self._from_label_deprecated(label)
         elif isinstance(z, ScalarOp):
             base_z, base_x, base_phase = self._from_scalar_op(z)
         elif isinstance(z, (QuantumCircuit, Instruction)):
@@ -627,6 +623,16 @@ class Pauli(BasePauli):
     # ---------------------------------------------------------------------
     # DEPRECATED methods from old Pauli class
     # ---------------------------------------------------------------------
+
+    @classmethod
+    @deprecate_function(
+        'Initializing Pauli from `label` kwarg is deprecated '
+        'and will be removed no earlier than 3 months after the release date. '
+        'Use `Pauli(str)` instead.')
+    def _from_label_deprecated(cls, label):
+        # Deprecated wrapper of `_from_label` so that a deprecation warning
+        # can be displaced during initialization with deprecated kwarg
+        return cls._from_label(label)
 
     @staticmethod
     def _make_np_bool(arr):
