@@ -241,4 +241,4 @@ class SummedOp(ListOp):
                 [op * other_reduced.coeff for op in other_reduced.oplist])  # type: ignore
 
         # compare independent of order
-        return set(self_reduced) == set(other_reduced)
+        return all(any(i == j for j in other_reduced) for i in self_reduced)
