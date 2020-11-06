@@ -31,8 +31,8 @@ class SubstitutionConfig:
     in the circuit.
     """
 
-    def __init__(self, template_dag_dep, circuit_config, template_config, pred_block,
-                 qubit_config, clbit_config=None):
+    def __init__(self, circuit_config, template_config, pred_block,
+                 qubit_config, template_dag_dep, clbit_config=None):
         self.template_dag_dep = template_dag_dep
         self.circuit_config = circuit_config
         self.template_config = template_config
@@ -276,11 +276,11 @@ class TemplateSubstitution:
                                                                   template_sublist,
                                                                   template_complement)
 
-                config = SubstitutionConfig(template,
-                                            circuit_sublist,
+                config = SubstitutionConfig(circuit_sublist,
                                             template_sublist_inverse,
                                             [],
                                             current_qubit,
+                                            template,
                                             current_clbit)
                 self.substitution_list.append(config)
 
