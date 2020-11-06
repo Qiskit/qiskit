@@ -49,7 +49,10 @@ class Pauli(BasePauli):
 
     The string representaiton can be converted to a ``Pauli`` using the
     class initialization ``Pauli('-iXYZ')``. A ``Pauli`` object can be
-    converted back to the string representation using ``str(Pauli('XYZ'))``.
+    converted back to the string representation using the
+    :meth:`to_label` method or ``str(pauli)``. Note that using ``str``
+    will truncate the returned string for large numbers of qubits while
+    :meth:`to_label` will not.
 
     **Array Representation**
 
@@ -141,18 +144,23 @@ class Pauli(BasePauli):
         # Add phase
         if phase is not None:
             base_phase = np.mod(
-                int(phase) + np.sum(np.logical_and(base_z, base_x), axis=1), 4)
+                np.sum(np.logical_and(base_z, base_x),
+                       axis=1, dtype=np.int) + phase, 4)
 
-        # Set size properties
+        # Initialize BasePauli
         super().__init__(base_z, base_x, base_phase)
 
     def __repr__(self):
         """Display representation."""
-        if len(self) > 100:
-            return "Pauli('{}...{}'[{}])".format(self[:3].__str__(),
-                                                 self[-3:].__str__(),
-                                                 self.num_qubits)
         return "Pauli('{}')".format(self.__str__())
+
+    def __str__(self):
+        """Print representation."""
+        if self.num_qubits > 100:
+            front = self[-2:].to_label()
+            back = self[:2].to_label()
+            return "%s...%s" % (front, back)
+        return self.to_label()
 
     def __eq__(self, other):
         """Test if two Paulis are equal."""
@@ -301,13 +309,22 @@ class Pauli(BasePauli):
     # Representation conversions
     # ---------------------------------------------------------------------
 
-    def __str__(self):
-        """String representation."""
-        return self._to_label(self.z, self.x, self._phase[0])
-
     def __hash__(self):
         """Make hashable based on string representation."""
         return hash(self.__str__())
+
+    def to_label(self):
+        """Convert a Pauli to a string label.
+
+        .. note::
+
+            The difference between `to_label` and :meth:`__str__` is that
+            the later will truncate the output for large numbers of qubits.
+
+        Returns:
+            str: the Pauli string label.
+        """
+        return self._to_label(self.z, self.x, self._phase[0])
 
     def to_matrix(self, sparse=False):
         r"""Convert to a Numpy array or sparse CSR matrix.
@@ -661,27 +678,10 @@ class Pauli(BasePauli):
         """
         return Pauli(label)
 
+    @staticmethod
     @deprecate_function(
         'sgn_prod is deprecated and will be removed no earlier than '
         '3 months after the release date. Use `dot` instead.')
-    def to_label(self):
-        """DEPRECATED: Convert a Pauli to an unsigned string label.
-
-        This function is deprecated use ``str(pauli)`` to convert to the
-        full Pauli group label, or ``str(pauli[:])`` to convert to the
-        unsigned Pauli group label (coeff = +1)
-
-        Returns:
-            str: the Pauli string label.
-        """
-        return str(self[:])
-
-    @staticmethod
-    @deprecate_function(
-        '`to_label` is deprecated and will be removed no earlier than '
-        '3 months after the release date. Use `str(Pauli)` to convert to '
-        'full Pauli group label, or `str(Pauli[:])` to convert to the '
-        'unsigned Pauli group label (coeff = +1)')
     def sgn_prod(p1, p2):
         r"""
         DEPRECATED: Multiply two Paulis and track the phase.

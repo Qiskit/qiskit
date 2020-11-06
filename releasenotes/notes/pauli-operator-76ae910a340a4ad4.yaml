@@ -20,8 +20,7 @@ features:
 
       P1 = Pauli('XYZ')
       P2 = Pauli('YZX')
-      P3 = P1.dot(P2)
-      print('Dot product:', repr(P3), 'String label:', str(P3))
+      P1.dot(P2)
 
     Pauli's can also be directly appended to ``QuantumCircuit`` objects
 
@@ -52,7 +51,6 @@ deprecations:
     the updated Pauli class.
 
     * :meth:`~qiskit.quantum_info.Pauli.from_label`
-    * :meth:`~qiskit.quantum_info.Pauli.to_label`
     * :meth:`~qiskit.quantum_info.Pauli.sgn_prod`
     * :meth:`~qiskit.quantum_info.Pauli.to_spmatrix`
     * :meth:`~qiskit.quantum_info.Pauli.kron`
