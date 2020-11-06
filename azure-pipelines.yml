@@ -386,7 +386,7 @@ stages:
             source test-job/Scripts/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install "qiskit-ibmq-provider" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -529,7 +529,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
+            pip install "qiskit-ibmq-provider" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
