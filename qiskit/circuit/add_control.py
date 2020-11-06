@@ -111,8 +111,10 @@ def control(operation: Union[Gate, ControlledGate],
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
-        basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
+        basis = ['p', 'u', 'x', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
+        if unrolled_gate.definition.global_phase:
+            global_phase += unrolled_gate.definition.global_phase
         for gate, qreg, _ in unrolled_gate.definition.data:
             if gate.name == 'x':
                 controlled_circ.mct(q_control, q_target[qreg[0].index],
@@ -130,13 +132,15 @@ def control(operation: Union[Gate, ControlledGate],
                 controlled_circ.mcrz(gate.definition.data[0][0].params[0],
                                      q_control, q_target[qreg[0].index],
                                      use_basis_gates=True)
-            elif gate.name == 'u1':
-                controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
+            elif gate.name == 'p':
+                from qiskit.circuit.library import MCPhaseGate
+                controlled_circ.append(MCPhaseGate(gate.params[0], num_ctrl_qubits),
+                                       q_control[:] + [q_target[qreg[0].index]])
             elif gate.name == 'cx':
                 controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
                                     q_target[qreg[1].index],
                                     q_ancillae)
-            elif gate.name == 'u3':
+            elif gate.name == 'u':
                 theta, phi, lamb = gate.params
                 if phi == -pi / 2 and lamb == pi / 2:
                     controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
@@ -160,12 +164,12 @@ def control(operation: Union[Gate, ControlledGate],
             if gate.definition is not None and gate.definition.global_phase:
                 global_phase += gate.definition.global_phase
     # apply controlled global phase
-    if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
+    if global_phase:
         if len(q_control) < 2:
-            controlled_circ.u1(operation.definition.global_phase + global_phase, q_control)
+            controlled_circ.p(global_phase, q_control)
         else:
-            controlled_circ.mcu1(operation.definition.global_phase + global_phase,
-                                 q_control[:-1], q_control[-1])
+            controlled_circ.mcp(global_phase,
+                                q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
