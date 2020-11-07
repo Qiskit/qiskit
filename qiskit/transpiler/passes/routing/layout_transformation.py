@@ -30,9 +30,9 @@ class LayoutTransformation(TransformationPass):
 
     def __init__(self, coupling_map: CouplingMap,
                  from_layout: Union[Layout, str],
-                 to_layout: Union[Layout, str],
+                 to_layout: Union[Layout, str] = None,
                  seed: Union[int, np.random.default_rng] = None,
-                 trials=4):
+                 trials: int = 4):
         """LayoutTransformation initializer.
 
         Args:
@@ -42,6 +42,7 @@ class LayoutTransformation(TransformationPass):
             from_layout (Union[Layout, str]):
                 The starting layout of qubits onto physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
+                If None, it will map to the trivial layout.
 
             to_layout (Union[Layout, str]):
                 The final layout of qubits on phyiscal qubits.
@@ -93,13 +94,14 @@ class LayoutTransformation(TransformationPass):
 
         to_layout = self.to_layout
 
-        if self.to_layout == 'TRIVIAL':
+        if to_layout is None:
             to_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
-        if isinstance(to_layout, str):
+        elif isinstance(to_layout, str):
             to_layout = self.property_set[to_layout]
             if to_layout is None:
                 raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
+        else:
+            raise TranspilerError('to_layout parameter should be a Layout, a string, or None.')
 
         # Find the permutation between the initial physical qubits and final physical qubits.
         permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
