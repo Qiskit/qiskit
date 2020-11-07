@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse.schedule import Schedule
 
 
 class MeasurementKernel:
@@ -202,8 +202,14 @@ class PulseDefaults:
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
+            schedule = Schedule(*pulse_insts, name=inst.name)
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+
+            # clean previously defined parameters to prevent overlap of
+            # parameter object with different schedule entries.
+            # for example, if there are multiple qubits there should be multiple u2
+            # instructions. Parameter `P0` should be different among u2s.
+            self.converter.assigned_parameters.clear()
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel

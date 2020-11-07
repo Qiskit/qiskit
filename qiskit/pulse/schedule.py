@@ -851,12 +851,15 @@ class ParameterizedSchedule:
     This should not be returned to users as it is currently only a helper class.
     This class is takes an input command definition that accepts
     a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
-    # TODO: In the near future this will be replaced with proper incorporation of parameters
-            into the ``Schedule`` class.
     """
 
     def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
                  name: Optional[str] = None):
+
+        import warnings
+        warnings.warn('ParameterizedSchedule is deprecated. Use Schedule with '
+                      'circuit.Parameter objects.', DeprecationWarning)
+
         full_schedules = []
         parameterized = []
         parameters = parameters or []

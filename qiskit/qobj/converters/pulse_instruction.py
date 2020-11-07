@@ -16,14 +16,16 @@ import re
 import warnings
 
 from enum import Enum
+from typing import Union
 
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
+from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
+from qiskit.circuit import Parameter, ParameterExpression
 
 GIGAHERTZ_TO_SI_UNITS = 1e9
 
@@ -402,6 +404,7 @@ class QobjToInstructionConverter:
              run_config (dict): experimental configuration.
         """
         self._run_config = run_config
+        self.assigned_parameters = dict()
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
@@ -410,7 +413,7 @@ class QobjToInstructionConverter:
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
-    def get_channel(self, channel):
+    def get_channel(self, channel) -> channels.PulseChannel:
         """Parse and retrieve channel from ch string.
 
         Args:
@@ -434,6 +437,36 @@ class QobjToInstructionConverter:
                 return channels.ControlChannel(index)
 
         raise QiskitError('Channel %s is not valid' % channel)
+
+    def format_value(self,
+                     value_expression: Union[float, str]
+                     ) -> Union[float, ParameterExpression]:
+        """A helper function to format instruction operand.
+
+        If parameter in string representation is specified, this method refers to
+        the previously defined parameters. If there is identical entry,
+        this method just reuses the object rather than defining new parameter object.
+
+        Args:
+            value_expression: Operand value in Qobj.
+
+        Returns:
+            Parsed operand value. ParameterExpression object is returned if value is parameter.
+        """
+        try:
+            value = float(value_expression)
+        except ValueError:
+            str_expr = parse_string_expr(value_expression, partial_binding=False)
+            kwargs = dict()
+            for pname in str_expr.params:
+                if pname not in self.assigned_parameters:
+                    pobj = Parameter(pname)
+                    self.assigned_parameters[pname] = pobj
+                else:
+                    pobj = self.assigned_parameters[pname]
+                kwargs[pname] = pobj
+            value = str_expr(**kwargs)
+        return value
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
@@ -499,18 +532,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = instruction.phase
-
-        # This is parameterized
-        if isinstance(phase, str):
-            phase_expr = parse_string_expr(phase, partial_binding=False)
-
-            def gen_fc_sched(*args, **kwargs):
-                # this should be real value
-                _phase = phase_expr(*args, **kwargs)
-                return instructions.SetPhase(_phase, channel) << t0
-
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+        phase = self.format_value(instruction.phase)
 
         return instructions.SetPhase(phase, channel) << t0
 
@@ -525,18 +547,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = instruction.phase
-
-        # This is parameterized
-        if isinstance(phase, str):
-            phase_expr = parse_string_expr(phase, partial_binding=False)
-
-            def gen_fc_sched(*args, **kwargs):
-                # this should be real value
-                _phase = phase_expr(*args, **kwargs)
-                return instructions.ShiftPhase(_phase, channel) << t0
-
-            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+        phase = self.format_value(instruction.phase)
 
         return instructions.ShiftPhase(phase, channel) << t0
 
@@ -553,19 +564,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency
-
-        if isinstance(frequency, str):
-            frequency_expr = parse_string_expr(frequency, partial_binding=False)
-
-            def gen_sf_schedule(*args, **kwargs):
-                _frequency = frequency_expr(*args, **kwargs)
-                return instructions.SetFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
-                                                 channel) << t0
-
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
-        else:
-            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.format_value(instruction.phase) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -583,19 +582,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency
-
-        if isinstance(frequency, str):
-            frequency_expr = parse_string_expr(frequency, partial_binding=False)
-
-            def gen_sf_schedule(*args, **kwargs):
-                _frequency = frequency_expr(*args, **kwargs)
-                return instructions.ShiftFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
-                                                   channel) << t0
-
-            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
-        else:
-            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.format_value(instruction.phase) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 

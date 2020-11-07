@@ -28,11 +28,12 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 """
 import inspect
 from collections import defaultdict
+from copy import deepcopy
 from typing import Callable, Iterable, List, Tuple, Union
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit import ParameterExpression, Parameter
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
+from qiskit.pulse.schedule import Schedule
 from qiskit.circuit.instruction import Instruction
 
 
@@ -53,7 +54,7 @@ class InstructionScheduleMap():
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(dict)
+        self._map = defaultdict(lambda: defaultdict(Schedule))
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
@@ -164,11 +165,36 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
-        schedule_generator = self._map[instruction].get(_to_tuple(qubits))
+        schedule_generator = deepcopy(self._map[instruction][_to_tuple(qubits)])
 
+        # callback function
         if callable(schedule_generator):
             return schedule_generator(*params, **kwparams)
-        # otherwise this is just a Schedule
+
+        # schedule
+        sched_params = list(schedule_generator.parameters)
+        if sched_params:
+            # parametrized
+            subs = {pobj: pval for pobj, pval in zip(sched_params, params)}
+            # formate kwargs. it keys are string, find the most likely parameter object.
+            for param_id, pval in kwparams.items():
+                if not isinstance(param_id, Parameter):
+                    # not a parameter object
+                    try:
+                        pind = [psched.name for psched in sched_params].index(param_id)
+                        param_id = sched_params[pind]
+                    except ValueError:
+                        param_id = Parameter(str(param_id))
+                if param_id not in sched_params:
+                    PulseError(
+                        'Parameter {pname} does not exist in the schedule. '
+                        'Check parameter name or object uuid: {plist}.'
+                        ''.format(
+                            pname=param_id.name,
+                            plist=', '.join(map(str, sched_params))))
+                subs[param_id] = pval
+            return schedule_generator.assign_parameters(subs)
+
         return schedule_generator
 
     def add(self,
@@ -239,7 +265,8 @@ class InstructionScheduleMap():
 
     def get_parameters(self,
                        instruction: Union[str, Instruction],
-                       qubits: Union[int, Iterable[int]]) -> Tuple[str]:
+                       qubits: Union[int, Iterable[int]]
+                       ) -> Tuple[Union[str, ParameterExpression]]:
         """Return the list of parameters taken by the given instruction on the given qubits.
 
         Args:
@@ -253,12 +280,10 @@ class InstructionScheduleMap():
 
         self.assert_has(instruction, qubits)
         schedule_generator = self._map[instruction][_to_tuple(qubits)]
-        if isinstance(schedule_generator, ParameterizedSchedule):
-            return schedule_generator.parameters
-        elif callable(schedule_generator):
+        if callable(schedule_generator):
             return tuple(inspect.signature(schedule_generator).parameters.keys())
         else:
-            return ()
+            return tuple(schedule_generator.parameters)
 
     def __str__(self):
         single_q_insts = "1Q instructions:\n"

@@ -21,6 +21,7 @@ import operator
 import cmath
 
 from qiskit.pulse.exceptions import PulseError
+from qiskit.circuit import ParameterExpression
 
 
 class PulseExpression(ast.NodeTransformer):
@@ -200,13 +201,15 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         elif node.id in self._locals_dict.keys():
             _val = self._locals_dict[node.id]
-            try:
-                _val = complex(_val)
-                if not _val.imag:
-                    _val = _val.real
-            except ValueError:
-                raise PulseError('Invalid parameter value %s = %s is specified.'
-                                 % (node.id, self._locals_dict[node.id]))
+            if not isinstance(_val, ParameterExpression):
+                # check value type
+                try:
+                    _val = complex(_val)
+                    if not _val.imag:
+                        _val = _val.real
+                except ValueError:
+                    raise PulseError('Invalid parameter value %s = %s is specified.'
+                                     % (node.id, self._locals_dict[node.id]))
             val = ast.Num(n=_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)
