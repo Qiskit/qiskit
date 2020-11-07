@@ -15,7 +15,6 @@
 """latex circuit visualization backends."""
 
 import collections
-import json
 import math
 import re
 
@@ -73,15 +72,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        # style sheet
-        self._style = _qcstyle.BWStyle()
-        if style:
-            if isinstance(style, dict):
-                self._style.set_style(style)
-            elif isinstance(style, str):
-                with open(style, "r") as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
 
         # list of lists corresponding to layers of the circuit
         self.ops = ops

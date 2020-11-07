@@ -29,7 +29,6 @@ import traceback
 import logging
 import os
 import tempfile
-from warnings import warn
 from pylatex.errors import PyLaTeXError
 from pdf2image import convert_from_path
 from pdf2image.exceptions import PDFInfoNotInstalledError, PopplerNotInstalledError
@@ -434,19 +433,16 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 # -----------------------------------------------------------------------------
 
 
-def _latex_circuit_drawer(
-        circuit,
-        scale=SCALE,
-        filename=None,
-        style=None,
-        plot_barriers=True,
-        reverse_bits=False,
-        justify=None,
-        idle_wires=True,
-        with_layout=True,
-        initial_state=False,
-        cregbundle=False,
-):
+def _latex_circuit_drawer(circuit,
+                          scale=SCALE,
+                          filename=None,
+                          plot_barriers=True,
+                          reverse_bits=False,
+                          justify=None,
+                          idle_wires=True,
+                          with_layout=True,
+                          initial_state=False,
+                          cregbundle=False):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -488,7 +484,6 @@ def _latex_circuit_drawer(
             justify=justify,
             idle_wires=idle_wires,
             scale=scale,
-            style=style,
             plot_barriers=plot_barriers,
             initial_state=initial_state,
             with_layout=with_layout,
@@ -527,15 +522,22 @@ def _latex_circuit_drawer(
         return image
 
 
-def _generate_document(circuit, reverse_bits=False, justify=None, idle_wires=True,
-                       scale=SCALE, style=None, plot_barriers=True,
-                       initial_state=False, with_layout=True, cregbundle=False):
+def _generate_document(
+    circuit,
+    scale=SCALE,
+    reverse_bits=False,
+    plot_barriers=True,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    initial_state=False,
+    cregbundle=False,
+):
     """Convert QuantumCircuit to pylatex document.
 
     Args:
-        circuit (QuantumCircuit): input circuit
-        scale (float): image scaling
-        style (dict or str): dictionary of style or file name of style file
+        circuit (QuantumCircuit): a quantum circuit
+        scale (float): scaling factor
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
@@ -566,9 +568,7 @@ def _generate_document(circuit, reverse_bits=False, justify=None, idle_wires=Tru
         cregs,
         ops,
         scale,
-        style=style,
         plot_barriers=plot_barriers,
-        reverse_bits=reverse_bits,
         layout=layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
@@ -581,7 +581,6 @@ def _generate_latex_source(
         circuit,
         filename=None,
         scale=SCALE,
-        style=None,
         reverse_bits=False,
         plot_barriers=True,
         justify=None,
@@ -596,7 +595,6 @@ def _generate_latex_source(
         circuit (QuantumCircuit): input circuit
         scale (float): image scaling
         filename (str): optional filename to write latex
-        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
@@ -617,7 +615,6 @@ def _generate_latex_source(
         justify=justify,
         idle_wires=idle_wires,
         scale=scale,
-        style=style,
         plot_barriers=plot_barriers,
         initial_state=initial_state,
         with_layout=with_layout,
@@ -649,6 +646,7 @@ def _matplotlib_circuit_drawer(circuit,
                                ax=None,
                                initial_state=False,
                                cregbundle=True):
+
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
