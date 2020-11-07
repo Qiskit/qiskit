@@ -89,8 +89,7 @@ class LayoutTransformation(TransformationPass):
         if isinstance(from_layout, str):
             if self.property_set[from_layout] is None:
                 raise TranspilerError('No property_set["{}"] (from_layout).'.format(from_layout))
-            else:
-                from_layout = self.property_set[from_layout]
+            from_layout = self.property_set[from_layout]
 
         to_layout = self.to_layout
 
