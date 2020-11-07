@@ -66,10 +66,10 @@ extensions = [
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_tabs.tabs',
     'sphinx_automodapi.automodapi',
     'jupyter_sphinx',
-    'nbsphinx'
+    'nbsphinx',
+    'sphinx_panels',
 ]
 
 nbsphinx_timeout = 300
@@ -106,6 +106,11 @@ nbsphinx_prolog = """
     __ https://github.com/Qiskit/qiskit-tutorials/blob/master/{{ docname }}
 
 """
+
+panels_css_variables = {
+    "tabs-color-label-active": "rgb(138, 63, 252)",
+    "tabs-color-label-inactive": "rgb(221, 225, 230)",
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['theme/']

@@ -689,34 +689,34 @@ Installing Terra from Source
 Installing from source requires that you have a C++ compiler on your system that supports
 C++11.
 
-.. tabs::
 
-   .. tab:: Compiler for Linux
+.. tabbed:: Compiler for Linux
 
-      On most Linux platforms, the necessary GCC compiler is already installed.
+   On most Linux platforms, the necessary GCC compiler is already installed.
 
-   .. tab:: Compiler for macOS
+.. tabbed:: Compiler for macOS
 
-      If you use macOS, you can install the Clang compiler by installing XCode.
-      Check if you have XCode and Clang installed by opening a terminal window and entering the
-      following.
+   If you use macOS, you can install the Clang compiler by installing XCode.
+   Check if you have XCode and Clang installed by opening a terminal window and entering the
+   following.
 
-      .. code:: sh
+   .. code:: sh
 
-            clang --version
+      clang --version
 
-      Install XCode and Clang by using the following command.
+   Install XCode and Clang by using the following command.
 
-      .. code:: sh
+   .. code:: sh
 
-            xcode-select --install
+      xcode-select --install
 
-   .. tab:: Compiler for Windows
+.. tabbed:: Compiler for Windows
 
-      On Windows, it is easiest to install the Visual C++ compiler from the
-      `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
-      You can instead install Visual Studio version 2015 or 2017, making sure to select the
-      options for installing the C++ compiler.
+   On Windows, it is easiest to install the Visual C++ compiler from the
+   `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
+   You can instead install Visual Studio version 2015 or 2017, making sure to select the
+   options for installing the C++ compiler.
+
 
 Once the compilers are installed, you are ready to install Qiskit Terra.
 
