@@ -177,11 +177,29 @@ class TestPassesInspection(QiskitTestCase):
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
 
-        _ = transpile(qc, initial_layout=[0, 1], optimization_level=level, callback=self.callback)
+        transpiled = transpile(qc, initial_layout=[0, 1], optimization_level=level,
+                               callback=self.callback)
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
+        self.assertEqual(len(transpiled._layout), 2)
 
+    @data(0, 1, 2, 3)
+    def test_partial_layout_fully_connected_cm(self, level):
+        """Honor initial_layout (partially defined) when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        transpiled = transpile(qc, initial_layout=[4, 2], optimization_level=level,
+                               callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertEqual(len(transpiled._layout), 5)
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
