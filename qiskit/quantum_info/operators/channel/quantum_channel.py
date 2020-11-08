@@ -137,6 +137,16 @@ class QuantumChannel(BaseOperator):
         ret._data = self._data + other._data
         return ret
 
+    def __sub__(self, other):
+        # Override for sub so that other is converted before being negated
+        # which can lead to problems if other is not already a quantum channel
+        if not isinstance(other, QuantumChannel):
+            qargs = getattr(other, 'qargs', None)
+            other = self.__class__(other)
+            if qargs is not None:
+                other.qargs = qargs
+        return self._add(-other)
+
     def _multiply(self, other):
         """Return the QuantumChannel other * self.
 
