@@ -102,11 +102,11 @@ class TestInstructions(QiskitTestCase):
             Instruction('v', 1, 0, [theta, phi])))
 
         # Test cutoff precision.
-        self.assertFalse(Instruction('v', 1, 0, [0.4+1.0e-5, phi]).soft_compare(
+        self.assertFalse(Instruction('v', 1, 0, [0.401, phi]).soft_compare(
             Instruction('v', 1, 0, [0.4, phi])))
 
         # Test cutoff precision.
-        self.assertTrue(Instruction('v', 1, 0, [0.4+1.0e-6, phi]).soft_compare(
+        self.assertTrue(Instruction('v', 1, 0, [0.4+1.0e-20, phi]).soft_compare(
             Instruction('v', 1, 0, [0.4, phi])))
 
     def test_instructions_equal_with_parameter_expressions(self):
