@@ -26,7 +26,7 @@ from qiskit import exceptions
 # result
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
-    
+
     bitstring_regex = re.compile(r'^[01\s]+$')
 
     def __init__(self, data, time_taken=None, creg_sizes=None,

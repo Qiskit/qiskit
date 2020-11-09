@@ -28,7 +28,6 @@ class Register:
     __slots__ = ['_name', '_size', '_bits', '_hash']
     name_format = re.compile('[a-z][a-zA-Z0-9_]*')
 
-
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
