@@ -59,6 +59,11 @@ class TemplateSubstitution:
         self.unmatched_list = []
         self.dag_dep_optimized = DAGDependency()
         self.dag_optimized = DAGCircuit()
+        self.cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1, 'sdg': 1,
+                     'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1, 'r': 2, 'cx': 2,
+                     'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8, 'rxx': 9, 'ryy': 9,
+                     'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10, 'cry': 10, 'crz': 10,
+                     'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24, 'c4x': 312}
 
     def _pred_block(self, circuit_sublist, index):
         """
@@ -91,18 +96,14 @@ class TemplateSubstitution:
         Returns:
             bool: True if the quantum cost is reduced
         """
-        cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1, 'sdg': 1,
-                     'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1, 'r': 2, 'cx': 2,
-                     'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8, 'rxx': 9, 'ryy': 9,
-                     'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10, 'cry': 10, 'crz': 10,
-                     'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24, 'c4x': 312}
+        
         cost_left = 0
         for i in left:
-            cost_left += cost_dict[self.template_dag_dep.get_node(i).name]
+            cost_left += self.cost_dict[self.template_dag_dep.get_node(i).name]
 
         cost_right = 0
         for j in right:
-            cost_right += cost_dict[self.template_dag_dep.get_node(j).name]
+            cost_right += self.cost_dict[self.template_dag_dep.get_node(j).name]
 
         return cost_left > cost_right
 
