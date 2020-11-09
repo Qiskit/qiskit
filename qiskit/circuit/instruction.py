@@ -149,28 +149,20 @@ class Instruction:
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
-                if self_param == other_param:
-                    continue
-            except ValueError:
-                pass
-
-            if not isinstance(self_param, ParameterExpression) and \
-                    not isinstance(other_param, ParameterExpression):
-                try:
-                    if numpy.shape(self_param) == numpy.shape(other_param) \
-                            and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
-                        continue
-                except TypeError:
-                    pass
-
-                try:
-                    if numpy.isclose(float(self_param), float(other_param), atol=_CUTOFF_PRECISION):
-                        continue
-                except TypeError:
-                    pass
-            else:
+            if isinstance(self_param, ParameterExpression) or \
+                    isinstance(other_param, ParameterExpression):
                 continue
+            elif isinstance(self_param, numpy.ndarray) and \
+                    isinstance(other_param, numpy.ndarray):
+                if numpy.shape(self_param) == numpy.shape(other_param) \
+                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                    continue
+            else:
+                try:
+                    if numpy.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
 
             return False
 
