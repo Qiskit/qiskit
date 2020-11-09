@@ -151,9 +151,8 @@ The code above applies the following gates:
 Step 4 : Visualize the Circuit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use ``QuantumCircuit.draw()`` to view the circuit that you have designed
-in the `various forms <api/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit.draw>`__
-used in many textbooks and research articles.
+You can use :meth:`qiskit.circuit.QuantumCircuit.draw` to view the circuit that you have designed
+in the various forms used in many textbooks and research articles.
 
 .. jupyter-execute::
 
