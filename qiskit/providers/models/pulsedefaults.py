@@ -207,7 +207,7 @@ class PulseDefaults:
 
             # clean previously defined parameters to prevent overlap of
             # parameter object with different schedule entries.
-            # for example, if there are multiple qubits there should be multiple u2
+            # For example, if there are multiple qubits there should be multiple u2
             # instructions. Parameter `P0` should be different among u2s.
             self.converter.assigned_parameters.clear()
 
