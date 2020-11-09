@@ -33,7 +33,31 @@ class PiecewiseChebyshev(BlueprintCircuit):
     The values of the parameters are calculated according to [1].
 
     Examples:
-        TODO
+        >>> import numpy as np
+>>> from qiskit import QuantumCircuit
+>>> from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+        >>> f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
+        >>> pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+        >>> pw_approximation._build()
+        >>> qc = QuantumCircuit(pw_approximation.num_qubits)
+        >>> qc.h(list(range(num_state_qubits)))
+        <qiskit.circuit.instructionset.InstructionSet object at 0x000002136F7ECFD0>
+        >>> qc.append(pw_approximation.to_instruction(), list(range(qc.num_qubits)))
+        <qiskit.circuit.instructionset.InstructionSet object at 0x000002136F861240>
+        >>> qc.draw()
+             ┌───┐┌──────────┐
+        q_0: ┤ H ├┤0         ├
+             ├───┤│          │
+        q_1: ┤ H ├┤1         ├
+             └───┘│          │
+        q_2: ─────┤2         ├
+                  │  pw_cheb │
+        q_3: ─────┤3         ├
+                  │          │
+        q_4: ─────┤4         ├
+                  │          │
+        q_5: ─────┤5         ├
+                  └──────────┘
 
     References:
 
