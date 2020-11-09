@@ -44,7 +44,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
             'RR': ['r'],
             'ZYZ': ['rz', 'ry'],
             'ZXZ': ['rz', 'rx'],
-            'XYX': ['rx', 'ry']
+            'XYX': ['rx', 'ry'],
+            'ZSX': ['rz', 'sx'],
         }
         self.basis = None
         if basis:
