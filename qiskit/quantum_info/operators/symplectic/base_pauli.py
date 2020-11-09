@@ -72,7 +72,7 @@ class BasePauli(BaseOperator):
         """
         z = np.hstack([self._stack(other._z, self._num_paulis), self._z])
         x = np.hstack([self._stack(other._x, self._num_paulis), self._x])
-        phase = self._phase + other._phase
+        phase = np.mod(self._phase + other._phase, 4)
         return BasePauli(z, x, phase)
 
     def expand(self, other):
@@ -86,7 +86,7 @@ class BasePauli(BaseOperator):
         """
         z = np.hstack([self._z, self._stack(other._z, self._num_paulis)])
         x = np.hstack([self._x, self._stack(other._x, self._num_paulis)])
-        phase = self._phase + other._phase
+        phase = np.mod(self._phase + other._phase, 4)
         return BasePauli(z, x, phase)
 
     # pylint: disable=arguments-differ
@@ -153,7 +153,7 @@ class BasePauli(BaseOperator):
         ret = self if inplace else self.copy()
         ret._x[:, qargs] = x
         ret._z[:, qargs] = z
-        ret._phase = phase
+        ret._phase = np.mod(phase, 4)
         return ret
 
     # pylint: disable=arguments-differ
@@ -191,14 +191,14 @@ class BasePauli(BaseOperator):
             phase = np.array([self._phase_from_complex(phase) for phase in other])
         else:
             phase = self._phase_from_complex(other)
-        return BasePauli(self._z, self._x, self._phase + phase)
+        return BasePauli(self._z, self._x, np.mod(self._phase + phase, 4))
 
     def conjugate(self):
         """Return the conjugate of each Pauli in the list."""
         complex_phase = np.mod(self._phase, 2)
         if np.all(complex_phase == 0):
             return self
-        return BasePauli(self._z, self._x, self._phase + 2 * complex_phase)
+        return BasePauli(self._z, self._x, np.mod(self._phase + 2 * complex_phase, 4))
 
     def transpose(self):
         """Return the transpose of each Pauli in the list."""
@@ -206,7 +206,7 @@ class BasePauli(BaseOperator):
         parity_y = self._count_y() % 2
         if np.all(parity_y == 0):
             return self
-        return BasePauli(self._z, self._x, self._phase + 2 * parity_y)
+        return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
 
     def commutes(self, other, qargs=None):
         """Return True if Pauli that commutes with other.
@@ -538,6 +538,10 @@ class BasePauli(BaseOperator):
             # Get the integer position of the flat register
             new_qubits = [qargs[tup.index] for tup in qregs]
             self._append_circuit(instr, new_qubits)
+
+        # Since the individual gate evolution functions don't take mod
+        # of phase we update it at the end
+        self._phase %= 4
         return self
 
 
@@ -551,8 +555,7 @@ def _evolve_h(base_pauli, qubit):
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
     base_pauli._z[:, qubit] = x
-    base_pauli._phase = np.mod(
-        base_pauli._phase + 2 * np.logical_and(x, z).T, 4)
+    base_pauli._phase += 2 * np.logical_and(x, z).T
     return base_pauli
 
 

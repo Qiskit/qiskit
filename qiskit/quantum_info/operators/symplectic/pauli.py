@@ -185,7 +185,7 @@ class Pauli(BasePauli):
         """Test if two Paulis are equal."""
         if not isinstance(other, Pauli):
             return False
-        return (np.all(self._phase == other._phase)
+        return (np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
                 and np.all(self._z == other._z)
                 and np.all(self._x == other._x))
 
