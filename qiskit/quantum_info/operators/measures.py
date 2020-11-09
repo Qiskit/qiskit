@@ -277,12 +277,13 @@ def diamond_norm(choi, **kwargs):
     c_i = cvxpy.bmat([[cvxpy.kron(iden, r0_i), x_i], [-x_i.T, cvxpy.kron(iden, r1_i)]])
     c = cvx_bmat(c_r, c_i)
 
-    # Transpose out Choi-matrix to row-vec convention and vectorize.
-    choi_vec = np.transpose(
+    # Convert col-vec convention Choi-matrix to row-vec convention and
+    # then take Transpose: Choi_C -> Choi_R.T
+    choi_rt = np.transpose(
         np.reshape(choi.data, (dim_in, dim_out, dim_in, dim_out)),
-        (1, 0, 3, 2)).ravel(order='F')
-    choi_vec_r = choi_vec.real
-    choi_vec_i = choi_vec.imag
+        (3, 2, 1, 0)).reshape(choi.data.shape)
+    choi_rt_r = choi_rt.real
+    choi_rt_i = choi_rt.imag
 
     # Constraints
     cons = [
@@ -292,7 +293,7 @@ def diamond_norm(choi, **kwargs):
     ]
 
     # Objective function
-    obj = cvxpy.Maximize(choi_vec_r * cvxpy.vec(x_r) - choi_vec_i * cvxpy.vec(x_i))
+    obj = cvxpy.Maximize(cvxpy.trace(choi_rt_r @ x_r) + cvxpy.trace(choi_rt_i @ x_i))
     prob = cvxpy.Problem(obj, cons)
     sol = prob.solve(**kwargs)
     return sol
