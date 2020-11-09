@@ -368,13 +368,14 @@ class OneQubitEulerDecomposer:
     def _circuit_zsx(theta,
                      phi,
                      lam,
+                     phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
         # Shift theta and phi so decomposition is
         # RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, global_phase=phase)
         # Check for decomposition into minimimal number required SX gates
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             if not np.isclose(_mod2pi(abs(lam + phi + theta)),
