@@ -564,7 +564,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.format_value(instruction.phase) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.format_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -582,7 +582,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.format_value(instruction.phase) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.format_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 
