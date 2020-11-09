@@ -123,9 +123,9 @@ class Choi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check and format input and output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__(choi_mat, input_dims, output_dims, 'Choi')
+        input_dims, output_dims, num_qubits = self._automatic_dims(
+            input_dims, input_dim, output_dims, output_dim)
+        super().__init__(choi_mat, input_dims, output_dims, num_qubits, 'Choi')
 
     @property
     def _bipartite_shape(self):
