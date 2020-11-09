@@ -390,7 +390,7 @@ class TemplateSubstitution:
 
     def _fake_bind(self, template_sublist, circuit_sublist):
         """
-        Copy's the template and fake binds any parameters.
+        Copies the template and fake binds any parameters.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
              ┌───────────┐                  ┌────────┐
