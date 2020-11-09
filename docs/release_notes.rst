@@ -256,7 +256,13 @@ New Features
 
     circuit = QuantumCircuit(5)
     circuit.append(grover_oracle, range(5))
-    quantum_circuit.draw()
+    circuit.draw()
+
+  The ``GROVER_ORACLE`` gate is synthesized when its decomposition is required.
+
+  .. jupyter-execute::
+
+    circuit.decompose().draw()
 
   The feature requires ``tweedledum``, a library for synthesizing quantum
   circuits, that can be installed via pip with ``pip install tweedledum``.
