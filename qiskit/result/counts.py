@@ -17,8 +17,6 @@ import re
 from qiskit.result import postprocess
 from qiskit import exceptions
 
-BITSTRING_REGEX = re.compile(r'^[01\s]+$')
-
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__
 # this can cause unexpected behavior and issues as the cPython dict
@@ -28,6 +26,8 @@ BITSTRING_REGEX = re.compile(r'^[01\s]+$')
 # result
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
+    
+    bitstring_regex = re.compile(r'^[01\s]+$')
 
     def __init__(self, data, time_taken=None, creg_sizes=None,
                  memory_slots=None):
@@ -92,7 +92,7 @@ class Counts(dict):
                         hex_dict = {}
                         int_dict = {}
                         for bitstring, value in data.items():
-                            if not BITSTRING_REGEX.search(bitstring):
+                            if not self.bitstring_regex.search(bitstring):
                                 raise exceptions.QiskitError(
                                     'Counts objects with dit strings do not '
                                     'currently support dit string formatting parameters '
@@ -151,7 +151,7 @@ class Counts(dict):
         else:
             out_dict = {}
             for bitstring, value in self.items():
-                if not BITSTRING_REGEX.search(bitstring):
+                if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to hexadecimal')
@@ -172,7 +172,7 @@ class Counts(dict):
         else:
             out_dict = {}
             for bitstring, value in self.items():
-                if not BITSTRING_REGEX.search(bitstring):
+                if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to integer')
