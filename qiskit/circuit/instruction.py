@@ -152,7 +152,7 @@ class Instruction:
             if isinstance(self_param, ParameterExpression) or \
                     isinstance(other_param, ParameterExpression):
                 continue
-            elif isinstance(self_param, numpy.ndarray) and \
+            if isinstance(self_param, numpy.ndarray) and \
                     isinstance(other_param, numpy.ndarray):
                 if numpy.shape(self_param) == numpy.shape(other_param) \
                         and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
