@@ -353,6 +353,7 @@ class InstructionToQobjConverter:
         if isinstance(instruction.pulse, library.ParametricPulse):
             command_dict = {
                 'name': 'parametric_pulse',
+                'label': instruction.name,
                 'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
                 't0': shift + instruction.start_time,
                 'ch': instruction.channel.name,
@@ -647,7 +648,10 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(
+            **instruction.parameters,
+            name=instruction.label
+        )
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
