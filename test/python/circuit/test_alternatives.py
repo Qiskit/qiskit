@@ -19,7 +19,6 @@ import json
 import importlib
 import importlib.util
 from pathlib import Path
-
 from qiskit.tools import EquivalenceChecker
 from qiskit.test.base import QiskitTestCase
 
