@@ -367,10 +367,10 @@ class MatplotlibDrawer:
         if gate_text in self._style['disptex']:
             gate_text = "{}".format(self._style['disptex'][gate_text])
         else:
-            gate_text = "{}".format(gate_text[0:])
+            gate_text = "{}".format(gate_text)
 
         if ctrl_text:
-            ctrl_text = "{}".format(ctrl_text[0:])
+            ctrl_text = "{}".format(ctrl_text)
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
