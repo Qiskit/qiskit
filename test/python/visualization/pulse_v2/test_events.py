@@ -119,7 +119,7 @@ class TestChannelEvents(QiskitTestCase):
 
         Parametrized phase should be ignored when calculating waveform frame.
         This is due to phase modulated representation of waveforms,
-        i.e. we cannot calculate phase factor of waveform if phase is unbound.
+        i.e. we cannot calculate the phase factor of waveform if the phase is unbound.
         """
         param = circuit.Parameter('phase')
 
