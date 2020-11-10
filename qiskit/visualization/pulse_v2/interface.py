@@ -349,7 +349,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             # draw
             draw(sched, style=IQXDebugging(), backend=FakeAlmaden())
 
-        You can partially customize a preset stylesheet when call it.
+        You can partially customize a preset stylesheet when initializing it.
 
         ```python
             my_style = {
