@@ -262,7 +262,7 @@ class TemplateSubstitution:
             circuit_sublist.sort()
 
             # Fake bind any parameters in the template
-            template = self._fake_bind(template_sublist, circuit_sublist)
+            template = self._attempt_bind(template_sublist, circuit_sublist)
 
             if template is None:
                 continue
@@ -388,9 +388,9 @@ class TemplateSubstitution:
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
 
-    def _fake_bind(self, template_sublist, circuit_sublist):
+    def _attempt_bind(self, template_sublist, circuit_sublist):
         """
-        Copies the template and fake binds any parameters.
+        Copies the template and attempts to bind any parameters.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
              ┌───────────┐                  ┌────────┐
@@ -406,11 +406,11 @@ class TemplateSubstitution:
              └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
         q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
               └──────┘                          └───┘└──────┘└───┘
-        However, up until fake bind is called, the soft matching
+        However, up until attempt bind is called, the soft matching
         will have found two matches due to the parameters.
         The first match can be satisfied with β=2. However, the
         second match would imply both β=3 and β=-3 which is impossible.
-        Fake bind detects inconsistencies by solving a system of equations
+        Attempt bind detects inconsistencies by solving a system of equations
         given by the parameter expressions in the sub-template and the
         value of the parameters in the gates of the sub-circuit. If a
         solution is found then the match is valid and the parameters
