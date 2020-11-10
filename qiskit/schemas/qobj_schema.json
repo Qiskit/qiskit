@@ -278,7 +278,6 @@
                         "parameters": {"type": "object"}
                     },
                     "required": [
-                        "label",
                         "pulse_shape",
                         "parameters",
                         "t0",
