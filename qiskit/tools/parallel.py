@@ -49,18 +49,23 @@ from the multiprocessing library.
 """
 
 import os
-import platform
 from concurrent.futures import ProcessPoolExecutor
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
+from qiskit import user_config
+
+CONFIG = user_config.get_config()
 
 # Set parallel flag
 if os.getenv('QISKIT_IN_PARALLEL') is None:
     os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 # Number of local physical cpus
-CPU_COUNT = local_hardware_info()['cpus']
+if 'num_processes' in CONFIG:
+    CPU_COUNT = CONFIG['num_processes']
+else:
+    CPU_COUNT = local_hardware_info()['cpus']
 
 
 def _task_wrapper(param):
@@ -113,8 +118,8 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         Publisher().publish("terra.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
-    if platform.system() != 'Windows' and num_processes > 1 \
-       and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
+    if num_processes > 1 and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE' \
+            and CONFIG.get('parallel_enabled', user_config.PARALLEL_DEFAULT):
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             results = []
