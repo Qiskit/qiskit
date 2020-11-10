@@ -290,7 +290,6 @@
           "instructions": [
             {
               "name": "parametric_pulse",
-              "label": "pulse1",
               "t0": 0,
               "ch": "d0",
               "pulse_shape": "gaussian",
@@ -305,7 +304,6 @@
             },
             {
               "name": "parametric_pulse",
-              "label": "pulse1",
               "t0": 128,
               "ch": "d0",
               "pulse_shape": "gaussian",
@@ -379,7 +377,6 @@
                 },
                 {
                   "name": "parametric_pulse",
-                  "label": "pulse1",
                   "t0": 0,
                   "ch": "d0",
                   "pulse_shape": "gaussian",
