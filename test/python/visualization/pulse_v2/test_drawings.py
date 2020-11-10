@@ -112,7 +112,7 @@ class TestDrawingObjects(QiskitTestCase):
         self.assertEqual(data1, data2)
 
     def test_text_data_with_abstract_coordinate(self):
-        """Test for TextData with abstract coordinate."""
+        """Test for TextData with abstract coordinates."""
         xs = [types.AbstractCoordinate.RIGHT]
         ys = [types.AbstractCoordinate.TOP]
 
