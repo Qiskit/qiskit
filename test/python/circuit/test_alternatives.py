@@ -11,11 +11,8 @@
 # that they have been altered from the originals.
 
 """Utils for testing the standard gates."""
-import os
-import glob
-import json
-import importlib
-import importlib.util
+import os, glob, json
+import importlib, importlib.util
 from pathlib import Path
 from qiskit.tools import EquivalenceChecker
 from qiskit.test.base import QiskitTestCase
