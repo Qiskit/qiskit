@@ -327,7 +327,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             qc = transpile(qc, FakeAlmaden())
             sched = schedule(qc, FakeAlmaden())
 
-            # draw
             draw(sched, style=IQXSimple(), backend=FakeAlmaden())
 
         Drawing with the stylesheet suited for program debugging.
