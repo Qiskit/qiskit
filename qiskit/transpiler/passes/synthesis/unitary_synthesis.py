@@ -47,6 +47,8 @@ def _choose_euler_basis(basis_gates):
 
     euler_basis_names = {
         'U3': ['u3'],
+        'U': ['u'],
+        'PSX': ['p', 'sx'],
         'U1X': ['u1', 'rx'],
         'RR': ['r'],
         'ZYZ': ['rz', 'ry'],

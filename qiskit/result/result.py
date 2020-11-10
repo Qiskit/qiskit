@@ -13,6 +13,7 @@
 """Model for schema-conformant Results."""
 
 import copy
+import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
@@ -61,7 +62,7 @@ class Result:
     def __repr__(self):
         out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
                "job_id='%s', success=%s, results=%s" % (
-                   self.backend_version,
+                   self.backend_name,
                    self.backend_version, self.qobj_id, self.job_id, self.success,
                    self.results))
         if hasattr(self, 'date'):
@@ -236,7 +237,7 @@ class Result:
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data([experiment])``.
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of
@@ -353,14 +354,22 @@ class Result:
         if isinstance(key, int):
             exp = self.results[key]
         else:
-            try:
-                # Look into `result[x].header.name` for the names.
-                exp = next(result for result in self.results
-                           if getattr(getattr(result, 'header', None),
-                                      'name', '') == key)
-            except StopIteration:
+            # Look into `result[x].header.name` for the names.
+            exp = [result for result in self.results
+                   if getattr(getattr(result, 'header', None),
+                              'name', '') == key]
+
+            if len(exp) == 0:
                 raise QiskitError('Data for experiment "%s" could not be found.' %
                                   key)
+            if len(exp) == 1:
+                exp = exp[0]
+            else:
+                warnings.warn(
+                    'Result object contained multiple results matching name "%s", '
+                    'only first match will be returned. Use an integer index to '
+                    'retrieve results for all entries.' % key)
+                exp = exp[0]
 
         # Check that the retrieved experiment was successful
         if getattr(exp, 'success', False):

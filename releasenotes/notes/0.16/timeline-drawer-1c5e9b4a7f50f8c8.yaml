@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    A new visualization function :func:`~qiskit.visualization.timeline_drawer`
+    was added to the :mod:`qiskit.visualization` module.
+
+    For example:
+
+    .. jupyter-execute::
+
+      from qiskit.visualization import timeline_drawer
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.test.mock import FakeAthens
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0,1)
+      timeline_drawer(transpile(qc, FakeAthens(), scheduling_method='alap'))
