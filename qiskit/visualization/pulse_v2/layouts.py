@@ -73,7 +73,7 @@ This data provides input program and backend system configurations.
         return 'title'
     ```
 
-Arbitrary layout function satisfying the above format can be accepted.
+An arbitrary layout function satisfying the above format can be accepted.
 """
 
 from collections import defaultdict
