@@ -390,7 +390,8 @@ class TemplateSubstitution:
 
     def _fake_bind(self, template_sublist, circuit_sublist):
         """
-        Copies the template and fake binds any parameters.
+        Copies the template and fake binds any parameters,
+        i.e. attempts to solve for a valid parameter assignment.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
              ┌───────────┐                  ┌────────┐
@@ -422,7 +423,8 @@ class TemplateSubstitution:
 
         Returns:
             DAGDependency: A deep copy of the template with
-                the parameters bound.
+                the parameters bound. If no binding satisfies the
+                parameter constraints, returns None.
         """
         circuit_params, template_params = [], []
 
