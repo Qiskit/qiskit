@@ -72,8 +72,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         List of `LineData`, `BoxData`, or `TextData` drawings.
 
     Raises:
-        VisualizationError: When waveform color is not defined or the instruction parser
-            returns invalid data format.
+        VisualizationError: When the instruction parser returns invalid data format.
     """
     # generate waveform data
     waveform_data = _parse_waveform(data)
@@ -100,7 +99,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
-        return _draw_opaque_waveform(t0=data.t0,
+        return _draw_opaque_waveform(init_time=data.t0,
                                      duration=waveform_data.duration,
                                      pulse_shape=data.inst.pulse.__class__.__name__,
                                      pnames=unbound_params,
@@ -318,6 +317,9 @@ def _draw_shaped_waveform(xdata: np.ndarray,
 
     Returns:
         List of drawings.
+
+    Raises:
+        VisualizationError: When the waveform color for channel is not defined.
     """
     fill_objs = []
 
@@ -393,7 +395,7 @@ def _draw_shaped_waveform(xdata: np.ndarray,
     return fill_objs
 
 
-def _draw_opaque_waveform(t0: int,
+def _draw_opaque_waveform(init_time: int,
                           duration: int,
                           pulse_shape: str,
                           pnames: List[str],
@@ -404,7 +406,7 @@ def _draw_opaque_waveform(t0: int,
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
-        t0: Time when the opaque waveform starts.
+        init_time: Time when the opaque waveform starts.
         duration: Duration of opaque waveform. This can be None or ParameterExpression.
         pulse_shape: String that represents pulse shape.
         pnames: List of parameter names.
@@ -431,7 +433,7 @@ def _draw_opaque_waveform(t0: int,
 
     box_obj = drawings.BoxData(data_type=types.WaveformType.OPAQUE,
                                channels=channel,
-                               xvals=[t0, t0 + duration],
+                               xvals=[init_time, init_time + duration],
                                yvals=[-0.5 * formatter['box_height.opaque_shape'],
                                       0.5 * formatter['box_height.opaque_shape']],
                                meta=meta,
@@ -450,7 +452,7 @@ def _draw_opaque_waveform(t0: int,
 
     text_obj = drawings.TextData(data_type=types.LabelType.OPAQUE_BOXTEXT,
                                  channels=channel,
-                                 xvals=[t0 + 0.5 * duration],
+                                 xvals=[init_time + 0.5 * duration],
                                  yvals=[0.5 * formatter['box_height.opaque_shape']],
                                  text=func_repr,
                                  ignore_scaling=True,

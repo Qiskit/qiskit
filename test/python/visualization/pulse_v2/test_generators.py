@@ -532,21 +532,21 @@ class TestFrameGenerators(QiskitTestCase):
 
     def test_phase_to_text(self):
         """Test helper function to convert phase to text."""
-        plain, latex = frame._phase_to_text(np.pi, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi')
         self.assertEqual(latex, r'-\pi')
 
-        plain, latex = frame._phase_to_text(np.pi/2, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi/2, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi/2')
         self.assertEqual(latex, r'-\pi/2')
 
-        plain, latex = frame._phase_to_text(np.pi*3/4, max_denom=10, flip=True)
+        plain, latex = frame._phase_to_text(self.formatter, np.pi*3/4, max_denom=10, flip=True)
         self.assertEqual(plain, '-3/4 pi')
         self.assertEqual(latex, r'-3/4 \pi')
 
     def test_frequency_to_text(self):
         """Test helper function to convert frequency to text."""
-        plain, latex = frame._freq_to_text(1e6, unit='MHz')
+        plain, latex = frame._freq_to_text(self.formatter, 1e6, unit='MHz')
         self.assertEqual(plain, '1.00 MHz')
         self.assertEqual(latex, r'1.00~{\rm MHz}')
 
