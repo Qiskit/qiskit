@@ -119,6 +119,9 @@ class Anchor:
 
 class MatplotlibDrawer:
     """Matplotlib drawer class called from circuit_drawer"""
+
+    _mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
+
     def __init__(self, qregs, cregs, ops,
                  scale=None, style=None, plot_barriers=True,
                  layout=None, fold=25, ax=None, initial_state=False,
@@ -179,7 +182,6 @@ class MatplotlibDrawer:
         else:
             self._renderer = None"""
         self._renderer = None
-        self._mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
