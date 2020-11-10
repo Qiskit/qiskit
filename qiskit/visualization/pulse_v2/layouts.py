@@ -390,8 +390,5 @@ def detail_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Sch
 
 def empty_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
                 device: DrawerBackendInfo) -> str:
-    """Layout function for generating figure title.
-
-    Returns empty title.
-    """
+    """Layout function for generating an empty figure title."""
     return ''
