@@ -62,7 +62,7 @@ data.
 3. layout.figure_title
 
 An end-user can write arbitrary functions that output the string data that
-will be later consumed by the plotter API to output figure title.
+will be later consumed by the plotter API to output the figure title.
 Layout function in this module are called with the `program` and `device` kwargs.
 These data provides input program and backend system configuration.
 
