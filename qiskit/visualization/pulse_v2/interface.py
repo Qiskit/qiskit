@@ -14,11 +14,11 @@
 
 """Qiskit pulse drawer.
 
-This module provides a common user interface of the pulse drawer.
+This module provides a common user interface for the pulse drawer.
 The `draw` function takes a pulse program to visualize with a stylesheet and
-a backend information along with several control arguments.
+backend information along with several control arguments.
 The drawer canvas object is internally initialized from the input data and
-the configured canvas is passed to the one of plotter APIs to generate a visualization data.
+the configured canvas is passed to the one of plotter APIs to generate visualization data.
 """
 
 from typing import Union, Optional, Dict, Any, Tuple, List
