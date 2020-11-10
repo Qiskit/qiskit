@@ -129,6 +129,20 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        # Test custom controlled gate
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        gate = qc.to_gate()
+        gate_ctrl = gate.control()
+
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        circuit.append(gate_ctrl, range(3))
+        target = Statevector.from_label('000').evolve(Operator(circuit))
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
         # Test initialize instruction
         target = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
         circuit = QuantumCircuit(2)

@@ -257,7 +257,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         def count_cx(qc):
             """Counts the number of CX gates for testing."""
-            return sum([1 if inst[0].name == 'cx' else 0 for inst in qc.data])
+            return qc.count_ops().get('cx', 0)
 
         circuit_in = QuantumCircuit(3)
         circuit_in.p(-2, 0)

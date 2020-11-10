@@ -390,7 +390,8 @@ class TemplateSubstitution:
 
     def _attempt_bind(self, template_sublist, circuit_sublist):
         """
-        Copies the template and attempts to bind any parameters.
+        Copies the template and attempts to bind any parameters,
+        i.e. attempts to solve for a valid parameter assignment.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
              ┌───────────┐                  ┌────────┐
@@ -398,7 +399,7 @@ class TemplateSubstitution:
              ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
         q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
              └───────────┘└───┘└──────┘└───┘└────────┘
-        should only match once in the circuit
+        should only maximally match once in the circuit
              ┌───────┐
         q_0: ┤ P(-2) ├──■────────────■────────────────────────────
              ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
@@ -422,7 +423,8 @@ class TemplateSubstitution:
 
         Returns:
             DAGDependency: A deep copy of the template with
-                the parameters bound.
+                the parameters bound. If no binding satisfies the
+                parameter constraints, returns None.
         """
         circuit_params, template_params = [], []
 
