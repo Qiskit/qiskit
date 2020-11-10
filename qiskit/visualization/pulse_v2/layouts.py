@@ -64,7 +64,7 @@ data.
 An end-user can write arbitrary functions that output the string data that
 will be later consumed by the plotter API to output the figure title.
 Layout functions in this module are called with the `program` and `device` kwargs.
-These data provides input program and backend system configuration.
+This data provides input program and backend system configurations.
 
     ```python
     def my_figure_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
