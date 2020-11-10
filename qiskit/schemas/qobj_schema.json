@@ -273,7 +273,6 @@
                                 "parametric_pulse"
                             ]
                         },
-                        "label": {"type": "string"},
                         "pulse_shape": {"type": "string"},
                         "parameters": {"type": "object"}
                     },
