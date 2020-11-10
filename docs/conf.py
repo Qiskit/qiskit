@@ -102,6 +102,7 @@ nbsphinx_prolog = """
     .. note::
         This page was generated from `{{ docname }}`__.
 
+        Run interactively in the `IBM Quantum lab <https://quantum-computing.ibm.com/jupyter/tutorial/{{ env.doc2path(env.docname, base=None)|replace("tutorials/", "") }}>`_.
 
     __ https://github.com/Qiskit/qiskit-tutorials/blob/master/{{ docname }}
 
