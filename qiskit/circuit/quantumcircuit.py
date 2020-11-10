@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes,invalid-name
+
 """Quantum circuit object."""
 
 import copy
@@ -28,6 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.util import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -2226,64 +2229,67 @@ class QuantumCircuit:
         return self.append(CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
+    @deprecate_function('The QuantumCircuit.u1 method is deprecated as of '
+                        '0.16.0. It will be removed no earlier than 3 months '
+                        'after the release date. You should use the '
+                        'QuantumCircuit.p method instead, which acts '
+                        'identically.')
     def u1(self, theta, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U1Gate`."""
         from .library.standard_gates.u1 import U1Gate
-        warnings.warn('The QuantumCircuit.u1 method is deprecated as of 0.16.0. It will be removed '
-                      'no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.p method instead, which acts identically.',
-                      DeprecationWarning, stacklevel=2)
         return self.append(U1Gate(theta), [qubit], [])
 
+    @deprecate_function('The QuantumCircuit.cu1 method is deprecated as of '
+                        '0.16.0. It will be removed no earlier than 3 months '
+                        'after the release date. You should use the '
+                        'QuantumCircuit.cp method instead, which acts '
+                        'identically.')
     def cu1(self, theta, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CU1Gate`."""
         from .library.standard_gates.u1 import CU1Gate
-        warnings.warn('The QuantumCircuit.cu1 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.cp method instead, which acts identically.',
-                      DeprecationWarning, stacklevel=2)
         return self.append(CU1Gate(theta, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
+    @deprecate_function('The QuantumCircuit.mcu1 method is deprecated as of '
+                        '0.16.0. It will be removed no earlier than 3 months '
+                        'after the release date. You should use the '
+                        'QuantumCircuit.mcp method instead, which acts '
+                        'identically.')
     def mcu1(self, lam, control_qubits, target_qubit):
         """Apply :class:`~qiskit.circuit.library.MCU1Gate`."""
         from .library.standard_gates.u1 import MCU1Gate
-        warnings.warn('The QuantumCircuit.mcu1 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.mcp method instead, which acts identically.',
-                      DeprecationWarning, stacklevel=2)
         num_ctrl_qubits = len(control_qubits)
         return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
 
+    @deprecate_function('The QuantumCircuit.u2 method is deprecated as of '
+                        '0.16.0. It will be removed no earlier than 3 months '
+                        'after the release date. You can use the general 1-'
+                        'qubit gate QuantumCircuit.u instead: u2(φ,λ) = '
+                        'u(π/2, φ, λ). Alternatively, you can decompose it in'
+                        'terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                        'u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).')
     def u2(self, phi, lam, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
-        warnings.warn('The QuantumCircuit.u2 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You can use the '
-                      'general 1-qubit gate QuantumCircuit.u instead: u2(φ,λ) = u(π/2, φ, λ). '
-                      'Alternatively, you can decompose it in terms of QuantumCircuit.p and '
-                      'QuantumCircuit.sx: u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).',
-                      DeprecationWarning, stacklevel=2)
         return self.append(U2Gate(phi, lam), [qubit], [])
 
+    @deprecate_function('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
+                        'removed no earlier than 3 months after the release date. You should use '
+                        'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
+                        'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                        'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).')
     def u3(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
-        warnings.warn('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use '
-                      'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
-                      'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
-                      'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).',
-                      DeprecationWarning, stacklevel=2)
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
+    @deprecate_function('The QuantumCircuit.cu3 method is deprecated as of 0.16.0. It will be '
+                        'removed no earlier than 3 months after the release date. You should '
+                        'use the QuantumCircuit.cu method instead, where '
+                        'cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0).')
     def cu3(self, theta, phi, lam, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CU3Gate`."""
         from .library.standard_gates.u3 import CU3Gate
-        warnings.warn('The QuantumCircuit.cu3 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.cu method instead, where cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0).',
-                      DeprecationWarning, stacklevel=2)
         return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
