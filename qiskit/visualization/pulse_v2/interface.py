@@ -362,8 +362,8 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.
-        This feature enables you to control the most of appearance of the output image
-        without modifying the codebase of the pulse drawer.
+        This feature enables you to customize most of the appearance of the output image
+        without modifying the codebase.
 
     Raises:
         ImportError: When required visualization package is not installed.
