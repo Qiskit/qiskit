@@ -40,6 +40,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_optimize_h_gates_pass_manager(self, basis):
@@ -68,6 +70,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_ignores_conditional_rotations(self, basis):
@@ -96,6 +100,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_in_the_back(self, basis):
@@ -129,7 +135,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
+        ['rz', 'sx'],
         ['u1', 'rx'],
+        ['p', 'sx'],
     )
     def test_single_parameterized_circuit(self, basis):
         """Parameters should be treated as opaque gates."""
@@ -161,6 +169,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
     )
     def test_parameterized_circuits(self, basis):
         """Parameters should be treated as opaque gates."""
@@ -195,6 +205,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
     )
     def test_parameterized_expressions_in_circuits(self, basis):
         """Expressions of Parameters should be treated as opaque gates."""
