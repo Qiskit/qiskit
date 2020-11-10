@@ -26,6 +26,7 @@ class Register:
     """Implement a generic register."""
 
     __slots__ = ['_name', '_size', '_bits', '_hash']
+    name_format = re.compile('[a-z][a-zA-Z0-9_]*')
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -61,8 +62,7 @@ class Register:
             except Exception:
                 raise CircuitError("The circuit name should be castable to a string "
                                    "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
-            if name_format.match(name) is None:
+            if self.name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name." % name)
 
         self._name = name
