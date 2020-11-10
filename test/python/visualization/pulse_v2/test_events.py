@@ -115,7 +115,7 @@ class TestChannelEvents(QiskitTestCase):
         self.assertEqual(pulse_inst.inst, test_waveform)
 
     def test_parametrized_frame_change(self):
-        """Test generating waveforms that is parameterized.
+        """Test generating waveforms that are parameterized.
 
         Parametrized phase should be ignored when calculating waveform frame.
         This is due to phase modulated representation of waveforms,
