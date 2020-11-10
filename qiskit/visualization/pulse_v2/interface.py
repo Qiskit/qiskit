@@ -34,7 +34,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
          style: Optional[Dict[str, Any]] = None,
          backend: Optional[BaseBackend] = None,
          time_range: Optional[Tuple[int, int]] = None,
-         time_unit: str = 'dt',
+         time_unit: str = types.TimeUnits.SYSTEM_CYCLE_TIME.value,
          disable_channels: Optional[List[PulseChannel]] = None,
          show_snapshot: bool = True,
          show_framechange: bool = True,
@@ -248,10 +248,20 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         formatter.unicode_symbol.snapshot: Text that represents the symbol of
             snapshot. This text is used when the plotter doesn't support latex
             (default u'\u21AF').
+        formatter.unicode_symbol.phase_parameter: Text that represents the symbol of
+            parametrized phase value. This text is used when the plotter doesn't support latex
+            (default u'\u03b8').
+        formatter.unicode_symbol.freq_parameter: Text that represents the symbol of
+            parametrized frequency value. This text is used when the plotter doesn't support latex
+            (default 'f').
         formatter.latex_symbol.frame_change: Latex text that represents the symbol of
             frame change (default r'\\circlearrowleft').
         formatter.latex_symbol.snapshot: Latex text that represents the symbol of
             snapshot (default '').
+        formatter.latex_symbol.phase_parameter: Latex text that represents the symbol of
+            parametrized phase value (default r'\theta').
+        formatter.latex_symbol.freq_parameter: Latex text that represents the symbol of
+            parametrized frequency value (default 'f').
         generator.waveform: List of callback functions that generates drawing
             for waveforms. Arbitrary callback functions satisfying the generator format
             can be set here. There are some default generators in the pulse drawer.
@@ -388,9 +398,9 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
     # time range
     if time_range:
-        if time_unit == 'dt':
+        if time_unit == types.TimeUnits.SYSTEM_CYCLE_TIME.value:
             canvas.set_time_range(*time_range, seconds=False)
-        elif time_unit == 'ns':
+        elif time_unit == types.TimeUnits.NANO_SEC.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
             raise VisualizationError('Invalid time unit {unit} is '

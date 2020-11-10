@@ -84,7 +84,10 @@ def gen_formatted_phase(data: types.PulseInstruction,
              'va': 'center',
              'ha': 'center'}
 
-    plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
+    plain_phase, latex_phase = _phase_to_text(formatter=formatter,
+                                              phase=data.frame.phase,
+                                              max_denom=_max_denom,
+                                              flip=True)
 
     text = drawings.TextData(data_type=types.LabelType.FRAME,
                              channels=data.inst[0].channel,
@@ -129,7 +132,9 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
              'va': 'center',
              'ha': 'center'}
 
-    plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
+    plain_freq, latex_freq = _freq_to_text(formatter=formatter,
+                                           freq=data.frame.freq,
+                                           unit=_unit)
 
     text = drawings.TextData(data_type=types.LabelType.FRAME,
                              channels=data.inst[0].channel,
@@ -177,7 +182,10 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
 
     # phase value
     if data.frame.phase != 0:
-        plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
+        plain_phase, latex_phase = _phase_to_text(formatter=formatter,
+                                                  phase=data.frame.phase,
+                                                  max_denom=_max_denom,
+                                                  flip=True)
         phase_style = {'va': 'center'}
         phase_style.update(style)
 
@@ -193,7 +201,9 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
 
     # frequency value
     if data.frame.freq != 0:
-        plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
+        plain_freq, latex_freq = _freq_to_text(formatter=formatter,
+                                               freq=data.frame.freq,
+                                               unit=_unit)
         freq_style = {'va': 'center'}
         freq_style.update(style)
 
@@ -325,10 +335,14 @@ def gen_frame_symbol(data: types.PulseInstruction,
     return [text]
 
 
-def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tuple[str, str]:
+def _phase_to_text(formatter: Dict[str, Any],
+                   phase: float,
+                   max_denom: int = 10,
+                   flip: bool = True) -> Tuple[str, str]:
     """A helper function to convert a float value to text with pi.
 
     Args:
+        formatter: Dictionary of stylesheet settings.
         phase: A phase value in units of rad.
         max_denom: Maximum denominator. Return raw value if exceed.
         flip: Set `True` to flip the sign.
@@ -340,7 +354,8 @@ def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tupl
         phase = float(phase)
     except TypeError:
         # unbound parameter
-        return u'\u03b8', r'\theta'
+        return formatter['unicode_symbol.phase_parameter'], \
+               formatter['latex_symbol.phase_parameter']
 
     frac = Fraction(np.abs(phase) / np.pi)
 
@@ -373,10 +388,13 @@ def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tupl
     return sign + plain, sign + latex
 
 
-def _freq_to_text(freq: float, unit: str = 'MHz') -> Tuple[str, str]:
+def _freq_to_text(formatter: Dict[str, Any],
+                  freq: float,
+                  unit: str = 'MHz') -> Tuple[str, str]:
     """A helper function to convert a freq value to text with supplementary unit.
 
     Args:
+        formatter: Dictionary of stylesheet settings.
         freq: A frequency value in units of Hz.
         unit: Supplementary unit. THz, GHz, MHz, kHz, Hz are supported.
 
@@ -390,7 +408,8 @@ def _freq_to_text(freq: float, unit: str = 'MHz') -> Tuple[str, str]:
         freq = float(freq)
     except TypeError:
         # unbound parameter
-        return 'f', 'f'
+        return formatter['unicode_symbol.freq_parameter'], \
+               formatter['latex_symbol.freq_parameter']
 
     unit_table = {'THz': 1e12, 'GHz': 1e9, 'MHz': 1e6, 'kHz': 1e3, 'Hz': 1}
 

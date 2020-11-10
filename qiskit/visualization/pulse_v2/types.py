@@ -212,6 +212,16 @@ class Plotter(str, Enum):
     Mpl2D = 'mpl2d'
 
 
+class TimeUnits(str, Enum):
+    """Representation of time units.
+
+    SYSTEM_CYCLE_TIME: System time dt.
+    NANO_SEC: Nano seconds.
+    """
+    SYSTEM_CYCLE_TIME = 'dt'
+    NANO_SEC = 'ns'
+
+
 # convenient type to represent union of drawing data
 DataTypes = NewType('DataType', Union[WaveformType, LabelType, LineType, SymbolType])
 

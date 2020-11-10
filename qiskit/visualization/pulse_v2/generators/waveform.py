@@ -75,152 +75,41 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         VisualizationError: When waveform color is not defined or the instruction parser
             returns invalid data format.
     """
-    fill_objs = []
-
     # generate waveform data
     waveform_data = _parse_waveform(data)
     channel = data.inst.channel
-    qubit = device.get_qubit_index(channel)
-    if qubit is None:
-        qubit = 'N/A'
+
+    # update metadata
+    meta = waveform_data.meta
+    meta.update({'qubit': device.get_qubit_index(channel) or 'N/A'})
 
     if isinstance(waveform_data, types.ParsedInstruction):
-        # Normal instruction
-        resolution = formatter['general.vertical_resolution']
+        # Draw waveform with fixed shape
+        return _draw_shaped_waveform(xdata=waveform_data.xvals,
+                                     ydata=waveform_data.yvals,
+                                     meta=meta,
+                                     channel=channel,
+                                     formatter=formatter)
 
-        # phase modulation
-        ydata = np.asarray(waveform_data.yvals, dtype=np.complex)
-
-        if formatter['control.apply_phase_modulation']:
-            ydata *= np.exp(1j * data.frame.phase)
-
-        # stepwise interpolation
-        xdata = np.concatenate((waveform_data.xvals, [waveform_data.xvals[-1] + 1]))
-        ydata = np.repeat(ydata, 2)
-        re_y = np.real(ydata)
-        im_y = np.imag(ydata)
-        time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
-
-        # setup style options
-        style = {'alpha': formatter['alpha.fill_waveform'],
-                 'zorder': formatter['layer.fill_waveform'],
-                 'linewidth': formatter['line_width.fill_waveform'],
-                 'linestyle': formatter['line_style.fill_waveform']}
-
-        try:
-            color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
-        except KeyError:
-            raise VisualizationError('Waveform color for channel type {name} is '
-                                     'not defined'.format(name=channel.prefix))
-
-        # create real part
-        if np.any(re_y):
-            # data compression
-            re_valid_inds = _find_consecutive_index(re_y, resolution)
-            # stylesheet
-            re_style = {'color': color_real}
-            re_style.update(style)
-            # metadata
-            re_meta = {'data': 'real', 'qubit': qubit}
-            re_meta.update(waveform_data.meta)
-            # active xy data
-            re_xvals = time[re_valid_inds]
-            re_yvals = re_y[re_valid_inds]
-
-            # object
-            real = drawings.LineData(data_type=types.WaveformType.REAL,
-                                     channels=channel,
-                                     xvals=re_xvals,
-                                     yvals=re_yvals,
-                                     fill=True,
-                                     meta=re_meta,
-                                     styles=re_style)
-            fill_objs.append(real)
-
-        # create imaginary part
-        if np.any(im_y):
-            # data compression
-            im_valid_inds = _find_consecutive_index(im_y, resolution)
-            # stylesheet
-            im_style = {'color': color_imag}
-            im_style.update(style)
-            # metadata
-            im_meta = {'data': 'imag', 'qubit': qubit}
-            im_meta.update(waveform_data.meta)
-            # active xy data
-            im_xvals = time[im_valid_inds]
-            im_yvals = im_y[im_valid_inds]
-
-            # object
-            imag = drawings.LineData(data_type=types.WaveformType.IMAG,
-                                     channels=channel,
-                                     xvals=im_xvals,
-                                     yvals=im_yvals,
-                                     fill=True,
-                                     meta=im_meta,
-                                     styles=im_style)
-            fill_objs.append(imag)
     elif isinstance(waveform_data, types.OpaqueShape):
-        # Parametric pulse with unbound parameters
-        fc, ec = formatter['color.opaque_shape']
-        # setup style options
-        box_style = {'zorder': formatter['layer.fill_waveform'],
-                     'alpha': formatter['alpha.opaque_shape'],
-                     'linewidth': formatter['line_width.opaque_shape'],
-                     'linestyle': formatter['line_style.opaque_shape'],
-                     'facecolor': fc,
-                     'edgecolor': ec}
-
-        # duration
-        if waveform_data.duration is None:
-            duration = formatter['box_width.opaque_shape']
-        else:
-            duration = waveform_data.duration
-
-        # metadata
-        meta = {'qubit': qubit}
-        meta.update(waveform_data.meta)
-
-        box_obj = drawings.BoxData(data_type=types.WaveformType.OPAQUE,
-                                   channels=channel,
-                                   xvals=[data.t0, data.t0 + duration],
-                                   yvals=[-0.5 * formatter['box_height.opaque_shape'],
-                                          0.5 * formatter['box_height.opaque_shape']],
-                                   meta=meta,
-                                   ignore_scaling=True,
-                                   styles=box_style)
-        fill_objs.append(box_obj)
+        # Draw parametric pulse with unbound parameters
 
         # parameter name
         unbound_params = []
         for pname, pval in data.inst.pulse.parameters.items():
-            if isinstance(pval, circuit.Parameter):
+            if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
-        func_repr = '{func}({params})'.format(
-            func=data.inst.pulse.__class__.__name__,
-            params=', '.join(unbound_params)
-        )
 
-        text_style = {'zorder': formatter['layer.annotate'],
-                      'color': formatter['color.annotate'],
-                      'size': formatter['text_size.annotate'],
-                      'va': 'bottom',
-                      'ha': 'center'}
-
-        text_obj = drawings.TextData(data_type=types.LabelType.OPAQUE_BOXTEXT,
-                                     channels=data.inst.channel,
-                                     xvals=[data.t0 + 0.5 * duration],
-                                     yvals=[0.5 * formatter['box_height.opaque_shape']],
-                                     text=func_repr,
-                                     ignore_scaling=True,
-                                     styles=text_style)
-
-        fill_objs.append(text_obj)
+        return _draw_opaque_waveform(t0=data.t0,
+                                     duration=waveform_data.duration,
+                                     pulse_shape=data.inst.pulse.__class__.__name__,
+                                     pnames=unbound_params,
+                                     meta=meta,
+                                     channel=channel,
+                                     formatter=formatter)
 
     else:
         raise VisualizationError('Invalid data format is provided.')
-
-    return fill_objs
 
 
 def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
@@ -410,6 +299,166 @@ def gen_waveform_max_value(data: types.PulseInstruction,
         texts.append(im_text)
 
     return texts
+
+
+def _draw_shaped_waveform(xdata: np.ndarray,
+                          ydata: np.ndarray,
+                          meta: Dict[str, Any],
+                          channel: pulse.channels.PulseChannel,
+                          formatter: Dict[str, Any],
+                          ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    """A private function that generates drawings of stepwise pulse lines.
+
+    Args:
+        xdata: Array of horizontal coordinate of waveform envelope.
+        ydata: Array of vertical coordinate of waveform envelope.
+        meta: Metadata dictionary of the waveform.
+        channel: Channel associated with the waveform to draw.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of drawings.
+    """
+    fill_objs = []
+
+    resolution = formatter['general.vertical_resolution']
+
+    # stepwise interpolation
+    xdata = np.concatenate((xdata, [xdata[-1] + 1]))
+    ydata = np.repeat(ydata, 2)
+    re_y = np.real(ydata)
+    im_y = np.imag(ydata)
+    time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
+
+    # setup style options
+    style = {'alpha': formatter['alpha.fill_waveform'],
+             'zorder': formatter['layer.fill_waveform'],
+             'linewidth': formatter['line_width.fill_waveform'],
+             'linestyle': formatter['line_style.fill_waveform']}
+
+    try:
+        color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
+    except KeyError:
+        raise VisualizationError('Waveform color for channel type {name} is '
+                                 'not defined'.format(name=channel.prefix))
+
+    # create real part
+    if np.any(re_y):
+        # data compression
+        re_valid_inds = _find_consecutive_index(re_y, resolution)
+        # stylesheet
+        re_style = {'color': color_real}
+        re_style.update(style)
+        # metadata
+        re_meta = {'data': 'real'}
+        re_meta.update(meta)
+        # active xy data
+        re_xvals = time[re_valid_inds]
+        re_yvals = re_y[re_valid_inds]
+
+        # object
+        real = drawings.LineData(data_type=types.WaveformType.REAL,
+                                 channels=channel,
+                                 xvals=re_xvals,
+                                 yvals=re_yvals,
+                                 fill=True,
+                                 meta=re_meta,
+                                 styles=re_style)
+        fill_objs.append(real)
+
+    # create imaginary part
+    if np.any(im_y):
+        # data compression
+        im_valid_inds = _find_consecutive_index(im_y, resolution)
+        # stylesheet
+        im_style = {'color': color_imag}
+        im_style.update(style)
+        # metadata
+        im_meta = {'data': 'imag'}
+        im_meta.update(meta)
+        # active xy data
+        im_xvals = time[im_valid_inds]
+        im_yvals = im_y[im_valid_inds]
+
+        # object
+        imag = drawings.LineData(data_type=types.WaveformType.IMAG,
+                                 channels=channel,
+                                 xvals=im_xvals,
+                                 yvals=im_yvals,
+                                 fill=True,
+                                 meta=im_meta,
+                                 styles=im_style)
+        fill_objs.append(imag)
+
+    return fill_objs
+
+
+def _draw_opaque_waveform(t0: int,
+                          duration: int,
+                          pulse_shape: str,
+                          pnames: List[str],
+                          meta: Dict[str, Any],
+                          channel: pulse.channels.PulseChannel,
+                          formatter: Dict[str, Any],
+                          ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    """A private function that generates drawings of stepwise pulse lines.
+
+    Args:
+        t0: Time when the opaque waveform starts.
+        duration: Duration of opaque waveform. This can be None or ParameterExpression.
+        pulse_shape: String that represents pulse shape.
+        pnames: List of parameter names.
+        meta: Metadata dictionary of the waveform.
+        channel: Channel associated with the waveform to draw.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of drawings.
+    """
+    fill_objs = []
+
+    fc, ec = formatter['color.opaque_shape']
+    # setup style options
+    box_style = {'zorder': formatter['layer.fill_waveform'],
+                 'alpha': formatter['alpha.opaque_shape'],
+                 'linewidth': formatter['line_width.opaque_shape'],
+                 'linestyle': formatter['line_style.opaque_shape'],
+                 'facecolor': fc,
+                 'edgecolor': ec}
+
+    if duration is None or isinstance(duration, circuit.ParameterExpression):
+        duration = formatter['box_width.opaque_shape']
+
+    box_obj = drawings.BoxData(data_type=types.WaveformType.OPAQUE,
+                               channels=channel,
+                               xvals=[t0, t0 + duration],
+                               yvals=[-0.5 * formatter['box_height.opaque_shape'],
+                                      0.5 * formatter['box_height.opaque_shape']],
+                               meta=meta,
+                               ignore_scaling=True,
+                               styles=box_style)
+    fill_objs.append(box_obj)
+
+    # parameter name
+    func_repr = '{func}({params})'.format(func=pulse_shape, params=', '.join(pnames))
+
+    text_style = {'zorder': formatter['layer.annotate'],
+                  'color': formatter['color.annotate'],
+                  'size': formatter['text_size.annotate'],
+                  'va': 'bottom',
+                  'ha': 'center'}
+
+    text_obj = drawings.TextData(data_type=types.LabelType.OPAQUE_BOXTEXT,
+                                 channels=channel,
+                                 xvals=[t0 + 0.5 * duration],
+                                 yvals=[0.5 * formatter['box_height.opaque_shape']],
+                                 text=func_repr,
+                                 ignore_scaling=True,
+                                 styles=text_style)
+
+    fill_objs.append(text_obj)
+
+    return fill_objs
 
 
 def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.ndarray:
