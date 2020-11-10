@@ -100,7 +100,7 @@ class TestChannelEvents(QiskitTestCase):
         self.assertAlmostEqual(inst_data1.frame.freq, 1.0)
 
     def test_parametrized_parametric_pulse(self):
-        """Test generating waveforms that is parameterized."""
+        """Test generating waveforms that are parameterized."""
         param = circuit.Parameter('amp')
 
         test_waveform = pulse.Play(pulse.Constant(10, param), pulse.DriveChannel(0))
