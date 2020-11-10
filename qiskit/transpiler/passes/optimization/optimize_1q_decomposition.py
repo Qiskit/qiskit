@@ -15,6 +15,8 @@
 from itertools import groupby
 import logging
 
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
@@ -75,7 +77,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 params = run[0].op.params
                 # Remove single identity gates
                 if run[0].op.name in self.euler_basis_names[self.basis] and len(
-                        params) > 0 and all(param == 0 for param in params):
+                        params) > 0 and np.array_equal(run[0].op.to_matrix(),
+                                                       np.eye(2)):
                     dag.remove_op_node(run[0])
                 # Don't try to optimize a single 1q gate
                 continue
