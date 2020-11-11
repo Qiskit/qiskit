@@ -13,7 +13,7 @@
 """CVaRMeasurement class."""
 
 
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 import numpy as np
 
 from qiskit.aqua import AquaError
@@ -146,8 +146,83 @@ class CVaRMeasurement(OperatorStateFn):
 
     def eval(self,
              front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+                          OperatorBase] = None) -> Union[float, complex]:
+        r"""
+        Given the energies of each sampled measurement outcome (H_i) as well as the
+        sampling probability of each measurement outcome (p_i, we can compute the
+        CVaR as H_j + 1/α*(sum_i<j p_i*(H_i - H_j)). Note that index j corresponds
+        to the measurement outcome such that only some of the samples with
+        measurement outcome j will be used in computing CVaR. Note also that the
+        sampling probabilities serve as an alternative to knowing the counts of each
+        observation.
 
+        This computation is broken up into two subroutines. One which evaluates each
+        measurement outcome and determines the sampling probabilities of each. And one
+        which carries out the above calculation. The computation is split up this way
+        to enable a straightforward calculation of the variance of this estimator.
+
+        Args:
+            front: A StateFn or primitive which specifies the results of evaluating
+                      a quantum state.
+
+        Returns:
+            The CVaR of the diagonal observable specified by self.primitive and
+                the sampled quantum state described by the inputs
+                (energies, probabilities). For index j (described above), the CVaR
+                is computed as H_j + 1/α*(sum_i<j p_i*(H_i - H_j))
+        """
+        energies, probabilities = self.get_outcome_energies_probabilities(front)
+        return self.compute_cvar(energies, probabilities)
+
+    def eval_variance(self,
+                      front: Union[str, dict, np.ndarray,
+                                   OperatorBase] = None) -> Union[float, complex]:
+        r"""
+        Given the energies of each sampled measurement outcome (H_i) as well as the
+        sampling probability of each measurement outcome (p_i, we can compute the
+        variance of the CVaR estimator as
+        H_j^2 + 1/α * (sum_i<j p_i*(H_i^2 - H_j^2)).
+        This follows from the definition that Var[X] = E[X^2] - E[X]^2.
+        In this case, X = E[<bi|H|bi>], where H is the diagonal observable and bi
+        corresponds to measurement outcome i. Given this, E[X^2] = E[<bi|H|bi>^2]
+
+        Args:
+            front: A StateFn or primitive which specifies the results of evaluating
+                      a quantum state.
+
+        Returns:
+            The Var[CVaR] of the diagonal observable specified by self.primitive
+                and the sampled quantum state described by the inputs
+                (energies, probabilities). For index j (described above), the CVaR
+                is computed as H_j^2 + 1/α*(sum_i<j p_i*(H_i^2 - H_j^2))
+        """
+        energies, probabilities = self.get_outcome_energies_probabilities(front)
+        sq_energies = [energy**2 for energy in energies]
+        return self.compute_cvar(sq_energies, probabilities) - self.eval(front)**2
+
+    def get_outcome_energies_probabilities(self,
+                                           front: Union[str, dict, np.ndarray,
+                                                        OperatorBase] = None) -> Tuple[list, list]:
+        r"""
+        In order to compute the  CVaR of an observable expectation, we require
+        the energies of each sampled measurement outcome as well as the sampling
+        probability of each measurement outcome. Note that the counts for each
+        measurement outcome will also suffice (and this is often how the CVaR
+        is presented).
+
+        Args:
+            front: A StateFn or a primitive which defines a StateFn.
+                   This input holds the results of a sampled/simulated circuit.
+
+        Returns:
+            Two lists of equal length. `energies` contains the energy of each
+                unique measurement outcome computed against the diagonal observable
+                stored in self.primitive. `probabilities` contains the corresponding
+                sampling probability for each measurement outcome in `energies`.
+
+        Raises:
+            ValueError: front isn't a DictStateFn or VectorStateFn
+        """
         from .dict_state_fn import DictStateFn
         from .vector_state_fn import VectorStateFn
         from .circuit_state_fn import CircuitStateFn
@@ -162,13 +237,13 @@ class CVaRMeasurement(OperatorStateFn):
             vec = front.primitive.data
             # Determine how many bits are needed
             key_len = int(np.ceil(np.log2(len(vec))))
+            # Convert the vector primitive into a dict. The formatting here ensures
+            # that the proper number of leading `0` characters are added.
             data = {format(index, '0'+str(key_len)+'b'): val for index, val in enumerate(vec)}
         else:
             raise ValueError('Unsupported input to CVaRMeasurement.eval:', type(front))
 
         obs = self.primitive
-        alpha = self._alpha
-
         outcomes = list(data.items())
         # add energy evaluation
         for i, outcome in enumerate(outcomes):
@@ -181,11 +256,46 @@ class CVaRMeasurement(OperatorStateFn):
         # Here probabilities are the (root) probabilities of
         # observing each state. energies are the expectation
         # values of each state with the provided Hamiltonian.
-        _, probabilities, energies = zip(*outcomes)
+        _, root_probabilities, energies = zip(*outcomes)
 
         # Square the dict values
         # (since CircuitSampler takes the root...)
-        probabilities = [p_i * np.conj(p_i) for p_i in probabilities]
+        probabilities = [p_i * np.conj(p_i) for p_i in root_probabilities]
+        return energies, probabilities
+
+    def compute_cvar(self,
+                     energies: list,
+                     probabilities: list) -> Union[float, complex]:
+        r"""
+        Given the energies of each sampled measurement outcome (H_i) as well as the
+        sampling probability of each measurement outcome (p_i, we can compute the
+        CVaR. Note that the sampling probabilities serve as an alternative to knowing
+        the counts of each observation and that the input energies are assumed to be
+        sorted in increasing order.
+
+        Consider the outcome with index j, such that only some of the samples with
+        measurement outcome j will be used in computing CVaR. The CVaR calculation
+        can then be separated into two parts. First we sum each of the energies for
+        outcomes i < j, weighted by the probability of observing that outcome (i.e
+        the normalized counts). Second, we add the energy for outcome j, weighted by
+        the difference (α  - \sum_i<j p_i)
+
+        Args:
+            energies: A list containing the energies (H_i) of each sample measurement
+                      outcome, sorted in increasing order.
+            probabilities: The sampling probabilities (p_i) for each corresponding
+                           measurement outcome.
+
+        Returns:
+            The CVaR of the diagonal observable specified by self.primitive and
+                the sampled quantum state described by the inputs
+                (energies, probabilities). For index j (described above), the CVaR
+                is computed as H_j + 1/α * (sum_i<j p_i*(H_i - H_j))
+
+        Raises:
+            ValueError: front isn't a DictStateFn or VectorStateFn
+        """
+        alpha = self._alpha
 
         # Determine j, the index of the measurement outcome such
         # that only some samples with this outcome will be used to
@@ -209,7 +319,7 @@ class CVaRMeasurement(OperatorStateFn):
         # Let H_i be the energy associated with outcome i
         # and let the outcomes be sorted by ascending energy.
         # Let p_i be the probability of observing outcome i.
-        # CVaR = alpha*H_j + \sum_i p_i*(H_i - H_j)
+        # CVaR = H_j + 1/α*(sum_i<j p_i*(H_i - H_j))
         for h_i, p_i in zip(energies, probabilities):
             cvar += p_i * (h_i - h_j)
 

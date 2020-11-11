@@ -16,7 +16,7 @@ import logging
 from typing import Union, Optional
 
 from ..operator_base import OperatorBase
-from ..list_ops import ListOp
+from ..list_ops import ListOp, ComposedOp
 from ..state_fns import CVaRMeasurement, OperatorStateFn
 from .expectation_base import ExpectationBase
 from .pauli_expectation import PauliExpectation
@@ -76,7 +76,6 @@ class CVaRExpectation(ExpectationBase):
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """Return an expression that computes the CVaR expectation upon calling ``eval``.
-
         Args:
             operator: The operator to convert.
 
@@ -96,5 +95,28 @@ class CVaRExpectation(ExpectationBase):
         return replace_with_cvar(expectation)
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float]:
-        """Not implemented."""
-        raise NotImplementedError
+        """Returns the variance of the CVaR calculation
+
+        Args:
+            exp_op: The operator whose evaluation yields an expectation
+                of some StateFn against a diagonal observable.
+
+        Returns:
+            The variance of the CVaR estimate corresponding to the converted
+                exp_op.
+        Raises:
+            ValueError: If the exp_op does not correspond to an expectation value.
+        """
+        def cvar_variance(operator):
+            if isinstance(operator, ComposedOp):
+                sfdict = operator.oplist[1]
+                measurement = operator.oplist[0]
+                return measurement.eval_variance(sfdict)
+
+            elif isinstance(operator, ListOp):
+                return operator.combo_fn([cvar_variance(op) for op in operator.oplist])
+
+            raise ValueError("Input operator does not correspond to a value "
+                             "expectation value.")
+        cvar_op = self.convert(exp_op)
+        return cvar_variance(cvar_op)
