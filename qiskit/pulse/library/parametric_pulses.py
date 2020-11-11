@@ -161,7 +161,7 @@ class ParametricPulse(Pulse):
         return super().__eq__(other) and self.parameters == other.parameters
 
     def __hash__(self) -> int:
-        return hash(self.parameters[k] for k in sorted(self.parameters))
+        return hash(tuple(self.parameters[k] for k in sorted(self.parameters)))
 
 
 class Gaussian(ParametricPulse):
