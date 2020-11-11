@@ -690,11 +690,40 @@ class QuantumCircuit:
     def tensor(self, other):
         """Tensor ``self`` with ``other``.
 
+        Remember that in the little-endian convention the leftmost operation will be at the bottom
+        of the circuit. See also
+        [the docs](qiskit.org/documentation/tutorials/circuits/1_getting_started_with_qiskit.html)
+        for more information.
+
+        .. parsed-literal::
+
+                 ┌────────┐        ┌─────┐          ┌─────┐
+            q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
+                 └────────┘        └─────┘         ┌┴─────┴─┐
+                                              q_1: ┤ bottom ├
+                                                   └────────┘
+
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
 
+        Examples:
+
+            >>> from qiskit import QuantumCircuit
+            >>> top = QuantumCircuit(1)
+            >>> top.x(0);
+            >>> bottom = QuantumCircuit(2)
+            >>> bottom.cry(0.2, 0, 1);
+            >>> bottom.tensor(top).draw()
+                    ┌───┐
+            q_0: ───┤ X ├───
+                    └───┘
+            q_1: ─────■─────
+                 ┌────┴────┐
+            q_2: ┤ RY(0.2) ├
+                 └─────────┘
+
         Returns:
-            QuantumCircuit: the tensored circuit (returns None if inplace==True).
+            QuantumCircuit: The tensored circuit (returns None if inplace==True).
         """
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
