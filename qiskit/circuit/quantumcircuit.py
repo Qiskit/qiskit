@@ -754,7 +754,7 @@ class QuantumCircuit:
         # compose self onto the output, and then other
         dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
         dest.compose(self, range(other.num_qubits, num_qubits),
-                            range(other.num_clbits, num_clbits), inplace=True)
+                     range(other.num_clbits, num_clbits), inplace=True)
         return dest
 
     @property
