@@ -628,7 +628,8 @@ class RC3XGate(Gate):
 class C4XGate(ControlledGate):
     """The 4-qubit controlled X gate.
 
-    This implementation is based on Page 21, Lemma 7.5, of [1], with the use of the relative phase version of c3x, the rc3x [2].
+    This implementation is based on Page 21, Lemma 7.5, of [1], with the use
+    of the relative phase version of c3x, the rc3x [2].
 
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
