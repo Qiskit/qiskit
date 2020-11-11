@@ -182,13 +182,6 @@ class TestCVaRExpectation(QiskitAquaTestCase):
         with self.assertRaises(NotImplementedError):
             _ = CVaRExpectation(alpha=1, expectation=expecation)
 
-    def test_unsupported_operations(self):
-        """Assert unsupported operations raise an error."""
-        cvar = CVaRExpectation(0.2)
-
-        with self.assertRaises(NotImplementedError):
-            cvar.compute_variance(Z)
-
     @data(PauliExpectation(), MatrixExpectation())
     def test_underlying_expectation(self, base_expecation):
         """Test the underlying expectation works correctly."""
@@ -205,3 +198,14 @@ class TestCVaRExpectation(QiskitAquaTestCase):
 
         # test if the operators have been transformed in the same manner
         self.assertEqual(cvar.oplist[0].primitive, expected.oplist[0].primitive)
+
+    def test_compute_variance(self):
+        """Test if the compute_variance method works"""
+        alphas = [0, .3, 0.5, 0.7, 1]
+        correct_vars = [0, 0, 0, 0.8163, 1]
+        for i, alpha in enumerate(alphas):
+            base_expecation = PauliExpectation()
+            cvar_expecation = CVaRExpectation(alpha=alpha, expectation=base_expecation)
+            op = ~StateFn(Z ^ Z) @ (Plus ^ Plus)
+            cvar_var = cvar_expecation.compute_variance(op)
+            np.testing.assert_almost_equal(cvar_var, correct_vars[i], decimal=3)
