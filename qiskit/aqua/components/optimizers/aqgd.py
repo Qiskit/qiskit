@@ -77,9 +77,9 @@ class AQGD(Optimizer):
         super().__init__()
         if isinstance(maxiter, int):
             maxiter = [maxiter]
-        if isinstance(eta, float):
+        if isinstance(eta, (int, float)):
             eta = [eta]
-        if isinstance(momentum, float):
+        if isinstance(momentum, (int, float)):
             momentum = [momentum]
         if len(maxiter) != len(eta) or len(maxiter) != len(momentum):
             raise AquaError("AQGD input parameter length mismatch. Parameters `maxiter`, `eta`, "
