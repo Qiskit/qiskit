@@ -57,7 +57,6 @@ class QAOAVarForm(VariationalForm):
         self._initial_state = initial_state
         self._num_parameters = 2 * p
         self._bounds = [(0, np.pi)] * p + [(0, 2 * np.pi)] * p
-        self._preferred_init_points = [0] * p * 2
 
         # prepare the mixer operator
         if mixer_operator is None:
