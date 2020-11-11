@@ -12,21 +12,59 @@
 
 """Utils for reading a user preference config files."""
 
+from concurrent.futures import ProcessPoolExecutor
 import configparser
 import os
 import sys
+import time
 from warnings import warn
 
 from qiskit import exceptions
+from qiskit import util
 
 DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
                                 '.qiskit', 'settings.conf')
 
+
+def _test_macos_parallel():
+    cpu_count = util.local_hardware_info()['cpus']
+    test_list = list(range(20 * cpu_count))
+    task = lambda x: x * 2 + 1
+    try:
+        start_time = time.time()
+        with ProcessPoolExecutor(max_workers=cpu_count) as executor:
+            future = executor.map(task, test_list)
+        results = list(future)
+        stop_time = time.time()
+        parallel_runtime = stop_time - start_time
+    except Exception:  # pylint: disable=broad-except
+        return False
+    start_time = time.time()
+    results = []
+    for value in test_list:
+        results.append(task(value))
+    stop_time = time.time()
+    serial_runtime = stop_time - start_time
+    if serial_runtime >= parallel_runtime:
+        return False
+    else:
+        return True
+
+
 if os.getenv('QISKIT_PARALLEL', None) is not None:
     PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
 else:
-    if sys.platform in {'darwin', 'win32'}:
+    # Default False on Windows
+    if sys.platform == 'win32':
         PARALLEL_DEFAULT = False
+    # On macOS default false on 3.8 for other versions check run time and use
+    # parallel only if it is faster than serial (and works)
+    elif sys.platform == 'darwin':
+        if sys.version_info[0] == 3 and sys.version_info[1] == 8:
+            PARALLEL_DEFAULT = False
+        else:
+            PARALLEL_DEFAULT = _test_macos_parallel()
+    # On linux (and other OSes) default to True
     else:
         PARALLEL_DEFAULT = True
 

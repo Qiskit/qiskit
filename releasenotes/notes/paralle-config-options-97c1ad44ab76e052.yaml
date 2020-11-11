@@ -12,12 +12,24 @@ features:
     By default it will use the number of CPU cores on a system.
 upgrade:
   - |
-    By default on macOS :func:`~qiskit.tools.parallel_map` will no longer run
-    in multiple processes. This is a change from previous releases where the
-    default behavior was that :func:`~qiskit.tools.parallel_map` would launch
-    multiple processes. This change was made because with newer versions of
-    macOS (especially with Python 3.8) multiprocessing is either unreliable
-    or adds significant overhead because of the change in Python 3.8 to launch
-    new processes with ``spawn`` instead of ``fork``. To re-enable parallel
-    execution on macOS you can use the user config file ``parallel` option or
+    By default on macOS with Python >=3.8 :func:`~qiskit.tools.parallel_map` will
+    no longer run in multiple processes. This is a change from previous releases
+    where the default behavior was that :func:`~qiskit.tools.parallel_map` would
+    launch multiple processes. This change was made because with newer versions of
+    macOS with Python 3.8 and 3.9 multiprocessing is either unreliable or adds
+    significant overhead because of the change in Python 3.8 to launch new
+    processes with ``spawn`` instead of ``fork``. To re-enable parallel execution on
+    macOS with Python >= 3.8 you can use the user config file ``parallel` option or
     set the environment variable ``QISKIT_PARALLEL`` to ``True``.
+  - |
+    By default on macOS with Python 3.6 and 3.7. :func:`~qiskit.tools.parallel_map`
+    may no longer run in multiple processes by default. When qiskit is first imported
+    it will run a small benchmark to determine if parallelism works and is faster than
+    a serial loop. If both are True then parallelism will be enabled by default.
+    This is a change from previous releases where the default behavior was always
+    that :func:`~qiskit.tools.parallel_map` would launch multiple processes. This
+    change was made because with newer versions of macOS multiprocessing is unreliable
+    or adds significant overhead. If you want to ensure the previous behavior of
+    unconditionally always use parallel execution on macOS you can use the user config
+    file ``parallel` option or set the environment variable ``QISKIT_PARALLEL`` to
+    ``True``.
