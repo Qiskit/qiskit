@@ -18,7 +18,6 @@ seaborn>=0.9.0
 reno>=3.2.0
 Sphinx>=1.8.3,<3.1.0
 sphinx-rtd-theme>=0.4.0
-sphinx-tabs>=1.1.11
 sphinx-autodoc-typehints
 jupyter-sphinx
 pygments>=2.4
