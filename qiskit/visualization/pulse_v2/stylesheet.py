@@ -214,7 +214,6 @@ def default_style() -> Dict[str, Any]:
     return {
         'formatter.general.fig_width': 13,
         'formatter.general.fig_chart_height': 1.5,
-        'formatter.general.dpi': 150,
         'formatter.general.vertical_resolution': 1e-6,
         'formatter.general.max_scale': 100,
         'formatter.color.waveforms': {

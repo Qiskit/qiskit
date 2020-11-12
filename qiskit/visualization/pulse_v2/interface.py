@@ -34,15 +34,14 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
          style: Optional[Dict[str, Any]] = None,
          backend: Optional[BaseBackend] = None,
          time_range: Optional[Tuple[int, int]] = None,
-         time_unit: str = types.TimeUnits.SYSTEM_CYCLE_TIME.value,
+         time_unit: str = types.TimeUnits.CYCLES.value,
          disable_channels: Optional[List[PulseChannel]] = None,
          show_snapshot: bool = True,
          show_framechange: bool = True,
          show_waveform_info: bool = True,
          show_barrier: bool = True,
          plotter: str = types.Plotter.Mpl2D.value,
-         axis: Optional[Any] = None,
-         filename: Optional[str] = None):
+         axis: Optional[Any] = None):
     """Generate visualization data for pulse programs.
 
     Args:
@@ -104,7 +103,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         formatter.general.fig_chart_height: Height of output image per chart.
             The height of each chart is multiplied with this factor and the
             sum of all chart heights becomes the height of output image (default `1.5`).
-        formatter.general.dpi: Dot per inch of image if `filename` is set (default `150`).
         formatter.general.vertical_resolution: Vertical resolution of the pulse envelope.
             The change of data points below this limit is ignored (default `1e-6`).
         formatter.general.max_scale: Maximum scaling factor of each chart. This factor is
@@ -398,9 +396,9 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
     # time range
     if time_range:
-        if time_unit == types.TimeUnits.SYSTEM_CYCLE_TIME.value:
+        if time_unit == types.TimeUnits.CYCLES.value:
             canvas.set_time_range(*time_range, seconds=False)
-        elif time_unit == types.TimeUnits.NANO_SEC.value:
+        elif time_unit == types.TimeUnits.NS.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
             raise VisualizationError('Invalid time unit {unit} is '
@@ -446,9 +444,5 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         plotter_api.draw()
     else:
         raise VisualizationError('Plotter API {name} is not supported.'.format(name=plotter))
-
-    # save figure
-    if filename:
-        plotter_api.save_file(filename=filename)
 
     return plotter_api.get_image()

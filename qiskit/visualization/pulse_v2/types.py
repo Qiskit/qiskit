@@ -218,8 +218,8 @@ class TimeUnits(str, Enum):
     SYSTEM_CYCLE_TIME: System time dt.
     NANO_SEC: Nano seconds.
     """
-    SYSTEM_CYCLE_TIME = 'dt'
-    NANO_SEC = 'ns'
+    CYCLES = 'dt'
+    NS = 'ns'
 
 
 # convenient type to represent union of drawing data

@@ -171,16 +171,6 @@ class Mpl2DPlotter(BasePlotter):
                          color=self.canvas.formatter['color.fig_title'],
                          size=self.canvas.formatter['text_size.fig_title'])
 
-    def save_file(self, filename: str):
-        """Save image to file.
-
-        Args:
-            filename: File path to output image data.
-        """
-        plt.savefig(filename,
-                    bbox_inches='tight',
-                    dpi=self.canvas.formatter['general.dpi'])
-
     def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
         """Get image data to return.
 

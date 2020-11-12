@@ -40,15 +40,6 @@ class BasePlotter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save_file(self, filename: str):
-        """Save image to file.
-
-        Args:
-            filename: File path to output image data.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def get_image(self, interactive: bool = False) -> Any:
         """Get image data to return.
 
