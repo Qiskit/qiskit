@@ -264,18 +264,19 @@ class DrawerCanvas:
             new_data = deepcopy(data)
             new_data.xvals = self._bind_coordinate(data.xvals)
             new_data.yvals = self._bind_coordinate(data.yvals)
-            if data.data_type == str(types.LineType.GATE_LINK.value):
-                temp_gate_links[data_key] = new_data
-            else:
-                temp_data[data_key] = new_data
+            # add data if it is visible
+            if self._check_data_visible(new_data):
+                if data.data_type == str(types.LineType.GATE_LINK.value):
+                    temp_gate_links[data_key] = new_data
+                else:
+                    temp_data[data_key] = new_data
 
         # update horizontal offset of gate links
         temp_data.update(self._check_link_overlap(temp_gate_links))
 
         # push valid data
         for data_key, data in temp_data.items():
-            if self._check_data_visible(data):
-                self._output_dataset[data_key] = data
+            self._output_dataset[data_key] = data
 
     def _check_data_visible(self, data: drawings.ElementaryData) -> bool:
         """A helper function to check if the data is visible.
@@ -300,7 +301,7 @@ class DrawerCanvas:
 
         def _associated_bit_check(_data):
             """If all associated bits are not shown."""
-            if all([bit not in self.assigned_coordinates for bit in _data.bits]):
+            if any([bit not in self.assigned_coordinates for bit in _data.bits]):
                 return False
             return True
 
@@ -377,7 +378,8 @@ class DrawerCanvas:
 
         This method dynamically shifts horizontal position of links if they are overlapped.
         """
-        allowed_overlap = self.formatter['margin.link_interval_dt']
+        duration = self.time_range[1] - self.time_range[0]
+        allowed_overlap = self.formatter['margin.link_interval_percent'] * duration
 
         # return y coordinates
         def y_coords(link: drawings.GateLinkData):
