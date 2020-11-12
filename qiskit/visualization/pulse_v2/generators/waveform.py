@@ -80,12 +80,23 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
 
     # update metadata
     meta = waveform_data.meta
-    meta.update({'qubit': device.get_qubit_index(channel) or 'N/A'})
+    qind = device.get_qubit_index(channel)
+    meta.update({'qubit': qind if qind is not None else 'N/A'})
 
     if isinstance(waveform_data, types.ParsedInstruction):
         # Draw waveform with fixed shape
-        return _draw_shaped_waveform(xdata=waveform_data.xvals,
-                                     ydata=waveform_data.yvals,
+
+        xdata = waveform_data.xvals
+        ydata = waveform_data.yvals
+
+        # phase modulation
+        if formatter['control.apply_phase_modulation']:
+            ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+        else:
+            ydata = np.asarray(ydata, dtype=np.complex)
+
+        return _draw_shaped_waveform(xdata=xdata,
+                                     ydata=ydata,
                                      meta=meta,
                                      channel=channel,
                                      formatter=formatter)
