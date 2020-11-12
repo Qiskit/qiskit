@@ -112,10 +112,10 @@ def draw(program: circuit.QuantumCircuit,
             the right limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,
             this keeps right margin of 5 (default `0.02`).
-        formatter.margin.link_interval_dt: Allowed overlap of gate links.
+        formatter.margin.link_interval_percent: Allowed overlap of gate links.
             If multiple gate links are drawing within this range, links are horizontally
-            shifted not to overlap with each other. This value is in units of
-            the system cycle time dt (default `20`).
+            shifted not to overlap with each other. The value is in units of percentage of
+            the whole program duration (default `0.01`).
         formatter.time_bucket.edge_dt: The length of round edge of gate boxes. Gate boxes are
             smoothly faded in and out from the zero line. This value is in units of
             the system cycle time dt (default `10`).
@@ -355,6 +355,13 @@ def draw(program: circuit.QuantumCircuit,
 
     if show_delays is not None:
         temp_style['formatter.control.show_delays'] = show_delays
+
+    # currently clbits starts at t = 0.
+    # TODO fix this
+    if temp_style['formatter.control.show_clbits']:
+        import warnings
+        warnings.warn('Start time of measure instruction on Clbits is not correctly parsed. '
+                      'See Qiskit/qiskit-terra/#5361 for discussion.')
 
     # create empty canvas and load program
     canvas = core.DrawerCanvas(stylesheet=temp_style)
