@@ -274,24 +274,16 @@ class CouplingMap:
     def from_line(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
         cmap = cls(description='line')
-        for i in range(num_qubits-1):
-            cmap.add_edge(i, i+1)
-            if bidirectional:
-                cmap.add_edge(i+1, i)
+        cmap.graph = rx.generators.directed_path_graph(
+            num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
         cmap = cls(description='ring')
-        for i in range(num_qubits):
-            if i == num_qubits - 1:
-                k = 0
-            else:
-                k = i + 1
-            cmap.add_edge(i, k)
-            if bidirectional:
-                cmap.add_edge(k, i)
+        cmap.graph = rx.generators.directed_cycle_graph(
+            num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
