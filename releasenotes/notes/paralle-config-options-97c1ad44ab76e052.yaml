@@ -16,7 +16,7 @@ features:
     :func:`~qiskit.tools.parallel_map`. The ``QISKIT_PARALLEL`` option can be
     set to the ``TRUE`` (any capitalization) to set the default to run in
     multiple processes when :func:`~qiskit.tools.parallel_map` is called. If it
-    is set to any other run in multiple processes or not. If it set to any other
+    is set to any other
     value :func:`~qiskit.tools.parallel_map` will be executed serially.
     ``QISKIT_NUM_PROCS`` takes an integer (for example ``QISKIT_NUM_PROCS=5``)
     which will be used as the default number of processes to run with. Both
