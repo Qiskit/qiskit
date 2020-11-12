@@ -155,7 +155,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -310,7 +309,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -375,7 +373,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -445,7 +442,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -516,7 +512,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -581,7 +576,6 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
@@ -631,7 +625,6 @@ stages:
             pip install -U -r requirements.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "matplotlib<3.3.0" pylatexenc pillow
-            pip install git+https://github.com/mtreinish/retworkx@use-rx-coupling
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
