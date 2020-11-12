@@ -424,8 +424,7 @@ class DAGCircuit:
         al = [qargs, all_cbits]
         self._multi_graph.insert_node_on_out_edges_multiple(
             node_index,
-            [self.input_map[q]._node_id for q in itertools.chain(*al)],
-            direction=True)
+            [self.input_map[q]._node_id for q in itertools.chain(*al)])
         return self._multi_graph[node_index]
 
     def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
