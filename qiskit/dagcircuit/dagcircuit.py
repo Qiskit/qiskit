@@ -386,7 +386,7 @@ class DAGCircuit:
         # and adding new edges from the operation node to each output node
 
         al = [qargs, all_cbits]
-        self._multi_graph.insert_node_between_multiple(
+        self._multi_graph.insert_node_on_in_edges_multiple(
             node_index,
             [self.output_map[q]._node_id for q in itertools.chain(*al)])
         return self._multi_graph[node_index]
@@ -422,7 +422,7 @@ class DAGCircuit:
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
         al = [qargs, all_cbits]
-        self._multi_graph.insert_node_between_multiple(
+        self._multi_graph.insert_node_on_out_edges_multiple(
             node_index,
             [self.input_map[q]._node_id for q in itertools.chain(*al)],
             direction=True)

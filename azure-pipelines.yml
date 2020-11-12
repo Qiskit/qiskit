@@ -153,7 +153,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -220,7 +219,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
@@ -309,7 +307,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
@@ -374,7 +371,6 @@ stages:
             virtualenv test-job
             source test-job/Scripts/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -444,7 +440,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -515,7 +510,6 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
@@ -580,7 +574,6 @@ stages:
             git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U git+https://github.com/mtreinish/retworkx@insert_node_between
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
