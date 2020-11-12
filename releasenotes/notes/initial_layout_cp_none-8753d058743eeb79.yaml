@@ -6,6 +6,7 @@ fixes:
     That is, even when an `initial_layout` was specified, the virtual qubits were not assigned to physical
     qubits. Now, the function :func:`qiskit.compiler.transpile` honors the `initial_layout` argument by embedding the circuit::
 
+    .. code-block::
 
         from qiskit import QuantumCircuit, QuantumRegister
         from qiskit.compiler import transpile
@@ -17,6 +18,9 @@ fixes:
         
         transpile(circ, initial_layout=[1, 0]).draw()
 
+
+    .. code-block::
+
                        ┌───┐
         qr_1 -> 0 ─────┤ X ├
                   ┌───┐└─┬─┘
@@ -26,8 +30,11 @@ fixes:
     If the `initial_layout` refers to more qubits than in the circuit, the transpiling process will extended the circuit with
     ancillas.
 
+    .. code-block::
 
         transpile(circ, initial_layout=[4, 2], coupling_map=None).draw()
+
+    .. code-block::
                          
         ancilla_0 -> 0 ──────────
                                  
