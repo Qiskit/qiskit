@@ -353,7 +353,7 @@ class InstructionToQobjConverter:
         if isinstance(instruction.pulse, library.ParametricPulse):
             command_dict = {
                 'name': 'parametric_pulse',
-                'label': str(instruction.pulse.name),
+                'label': str(instruction.name),
                 'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
                 't0': shift + instruction.start_time,
                 'ch': instruction.channel.name,
