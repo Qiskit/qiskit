@@ -82,7 +82,9 @@ class TestCanvas(QiskitTestCase):
         """Test shifting gate link overlap."""
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({
-            'formatter.margin.link_interval_dt': 20
+            'margin.link_interval_percent': 0.01,
+            'margin.left_percent': 0,
+            'margin.right_percent': 0
         })
         canvas.generator = {
             'gates': [],
@@ -101,8 +103,8 @@ class TestCanvas(QiskitTestCase):
 
         self.assertEqual(len(drawings_tested), 2)
 
-        self.assertListEqual(drawings_tested[0][1].xvals, [710.])
-        self.assertListEqual(drawings_tested[1][1].xvals, [690.])
+        self.assertListEqual(drawings_tested[0][1].xvals, [706.])
+        self.assertListEqual(drawings_tested[1][1].xvals, [694.])
 
         ref_keys = list(canvas._collections.keys())
         self.assertEqual(drawings_tested[0][0], ref_keys[0])
@@ -144,3 +146,65 @@ class TestCanvas(QiskitTestCase):
 
         canvas.load_program(circ)
         self.assertEqual(len(canvas._collections), 1)
+
+    def test_multi_measurement_with_clbit_not_shown(self):
+        """Test generating bit link drawings of measurements when clbits is disabled."""
+        circ = QuantumCircuit(2, 2)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        circ = transpile(circ,
+                         scheduling_method='alap',
+                         basis_gates=[],
+                         instruction_durations=[('measure', 0, 2000), ('measure', 1, 2000)],
+                         optimization_level=0)
+
+        canvas = core.DrawerCanvas(stylesheet=self.style)
+        canvas.formatter.update({
+            'control.show_clbits': False
+        })
+        canvas.layout = {
+            'bit_arrange': layouts.qreg_creg_ascending,
+            'time_axis_map': layouts.time_map_in_dt
+        }
+        canvas.generator = {
+            'gates': [],
+            'bits': [],
+            'barriers': [],
+            'gate_links': [generators.gen_gate_link]
+        }
+
+        canvas.load_program(circ)
+        canvas.update()
+        self.assertEqual(len(canvas._output_dataset), 0)
+
+    def test_multi_measurement_with_clbit_shown(self):
+        """Test generating bit link drawings of measurements when clbits is enabled."""
+        circ = QuantumCircuit(2, 2)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        circ = transpile(circ,
+                         scheduling_method='alap',
+                         basis_gates=[],
+                         instruction_durations=[('measure', 0, 2000), ('measure', 1, 2000)],
+                         optimization_level=0)
+
+        canvas = core.DrawerCanvas(stylesheet=self.style)
+        canvas.formatter.update({
+            'control.show_clbits': True
+        })
+        canvas.layout = {
+            'bit_arrange': layouts.qreg_creg_ascending,
+            'time_axis_map': layouts.time_map_in_dt
+        }
+        canvas.generator = {
+            'gates': [],
+            'bits': [],
+            'barriers': [],
+            'gate_links': [generators.gen_gate_link]
+        }
+
+        canvas.load_program(circ)
+        canvas.update()
+        self.assertEqual(len(canvas._output_dataset), 2)
