@@ -80,7 +80,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         axis: Arbitrary object passed to the plotter. If this object is provided,
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
-        filename: If provided the output image is dumped into a file under the filename.
 
     Returns:
         Visualization output data.
