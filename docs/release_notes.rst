@@ -22,6 +22,233 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.1
+*************
+
+.. _Release Notes_0.16.1:
+
+Terra 0.16.1
+============
+
+.. _Release Notes_0.16.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue where an error was thrown in execute for valid circuits
+  built with delays.
+
+- The QASM definition of 'c4x' in qelib1.inc has been corrected to match
+  the standard library definition for C4XGate.
+
+- Fixes a bug in subtraction for quantum channels :math:`A - B` where :math:`B`
+  was an :class:`~qiskit.quantum_info.Operator` object. Negation was being
+  applied to the matrix in the Operator representation which is not equivalent
+  to negation in the quantum channel representation.
+
+- Changes the way
+  :meth:`~qiskit.quantum_info.states.statevector.Statevector._evolve_instruction`
+  access qubits to handle the case of an instruction with multiple registers.
+
+.. _Release Notes_Aer_0.7.1:
+
+Aer 0.7.1
+=========
+
+.. _Release Notes_Aer_0.7.1_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- The minimum cmake version to build qiskit-aer has increased from 3.6 to
+  3.8. This change was necessary to enable fixing GPU version builds that
+  support running on x86_64 CPUs lacking AVX2 instructions.
+
+
+.. _Release Notes_Aer_0.7.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- qiskit-aer with GPU support will now work on systems with x86_64 CPUs
+  lacking AVX2 instructions. Previously, the GPU package would only run if
+  the AVX2 instructions were available. Fixes
+  `#1023 <https://github.com/Qiskit/qiskit-aer/issues/1023>`__
+
+- Fixes bug with :class:`~qiskit.providers.aer.AerProvider` where options set
+  on the returned backends using
+  :meth:`~qiskit.providers.aer.QasmSimulator.set_options` were stored in the
+  provider and would persist for subsequent calls to
+  :meth:`~qiskit.providers.aer.AerProvider.get_backend` for the same named
+  backend. Now every call to
+  and :meth:`~qiskit.providers.aer.AerProvider.backends` returns a new
+  instance of the simulator backend that can be configured.
+
+- Fixes bug in the error message returned when a circuit contains unsupported
+  simulator instructions. Previously some supported instructions were also
+  being listed in the error message along with the unsupported instructions.
+
+- Fix bug where the `"sx"`` gate :class:`~qiskit.circuit.library.SXGate` was
+  not listed as a supported gate in the C++ code, in `StateOpSet` of
+  `matrix_product_state.hp`.
+
+- Fix bug where ``"csx"``, ``"cu2"``, ``"cu3"`` were incorrectly listed as
+  supported basis gates for the ``"density_matrix"`` method of the
+  :class:`~qiskit.providers.aer.QasmSimulator`.
+
+- In MPS, apply_kraus was operating directly on the input bits in the
+  parameter qubits, instead of on the internal qubits. In the MPS algorithm,
+  the qubits are constantly moving around so all operations should be applied
+  to the internal qubits.
+
+- When invoking MPS::sample_measure, we need to first sort the qubits to the
+  default ordering because this is the assumption in qasm_controller.This is
+  done by invoking the method move_all_qubits_to_sorted_ordering. It was
+  correct in sample_measure_using_apply_measure, but missing in
+  sample_measure_using_probabilities.
+
+
+.. _Release Notes_Ignis_0.5.1:
+
+Ignis 0.5.1
+===========
+
+.. _Release Notes_Ignis_0.5.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fix the ``"auto"`` method of the
+  :class:`~qiskit.ignis.verification.tomography.TomographyFitter`,
+  :class:`~qiskit.ignis.verification.tomography.StateTomographyFitter`, and
+  :class:`~qiskit.ignis.verification.tomography.ProcessTomographyFitter` to
+  only use ``"cvx"`` if CVXPY is installed *and* a third-party SDP solver
+  other than SCS is available. This is because the SCS solver has lower
+  accuracy than other solver methods and often returns a density matrix or
+  Choi-matrix that is not completely-positive and fails validation when used
+  with the :func:`qiskit.quantum_info.state_fidelity` or
+  :func:`qiskit.quantum_info.process_fidelity` functions.
+
+.. _Release Notes_Aqua_0.8.1:
+
+Aqua 0.8.1
+==========
+
+0.8.1
+=====
+
+.. _Release Notes_Aqua_0.8.1_New Features:
+
+New Features
+------------
+
+- A new algorithm has been added: the Born Openheimer Potential Energy surface for the
+  calculation of potential energy surface along different degrees of freedom of the molecule.
+  The algorithm is called ``BOPESSampler``. It further provides functionalities of fitting the
+  potential energy surface to an analytic function of predefined potentials.some details.
+
+
+.. _Release Notes_Aqua_0.8.1_Critical Issues:
+
+Critical Issues
+---------------
+
+- Be aware that ``initial_state`` parameter in ``QAOA`` has now different implementation
+  as a result of a bug fix. The previous implementation wrongly mixed the user provided
+  ``initial_state`` with Hadamard gates. The issue is fixed now. No attention needed if
+  your code does not make use of the user provided ``initial_state`` parameter.
+
+
+.. _Release Notes_Aqua_0.8.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- optimize_svm method of qp_solver would sometimes fail resulting in an error like this
+  `ValueError: cannot reshape array of size 1 into shape (200,1)` This addresses the issue
+  by adding an L2 norm parameter, lambda2, which defaults to 0.001 but can be changed via
+  the QSVM algorithm, as needed, to facilitate convergence.
+
+- A method ``one_letter_symbol`` has been removed from the ``VarType`` in the latest
+  build of DOCplex making Aqua incompatible with this version. So instead of using this method
+  an explicit type check of variable types has been introduced in the Aqua optimization module.
+
+- :meth`~qiskit.aqua.operators.state_fns.DictStateFn.sample()` could only handle
+  real amplitudes, but it is fixed to handle complex amplitudes.
+  `#1311 <https://github.com/Qiskit/qiskit-aqua/issues/1311>` for more details.
+
+- Trotter class did not use the reps argument in constructor.
+  `#1317 <https://github.com/Qiskit/qiskit-aqua/issues/1317>` for more details.
+
+- Raise an `AquaError` if :class`qiskit.aqua.operators.converters.CircuitSampler`
+  samples an empty operator.
+  `#1321 <https://github.com/Qiskit/qiskit-aqua/issues/1321>` for more details.
+
+- :meth:`~qiskit.aqua.operators.legacy.WeightedPauliOperator.to_opflow()`
+  returns a correct operator when coefficients are complex numbers.
+  `#1381 <https://github.com/Qiskit/qiskit-aqua/issues/1381>` for more details.
+
+- Let backend simulators validate NoiseModel support instead of restricting to Aer only
+  in QuantumInstance.
+
+- Correctly handle PassManager on QuantumInstance ``transpile`` method by
+  calling its ``run`` method if it exists.
+
+- A bug that mixes custom ``initial_state`` in ``QAOA`` with Hadamard gates has been fixed.
+  This doesn't change functionality of QAOA if no initial_state is provided by the user.
+  Attention should be taken if your implementation uses QAOA with cusom ``initial_state``
+  parameter as the optimization results might differ.
+
+- Previously, setting `seed_simulator=0` in the `QuantumInstance` did not set
+  any seed. This was only affecting the value 0. This has been fixed.
+
+
+ .. _Release Notes_IBMQ_0.8.1:
+
+IBM Q Provider 0.11.0
+=====================
+
+ .. _Release Notes_IBMQ_0.11.1_New Features:
+
+New Features
+------------
+
+- :class:`qiskit.providers.ibmq.experiment.Experiment` now has three
+  additional attributes, `hub`, `group`, and `project`, that identify
+  the provider used to create the experiment.
+
+- Methods
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.experiments` and
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.analysis_results`
+  now support a ``limit`` parameter that allows you to limit the number of
+  experiments and analysis results returned.
+
+
+.. _Release Notes_IBMQ_0.11.1_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- A new parameter, ``limit`` is now the first parameter for both
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.experiments` and
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.analysis_results`
+  methods. This ``limit`` has a default value of 10, meaning by deafult only
+  10 experiments and analysis results will be returned.
+
+
+.. _Release Notes_IBMQ_0.11.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes the issue wherein a job could be left in the ``CREATING`` state if
+  job submit fails half-way through.
+
+- Fixes the infinite loop raised when passing an ``IBMQRandomService`` instance
+  to a child process.
+
+
+*************
 Qiskit 0.23.0
 *************
 
