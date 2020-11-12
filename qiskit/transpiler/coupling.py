@@ -137,7 +137,7 @@ class CouplingMap:
         Directionality matters, i.e. a neighbor must be reachable
         by going one hop in the direction of an edge.
         """
-        return self.graph.neighbors_directed(physical_qubit, False)
+        return self.graph.neighbors(physical_qubit)
 
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
