@@ -115,6 +115,14 @@ Basis Change Circuits
 Arithmetic Circuits
 ===================
 
+Amplitude Functions
++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+
 Functional Pauli Rotations
 ++++++++++++++++++++++++++
 
@@ -125,6 +133,7 @@ Functional Pauli Rotations
    LinearPauliRotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
+   PiecewisePolynomialPauliRotations
 
 Adders
 ++++++
@@ -149,6 +158,14 @@ Functions on binary variables
    :toctree: ../stubs/
 
    QuadraticForm
+
+Amplitude Functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
 
 Particular Quantum Circuits
 ===========================
@@ -284,6 +301,7 @@ from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
+    PiecewisePolynomialPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
