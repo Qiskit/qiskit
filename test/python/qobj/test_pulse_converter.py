@@ -41,6 +41,19 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             t0=0)
         self.assertEqual(converter(0, instruction), valid_qobj)
 
+    def test_drive_instruction_no_name(self):
+        """Test converted qobj from Play without name."""
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
+        waveform = Waveform(np.arange(0, 0.01))
+        ref_label = str(waveform.id)
+
+        instruction = Play(waveform, DriveChannel(0))
+        valid_qobj = PulseQobjInstruction(
+            name=ref_label,
+            ch='d0',
+            t0=0)
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
     def test_gaussian_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
