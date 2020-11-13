@@ -33,6 +33,8 @@ from qiskit.quantum_info.states.statevector import Statevector
 
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
+    def __array__(self):
+        return self.data
 
     def __init__(self, data, dims=None):
         """Initialize a density matrix object.

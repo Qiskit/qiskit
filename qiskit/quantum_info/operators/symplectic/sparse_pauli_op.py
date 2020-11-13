@@ -41,6 +41,8 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
     """
+    def __array__(self):
+        return self.to_matrix()
 
     def __init__(self, data, coeffs=None):
         """Initialize an operator object.

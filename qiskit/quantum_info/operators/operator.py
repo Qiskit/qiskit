@@ -47,6 +47,8 @@ class Operator(BaseOperator, TolerancesMixin):
 
         \rho \mapsto M \rho M^\dagger.
     """
+    def __array__(self):
+        return self.data
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize an operator object.

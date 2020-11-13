@@ -32,6 +32,8 @@ class ScalarOp(BaseOperator, TolerancesMixin):
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
     :meth:`tensor`, :meth:`expand` methods.
     """
+    def __array__(self):
+        return self.to_matrix()
 
     def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.

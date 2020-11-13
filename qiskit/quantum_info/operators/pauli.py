@@ -64,6 +64,8 @@ class Pauli:
     over GF(2)
     Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
+    def __array__(self):
+        return self.to_matrix()
 
     def __init__(self, z=None, x=None, label=None):
         r"""Make the Pauli object.

@@ -55,6 +55,8 @@ class Choi(QuantumChannel):
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
+    def __array__(self):
+        return self.data
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Choi matrix operator.

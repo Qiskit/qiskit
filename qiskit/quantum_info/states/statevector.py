@@ -31,6 +31,8 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
+    def __array__(self):
+        return self.data
 
     def __init__(self, data, dims=None):
         """Initialize a statevector object.
