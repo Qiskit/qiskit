@@ -13,3 +13,13 @@
 """
 Pulse visualization module.
 """
+
+# interface
+from qiskit.visualization.pulse_v2.interface import draw
+
+# stylesheets
+from qiskit.visualization.pulse_v2.stylesheet import (
+    IQXStandard,
+    IQXSimple,
+    IQXDebugging
+)
