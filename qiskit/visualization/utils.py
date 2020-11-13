@@ -92,6 +92,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
+    print("Justify", justify)
     if justify:
         justify = justify.lower()
 
@@ -99,6 +100,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     justify = justify if justify in ('right', 'none') else 'left'
 
     dag = circuit_to_dag(circuit)
+    print("DAG**********", dag.layers())
     ops = []
     qregs = dag.qubits
     cregs = dag.clbits
@@ -130,7 +132,11 @@ def _sorted_nodes(dag_layer):
     """
     dag_instructions = dag_layer['graph'].op_nodes()
     # sort into the order they were input
+    for x in dag_instructions:
+        print(x.op.name, x._node_id)
     dag_instructions.sort(key=lambda nd: nd._node_id)
+    for x in dag_instructions:
+        print(x.op.name, x._node_id)
     return dag_instructions
 
 
@@ -150,8 +156,9 @@ def _get_gate_span(qregs, instruction):
 
     if instruction.cargs:
         return qregs[min_index:]
-    if instruction.condition:
-        return qregs[min_index:]
+    #if instruction.condition:
+    #    return qregs[min_index:]
+    print('INSTRUCTION-gate span', instruction.op, min_index, max_index)
 
     return qregs[min_index:max_index + 1]
 
@@ -159,10 +166,12 @@ def _get_gate_span(qregs, instruction):
 def _any_crossover(qregs, node, nodes):
     """Return True .IFF. 'node' crosses over any in 'nodes',"""
     gate_span = _get_gate_span(qregs, node)
+    print('crossover', node.op.name, gate_span)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
             all_indices += _get_gate_span(qregs, check_node)
+            print('cross check', check_node.op.name, _get_gate_span(qregs, check_node))
     return any(i in gate_span for i in all_indices)
 
 
@@ -176,13 +185,17 @@ class _LayerSpooler(list):
         self.qregs = dag.qubits
         self.justification = justification
 
+        print('len self', len(self))
         if self.justification == 'left':
 
             for dag_layer in dag.layers():
+                #print(dag_layer['graph'].__dict__)
                 current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
+                    print('curr_index', current_index, node.op.name)
                     self.add(node, current_index)
+                    print('LEN SelF', len(self))
 
         else:
             dag_layers = []
@@ -202,13 +215,19 @@ class _LayerSpooler(list):
     def is_found_in(self, node, nodes):
         """Is any qreq in node found in any of nodes?"""
         all_qargs = []
+        print('node.qargs', node.qargs)
         for a_node in nodes:
+            print('a_node', a_node.op.name)
             for qarg in a_node.qargs:
+                print('qarg', qarg)
                 all_qargs.append(qarg)
+        print('all_qargs', all_qargs)
+        print('any', any(i in node.qargs for i in all_qargs))
         return any(i in node.qargs for i in all_qargs)
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
+        print('insertable', node.op.name, nodes, _any_crossover(self.qregs, node, nodes))
         return not _any_crossover(self.qregs, node, nodes)
 
     def slide_from_left(self, node, index):
@@ -221,8 +240,9 @@ class _LayerSpooler(list):
             inserted = False
             curr_index = index
             last_insertable_index = None
-
+            print('in slide current_index', curr_index)
             while curr_index > -1:
+                print('In while', node.op.name, curr_index)
                 if self.is_found_in(node, self[curr_index]):
                     break
                 if self.insertable(node, self[curr_index]):
@@ -230,10 +250,12 @@ class _LayerSpooler(list):
                 curr_index = curr_index - 1
 
             if last_insertable_index:
+                print('LAST INS True', last_insertable_index)
                 self[last_insertable_index].append(node)
                 inserted = True
 
             else:
+                print('Last Ins False')
                 inserted = False
                 curr_index = index
                 while curr_index < len(self):
