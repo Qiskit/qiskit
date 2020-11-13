@@ -58,18 +58,18 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
 
         np.testing.assert_almost_equal(unrolled_probabilities, unrolled_expectations)
 
-    @data((1, [0, 2], [[1]]),
-          (2, [0, 2, 4], [[2], [-0.5, 1]]),
-          (3, [0, 2, 5, 8], [[1, 0, -1], [2, 1], [1, 1, 1]]),
-          (4, [2, 5, 7, 16], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
-          (3, [0, 1, 8], [[1, 0], [1, -2]]),
+    @data((1, [0], [[1]]),
+          (2, [0, 2], [[2], [-0.5, 1]]),
+          (3, [0, 2, 5], [[1, 0, -1], [2, 1], [1, 1, 1]]),
+          (4, [2, 5, 7], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
+          (3, [0, 1], [[1, 0], [1, -2]]),
           )
     @unpack
     def test_piecewise_polynomial_function(self, num_state_qubits, breakpoints, coeffs):
         """Test the piecewise linear rotations."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints[:-1])):
+            for i, point in enumerate(reversed(breakpoints)):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
@@ -86,7 +86,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         """Test the mutability of the linear rotations circuit."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints[:-1])):
+            for i, point in enumerate(reversed(breakpoints)):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
@@ -105,7 +105,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
             self.assertFunctionIsCorrect(pw_polynomial_rotations, lambda x: 1 / 2)
 
         with self.subTest(msg='setting non-default values'):
-            breakpoints = [0, 2, 4]
+            breakpoints = [0, 2]
             coeffs = [[0, -2 * 1.2], [-2 * 1, 2 * 1, 2 * 3]]
             pw_polynomial_rotations.breakpoints = breakpoints
             pw_polynomial_rotations.coeffs = coeffs
@@ -113,7 +113,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
 
         with self.subTest(msg='changing all values'):
             pw_polynomial_rotations.num_state_qubits = 4
-            breakpoints = [1, 3, 6, 16]
+            breakpoints = [1, 3, 6]
             coeffs = [[0, -2 * 1.2], [-2 * 1, 2 * 1, 2 * 3], [-2 * 2]]
             pw_polynomial_rotations.breakpoints = breakpoints
             pw_polynomial_rotations.coeffs = coeffs
