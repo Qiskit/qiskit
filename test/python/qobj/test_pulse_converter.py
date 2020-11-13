@@ -45,7 +45,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from Play without name."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         waveform = Waveform(np.arange(0, 0.01))
-        ref_label = str(waveform.id)
+        ref_label = str(hash(waveform.samples.tostring()))
 
         instruction = Play(waveform, DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
@@ -73,7 +73,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         gaussian = Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j)
-        ref_label = str(gaussian.id)
+        ref_label = str(hash(tuple(gaussian.parameters.values())))
 
         instruction = Play(gaussian, DriveChannel(0))
         valid_qobj = PulseQobjInstruction(

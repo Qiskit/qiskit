@@ -350,11 +350,14 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        pulse_name = str(instruction.pulse.name or instruction.pulse.id)
         start_time = shift + instruction.start_time
         channel = instruction.channel.name
 
         if isinstance(instruction.pulse, library.ParametricPulse):
+            if instruction.pulse.name:
+                pulse_name = instruction.pulse.name
+            else:
+                pulse_name = str(hash(tuple(instruction.pulse.parameters.values())))
             command_dict = {
                 'name': 'parametric_pulse',
                 'label': pulse_name,
@@ -364,6 +367,10 @@ class InstructionToQobjConverter:
                 'parameters': instruction.pulse.parameters
             }
         else:
+            if instruction.pulse.name:
+                pulse_name = instruction.pulse.name
+            else:
+                pulse_name = str(hash(instruction.pulse.samples.tostring()))
             command_dict = {
                 'name': pulse_name,
                 't0': start_time,
