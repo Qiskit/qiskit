@@ -244,9 +244,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
-        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j),
-                           DriveChannel(0),
-                           name='pulse1')
+        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name='pulse1'),
+                           DriveChannel(0))
         qobj = PulseQobjInstruction(
             name='parametric_pulse',
             label='pulse1',
@@ -258,6 +257,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.start_time, 0)
         self.assertEqual(converted_instruction.duration, 25)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+        self.assertEqual(converted_instruction.instructions[0][-1].pulse.name, 'pulse1')
 
     def test_frame_change(self):
         """Test converted qobj from ShiftPhase."""
