@@ -731,7 +731,7 @@ class NLocal(BlueprintCircuit):
                 parametrized_block = self._parametrize_block(block, params=params)
                 layer.compose(parametrized_block, i)
 
-            self += layer
+            self.compose(layer, inplace=True)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
@@ -826,7 +826,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parametrized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
@@ -842,7 +842,7 @@ class NLocal(BlueprintCircuit):
                 layer.compose(parametrized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build_additional_layers(self, which):
         if which == 'appended':
@@ -861,7 +861,7 @@ class NLocal(BlueprintCircuit):
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
-            self += layer
+            self.compose(layer, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -878,7 +878,7 @@ class NLocal(BlueprintCircuit):
         # use the initial state circuit if it is not None
         if self._initial_state:
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
-            self += circuit
+            self.compose(circuit, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 

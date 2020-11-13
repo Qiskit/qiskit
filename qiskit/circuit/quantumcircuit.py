@@ -706,10 +706,19 @@ class QuantumCircuit:
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
+        warnings.warn("The QuantumCircuit.__add__() method is being deprecated."
+                      "Use the compose() method which is more flexible w.r.t "
+                      "circuit register compatibility.", DeprecationWarning,
+                      stacklevel=2)
         return self.combine(rhs)
 
     def __iadd__(self, rhs):
         """Overload += to implement self.extend."""
+        warnings.warn("The QuantumCircuit.__iadd__() method is being deprecated. Use the "
+                      "compose() (potentially with the inplace=True argument) and tensor() "
+                      "methods which are more flexible w.r.t "
+                      "circuit register compatibility.", DeprecationWarning,
+                      stacklevel=2)
         return self.extend(rhs)
 
     def __len__(self):
