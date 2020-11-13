@@ -690,6 +690,76 @@ class QuantumCircuit:
 
         return dest
 
+    def tensor(self, other):
+        """Tensor ``self`` with ``other``.
+
+        Remember that in the little-endian convention the leftmost operation will be at the bottom
+        of the circuit. See also
+        [the docs](qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html)
+        for more information.
+
+        .. parsed-literal::
+
+                 ┌────────┐        ┌─────┐          ┌─────┐
+            q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
+                 └────────┘        └─────┘         ┌┴─────┴─┐
+                                              q_1: ┤ bottom ├
+                                                   └────────┘
+
+        Args:
+            other (QuantumCircuit): The other circuit to tensor this circuit with.
+
+        Examples:
+
+            >>> from qiskit import QuantumCircuit
+            >>> top = QuantumCircuit(1)
+            >>> top.x(0);
+            >>> bottom = QuantumCircuit(2)
+            >>> bottom.cry(0.2, 0, 1);
+            >>> bottom.tensor(top).draw()
+                    ┌───┐
+            q_0: ───┤ X ├───
+                    └───┘
+            q_1: ─────■─────
+                 ┌────┴────┐
+            q_2: ┤ RY(0.2) ├
+                 └─────────┘
+
+        Returns:
+            QuantumCircuit: The tensored circuit (returns None if inplace==True).
+        """
+        num_qubits = self.num_qubits + other.num_qubits
+        num_clbits = self.num_clbits + other.num_clbits
+
+        # If a user defined both circuits with via register sizes and not with named registers
+        # (e.g. QuantumCircuit(2, 2)) then we have a naming collision, as the registers are by
+        # default called "q" resp. "c". To still allow tensoring we define new registers of the
+        # correct sizes.
+        if len(self.qregs) == len(other.qregs) == 1 and \
+                self.qregs[0].name == other.qregs[0].name == 'q':
+            # check if classical registers are in the circuit
+            if num_clbits > 0:
+                dest = QuantumCircuit(num_qubits, num_clbits)
+            else:
+                dest = QuantumCircuit(num_qubits)
+
+        # handle case if ``measure_all`` was called on both circuits, in which case the
+        # registers are both named "meas"
+        elif len(self.cregs) == len(other.cregs) == 1 and \
+                self.cregs[0].name == other.cregs[0].name == 'meas':
+            cr = ClassicalRegister(self.num_clbits + other.num_clbits, 'meas')
+            dest = QuantumCircuit(*other.qregs, *self.qregs, cr)
+
+        # Now we don't have to handle any more cases arising from special implicit naming
+        else:
+            dest = QuantumCircuit(*other.qregs, *self.qregs, *other.cregs, *self.cregs)
+
+        # compose self onto the output, and then other
+        dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
+        dest.compose(self, range(other.num_qubits, num_qubits),
+                     range(other.num_clbits, num_clbits), inplace=True)
+        return dest
+
     @property
     def qubits(self):
         """
