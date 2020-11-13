@@ -655,7 +655,7 @@ class QobjToInstructionConverter:
         try:
             pulse_name = instruction.label
         except AttributeError:
-            pulse_name = None
+            pulse_name = str(hash(tuple(instruction.parameters.values())))
 
         pulse = ParametricPulseShapes[instruction.pulse_shape].value(
             **instruction.parameters,
