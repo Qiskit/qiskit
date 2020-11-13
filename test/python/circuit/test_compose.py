@@ -442,6 +442,15 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(circ.calibrations), 2)
         self.assertEqual(len(circ_left.calibrations), 1)
 
+        circ_left = QuantumCircuit(1)
+        circ_left.add_calibration('h', [0], None)
+        circ_right = QuantumCircuit(1)
+        circ_right.add_calibration('h', [1], None)
+        circ = circ_left.compose(circ_right)
+        self.assertEqual(len(circ.calibrations), 1)
+        self.assertEqual(len(circ.calibrations['h']), 2)
+        self.assertEqual(len(circ_left.calibrations), 1)
+
     def test_compose_one_liner(self):
         """Test building a circuit in one line, for fun.
         """

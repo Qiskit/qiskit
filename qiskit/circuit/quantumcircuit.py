@@ -681,7 +681,12 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
-        dest._calibrations.update(other.calibrations)
+
+        for gate, cals in other.calibrations.items():
+            if gate in dest._calibrations:
+                dest._calibrations[gate].update(cals)
+            else:
+                dest._calibrations[gate] = cals
 
         dest.global_phase += other.global_phase
 
