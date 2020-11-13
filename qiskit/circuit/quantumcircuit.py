@@ -21,6 +21,7 @@ import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
+import itertools
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
@@ -493,6 +494,9 @@ class QuantumCircuit:
 
         return controlled_circ
 
+    @deprecate_function('The QuantumCircuit.combine() method is being deprecated. '
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def combine(self, rhs):
         """DEPRECATED - Returns rhs appended to self if self contains compatible registers.
 
@@ -512,16 +516,28 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
-        warnings.warn("The QuantumCircuit.combine() method is being deprecated."
-                      "Use the compose() method which is more flexible w.r.t "
-                      "circuit register compatibility.", DeprecationWarning,
-                      stacklevel=2)
-
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
-        return self.compose(rhs)
+        # Make new circuit with combined registers
+        combined_qregs = copy.deepcopy(self.qregs)
+        combined_cregs = copy.deepcopy(self.cregs)
 
+        for element in rhs.qregs:
+            if element not in self.qregs:
+                combined_qregs.append(element)
+        for element in rhs.cregs:
+            if element not in self.cregs:
+                combined_cregs.append(element)
+        circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
+        for instruction_context in itertools.chain(self.data, rhs.data):
+            circuit._append(*instruction_context)
+        circuit.global_phase = self.global_phase + rhs.global_phase
+        return circuit
+
+    @deprecate_function('The QuantumCircuit.extend() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def extend(self, rhs):
         """DEPRECATED - Append QuantumCircuit to the RHS if it contains compatible registers.
 
@@ -541,12 +557,6 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the rhs circuit is not compatible
         """
-        warnings.warn("The QuantumCircuit.extend() method is being deprecated. Use the "
-                      "compose() (potentially with the inplace=True argument) and tensor() "
-                      "methods which are more flexible w.r.t "
-                      "circuit register compatibility.", DeprecationWarning,
-                      stacklevel=2)
-
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -777,21 +787,18 @@ class QuantumCircuit:
         """
         return self._ancillas
 
+    @deprecate_function('The QuantumCircuit.__add__() method is being deprecated.'
+                        'Use the compose() method which is more flexible w.r.t '
+                        'circuit register compatibility.')
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
-        warnings.warn("The QuantumCircuit.__add__() method is being deprecated."
-                      "Use the compose() method which is more flexible w.r.t "
-                      "circuit register compatibility.", DeprecationWarning,
-                      stacklevel=2)
         return self.combine(rhs)
 
+    @deprecate_function('The QuantumCircuit.__iadd__() method is being deprecated. Use the '
+                        'compose() (potentially with the inplace=True argument) and tensor() '
+                        'methods which are more flexible w.r.t circuit register compatibility.')
     def __iadd__(self, rhs):
         """Overload += to implement self.extend."""
-        warnings.warn("The QuantumCircuit.__iadd__() method is being deprecated. Use the "
-                      "compose() (potentially with the inplace=True argument) and tensor() "
-                      "methods which are more flexible w.r.t "
-                      "circuit register compatibility.", DeprecationWarning,
-                      stacklevel=2)
         return self.extend(rhs)
 
     def __len__(self):
