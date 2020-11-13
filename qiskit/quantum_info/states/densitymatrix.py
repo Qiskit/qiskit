@@ -20,9 +20,8 @@ import numpy as np
 
 try:
     from IPython.display import Math, Markdown, display
-    HAS_IPYTHON = True
 except ImportError:
-    HAS_IPYTHON = False
+    pass
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
@@ -105,26 +104,17 @@ class DensityMatrix(QuantumState):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        prefix = 'DensityMatrix('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self._data, separator=', ', prefix=prefix),
-            pad, self._dims)
+        return self.draw('text')
 
-    def draw(self, output=None, dims=True):
-        if output=='markdown':
-            from qiskit.visualization.array import _matrix_to_latex
-            latex_str = _matrix_to_latex(self._data)
-            ret = "DensityMatrix object: dims={}".format(self._dims)
-            ret += latex_str.replace('$$', '')  # TODO _matrix_to_latex return without math env
-            return ret
-
-        # from qiskit.visualization import matrix_drawer
-        # return matrix_drawer(output, data=self._data, dims=self._dims)
+    def draw(self,
+             output='text',
+             max_size=(8,8),
+             dims=True):
+        from qiskit.visualization.state_visualization import state_drawer
+        return state_drawer(self, output=output, max_size=max_size, dims=dims)
 
     def _ipython_display_(self):
-        display(Markdown(self.draw('markdown')))
+        display(self.draw('markdown'))
 
     @property
     def data(self):

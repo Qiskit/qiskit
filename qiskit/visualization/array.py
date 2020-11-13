@@ -130,7 +130,7 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
                               than 3.
 
         Returns:
-            str: Latex representation of the matrix, wrapped in $$
+            str: Latex representation of the matrix
 
         Raises:
             ValueError: If minimum value in max_size < 3
@@ -138,7 +138,7 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
 
-    out_string = "\n$$\n{}\n".format(pretext)
+    out_string = "\n{}\n".format(pretext)
     out_string += "\\begin{bmatrix}\n"
 
     def _elements_to_latex(elements):
@@ -183,5 +183,5 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
 
     else:
         out_string += _rows_to_latex(matrix, max_width)
-    out_string += "\\end{bmatrix}\n$$"
+    out_string += "\\end{bmatrix}\n"
     return out_string

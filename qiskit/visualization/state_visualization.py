@@ -24,7 +24,14 @@ import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.util import deprecate_arguments
+from qiskit.visualization.array import _matrix_to_latex
 from .matplotlib import HAS_MATPLOTLIB
+
+try:
+    from IPython.display import Markdown
+    HAS_IPYTHON = True
+except ImportError:
+    HAS_IPYTHON = False
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
@@ -1023,3 +1030,68 @@ def _shade_colors(color, normals, lightsource=None):
         colors = np.asanyarray(color).copy()
 
     return colors
+
+
+def repr_state_latex(state, max_size=(8,8)):
+    latex_str = _matrix_to_latex(state._data, max_size=max_size)
+    return latex_str
+
+def repr_state_markdown(state, max_size=(8,8)):
+    latex_str = repr_state_latex(state, max_size=max_size)
+    description = "{state_type} object: dims={dims}".format(state_type=type(state).__name__,
+                                                    dims=state._dims)
+    return description + latex_str
+
+def repr_state_text(state):
+        prefix = '{}('.format(type(state).__name__)
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                state._data, separator=', ', prefix=prefix),
+            pad, state._dims)
+
+class TextMatrix():
+    def __init__(self, text_repr):
+        self.value = text_repr
+
+    def __str__(self):
+        return self.value
+    
+    def __repr__(self):
+        return self.value
+
+def state_drawer(state,
+                 output=None,
+                 max_size=(8,8),
+                 dims=None
+                 ):
+    # sort inputs:
+    if output is None:
+        output = 'text'
+    if type(max_size) is int:
+        max_size = (max_size, max_size)
+
+    # choose drawing:
+    if output == 'text':
+        return TextMatrix(repr_state_text(state))
+    if output == 'markdown_source':
+        return repr_state_markdown(state, max_size=max_size)
+    if output == 'markdown':
+        if HAS_IPYTHON:
+            return Markdown(repr_state_markdown(state, max_size=max_size))
+        else:
+            raise ImportError('IPython is not installed, to install run:'
+                              '"pip install ipython".')
+    if output == 'latex_source':
+        return repr_state_latex(state, max_size=max_size)
+    if output == 'qsphere':
+        return plot_state_qsphere(state)
+    if output == 'hinton':
+        return plot_state_hinton(state)
+    if output == 'bloch':
+        return plot_bloch_multivector(state)
+    
+    raise ValueError(
+        """'{}' is not a valid option for drawing {} objects. Please choose from:
+        'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton', 
+        'bloch'.""".format(output, type(state).__name__))
