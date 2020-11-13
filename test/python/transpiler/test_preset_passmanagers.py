@@ -17,7 +17,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
@@ -182,7 +182,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertEqual(len(transpiled._layout), 2)
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([qr[0], qr[1]]))
 
     @data(0, 1, 2, 3)
     def test_partial_layout_fully_connected_cm(self, level):
@@ -199,7 +199,9 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
-        self.assertEqual(len(transpiled._layout), 5)
+        ancilla = QuantumRegister(3, 'ancilla')
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1],
+                                                                     ancilla[2], qr[0]]))
 
 
 @ddt
