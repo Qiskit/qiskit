@@ -366,7 +366,7 @@ class MatplotlibDrawer:
 
         if gate_text in self._style['disptex']:
             gate_text = "{}".format(self._style['disptex'][gate_text])
-        elif gate_text == op.name or gate_text == base_name:
+        elif gate_text in (op.name, base_name):
             gate_text = gate_text.capitalize()
 
         return gate_text, ctrl_text
