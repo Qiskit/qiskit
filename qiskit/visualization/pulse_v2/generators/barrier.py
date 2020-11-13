@@ -14,13 +14,12 @@
 
 """Barrier generators.
 
-A collection of functions that generate a drawing object for an input barrier instruction.
-See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
-data.
+A collection of functions that generate drawings from formatted input data.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required data.
 
 In this module the input data is `types.BarrierInstruction`.
 
-An end-user can write arbitrary functions that generate custom drawing objects.
+An end-user can write arbitrary functions that generate custom drawings.
 Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
@@ -40,13 +39,13 @@ the plotter API.
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_barrier(data: types.BarrierInstruction,
                 formatter: Dict[str, Any],
                 device: device_info.DrawerBackendInfo
-                ) -> List[drawing_objects.LineData]:
+                ) -> List[drawings.LineData]:
     """Generate the barrier from provided relative barrier instruction.
 
     Stylesheets:
@@ -57,7 +56,7 @@ def gen_barrier(data: types.BarrierInstruction,
         formatter: Dictionary of stylesheet settings.
         device: Backend configuration.
     Returns:
-        List of `LineData` drawing objects.
+        List of `LineData` drawings.
     """
     style = {'alpha': formatter['alpha.barrier'],
              'zorder': formatter['layer.barrier'],
@@ -65,11 +64,11 @@ def gen_barrier(data: types.BarrierInstruction,
              'linestyle': formatter['line_style.barrier'],
              'color': formatter['color.barrier']}
 
-    line = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
-                                    channels=data.channels,
-                                    xvals=[data.t0, data.t0],
-                                    yvals=[types.AbstractCoordinate.BOTTOM,
-                                           types.AbstractCoordinate.TOP],
-                                    styles=style)
+    line = drawings.LineData(data_type=types.LineType.BARRIER,
+                             channels=data.channels,
+                             xvals=[data.t0, data.t0],
+                             yvals=[types.AbstractCoordinate.BOTTOM,
+                                    types.AbstractCoordinate.TOP],
+                             styles=style)
 
     return [line]

@@ -171,7 +171,7 @@ class BoxOnQuWire(DrawElement):
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
-        self.bot_connect = '┬' if conditional else '─'
+        self.bot_connect = '╥' if conditional else '─'
         self.mid_content = label
         self.top_connector = {"│": '┴'}
         self.bot_connector = {"│": '┬'}
@@ -302,7 +302,7 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
         self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
-        self.bot_connect = '┬' if conditional else bot_connect
+        self.bot_connect = '╥' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
         if input_length <= 2:
@@ -395,7 +395,7 @@ class Ex(DirectOnQuWire):
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
-        self.bot_connect = "│" if conditional else bot_connect
+        self.bot_connect = "║" if conditional else bot_connect
         self.top_connect = top_connect
 
 
@@ -405,7 +405,7 @@ class Reset(DirectOnQuWire):
     def __init__(self, conditional=False):
         super().__init__("|0>")
         if conditional:
-            self.bot_connect = "│"
+            self.bot_connect = "║"
 
 
 class Bullet(DirectOnQuWire):
@@ -422,7 +422,7 @@ class Bullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('■')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -444,7 +444,7 @@ class OpenBullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('o')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -716,7 +716,7 @@ class TextDrawing():
         if self.vertical_compression == 'low':
             return False
         for top, bot in zip(top_line, bot_line):
-            if top == '┴' and bot == '┬':
+            if top in ['┴', '╨'] and bot in ['┬', '╥']:
                 return False
         for line in (bot_line, top_line):
             no_spaces = line.replace(' ', '')
@@ -959,7 +959,7 @@ class TextDrawing():
         if instruction.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='┴')
+            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
