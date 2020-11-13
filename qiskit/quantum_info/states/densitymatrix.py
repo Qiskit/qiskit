@@ -106,10 +106,7 @@ class DensityMatrix(QuantumState):
     def __repr__(self):
         return self.draw('text')
 
-    def draw(self,
-             output='text',
-             max_size=(8,8),
-             dims=True):
+    def draw(self, output='text', max_size=None, dims=True):
         from qiskit.visualization.state_visualization import state_drawer
         return state_drawer(self, output=output, max_size=max_size, dims=dims)
 

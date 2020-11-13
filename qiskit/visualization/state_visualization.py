@@ -1051,29 +1051,43 @@ def repr_state_text(state):
             pad, state._dims)
 
 class TextMatrix():
-    def __init__(self, text_repr):
-        self.value = text_repr
+    def __init__(self, state, max_size, dims):
+        self.state = state
+        self.max_size = max_size
+        self.dims = dims
 
     def __str__(self):
-        return self.value
-    
+        # TODO sometime tabulated
+        # https://stackoverflow.com/questions/9535954/printing-lists-as-tabular-data
+        obj_name = type(self.state).__name__
+        prefix = f'{obj_name}('
+        pad = len(prefix) * ' '
+        # if self.dims:
+
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self.state._data, separator=', ', prefix=prefix),
+            pad, self.state._dims)
+
     def __repr__(self):
-        return self.value
+        return self.__str__()
 
 def state_drawer(state,
                  output=None,
-                 max_size=(8,8),
+                 max_size=None,
                  dims=None
                  ):
     # sort inputs:
     if output is None:
         output = 'text'
+    if max_size is None:
+        max_size = (8, 8)
     if type(max_size) is int:
         max_size = (max_size, max_size)
 
     # choose drawing:
     if output == 'text':
-        return TextMatrix(repr_state_text(state))
+        return TextMatrix(state, max_size, dims)
     if output == 'markdown_source':
         return repr_state_markdown(state, max_size=max_size)
     if output == 'markdown':
@@ -1083,7 +1097,7 @@ def state_drawer(state,
             raise ImportError('IPython is not installed, to install run:'
                               '"pip install ipython".')
     if output == 'latex_source':
-        return repr_state_latex(state, max_size=max_size)
+        return repr_state_latex(state, max_size)
     if output == 'qsphere':
         return plot_state_qsphere(state)
     if output == 'hinton':

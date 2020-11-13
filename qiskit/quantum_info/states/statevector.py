@@ -100,16 +100,12 @@ class Statevector(QuantumState):
                 self.data, separator=', ', prefix=prefix),
             pad, self._dims)
 
-    def _repr_latex_(self):
-        from qiskit.visualization.array import _matrix_to_latex
-
-        latex_str = _matrix_to_latex(self._data)
-        return latex_str
+    def draw(self, output='text', max_size=None, dims=True):
+        from qiskit.visualization.state_visualization import state_drawer
+        return state_drawer(self, output=output, max_size=max_size, dims=dims)
 
     def _ipython_display_(self):
-        latex_str = self._repr_latex_()
-        display(Markdown("Statevector object: dims={}".format(self._dims)))
-        display(Math(latex_str))
+        display(self.draw('markdown'))
 
     @property
     def data(self):
