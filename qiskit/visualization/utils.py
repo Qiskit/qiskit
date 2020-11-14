@@ -22,7 +22,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, Clbit
+from qiskit.circuit.exceptions import CircuitError
 
 try:
     import PIL
@@ -102,24 +103,16 @@ def _get_layered_instructions(circuit, reverse_bits=False,
 
     dag = circuit_to_dag(circuit)
 
-    for x in dag.nodes():
-        print('Node', x._op)
-    for x in dag.layers():
-        print('\npart', x['partition'])
-        print('layer', x['graph'])
-        print("DAG**********", x['graph'].node_counter, '\n')
-        for y in x['graph'].op_nodes():
-            print('Node', y.type, y._op)
-    print()
-
     ops = []
     qregs = dag.qubits
     cregs = dag.clbits
 
-    print(cregs)
-    measure_map = OrderedDict([(i.index, -1) for i in cregs])
-    print(measure_map)
-    print(measure_map[1])
+    # print(cregs)
+    # Create a mapping of each creg to the layer number for any measure op with
+    # that creg as the target. Then when a node with condition is seen, it will
+    # be placed to the right of the measure op if the creg matches.
+    measure_map = OrderedDict([(c, -1) for c in cregs])
+    # print(measure_map)
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
@@ -128,8 +121,8 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     else:
         ops = _LayerSpooler(dag, justify, measure_map)
 
-    print(ops)
-    print(measure_map)
+    # print(ops)
+    # print(measure_map)
     if reverse_bits:
         qregs.reverse()
         cregs.reverse()
@@ -150,11 +143,7 @@ def _sorted_nodes(dag_layer):
     """
     dag_instructions = dag_layer['graph'].op_nodes()
     # sort into the order they were input
-    for x in dag_instructions:
-        print('Sorted nodes', x.op.name, x._node_id)
     dag_instructions.sort(key=lambda nd: nd._node_id)
-    for x in dag_instructions:
-        print(x.op.name, x._node_id)
     return dag_instructions
 
 
@@ -176,7 +165,6 @@ def _get_gate_span(qregs, instruction):
         return qregs[min_index:]
     if instruction.condition:
         return qregs[min_index:]
-    #print('INSTRUCTION-gate span', instruction.op, min_index, max_index)
 
     return qregs[min_index:max_index + 1]
 
@@ -184,12 +172,10 @@ def _get_gate_span(qregs, instruction):
 def _any_crossover(qregs, node, nodes):
     """Return True .IFF. 'node' crosses over any in 'nodes',"""
     gate_span = _get_gate_span(qregs, node)
-    #print('crossover', node.op.name, gate_span)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
             all_indices += _get_gate_span(qregs, check_node)
-            #print('cross check', check_node.op.name, _get_gate_span(qregs, check_node))
     return any(i in gate_span for i in all_indices)
 
 
@@ -204,25 +190,14 @@ class _LayerSpooler(list):
         self.justification = justification
         self.measure_map = measure_map
 
-        print('len self', len(self))
         if self.justification == 'left':
-
             for dag_layer in dag.layers():
-                #print(dag_layer['graph'].__dict__)
                 current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
-                    print('curr_index', current_index, node.op.name)
                     self.add(node, current_index)
-                    #print('LEN SelF', len(self))
-                    for i, s in enumerate(self):
-                        print('Layer', i)
-                        for ss in s:
-                            print('List object', ss._op)
-
         else:
             dag_layers = []
-
             for dag_layer in dag.layers():
                 dag_layers.append(dag_layer)
 
@@ -238,79 +213,69 @@ class _LayerSpooler(list):
     def is_found_in(self, node, nodes):
         """Is any qreq in node found in any of nodes?"""
         all_qargs = []
-        print('node.qargs', node.qargs)
         for a_node in nodes:
-            print('a_node', a_node.op.name)
             for qarg in a_node.qargs:
-                print('qarg', qarg)
                 all_qargs.append(qarg)
-        print('all_qargs', all_qargs)
-        print('any', any(i in node.qargs for i in all_qargs))
         return any(i in node.qargs for i in all_qargs)
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        print('insertable', node.op.name, nodes, not _any_crossover(self.qregs, node, nodes))
         return not _any_crossover(self.qregs, node, nodes)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
-        print("Sliding node", node.op, node.cargs)
-        measure_pos = None
+        measure_layer = None
         if isinstance(node.op, Measure):
-            print("FOUND MEASURE ********************", node.op, node.cargs[0].index)
-            measure_index = node.cargs[0].index
-            #self.measure_map[measure_index][0] = True
-        if not self:
-            print('First insert', node._op)
-            self.append([node])
-            inserted = True
+            measure_index = node.cargs[0]
 
+        if not self:
+            inserted = True
+            self.append([node])
         else:
             inserted = False
             curr_index = index
             index_stop = -1
             if node.condition:
-                print('NODE CONDITION ************', int(node.condition[1] / 2))
-                index_stop = self.measure_map[int(node.condition[1] / 2)]
-            last_insertable_index = None
-            print('in slide current_index', curr_index)
+                rightmost_layer = -1
+                cond_vals = [int(digit) for digit in bin(node.condition[1])[2:]][::-1]
+                for i, _ in enumerate(cond_vals):
+                    try:
+                        if cond_vals[i]:
+                            index_stop = self.measure_map[Clbit(node.condition[0], i)]
+                            if index_stop > rightmost_layer:
+                                rightmost_layer = index_stop
+                    except (KeyError, CircuitError):
+                        break
+                index_stop = rightmost_layer
+            last_insertable_index = -1
             while curr_index > index_stop:
-                print('In while before is found in', node.op.name, curr_index)
                 if self.is_found_in(node, self[curr_index]):
                     break
-                print("Before insertable 1")
                 if self.insertable(node, self[curr_index]):
                     last_insertable_index = curr_index
                 curr_index = curr_index - 1
 
-            if last_insertable_index is not None:
-                print('LAST INS True', last_insertable_index)
-                self[last_insertable_index].append(node)
-                measure_pos = last_insertable_index
+            if last_insertable_index >= 0:
                 inserted = True
-
+                self[last_insertable_index].append(node)
+                measure_layer = last_insertable_index
             else:
-                print('Last Ins False')
                 inserted = False
                 curr_index = index
                 while curr_index < len(self):
-                    print('curr, len', curr_index, len(self))
-                    print("Before insertable 2")
                     if self.insertable(node, self[curr_index]):
                         self[curr_index].append(node)
-                        measure_pos = curr_index
+                        measure_layer = curr_index
                         inserted = True
-                        print('Pre-break')
                         break
                     curr_index = curr_index + 1
 
         if not inserted:
-            print("Appended", node._op)
             self.append([node])
+
         if isinstance(node.op, Measure):
-            measure_pos = measure_pos if measure_pos else len(self) - 1
-            self.measure_map[measure_index] = measure_pos
+            measure_layer = measure_layer if measure_layer else len(self) - 1
+            self.measure_map[measure_index] = measure_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
