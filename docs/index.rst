@@ -28,6 +28,7 @@ Qiskit consists of four foundational elements:
   :maxdepth: 2
   :hidden:
 
+  Quantum computing in a nutshell <qc_intro>
   install
   getting_started
   the_elements
