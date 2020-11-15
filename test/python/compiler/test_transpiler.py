@@ -257,6 +257,22 @@ class TestTranspile(QiskitTestCase):
         self.assertIsInstance(circuits[0], QuantumCircuit)
         self.assertIsInstance(circuits[1], QuantumCircuit)
 
+    def test_transpile_singleton(self):
+        """Test transpile a single-element list with a circuit.
+        See https://github.com/Qiskit/qiskit-terra/issues/5260"""
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        circuits = transpile([qc], backend)
+        self.assertEqual(len(circuits), 1)
+        self.assertIsInstance(circuits[0], QuantumCircuit)
+
     def test_mapping_correction(self):
         """Test mapping works in previous failed case.
         """
