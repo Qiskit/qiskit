@@ -22,8 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure, Clbit
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit import Measure
 
 try:
     import PIL
@@ -107,10 +106,10 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     qregs = dag.qubits
     cregs = dag.clbits
 
-    # Create a mapping of each creg to the layer number for any measure op with
-    # that creg as the target. Then when a node with condition is seen, it will
-    # be placed to the right of the measure op if the creg matches.
-    measure_map = OrderedDict([(c, -1) for c in cregs])
+    # Create a mapping of each register to the max layer number for all measure ops
+    # with that register as the target. Then when a node with condition is seen,
+    # it will be placed to the right of the measure op if the register matches.
+    measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
@@ -219,10 +218,9 @@ class _LayerSpooler(list):
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
-
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_index = node.cargs[0]
+            measure_reg = node.cargs[0].register
 
         if not self:
             inserted = True
@@ -230,19 +228,7 @@ class _LayerSpooler(list):
         else:
             inserted = False
             curr_index = index
-            index_stop = -1
-            if node.condition:
-                rightmost_layer = -1
-                cond_vals = [int(digit) for digit in bin(node.condition[1])[2:]][::-1]
-                for i, val in enumerate(cond_vals):
-                    try:
-                        if val:
-                            index_stop = self.measure_map[Clbit(node.condition[0], i)]
-                            if index_stop > rightmost_layer:
-                                rightmost_layer = index_stop
-                    except (KeyError, CircuitError):
-                        break
-                index_stop = rightmost_layer
+            index_stop = -1 if not node.condition else self.measure_map[node.condition[0]]
             last_insertable_index = -1
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
@@ -270,8 +256,10 @@ class _LayerSpooler(list):
             self.append([node])
 
         if isinstance(node.op, Measure):
-            measure_layer = measure_layer if measure_layer else len(self) - 1
-            self.measure_map[measure_index] = measure_layer
+            if not measure_layer:
+                measure_layer = len(self) - 1
+            if measure_layer > self.measure_map[measure_reg]:
+                self.measure_map[measure_reg] = measure_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
