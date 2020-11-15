@@ -12,16 +12,16 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
-import numpy as np
 import re
 import warnings
 import zlib
-
 from enum import Enum
 
+import numpy as np
+
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -704,6 +704,14 @@ def unique_pulse_name(name, channel, oper):
     The pulse id is generated from its operand values, i.e. `parameters` for ParametricPulse
     and `samples` for Waveform, with CRC-32 code. The id is converted into hex representation
     and thus extra 8 characters are appended to the pulse name and channel.
+
+    Args:
+        name: Name of pulse shape type.
+        channel: Name of channel to apply the pulse.
+        oper: Operand value that is fed into pulse generation function.
+
+    Returns:
+        str: Unique pulse name.
     """
     if isinstance(oper, dict):
         sorted_params = sorted(tuple(oper.items()), key=lambda x: x[0])
