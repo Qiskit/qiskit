@@ -1011,21 +1011,16 @@ def _reduce_to_stack(schedule):
     """
 
     new_schedule = []
-    # Keep track of new instructions time
-    real_time = 0
-
     for inst in schedule.instructions:
         time, action = inst
         # Check if the action is a Delay()
         if re.search(r'\bDelay\b', str(action)):
-            delay = re.findall(r'\((\d+)', str(action)) # Find how long the delay is
-            real_time += int(delay[0])
-        # Check if the action is a ShiftPhase()
+            continue
+        # Check if the is a ShiftPhase()
         elif re.search(r'\bShiftPhase\b', str(action)):
             phase = re.findall(r'\((\d+)', str(action)) # Find the phase
             if int(phase[0])!=0:
-                new_schedule.append((real_time, action))
+                new_schedule.append((time, action))
         else:
-            real_time += time
-            new_schedule.append((real_time, action))
+            new_schedule.append((time, action))
     return tuple(new_schedule)
