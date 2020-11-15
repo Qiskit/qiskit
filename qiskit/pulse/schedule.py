@@ -23,6 +23,7 @@ import itertools
 import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
+import re
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 # pylint: disable=cyclic-import, unused-import
@@ -790,36 +791,15 @@ class Schedule(abc.ABC):
 
         Equality is checked by verifying there is an equal instruction at every time
         in ``other`` for every instruction in this ``Schedule``.
-
-        .. warning::
-
-            This does not check for logical equivalency. Ie.,
-
-            ```python
-            >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
-                 Delay(20)(DriveChannel(0)))
-            False
-            ```
         """
-        channels = set(self.channels)
-        other_channels = set(other.channels)
-
-        # first check channels are the same
-        if channels != other_channels:
-            return False
-
-        # then verify same number of instructions in each
-        instructions = self.instructions
-        other_instructions = other.instructions
-        if len(instructions) != len(other_instructions):
-            return False
-
-        # finally check each instruction in `other` is in this schedule
-        for idx, inst in enumerate(other_instructions):
-            # check assumes `Schedule.instructions` is sorted consistently
-            if instructions[idx] != inst:
+        # Remove non-functional operations from the schedule such as delays and zero phaseshifts 
+        first_schedule = _reduce_to_stack(self)
+        second_schedule = _reduce_to_stack(other)
+        
+        # Check that if the two new schedules are equal
+        for idx, inst in enumerate(second_schedule):
+            if first_schedule[idx] != inst:
                 return False
-
         return True
 
     def __add__(self, other: Union['Schedule', Instruction]) -> 'Schedule':
@@ -1021,3 +1001,31 @@ def _check_nonnegative_timeslot(timeslots):
                 raise PulseError(
                     "An instruction on {} has a negative "
                     " starting time.".format(chan))
+
+def _reduce_to_stack(schedule):
+    """Loops through pulse instructions and removes delays and zero phase shifts.
+    Args:
+        schedule: Schedule to insert.
+    Returns:
+        A tuple of pulse instructions with delays and zero phase shifts removed.
+    """
+
+    new_schedule = []
+    # Keep track of new instructions time
+    real_time = 0
+
+    for inst in schedule.instructions:
+        time, action = inst
+        # Check if the action is a Delay()
+        if re.search(r'\bDelay\b', str(action)):
+            delay = re.findall(r'\((\d+)', str(action)) # Find how long the delay is
+            real_time += int(delay[0])
+        # Check if the action is a ShiftPhase()
+        elif re.search(r'\bShiftPhase\b', str(action)):
+            phase = re.findall(r'\((\d+)', str(action)) # Find the phase
+            if int(phase[0])!=0:
+                new_schedule.append((real_time, action))
+        else:
+            real_time += time
+            new_schedule.append((real_time, action))
+    return tuple(new_schedule)
