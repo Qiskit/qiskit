@@ -12,8 +12,10 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import numpy as np
 import re
 import warnings
+import zlib
 
 from enum import Enum
 
@@ -357,7 +359,11 @@ class InstructionToQobjConverter:
             if instruction.pulse.name:
                 pulse_name = instruction.pulse.name
             else:
-                pulse_name = str(hash(tuple(instruction.pulse.parameters.values())))
+                pulse_name = unique_pulse_name(
+                    name=ParametricPulseShapes(type(instruction.pulse)).name,
+                    channel=channel,
+                    oper=instruction.pulse.parameters
+                )
             command_dict = {
                 'name': 'parametric_pulse',
                 'label': pulse_name,
@@ -370,7 +376,11 @@ class InstructionToQobjConverter:
             if instruction.pulse.name:
                 pulse_name = instruction.pulse.name
             else:
-                pulse_name = str(hash(instruction.pulse.samples.tostring()))
+                pulse_name = unique_pulse_name(
+                    name='Waveform',
+                    channel=channel,
+                    oper=instruction.pulse.samples
+                )
             command_dict = {
                 'name': pulse_name,
                 't0': start_time,
@@ -662,7 +672,11 @@ class QobjToInstructionConverter:
         try:
             pulse_name = instruction.label
         except AttributeError:
-            pulse_name = str(hash(tuple(instruction.parameters.values())))
+            pulse_name = unique_pulse_name(
+                name=instruction.pulse_shape,
+                channel=instruction.ch,
+                oper=instruction.parameters
+            )
 
         pulse = ParametricPulseShapes[instruction.pulse_shape].value(
             **instruction.parameters,
@@ -681,3 +695,22 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         return instructions.Snapshot(instruction.label, instruction.type) << t0
+
+
+def unique_pulse_name(name, channel, oper):
+    """Generate unique pulse name when no name is provided.
+
+    Pulse name consists of the class name, channel name and unique pulse id.
+    The pulse id is generated from its operand values, i.e. `parameters` for ParametricPulse
+    and `samples` for Waveform, with CRC-32 code. The id is converted into hex representation
+    and thus extra 8 characters are appended to the pulse name and channel.
+    """
+    if isinstance(oper, dict):
+        sorted_params = sorted(tuple(oper.items()), key=lambda x: x[0])
+        base_str = '{pulse}_{params}'.format(pulse=name, params=str(sorted_params))
+    elif isinstance(oper, np.ndarray):
+        base_str = '{pulse}_{params}'.format(pulse=name, params=oper.tobytes())
+    else:
+        raise QiskitError('Pulse operand type {tname} is not expected.'.format(tname=type(oper)))
+
+    return '{0}_{1}_{2}'.format(name, channel, hex(zlib.crc32(base_str.encode('utf-8')))[2:])

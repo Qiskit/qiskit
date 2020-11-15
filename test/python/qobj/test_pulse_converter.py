@@ -19,6 +19,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
+from qiskit.qobj.converters.pulse_instruction import unique_pulse_name
 from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
                                        Delay, Acquire, Snapshot)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
@@ -30,6 +31,23 @@ from qiskit.pulse import LoConfig, Kernel, Discriminator
 
 class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
+
+    def pulse_name_generation(self):
+        test_parameters = [
+            {'duration': 160, 'amp': 0.1, 'sigma': 40},
+            {'duration': 160, 'amp': 0.11, 'sigma': 40},
+            {'duration': 160, 'amp': -0.1, 'sigma': 40},
+            {'duration': 120, 'amp': 0.3, 'sigma': 30},
+            {'duration': 160, 'amp': -0.2, 'sigma': 40},
+            {'duration': 180, 'amp': 0.9, 'sigma': 60},
+            {'duration': 130, 'amp': -0.7, 'sigma': 65},
+            {'duration': 170, 'amp': -0.1, 'sigma': 40},
+            {'duration': 160, 'amp': 0.2, 'sigma': 70},
+            {'duration': 160, 'amp': 0.1, 'sigma': 45},
+        ]
+        pulse_names = [unique_pulse_name('gaussian', 'd0', params) for params in test_parameters]
+        duplicate_check = list(set(pulse_names))
+        self.assertEqual(len(pulse_names), len(duplicate_check))
 
     def test_drive_instruction(self):
         """Test converted qobj from Play."""
@@ -45,7 +63,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from Play without name."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         waveform = Waveform(np.arange(0, 0.01))
-        ref_label = str(hash(waveform.samples.tostring()))
+        ref_label = unique_pulse_name('Waveform', 'd0', waveform.samples)
 
         instruction = Play(waveform, DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
@@ -73,7 +91,8 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         gaussian = Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j)
-        ref_label = str(hash(tuple(gaussian.parameters.values())))
+        ref_label = unique_pulse_name('gaussian', 'd0',
+                                      {'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
 
         instruction = Play(gaussian, DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
@@ -261,7 +280,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parametric_pulses_no_label(self):
         """Test converted qobj from ParametricInstruction without label."""
-        pulse_name = str(hash((25, 15, -0.5 + 0.2j)))
+        pulse_name = unique_pulse_name('gaussian', 'd0',
+                                       {'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
 
         instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name=pulse_name),
                            DriveChannel(0))
