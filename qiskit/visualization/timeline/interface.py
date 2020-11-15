@@ -360,7 +360,7 @@ def draw(program: circuit.QuantumCircuit,
     # TODO fix this
     if temp_style['formatter.control.show_clbits']:
         import warnings
-        warnings.warn('Start time of measure instruction on Clbits is not correctly parsed. '
+        warnings.warn('Start time of the measure instruction on Clbits is not correctly parsed. '
                       'See Qiskit/qiskit-terra/#5361 for discussion.')
 
     # create empty canvas and load program
