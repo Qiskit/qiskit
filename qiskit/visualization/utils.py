@@ -107,22 +107,17 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     qregs = dag.qubits
     cregs = dag.clbits
 
-    # print(cregs)
     # Create a mapping of each creg to the layer number for any measure op with
     # that creg as the target. Then when a node with condition is seen, it will
     # be placed to the right of the measure op if the creg matches.
     measure_map = OrderedDict([(c, -1) for c in cregs])
-    # print(measure_map)
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
             ops.append([node])
-
     else:
         ops = _LayerSpooler(dag, justify, measure_map)
 
-    # print(ops)
-    # print(measure_map)
     if reverse_bits:
         qregs.reverse()
         cregs.reverse()
@@ -224,6 +219,7 @@ class _LayerSpooler(list):
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
+
         measure_layer = None
         if isinstance(node.op, Measure):
             measure_index = node.cargs[0]
@@ -238,9 +234,9 @@ class _LayerSpooler(list):
             if node.condition:
                 rightmost_layer = -1
                 cond_vals = [int(digit) for digit in bin(node.condition[1])[2:]][::-1]
-                for i, _ in enumerate(cond_vals):
+                for i, val in enumerate(cond_vals):
                     try:
-                        if cond_vals[i]:
+                        if val:
                             index_stop = self.measure_map[Clbit(node.condition[0], i)]
                             if index_stop > rightmost_layer:
                                 rightmost_layer = index_stop
@@ -282,7 +278,6 @@ class _LayerSpooler(list):
         if not self:
             self.insert(0, [node])
             inserted = True
-
         else:
             inserted = False
             curr_index = index
@@ -298,7 +293,6 @@ class _LayerSpooler(list):
             if last_insertable_index:
                 self[last_insertable_index].append(node)
                 inserted = True
-
             else:
                 curr_index = index
                 while curr_index > -1:
