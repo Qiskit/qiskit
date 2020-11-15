@@ -465,7 +465,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
                             filename='subfont.png')
 
-    def test_subfont_change(self):
+    def test_meas_condition(self):
         """Tests measure with a condition"""
 
         qr = QuantumRegister(2, 'qr')
