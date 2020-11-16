@@ -13,7 +13,11 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import Parameter, Gate
+from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.transpiler import PassManager
@@ -201,6 +205,99 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list)
 
         self.assertRaises(TranspilerError, pass_.run, dag_in)
+
+    def test_parametric_template(self):
+        """
+        Check matching where template has parameters.
+             ┌───────────┐                  ┌────────┐
+        q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
+             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
+        q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
+             └───────────┘└───┘└──────┘└───┘└────────┘
+        First test try match on
+             ┌───────┐
+        q_0: ┤ P(-2) ├──■────────────■─────────────────────────────
+             ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌───────┐
+        q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(-3) ├──■────────────■──
+             ├───────┤└───┘└──────┘└───┘└───────┘┌─┴─┐┌──────┐┌─┴─┐
+        q_2: ┤ P(-3) ├───────────────────────────┤ X ├┤ P(3) ├┤ X ├
+             └───────┘                           └───┘└──────┘└───┘
+        Second test try match on
+             ┌───────┐
+        q_0: ┤ P(-2) ├──■────────────■────────────────────────────
+             ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
+        q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
+             └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
+        q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
+              └──────┘                          └───┘└──────┘└───┘
+        """
+
+        class CZp(Gate):
+            """CZ gates used for the test."""
+            def __init__(self, num_qubits, params):
+                super().__init__('cz', num_qubits, params)
+
+            def inverse(self):
+                inverse = UnitaryGate(
+                    np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
+                inverse.name = 'icz'
+                return inverse
+
+        def template_czp2():
+            beta = Parameter('β')
+            qc = QuantumCircuit(2)
+            qc.p(-beta, 0)
+            qc.p(-beta, 1)
+            qc.cx(0, 1)
+            qc.p(beta, 1)
+            qc.cx(0, 1)
+            qc.append(CZp(2, [beta]), [0, 1])
+
+            return qc
+
+        def count_cx(qc):
+            """Counts the number of CX gates for testing."""
+            return qc.count_ops().get('cx', 0)
+
+        circuit_in = QuantumCircuit(3)
+        circuit_in.p(-2, 0)
+        circuit_in.p(-2, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.p(2, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.p(-3, 1)
+        circuit_in.p(-3, 2)
+        circuit_in.cx(1, 2)
+        circuit_in.p(3, 2)
+        circuit_in.cx(1, 2)
+
+        pass_ = TemplateOptimization(template_list=[template_czp2()])
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.j))
+        np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.j))
+        self.assertEqual(count_cx(circuit_out), 0)  # Two matches => no CX gates.
+        np.testing.assert_almost_equal(Operator(circuit_in).data,
+                                       Operator(circuit_out).data)
+
+        circuit_in = QuantumCircuit(3)
+        circuit_in.p(-2, 0)
+        circuit_in.p(-2, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.p(2, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.p(3, 1)
+        circuit_in.p(3, 2)
+        circuit_in.cx(1, 2)
+        circuit_in.p(3, 2)
+        circuit_in.cx(1, 2)
+
+        pass_ = TemplateOptimization(template_list=[template_czp2()])
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        self.assertEqual(count_cx(circuit_out), 2)  # One match => two CX gates.
+        np.testing.assert_almost_equal(Operator(circuit_in).data,
+                                       Operator(circuit_out).data)
 
 
 if __name__ == '__main__':
