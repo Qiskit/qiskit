@@ -642,11 +642,12 @@ class QobjToInstructionConverter:
         """Return the ParametricPulse implementation that is described by the instruction.
 
         If parametric pulse label is not provided by the backend, this method naively generates
-        a pulse name based on pulse shape and bound parameters. For example, generated name
-        is formatted to such as `gaussian_a4e3`, here the last four digits are a part of
+        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+        to, for example, `gaussian_a4e3`, here the last four digits are a part of
         the hash string generated based on the pulse shape and the parameters.
-        Because we are using a truncated hash, there may be a risk of pulse name collision.
-        Basically the parametric pulse name is just for visualization purpose and
+        Because we are using a truncated hash for readability,
+        there may be a small risk of pulse name collision with other pulses.
+        Basically the parametric pulse name is used just for visualization purpose and
         the pulse module should not have dependency on the parametric pulse names.
 
         Args:
