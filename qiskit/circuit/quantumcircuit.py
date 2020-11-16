@@ -1201,13 +1201,19 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
         unitary_gates = []
+
+        bit_labels = {bit: "%s[%d]" % (reg.name, idx)
+                      for reg in self.qregs + self.cregs
+                      for (idx, bit) in enumerate(reg)}
+
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
-                                                           qubit.register.name, qubit.index,
-                                                           clbit.register.name, clbit.index)
+                string_temp += "%s %s -> %s;\n" % (instruction.qasm(),
+                                                   bit_labels[qubit],
+                                                   bit_labels[clbit])
+
             # If instruction is a root gate or a root instruction (in that case, compositive)
 
             elif (type(instruction) in  # pylint: disable=unidiomatic-typecheck
@@ -1235,11 +1241,11 @@ class QuantumCircuit:
 
                 # Insert qasm representation of the original instruction
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j.register.name, j.index)
+                                             ",".join([bit_labels[j]
                                                        for j in qargs + cargs]))
             else:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j.register.name, j.index)
+                                             ",".join([bit_labels[j]
                                                        for j in qargs + cargs]))
             if instruction.name == 'unitary':
                 unitary_gates.append(instruction)
