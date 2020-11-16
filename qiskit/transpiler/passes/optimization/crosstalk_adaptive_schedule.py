@@ -152,17 +152,17 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             u1_err = backend_prop.gate_error('u1', qid)
             if u1_err == 1.0:
                 u1_err = 0.9999
-            self.bp_u1_err = round(u1_err, NUM_PREC)
+            self.bp_u1_err[qid] = round(u1_err, NUM_PREC)
             self.bp_u2_dur[qid] = int(backend_prop.gate_length('u2', qid))*10**9
             u2_err = backend_prop.gate_error('u2', qid)
             if u2_err == 1.0:
                 u2_err = 0.9999
-            self.bp_u2_err = round(u2_err, NUM_PREC)
+            self.bp_u2_err[qid] = round(u2_err, NUM_PREC)
             self.bp_u3_dur[qid] = int(backend_prop.gate_length('u3', qid))*10**9
             u3_err = backend_prop.gate_error('u3', qid)
             if u3_err == 1.0:
                 u3_err = 0.9999
-            self.bp_u3_err = round(u3_err, NUM_PREC)
+            self.bp_u3_err[qid] = round(u3_err, NUM_PREC)
         for ginfo in backend_prop.gates:
             if ginfo.gate == 'cx':
                 q_0 = ginfo.qubits[0]
