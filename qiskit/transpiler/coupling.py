@@ -263,11 +263,13 @@ class CouplingMap:
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
         cmap = cls(description='full')
+        edge_list = []
         for i in range(num_qubits):
             for j in range(i):
-                cmap.add_edge(j, i)
+                edge_list.append((j, i))
                 if bidirectional:
-                    cmap.add_edge(i, j)
+                    edge_list.append((i, j))
+        cmap.graph.extend_from_edge_list(edge_list)
         return cmap
 
     @classmethod
