@@ -700,7 +700,7 @@ class QuantumCircuit:
 
             if instr.condition is not None:
                 from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
-                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition)
+                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition, self.cregs)
 
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 

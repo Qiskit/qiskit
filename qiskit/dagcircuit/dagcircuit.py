@@ -549,17 +549,20 @@ class DAGCircuit:
                                       (kname, vname))
 
     @staticmethod
-    def _map_condition(wire_map, condition):
+    def _map_condition(wire_map, condition, target_cregs):
         """Use the wire_map dict to change the condition tuple's creg name.
 
         Args:
-            wire_map (dict): a map from wires to wires
+            wire_map (dict): a map from source wires to destination wires
             condition (tuple or None): (ClassicalRegister,int)
+            target_cregs (list[ClassicalRegister]): List of all cregs in the
+              target circuit onto which the condition might possibly be mapped.
         Returns:
             tuple(ClassicalRegister,int): new condition
         Raises:
             DAGCircuitError: if condition register not in wire_map, or if
-                wire_map maps condition onto more than one creg
+                wire_map maps condition onto more than one creg, or if the
+                specified condition is not present in a classical register.
         """
 
         if condition is None:
@@ -567,22 +570,30 @@ class DAGCircuit:
         else:
             # if there is a condition, map the condition bits to the
             # composed cregs based on the wire_map
-            creg = condition[0]
+            cond_creg = condition[0]
             cond_val = condition[1]
             new_cond_val = 0
             new_creg = None
             for bit in wire_map:
-                if bit in creg:
+                if bit in cond_creg:
+                    try:
+                        candidate_creg = next(creg
+                                              for creg in target_cregs
+                                              if wire_map[bit] in creg)
+                    except StopIteration:
+                        raise DAGCircuitError('Did not find creg containing '
+                                              'mapped clbit in conditional.')
+
                     if new_creg is None:
-                        new_creg = wire_map[bit].register
-                    elif new_creg != wire_map[bit].register:
+                        new_creg = candidate_creg
+                    elif new_creg != candidate_creg:
                         # Raise if wire_map maps condition creg on to more than one
                         # creg in target DAG.
                         raise DAGCircuitError('wire_map maps conditional '
                                               'register onto more than one creg.')
 
-                    if 2**(bit.index) & cond_val:
-                        new_cond_val += 2**(wire_map[bit].index)
+                    if 2**(cond_creg[:].index(bit)) & cond_val:
+                        new_cond_val += 2**(new_creg[:].index(wire_map[bit]))
             if new_creg is None:
                 raise DAGCircuitError("Condition registers not found in wire_map.")
             new_condition = (new_creg, new_cond_val)
@@ -702,7 +713,7 @@ class DAGCircuit:
                 # ignore output nodes
                 pass
             elif nd.type == "op":
-                condition = dag._map_condition(edge_map, nd.condition)
+                condition = dag._map_condition(edge_map, nd.condition, dag.cregs.values())
                 dag._check_condition(nd.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
@@ -1033,7 +1044,9 @@ class DAGCircuit:
         # Iterate over nodes of input_circuit
         for sorted_node in in_dag.topological_op_nodes():
             # Insert a new node
-            condition = self._map_condition(wire_map, sorted_node.condition)
+            condition = self._map_condition(wire_map,
+                                            sorted_node.condition,
+                                            self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x),
                                sorted_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x),
