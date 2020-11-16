@@ -12,13 +12,11 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import hashlib
 import re
 import warnings
-import zlib
-from enum import Enum
-from typing import Union, Dict, Any
 
-import numpy as np
+from enum import Enum
 
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -353,39 +351,19 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        start_time = shift + instruction.start_time
-        channel = instruction.channel.name
-
         if isinstance(instruction.pulse, library.ParametricPulse):
-            if instruction.pulse.name:
-                pulse_name = instruction.pulse.name
-            else:
-                pulse_name = unique_pulse_name(
-                    name=ParametricPulseShapes(type(instruction.pulse)).name,
-                    channel=channel,
-                    oper=instruction.pulse.parameters
-                )
             command_dict = {
                 'name': 'parametric_pulse',
-                'label': pulse_name,
                 'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
-                't0': start_time,
-                'ch': channel,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name,
                 'parameters': instruction.pulse.parameters
             }
         else:
-            if instruction.pulse.name:
-                pulse_name = instruction.pulse.name
-            else:
-                pulse_name = unique_pulse_name(
-                    name='Waveform',
-                    channel=channel,
-                    oper=instruction.pulse.samples
-                )
             command_dict = {
-                'name': pulse_name,
-                't0': start_time,
-                'ch': channel
+                'name': instruction.name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name
             }
 
         return self._qobj_model(**command_dict)
@@ -663,6 +641,14 @@ class QobjToInstructionConverter:
     def convert_parametric(self, instruction):
         """Return the ParametricPulse implementation that is described by the instruction.
 
+        If parametric pulse label is not provided by the backend, this method naively generates
+        a pulse name based on pulse shape and bound parameters. For example, generated name
+        is formatted to such as `gaussian_a4e3`, here the last four digits are a part of
+        the hash string generated based on the pulse shape and the parameters.
+        Because we are using a truncated hash, there may be a risk of pulse name collision.
+        Basically the parametric pulse name is just for visualization purpose and
+        the pulse module should not have dependency on the parametric pulse names.
+
         Args:
             instruction (PulseQobjInstruction): pulse qobj
         Returns:
@@ -670,19 +656,19 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
+
         try:
             pulse_name = instruction.label
         except AttributeError:
-            pulse_name = unique_pulse_name(
-                name=instruction.pulse_shape,
-                channel=instruction.ch,
-                oper=instruction.parameters
-            )
+            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            base_str = '{pulse}_{params}'.format(
+                pulse=instruction.pulse_shape,
+                params=str(sorted_params))
+            short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+            pulse_name = '{0}_{1}'.format(instruction.pulse_shape, short_pulse_id)
 
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(
-            **instruction.parameters,
-            name=pulse_name
-        )
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters,
+                                                                     name=pulse_name)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
@@ -696,36 +682,3 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         return instructions.Snapshot(instruction.label, instruction.type) << t0
-
-
-def unique_pulse_name(name: str,
-                      channel: channels.PulseChannel,
-                      oper: Union[Dict[str, Any], np.ndarray]) -> str:
-    """Generate unique pulse name when no name is provided.
-
-    Pulse name consists of the class name, channel name and unique pulse id.
-    The pulse id is generated from its operand values, i.e. `parameters` for ParametricPulse
-    and `samples` for Waveform, with CRC-32 code. The id is converted into hex representation
-    and thus extra 8 characters are appended to the pulse name and channel.
-
-    Args:
-        name: Name of pulse shape type.
-        channel: Name of channel to apply the pulse.
-        oper: Operand value that is fed into pulse generation function.
-
-    Returns:
-        Unique pulse name.
-
-    Raises:
-        QiskitError: When unexpected operand is specified. Operand value should be
-            dictionary of parameters or numpy array of sample data points.
-    """
-    if isinstance(oper, dict):
-        sorted_params = sorted(tuple(oper.items()), key=lambda x: x[0])
-        base_str = '{pulse}_{params}'.format(pulse=name, params=str(sorted_params))
-    elif isinstance(oper, np.ndarray):
-        base_str = '{pulse}_{params}'.format(pulse=name, params=oper.tobytes())
-    else:
-        raise QiskitError('Pulse operand type {tname} is not expected.'.format(tname=type(oper)))
-
-    return '{0}_{1}_{2}'.format(name, channel, hex(zlib.crc32(base_str.encode('utf-8')))[2:])

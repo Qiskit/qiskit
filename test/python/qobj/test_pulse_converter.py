@@ -12,43 +12,25 @@
 
 """Converter Test."""
 
+import hashlib
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from qiskit.pulse import LoConfig, Kernel, Discriminator
+from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
+                                   MemorySlot, RegisterSlot)
+from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
+                                       Delay, Acquire, Snapshot)
+from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseLibraryItem,
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
-from qiskit.qobj.converters.pulse_instruction import unique_pulse_name
-from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
-                                       Delay, Acquire, Snapshot)
-from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
-                                   MemorySlot, RegisterSlot)
-from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
-from qiskit.pulse import LoConfig, Kernel, Discriminator
+from qiskit.test import QiskitTestCase
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
-
-    def test_pulse_name_generation(self):
-        """Test unique pulse name generation."""
-        test_parameters = [
-            {'duration': 160, 'amp': 0.1, 'sigma': 40},
-            {'duration': 160, 'amp': 0.11, 'sigma': 40},
-            {'duration': 160, 'amp': -0.1, 'sigma': 40},
-            {'duration': 120, 'amp': 0.3, 'sigma': 30},
-            {'duration': 160, 'amp': -0.2, 'sigma': 40},
-            {'duration': 180, 'amp': 0.9, 'sigma': 60},
-            {'duration': 130, 'amp': -0.7, 'sigma': 65},
-            {'duration': 170, 'amp': -0.1, 'sigma': 40},
-            {'duration': 160, 'amp': 0.2, 'sigma': 70},
-            {'duration': 160, 'amp': 0.1, 'sigma': 45},
-        ]
-        pulse_names = [unique_pulse_name('gaussian', 'd0', params) for params in test_parameters]
-        duplicate_check = list(set(pulse_names))
-        self.assertEqual(len(pulse_names), len(duplicate_check))
 
     def test_drive_instruction(self):
         """Test converted qobj from Play."""
@@ -60,45 +42,12 @@ class TestInstructionToQobjConverter(QiskitTestCase):
             t0=0)
         self.assertEqual(converter(0, instruction), valid_qobj)
 
-    def test_drive_instruction_no_name(self):
-        """Test converted qobj from Play without name."""
-        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        waveform = Waveform(np.arange(0, 0.01))
-        ref_label = unique_pulse_name('Waveform', 'd0', waveform.samples)
-
-        instruction = Play(waveform, DriveChannel(0))
-        valid_qobj = PulseQobjInstruction(
-            name=ref_label,
-            ch='d0',
-            t0=0)
-        self.assertEqual(converter(0, instruction), valid_qobj)
-
     def test_gaussian_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name='pulse1'),
-                           DriveChannel(0))
+        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j), DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
-            label='pulse1',
-            pulse_shape='gaussian',
-            ch='d0',
-            t0=0,
-            parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
-        self.assertEqual(converter(0, instruction), valid_qobj)
-
-    def test_gaussian_pulse_instruction_no_name(self):
-        """Test that parametric pulses without name are correctly
-        converted to PulseQobjInstructions."""
-        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        gaussian = Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j)
-        ref_label = unique_pulse_name('gaussian', 'd0',
-                                      {'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
-
-        instruction = Play(gaussian, DriveChannel(0))
-        valid_qobj = PulseQobjInstruction(
-            name='parametric_pulse',
-            label=ref_label,
             pulse_shape='gaussian',
             ch='d0',
             t0=0,
@@ -108,13 +57,11 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_gaussian_square_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(GaussianSquare(duration=1500, sigma=15, amp=-0.5 + 0.2j,
-                                          width=1300, name='pulse1'),
+        instruction = Play(GaussianSquare(duration=1500, sigma=15, amp=-0.5 + 0.2j, width=1300),
                            MeasureChannel(1))
 
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
-            label='pulse1',
             pulse_shape='gaussian_square',
             ch='m1',
             t0=10,
@@ -124,12 +71,10 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_constant_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(Constant(duration=25, amp=1, name='pulse1'),
-                           ControlChannel(2))
+        instruction = Play(Constant(duration=25, amp=1), ControlChannel(2))
 
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
-            label='pulse1',
             pulse_shape='constant',
             ch='u2',
             t0=20,
@@ -139,12 +84,10 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_drag_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(Drag(duration=25, sigma=15, amp=-0.5 + 0.2j, beta=0.5, name='pulse1'),
-                           DriveChannel(0))
+        instruction = Play(Drag(duration=25, sigma=15, amp=-0.5 + 0.2j, beta=0.5), DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
-            label='pulse1',
             pulse_shape='drag',
             ch='d0',
             t0=30,
@@ -281,11 +224,10 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parametric_pulses_no_label(self):
         """Test converted qobj from ParametricInstruction without label."""
-        pulse_name = unique_pulse_name('gaussian', 'd0',
-                                       {'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
+        base_str = "gaussian_[('amp', (-0.5+0.2j)), ('duration', 25), ('sigma', 15)]"
+        short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+        pulse_name = 'gaussian_{}'.format(short_pulse_id)
 
-        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name=pulse_name),
-                           DriveChannel(0))
         qobj = PulseQobjInstruction(
             name='parametric_pulse',
             pulse_shape='gaussian',
@@ -293,9 +235,6 @@ class TestQobjToInstructionConverter(QiskitTestCase):
             t0=0,
             parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
         converted_instruction = self.converter(qobj)
-        self.assertEqual(converted_instruction.start_time, 0)
-        self.assertEqual(converted_instruction.duration, 25)
-        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertEqual(converted_instruction.instructions[0][-1].pulse.name, pulse_name)
 
     def test_frame_change(self):
