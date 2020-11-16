@@ -87,6 +87,7 @@ class FullAncillaAllocation(AnalysisPass):
             else:
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)
 
+        self.property_set['layout_ancilla_register'] = qreg
         for idx, idle_q in enumerate(idle_physical_qubits):
             self.property_set['layout'][idle_q] = qreg[idx]
 
