@@ -32,7 +32,6 @@ import retworkx as rx
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode
@@ -105,7 +104,7 @@ class DAGCircuit:
             for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
                 G.add_edge(self._multi_graph[source_id],
                            self._multi_graph[dest_id],
-                           **edge)
+                           wire=edge)
         return G
 
     @classmethod
@@ -294,6 +293,7 @@ class DAGCircuit:
 
         Args:
             wire (Bit): the wire to be added
+
             This adds a pair of in and out nodes connected by an edge.
 
         Raises:
@@ -302,13 +302,8 @@ class DAGCircuit:
         if wire not in self._wires:
             self._wires.add(wire)
 
-            try:
-                wire_name = "%s[%s]" % (wire.register.name, wire.index)
-            except CircuitError:
-                wire_name = "%s" % wire
-
-            inp_node = DAGNode(type='in', name=wire_name, wire=wire)
-            outp_node = DAGNode(type='out', name=wire_name, wire=wire)
+            inp_node = DAGNode(type='in', wire=wire)
+            outp_node = DAGNode(type='out', wire=wire)
             input_map_id, output_map_id = self._multi_graph.add_nodes_from(
                 [inp_node, outp_node])
             inp_node._node_id = input_map_id
@@ -317,8 +312,7 @@ class DAGCircuit:
             self.output_map[wire] = outp_node
             self._multi_graph.add_edge(inp_node._node_id,
                                        outp_node._node_id,
-                                       {'name': wire_name,
-                                        'wire': wire})
+                                       wire)
         else:
             raise DAGCircuitError("duplicate wire %s" % (wire,))
 
@@ -835,9 +829,9 @@ class DAGCircuit:
                 predecessor (successor) nodes of the input node.
         """
 
-        pred_map = {e[2]['wire']: e[0] for e in
+        pred_map = {e[2]: e[0] for e in
                     self._multi_graph.in_edges(node._node_id)}
-        succ_map = {e[2]['wire']: e[1] for e in
+        succ_map = {e[2]: e[1] for e in
                     self._multi_graph.out_edges(node._node_id)}
         return pred_map, succ_map
 
@@ -1054,8 +1048,7 @@ class DAGCircuit:
             for q in itertools.chain(*al):
                 self._multi_graph.add_edge(full_pred_map[q],
                                            node_index,
-                                           dict(name="%s[%s]" % (q.register.name, q.index),
-                                                wire=q))
+                                           q)
                 full_pred_map[q] = node_index
 
         # Connect all predecessors and successors, and remove
@@ -1063,8 +1056,7 @@ class DAGCircuit:
         for w in full_pred_map:
             self._multi_graph.add_edge(full_pred_map[w],
                                        full_succ_map[w],
-                                       dict(name="%s[%s]" % (w.register.name, w.index),
-                                            wire=w))
+                                       w)
             o_pred = self._multi_graph.predecessors(self.output_map[w]._node_id)
             if len(o_pred) > 1:
                 if len(o_pred) != 2:
@@ -1262,7 +1254,7 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
         for predecessor in self.predecessors(node):
-            if any(isinstance(x['wire'], Qubit) for x in
+            if any(isinstance(edge_data, Qubit) for edge_data in
                    self._multi_graph.get_all_edge_data(
                        predecessor._node_id, node._node_id)):
                 yield predecessor
@@ -1290,7 +1282,7 @@ class DAGCircuit:
         """Returns iterator of the successors of a node that are
         connected by a quantum edge as DAGNodes."""
         for successor in self.successors(node):
-            if any(isinstance(x['wire'], Qubit) for x in
+            if any(isinstance(edge_data, Qubit) for edge_data in
                    self._multi_graph.get_all_edge_data(
                        node._node_id, successor._node_id)):
                 yield successor
@@ -1513,7 +1505,7 @@ class DAGCircuit:
 
             try:
                 current_node = self._multi_graph.find_adjacent_node_by_edge(
-                    current_node._node_id, lambda x: wire == x['wire'])
+                    current_node._node_id, lambda x: wire == x)
                 more_nodes = True
             except rx.NoSuitableNeighbors:
                 pass
