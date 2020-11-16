@@ -225,7 +225,7 @@ class DAGCircuit:
         """
         if not self.calibrations or node.name not in self.calibrations:
             return False
-        qubits = tuple(qubit.index for qubit in node.qargs)
+        qubits = tuple(self.qubits.index(qubit) for qubit in node.qargs)
         params = []
         for p in node.op.params:
             if isinstance(p, ParameterExpression) and not p.parameters:
@@ -345,8 +345,8 @@ class DAGCircuit:
         # Check for each wire
         for wire in args:
             if wire not in amap:
-                raise DAGCircuitError("(qu)bit %s[%d] not found" %
-                                      (wire.register.name, wire.index))
+                raise DAGCircuitError("(qu)bit %s not found in %s" %
+                                      (wire, amap))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -468,7 +468,7 @@ class DAGCircuit:
             [self.input_map[q]._node_id for q in itertools.chain(*al)])
         return self._multi_graph[node_index]
 
-    def _check_edgemap_registers(self, edge_map, keyregs, valregs, valreg=True):
+    def _check_edgemap_registers(self, inbound_wires, inbound_regs):
         """Check that wiremap neither fragments nor leaves duplicate registers.
 
         1. There are no fragmented registers. A register in keyregs
@@ -477,11 +477,8 @@ class DAGCircuit:
         it appears in both self and keyregs but not in edge_map.
 
         Args:
-            edge_map (dict): map from Bit in keyregs to Bit in valregs
-            keyregs (dict): a map from register names to Register objects
-            valregs (dict): a map from register names to Register objects
-            valreg (bool): if False the method ignores valregs and does not
-                add regs for bits in the edge_map image that don't appear in valregs
+            inbound_wires (list): a list of wires being mapped from the inbound dag
+            inbound_regs (list): a list from registers from the inbound dag
 
         Returns:
             set(Register): the set of regs to add to self
@@ -489,35 +486,32 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if the wiremap fragments, or duplicates exist
         """
-        # FIXME: some mixing of objects and strings here are awkward (due to
-        # self.qregs/self.cregs still keying on string.
         add_regs = set()
         reg_frag_chk = {}
-        for v in keyregs.values():
-            reg_frag_chk[v] = {j: False for j in range(len(v))}
-        for k in edge_map.keys():
-            if k.register.name in keyregs:
-                reg_frag_chk[k.register][k.index] = True
-        for k, v in reg_frag_chk.items():
+
+        for inbound_reg in inbound_regs:
+            reg_frag_chk[inbound_reg] = {reg_bit: False for reg_bit in inbound_reg}
+
+        for inbound_bit in inbound_wires:
+            for inbound_reg in inbound_regs:
+                if inbound_bit in inbound_reg:
+                    reg_frag_chk[inbound_reg][inbound_bit] = True
+                    break
+
+        for inbound_reg, v in reg_frag_chk.items():
             s = set(v.values())
             if len(s) == 2:
-                raise DAGCircuitError("edge_map fragments reg %s" % k)
+                raise DAGCircuitError("inbound_wires fragments reg %s" % inbound_reg)
             if s == {False}:
-                if k in self.qregs.values() or k in self.cregs.values():
-                    raise DAGCircuitError("unmapped duplicate reg %s" % k)
-                # Add registers that appear only in keyregs
-                add_regs.add(k)
-            else:
-                if valreg:
-                    # If mapping to a register not in valregs, add it.
-                    # (k,0) exists in edge_map because edge_map doesn't
-                    # fragment k
-                    if not edge_map[k[0]].register.name in valregs:
-                        size = max(map(lambda x: x.index,
-                                       filter(lambda x: x.register == edge_map[k[0]].register,
-                                              edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[k[0]].register.name)
-                        add_regs.add(qreg)
+                if (
+                        inbound_reg.name in self.qregs
+                        or inbound_reg.name in self.cregs
+                ):
+                    raise DAGCircuitError("unmapped duplicate reg %s" % inbound_reg)
+
+                # Add registers that appear only in inbound_regs
+                add_regs.add(inbound_reg)
+
         return add_regs
 
     def _check_wiremap_validity(self, wire_map, keymap, valmap):
@@ -528,25 +522,23 @@ class DAGCircuit:
 
         Args:
             wire_map (dict): map from Bit in keymap to Bit in valmap
-            keymap (dict): a map whose keys are wire_map keys
+            keymap (list): a list of wire_map keys
             valmap (dict): a map whose keys are wire_map values
 
         Raises:
             DAGCircuitError: if wire_map not valid
         """
         for k, v in wire_map.items():
-            kname = "%s[%d]" % (k.register.name, k.index)
-            vname = "%s[%d]" % (v.register.name, v.index)
+
             if k not in keymap:
-                raise DAGCircuitError("invalid wire mapping key %s" % kname)
+                raise DAGCircuitError("invalid wire mapping key %s" % k)
             if v not in valmap:
-                raise DAGCircuitError("invalid wire mapping value %s" % vname)
+                raise DAGCircuitError("invalid wire mapping value %s" % v)
             # TODO Support mapping from AncillaQubit to Qubit, since AncillaQubits are mapped to
             # Qubits upon being converted to an Instruction. Until this translation is fixed
             # and Instructions have a concept of ancilla qubits, this fix is required.
             if not (isinstance(k, type(v)) or isinstance(v, type(k))):
-                raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
-                                      (kname, vname))
+                raise DAGCircuitError("inconsistent wire_map at (%s,%s)" % (k, v))
 
     @staticmethod
     def _map_condition(wire_map, condition, target_cregs):
@@ -996,16 +988,11 @@ class DAGCircuit:
 
         # Create a proxy wire_map to identify fragments and duplicates
         # and determine what registers need to be added to self
-        proxy_map = {w: QuantumRegister(1, 'proxy') for w in wires}
-        add_qregs = self._check_edgemap_registers(proxy_map,
-                                                  in_dag.qregs,
-                                                  {}, False)
+        add_qregs = self._check_edgemap_registers(wires, in_dag.qregs.values())
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
-        add_cregs = self._check_edgemap_registers(proxy_map,
-                                                  in_dag.cregs,
-                                                  {}, False)
+        add_cregs = self._check_edgemap_registers(wires, in_dag.cregs.values())
         for creg in add_cregs:
             self.add_creg(creg)
 
