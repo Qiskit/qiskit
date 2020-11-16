@@ -656,7 +656,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
         with self.assertRaises(DAGCircuitError):
-            next(self.dag.nodes_on_wire((qbit.register, 7)))
+            next(self.dag.nodes_on_wire(QuantumRegister(5, 'qr')[4]))
 
     def test_dag_nodes_on_wire_multiple_successors(self):
         """
