@@ -242,9 +242,9 @@ class TemplateMatching:
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
-                # Operations match.
-                if self.circuit_dag_dep.get_node(circuit_index).op == \
-                        self.template_dag_dep.get_node(template_index).op:
+                # Operations match up to ParameterExpressions.
+                if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
+                        self.template_dag_dep.get_node(template_index).op):
 
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices

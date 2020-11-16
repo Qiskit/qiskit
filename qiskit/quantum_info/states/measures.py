@@ -168,14 +168,14 @@ def concurrence(state):
 
     where :math:`\rho_0 = Tr_1[|\psi\rangle\!\langle\psi|]` is the
     reduced state from by taking the
-    :math:`~qiskit.quantum_info.partial_trace` of the input state.
+    :func:`~qiskit.quantum_info.partial_trace` of the input state.
 
     For density matrices the concurrence is only defined for
     2-qubit states, it is given by:
 
     .. math::
 
-        C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lamda_3 - \lambda_4)
+        C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lambda_3 - \lambda_4)
 
     where  :math:`\lambda _1 \ge \lambda _2 \ge \lambda _3 \ge \lambda _4`
     are the ordered eigenvalues of the matrix
