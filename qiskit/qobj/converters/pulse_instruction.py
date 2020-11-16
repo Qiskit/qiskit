@@ -16,6 +16,7 @@ import re
 import warnings
 import zlib
 from enum import Enum
+from typing import Union, Dict, Any
 
 import numpy as np
 
@@ -697,7 +698,9 @@ class QobjToInstructionConverter:
         return instructions.Snapshot(instruction.label, instruction.type) << t0
 
 
-def unique_pulse_name(name, channel, oper):
+def unique_pulse_name(name: str,
+                      channel: channels.PulseChannel,
+                      oper: Union[Dict[str, Any], np.ndarray]) -> str:
     """Generate unique pulse name when no name is provided.
 
     Pulse name consists of the class name, channel name and unique pulse id.
@@ -711,7 +714,11 @@ def unique_pulse_name(name, channel, oper):
         oper: Operand value that is fed into pulse generation function.
 
     Returns:
-        str: Unique pulse name.
+        Unique pulse name.
+
+    Raises:
+        QiskitError: When unexpected operand is specified. Operand value should be
+            dictionary of parameters or numpy array of sample data points.
     """
     if isinstance(oper, dict):
         sorted_params = sorted(tuple(oper.items()), key=lambda x: x[0])

@@ -32,7 +32,8 @@ from qiskit.pulse import LoConfig, Kernel, Discriminator
 class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
 
-    def pulse_name_generation(self):
+    def test_pulse_name_generation(self):
+        """Test unique pulse name generation."""
         test_parameters = [
             {'duration': 160, 'amp': 0.1, 'sigma': 40},
             {'duration': 160, 'amp': 0.11, 'sigma': 40},
