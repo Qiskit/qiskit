@@ -257,6 +257,7 @@ class CircuitSampler(ConverterBase):
             raise AquaError('CircuitStateFn is empty and there is no cache.')
 
         if circuit_sfns:
+            self._transpiled_circ_templates = None
             if self._statevector:
                 circuits = [op_c.to_circuit(meas=False) for op_c in circuit_sfns]
             else:
