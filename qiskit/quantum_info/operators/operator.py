@@ -26,9 +26,10 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 
 
-class Operator(BaseOperator):
+class Operator(BaseOperator, TolerancesMixin):
     r"""Matrix operator class
 
     This represents a matrix operator :math:`M` that will
