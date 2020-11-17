@@ -90,7 +90,7 @@ class RXGate(Gate):
         """
         return RXGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the RX gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
@@ -192,7 +192,7 @@ class CRXGate(ControlledGate):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CRX gate."""
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)

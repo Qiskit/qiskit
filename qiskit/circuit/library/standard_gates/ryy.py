@@ -100,7 +100,7 @@ class RYYGate(Gate):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the RYY gate."""
         theta = float(self.params[0])
         cos = np.cos(theta / 2)

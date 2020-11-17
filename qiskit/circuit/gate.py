@@ -39,18 +39,19 @@ class Gate(Instruction):
         self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
-    def __array__(self):
-        # pylint: disable=assignment-from-no-return
-        mat = self.to_matrix()
-        return mat
-
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
+
+        Returns:
+            np.ndarray: if the Gate subclass has a matrix defintion.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
+        if hasattr(self, '__array__'):
+            # pylint: disable = no-member
+            return self.__array__()
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 
     def power(self, exponent: float):

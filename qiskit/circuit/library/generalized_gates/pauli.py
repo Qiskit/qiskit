@@ -58,7 +58,7 @@ class PauliGate(Gate):
         r"""Return inverted pauli gate (itself)."""
         return PauliGate(self.params[0])  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import

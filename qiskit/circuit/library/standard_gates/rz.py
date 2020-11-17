@@ -101,7 +101,7 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
         ilam2 = 0.5j * float(self.params[0])
@@ -203,7 +203,7 @@ class CRZGate(ControlledGate):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CRZ gate."""
         import numpy
         arg = 1j * float(self.params[0]) / 2

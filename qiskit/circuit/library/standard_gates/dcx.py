@@ -66,7 +66,7 @@ class DCXGate(Gate):
 
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the DCX gate."""
         return np.array([[1, 0, 0, 0],
                          [0, 0, 0, 1],

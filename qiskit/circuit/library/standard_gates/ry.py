@@ -90,7 +90,7 @@ class RYGate(Gate):
         """
         return RYGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
@@ -186,7 +186,7 @@ class CRYGate(ControlledGate):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)

@@ -97,7 +97,7 @@ class SwapGate(Gate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the SWAP gate."""
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
@@ -227,7 +227,7 @@ class CSwapGate(ControlledGate):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
         if self.ctrl_state:
             return self._matrix1

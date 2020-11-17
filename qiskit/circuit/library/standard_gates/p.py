@@ -108,7 +108,7 @@ class PhaseGate(Gate):
         r"""Return inverted Phase gate (:math:`Phase(\lambda){\dagger} = Phase(-\lambda)`)"""
         return PhaseGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the Phase gate."""
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
@@ -197,7 +197,7 @@ class CPhaseGate(ControlledGate):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CPhase gate."""
         eith = numpy.exp(1j * float(self.params[0]))
         if self.ctrl_state:

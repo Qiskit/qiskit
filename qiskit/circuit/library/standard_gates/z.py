@@ -104,7 +104,7 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the Z gate."""
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
@@ -169,7 +169,7 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CZ gate."""
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],

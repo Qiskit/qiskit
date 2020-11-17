@@ -73,7 +73,7 @@ class RGate(Gate):
         """
         return RGate(-self.params[0], self.params[1])
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the R gate."""
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)

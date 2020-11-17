@@ -70,7 +70,7 @@ class SGate(Gate):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
@@ -128,7 +128,7 @@ class SdgGate(Gate):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)

@@ -94,7 +94,7 @@ class U3Gate(Gate):
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -213,7 +213,7 @@ class CU3Gate(ControlledGate):
             ctrl_state=self.ctrl_state
         )
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)

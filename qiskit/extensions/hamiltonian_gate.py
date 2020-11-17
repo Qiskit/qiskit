@@ -78,7 +78,7 @@ class HamiltonianGate(Gate):
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
-    def to_matrix(self):
+    def __array__(self):
         """Return matrix for the unitary."""
         try:
             # pylint: disable=no-member

@@ -81,7 +81,7 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params

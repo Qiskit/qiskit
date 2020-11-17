@@ -93,7 +93,7 @@ class HGate(Gate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a Numpy.array for the H gate."""
         return numpy.array([[1, 1],
                             [1, -1]], dtype=complex) / numpy.sqrt(2)
@@ -203,7 +203,7 @@ class CHGate(ControlledGate):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self):
         """Return a numpy.array for the CH gate."""
         if self.ctrl_state:
             return self._matrix1
