@@ -353,7 +353,11 @@ def initialize(self, params, qubits):
              └──────────────────────────────┘
              
              
-        Initialize from a string two qubits in the state |01>
+        Initialize from a string two qubits in the state |10>. 
+        The order of the labels is reversed with respect to qubit index.
+        More information about labels for basis states are in 
+        :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+
         .. jupyter-execute::
             import numpy as np
             from qiskit import QuantumCircuit
