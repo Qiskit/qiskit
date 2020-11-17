@@ -12,6 +12,7 @@
 
 # pylint: disable=abstract-method
 
+
 """This module implements the job class used by Basic Aer Provider."""
 
 from qiskit.providers import JobStatus
@@ -25,18 +26,16 @@ class BasicAerJob(JobV1):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
+    _async = False
+
     def __init__(self, backend, job_id, result):
         super().__init__(backend, job_id)
         self._result = result
-        self._future = None
 
     def submit(self):
         """Submit the job to the backend for execution.
 
         Raises:
-            QobjValidationError: if the JSON serialization of the Qobj passed
-            during construction does not validate against the Qobj schema.
-
             JobError: if trying to re-submit the job.
         """
         return

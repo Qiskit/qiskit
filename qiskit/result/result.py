@@ -237,7 +237,7 @@ class Result:
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data([experiment])``.
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of
