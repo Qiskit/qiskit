@@ -291,3 +291,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         """Test decomposition for 1Q unitary via definition."""
         mat = numpy.array([[0, 1], [1, 0]])
         numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+
+    def test_unitary_decomposition_via_definition_2q(self):
+        """Test decomposition for 2Q unitary via definition."""
+        mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
+        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)

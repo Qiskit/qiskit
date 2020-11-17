@@ -131,8 +131,7 @@ class Clifford(BaseOperator):
                     ' symplectic matrix.')
 
         # Initialize BaseOperator
-        dims = self._table.num_qubits * (2,)
-        super().__init__(dims, dims)
+        super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
         return 'Clifford({})'.format(repr(self.table))
