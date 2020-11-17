@@ -316,7 +316,20 @@ class Initialize(Instruction):
 
 
 def initialize(self, params, qubits):
-    """Apply initialize to circuit."""
+    """Apply initialize to circuit.
+    Args:
+        params (str or list):
+          * list: vector of complex amplitudes to initialize to.
+          * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+               :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+               Notice the order of the labels is reversed with respect to the qubit index to
+               be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+               qubit one to `|0>`
+        qubits (list): A list of quantum bits
+
+    Returns:
+        qiskit.circuit.Instruction: a handle to the instruction that was just initialized
+    """
     if not isinstance(qubits, list):
         qubits = [qubits]
     return self.append(Initialize(params), qubits)
