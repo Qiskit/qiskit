@@ -114,11 +114,11 @@ Writing a New Provider
 ======================
 
 If you have a quantum device or simulator that you would like to integrate with
-Qiskit you will need to write a provider. A provider will provide Terra with a 
-method to get available :class:`~qiskit.provider.BackendV1` objects. The 
-:class:`~qiskit.provider.BackendV1` object provides both information describing 
+Qiskit you will need to write a provider. A provider will provide Terra with a
+method to get available :class:`~qiskit.provider.BackendV1` objects. The
+:class:`~qiskit.provider.BackendV1` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
-can be compiled to something that is optimized and can execute on the 
+can be compiled to something that is optimized and can execute on the
 backend and also the :meth:`~qiskit.providers.BackendV1.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
@@ -184,7 +184,7 @@ execute circuits. They also define the interface for a backend to provide the
 necessary information describing the backend to the compiler so that it can
 embed and optimize any circuit to the backend. There are 3 required things
 in every backend object: a backend configuration object set in the
-`__init__()` method, a ``run()`` method, and a ``_default_options()`` method. 
+`__init__()` method, a ``run()`` method, and a ``_default_options()`` method.
 For example, a minimum working example would be something like::
 
     from qiskit.providers import BackendV1 as Backend
