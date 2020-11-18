@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Quantum measurement in the computational basis.
+Quantum measurement
 """
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.instruction import Instruction
@@ -20,11 +20,11 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Measure(Instruction):
-    """Quantum measurement in the computational basis."""
+    """Quantum measurement"""
 
-    def __init__(self, name='measure'):
+    def __init__(sel, params=[]):
         """Create new measurement instruction."""
-        super().__init__(name, 1, 1, [])
+        super().__init__('measure', 1, 1, params=params)
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
@@ -67,41 +67,37 @@ class MeasurePauli(Measure):
         """Create a new basis transformation measurement.
 
         Args:
-            basis (str): The target measurement basis, can be 'X', 'Y' or 'Z'.
+            basis (str): The target measurement basis,
+                         consists of the characters 'X', 'Y', and 'Z'.
 
         Raises:
             ValueError: If an unsupported basis is specified.
         """
-        super().__init__(name='measure_' + basis)
 
-        transformations = []
-
-        from .library import HGate, SGate, SdgGate
-
-        for qubit_basis in basis:
-            if qubit_basis.lower() == 'x':
-                pre_rotation = post_rotation = [HGate()]
-            elif qubit_basis.lower() == 'y':
-                # since measure and S commute, S and Sdg cancel each other
-                pre_rotation = [SdgGate(), HGate()]
-                post_rotation = [HGate(), SGate()]
-            elif qubit_basis.lower() == 'z':
-                pre_rotation = post_rotation = []
-            else:
-                raise ValueError('Unsupported measurement basis choose either of X, Y or Z.')
-
-            transformations += [(pre_rotation, post_rotation)]
-
-        self.basis = basis
-        self.transformations = transformations
+        params = []
+        for qubit_basis in basis.upper():
+            if qubit_basis not in ['X', 'Y', 'Z']:
+                raise ValueError('Unsupported measurement basis, choose either of X, Y or Z.')
+            params.append(qubit_basis)
+        
+        super().__init__(params=params)
 
     def _define(self):
         definition = []
         q = QuantumRegister(self.num_qubits, 'q')
         c = ClassicalRegister(self.num_clbits, 'c')
 
-        for i, transformation in enumerate(self.transformations):
-            pre_rotation, post_rotation = transformation
+        from .library import HGate, SGate, SdgGate
+
+        for i, qubit_basis in enumerate(self.params):
+            if qubit_basis == 'X':
+                pre_rotation = post_rotation = [HGate()]
+            elif qubit_basis == 'Y':
+                # since measure and S commute, S and Sdg cancel each other
+                pre_rotation = [SdgGate(), HGate()]
+                post_rotation = [HGate(), SGate()]
+            else: # Z
+                pre_rotation = post_rotation = []
 
             # switch to the measurement basis
             for gate in pre_rotation:

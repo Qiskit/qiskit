@@ -806,7 +806,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
 
-                if op.name in [*_barrier_gates, 'measure', 'measure_x', 'measure_y', 'measure_z']:
+                if op.name in [*_barrier_gates, 'measure']:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -945,11 +945,11 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-                if op.name[:7] == 'measure':
-                    if len(op.name) == 9:
-                        basis = op.name[-1]
-                    else:
+                if op.name == 'measure':
+                    if len(op.op.params) == 0:
                         basis = 'z'
+                    else:
+                        basis = op.params
                         
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc, basis=basis)

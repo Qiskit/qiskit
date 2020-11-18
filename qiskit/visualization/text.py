@@ -992,11 +992,11 @@ class TextDrawing():
 
         # elif isinstance(instruction.op, MeasureInstruction):
         if isinstance(instruction.op, MeasureInstruction):
-            if len(instruction.name) == 9:  # measure_x or measure_y or measure_z
-                basis = instruction.name[8].upper()
-                gate = MeasureFrom(basis)
-            else:
+            if len(instruction.op.params) == 0:
                 gate = MeasureFrom()
+            else:   # measure_x or measure_y or measure_z
+                basis = instruction.params.upper()
+                gate = MeasureFrom(basis)
             layer.set_qubit(instruction.qargs[0], gate)
             if self.cregbundle:
                 layer.set_clbit(instruction.cargs[0], MeasureTo(str(instruction.cargs[0].index)))
