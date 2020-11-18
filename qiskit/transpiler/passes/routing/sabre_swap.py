@@ -315,9 +315,7 @@ class SabreSwap(TransformationPass):
         """
         if heuristic == 'basic':
             if len(front_layer) > 1:
-                if self.coupling_map._dist_matrix is None:
-                    self.coupling_map._compute_distance_matrix()
-                return self.coupling_map._dist_matrix[
+                return self.coupling_map.distance_matrix[
                     tuple(zip(*[[
                         layout[q] for q in node.qargs] for node in front_layer]))].sum()
             elif len(front_layer) == 1:
