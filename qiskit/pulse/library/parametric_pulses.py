@@ -293,7 +293,7 @@ class GaussianSquare(ParametricPulse):
                              "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(self.width) and self.width < 0 or self.width >= self.duration:
+        if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
             raise PulseError("The pulse width must be at least 0 and less than its duration.")
 
     @property
