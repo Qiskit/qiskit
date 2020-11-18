@@ -113,13 +113,13 @@ Job
 Writing a New Provider
 ======================
 
-If you have a Quantum device or simulator that you would like to integrate with
-Qiskit the way to go about this is writing a provider. A provider will provide
-Terra with a method to get available :class:`~qiskit.provider.BackendV1` objects
-The :class:`~qiskit.provider.BackendV1` object provides both information
-describing a backend and its operation for the :mod:`~qiskit.transpiler` so that
-circuits can be compiled to something that is optimized and can execute on the
-backend and also the :meth:`~qiskit.providers.BackenvV1.run` method which can
+If you have a quantum device or simulator that you would like to integrate with
+Qiskit you will need to write a provider. A provider will provide Terra with a 
+method to get available :class:`~qiskit.provider.BackendV1` objects. The 
+:class:`~qiskit.provider.BackendV1` object provides both information describing 
+a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
+can be compiled to something that is optimized and can execute on the 
+backend and also the :meth:`~qiskit.providers.BackendV1.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
 APIs, such as :func:`~qiskit.execute.execute` and higher level algorithms in
@@ -127,12 +127,12 @@ Qiskit Aqua, to get results from executing circuits on devices in a standard
 fashion regardless of how the Backend is implemented. For a simple example of
 a provider the
 `qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
-packge is worth using as an example.
+package is worth using as an example.
 
 Provider
 ========
 
-A provider class serves a single purpose to get backend objects that enable
+A provider class serves a single purpose: to get backend objects that enable
 executing circuits on a device or simulator. The expecation is that any
 required credentials and/or authentication will be handled in the initialization
 of a provider object. The provider object will then provide a list of backends,
@@ -167,12 +167,12 @@ Backend
 
 The backend classes are the core to the provider. These class definitions
 define the interface between Qiskit and the hardware or simulator that will
-execute circuits. It also defines the interface for a backend to provide the
-necessary information to describe the backend to the compiler so that it can
+execute circuits. They also define the interface for a backend to provide the
+necessary information describing the backend to the compiler so that it can
 embed and optimize any circuit to the backend. There are 3 required things
-in every backend object, a backend configuration object set in the
-`__init__()`, a ``run()`` method, and a ``_default_options()`` method. For
-example, a minimum working example would be something like::
+in every backend object: a backend configuration object set in the
+`__init__()` method, a ``run()`` method, and a ``_default_options()`` method. 
+For example, a minimum working example would be something like::
 
     from qiskit.providers import BackendV1 as Backend
     from qiskit.providers.models import BackendConfiguration
@@ -229,7 +229,7 @@ This is composed of three classes, the
 :class:`~qiskit.providers.models.BackendConfiguration` which describes the
 immutable properties of the backend (things like the number of qubits, coupling
 map, etc), the :class:`~qiskit.providers.models.BackendProperties` which
-described measured properties of the device (such as current error rates), and
+describes measured properties of the device (such as current error rates), and
 the :class:`~qiskit.providers.models.PulseDefaults` which defines the
 default pulse behavior for the backend (such as the pulse sequences for gates).
 Of these the only required piece for a backend is the
