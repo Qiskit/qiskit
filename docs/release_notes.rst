@@ -2319,7 +2319,7 @@ New Features
   * :func:`~qiskit.converters.dag_to_dagdependency` to convert from
     a :class:`~qiskit.dagcircuit.DAGCircuit` object to a
     :class:`~qiskit.dagcircuit.DAGDependency` object.
-  * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from
+  * :func:`~qiskit.converters.dagdependency_to_dag` to convert from
     a :class:`~qiskit.dagcircuit.DAGDependency` object to a
     :class:`~qiskit.dagcircuit.DAGCircuit` object.
 
