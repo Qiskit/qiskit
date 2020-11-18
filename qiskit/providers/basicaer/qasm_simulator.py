@@ -43,7 +43,6 @@ from qiskit.result import Result
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
-from qiskit.qobj import validate_qobj_against_schema
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import cx_gate_matrix
@@ -402,7 +401,6 @@ class QasmSimulatorPy(BackendV1):
             qobj_options = qobj.config
         else:
             qobj_options = qobj.config
-        validate_qobj_against_schema(qobj)
         self._set_options(qobj_config=qobj_options,
                           backend_options=backend_options)
         job_id = str(uuid.uuid4())
