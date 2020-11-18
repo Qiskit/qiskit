@@ -320,7 +320,7 @@ class SabreSwap(TransformationPass):
                         layout[q] for q in node.qargs] for node in front_layer]))].sum()
             elif len(front_layer) == 1:
                 return self.coupling_map.distance(
-                    *[layout[q] for q in front_layer[0].qargs])
+                    *[layout[q] for q in list(front_layer)[0].qargs])
             else:
                 return 0
 
