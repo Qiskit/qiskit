@@ -482,7 +482,7 @@ An example job class for an async API based backend would look something like::
 and for a sync job::
 
     class MySyncJob(Job):
-        _async = True
+        _async = False
 
         def __init__(self, backend, job_id, result):
             super().__init__(backend, job_id)
