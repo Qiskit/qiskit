@@ -54,14 +54,6 @@ Pulse
    PulseQobjConfig
    QobjMeasurementOption
    PulseLibraryItem
-
-Validation
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   validate_qobj_against_schema
 """
 
 import warnings

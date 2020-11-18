@@ -22,6 +22,7 @@ from scipy import sparse
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic import Clifford
 from qiskit.quantum_info.operators.channel import SuperOp, Choi
 
 try:
@@ -50,7 +51,7 @@ def process_fidelity(channel,
     and :math:`d` is the dimension of the *channel*.
 
     Args:
-        channel (QuantumChannel): noisy quantum channel.
+        channel (QuantumChannel or Operator): noisy quantum channel.
         target (Operator or None): target unitary operator.
             If `None` target is the identity operator [Default: None].
         require_cp (bool): require channel to be completely-positive
@@ -71,22 +72,21 @@ def process_fidelity(channel,
                      (with ``require_tp=True``).
     """
     # Format inputs
-    if isinstance(channel, (list, np.ndarray, Operator, Pauli)):
+    if isinstance(channel, (list, np.ndarray, Operator, Pauli, Clifford)):
         channel = Operator(channel)
     else:
         channel = SuperOp(channel)
-    input_dim, output_dim = channel.dim
-    if input_dim != output_dim:
-        raise QiskitError(
-            'Quantum channel must have equal input and output dimensions.')
 
     if target is not None:
-        # Multiple channel by adjoint of target
-        target = Operator(target)
-        if (input_dim, output_dim) != target.dim:
+        try:
+            target = Operator(target)
+        except QiskitError:
             raise QiskitError(
-                'Quantum channel and target must have the same dimensions.')
-        channel = channel @ target.adjoint()
+                'Target channel is not a unitary channel.')
+        if channel.dim != target.dim:
+            raise QiskitError(
+                'Input quantum channel and target unitary must have the same '
+                'dimensions ({} != {}).'.format(channel.dim, target.dim))
 
     # Validate complete-positivity and trace-preserving
     if require_cptp:
@@ -97,27 +97,39 @@ def process_fidelity(channel,
             "instead of `require_cptp=True`.", DeprecationWarning)
         require_cp = True
         require_tp = True
-    if isinstance(channel, Operator) and (require_cp or require_tp):
-        is_unitary = channel.is_unitary()
-        # Validate as unitary
-        if require_cp and not is_unitary:
-            raise QiskitError('channel is not completely-positive')
-        if require_tp and not is_unitary:
-            raise QiskitError('channel is not trace-preserving')
-    else:
-        # Validate as QuantumChannel
-        if require_cp and not channel.is_cp():
-            raise QiskitError('channel is not completely-positive')
-        if require_tp and not channel.is_tp():
-            raise QiskitError('channel is not trace-preserving')
+    if require_cp or require_tp:
+        # Validate target channel
+        if target is not None:
+            is_unitary = target.is_unitary()
+            if require_cp and not is_unitary:
+                raise QiskitError('Target unitary channel is not completely-positive')
+            if require_tp and not is_unitary:
+                raise QiskitError('Target unitary channel is not trace-preserving')
+        # Validate input channel
+        if isinstance(channel, Operator):
+            is_unitary = channel.is_unitary()
+            # Validate as unitary
+            if require_cp and not is_unitary:
+                raise QiskitError('Input quantum channel is not completely-positive')
+            if require_tp and not is_unitary:
+                raise QiskitError('Input quantum channel is not trace-preserving')
+        else:
+            # Validate as QuantumChannel
+            if require_cp and not channel.is_cp():
+                raise QiskitError('Input quantum channel is not completely-positive')
+            if require_tp and not channel.is_tp():
+                raise QiskitError('Input quantum channel is not trace-preserving')
 
     # Compute process fidelity with identity channel
+    if target is not None:
+        channel = channel.compose(target.adjoint())
+    input_dim, _ = channel.dim
     if isinstance(channel, Operator):
         # |Tr[U]/dim| ** 2
         fid = np.abs(np.trace(channel.data) / input_dim)**2
     else:
         # Tr[S] / (dim ** 2)
-        fid = np.trace(channel.data) / (input_dim**2)
+        fid = np.trace(SuperOp(channel).data) / (input_dim**2)
     return float(np.real(fid))
 
 
@@ -141,7 +153,7 @@ def average_gate_fidelity(channel,
     :math:`d` is the dimension of the *channel*.
 
     Args:
-        channel (QuantumChannel): noisy quantum channel.
+        channel (QuantumChannel or Operator): noisy quantum channel.
         target (Operator or None): target unitary operator.
             If `None` target is the identity operator [Default: None].
         require_cp (bool): require channel to be completely-positive
@@ -159,7 +171,7 @@ def average_gate_fidelity(channel,
                      (with ``require_cp=True``) or not trace-preserving
                      (with ``require_tp=True``).
     """
-    if isinstance(channel, (list, np.ndarray, Operator, Pauli)):
+    if isinstance(channel, (list, np.ndarray, Operator, Pauli, Clifford)):
         channel = Operator(channel)
     else:
         channel = SuperOp(channel)
