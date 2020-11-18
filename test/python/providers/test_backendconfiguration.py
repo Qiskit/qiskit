@@ -163,3 +163,8 @@ class TestBackendConfiguration(QiskitTestCase):
         """Ensure that a deepcopy succeeds and results in an identical object."""
         copy_config = copy.deepcopy(self.config)
         self.assertEqual(copy_config, self.config)
+
+    def test_u_channel_lo_scale(self):
+        """Ensure that u_channel_lo scale is a complex number"""
+        valencia_conf = self.provider.get_backend('fake_valencia').configuration()
+        self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
