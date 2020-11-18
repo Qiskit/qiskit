@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
+from collections import defaultdict
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
@@ -48,7 +50,8 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name,
                              global_phase=dag.global_phase)
-    circuit.calibrations = dag.calibrations
+    circuit.calibrations = defaultdict(dict)
+    circuit.calibrations.update(dag.calibrations)
 
     for node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
