@@ -146,7 +146,7 @@ class UchannelLO:
         self.q = q
 
         # scale from fake backends comes as a list instead of complex
-        self.scale = complex(*scale) if isinstance(scale,list) else scale
+        self.scale = complex(*scale) if isinstance(scale, list) else scale
 
     @classmethod
     def from_dict(cls, data):
