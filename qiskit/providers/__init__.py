@@ -124,8 +124,21 @@ run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
 APIs, such as :func:`~qiskit.execute.execute` and higher level algorithms in
 Qiskit Aqua, to get results from executing circuits on devices in a standard
-fashion regardless of how the Backend is implemented. For a simple example of
-a provider the
+fashion regardless of how the Backend is implemented. At a high level the basic
+steps for writing a provider are:
+
+ * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
+   access to the backend(s).
+ * Implement a :class:`~qiskit.providers.BackendV1` subclass and its
+   :meth:`~~qiskit.providers.BackendV1.run` method.
+
+   * Add any custom gates for the backend's basis to the session
+     :class:`~qiskit.circuit.EquivalenceLibrary` instance.
+
+ * Implement a :class:`~qiskit.providers.JobV1` subclass that handles
+   interacting with a running job.
+
+For a simple example of a provider the
 `qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
 package is worth using as an example.
 
