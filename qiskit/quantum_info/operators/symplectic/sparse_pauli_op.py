@@ -68,7 +68,7 @@ class SparsePauliOp(BaseOperator):
                               " of Paulis {} != {}".format(self._coeffs.shape,
                                                            self._table.size))
         # Initialize BaseOperator
-        super().__init__(self._table._input_dims, self._table._output_dims)
+        super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
         prefix = 'SparsePauliOp('
