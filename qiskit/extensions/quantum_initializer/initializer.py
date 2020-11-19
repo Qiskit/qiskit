@@ -42,7 +42,7 @@ class Initialize(Instruction):
     which is not unitary.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, num_qubits=None):
         """Create new initialize composite.
 
         params (str or list):
@@ -53,11 +53,17 @@ class Initialize(Instruction):
                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
                qubit one to `|0>`
         """
+        self._from_label = False
+        self._from_int = False
         if isinstance(params, str):
-            self._fromlabel = True
+            self._from_label = True
             num_qubits = len(params)
+        elif isinstance(params, int):
+            self._from_int = True
+            if num_qubits is None:
+                num_qubits = int(math.log2(params)) + 1
+            params = [params]
         else:
-            self._fromlabel = False
             num_qubits = math.log2(len(params))
 
             # Check if param is a power of 2
@@ -74,9 +80,14 @@ class Initialize(Instruction):
         super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):
-        self.definition = self._define_fromlabel() if self._fromlabel else self._define_synthesis()
+        if self._from_label:
+            self.definition = self._define_from_label()
+        elif self._from_int:
+            self.definition = self._define_from_int()
+        else:
+            self.definition = self._define_synthesis()
 
-    def _define_fromlabel(self):
+    def _define_from_label(self):
         q = QuantumRegister(self.num_qubits, 'q')
         initialize_circuit = QuantumCircuit(q, name='init_def')
 
@@ -96,6 +107,25 @@ class Initialize(Instruction):
             elif param == 'l':  # |-i>
                 initialize_circuit.append(HGate(), [q[qubit]])
                 initialize_circuit.append(SdgGate(), [q[qubit]])
+
+        return initialize_circuit
+
+    def _define_from_int(self):
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
+
+        # Convert to int since QuantumCircuit converted to complex
+        # and make a bit string and reverse it
+        intstr = f'{int(np.real(self.params[0])):0b}'[::-1]
+
+        # Strip off any trailing bits beyond num_qubits
+        if len(intstr) > self.num_qubits:
+            intstr = intstr[:self.num_qubits]
+
+        for qubit, bit in enumerate(intstr):
+            initialize_circuit.append(Reset(), [q[qubit]])
+            if bit == '1':
+                initialize_circuit.append(XGate(), [q[qubit]])
 
         return initialize_circuit
 
@@ -299,7 +329,7 @@ class Initialize(Instruction):
         """Initialize instruction parameter can be str, int, float, and complex."""
 
         # Initialize instruction parameter can be str
-        if self._fromlabel:
+        if self._from_label:
             if parameter in ['0', '1', '+', '-', 'l', 'r']:
                 return parameter
             raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
@@ -315,11 +345,17 @@ class Initialize(Instruction):
                                "{1}".format(type(parameter), self.name))
 
 
-def initialize(self, params, qubits):
+def initialize(self, params, qubits=None):
     """Apply initialize to circuit."""
-    if not isinstance(qubits, list):
+    if qubits is None:
+        qubits = self.qubits
+    elif isinstance(qubits, QuantumRegister):
+        qubits = qubits[:]
+    elif isinstance(qubits, range):
+        qubits = list(qubits)
+    elif not isinstance(qubits, list):
         qubits = [qubits]
-    return self.append(Initialize(params), qubits)
+    return self.append(Initialize(params, len(qubits)), qubits)
 
 
 QuantumCircuit.initialize = initialize

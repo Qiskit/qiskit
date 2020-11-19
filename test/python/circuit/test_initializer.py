@@ -357,6 +357,20 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
 
+    def test_from_int(self):
+        """Initialize from int."""
+        desired_sv = Statevector.from_label('110101')
+
+        qc = QuantumCircuit(6)
+        qc.initialize(53, range(6))
+        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_sv)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
