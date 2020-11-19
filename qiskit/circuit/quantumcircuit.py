@@ -711,19 +711,15 @@ class QuantumCircuit:
 
         Examples:
 
-            >>> from qiskit import QuantumCircuit
-            >>> top = QuantumCircuit(1)
-            >>> top.x(0);
-            >>> bottom = QuantumCircuit(2)
-            >>> bottom.cry(0.2, 0, 1);
-            >>> bottom.tensor(top).draw()
-                    ┌───┐
-            q_0: ───┤ X ├───
-                    └───┘
-            q_1: ─────■─────
-                 ┌────┴────┐
-            q_2: ┤ RY(0.2) ├
-                 └─────────┘
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+                top = QuantumCircuit(1)
+                top.x(0);
+                bottom = QuantumCircuit(2)
+                bottom.cry(0.2, 0, 1);
+                tensored = bottom.tensor(top)
+                print(tensored.draw())
 
         Returns:
             QuantumCircuit: The tensored circuit (returns None if inplace==True).
