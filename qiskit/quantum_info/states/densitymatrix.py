@@ -79,7 +79,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             op = data.to_operator()
             self._data = op.data
             if dims is None:
-                dims = op._output_dims
+                dims = op.output_dims()
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -555,11 +555,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         num_indices = len(self.dims())
         indices = [num_indices - 1 - qubit for qubit in qargs]
         # Left multiple by mat
-        mat = np.reshape(other.data, other._shape)
+        mat = np.reshape(other.data, other._op_shape.tensor_shape)
         tensor = Operator._einsum_matmul(tensor, mat, indices)
         # Right multiply by mat ** dagger
         adj = other.adjoint()
-        mat_adj = np.reshape(adj.data, adj._shape)
+        mat_adj = np.reshape(adj.data, adj._op_shape.tensor_shape)
         tensor = Operator._einsum_matmul(tensor, mat_adj, indices, num_indices,
                                          True)
         # Replace evolved dimensions

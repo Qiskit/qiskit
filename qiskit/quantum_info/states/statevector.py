@@ -607,7 +607,7 @@ class Statevector(QuantumState, TolerancesMixin):
             # Full system evolution
             statevec._data = np.dot(oper._data, statevec._data)
             if not is_qubit:
-                statevec._set_dims(oper._output_dims)
+                statevec._set_dims(oper.output_dims())
             return statevec
 
         # Calculate contraction dimensions
@@ -618,8 +618,9 @@ class Statevector(QuantumState, TolerancesMixin):
         else:
             # Qudit contraction
             new_dims = list(statevec._dims)
+            op_dims = oper.output_dims()
             for i, qubit in enumerate(qargs):
-                new_dims[qubit] = oper._output_dims[i]
+                new_dims[qubit] = op_dims[i]
             new_dim = np.product(new_dims)
             num_qargs = len(new_dims)
 
@@ -637,7 +638,7 @@ class Statevector(QuantumState, TolerancesMixin):
             contract_dim = np.product(oper._input_dims)
             pre_tensor_shape = statevec._shape
             contract_shape = (contract_dim, statevec._dim // contract_dim)
-            post_tensor_shape = list(reversed(oper._output_dims)) + [
+            post_tensor_shape = list(reversed(op_dims)) + [
                 pre_tensor_shape[i] for i in range(num_qargs) if i not in indices]
 
         # reshape input for contraction

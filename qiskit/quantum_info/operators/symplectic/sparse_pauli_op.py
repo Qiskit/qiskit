@@ -221,7 +221,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
             other = SparsePauliOp(other)
 
         # Validate composition dimensions and qargs match
-        self._get_compose_dims(other, qargs, front)
+        self._op_shape.compose(other._op_shape, qargs, front)
 
         # Implement composition of the Pauli table
         x1, x2 = PauliTable._block_stack(self.table.X, other.table.X)
@@ -331,7 +331,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         table = self.table._add(other.table, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))

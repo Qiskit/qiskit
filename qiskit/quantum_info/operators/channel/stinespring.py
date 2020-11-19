@@ -22,6 +22,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
@@ -106,6 +107,8 @@ class Stinespring(QuantumChannel):
                 output_dim = input_dim
             if dim_left % output_dim != 0:
                 raise QiskitError("Invalid output_dim")
+            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
+                                    shape=(output_dim, input_dim))
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -117,35 +120,21 @@ class Stinespring(QuantumChannel):
                 # We use the QuantumChannel init transform to intialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
-            data = self._init_transformer(data)
-            input_dim, output_dim = data.dim
+            op_shape = data._op_shape
+            output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a
             # Stinespring operator
             rep = getattr(data, '_channel_rep', 'Operator')
             stine = _to_stinespring(rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
 
-        # Check and format input and output dimensions
-        input_dims, output_dims, num_qubits = self._automatic_dims(
-            input_dims, input_dim, output_dims, output_dim)
         # Initialize either single or general Stinespring
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
-            super().__init__((stine[0], None),
-                             input_dims=input_dims,
-                             output_dims=output_dims,
-                             num_qubits=num_qubits,
-                             channel_rep='Stinespring')
+            data = (stine[0], None)
         else:
             # General (non-CPTP) Stinespring map
-            super().__init__(stine,
-                             input_dims=input_dims,
-                             output_dims=output_dims,
-                             num_qubits=num_qubits,
-                             channel_rep='Stinespring')
+            data = stine
+        super().__init__(data, op_shape=op_shape)
 
     @property
     def data(self):
