@@ -207,23 +207,52 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_measure_to_registers_when_conditionals(self):
         """Verify assemble_circuits maps all measure ops on to a register slot
         for a circuit containing conditionals."""
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(3)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr1, cr2)
+
+        qc.measure(qr[0], cr1[0])  # Measure not required for a later conditional
+        qc.measure_pauli('X', qr[2], cr1[0])  # Measure not required for a later conditional
+        qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
+        qc.h(qr[1]).c_if(cr2, 3)
+
+        qobj = assemble(qc)
+
+        first_measure, second_measure, third_measure = \
+                       [op for op in qobj.experiments[0].instructions
+                        if op.name == 'measure' or op.name == 'measure_pauli']
+
+        self.assertTrue(hasattr(first_measure, 'register'))
+        self.assertEqual(first_measure.register, first_measure.memory)
+        self.assertTrue(hasattr(second_measure, 'register'))
+        self.assertEqual(second_measure.register, second_measure.memory)
+        self.assertTrue(hasattr(second_measure, 'register'))
+        self.assertEqual(second_measure.register, second_measure.memory)
+
+    def test_measure_pauli_to_registers_when_conditionals(self):
+        """Verify assemble_circuits maps all measure ops on to a register slot
+        for a circuit containing conditionals because of measure_pauli."""
+        qr = QuantumRegister(3)
         cr1 = ClassicalRegister(1)
         cr2 = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr1, cr2)
 
         qc.measure(qr[0], cr1)  # Measure not required for a later conditional
-        qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
+        qc.measure_pauli('X', qr[2], cr1[0])  # Measure not required for a later conditional
+        qc.measure_pauli('X', qr[1], cr2[1])  # Measure required for a later conditional
         qc.h(qr[1]).c_if(cr2, 3)
 
         qobj = assemble(qc)
-        validate_qobj_against_schema(qobj)
 
-        first_measure, second_measure = [op for op in qobj.experiments[0].instructions
-                                         if op.name == 'measure']
+        first_measure, second_measure, third_measure = \
+                       [op for op in qobj.experiments[0].instructions
+                        if op.name == 'measure' or op.name == 'measure_pauli']
 
         self.assertTrue(hasattr(first_measure, 'register'))
         self.assertEqual(first_measure.register, first_measure.memory)
+        self.assertTrue(hasattr(second_measure, 'register'))
+        self.assertEqual(second_measure.register, second_measure.memory)
         self.assertTrue(hasattr(second_measure, 'register'))
         self.assertEqual(second_measure.register, second_measure.memory)
 
