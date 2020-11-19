@@ -805,8 +805,7 @@ class MatplotlibDrawer:
             # compute the layer_width for this layer
             #
             for op in layer:
-
-                if op.name in [*_barrier_gates, 'measure']:
+                if op.name in [*_barrier_gates, 'measure', 'pauli_measure']:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -946,10 +945,9 @@ class MatplotlibDrawer:
                 # draw special gates
                 #
                 if op.name == 'measure':
-                    if len(op.op.params) == 0:
-                        basis = 'z'
-                    else:
-                        basis = op.params
+                    basis = 'z'
+                if op.name == 'pauli_meaure':
+                    basis = op.params
                         
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc, basis=basis)

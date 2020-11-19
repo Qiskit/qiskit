@@ -22,7 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement"""
 
-    def __init__(sel, params=[]):
+    def __init__(self, name='measure', params=[]):
         """Create new measurement instruction."""
         super().__init__('measure', 1, 1, params=params)
 
@@ -80,7 +80,7 @@ class MeasurePauli(Measure):
                 raise ValueError('Unsupported measurement basis, choose either of X, Y or Z.')
             params.append(qubit_basis)
         
-        super().__init__(params=params)
+        super().__init__('pauli_measure', params)
 
     def _define(self):
         definition = []
