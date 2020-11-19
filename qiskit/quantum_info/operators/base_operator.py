@@ -636,3 +636,10 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
 
     def __neg__(self):
         return self._multiply(-1)
+
+    def __array_ufunc__(self, ufunc, method, *args, **kwargs):
+        # Dispatch numpy multiply ufunc to multiple
+        if (ufunc == np.multiply and method == '__call__') and not kwargs:
+            value = args[0] if isinstance(args[1], type(self)) else args[1]
+            return self._multiply(value)
+        return NotImplemented

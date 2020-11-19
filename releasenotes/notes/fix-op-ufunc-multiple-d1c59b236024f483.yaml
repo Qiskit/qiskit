@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes bug in :class:`~qiskit.quantum_info.SparsePauliOp` where multiplying
+    by a certain non Python builtin Numpy scalar types returned incorrect values.
