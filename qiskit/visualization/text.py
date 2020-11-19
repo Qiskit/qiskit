@@ -994,7 +994,7 @@ class TextDrawing():
         if isinstance(instruction.op, MeasureInstruction):
             if instruction.name == 'measure':
                 gate = MeasureFrom()
-            else:   # pauli_measure
+            else:   # measure_pauli
                 basis = instruction.params.upper()
                 gate = MeasureFrom(basis)
             layer.set_qubit(instruction.qargs[0], gate)

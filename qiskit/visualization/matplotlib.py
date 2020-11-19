@@ -805,7 +805,7 @@ class MatplotlibDrawer:
             # compute the layer_width for this layer
             #
             for op in layer:
-                if op.name in [*_barrier_gates, 'measure', 'pauli_measure']:
+                if op.name in [*_barrier_gates, 'measure', 'measure_pauli']:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -946,7 +946,7 @@ class MatplotlibDrawer:
                 #
                 if op.name == 'measure':
                     basis = 'z'
-                if op.name == 'pauli_meaure':
+                if op.name == 'meaure_pauli':
                     basis = op.params
                         
                     vv = self._creg_dict[c_idxs[0]]['index']

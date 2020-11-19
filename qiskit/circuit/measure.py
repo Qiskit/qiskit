@@ -24,7 +24,7 @@ class Measure(Instruction):
 
     def __init__(self, name='measure', params=[]):
         """Create new measurement instruction."""
-        super().__init__('measure', 1, 1, params=params)
+        super().__init__(name, 1, 1, params=params)
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
@@ -80,7 +80,7 @@ class MeasurePauli(Measure):
                 raise ValueError('Unsupported measurement basis, choose either of X, Y or Z.')
             params.append(qubit_basis)
         
-        super().__init__('pauli_measure', params)
+        super().__init__('measure_pauli', params)
 
     def _define(self):
         definition = []
