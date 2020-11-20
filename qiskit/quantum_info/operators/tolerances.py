@@ -15,13 +15,12 @@ Tolerances mixin class.
 """
 
 import warnings
-from abc import ABCMeta
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
-class TolerancesMeta(ABCMeta):
+class TolerancesMeta(type):
     """Metaclass to handle tolerances"""
     def __init__(cls, *args, **kwargs):
         cls._ATOL_DEFAULT = ATOL_DEFAULT
