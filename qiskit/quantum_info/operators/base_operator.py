@@ -99,6 +99,9 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
         elif input_dims is not None and output_dims is not None:
             self._set_dims(input_dims, output_dims)
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def __call__(self, qargs):
         """Return a clone with qargs set"""
         if isinstance(qargs, int):
@@ -636,10 +639,3 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
 
     def __neg__(self):
         return self._multiply(-1)
-
-    def __array_ufunc__(self, ufunc, method, *args, **kwargs):
-        # Dispatch numpy multiply ufunc to multiple
-        if (ufunc == np.multiply and method == '__call__') and not kwargs:
-            value = args[0] if isinstance(args[1], type(self)) else args[1]
-            return self._multiply(value)
-        return NotImplemented
