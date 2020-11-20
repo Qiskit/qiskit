@@ -18,7 +18,7 @@ import inspect
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
@@ -29,7 +29,7 @@ from qiskit.circuit.library import (
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate,
-    SXGate, SXdgGate, CSXGate
+    SXGate, SXdgGate, CSXGate, RVGate
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -115,6 +115,33 @@ class TestGateDefinitions(QiskitTestCase):
         circ.cx(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_definition(self):
+        """Test R(v) gate to_matrix and definition.
+        """
+        qreg = QuantumRegister(1)
+        circ = QuantumCircuit(qreg)
+        vec = np.array([0.1, 0.2, 0.3], dtype=float)
+        circ.rv(*vec, 0)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_rv_r_equiv(self):
+        """Test R(v) gate is equivalent to R gate.
+        """
+        theta = np.pi / 5
+        phi = np.pi / 3
+        rgate = RGate(theta, phi)
+        axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
+        rotvec = theta * axis
+        rv = RVGate(*rotvec)
+        self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
+
+    def test_rv_zero(self):
+        """Test R(v) gate with zero vector returns identity
+        """
+        rv = RVGate(0, 0, 0)
+        self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
 
 
 @ddt
