@@ -118,8 +118,11 @@ class Initialize(Instruction):
         # and make a bit string and reverse it
         intstr = f'{int(np.real(self.params[0])):0b}'[::-1]
 
-        # Strip off any trailing bits beyond num_qubits
+        # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
+            raise QiskitError("Initialize integer has %s bits, but this exceeds the"
+                              " number of qubits in the circuit, %s." %
+                              (len(intstr), self.num_qubits))
             intstr = intstr[:self.num_qubits]
 
         for qubit, bit in enumerate(intstr):
@@ -349,12 +352,11 @@ def initialize(self, params, qubits=None):
     """Apply initialize to circuit."""
     if qubits is None:
         qubits = self.qubits
-    elif isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    elif isinstance(qubits, range):
-        qubits = list(qubits)
-    elif not isinstance(qubits, list):
-        qubits = [qubits]
+    else:
+        if isinstance(qubits, int):
+            qubits = [qubits]
+        qubits = self._bit_argument_conversion(qubits, self.qubits)
+
     return self.append(Initialize(params, len(qubits)), qubits)
 
 
