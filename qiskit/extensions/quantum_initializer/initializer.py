@@ -123,7 +123,6 @@ class Initialize(Instruction):
             raise QiskitError("Initialize integer has %s bits, but this exceeds the"
                               " number of qubits in the circuit, %s." %
                               (len(intstr), self.num_qubits))
-            intstr = intstr[:self.num_qubits]
 
         for qubit, bit in enumerate(intstr):
             initialize_circuit.append(Reset(), [q[qubit]])
