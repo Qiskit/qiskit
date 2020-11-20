@@ -16,14 +16,36 @@
 
 import functools
 import os
+import socket
 import sys
 import unittest
 from warnings import warn
 
-from qiskit.util import _has_connection
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
+
+
+def _has_connection(hostname, port):
+    """Checks if internet connection exists to host via specified port.
+
+    If any exception is raised while trying to open a socket this will return
+    false.
+
+    Args:
+        hostname (str): Hostname to connect to.
+        port (int): Port to connect to
+
+    Returns:
+        bool: Has connection or not
+
+    """
+    try:
+        host = socket.gethostbyname(hostname)
+        socket.create_connection((host, port), 2).close()
+        return True
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 def is_aer_provider_available():
