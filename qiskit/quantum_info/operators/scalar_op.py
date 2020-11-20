@@ -32,9 +32,6 @@ class ScalarOp(BaseOperator, TolerancesMixin):
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
     :meth:`tensor`, :meth:`expand` methods.
     """
-    def __array__(self):
-        return self.to_matrix()
-
     def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.
 
@@ -50,6 +47,10 @@ class ScalarOp(BaseOperator, TolerancesMixin):
             QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
         super().__init__(*self._automatic_dims(dims, np.product(dims)))
+
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
+        return self.to_matrix()
 
     def __repr__(self):
         return 'ScalarOp({}, coeff={})'.format(

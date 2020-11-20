@@ -31,8 +31,6 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
-    def __array__(self):
-        return self.data
 
     def __init__(self, data, dims=None):
         """Initialize a statevector object.
@@ -92,6 +90,10 @@ class Statevector(QuantumState, TolerancesMixin):
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(self._automatic_dims(dims, shape[0]))
+
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
+        return self.data
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(

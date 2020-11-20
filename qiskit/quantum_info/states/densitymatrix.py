@@ -33,8 +33,6 @@ from qiskit.quantum_info.states.statevector import Statevector
 
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
-    def __array__(self):
-        return self.data
 
     def __init__(self, data, dims=None):
         """Initialize a density matrix object.
@@ -103,6 +101,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError(
                 "Invalid DensityMatrix input: not a square matrix.")
         super().__init__(self._automatic_dims(dims, shape[0]))
+
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
+        return self.data
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(

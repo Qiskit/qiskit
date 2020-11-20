@@ -97,8 +97,9 @@ class SwapGate(Gate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SWAP gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0, 0, 0],
                             [0, 0, 1, 0],
                             [0, 1, 0, 0],
@@ -227,8 +228,9 @@ class CSwapGate(ControlledGate):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
+        # pylint: disable=unused-argument
         if self.ctrl_state:
             return self._matrix1
         else:

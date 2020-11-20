@@ -73,8 +73,9 @@ class RGate(Gate):
         """
         return RGate(-self.params[0], self.params[1])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the R gate."""
+        # pylint: disable=unused-argument
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)

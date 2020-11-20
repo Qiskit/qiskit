@@ -110,8 +110,9 @@ class iSwapGate(Gate):
 
         self.definition = qc
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
+        # pylint: disable=unused-argument
         return np.array([[1, 0, 0, 0],
                          [0, 0, 1j, 0],
                          [0, 1j, 0, 0],

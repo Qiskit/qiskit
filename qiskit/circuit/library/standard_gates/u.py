@@ -89,8 +89,9 @@ class UGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the U gate."""
+        # pylint: disable=unused-argument
         theta, phi, lam = [float(param) for param in self.params]
         return numpy.array([
             [
@@ -206,8 +207,9 @@ class CUGate(ControlledGate):
             ctrl_state=self.ctrl_state
         )
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
+        # pylint: disable=unused-argument
         theta, phi, lam, gamma = [float(param) for param in self.params]
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)

@@ -54,8 +54,9 @@ class Delay(Instruction):
         """Set the duration of this delay."""
         self.params = [duration]
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return the identity matrix."""
+        # pylint: disable=unused-argument
         return np.array([[1, 0],
                          [0, 1]], dtype=complex)
 

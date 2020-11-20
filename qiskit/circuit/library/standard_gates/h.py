@@ -93,8 +93,9 @@ class HGate(Gate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 1],
                             [1, -1]], dtype=complex) / numpy.sqrt(2)
 
@@ -203,8 +204,9 @@ class CHGate(ControlledGate):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CH gate."""
+        # pylint: disable=unused-argument
         if self.ctrl_state:
             return self._matrix1
         else:

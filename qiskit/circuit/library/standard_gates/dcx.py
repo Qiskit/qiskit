@@ -66,8 +66,9 @@ class DCXGate(Gate):
 
         self.definition = qc
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the DCX gate."""
+        # pylint: disable=unused-argument
         return np.array([[1, 0, 0, 0],
                          [0, 0, 0, 1],
                          [0, 1, 0, 0],

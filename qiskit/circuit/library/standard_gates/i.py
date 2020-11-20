@@ -47,7 +47,8 @@ class IGate(Gate):
         """Invert this gate."""
         return IGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
                             [0, 1]], dtype=complex)

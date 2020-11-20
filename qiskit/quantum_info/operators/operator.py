@@ -47,8 +47,6 @@ class Operator(BaseOperator, TolerancesMixin):
 
         \rho \mapsto M \rho M^\dagger.
     """
-    def __array__(self):
-        return self.data
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize an operator object.
@@ -105,6 +103,10 @@ class Operator(BaseOperator, TolerancesMixin):
         # Determine input and output dimensions
         dout, din = self._data.shape
         super().__init__(*self._automatic_dims(input_dims, din, output_dims, dout))
+
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
+        return self.data
 
     def __repr__(self):
         prefix = 'Operator('

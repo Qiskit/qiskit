@@ -90,8 +90,9 @@ class RXGate(Gate):
         """
         return RXGate(-self.params[0])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RX gate."""
+        # pylint: disable=unused-argument
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin],
@@ -192,8 +193,9 @@ class CRXGate(ControlledGate):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CRX gate."""
+        # pylint: disable=unused-argument
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         isin = 1j * numpy.sin(half_theta)

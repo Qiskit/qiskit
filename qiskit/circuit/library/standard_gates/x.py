@@ -111,8 +111,9 @@ class XGate(Gate):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the X gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[0, 1],
                             [1, 0]], dtype=complex)
 
@@ -203,8 +204,9 @@ class CXGate(ControlledGate):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CX gate."""
+        # pylint: disable=unused-argument
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 0, 0, 1],
@@ -343,8 +345,9 @@ class CCXGate(ControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CCX gate."""
+        # pylint: disable=unused-argument
         return _compute_control_matrix(self.base_gate.to_matrix(),
                                        self.num_ctrl_qubits,
                                        ctrl_state=self.ctrl_state)
@@ -401,8 +404,9 @@ class RCCXGate(Gate):
 
         self.definition = qc
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the simplified CCX gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0],
@@ -518,8 +522,9 @@ class C3XGate(ControlledGate):
         return C3XGate(angle=-self._angle, ctrl_state=self.ctrl_state)
 
     # This matrix is only correct if the angle is pi/4
-    # def __array__(self):
+    # def __array__(self, dtype=None):
     #     """Return a numpy.array for the C3X gate."""
+    #     # pylint: disable=unused-argument
     #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #                         [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #                         [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -605,8 +610,9 @@ class RC3XGate(Gate):
 
         self.definition = qc
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RC3X gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -712,8 +718,9 @@ class C4XGate(ControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the C4X gate."""
+        # pylint: disable=unused-argument
         return _compute_control_matrix(self.base_gate.to_matrix(),
                                        self.num_ctrl_qubits,
                                        ctrl_state=self.ctrl_state)

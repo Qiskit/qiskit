@@ -81,8 +81,9 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the U2 gate."""
+        # pylint: disable=unused-argument
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)

@@ -104,8 +104,9 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
 
@@ -169,8 +170,9 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""
+        # pylint: disable=unused-argument
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],

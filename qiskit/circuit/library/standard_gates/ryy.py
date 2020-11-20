@@ -100,8 +100,9 @@ class RYYGate(Gate):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RYY gate."""
+        # pylint: disable=unused-argument
         theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)

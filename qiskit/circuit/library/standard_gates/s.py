@@ -70,8 +70,9 @@ class SGate(Gate):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
                             [0, 1j]], dtype=complex)
 
@@ -128,7 +129,8 @@ class SdgGate(Gate):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
                             [0, -1j]], dtype=complex)

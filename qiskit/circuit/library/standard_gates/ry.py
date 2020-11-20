@@ -90,8 +90,9 @@ class RYGate(Gate):
         """
         return RYGate(-self.params[0])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RY gate."""
+        # pylint: disable=unused-argument
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin],
@@ -186,8 +187,9 @@ class CRYGate(ControlledGate):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
+        # pylint: disable=unused-argument
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)

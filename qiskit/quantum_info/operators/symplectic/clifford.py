@@ -100,7 +100,8 @@ class Clifford(BaseOperator):
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
-    def __array__(self):
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
         return self.to_matrix()
 
     def __init__(self, data, validate=True):

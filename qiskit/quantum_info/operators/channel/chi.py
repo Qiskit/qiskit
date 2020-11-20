@@ -49,9 +49,6 @@ class Chi(QuantumChannel):
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
-    def __array__(self):
-        return self.data
-
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Chi-matrix operator.
 
@@ -121,6 +118,10 @@ class Chi(QuantumChannel):
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, None, None, num_qubits, 'Chi')
+
+    def __array__(self, dtype=None):
+        # pylint: disable=unused-argument
+        return self.data
 
     @property
     def _bipartite_shape(self):

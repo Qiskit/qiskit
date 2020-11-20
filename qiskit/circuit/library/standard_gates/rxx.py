@@ -98,8 +98,9 @@ class RXXGate(Gate):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
+        # pylint: disable=unused-argument
         import numpy
         theta2 = float(self.params[0]) / 2
         cos = numpy.cos(theta2)

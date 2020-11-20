@@ -105,8 +105,9 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Y gate."""
+        # pylint: disable=unused-argument
         return numpy.array([[0, -1j],
                             [1j, 0]], dtype=complex)
 
@@ -202,8 +203,9 @@ class CYGate(ControlledGate):
         """Return inverted CY gate (itself)."""
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CY gate."""
+        # pylint: disable=unused-argument
         if self.ctrl_state:
             return self._matrix1
         else:

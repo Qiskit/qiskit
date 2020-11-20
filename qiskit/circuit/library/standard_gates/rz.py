@@ -101,8 +101,9 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RZ gate."""
+        # pylint: disable=unused-argument
         import numpy as np
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[np.exp(-ilam2), 0],
@@ -203,8 +204,9 @@ class CRZGate(ControlledGate):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CRZ gate."""
+        # pylint: disable=unused-argument
         import numpy
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
