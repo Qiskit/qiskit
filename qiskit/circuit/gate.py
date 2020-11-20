@@ -39,6 +39,9 @@ class Gate(Instruction):
         self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 
