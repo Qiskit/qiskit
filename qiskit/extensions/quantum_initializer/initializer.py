@@ -317,12 +317,12 @@ class Initialize(Instruction):
 
 def initialize(self, params, qubits):
     """
-    Qubit initializalition is done by appending instructions to the quantum circuit (by 
-    calling Initialize(params)) and the qubits we wish to iniatilize. Note that the 
+    Qubit initializalition is done by appending instructions to the quantum circuit (by
+    calling Initialize(params)) and the qubits we wish to iniatilize. Note that the
     qubits are first set to |0> and then the desired state is achieved by applying
     a state preparing unitary.
     
-    Args: 
+    Args:
         params (str or list):
             * list: vector of complex amplitudes to initialize to.
             * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
@@ -336,11 +336,11 @@ def initialize(self, params, qubits):
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
-        
-        
+
+
     Examples:
         Prepare a qubit in the anti-symmetric state 1/sqrt(2)(|0> - |1>).
-        
+
         .. jupyter-execute::
             import numpy as np
             from qiskit import QuantumCircuit
@@ -351,7 +351,7 @@ def initialize(self, params, qubits):
              ┌──────────────────────────────┐
         q_0: ┤ initialize(0.70711,-0.70711) ├
              └──────────────────────────────┘
-             
+
              
         Initialize from a string two qubits in the state |10>. 
         The order of the labels is reversed with respect to qubit index.
@@ -370,8 +370,8 @@ def initialize(self, params, qubits):
              │  initialize(0,1) │
         q_1: ┤1                 ├
              └──────────────────┘
-             
-             
+
+
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
             import numpy as np
@@ -379,13 +379,13 @@ def initialize(self, params, qubits):
             circuit = QuantumCircuit(2)
             circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
             circuit.draw()
-            
+
              ┌────────────────────────────────────┐
         q_0: ┤0                                   ├
              │  initialize(0,0.70711,-0.70711j,0) │
         q_1: ┤1                                   ├
              └────────────────────────────────────┘
-             
+
     """
     if not isinstance(qubits, list):
         qubits = [qubits]
