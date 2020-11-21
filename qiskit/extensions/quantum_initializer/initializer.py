@@ -330,9 +330,9 @@ def initialize(self, params, qubits):
                 Notice the order of the labels is reversed with respect to the qubit index to
                 be applied to. Example label '01' initializes the qubit zero to `|1>` and the
                 qubit one to `|0>`
-        qubits (QuantumRegister|list or int):
-            * QuantumRegister|list: A list of qubits to be initialized
-            * int: Index of qubit to initialize state of
+        qubits (QuantumRegister or int):
+            * QuantumRegister: A list of qubits to be initialized
+            * int: Index of qubit to initialzied
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
