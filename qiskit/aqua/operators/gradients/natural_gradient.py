@@ -103,8 +103,8 @@ class NaturalGradient(GradientBase):
             else:
                 try:
                     nat_grad = np.linalg.solve(a, c)
-                except np.LinAlgError:
-                    nat_grad = np.linalg.lstsq(a, c)
+                except np.linalg.LinAlgError:  # singular matrix
+                    nat_grad = np.linalg.lstsq(a, c)[0]
             return np.real(nat_grad)
 
         return ListOp([grad, metric], combo_fn=combo_fn)
