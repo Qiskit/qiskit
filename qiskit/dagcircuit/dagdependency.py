@@ -346,7 +346,7 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
-        directives = ['measure', 'barrier', 'snapshot']
+        directives = ['measure', 'measure_pauli', 'barrier', 'snapshot']
         if operation.name not in directives:
             qindices_list = []
             for elem in qargs:
