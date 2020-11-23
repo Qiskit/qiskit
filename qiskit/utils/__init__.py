@@ -21,7 +21,7 @@ Utilities (:mod:`qiskit.utils`)
    :toctree: ../stubs/
 
    deprecate_arguments
-   deprecated_function
+   deprecate_function
    local_hardware_info
    is_main_process
    apply_prefix
