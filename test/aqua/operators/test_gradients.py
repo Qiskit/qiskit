@@ -38,6 +38,7 @@ from qiskit.aqua.operators.gradients.qfi import QFI
 from qiskit.aqua.operators.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.circuit import ParameterVector
+from qiskit.circuit.library import RealAmplitudes
 
 
 @ddt
@@ -637,6 +638,36 @@ class TestGradients(QiskitAquaTestCase):
             np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
                                                  correct_values[i],
                                                  decimal=1)
+
+    @data('lin_comb', 'param_shift', 'fin_diff')
+    def test_grad_combo_fn_chain_rule(self, method):
+        """
+        Test the chain rule for a custom gradient combo function
+
+        """
+        np.random.seed(2)
+
+        def combo_fn(x):
+            amplitudes = x[0].primitive.data
+            pdf = np.multiply(amplitudes, np.conj(amplitudes))
+            return np.sum(np.log(pdf)) / (-len(amplitudes))
+
+        def grad_combo_fn(x):
+            amplitudes = x[0].primitive.data
+            pdf = np.multiply(amplitudes, np.conj(amplitudes))
+            grad = []
+            for prob in pdf:
+                grad += [-1 / prob]
+            return grad
+
+        qc = RealAmplitudes(2, reps=1)
+        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = Gradient(grad_method=method).convert(grad_op, qc.ordered_parameters)
+        value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
+        correct_values = [[(-0.16666259133549044+0j)], [(-7.244949702732864+0j)],
+                          [(-2.979791752749964+0j)], [(-5.310186078432614+0j)]]
+        np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
+                                             correct_values)
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_operator_coefficient_gradient(self, method):
