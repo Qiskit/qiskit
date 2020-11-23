@@ -45,14 +45,24 @@ class Initialize(Instruction):
     def __init__(self, params, num_qubits=None):
         """Create new initialize composite.
 
-        params (str or list):
+        params (str, list, or int):
           * list: vector of complex amplitudes to initialize to.
           * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
                Notice the order of the labels is reversed with respect to the qubit index to
                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-               qubit one to `|0>`
+               qubit one to `|0>`.
+          * int: an integer that is used as a bitmap indicating which qubits to initialize
+               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+               to `|1>` and qubit 1 to `|0>`.
+        num_qubits (int): This parameter is only used if params is an int. Indicates the total
+            number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
+            and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
+            remaining 3 qubits to be initialized to `|0>`.
         """
+        if not isinstance(params, int) and num_qubits:
+            raise QiskitError("The num_qubits parameter to Initialize should only be"
+                              " used when params is an integer")
         self._from_label = False
         self._from_int = False
         if isinstance(params, str):
@@ -116,7 +126,7 @@ class Initialize(Instruction):
 
         # Convert to int since QuantumCircuit converted to complex
         # and make a bit string and reverse it
-        intstr = f'{int(np.real(self.params[0])):0b}'[::-1]
+        intstr = f'{int(np.real(self.params[0])):0{self.num_qubits}b}'[::-1]
 
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
@@ -356,7 +366,8 @@ def initialize(self, params, qubits=None):
             qubits = [qubits]
         qubits = self._bit_argument_conversion(qubits, self.qubits)
 
-    return self.append(Initialize(params, len(qubits)), qubits)
+    num_qubits = None if not isinstance(params, int) else len(qubits)
+    return self.append(Initialize(params, num_qubits), qubits)
 
 
 QuantumCircuit.initialize = initialize
