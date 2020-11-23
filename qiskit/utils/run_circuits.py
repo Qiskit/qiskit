@@ -27,14 +27,12 @@ from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
-from qiskit.exceptions import QiskitError
-from qiskit.aqua import MissingOptionalLibraryError
-from qiskit.aqua.aqua_error import AquaError
-from qiskit.aqua.utils.backend_utils import (is_aer_provider,
-                                             is_basicaer_provider,
-                                             is_simulator_backend,
-                                             is_local_backend,
-                                             is_ibmq_provider)
+from ..exceptions import QiskitError, AquaError, MissingOptionalLibraryError
+from .backend_utils import (is_aer_provider,
+                            is_basicaer_provider,
+                            is_simulator_backend,
+                            is_local_backend,
+                            is_ibmq_provider)
 
 MAX_CIRCUITS_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_CIRCUITS_PER_JOB', None)
 MAX_GATES_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_GATES_PER_JOB', None)
