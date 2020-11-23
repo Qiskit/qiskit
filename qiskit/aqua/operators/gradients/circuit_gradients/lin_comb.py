@@ -589,10 +589,11 @@ class LinComb(CircuitGradient):
                 return prob_dict
             elif isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
-                lin_comb_op = 2 * (I ^ state_op.num_qubits) ^ Z
+                lin_comb_op = 2 * Z ^ (I ^ state_op.num_qubits)
                 lin_comb_op = lin_comb_op.to_matrix()
                 return list(np.diag(
-                    partial_trace(lin_comb_op.dot(np.outer(item, np.conj(item))), [0]).data))
+                    partial_trace(lin_comb_op.dot(np.outer(item, np.conj(item))),
+                                  [state_op.num_qubits]).data))
             else:
                 raise TypeError(
                     'The state result should be either a DictStateFn or a VectorStateFn.')

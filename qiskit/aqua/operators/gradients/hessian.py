@@ -232,10 +232,10 @@ class Hessian(HessianBase):
 
             # term1 = (∂F/∂g_i)•(d g_i/ d θ0,θ1)
             term1 = ListOp([ListOp(operator.oplist, combo_fn=first_partial_combo_fn),
-                            ListOp(dd_ops)], combo_fn=lambda x: np.dot(x[0], x[1]))
+                            ListOp(dd_ops)], combo_fn=lambda x: np.dot(x[1], x[0]))
             # term2 = (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d θ1)
             term2 = ListOp([ListOp(operator.oplist, combo_fn=second_partial_combo_fn), d1d0_ops],
-                           combo_fn=lambda x: np.dot(x[0], x[1]))
+                           combo_fn=lambda x: np.dot(x[1], x[0]))
 
             return SummedOp([term1, term2])
 

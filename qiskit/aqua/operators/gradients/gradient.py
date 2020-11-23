@@ -194,6 +194,11 @@ class Gradient(GradientBase):
                         'jax and use `import jax.numpy as jnp` instead of `import numpy as np` when'
                         'defining a combo_fn.')
 
-            # f(g_1(x), g_2(x)) --> df/dx = df/dg_1 dg_1/dx + df/dg_2 dg_2/dx
+            def chain_rule_combo_fn(x):
+                result = np.dot(x[1], x[0])
+                if isinstance(result, np.ndarray):
+                    result = list(result)
+                return result
+
             return ListOp([ListOp(operator.oplist, combo_fn=grad_combo_fn), ListOp(grad_ops)],
-                          combo_fn=lambda x: np.dot(x[0], x[1]))
+                          combo_fn=chain_rule_combo_fn)
