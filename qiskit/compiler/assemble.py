@@ -19,7 +19,7 @@ from time import time
 from typing import Union, List, Dict, Optional
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import ScheduleComponent, LoConfig
+from qiskit.pulse import LoConfig, Instruction
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader, Qobj
@@ -153,7 +153,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
-    elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
+    elif all(isinstance(exp, (Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,

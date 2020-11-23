@@ -120,12 +120,9 @@ class PTM(QuantumChannel):
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
         num_qubits = int(np.log2(input_dim))
-        if 2**num_qubits != input_dim:
+        if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
-        # Check and format input and output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__(ptm, input_dims, output_dims, 'PTM')
+        super().__init__(ptm, None, None, num_qubits, 'PTM')
 
     @property
     def _bipartite_shape(self):

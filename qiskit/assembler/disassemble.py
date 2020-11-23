@@ -54,7 +54,8 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
         qobj (Qobj): The input qobj object to disassemble
 
     Returns:
-        The disassembled program which consists of:
+        Union[CircuitModule, PulseModule]: The disassembled program which consists of:
+
             * programs: A list of quantum circuits or pulse schedules
             * run_config: The dict of the run config
             * user_qobj_header: The dict of any user headers in the qobj

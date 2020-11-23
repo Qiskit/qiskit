@@ -115,6 +115,14 @@ Basis Change Circuits
 Arithmetic Circuits
 ===================
 
+Amplitude Functions
++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinearAmplitudeFunction
+
 Functional Pauli Rotations
 ++++++++++++++++++++++++++
 
@@ -125,6 +133,7 @@ Functional Pauli Rotations
    LinearPauliRotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
+   PiecewisePolynomialPauliRotations
 
 Adders
 ++++++
@@ -279,7 +288,8 @@ from .generalized_gates import (
     GR,
     GRX,
     GRY,
-    GRZ
+    GRZ,
+    RVGate
 )
 from .boolean_logic import (
     AND,
@@ -292,6 +302,7 @@ from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
+    PiecewisePolynomialPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
