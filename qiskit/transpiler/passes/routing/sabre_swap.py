@@ -167,8 +167,8 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    physical_qubits = (current_layout[v0], current_layout[v1])
-                    if physical_qubits in self.coupling_map.get_edges():
+                    if self.coupling_map.graph.has_edge(current_layout[v0],
+                                                        current_layout[v1]):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
                     execute_gate_list.append(node)
