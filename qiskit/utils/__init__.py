@@ -1,0 +1,59 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+Utilities (:mod:`qiskit.utils`)
+========================================
+Various utility functionality...
+
+.. currentmodule:: qiskit.utils
+
+Utilities
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   summarize_circuits
+   get_subsystem_density_matrix
+   get_subsystems_counts
+   get_entangler_map
+   validate_entangler_map
+   has_ibmq
+   has_aer
+   name_args
+   QuantumInstance
+   aqua_globals
+
+"""
+
+from .circuit_utils import summarize_circuits
+from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
+from .entangler_map import get_entangler_map, validate_entangler_map
+from .backend_utils import has_ibmq, has_aer
+from .name_unnamed_args import name_args
+from .quantum_instance import QuantumInstance
+from .aqua_globals import aqua_globals
+
+__all__ = [
+    'summarize_circuits',
+    'get_subsystem_density_matrix',
+    'get_subsystems_counts',
+    'get_entangler_map',
+    'validate_entangler_map',
+    'has_ibmq',
+    'has_aer',
+    'name_args',
+    'QuantumInstance',
+    'aqua_globals',
+]

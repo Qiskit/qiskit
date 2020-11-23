@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.util import local_hardware_info
 import qiskit
 
-from .aqua_error import AquaError
+from ..exceptions import AquaError
 
 
 logger = logging.getLogger(__name__)

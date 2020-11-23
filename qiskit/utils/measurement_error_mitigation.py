@@ -16,10 +16,7 @@ import copy
 import logging
 
 from qiskit import compiler
-from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
-                                                 CompleteMeasFitter, TensoredMeasFitter)
-
-from ..aqua_error import AquaError
+from ..exceptions import AquaError, MissingOptionalLibraryError
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +116,16 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
 
         Raises:
             AquaError: when the fitter_cls is not recognizable.
+            MissingOptionalLibraryError: Qiskit-Ignis not installed
         """
+    try:
+        from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
+                                                         CompleteMeasFitter, TensoredMeasFitter)
+    except ImportError as ex:
+        raise MissingOptionalLibraryError(
+            libname='qiskit-ignis',
+            name='build_measurement_error_mitigation_qobj',
+            pip_install='pip install qiskit-ignis') from ex
 
     circlabel = 'mcal'
 

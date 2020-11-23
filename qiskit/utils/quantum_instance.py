@@ -32,15 +32,15 @@ try:
 except ImportError as ex:
     pass
 
-from .aqua_error import AquaError
-from .utils.backend_utils import (is_ibmq_provider,
-                                  is_statevector_backend,
-                                  is_simulator_backend,
-                                  is_local_backend,
-                                  is_aer_qasm,
-                                  is_basicaer_provider,
-                                  support_backend_options)
-from .utils.circuit_utils import summarize_circuits
+from ..exceptions import AquaError
+from .backend_utils import (is_ibmq_provider,
+                            is_statevector_backend,
+                            is_simulator_backend,
+                            is_local_backend,
+                            is_aer_qasm,
+                            is_basicaer_provider,
+                            support_backend_options)
+from .circuit_utils import summarize_circuits
 
 logger = logging.getLogger(__name__)
 
@@ -292,10 +292,10 @@ class QuantumInstance:
               assembling to the qobj.
         """
         # pylint: disable=import-outside-toplevel
-        from .utils.run_circuits import run_qobj
+        from .run_circuits import run_qobj
 
-        from .utils.measurement_error_mitigation import (get_measured_qubits_from_qobj,
-                                                         build_measurement_error_mitigation_qobj)
+        from .measurement_error_mitigation import (get_measured_qubits_from_qobj,
+                                                   build_measurement_error_mitigation_qobj)
         # maybe compile
         if not had_transpiled:
             circuits = self.transpile(circuits)
