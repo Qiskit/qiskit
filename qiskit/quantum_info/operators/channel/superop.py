@@ -326,7 +326,7 @@ class SuperOp(QuantumChannel):
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
         # Reshape statevector and operator
-        tensor = np.reshape(state.data, state._shape)
+        tensor = np.reshape(state.data, state._op_shape.tensor_shape)
         mat = np.reshape(self.data, self._tensor_shape)
         # Construct list of tensor indices of statevector to be contracted
         num_indices = len(state.dims())
