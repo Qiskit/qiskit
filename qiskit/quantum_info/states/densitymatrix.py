@@ -22,6 +22,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -31,7 +32,7 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
 
 
-class DensityMatrix(QuantumState):
+class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(self, data, dims=None):
