@@ -2031,7 +2031,13 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         for instr, param_index in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].assign(parameter, value)
+            new_param = instr.params[param_index].assign(parameter, value)
+            # if fully bound, validate
+            if len(new_param.parameters) == 0:
+                instr.params[param_index] = instr.validate_parameter(new_param)
+            else:
+                instr.params[param_index] = new_param
+
             self._rebind_definition(instr, parameter, value)
 
         if isinstance(value, ParameterExpression):
