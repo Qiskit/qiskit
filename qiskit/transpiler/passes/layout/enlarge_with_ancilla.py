@@ -42,6 +42,7 @@ class EnlargeWithAncilla(TransformationPass):
             raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
         new_qreg = self.property_set['layout_ancilla_register']
-        dag.add_qreg(new_qreg)
+        if new_qreg:
+            dag.add_qreg(new_qreg)
 
         return dag
