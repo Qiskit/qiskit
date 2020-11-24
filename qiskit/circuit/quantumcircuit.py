@@ -2031,7 +2031,13 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         for instr, param_index in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].assign(parameter, value)
+            new_param = instr.params[param_index].assign(parameter, value)
+            # if fully bound, validate
+            if len(new_param.parameters) == 0:
+                instr.params[param_index] = instr.validate_parameter(new_param)
+            else:
+                instr.params[param_index] = new_param
+
             self._rebind_definition(instr, parameter, value)
 
         if isinstance(value, ParameterExpression):
@@ -2191,6 +2197,11 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
         return self.append(RGate(theta, phi), [qubit], [])
+
+    def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
+        """Apply :class:`~qiskit.circuit.library.RVGate`."""
+        from .library.generalized_gates.rv import RVGate
+        return self.append(RVGate(vx, vy, vz), [qubit], [])
 
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.RCCXGate`."""

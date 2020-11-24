@@ -52,8 +52,9 @@ class ParameterExpression:
         return self._parameters
 
     def conjugate(self) -> 'ParameterExpression':
-        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+        """Return the conjugate."""
+        conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        return conjugated
 
     def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
         """
@@ -91,7 +92,7 @@ class ParameterExpression:
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_non_real_value(parameter_values)
+        self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -166,12 +167,12 @@ class ParameterExpression:
             raise CircuitError('Cannot bind Parameters ({}) not present in '
                                'expression.'.format([str(p) for p in unknown_parameters]))
 
-    def _raise_if_passed_non_real_value(self, parameter_values):
-        nonreal_parameter_values = {p: v for p, v in parameter_values.items()
-                                    if not isinstance(v, numbers.Real)}
-        if nonreal_parameter_values:
-            raise CircuitError('Expression cannot bind non-real or non-numeric '
-                               'values ({}).'.format(nonreal_parameter_values))
+    def _raise_if_passed_nan(self, parameter_values):
+        nan_parameter_values = {p: v for p, v in parameter_values.items()
+                                if not isinstance(v, numbers.Number)}
+        if nan_parameter_values:
+            raise CircuitError('Expression cannot bind non-numeric values ({})'.format(
+                nan_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
@@ -219,7 +220,7 @@ class ParameterExpression:
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -318,6 +319,12 @@ class ParameterExpression:
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
+
+    def __complex__(self):
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to a complex.'.format(self.parameters))
+        return complex(self._symbol_expr)
 
     def __int__(self):
         if self.parameters:
