@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -21,10 +19,11 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 
 
-class ScalarOp(BaseOperator):
+class ScalarOp(BaseOperator, TolerancesMixin):
     """Scalar identity operator class.
 
     This is a symbolic representation of an scalar identity operator on
@@ -34,7 +33,7 @@ class ScalarOp(BaseOperator):
     :meth:`tensor`, :meth:`expand` methods.
     """
 
-    def __init__(self, dims, coeff=1):
+    def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.
 
         Args:
@@ -48,12 +47,11 @@ class ScalarOp(BaseOperator):
         if not isinstance(coeff, Number):
             QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
-        input_dims = self._automatic_dims(dims, np.product(dims))
-        super().__init__(input_dims, input_dims)
+        super().__init__(*self._automatic_dims(dims, np.product(dims)))
 
     def __repr__(self):
         return 'ScalarOp({}, coeff={})'.format(
-            self._input_dims, self.coeff)
+            self.input_dims(), self.coeff)
 
     @property
     def coeff(self):
@@ -87,8 +85,8 @@ class ScalarOp(BaseOperator):
     def to_operator(self):
         """Convert to an Operator object."""
         return Operator(self.to_matrix(),
-                        input_dims=self._input_dims,
-                        output_dims=self._output_dims)
+                        input_dims=self.input_dims(),
+                        output_dims=self.output_dims())
 
     def tensor(self, other):
         """Return the tensor product operator self ⊗ other.
@@ -104,7 +102,7 @@ class ScalarOp(BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
             coeff = self.coeff * other.coeff
-            dims = other._input_dims + self._input_dims
+            dims = other.input_dims() + self.input_dims()
             return ScalarOp(dims, coeff=coeff)
         return other.expand(self)
 
@@ -122,7 +120,7 @@ class ScalarOp(BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
             coeff = self.coeff * other.coeff
-            dims = self._input_dims + other._input_dims
+            dims = self.input_dims() + other.input_dims()
             return ScalarOp(dims, coeff=coeff)
         return other.tensor(self)
 
@@ -228,6 +226,10 @@ class ScalarOp(BaseOperator):
 
         self._validate_add_dims(other, qargs)
 
+        # Next if we are adding two ScalarOps we return a ScalarOp
+        if isinstance(other, ScalarOp):
+            return ScalarOp(self.input_dims(), coeff=self.coeff+other.coeff)
+
         # If qargs are specified we have to pad the other BaseOperator
         # with identities on remaining subsystems. We do this by
         # composing it with an identity ScalarOp.
@@ -238,16 +240,12 @@ class ScalarOp(BaseOperator):
         # subsystem dimensions are equal to the current operator for the
         # case where total dimensions agree but subsystem dimensions differ.
         if self.coeff == 0:
-            return other.reshape(self._input_dims, self._output_dims)
-
-        # Next if we are adding two ScalarOps we return a ScalarOp
-        if isinstance(other, ScalarOp):
-            return ScalarOp(self._input_dims, coeff=self.coeff+other.coeff)
+            return other.reshape(self.input_dims(), self.output_dims())
 
         # Finally if we are adding another BaseOperator subclass
         # we use that subclasses `_add` method and reshape the
         # final dimensions.
-        return other.reshape(self._input_dims, self._output_dims)._add(self)
+        return other.reshape(self.input_dims(), self.output_dims())._add(self)
 
     def _multiply(self, other):
         """Return the ScalarOp other * self.
@@ -281,4 +279,4 @@ class ScalarOp(BaseOperator):
         """
         if qargs is None:
             return other
-        return ScalarOp(current._input_dims).compose(other, qargs=qargs)
+        return ScalarOp(current.input_dims()).compose(other, qargs=qargs)

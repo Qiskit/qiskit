@@ -1,0 +1,18 @@
+---
+feature:
+  - |
+    A new kwarg ``equivalence_library`` has been added to the
+    :func:`qiskit.converters.circuit_to_gate` and
+    :func`qiskit.converters.circuit_to_instruction` converter functions
+    This new keyword argument is used to specify an
+    :class:`~qiskit.circuit.EquivalenceLibrary` object to register the
+    converted gate with.
+upgrade:
+  - |
+    The :func:`qiskit.converters.circuit_to_gate` and
+    :func`qiskit.converters.circuit_to_instruction` converter functions
+    had previously automatically included the generated gate or instruction
+    in the active ``SessionEquivalenceLibrary``. These converters now accept
+    an optional ``equivalence_library`` keyword argument to specify if and
+    where the converted instances should be registered. The default behavior
+    has changed to not register the converted instance.

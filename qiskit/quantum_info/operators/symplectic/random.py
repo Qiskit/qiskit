@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020
@@ -218,7 +216,7 @@ def _inverse_tril(mat, block_inverse_threshold):
             inv[3, 1] = (mat[3, 1] ^ (mat[2, 1] & mat[3, 2]))
             inv[3, 0] = mat[3, 0] ^ (mat[3, 2] & mat[2, 0]) ^ (mat[1, 0] & inv[3, 1])
         if dim > 4:
-            inv[4, 2] = ((mat[4, 2] ^ (mat[3, 2] & mat[4, 3]))) & 1
+            inv[4, 2] = (mat[4, 2] ^ (mat[3, 2] & mat[4, 3])) & 1
             inv[4, 1] = mat[4, 1] ^ (mat[4, 3] & mat[3, 1]) ^ (mat[2, 1] & inv[4, 2])
             inv[4, 0] = mat[4, 0] ^ (mat[1, 0] & inv[4, 1]) ^ (
                 mat[2, 0] & inv[4, 2]) ^ (mat[3, 0] & mat[4, 3])

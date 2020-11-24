@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -42,7 +40,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
     backend_cls = QasmSimulatorPy
 
     def setUp(self):
-        super(TestBasicAerQasmSimulator, self).setUp()
+        super().setUp()
 
         self.seed = 88
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)

@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    A new method :meth:`~qiskit.circuit.QuantumCircuit.repeat` has been added
+    to the :class:`~qiskit.circuit.QuantumCircuit` class. It returns a new
+    circuit object containing a specified number of repetitions of the original
+    circuit. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      repeated_qc = qc.repeat(3)
+      repeated_qc.decompose().draw(output='mpl')
+
+    The parameters are copied by reference, meaning that if you update
+    the parameters in one instance of the circuit all repetitions will be
+    updated.

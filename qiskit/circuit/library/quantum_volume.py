@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -14,7 +12,7 @@
 
 """Quantum Volume model circuit."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from qiskit.quantum_info.random import random_unitary
@@ -62,30 +60,37 @@ class QuantumVolume(QuantumCircuit):
     def __init__(self,
                  num_qubits: int,
                  depth: Optional[int] = None,
-                 seed: Optional[int] = None,
+                 seed: Optional[Union[int, np.random.Generator]] = None,
                  classical_permutation: bool = True) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
-            seed: randomization seed.
+            seed: Random number generator or generator seed.
             classical_permutation: use classical permutations at every layer,
                 rather than quantum.
         """
-        depth = depth or num_qubits  # how many layers of SU(4)
-        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
-
+        # Initialize RNG
         if seed is None:
             rng_set = np.random.default_rng()
             seed = rng_set.integers(low=1, high=1000)
+        if isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
 
+        # Parameters
+        depth = depth or num_qubits  # how many layers of SU(4)
+        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
         name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
-
         super().__init__(num_qubits, name=name)
 
-        rng = np.random.default_rng(seed)
-
+        # Generator random unitary seeds in advance.
+        # Note that this means we are constructing multiple new generator
+        # objects from low-entropy integer seeds rather than pass the shared
+        # generator object to the random_unitary function. This is done so
+        # that we can use the integer seed as a label for the generated gates.
         unitary_seeds = rng.integers(low=1, high=1000, size=[depth, width])
 
         # For each layer, generate a permutation of qubits

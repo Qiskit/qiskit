@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -17,7 +15,6 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-import warnings
 from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
@@ -277,7 +274,7 @@ class WaveformDrawer:
     def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None):
+             scale: float = 1, draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -285,15 +282,11 @@ class WaveformDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            scaling: Deprecated, see `scale`.
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
@@ -331,10 +324,9 @@ class WaveformDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(pulse.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
+            if draw_title:
+                figure.suptitle(pulse.name, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
+                                va='bottom')
 
         return figure
 
@@ -564,7 +556,7 @@ class ScheduleDrawer:
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
+                    ax.annotate(s="\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax,
@@ -737,7 +729,7 @@ class ScheduleDrawer:
                 # plot frequency changes
                 sf = events.frequencychanges
                 if sf and frequencychange:
-                    self._draw_frequency_changes(ax, sf, y0 + scale)
+                    self._draw_frequency_changes(ax, sf, y0 + 0.05)
                 # plot labels
                 labels = events.labels
                 if labels and label:
@@ -770,8 +762,9 @@ class ScheduleDrawer:
              channel_scales: Dict[Channel, float] = None,
              plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List[Channel] = None,
-             show_framechange_channels: bool = True):
+             channels: List[Channel] = None,
+             show_framechange_channels: bool = True,
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -790,11 +783,11 @@ class ScheduleDrawer:
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
             framechange: When set `True` draw framechange indicators.
-            scaling: Deprecated, see `scale`.
             channels: A list of channel names to plot.
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -802,10 +795,6 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
@@ -876,9 +865,7 @@ class ScheduleDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(schedule.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
-
+            if draw_title:
+                figure.suptitle(schedule.name, fontsize=self.style.title_font_size,
+                                y=bbox.y1 + 0.02, va='bottom')
         return figure

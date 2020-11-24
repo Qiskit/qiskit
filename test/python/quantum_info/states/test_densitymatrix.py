@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -124,12 +122,12 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.h(1)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         target = DensityMatrix.from_label('00').evolve(Operator(circuit))
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
@@ -731,7 +729,7 @@ class TestDensityMatrix(QiskitTestCase):
         with self.subTest(msg='memory'):
             memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
-            self.assertEqual(set(memory), set(['0', '2']))
+            self.assertEqual(set(memory), {'0', '2'})
 
     def test_reset_2qubit(self):
         """Test reset method for 2-qubit state"""

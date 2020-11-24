@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -330,7 +328,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         value = (spp_op1 - spp_op2(qargs)).to_operator()
         self.assertEqual(value, target)
 
-    @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3+4.4j])
+    @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3+4.4j, np.int64(2)])
     def test_mul(self, num_qubits, value):
         """Test * method for {num_qubits} qubits and value {value}."""
         spp_op = random_unitary(2 ** num_qubits, seed=self.RNG)

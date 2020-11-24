@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    A new kwarg ``rep_delay`` has been added to
+    :func:`qiskit.compiler.assemble`, :func:`qiskit.execute.execute`, and the
+    constructor for :class:`~qiskit.qobj.PulseQobjtConfig`.qiskit
+    This new kwarg is used to denotes the time between program executions. It
+    must be chosen from the list of valid values set as the
+    ``rep_delays`` from a backend's
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` object which
+    can be accessed as ``backend.configuration().rep_delays``).
+
+    The ``rep_delay`` kwarg will only work on backends which allow for dynamic
+    repetition time. This will also be indicated in the
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` object for a
+    backend as the ``dynamic_reprate_enabled`` attribute. If
+    ``dynamic_reprate_enabled`` is ``False`` then the ``rep_time`` value
+    specified for :func:`qiskit.compiler.assemble`,
+    :func:`qiskit.execute.execute`, or the constructor for
+    :class:`~qiskit.qobj.PulseQobjtConfig` will be used rather than
+    ``rep_delay``. ``rep_time`` only allows users to specify the duration of a
+    program, rather than the delay between programs.
+  - |
+    The ``qobj_schema.json`` JSON Schema file in :mod:`qiskit.schemas` has
+    been updated to include the ``rep_delay`` as an optional configuration
+    property for pulse qobjs.
+  - |
+    The ``backend_configuration_schema.json`` JSON Schema file in
+    :mod:`qiskit.schemas` has been updated to include ``rep_delay_range`` and
+    ``default_rep_delay`` as optional properties for a pulse backend
+    configuration.

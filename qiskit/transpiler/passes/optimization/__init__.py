@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,6 +13,7 @@
 """Module containing transpiler optimization passes."""
 
 from .optimize_1q_gates import Optimize1qGates
+from .optimize_1q_decomposition import Optimize1qGatesDecomposition
 from .collect_2q_blocks import Collect2qBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis
@@ -25,3 +24,4 @@ from .remove_reset_in_zero_state import RemoveResetInZeroState
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
 from .hoare_opt import HoareOptimizer
+from .template_optimization import TemplateOptimization

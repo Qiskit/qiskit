@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -17,6 +15,8 @@
 import json
 import os
 import logging
+import warnings
+
 import jsonschema
 
 from .exceptions import SchemaValidationError, _SummaryValidationError
@@ -53,7 +53,7 @@ def _load_schema(file_path, name=None):
         # filename without extension
         name = os.path.splitext(os.path.basename(file_path))[0]
     if name not in _SCHEMAS:
-        with open(file_path, 'r') as schema_file:
+        with open(file_path) as schema_file:
             _SCHEMAS[name] = json.load(schema_file)
 
     return _SCHEMAS[name]
@@ -130,7 +130,12 @@ def validate_json_against_schema(json_dict, schema,
     Raises:
         SchemaValidationError: Raised if validation fails.
     """
-
+    warnings.warn("The jsonschema validation included in qiskit-terra is "
+                  "deprecated and will be removed in a future release. "
+                  "If you're relying on this schema validation you should "
+                  "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                  "validate your payloads with that", DeprecationWarning,
+                  stacklevel=2)
     if isinstance(schema, str):
         schema_name = schema
         schema = _SCHEMAS[schema_name]

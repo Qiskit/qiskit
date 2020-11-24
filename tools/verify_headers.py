@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020
@@ -17,7 +15,10 @@ import argparse
 import multiprocessing
 import os
 import sys
+import re
 
+# regex for character encoding from PEP 263
+pep263 = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)")
 
 def discover_files(code_paths):
     out_paths = []
@@ -28,15 +29,13 @@ def discover_files(code_paths):
             for directory in os.walk(path):
                 dir_path = directory[0]
                 for subfile in directory[2]:
-                    if subfile.endswith('.py'):
+                    if subfile.endswith('.py') or subfile.endswith('.pyx'):
                         out_paths.append(os.path.join(dir_path, subfile))
     return out_paths
 
 
 def validate_header(file_path):
-    header = """# -*- coding: utf-8 -*-
-
-# This code is part of Qiskit.
+    header = """# This code is part of Qiskit.
 #
 """
     apache_text = """#
@@ -49,23 +48,25 @@ def validate_header(file_path):
 # that they have been altered from the originals.
 """
     count = 0
-    with open(file_path, 'r', encoding='utf8') as fd:
+    with open(file_path, encoding='utf8') as fd:
         lines = fd.readlines()
     start = 0
     for index, line in enumerate(lines):
         count += 1
         if count > 5:
-            return (file_path, False, "Header not found in first 5 lines")
-        if line == "# -*- coding: utf-8 -*-\n":
+            return file_path, False, "Header not found in first 5 lines"
+        if count<=2 and pep263.match(line):
+            return file_path, False, "Unnecessary encoding specification (PEP 263, 3120)"
+        if line == "# This code is part of Qiskit.\n":
             start = index
             break
-    if ''.join(lines[start:start + 4]) != header:
+    if ''.join(lines[start:start + 2]) != header:
         return (file_path, False,
                 "Header up to copyright line does not match: %s" % header)
-    if not lines[start + 4].startswith("# (C) Copyright IBM"):
+    if not lines[start + 2].startswith("# (C) Copyright IBM 20"):
         return (file_path, False,
                 "Header copyright line not found")
-    if ''.join(lines[start + 5:start + 13]) != apache_text:
+    if ''.join(lines[start + 3:start + 11]) != apache_text:
         return (file_path, False,
                 "Header apache text string doesn't match:\n %s" % apache_text)
     return (file_path, True, None)
@@ -86,9 +87,9 @@ def main():
     res = pool.map(validate_header, files)
     failed_files = [x for x in res if x[1] is False]
     if len(failed_files) > 0:
-        for i in failed_files:
-            sys.stderr.write("%s failed header check because:\n\n" % i[0])
-            sys.stderr.write("%s\n\n" % i[2])
+        for failed_file in failed_files:
+            sys.stderr.write("%s failed header check because:\n" % failed_file[0])
+            sys.stderr.write("%s\n\n" % failed_file[2])
         sys.exit(1)
     sys.exit(0)
 

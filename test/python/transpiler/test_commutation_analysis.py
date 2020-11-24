@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -28,6 +26,7 @@ class TestCommutationAnalysis(QiskitTestCase):
     """Test the Commutation pass."""
 
     def setUp(self):
+        super().setUp()
         self.pass_ = CommutationAnalysis()
         self.pset = self.pass_.property_set = PropertySet()
 
@@ -64,9 +63,9 @@ class TestCommutationAnalysis(QiskitTestCase):
     def test_all_gates(self):
         """Test all gates on 1 and 2 qubits
 
-        qr0:----[H]---[x]---[y]---[t]---[s]---[rz]---[u1]---[u2]---[u3]---.---.---.--
-                                                                          |   |   |
-        qr1:-------------------------------------------------------------(+)-(Y)--.--
+        qr0:----[H]---[x]---[y]---[t]---[s]---[rz]---[p]---[u]---[u]---.---.---.--
+                                                                       |   |   |
+        qr1:----------------------------------------------------------(+)-(Y)--.--
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
@@ -76,9 +75,9 @@ class TestCommutationAnalysis(QiskitTestCase):
         circuit.t(qr[0])
         circuit.s(qr[0])
         circuit.rz(0.5, qr[0])
-        circuit.u1(0.5, qr[0])
-        circuit.u2(0.5, 0.6, qr[0])
-        circuit.u3(0.5, 0.6, 0.7, qr[0])
+        circuit.p(0.5, qr[0])
+        circuit.u(1.57, 0.5, 0.6, qr[0])
+        circuit.u(0.5, 0.6, 0.7, qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.cy(qr[0], qr[1])
         circuit.cz(qr[0], qr[1])

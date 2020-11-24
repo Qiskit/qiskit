@@ -18,6 +18,10 @@ gate u0(gamma) q { U(0,0,0) q; }
 
 // --- QE Standard Gates ---
 
+// generic single qubit gate
+gate u(theta,phi,lambda) q { U(theta,phi,lambda) q; }
+// phase gate
+gate p(lambda) q { U(0,0,lambda) q; }
 // Pauli gate: bit-flip
 gate x a { u3(pi,0,pi) a; }
 // Pauli gate: bit and phase flip
@@ -45,6 +49,10 @@ gate rz(phi) a { u1(phi) a; }
 
 // --- QE Standard User-Defined Gates  ---
 
+// sqrt(X)
+gate sx a { sdg a; h a; sdg a; }
+// inverse sqrt(X)
+gate sxdg a { s a; h a; s a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
@@ -111,6 +119,14 @@ gate cu1(lambda) a,b
   cx a,b;
   u1(lambda/2) b;
 }
+gate cp(lambda) a,b
+{
+  p(lambda/2) a;
+  cx a,b;
+  p(-lambda/2) b;
+  cx a,b;
+  p(lambda/2) b;
+}
 // controlled-U
 gate cu3(theta,phi,lambda) c, t
 {
@@ -121,6 +137,18 @@ gate cu3(theta,phi,lambda) c, t
   u3(-theta/2,0,-(phi+lambda)/2) t;
   cx c,t;
   u3(theta/2,phi,0) t;
+}
+// controlled-sqrt(X)
+gate csx a,b { h b; cu1(pi/2) a,b; h b; }
+// controlled-U gate
+gate cu(theta,phi,lambda,gamma) c, t
+{ p(gamma) c;
+  p((lambda+phi)/2) c;
+  p((lambda-phi)/2) t;
+  cx c,t;
+  u(-theta/2,0,-(phi+lambda)/2) t;
+  cx c,t;
+  u(theta/2,phi,0) t;
 }
 // two-qubit XX rotation
 gate rxx(theta) a,b
@@ -214,7 +242,7 @@ gate c4x a,b,c,d,e
 {
     h e; cu1(-pi/2) d,e; h e;
     c3x a,b,c,d;
-    h d; cu1(pi/4) d,e; h d;
+    h e; cu1(pi/2) d,e; h e;
     c3x a,b,c,d;
     c3sqrtx a,b,c,e;
 }

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -52,7 +50,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        unitary = result.get_unitary(circ)
+        unitary = Operator(result.get_unitary(circ))
 
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(Statevector.from_label('0110'), state), 1.0, places=7)

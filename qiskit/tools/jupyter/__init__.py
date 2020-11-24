@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -90,6 +88,14 @@ Qiskit copyright
     import qiskit.tools.jupyter
     %qiskit_copyright
 
+Monospaced output
+=================
+
+.. jupyter-execute::
+
+    import qiskit.tools.jupyter
+    %monospaced_output
+
 """
 import warnings
 
@@ -100,6 +106,7 @@ from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
 from .version_table import VersionTable
 from .copyright import Copyright
+from .monospace import MonospacedOutput
 from .job_watcher import JobWatcher, JobWatcherMagic
 
 if HAS_MATPLOTLIB:
@@ -117,6 +124,7 @@ _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     _IP.register_magics(VersionTable)
+    _IP.register_magics(MonospacedOutput)
     _IP.register_magics(Copyright)
     _IP.register_magics(JobWatcherMagic)
     if HAS_MATPLOTLIB:

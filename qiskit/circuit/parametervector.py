@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -25,7 +23,7 @@ class ParameterVector:
         self._params = []
         self._size = length
         for i in range(length):
-            self._params += [Parameter('{0}[{1}]'.format(self._name, i))]
+            self._params += [Parameter('{}[{}]'.format(self._name, i))]
 
     @property
     def name(self):
@@ -67,5 +65,5 @@ class ParameterVector:
         """
         if length > self._size:
             for i in range(self._size, length):
-                self._params += [Parameter('{0}[{1}]'.format(self._name, i))]
+                self._params += [Parameter('{}[{}]'.format(self._name, i))]
         self._size = length

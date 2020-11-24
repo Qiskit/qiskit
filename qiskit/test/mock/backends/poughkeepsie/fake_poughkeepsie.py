@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -66,6 +64,6 @@ class FakePoughkeepsie(FakeBackend):
         """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_poughkeepsie.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
+        with open(os.path.join(dirname, filename)) as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)

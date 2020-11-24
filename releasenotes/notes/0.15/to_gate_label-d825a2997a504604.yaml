@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The :meth:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.to_gate` has a new kwarg
+    ``label`` which can be used to set a label for for the output
+    :class:`~qiskit.circuit.Gate` object. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circuit_gate = QuantumCircuit(2)
+      circuit_gate.h(0)
+      circuit_gate.cx(0, 1)
+      custom_gate = circuit_gate.to_gate(label='My Special Bell')
+      new_circ = QuantumCircuit(2)
+      new_circ.append(custom_gate, [0, 1], [])
+      new_circ.draw(output='mpl')

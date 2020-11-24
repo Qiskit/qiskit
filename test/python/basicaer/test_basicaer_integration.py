@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -28,6 +26,7 @@ class TestBasicAerIntegration(QiskitTestCase):
     """Qiskit BasicAer simulator integration tests."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         self._qc1 = QuantumCircuit(qr, cr, name='qc1')

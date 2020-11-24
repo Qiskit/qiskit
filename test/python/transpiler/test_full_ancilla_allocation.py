@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -27,6 +25,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
     """Tests the ExtendLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap5 = CouplingMap([[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
 
     def test_3q_circuit_5q_coupling(self):
@@ -139,7 +138,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         pass_.run(dag)
         after_layout = pass_.property_set['layout']
 
-        qregs = set(v.register for v in after_layout.get_virtual_bits().keys())
+        qregs = {v.register for v in after_layout.get_virtual_bits().keys()}
         self.assertEqual(2, len(qregs))
         self.assertIn(qr_ancilla, qregs)
         qregs.remove(qr_ancilla)

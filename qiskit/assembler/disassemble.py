@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -13,13 +11,65 @@
 # that they have been altered from the originals.
 
 """Disassemble function for a qobj into a list of circuits and its config"""
-
+from typing import Any, Dict, List, NewType, Tuple, Union
 import collections
 
+from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.qobj.converters import QobjToInstructionConverter
+
+# A ``CircuitModule`` is a representation of a circuit execution on the backend.
+# It is currently a list of quantum circuits to execute, a run Qobj dictionary
+# and a header dictionary.
+CircuitModule = NewType(
+    'CircuitModule',
+    Tuple[
+        List[QuantumCircuit],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
+)
+
+# A ``PulseModule`` is a representation of a pulse execution on the backend.
+# It is currently a list of pulse schedules to execute, a run Qobj dictionary
+# and a header dictionary.
+PulseModule = NewType(
+    'PulseModule',
+    Tuple[
+        List[pulse.Schedule],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
+)
+
+
+def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
+    """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
+
+    Args:
+        qobj (Qobj): The input qobj object to disassemble
+
+    Returns:
+        Union[CircuitModule, PulseModule]: The disassembled program which consists of:
+
+            * programs: A list of quantum circuits or pulse schedules
+            * run_config: The dict of the run config
+            * user_qobj_header: The dict of any user headers in the qobj
+    """
+    if qobj.type == 'PULSE':
+        return _disassemble_pulse_schedule(qobj)
+    else:
+        return _disassemble_circuit(qobj)
+
+
+def _disassemble_circuit(qobj) -> CircuitModule:
+    run_config = qobj.config.to_dict()
+    user_qobj_header = qobj.header.to_dict()
+    return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
 
 def _experiments_to_circuits(qobj):
@@ -124,20 +174,65 @@ def _experiments_to_circuits(qobj):
     return None
 
 
-def disassemble(qobj):
-    """Disassemble a qobj and return the circuits, run_config, and user header.
+def _disassemble_pulse_schedule(qobj) -> PulseModule:
+    run_config = qobj.config.to_dict()
+    run_config.pop('pulse_library')
+
+    qubit_lo_freq = run_config.get('qubit_lo_freq')
+    if qubit_lo_freq:
+        run_config['qubit_lo_freq'] = [freq*1e9 for freq in qubit_lo_freq]
+
+    meas_lo_freq = run_config.get('meas_lo_freq')
+    if meas_lo_freq:
+        run_config['meas_lo_freq'] = [freq*1e9 for freq in meas_lo_freq]
+
+    user_qobj_header = qobj.header.to_dict()
+
+    # extract schedule lo settings
+    schedule_los = []
+    for program in qobj.experiments:
+        program_los = {}
+        if hasattr(program, 'config'):
+            if hasattr(program.config, 'qubit_lo_freq'):
+                for i, lo in enumerate(program.config.qubit_lo_freq):
+                    program_los[pulse.DriveChannel(i)] = lo*1e9
+
+            if hasattr(program.config, 'meas_lo_freq'):
+                for i, lo in enumerate(program.config.meas_lo_freq):
+                    program_los[pulse.MeasureChannel(i)] = lo*1e9
+
+        schedule_los.append(program_los)
+
+    if any(schedule_los):
+        run_config['schedule_los'] = schedule_los
+
+    return PulseModule((_experiments_to_schedules(qobj), run_config, user_qobj_header))
+
+
+def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
+    """Return a list of :class:`qiskit.pulse.Schedule` object(s) from a qobj.
 
     Args:
-        qobj (Qobj): The input qobj object to disassemble
+        qobj (Qobj): The Qobj object to convert to pulse schedules.
 
     Returns:
-        tuple: (circuits, run_config, user_qobj_header):
-            * circuits (list): A list of quantum circuits
-            * run_config (dict): The dict of the run config
-            * user_qobj_header (dict): The dict of any user headers in the qobj
-    """
-    run_config = qobj.config.to_dict()
-    user_qobj_header = qobj.header.to_dict()
-    circuits = _experiments_to_circuits(qobj)
+        A list of :class:`qiskit.pulse.Schedule` objects from the qobj
 
-    return circuits, run_config, user_qobj_header
+    Raises:
+        pulse.PulseError: If a parameterized instruction is supplied.
+    """
+    converter = QobjToInstructionConverter(qobj.config.pulse_library)
+
+    schedules = []
+    for program in qobj.experiments:
+        insts = []
+        for inst in program.instructions:
+            pulse_inst = converter(inst)
+            if isinstance(pulse_inst, ParameterizedSchedule):
+                raise pulse.PulseError('Parameterized instructions are not '
+                                       'yet supported in the pulse schedule.')
+            insts.append(pulse_inst)
+
+        schedule = pulse.Schedule(*insts)
+        schedules.append(schedule)
+    return schedules

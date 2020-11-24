@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -54,10 +52,13 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._basis_gates is None:
             return dag
 
-        basic_insts = set(('measure', 'reset', 'barrier', 'snapshot'))
+        basic_insts = {'measure', 'reset', 'barrier', 'snapshot', 'delay'}
         device_insts = basic_insts | set(self._basis_gates)
 
         for node in dag.op_nodes():
+
+            if dag.has_calibration_for(node):
+                continue
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):
                 if isinstance(node.op, ControlledGate) and node.op._open_ctrl:

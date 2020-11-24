@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -68,6 +66,7 @@ class TestPauli(QiskitTestCase):
 
     def setUp(self):
         """Setup."""
+        super().setUp()
         z = np.asarray([1, 0, 1, 0]).astype(np.bool)
         x = np.asarray([1, 1, 0, 0]).astype(np.bool)
         self.ref_p = Pauli(z, x)

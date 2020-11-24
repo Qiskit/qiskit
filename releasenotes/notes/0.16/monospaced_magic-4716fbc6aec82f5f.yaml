@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The new jupyter magic ``monospaced_output`` has been added to the
+    :mod:`qiskit.tools.jupyter` module. This magic sets the Jupyter notebook
+    output font to "Courier New", when possible. When used this fonts returns
+    text circuit drawings that are better aligned.
+
+    .. code-block:: python
+
+      import qiskit.tools.jupyter
+      %monospaced_output

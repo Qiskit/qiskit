@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -19,8 +17,6 @@ Tools for working with Pauli Operators.
 
 A simple pauli class and some tools.
 """
-
-import warnings
 
 import numpy as np
 from scipy import sparse
@@ -261,15 +257,6 @@ class Pauli:
     def num_qubits(self):
         """Number of qubits."""
         return len(self)
-
-    @property
-    def numberofqubits(self):
-        """Deprecated, use ``num_qubits`` instead. Number of qubits."""
-        warnings.warn('The Pauli.numberofqubits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the Pauli.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     def to_label(self):
         """Present the pauli labels in I, X, Y, Z format.

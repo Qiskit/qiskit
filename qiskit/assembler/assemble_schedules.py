@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -13,9 +11,10 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
-from collections import defaultdict
-from typing import Any, Dict, List, Tuple
 import hashlib
+from collections import defaultdict
+
+from typing import Any, Dict, List, Tuple, Union
 
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
@@ -25,10 +24,11 @@ from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
-def assemble_schedules(schedules: List[pulse.Schedule],
-                       qobj_id: int,
-                       qobj_header: qobj.QobjHeader,
-                       run_config: RunConfig) -> qobj.PulseQobj:
+def assemble_schedules(
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        qobj_id: int,
+        qobj_header: qobj.QobjHeader,
+        run_config: RunConfig) -> qobj.PulseQobj:
     """Assembles a list of schedules into a qobj that can be run on the backend.
 
     Args:
@@ -62,7 +62,7 @@ def assemble_schedules(schedules: List[pulse.Schedule],
 
 
 def _assemble_experiments(
-        schedules: List[pulse.Schedule],
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -93,6 +93,10 @@ def _assemble_experiments(
                                     converters.InstructionToQobjConverter)
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
+
+    schedules = [
+        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
+    ]
     compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
@@ -173,7 +177,7 @@ def _assemble_instructions(
                 isinstance(instruction.pulse, library.ParametricPulse)):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
+                instruction = instructions.Play(instruction.pulse.get_waveform(),
                                                 instruction.channel,
                                                 name=instruction.name)
 
@@ -238,8 +242,8 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
             if intersection and intersection != meas_set:
-                raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
-                                  'in measurement map: {1}'.format(measured_qubits, meas_set))
+                raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
+                                  'in measurement map: {}'.format(measured_qubits, meas_set))
 
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,

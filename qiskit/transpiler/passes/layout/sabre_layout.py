@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -104,7 +102,7 @@ class SabreLayout(AnalysisPass):
                 pass_final_layout = pm.property_set['final_layout']
                 final_layout = self._compose_layouts(initial_layout,
                                                      pass_final_layout,
-                                                     circ.qregs)
+                                                     new_circ.qregs)
                 initial_layout = final_layout
                 circ = circ.reverse_ops()
 

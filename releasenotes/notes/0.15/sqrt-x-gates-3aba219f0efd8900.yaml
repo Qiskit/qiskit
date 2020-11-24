@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added new gate classes to :mod:`qiskit.circuit.library` for the
+    :math:`\sqrt{X}`, its adjoint :math:`\sqrt{X}^\dagger`, and
+    controlled :math:`\sqrt{X}` gates as
+    :class:`~qiskit.circuit.library.SXGate`,
+    :class:`~qiskit.circuit.library.SXdgGate`, and
+    :class:`~qiskit.circuit.library.CSXGate`. They can also be added to
+    a :class:`~qiskit.circuit.QuantumCircuit` object using the
+    :meth:`~qiskit.circuit.QuantumCircuit.sx`,
+    :meth:`~qiskit.circuit.QuantumCircuit.sxdg`, and
+    :meth:`~qiskit.circuit.QuantumCircuit.csx` respectively.

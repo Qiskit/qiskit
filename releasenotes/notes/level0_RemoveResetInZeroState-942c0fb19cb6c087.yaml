@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    The pass ``RemoveResetInZeroState`` is not run in transpiler optimization level 0 anymore.

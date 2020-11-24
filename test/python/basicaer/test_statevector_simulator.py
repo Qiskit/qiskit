@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -84,6 +82,37 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
                 psi_out = result.get_statevector(0)
                 fidelity = state_fidelity(psi_target, psi_out)
                 self.assertGreater(fidelity, 0.999)
+
+    def test_global_phase(self):
+        """Test global_phase"""
+        n_qubits = 4
+        qr = QuantumRegister(n_qubits)
+        circ = QuantumCircuit(qr)
+        circ.x(qr)
+        circ.global_phase = 0.5
+        self.circuit = circ
+        result = super().test_run_circuit()
+        actual = result.get_statevector(self.circuit)
+        expected = np.exp(1j * circ.global_phase) * np.repeat([[0], [1]], [n_qubits**2-1, 1])
+        self.assertTrue(np.allclose(actual, expected))
+
+    def test_global_phase_composite(self):
+        """Test global_phase"""
+        n_qubits = 4
+        qr = QuantumRegister(n_qubits)
+        circ = QuantumCircuit(qr)
+        circ.x(qr)
+        circ.global_phase = 0.5
+        gate = circ.to_gate()
+
+        comp = QuantumCircuit(qr)
+        comp.append(gate, qr)
+        comp.global_phase = 0.1
+        self.circuit = comp
+        result = super().test_run_circuit()
+        actual = result.get_statevector(self.circuit)
+        expected = np.exp(1j * 0.6) * np.repeat([[0], [1]], [n_qubits**2-1, 1])
+        self.assertTrue(np.allclose(actual, expected))
 
 
 if __name__ == '__main__':

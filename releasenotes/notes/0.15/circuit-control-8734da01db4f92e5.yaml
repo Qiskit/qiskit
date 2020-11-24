@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    A new method, :meth:`~qiskit.circuit.QuantumCircuit.control`, has been
+    added to the :class:`~qiskit.circuit.QuantumCircuit`. This method will
+    return a controlled version of the :class:`~qiskit.circuit.QuantumCircuit`
+    object, with both open and closed controls. This functionality had
+    previously only been accessible via the :class:`~qiskit.circuit.Gate`
+    class.

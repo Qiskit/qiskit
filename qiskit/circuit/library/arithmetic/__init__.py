@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -18,5 +16,8 @@ from .functional_pauli_rotations import FunctionalPauliRotations
 from .integer_comparator import IntegerComparator
 from .linear_pauli_rotations import LinearPauliRotations
 from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
+from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
 from .polynomial_pauli_rotations import PolynomialPauliRotations
 from .weighted_adder import WeightedAdder
+from .quadratic_form import QuadraticForm
+from .linear_amplitude_function import LinearAmplitudeFunction

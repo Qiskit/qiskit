@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The deprecated kwarg ``line_length`` for the
+    :func:`qiskit.visualization.circuit_drawer` function and
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method has been removed. It
+    had been deprecated since the 0.10.0 release. Instead you can use the
+    ``fold`` kwarg to adjust the width of the circuit diagram.

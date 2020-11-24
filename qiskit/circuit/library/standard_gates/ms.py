@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,13 +12,16 @@
 
 """Global Mølmer–Sørensen gate."""
 
-from qiskit.util import deprecate_arguments
+import warnings
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class MSGate(Gate):
-    """Global Mølmer–Sørensen gate.
+    """MSGate has been deprecated.
+    Please use ``GMS`` in ``qiskit.circuit.generalized_gates`` instead.
+
+    Global Mølmer–Sørensen gate.
 
     The Mølmer–Sørensen gate is native to ion-trap systems. The global MS can be
     applied to multiple ions to entangle multiple qubits simultaneously.
@@ -29,10 +30,12 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def __init__(self, num_qubits, theta, *, n_qubits=None,  # pylint:disable=unused-argument
-                 label=None):
+    def __init__(self, num_qubits, theta, label=None):
         """Create new MS gate."""
+        warnings.warn('The qiskit.circuit.library.standard_gates.ms import '
+                      'is deprecated as of 0.16.0. You should import MSGate '
+                      'using qiskit.circuit.library.generalized_gates '
+                      'instead.', DeprecationWarning, stacklevel=2)
         super().__init__('ms', num_qubits, [theta], label=label)
 
     def _define(self):
@@ -42,9 +45,8 @@ class MSGate(Gate):
         theta = self.params[0]
         q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = []
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
-                rules += [(RXXGate(theta), [q[i], q[j]], [])]
-        qc._data = rules
+                qc._append(RXXGate(theta), [q[i], q[j]], [])
+
         self.definition = qc

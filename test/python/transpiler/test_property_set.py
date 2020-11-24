@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -23,6 +21,7 @@ class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
     def setUp(self):
+        super().setUp()
         self.pset = PropertySet()
 
     def test_get_non_existent(self):

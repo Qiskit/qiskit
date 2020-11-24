@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -35,6 +33,7 @@ JUPYTER_KERNEL = 'python3'
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
+        super().setUp()
         self.execution_path = os.path.join(Path.SDK.value, '..')
 
     def _execute_notebook(self, filename):

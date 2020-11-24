@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -20,10 +18,11 @@ from numbers import Number
 import numpy
 import scipy.linalg
 
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.exceptions import CircuitError
 
 from .unitary import UnitaryGate
 
@@ -114,6 +113,16 @@ class HamiltonianGate(Gate):
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
         raise ExtensionError("HamiltonianGate as no QASM definition.")
+
+    def validate_parameter(self, parameter):
+        """Hamiltonian parameter has to be an ndarray, operator or float."""
+        if isinstance(parameter, (float, int, numpy.ndarray)):
+            return parameter
+        elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
+            return float(parameter)
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))
 
 
 def hamiltonian(self, operator, time, qubits, label=None):

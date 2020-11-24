@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -20,13 +18,14 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
-class SparsePauliOp(BaseOperator):
+class SparsePauliOp(BaseOperator, TolerancesMixin):
     """Sparse N-qubit operator in a Pauli basis representation.
 
     This is a sparse representation of an N-qubit matrix
@@ -70,7 +69,7 @@ class SparsePauliOp(BaseOperator):
                               " of Paulis {} != {}".format(self._coeffs.shape,
                                                            self._table.size))
         # Initialize BaseOperator
-        super().__init__(self._table._input_dims, self._table._output_dims)
+        super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
         prefix = 'SparsePauliOp('

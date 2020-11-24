@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -28,9 +26,10 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 
 
-class Operator(BaseOperator):
+class Operator(BaseOperator, TolerancesMixin):
     r"""Matrix operator class
 
     This represents a matrix operator :math:`M` that will
@@ -91,9 +90,9 @@ class Operator(BaseOperator):
             data = data.to_operator()
             self._data = data.data
             if input_dims is None:
-                input_dims = data._input_dims
+                input_dims = data.input_dims()
             if output_dims is None:
-                output_dims = data._output_dims
+                output_dims = data.output_dims()
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -103,9 +102,7 @@ class Operator(BaseOperator):
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
         dout, din = self._data.shape
-        output_dims = self._automatic_dims(output_dims, dout)
-        input_dims = self._automatic_dims(input_dims, din)
-        super().__init__(input_dims, output_dims)
+        super().__init__(*self._automatic_dims(input_dims, din, output_dims, dout))
 
     def __repr__(self):
         prefix = 'Operator('
@@ -113,7 +110,7 @@ class Operator(BaseOperator):
         return '{}{},\n{}input_dims={}, output_dims={})'.format(
             prefix, np.array2string(
                 self.data, separator=', ', prefix=prefix),
-            pad, self._input_dims, self._output_dims)
+            pad, self.input_dims(), self.output_dims())
 
     def __eq__(self, other):
         """Test if two Operators are equal."""
@@ -215,7 +212,7 @@ class Operator(BaseOperator):
         ret = copy.copy(self)
         ret._data = np.transpose(self._data)
         # Swap input and output dimensions
-        ret._set_dims(self._output_dims, self._input_dims)
+        ret._set_dims(self.output_dims(), self.input_dims())
         return ret
 
     def compose(self, other, qargs=None, front=False):
@@ -263,11 +260,11 @@ class Operator(BaseOperator):
 
         # Compose with other on subsystem
         if front:
-            num_indices = len(self._input_dims)
-            shift = len(self._output_dims)
+            num_indices = self._num_input
+            shift = self._num_output
             right_mul = True
         else:
-            num_indices = len(self._output_dims)
+            num_indices = self._num_output
             shift = 0
             right_mul = False
 

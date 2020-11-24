@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -93,6 +91,7 @@ class TestUseCases(SchedulerTestCase):
     in the right order."""
 
     def setUp(self):
+        super().setUp()
         self.circuit = QuantumCircuit(QuantumRegister(1))
         self.passmanager = PassManager()
 
@@ -417,14 +416,14 @@ class DoXTimesController(FlowController):
 
     def __iter__(self):
         for _ in range(self.do_x_times):
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
 
 class TestControlFlowPlugin(SchedulerTestCase):
     """Testing the control flow plugin system."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -542,6 +541,7 @@ class TestLogPasses(QiskitTestCase):
     """Testing the log_passes option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
@@ -615,6 +615,7 @@ class TestPassManagerReuse(SchedulerTestCase):
     """The PassManager instance should be reusable."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -698,10 +699,11 @@ class TestPassManagerReuse(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
 
-class TestPassManagerReplace(SchedulerTestCase):
-    """Test PassManager.replace"""
+class TestPassManagerChanges(SchedulerTestCase):
+    """Test PassManager manipulation with changes"""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -725,6 +727,38 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove0(self):
+        """ Test passmanager.remove(0)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(0)
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove1(self):
+        """ Test passmanager.remove(1)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(1)
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove_minus_1(self):
+        """ Test passmanager.remove(-1)."""
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(-1)
+
+        expected = ['run transformation pass PassA_TP_NR_NP']
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_setitem(self):
@@ -762,6 +796,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
     """test PassManager slicing."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -890,6 +925,7 @@ class TestPassManagerConcatenation(SchedulerTestCase):
     """test PassManager concatenation by + operator."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager1 = PassManager()
         self.passmanager2 = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))

@@ -22,7 +22,7 @@ To install from source, follow the instructions in the [documentation](https://q
 
 Now that Qiskit is installed, it's time to begin working with Terra.
 
-We are ready to try out a quantum circuit example, which is simulated locally using 
+We are ready to try out a quantum circuit example, which is simulated locally using
 the Qiskit BasicAer element. This is a simple example that makes an entangled state.
 
 ```
@@ -36,7 +36,8 @@ $ python
 >>> qc.cx(0, 1)
 >>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
->>> result = backend_sim.run(assemble(qc)).result()
+>>> transpiled_qc = transpile(qc, backend_sim)
+>>> result = backend_sim.run(assemble(transpiled_qc)).result()
 >>> print(result.get_counts(qc))
 ```
 
@@ -47,7 +48,7 @@ In this case, the output will be:
 ```
 
 A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
-run the same program on a real quantum computer via IBMQ.  
+run the same program on a real quantum computer via IBMQ.
 
 ### Executing your code on a real quantum chip
 
@@ -83,10 +84,10 @@ Those who do not want to save their credentials to disk should use instead:
 ```python
 >>> from qiskit import IBMQ
 >>> IBMQ.enable_account('MY_API_TOKEN')
-``` 
+```
 
-and the token will only be active for the session. For examples using Terra with real 
-devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
+and the token will only be active for the session. For examples using Terra with real
+devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in
 the levels.
 
 ## Contribution Guidelines
@@ -119,7 +120,7 @@ https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
 
 The changelog for the current release can be found in the releases tab:
 ![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
-The changelog provides a quick overview of noteable changes for a given
+The changelog provides a quick overview of notable changes for a given
 release.
 
 Additionally, as part of each release detailed release notes are written to

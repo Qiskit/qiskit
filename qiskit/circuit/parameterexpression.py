@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,6 +12,7 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
+from typing import Callable, Dict, Set, Union
 
 import numbers
 import operator
@@ -22,39 +21,63 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 
+ParameterValueType = Union['ParameterExpression', float, int]
 
-class ParameterExpression():
+
+class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    def __init__(self, symbol_map, expr):
-        """Create a new ParameterExpression.
+    __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
+
+    def __init__(self, symbol_map: Dict, expr):
+        """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
-        on other Parameter or ParameterExpression objects.
+        on other :class:`Parameter` or :class:`ParameterExpression` objects.
 
         Args:
-            symbol_map (dict): Mapping of Parameter instances to the sympy.Symbol
-                               serving as their placeholder in expr.
-            expr (sympy.Expr): Expression of sympy.Symbols.
+            symbol_map (Dict[Parameter, [ParameterExpression, float, or int]]):
+                Mapping of :class:`Parameter` instances to the :class:`sympy.Symbol`
+                serving as their placeholder in expr.
+            expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
         self._parameter_symbols = symbol_map
+        self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
+        self._names = None
 
     @property
-    def parameters(self):
+    def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
-        return set(self._parameter_symbols.keys())
+        return self._parameters
 
-    def conjugate(self):
-        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+    def conjugate(self) -> 'ParameterExpression':
+        """Return the conjugate."""
+        conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        return conjugated
 
-    def bind(self, parameter_values):
+    def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
+        """
+        Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+
+        Args:
+            parameter (Parameter): A parameter in this expression whose value will be updated.
+            value: The new value to bind to.
+
+        Returns:
+            A new expression parameterized by any parameters which were not bound by assignment.
+        """
+        if isinstance(value, ParameterExpression):
+            return self.subs({parameter: value})
+        return self.bind({parameter: value})
+
+    def bind(self, parameter_values: Dict) -> 'ParameterExpression':
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
-            parameter_values (dict): Mapping of Parameter instances to the
-                                     numeric value to which they will be bound.
+            parameter_values: Mapping of Parameter instances to the numeric value to which
+                              they will be bound.
 
         Raises:
             CircuitError:
@@ -64,12 +87,12 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            ParameterExpression: a new expression parameterized by any parameters
-                which were not bound by parameter_values.
+            A new expression parameterized by any parameters which were not bound by
+            parameter_values.
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_non_real_value(parameter_values)
+        self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -92,13 +115,13 @@ class ParameterExpression():
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
-    def subs(self, parameter_map):
+    def subs(self,
+             parameter_map: Dict) -> 'ParameterExpression':
         """Returns a new Expression with replacement Parameters.
 
         Args:
-            parameter_map (dict): Mapping from Parameters in self to the
-                                  ParameterExpression instances with which they
-                                  should be replaced.
+            parameter_map: Mapping from Parameters in self to the ParameterExpression
+                           instances with which they should be replaced.
 
         Raises:
             CircuitError:
@@ -107,8 +130,7 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expression with the specified parameters
-                                 replaced.
+            A new expression with the specified parameters replaced.
         """
 
         inbound_parameters = {p
@@ -145,39 +167,42 @@ class ParameterExpression():
             raise CircuitError('Cannot bind Parameters ({}) not present in '
                                'expression.'.format([str(p) for p in unknown_parameters]))
 
-    def _raise_if_passed_non_real_value(self, parameter_values):
-        nonreal_parameter_values = {p: v for p, v in parameter_values.items()
-                                    if not isinstance(v, numbers.Real)}
-        if nonreal_parameter_values:
-            raise CircuitError('Expression cannot bind non-real or non-numeric '
-                               'values ({}).'.format(nonreal_parameter_values))
+    def _raise_if_passed_nan(self, parameter_values):
+        nan_parameter_values = {p: v for p, v in parameter_values.items()
+                                if not isinstance(v, numbers.Number)}
+        if nan_parameter_values:
+            raise CircuitError('Expression cannot bind non-numeric values ({})'.format(
+                nan_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
             outbound_parameters = set()
 
-        self_names = {p.name: p for p in self.parameters}
+        if self._names is None:
+            self._names = {p.name: p for p in self._parameters}
+
         inbound_names = {p.name: p for p in inbound_parameters}
         outbound_names = {p.name: p for p in outbound_parameters}
 
-        shared_names = (self_names.keys() - outbound_names.keys()) & inbound_names.keys()
+        shared_names = (self._names.keys() - outbound_names.keys()) & inbound_names.keys()
         conflicting_names = {name for name in shared_names
-                             if self_names[name] != inbound_names[name]}
+                             if self._names[name] != inbound_names[name]}
         if conflicting_names:
             raise CircuitError('Name conflict applying operation for parameters: '
                                '{}'.format(conflicting_names))
 
-    def _apply_operation(self, operation, other, reflected=False):
+    def _apply_operation(self, operation: Callable,
+                         other: ParameterValueType,
+                         reflected: bool = False) -> 'ParameterExpression':
         """Base method implementing math operations between Parameters and
         either a constant or a second ParameterExpression.
 
         Args:
-            operation (function): One of operator.{add,sub,mul,truediv}.
-            other (Parameter or numbers.Real): The second argument to be used
-               with self in operation.
-            reflected (bool): Optional - The default ordering is
-                "self operator other". If reflected is True, this is switched
-                to "other operator self". For use in e.g. __radd__, ...
+            operation: One of operator.{add,sub,mul,truediv}.
+            other: The second argument to be used with self in operation.
+            reflected: Optional - The default ordering is "self operator other".
+                       If reflected is True, this is switched to "other operator self".
+                       For use in e.g. __radd__, ...
 
         Raises:
             CircuitError:
@@ -186,10 +211,8 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expression describing the result of the
-                operation.
+            A new expression describing the result of the operation.
         """
-
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
@@ -197,7 +220,7 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -239,6 +262,52 @@ class ParameterExpression():
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def _call(self, ufunc):
+        return ParameterExpression(
+            self._parameter_symbols,
+            ufunc(self._symbol_expr)
+        )
+
+    def sin(self):
+        """Sine of a ParameterExpression"""
+        from sympy import sin as _sin
+        return self._call(_sin)
+
+    def cos(self):
+        """Cosine of a ParameterExpression"""
+        from sympy import cos as _cos
+        return self._call(_cos)
+
+    def tan(self):
+        """Tangent of a ParameterExpression"""
+        from sympy import tan as _tan
+        return self._call(_tan)
+
+    def arcsin(self):
+        """Arcsin of a ParameterExpression"""
+        from sympy import asin as _asin
+        return self._call(_asin)
+
+    def arccos(self):
+        """Arccos of a ParameterExpression"""
+        from sympy import acos as _acos
+        return self._call(_acos)
+
+    def arctan(self):
+        """Arctan of a ParameterExpression"""
+        from sympy import atan as _atan
+        return self._call(_atan)
+
+    def exp(self):
+        """Exponential of a ParameterExpression"""
+        from sympy import exp as _exp
+        return self._call(_exp)
+
+    def log(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import log as _log
+        return self._call(_log)
+
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 
@@ -250,6 +319,21 @@ class ParameterExpression():
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
+
+    def __complex__(self):
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to a complex.'.format(self.parameters))
+        return complex(self._symbol_expr)
+
+    def __int__(self):
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to an int.'.format(self.parameters))
+        return int(self._symbol_expr)
+
+    def __hash__(self):
+        return hash((frozenset(self._parameter_symbols), self._symbol_expr))
 
     def __copy__(self):
         return self

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -47,7 +45,8 @@ class TestSchemaExamples(QiskitTestCase):
             "job_status_example.json"],
         "qobj": [
             "qobj_openpulse_example.json",
-            "qobj_openqasm_example.json"],
+            "qobj_openqasm_example.json",
+            "qasm_w_pulse_gates.json"],
         "result": [
             "result_openqasm_example.json",
             "result_openpulse_level_0_example.json",
@@ -57,6 +56,7 @@ class TestSchemaExamples(QiskitTestCase):
     }
 
     def setUp(self):
+        super().setUp()
         self.examples_base_path = self._get_resource_path('examples',
                                                           Path.SCHEMAS)
 
@@ -74,8 +74,7 @@ class TestSchemaExamples(QiskitTestCase):
                 for example_schema in examples:
                     with self.subTest(example=example_schema):
                         with open(os.path.join(self.examples_base_path,
-                                               example_schema),
-                                  'r') as example_file:
+                                               example_schema)) as example_file:
                             example = json.load(example_file)
                             msg = 'JSON failed validation of {}.'\
                                   'Set Qiskit log level to DEBUG'\

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -12,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Validation using the .json schemas."""
+"""DEPRECATED: Validation using the .json schemas."""
 
 from .exceptions import SchemaValidationError
 from .schema_validation import validate_json_against_schema

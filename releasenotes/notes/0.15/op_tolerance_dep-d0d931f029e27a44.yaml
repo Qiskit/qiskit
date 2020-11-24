@@ -1,0 +1,33 @@
+---
+feature:
+  - |
+    The :class:`qiskit.quantum_info.BaseOperator` and
+    :class:`qiskit.quantum_info.QuantumState` classes (and their subclasses
+    such as :class:`~qiskit.quantum_info.Operator` and
+    :class:`~qiskit.quantum_info.DensityMatrix`)
+    now have property style setters and getters to retrieve and set the
+    default ``atol`` and ``rtol`` class properties. These can be used
+    to query or set the default tolerances used for all instances of a
+    class. For example,
+
+    .. code-block::
+
+      from qiskit.quantum_info import ScalarOp
+
+      ScalarOp.atol = 3e-5
+      op = ScalarOp(2)
+
+deprecations:
+  - |
+    The ``set_atol`` and ``set_rtol`` class methods of the
+    :class:`qiskit.quantum_info.BaseOperator` and
+    :class:`qiskit.quantum_info.QuantumState` classes (and
+    their subclasses such as :class:`~qiskit.quantum_info.Operator`
+    and :class:`qiskit.quantum_info.DensityMatrix`) are deprecated and will
+    be removed in a future release. Instead the value for the attributes
+    ``.atol`` and ``.rtol`` should be set on the class instead. For example::
+
+      from qiskit.quantum_info import ScalarOp
+
+      ScalarOp.atol = 3e-5
+      op = ScalarOp(2)

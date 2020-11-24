@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #!python
 #cython: language_level = 3
 #distutils: language = c++

@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    A new class, :class:`~qiskit.circuit.library.QuadraticForm` to the
+    :mod:`qiskit.circuit.library` module for implementing a a quadratic form on
+    binary variables. The circuit library element implements the operation
+
+    .. math::
+
+      |x\rangle |0\rangle \mapsto |x\rangle |Q(x) \mod 2^m\rangle
+
+    for the quadratic form :math:`Q` and :math:`m` output qubits.
+    The result is in the :math:`m` output qubits is encoded in two's
+    complement. If :math:`m` is not specified, the circuit will choose
+    the minimal number of qubits required to represent the result
+    without applying a modulo operation.
+    The quadratic form is specified using a matrix for the quadratic
+    terms, a vector for the linear terms and a constant offset.
+    If all terms are integers, the circuit implements the quadratic form
+    exactly, otherwise it is only an approximation.
+    
+    For example::
+
+      import numpy as np
+
+      from qiskit.circuit.library import QuadraticForm
+
+      A = np.array([[1, 2], [-1, 0]])
+      b = np.array([3, -3])
+      c = -2
+      m = 4
+      quad_form_circuit = QuadraticForm(m, A, b, c)

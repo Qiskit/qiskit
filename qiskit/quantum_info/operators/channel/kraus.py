@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -161,16 +159,16 @@ class Kraus(QuantumChannel):
 
         output_dim, input_dim = kraus[0][0].shape
         # Check and format input and output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
+        input_dims, output_dims, num_qubits = self._automatic_dims(
+            input_dims, input_dim, output_dims, output_dim)
         # Initialize either single or general Kraus
         if kraus[1] is None or np.allclose(kraus[0], kraus[1]):
             # Standard Kraus map
             super().__init__((kraus[0], None), input_dims,
-                             output_dims, 'Kraus')
+                             output_dims, num_qubits, 'Kraus')
         else:
             # General (non-CPTP) Kraus map
-            super().__init__(kraus, input_dims, output_dims, 'Kraus')
+            super().__init__(kraus, input_dims, output_dims, num_qubits, 'Kraus')
 
     @property
     def data(self):

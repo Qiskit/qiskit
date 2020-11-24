@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -23,6 +21,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
@@ -32,10 +31,11 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
-class QuantumChannel(BaseOperator):
+class QuantumChannel(BaseOperator, TolerancesMixin):
     """Quantum channel representation base class."""
 
     def __init__(self, data, input_dims=None, output_dims=None,
+                 num_qubits=None,
                  channel_rep=None):
         """Initialize a quantum channel Superoperator operator.
 
@@ -45,6 +45,8 @@ class QuantumChannel(BaseOperator):
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
                                  [Default: None]
+            num_qubits (int): the number of qubits if N-qubit channel.
+                              [Default: None]
             channel_rep (str): quantum channel representation name string.
 
         Raises:
@@ -56,7 +58,9 @@ class QuantumChannel(BaseOperator):
                 channel_rep.__class__))
         self._channel_rep = channel_rep
         self._data = data
-        super().__init__(input_dims, output_dims)
+        super().__init__(input_dims=input_dims,
+                         output_dims=output_dims,
+                         num_qubits=num_qubits)
 
     def __repr__(self):
         prefix = '{}('.format(self._channel_rep)
@@ -64,7 +68,7 @@ class QuantumChannel(BaseOperator):
         return '{}{},\n{}input_dims={}, output_dims={})'.format(
             prefix, np.array2string(
                 np.asarray(self.data), separator=', ', prefix=prefix),
-            pad, self._input_dims, self._output_dims)
+            pad, self.input_dims(), self.output_dims())
 
     def __eq__(self, other):
         """Test if two QuantumChannels are equal."""
@@ -138,6 +142,16 @@ class QuantumChannel(BaseOperator):
         ret = copy.copy(self)
         ret._data = self._data + other._data
         return ret
+
+    def __sub__(self, other):
+        # Override for sub so that other is converted before being negated
+        # which can lead to problems if other is not already a quantum channel
+        if not isinstance(other, QuantumChannel):
+            qargs = getattr(other, 'qargs', None)
+            other = self.__class__(other)
+            if qargs is not None:
+                other.qargs = qargs
+        return self._add(-other)
 
     def _multiply(self, other):
         """Return the QuantumChannel other * self.

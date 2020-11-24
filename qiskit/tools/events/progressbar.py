@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -155,6 +153,10 @@ class TextProgressBar(BaseProgressBar):
                                   (pbar, 0, '/', self.iter, ''))
 
     def update(self, n):
+        # Don't update if we are not initialized or
+        # the update iteration number is greater than the total iterations set on start.
+        if not self.touched or n > self.iter:
+            return
         filled_length = int(round(50 * n / self.iter))
         pbar = '█' * filled_length + '-' * (50 - filled_length)
         time_left = self.time_remaining_est(n)

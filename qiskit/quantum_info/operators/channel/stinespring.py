@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -131,20 +129,22 @@ class Stinespring(QuantumChannel):
                 output_dims = data.output_dims()
 
         # Check and format input and output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
+        input_dims, output_dims, num_qubits = self._automatic_dims(
+            input_dims, input_dim, output_dims, output_dim)
         # Initialize either single or general Stinespring
         if stine[1] is None or (stine[1] == stine[0]).all():
             # Standard Stinespring map
             super().__init__((stine[0], None),
                              input_dims=input_dims,
                              output_dims=output_dims,
+                             num_qubits=num_qubits,
                              channel_rep='Stinespring')
         else:
             # General (non-CPTP) Stinespring map
             super().__init__(stine,
                              input_dims=input_dims,
                              output_dims=output_dims,
+                             num_qubits=num_qubits,
                              channel_rep='Stinespring')
 
     @property

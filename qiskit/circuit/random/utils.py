@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -25,13 +23,10 @@ from qiskit.circuit.library.standard_gates import (IGate, U1Gate, U2Gate, U3Gate
                                                    CU3Gate, SwapGate, RZZGate,
                                                    CCXGate, CSwapGate)
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_arguments
 
 
-@deprecate_arguments({'n_qubits': 'num_qubits'})
 def random_circuit(num_qubits, depth, max_operands=3, measure=False,
-                   conditional=False, reset=False, seed=None,
-                   *, n_qubits=None):  # pylint:disable=unused-argument
+                   conditional=False, reset=False, seed=None):
     """Generate random circuit of arbitrary size and form.
 
     This function will generate a random circuit by randomly selecting gates
@@ -52,7 +47,6 @@ def random_circuit(num_qubits, depth, max_operands=3, measure=False,
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
-        n_qubits (int): deprecated, use num_qubits instead
 
     Returns:
         QuantumCircuit: constructed circuit

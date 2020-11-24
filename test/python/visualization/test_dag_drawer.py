@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -27,6 +25,7 @@ class TestDagDrawer(QiskitTestCase):
     """Qiskit DAG drawer tests."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])

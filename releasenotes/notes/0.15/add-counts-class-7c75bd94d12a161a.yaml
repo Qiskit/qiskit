@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new class for handling counts result data, :class:`qiskit.result.Counts`,
+    has been added. This class is a subclass of ``dict`` and can be interacted
+    with like any other dictionary. But, it includes helper methods and
+    attributes for dealing with counts results from experiments and also
+    handles post processing and formatting of binary strings at object
+    initialization. A :class:`~qiskit.result.Counts`  object can be created by
+    passing a dictionary  of counts with the keys being either integers,
+    hexadecimal strings of the form ``'0x4a'``,  binary strings of the form
+    ``'0b1101'``, a bit string formatted across register and memory slots
+    (ie ``'00 10'``), or a dit string. For example::
+
+      from qiskit.result import Counts
+
+      counts = Counts({"0x0': 1, '0x1', 3, '0x2': 1020})

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -178,5 +176,6 @@ class JobWatcherMagic(Magics):
         _JOB_WATCHER.stop_viewer()
 
 
-# The Jupyter job watcher instance
-_JOB_WATCHER = JobWatcher()
+if HAS_IBMQ:
+    # The Jupyter job watcher instance
+    _JOB_WATCHER = JobWatcher()

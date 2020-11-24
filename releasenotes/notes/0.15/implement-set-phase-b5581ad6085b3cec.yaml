@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    A new Phase instruction, :class:`~qiskit.pulse.SetPhase`, has been added
+    to :mod:`qiskit.pulse`. This instruction sets the phase of the
+    subsequent pulses to the specified phase (in radians. For example::
+
+      import numpy as np
+
+      from qiskit.pulse import DriveChannel
+      from qiskit.pulse import Schedule
+      from qiskit.pulse import SetPhase
+
+      sched = Schedule()
+      sched += SetPhase(np.pi, DriveChannel(0))
+
+    In this example, the phase of the pulses applied to ``DriveChannel(0)``
+    after the :class:`~qiskit.pulse.SetPhase` instruction will be set to
+    :math:`\pi` radians.

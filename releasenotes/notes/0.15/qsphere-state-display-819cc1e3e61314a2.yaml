@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The :mod:`qiskit.visualization` function
+    :func:`~qiskit.visualization.plot_state_qsphere` has a new kwarg
+    ``show_state_labels`` which is used to control whether each blob in the
+    qsphere visualization is labeled. By default this kwarg is set to ``True``
+    and shows the basis states next to each blob by default. This feature can be
+    disabled, reverting to the previous behavior, by setting the
+    ``show_state_labels`` kwarg to ``False``.
+  - |
+    The :mod:`qiskit.visualization` function
+    :func:`~qiskit.visualization.plot_state_qsphere` has a new kwarg
+    ``show_state_phases`` which is set to ``False`` by default. When set to
+    ``True`` it displays the phase of each basis state.
+  - |
+    The :mod:`qiskit.visualization` function
+    :func:`~qiskit.visualization.plot_state_qsphere` has a new kwarg
+    ``use_degrees`` which is set to ``False`` by default. When set to ``True``
+    it displays the phase of each basis state in degrees, along with the phase
+    circle at the bottom right.

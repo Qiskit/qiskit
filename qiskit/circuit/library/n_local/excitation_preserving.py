@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -141,7 +139,7 @@ class ExcitationPreserving(TwoLocal):
         swap.ryy(theta, 0, 1)
         if mode == 'fsim':
             phi = Parameter('φ')
-            swap.cu1(phi, 0, 1)
+            swap.cp(phi, 0, 1)
 
         super().__init__(num_qubits=num_qubits,
                          rotation_blocks=RZGate,

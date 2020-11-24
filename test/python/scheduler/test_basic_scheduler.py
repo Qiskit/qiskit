@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -16,9 +14,11 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
+from qiskit.pulse import macros
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -28,6 +28,7 @@ class TestBasicSchedule(QiskitTestCase):
     """Scheduling tests."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
@@ -44,11 +45,11 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[1])
-        qc.u2(0.5, 0.25, q[1])
-        qc.barrier(q[0], q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
+        qc.barrier(q[0], [q[1]])
         qc.cx(q[0], q[1])
         qc.measure(q, c)
         sched = schedule(qc, self.backend)
@@ -68,9 +69,9 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(0, 0, q[0])
+        qc.append(U2Gate(0, 0), [q[0]])
         qc.barrier(q[0], q[1])
-        qc.u2(0, 0, q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
         sched = schedule(qc, self.backend, method='alap')
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -93,8 +94,8 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u3(0, 0, 0, q[0])
-        qc.u2(0, 0, q[1])
+        qc.append(U3Gate(0, 0, 0), [q[0]])
+        qc.append(U2Gate(0, 0), [q[1]])
         sched = schedule(qc, self.backend, method='alap')
         expected_sched = Schedule(
             self.inst_map.get('u2', [1], 0, 0),
@@ -110,10 +111,10 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[0], q[1])
         qc.cx(q[0], q[1])
         qc.measure(q, c)
@@ -137,7 +138,7 @@ class TestBasicSchedule(QiskitTestCase):
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         sched = schedule(qc, self.backend, method="as_late_as_possible")
         insts = sched.instructions
         self.assertEqual(insts[0][0], 0)
@@ -145,7 +146,7 @@ class TestBasicSchedule(QiskitTestCase):
 
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.measure(q, c)
         sched = schedule(qc, self.backend, method="as_late_as_possible")
         self.assertEqual(sched.instructions[-1][0], 50)
@@ -177,7 +178,7 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
         qc.cx(q[0], q[1])
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
@@ -200,11 +201,11 @@ class TestBasicSchedule(QiskitTestCase):
         c = ClassicalRegister(3)
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.778, 0.122, q[2])
-        qc.u3(3.14, 1.57, 0., q[0])
-        qc.u2(3.14, 1.57, q[1])
+        qc.append(U2Gate(0.778, 0.122), [q[2]])
+        qc.append(U3Gate(3.14, 1.57, 0), [q[0]])
+        qc.append(U2Gate(3.14, 1.57), [q[1]])
         qc.cx(q[1], q[2])
-        qc.u2(0.778, 0.122, q[2])
+        qc.append(U2Gate(0.778, 0.122), [q[2]])
         sched = schedule(qc, backend)
         expected = Schedule(
             inst_map.get('cx', [0, 1]),
@@ -256,9 +257,9 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         for i in range(2):
-            qc.u2(0, 0, [qr[i]])
-            qc.u1(3.14, [qr[i]])
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
+            qc.append(U1Gate(3.14), [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -278,11 +279,11 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         for i in range(2):
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
             qc.barrier(qr[i])
-            qc.u1(3.14, [qr[i]])
+            qc.append(U1Gate(3.14), [qr[i]])
             qc.barrier(qr[i])
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -305,3 +306,73 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
         self.assertEqual(sched.instructions[0],
                          custom_gauss.instructions[0])
+
+    def test_pulse_gates(self):
+        """Test scheduling calibrated pulse gates."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q)
+        qc.append(U2Gate(0, 0), [q[0]])
+        qc.barrier(q[0], q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
+        qc.add_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
+        qc.add_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
+
+        sched = schedule(qc, self.backend)
+        expected = Schedule(
+            Play(Gaussian(28, 0.2, 4), DriveChannel(0)),
+            (28, Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1)))))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_calibrated_measurements(self):
+        """Test scheduling calibrated measurements."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.append(U2Gate(0, 0), [q[0]])
+        qc.measure(q[0], c[0])
+
+        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
+        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        qc.add_calibration('measure', [0], meas_sched)
+
+        sched = schedule(qc, self.backend)
+        expected = Schedule(
+            self.inst_map.get('u2', [0], 0, 0),
+            (28, meas_sched))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_subset_calibrated_measurements(self):
+        """Test that measurement calibrations can be added and used for some qubits, even
+        if the other qubits do not also have calibrated measurements."""
+        qc = QuantumCircuit(3, 3)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+        meas_scheds = []
+        for qubit in [0, 2]:
+            meas = (Play(Gaussian(1200, 0.2, 4), MeasureChannel(qubit))
+                    + Acquire(1200, AcquireChannel(qubit), MemorySlot(qubit)))
+            meas_scheds.append(meas)
+            qc.add_calibration('measure', [qubit], meas)
+
+        meas = macros.measure([1], FakeOpenPulse3Q())
+        meas = meas.exclude(channels=[AcquireChannel(0), AcquireChannel(2)])
+        sched = schedule(qc, FakeOpenPulse3Q())
+        expected = Schedule(meas_scheds[0], meas_scheds[1], meas)
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_clbits_of_calibrated_measurements(self):
+        """Test that calibrated measurements are only used when the classical bits also match."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[1])
+
+        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
+        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        qc.add_calibration('measure', [0], meas_sched)
+
+        sched = schedule(qc, self.backend)
+        # Doesn't use the calibrated schedule because the classical memory slots do not match
+        expected = Schedule(macros.measure([0], self.backend, qubit_mem_slots={0: 1}))
+        self.assertEqual(sched.instructions, expected.instructions)
