@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Initializing a QuantumCircuit with only the number of qubits and clbits previously
+    implicitly created a QuantumRegister("q") and optionally ClassicalRegister("c")
+    and added them to the circuit. This behavior has been deprecated and will be
+    removed in a future release. Instead, the circuit will be created with the correct
+    number of registerless qubits and clbits.
+

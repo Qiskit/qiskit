@@ -104,6 +104,22 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
 
         self.assertEqual(qc.qubits, [anc, qb])
 
+    def test_deprecation_warn_on_first_register_access(self):
+        """Verify we warn when accessing implicitly created register."""
+
+        # Unset show-once flag in case triggered by other test.
+        QuantumCircuit._implicit_register_deprecation_shown = False
+
+        qc = QuantumCircuit(5, 2)
+        with self.assertWarns(DeprecationWarning):
+            _ = qc.qregs
+        self.assertTrue(QuantumCircuit._implicit_register_deprecation_shown)
+
+        QuantumCircuit._implicit_register_deprecation_shown = False
+        with self.assertWarns(DeprecationWarning):
+            _ = qc.cregs
+        self.assertTrue(QuantumCircuit._implicit_register_deprecation_shown)
+
 
 class TestGatesOnWires(QiskitTestCase):
     """Test gates on wires."""

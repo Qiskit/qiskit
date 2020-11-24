@@ -150,6 +150,8 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = 'include "qelib1.inc";'
 
+    _implicit_register_deprecation_shown = False
+
     def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -183,9 +185,13 @@ class QuantumCircuit:
         # in the order they were applied.
         self._data = []
 
+        # Flag cases when user creates an implicit 'q'/'c' register from integer
+        # initialization so that we raise a DeprecationWarning on register access.
+        self._reg_added_from_int = False
+
         # This is a map of registers bound to this circuit, by name.
-        self.qregs = []
-        self.cregs = []
+        self._qregs = []
+        self._cregs = []
         self._qubits = []
         self._qubit_set = set()
         self._clbits = []
@@ -210,6 +216,48 @@ class QuantumCircuit:
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
+
+    @property
+    def qregs(self):
+        """Returns a list of QuantumRegisters attached to the circuit."""
+
+        if self._reg_added_from_int and not QuantumCircuit._implicit_register_deprecation_shown:
+            warnings.warn(
+                "Initializing a QuantumCircuit with only the number of qubits and clbits previously "
+                'implicitly created a QuantumRegister("q") and optionally ClassicalRegister("c") '
+                "and added them to the circuit. This behavior has been deprecated and will be "
+                "removed in a future release. Instead, the circuit will be created with the correct "
+                "number of registerless qubits and clbits.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            QuantumCircuit._implicit_register_deprecation_shown = True
+        return self._qregs
+
+    @qregs.setter
+    def qregs(self, qregs):
+        self._qregs = qregs
+
+    @property
+    def cregs(self):
+        """Returns a list of ClassicalRegisters attached to the circuit."""
+
+        if self._reg_added_from_int and not QuantumCircuit._implicit_register_deprecation_shown:
+            warnings.warn(
+                "Initializing a QuantumCircuit with only the number of qubits and clbits previously "
+                'implicitly created a QuantumRegister("q") and optionally ClassicalRegister("c") '
+                "and added them to the circuit. This behavior has been deprecated and will be "
+                "removed in a future release. Instead, the circuit will be created with the correct "
+                "number of registerless qubits and clbits.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            QuantumCircuit._implicit_register_deprecation_shown = True
+        return self._cregs
+
+    @cregs.setter
+    def cregs(self, cregs):
+        self._cregs = cregs
 
     @property
     def data(self):
@@ -1145,6 +1193,7 @@ class QuantumCircuit:
             return
 
         if any(isinstance(reg, int) for reg in regs):
+            self._reg_added_from_int = True
             # QuantumCircuit defined without registers
             if len(regs) == 1 and isinstance(regs[0], int):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
@@ -1161,7 +1210,7 @@ class QuantumCircuit:
 
         for register in regs:
             if isinstance(register, Register) and any(
-                register.name == reg.name for reg in self.qregs + self.cregs
+                register.name == reg.name for reg in self._qregs + self._cregs
             ):
                 raise CircuitError('register name "%s" already exists' % register.name)
 
@@ -1169,12 +1218,12 @@ class QuantumCircuit:
                 self._ancillas.extend(register)
 
             if isinstance(register, QuantumRegister):
-                self.qregs.append(register)
+                self._qregs.append(register)
                 new_bits = [bit for bit in register if bit not in self._qubit_set]
                 self._qubits.extend(new_bits)
                 self._qubit_set.update(new_bits)
             elif isinstance(register, ClassicalRegister):
-                self.cregs.append(register)
+                self._cregs.append(register)
                 new_bits = [bit for bit in register if bit not in self._clbit_set]
                 self._clbits.extend(new_bits)
                 self._clbit_set.update(new_bits)
