@@ -359,22 +359,12 @@ stages:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
