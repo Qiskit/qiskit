@@ -1434,22 +1434,19 @@ class QuantumCircuit:
             The circuit depth and the DAG depth need not be the
             same.
         """
-        # Labels the registers by ints
-        # and then the qubit position in
-        # a register is given by reg_int+qubit_num
-        reg_offset = 0
-        reg_map = {}
-        for reg in self.qregs + self.cregs:
-            reg_map[reg.name] = reg_offset
-            reg_offset += reg.size
+        # Assign each bit in the circuit a unique integer
+        # to index into op_stack.
+        bit_indices = {bit: idx
+                       for idx, bit in enumerate(self.qubits + self.clbits)}
 
-        # If no registers return 0
-        if reg_offset == 0:
+        # If no bits, return 0
+        if not bit_indices:
             return 0
 
         # A list that holds the height of each qubit
         # and classical bit.
-        op_stack = [0] * reg_offset
+        op_stack = [0] * len(bit_indices)
+
         # Here we are playing a modified version of
         # Tetris where we stack gates, but multi-qubit
         # gates, or measurements have a block for each
@@ -1470,7 +1467,7 @@ class QuantumCircuit:
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
-                reg_ints.append(reg_map[reg.register.name] + reg.index)
+                reg_ints.append(bit_indices[reg])
                 if count:
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
@@ -1480,11 +1477,11 @@ class QuantumCircuit:
             if instr.condition:
                 # Controls operate over all bits in the
                 # classical register they use.
-                cint = reg_map[instr.condition[0].name]
-                for off in range(instr.condition[0].size):
-                    if cint + off not in reg_ints:
-                        reg_ints.append(cint + off)
-                        levels.append(op_stack[cint + off] + 1)
+                for cbit in instr.condition[0]:
+                    idx = bit_indices[cbit]
+                    if idx not in reg_ints:
+                        reg_ints.append(idx)
+                        levels.append(op_stack[idx] + 1)
 
             max_level = max(levels)
             for ind in reg_ints:
@@ -1551,19 +1548,12 @@ class QuantumCircuit:
             int: Number of connected components in circuit.
         """
         # Convert registers to ints (as done in depth).
-        reg_offset = 0
-        reg_map = {}
+        bits = self.qubits if unitary_only else (self.qubits + self.clbits)
+        bit_indices = {bit: idx
+                       for idx, bit in enumerate(bits)}
 
-        if unitary_only:
-            regs = self.qregs
-        else:
-            regs = self.qregs + self.cregs
-
-        for reg in regs:
-            reg_map[reg.name] = reg_offset
-            reg_offset += reg.size
         # Start with each qubit or cbit being its own subgraph.
-        sub_graphs = [[bit] for bit in range(reg_offset)]
+        sub_graphs = [[bit] for bit in range(len(bit_indices))]
 
         num_sub_graphs = len(sub_graphs)
 
@@ -1584,17 +1574,16 @@ class QuantumCircuit:
                 # register that they use.
                 if instr.condition and not unitary_only:
                     creg = instr.condition[0]
-                    creg_int = reg_map[creg.name]
-                    for coff in range(creg.size):
-                        temp_int = creg_int + coff
+                    for bit in creg:
+                        idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
-                            if temp_int in sub_graphs[k]:
+                            if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
                                 num_touched += 1
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item.register.name] + item.index
+                    reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
@@ -1789,18 +1778,10 @@ class QuantumCircuit:
         circ.cregs = list(new_dag.cregs.values())
 
         for node in new_dag.topological_op_nodes():
-            qubits = []
-            for qubit in node.qargs:
-                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
-
-            clbits = []
-            for clbit in node.cargs:
-                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
-
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
             inst.condition = node.condition
-            circ.append(inst, qubits, clbits)
+            circ.append(inst, node.qargs, node.cargs)
 
         circ.clbits.clear()
 
