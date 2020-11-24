@@ -227,7 +227,14 @@ class Gate(Instruction):
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
-        if isinstance(parameter, (int, float, ParameterExpression)):
+        if isinstance(parameter, ParameterExpression):
+            if len(parameter.parameters) > 0:
+                return parameter  # expression has free parameters, we cannot validate it
+            if not parameter._symbol_expr.is_real:
+                raise CircuitError("Bound parameter expression is complex in gate {}".format(
+                    self.name))
+            return parameter  # per default assume parameters must be real when bound
+        if isinstance(parameter, (int, float)):
             return parameter
         elif isinstance(parameter, (np.integer, np.floating)):
             return parameter.item()
