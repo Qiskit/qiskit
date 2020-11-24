@@ -1150,8 +1150,13 @@ class QuantumCircuit:
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
-        for data, qargs, _ in instruction.definition:
-            gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
+        definition = instruction.definition
+        definition_bit_labels = {bit: idx
+                                 for bits in (definition.qubits, definition.clbits)
+                                 for idx, bit in enumerate(bits)}
+        for data, qargs, _ in definition:
+            gate_qargs = ",".join(["q%i" % index
+                                   for index in [definition_bit_labels[qubit] for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
         if composite_circuit_gates:
