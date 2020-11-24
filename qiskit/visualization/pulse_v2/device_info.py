@@ -124,7 +124,11 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         for qind, u_lo_mappers in enumerate(configuration.u_channel_lo):
             temp_val = .0 + .0j
             for u_lo_mapper in u_lo_mappers:
-                temp_val += defaults.qubit_freq_est[u_lo_mapper.q] * complex(*u_lo_mapper.scale)
+                if isinstance(u_lo_mapper.scale, complex):
+                    scale = u_lo_mapper.scale
+                else:
+                    scale = complex(*u_lo_mapper.scale)
+                temp_val += defaults.qubit_freq_est[u_lo_mapper.q] * scale
             chan_freqs[pulse.ControlChannel(qind)] = temp_val.real
 
         # load qubit channel mapping
