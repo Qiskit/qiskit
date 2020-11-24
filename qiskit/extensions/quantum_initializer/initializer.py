@@ -60,7 +60,7 @@ class Initialize(Instruction):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         """
-        if not isinstance(params, int) and num_qubits:
+        if not isinstance(params, int) and num_qubits is not None:
             raise QiskitError("The num_qubits parameter to Initialize should only be"
                               " used when params is an integer")
         self._from_label = False
