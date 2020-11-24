@@ -99,6 +99,9 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
         elif input_dims is not None and output_dims is not None:
             self._set_dims(input_dims, output_dims)
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def __call__(self, qargs):
         """Return a clone with qargs set"""
         if isinstance(qargs, int):
