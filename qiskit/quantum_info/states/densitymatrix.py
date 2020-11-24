@@ -38,7 +38,8 @@ class DensityMatrix(QuantumState):
         """Initialize a density matrix object.
 
         Args:
-            data (np.ndarray or list or QuantumCircuit or Instruction or matrix_like):
+            data (np.ndarray or list or matrix_like or QuantumCircuit or
+                  qiskit.circuit.Instruction):
                 A statevector, quantum instruction or an object with a ``to_operator`` or
                 ``to_matrix`` method from which the density matrix can be constructed.
                 If a vector the density matrix is constructed as the projector of that vector.
