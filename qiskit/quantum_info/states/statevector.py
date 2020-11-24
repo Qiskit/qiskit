@@ -25,11 +25,12 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class Statevector(QuantumState):
+class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
@@ -677,6 +678,7 @@ class Statevector(QuantumState):
                 obj.name, type(obj.definition)))
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
+        qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
@@ -684,8 +686,8 @@ class Statevector(QuantumState):
                         instr.name))
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [tup.index for tup in qregs]
+                new_qargs = [qubits[tup] for tup in qregs]
             else:
-                new_qargs = [qargs[tup.index] for tup in qregs]
+                new_qargs = [qargs[qubits[tup]] for tup in qregs]
             Statevector._evolve_instruction(statevec, instr, qargs=new_qargs)
         return statevec

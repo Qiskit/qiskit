@@ -95,8 +95,6 @@ class Unroller(TransformationPass):
                                       (str(self.basis), node.op.name))
                 decomposition = circuit_to_dag(node.op.definition)
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops
-                if node.op.definition and node.op.definition.global_phase:
-                    dag.global_phase += node.op.definition.global_phase
                 if unrolled_dag.global_phase:
                     dag.global_phase += unrolled_dag.global_phase
                     unrolled_dag.global_phase = 0
