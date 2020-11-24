@@ -37,11 +37,41 @@ class Register:
     prefix = 'reg'
     bit_type = None
 
-    def __init__(self, size, name=None):
+    def __init__(self, size=None, name=None, bits=None):
         """Create a new generic register.
+
+        Either the ``size`` or the ``bits`` argument must be provided. If
+        ``size`` is not None, the register will be pre-populated with bits of the
+        correct type.
+
+        Args:
+            size (int): Optional. The number of bits to include in the register.
+            name (str): Optional. The name of the register. If not provided, a
+               unique name will be auto-generated from the register type.
+            bits (list[Bit]): Optional. A list of Bit() instances to be used to
+               populate the register.
+
+        Raises:
+            CircuitError: if both the ``size`` and ``bits`` arguments are
+                provided, or if neither are.
+            CircuitError: if ``size`` is not valid.
+            CircuitError: if ``name`` is not a valid name according to the
+                OpenQASM spec.
+            CircuitError: if ``bits`` contained bits of an incorrect type.
         """
 
+        if (
+                (size, bits) == (None, None)
+                or (size is not None and bits is not None)
+        ):
+            raise CircuitError("Exactly one of the size or bits arguments can be "
+                               "provided. Provided size=%s bits=%s."
+                               % (size, bits))
+
         # validate (or cast) size
+        if bits is not None:
+            size = len(bits)
+
         try:
             valid_size = size == int(size)
         except (ValueError, TypeError):
@@ -74,7 +104,13 @@ class Register:
 
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
-        self._bits = [self.bit_type(self, idx) for idx in range(size)]
+        if bits is not None:
+            if any(not isinstance(bit, self.bit_type) for bit in bits):
+                raise CircuitError("Provided bits did not all match "
+                                   "register type. bits=%s" % bits)
+            self._bits = list(bits)
+        else:
+            self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
     def _update_bits_hash(self):
         for bit in self._bits:
@@ -149,7 +185,10 @@ class Register:
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
-        (i.e. quantum/classical), and have the same name and size.
+        (i.e. quantum/classical), and have the same name and size. Additionally,
+        if either Register contains new-style bits, the bits in both registers
+        will be checked for pairwise equality. If two registers are equal,
+        they will have behave identically when specified as circuit args.
 
         Args:
             other (Register): other Register
@@ -157,10 +196,22 @@ class Register:
         Returns:
             bool: `self` and `other` are equal.
         """
-        try:
-            return self._repr == other._repr
-        except AttributeError:
-            return False
+        if self is other:
+            return True
+
+        res = False
+        if type(self) is type(other) and \
+                self._repr == other._repr and \
+                all(
+                        # For new-style bits, check bitwise equality.
+                        sbit == obit
+                        for sbit, obit in zip(self, other)
+                        if None in
+                        (sbit._register, sbit._index,
+                         obit._register, obit._index)
+                ):
+            res = True
+        return res
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
