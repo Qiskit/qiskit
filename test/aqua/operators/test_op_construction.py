@@ -204,6 +204,22 @@ class TestOpConstruction(QiskitAquaTestCase):
         np.testing.assert_array_almost_equal(
             op6.to_matrix(), op5.to_matrix() + Operator.from_label('+r').data)
 
+        param = Parameter("α")
+        m = np.array([[0, -1j], [1j, 0]])
+        op7 = MatrixOp(m, param)
+        np.testing.assert_array_equal(op7.to_matrix(), m * param)
+
+        param = Parameter("β")
+        op8 = PauliOp(primitive=Pauli(label="Y"), coeff=param)
+        np.testing.assert_array_equal(op8.to_matrix(), m * param)
+
+        param = Parameter("γ")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        op9 = CircuitOp(qc, coeff=param)
+        m = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+        np.testing.assert_array_equal(op9.to_matrix(), m * param)
+
     def test_circuit_op_to_matrix(self):
         """ test CircuitOp.to_matrix """
         qc = QuantumCircuit(1)
@@ -704,27 +720,6 @@ class TestOpConstruction(QiskitAquaTestCase):
             with self.subTest(method):
                 # QiskitError: multiplication of Operator with ParameterExpression isn't implemented
                 self.assertRaises(QiskitError, getattr(matrix_op, method))
-
-    @unittest.skip(reason="Multiplication of 'complex' and 'Parameter' is implemented now.")
-    def test_primitive_op_to_matrix(self):
-        """Test to reveal TypeError: multiplication of 'complex' and 'Parameter' is not
-        implemented, which is raised on PrimitiveOps with parameter, when to_matrix is called. """
-        # MatrixOp
-        m = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
-        matrix_op = MatrixOp(m, Parameter('beta'))
-
-        # PauliOp
-        pauli_op = PauliOp(primitive=Pauli(label='XYZ'), coeff=Parameter('beta'))
-        self.assertRaises(TypeError, pauli_op.to_matrix)
-
-        # CircuitOp
-        qc = QuantumCircuit(2)
-        qc.cx(0, 1)
-        circuit_op = CircuitOp(qc, coeff=Parameter('alpha'))
-
-        for operator in [matrix_op, pauli_op, circuit_op]:
-            with self.subTest(operator):
-                self.assertRaises(TypeError, operator.to_matrix)
 
     def test_list_op_to_circuit(self):
         """Test if unitary ListOps transpile to circuit. """
