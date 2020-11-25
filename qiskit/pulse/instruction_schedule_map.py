@@ -29,7 +29,7 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 import inspect
 from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Iterable, List, Tuple, Union
+from typing import Callable, Iterable, List, Tuple, Union, Optional
 
 from qiskit.circuit import ParameterExpression, Parameter
 from qiskit.pulse.exceptions import PulseError
@@ -200,13 +200,18 @@ class InstructionScheduleMap():
     def add(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
-            schedule: Union[Schedule, Callable[..., Schedule]]) -> None:
+            schedule: Union[Schedule, Callable[..., Schedule]],
+            params: Optional[List[Union[str, Parameter]]] = None) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
         Args:
             instruction: The name of the instruction to add.
             qubits: The qubits which the instruction applies to.
             schedule: The Schedule that implements the given instruction.
+            params: List of parameters to create a parameter-bound schedule from the associated
+                gate instruction. If :py:meth:`get` is called with arguments rather than
+                keyword arguments, this parameter list is used to map the input arguments to
+                parameter objects stored in the target schedule.
 
         Raises:
             PulseError: If the qubits are provided as an empty iterable.
