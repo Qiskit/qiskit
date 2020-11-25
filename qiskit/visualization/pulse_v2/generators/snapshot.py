@@ -14,13 +14,12 @@
 
 """Snapshot generators.
 
-A collection of functions that generate a drawing object for an input snapshot instruction.
-See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
-data.
+A collection of functions that generate drawings from formatted input data.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required data.
 
 In this module the input data is `types.SnapshotInstruction`.
 
-An end-user can write arbitrary functions that generate custom drawing objects.
+An end-user can write arbitrary functions that generate custom drawings.
 Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
@@ -40,13 +39,13 @@ the plotter API.
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_snapshot_name(data: types.SnapshotInstruction,
                       formatter: Dict[str, Any],
                       device: device_info.DrawerBackendInfo
-                      ) -> List[drawing_objects.TextData]:
+                      ) -> List[drawings.TextData]:
     """Generate the name of snapshot.
 
     Stylesheets:
@@ -59,21 +58,21 @@ def gen_snapshot_name(data: types.SnapshotInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     style = {'zorder': formatter['layer.snapshot'],
              'color': formatter['color.snapshot'],
              'size': formatter['text_size.annotate'],
-             'va': 'bottom',
+             'va': 'center',
              'ha': 'center'}
 
-    text = drawing_objects.TextData(data_type=types.DrawingLabel.SNAPSHOT,
-                                    channels=data.inst.channel,
-                                    xvals=[data.t0],
-                                    yvals=[formatter['label_offset.snapshot']],
-                                    text=data.inst.name,
-                                    ignore_scaling=True,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.LabelType.SNAPSHOT,
+                             channels=data.inst.channel,
+                             xvals=[data.t0],
+                             yvals=[formatter['label_offset.snapshot']],
+                             text=data.inst.name,
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
@@ -81,7 +80,7 @@ def gen_snapshot_name(data: types.SnapshotInstruction,
 def gen_snapshot_symbol(data: types.SnapshotInstruction,
                         formatter: Dict[str, Any],
                         device: device_info.DrawerBackendInfo
-                        ) -> List[drawing_objects.TextData]:
+                        ) -> List[drawings.TextData]:
     """Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
     Stylesheets:
@@ -95,7 +94,7 @@ def gen_snapshot_symbol(data: types.SnapshotInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `TextData` drawings.
     """
     style = {'zorder': formatter['layer.snapshot'],
              'color': formatter['color.snapshot'],
@@ -109,14 +108,14 @@ def gen_snapshot_symbol(data: types.SnapshotInstruction,
             'name': data.inst.name,
             'label': data.inst.label}
 
-    text = drawing_objects.TextData(data_type=types.DrawingSymbol.SNAPSHOT,
-                                    channels=data.inst.channel,
-                                    xvals=[data.t0],
-                                    yvals=[0],
-                                    text=formatter['unicode_symbol.snapshot'],
-                                    latex=formatter['latex_symbol.snapshot'],
-                                    ignore_scaling=True,
-                                    meta=meta,
-                                    styles=style)
+    text = drawings.TextData(data_type=types.SymbolType.SNAPSHOT,
+                             channels=data.inst.channel,
+                             xvals=[data.t0],
+                             yvals=[0],
+                             text=formatter['unicode_symbol.snapshot'],
+                             latex=formatter['latex_symbol.snapshot'],
+                             ignore_scaling=True,
+                             meta=meta,
+                             styles=style)
 
     return [text]

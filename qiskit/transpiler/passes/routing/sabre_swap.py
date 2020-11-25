@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import deepcopy
+from copy import copy
 from itertools import cycle
 import numpy as np
 
@@ -336,7 +336,7 @@ class SabreSwap(TransformationPass):
 
 def _transform_gate_for_layout(op_node, layout):
     """Return node implementing a virtual op on given layout."""
-    mapped_op_node = deepcopy(op_node)
+    mapped_op_node = copy(op_node)
 
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs

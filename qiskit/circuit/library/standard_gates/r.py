@@ -36,7 +36,7 @@ class RGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RY(\theta) = e^{-i \th Y} =
+        R(\theta, \phi) = e^{-i \th (\cos{\phi} x + \sin{\phi} y)} =
             \begin{pmatrix}
                 \cos{\th} & -i e^{-i \phi} \sin{\th} \\
                 -i e^{i \phi} \sin{\th} & \cos{\th}

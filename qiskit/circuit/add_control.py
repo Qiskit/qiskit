@@ -113,6 +113,8 @@ def control(operation: Union[Gate, ControlledGate],
     else:
         basis = ['p', 'u', 'x', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
+        if unrolled_gate.definition.global_phase:
+            global_phase += unrolled_gate.definition.global_phase
         for gate, qreg, _ in unrolled_gate.definition.data:
             if gate.name == 'x':
                 controlled_circ.mct(q_control, q_target[qreg[0].index],
@@ -162,11 +164,11 @@ def control(operation: Union[Gate, ControlledGate],
             if gate.definition is not None and gate.definition.global_phase:
                 global_phase += gate.definition.global_phase
     # apply controlled global phase
-    if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
+    if global_phase:
         if len(q_control) < 2:
-            controlled_circ.p(operation.definition.global_phase + global_phase, q_control)
+            controlled_circ.p(global_phase, q_control)
         else:
-            controlled_circ.mcp(operation.definition.global_phase + global_phase,
+            controlled_circ.mcp(global_phase,
                                 q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits

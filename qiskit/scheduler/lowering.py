@@ -132,7 +132,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
 
             try:
                 circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=inst_map.get(inst.name, inst_qubits, *inst.params),
+                    CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
             except PulseError:
                 raise QiskitError("Operation '{}' on qubit(s) {} not supported by the backend "

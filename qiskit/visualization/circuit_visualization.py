@@ -30,7 +30,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from warnings import warn
 
 try:
     from PIL import Image
@@ -64,85 +63,99 @@ def circuit_drawer(circuit,
                    ax=None,
                    initial_state=False,
                    cregbundle=True):
-    """Draw a quantum circuit to different formats (set by output parameter):
+    """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
     **text**: ASCII art TextDrawing that can be printed in the console.
+
+    **matplotlib**: images with color rendered purely in Python.
 
     **latex**: high-quality images compiled via latex.
 
     **latex_source**: raw uncompiled latex output.
 
-    **matplotlib**: images with color rendered purely in Python.
-
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        scale (float): scale of image to draw (shrink if < 1). Only used by the ``mpl``,
-            ``latex``, and ``latex_source`` outputs.
-        filename (str): file path to save image to
-        style (dict or str): dictionary of style or file name of style file.
-            This option is only used by the ``mpl`` output type. If a str is
-            passed in that is the path to a json file which contains that will
-            be open, parsed, and then used just as the input dict. See:
-            :ref:`Style Dict Doc <style-dict-doc>` for more information on the
-            contents.
-        output (str): Select the output method to use for drawing the circuit.
-            Valid choices are ``text``, ``latex``, ``latex_source``, ``mpl``.
-            By default the `'text`' drawer is used unless a user config file
-            has an alternative backend set as the default. If the output kwarg
-            is set, that backend will always be used over the default in a user
-            config file.
-        interactive (bool): when set true show the circuit in a new window
+        scale (float): scale of image to draw (shrink if < 1.0). Only used by
+            the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
+        filename (str): file path to save image to. Defaults to None.
+        style (dict or str): dictionary of style or file name of style json file.
+            This option is only used by the `mpl` output type. If a str, it
+            is used as the path to a json file which contains a style dict.
+            The file will be opened, parsed, and then any style elements in the
+            dict will replace the default values in the input dict. A file to
+            be loaded must end in ``.json``, but the name entered here can omit
+            ``.json``. For example, ``style='iqx.json'`` or ``style='iqx'``.
+            If `style` is a dict and the ``'name'`` key is set, that name
+            will be used to load a json file, followed by loading the other
+            items in the style dict. For example, ``style={'name': 'iqx'}``.
+            If `style` is not a str and `name` is not a key in the style dict,
+            then the default value from the user config file (usually
+            ``~/.qiskit/settings.conf``) will be used, for example,
+            ``circuit_mpl_style = iqx``.
+            If none of these are set, the `default` style will be used.
+            The search path for style json files can be specified in the user
+            config, for example,
+            ``circuit_mpl_style_path = /home/user/styles:/home/user``.
+            See: :ref:`Style Dict Doc <style-dict-doc>` for more
+            information on the contents.
+        output (str): select the output method to use for drawing the circuit.
+            Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
+            By default the `text` drawer is used unless the user config file
+            (usually ``~/.qiskit/settings.conf``) has an alternative backend set
+            as the default. For example, ``circuit_drawer = latex``. If the output
+            kwarg is set, that backend will always be used over the default in
+            the user config file.
+        interactive (bool): when set to true, show the circuit in a new window
             (for `mpl` this depends on the matplotlib backend being used
             supporting this). Note when used with either the `text` or the
             `latex_source` output type this has no effect and will be silently
-            ignored.
-        reverse_bits (bool): When set to True reverse the bit order inside
-            registers for the output visualization.
-        plot_barriers (bool): Enable/disable drawing barriers in the output
+            ignored. Defaults to False.
+        reverse_bits (bool): when set to True, reverse the bit order inside
+            registers for the output visualization. Defaults to False.
+        plot_barriers (bool): enable/disable drawing barriers in the output
             circuit. Defaults to True.
-        justify (string): Options are ``left``, ``right`` or ``none``, if
-            anything else is supplied it defaults to left justified. It refers
+        justify (string): options are ``left``, ``right`` or ``none``. If
+            anything else is supplied, it defaults to left justified. It refers
             to where gates should be placed in the output circuit if there is
             an option. ``none`` results in each gate being placed in its own
             column.
         vertical_compression (string): ``high``, ``medium`` or ``low``. It
-            merges the lines generated by the ``text`` output so the drawing
+            merges the lines generated by the `text` output so the drawing
             will take less vertical room.  Default is ``medium``. Only used by
-            the ``text`` output, will be silently ignored otherwise.
-        idle_wires (bool): Include idle wires (wires with no circuit elements)
+            the `text` output, will be silently ignored otherwise.
+        idle_wires (bool): include idle wires (wires with no circuit elements)
             in output visualization. Default is True.
-        with_layout (bool): Include layout information, with labels on the
+        with_layout (bool): include layout information, with labels on the
             physical layout. Default is True.
-        fold (int): Sets pagination. It can be disabled using -1.
-            In `text`, sets the length of the lines. This useful when the
-            drawing does not fit in the console. If None (default), it will try
-            to guess the console width using ``shutil.get_terminal_size()``.
-            However, if running in jupyter, the default line length is set to
-            80 characters. In ``mpl`` it is the number of (visual) layers before
-            folding. Default is 25.
-        ax (matplotlib.axes.Axes): An optional Axes object to be used for
-            the visualization output. If none is specified a new matplotlib
-            Figure will be created and used. Additionally, if specified there
-            will be no returned Figure since it is redundant. This is only used
-            when the ``output`` kwarg is set to use the ``mpl`` backend. It
-            will be silently ignored with all other outputs.
-        initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
-            Default: ``False``.
-        cregbundle (bool): Optional. If set True bundle classical registers.
-            Default: ``True``.
+        fold (int): sets pagination. It can be disabled using -1. In `text`,
+            sets the length of the lines. This is useful when the drawing does
+            not fit in the console. If None (default), it will try to guess the
+            console width using ``shutil.get_terminal_size()``. However, if
+            running in jupyter, the default line length is set to 80 characters.
+            In `mpl`, it is the number of (visual) layers before folding.
+            Default is 25.
+        ax (matplotlib.axes.Axes): Only used by the `mpl` backend. An optional
+            Axes object to be used for the visualization output. If none is
+            specified, a new matplotlib Figure will be created and used.
+            Additionally, if specified there will be no returned Figure since
+            it is redundant.
+        initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+            Default is False.
+        cregbundle (bool): optional. If set True, bundle classical registers.
+            Default is True.
 
     Returns:
-        :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
-        :class:`TextDrawing`:
+        :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
+        :class:`str`:
 
-        * `PIL.Image` (output='latex')
-            an in-memory representation of the image of the circuit diagram.
+        * `TextDrawing` (output='text')
+            A drawing that can be printed as ascii art.
         * `matplotlib.figure.Figure` (output='mpl')
-            a matplotlib figure object for the circuit diagram.
+            A matplotlib figure object for the circuit diagram.
+        * `PIL.Image` (output='latex')
+            An in-memory representation of the image of the circuit diagram.
         * `str` (output='latex_source')
             The LaTeX source code for visualizing the circuit diagram.
-        * `TextDrawing` (output='text')
-            A drawing that can be printed as ascii art
 
     Raises:
         VisualizationError: when an invalid output method is selected
@@ -153,79 +166,121 @@ def circuit_drawer(circuit,
     **Style Dict Details**
 
     The style dict kwarg contains numerous options that define the style of the
-    output circuit visualization. The style dict is only used by the ``mpl``
+    output circuit visualization. The style dict is only used by the `mpl`
     output. The options available in the style dict are defined below:
 
     Args:
-        name (str): The name of the style. The name can be set to 'iqx',
-            'bw', or 'default'. This overrides the setting in the
-            '~/.qiskit/settings.conf' file.
-        textcolor (str): The color code to use for text. Defaults to
-            `'#000000'`
-        subtextcolor (str): The color code to use for subtext. Defaults to
-            `'#000000'`
-        linecolor (str): The color code to use for lines. Defaults to
-            `'#000000'`
-        creglinecolor (str): The color code to use for classical register
-            lines. Defaults to `'#778899'`
-        gatetextcolor (str): The color code to use for gate text. Defaults to
-            `'#000000'`
-        gatefacecolor (str): The color code to use for gates. Defaults to
-            `'#ffffff'`
-        barrierfacecolor (str): The color code to use for barriers. Defaults to
-            `'#bdbdbd'`
-        backgroundcolor (str): The color code to use for the background.
-            Defaults to `'#ffffff'`
-        fontsize (int): The font size to use for text. Defaults to 13
-        subfontsize (int): The font size to use for subtext. Defaults to 8
-        displaytext (dict): A dictionary of the text to use for each element
-            type in the output visualization. The default values are::
+        name (str): the name of the style. The name can be set to ``iqx``,
+            ``bw``, ``default``, or the name of a user-created json file. This
+            overrides the setting in the user config file (usually
+            ``~/.qiskit/settings.conf``).
+        textcolor (str): the color code to use for all text not inside a gate.
+            Defaults to ``#000000``
+        subtextcolor (str): the color code to use for subtext. Defaults to
+            ``#000000``
+        linecolor (str): the color code to use for lines. Defaults to
+            ``#000000``
+        creglinecolor (str): the color code to use for classical register
+            lines. Defaults to ``#778899``
+        gatetextcolor (str): the color code to use for gate text. Defaults to
+            ``#000000``
+        gatefacecolor (str): the color code to use for a gate if no color
+            specified in the 'displaycolor' dict. Defaults to ``#BB8BFF``
+        barrierfacecolor (str): the color code to use for barriers. Defaults to
+            ``#BDBDBD``
+        backgroundcolor (str): the color code to use for the background.
+            Defaults to ``#FFFFFF``
+        edgecolor (str): the color code to use for gate edges when using the
+            `bw` style. Defaults to ``#000000``.
+        fontsize (int): the font size to use for text. Defaults to 13.
+        subfontsize (int): the font size to use for subtext. Defaults to 8.
+        showindex (bool): if set to True, show the index numbers at the top.
+            Defaults to False.
+        figwidth (int): the maximum width (in inches) for the output figure.
+            If set to -1, the maximum displayable width will be used.
+            Defaults to -1.
+        dpi (int): the DPI to use for the output image. Defaults to 150.
+        margin (list): a list of margin values to adjust spacing around output
+            image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
+            Defaults to [2.0, 0.1, 0.1, 0.3].
+        creglinestyle (str): The style of line to use for classical registers.
+            Choices are ``solid``, ``doublet``, or any valid matplotlib
+            `linestyle` kwarg value. Defaults to ``doublet``.
+        displaytext (dict): a dictionary of the text to use for certain element
+            types in the output visualization. These items allow the use of
+            LaTeX formatting for gate names. The 'displaytext' dict can contain
+            any number of elements from one to the entire dict above.The default
+            values are (`default.json`)::
 
                 {
-                    'id': 'id',
-                    'u0': 'U_0',
-                    'u1': 'U_1',
-                    'u2': 'U_2',
-                    'u3': 'U_3',
+                    'u1': '$\\mathrm{U}_1$',
+                    'u2': '$\\mathrm{U}_2$',
+                    'u3': '$\\mathrm{U}_3$',
+                    'u': 'U',
+                    'p': 'P',
+                    'id': 'I',
                     'x': 'X',
                     'y': 'Y',
                     'z': 'Z',
                     'h': 'H',
                     's': 'S',
-                    'sdg': 'S^\\dagger',
+                    'sdg': '$\\mathrm{S}^\\dagger$',
+                    'sx': '$\\sqrt{\\mathrm{X}}$',
+                    'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
                     't': 'T',
-                    'tdg': 'T^\\dagger',
-                    'rx': 'R_x',
-                    'ry': 'R_y',
-                    'rz': 'R_z',
-                    'reset': '\\left|0\\right\\rangle'
+                    'tdg': '$\\mathrm{T}^\\dagger$',
+                    'dcx': 'Dcx',
+                    'iswap': 'Iswap',
+                    'ms': 'MS',
+                    'r': 'R',
+                    'rx': '$\\mathrm{R}_\\mathrm{X}$',
+                    'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+                    'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+                    'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+                    'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+                    'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+                    'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+                    'reset': '$\\left|0\\right\\rangle$',
+                    'initialize': '$|\\psi\\rangle$'
                 }
 
-            You must specify all the necessary values if using this. There is
-            no provision for passing an incomplete dict in.
-        displaycolor (dict): The color codes to use for each circuit
-            element in the form (gate_color, text_color).
-            The default values are::
+        displaycolor (dict): the color codes to use for each circuit element in
+            the form (gate_color, text_color). Colors can also be entered without
+            the text color, such as 'u1': '#FA74A6', in which case the text color
+            will always be `gatetextcolor`. The `displaycolor` dict can contain
+            any number of elements from one to the entire dict above. The default
+            values are (`default.json`)::
 
                 {
                     'u1': ('#FA74A6', '#000000'),
                     'u2': ('#FA74A6', '#000000'),
                     'u3': ('#FA74A6', '#000000'),
                     'id': ('#05BAB6', '#000000'),
+                    'u': ('#BB8BFF', '#000000'),
+                    'p': ('#BB8BFF', '#000000'),
                     'x': ('#05BAB6', '#000000'),
                     'y': ('#05BAB6', '#000000'),
                     'z': ('#05BAB6', '#000000'),
                     'h': ('#6FA4FF', '#000000'),
                     'cx': ('#6FA4FF', '#000000'),
+                    'ccx': ('#BB8BFF', '#000000'),
+                    'mcx': ('#BB8BFF', '#000000'),
+                    'mcx_gray': ('#BB8BFF', '#000000),
                     'cy': ('#6FA4FF', '#000000'),
                     'cz': ('#6FA4FF', '#000000'),
                     'swap': ('#6FA4FF', '#000000'),
+                    'cswap': ('#BB8BFF', '#000000'),
+                    'ccswap': ('#BB8BFF', '#000000'),
+                    'dcx': ('#6FA4FF', '#000000'),
+                    'cdcx': ('#BB8BFF', '#000000'),
+                    'ccdcx': ('#BB8BFF', '#000000'),
+                    'iswap': ('#6FA4FF', '#000000'),
                     's': ('#6FA4FF', '#000000'),
                     'sdg': ('#6FA4FF', '#000000'),
-                    'dcx': ('#6FA4FF', '#000000'),
-                    'iswap': ('#6FA4FF', '#000000'),
                     't': ('#BB8BFF', '#000000'),
                     'tdg': ('#BB8BFF', '#000000'),
+                    'sx': ('#BB8BFF', '#000000'),
+                    'sxdg': ('#BB8BFF', '#000000')
                     'r': ('#BB8BFF', '#000000'),
                     'rx': ('#BB8BFF', '#000000'),
                     'ry': ('#BB8BFF', '#000000'),
@@ -236,38 +291,7 @@ def circuit_drawer(circuit,
                     'reset': ('#000000', #FFFFFF'),
                     'target': ('#FFFFFF, '#FFFFFF'),
                     'measure': ('#000000', '#FFFFFF'),
-                    'ccx': ('#BB8BFF', '#000000'),
-                    'cdcx': ('#BB8BFF', '#000000'),
-                    'ccdcx': ('#BB8BFF', '#000000'),
-                    'cswap': ('#BB8BFF', '#000000'),
-                    'ccswap': ('#BB8BFF', '#000000'),
-                    'mcx': ('#BB8BFF', '#000000'),
-                    'mcx_gray': ('#BB8BFF', '#000000),
-                    'u': ('#BB8BFF', '#000000'),
-                    'p': ('#BB8BFF', '#000000'),
-                    'sx': ('#BB8BFF', '#000000'),
-                    'sxdg': ('#BB8BFF', '#000000')
                 }
-
-            Colors can also be entered without the text color, such as
-            'u1': '#FA74A6', in which case the text color will always
-            be 'gatetextcolor'. The 'displaycolor' dict can contain any
-            number of elements from one to the entire dict above.
-        latexdrawerstyle (bool): When set to True enable latex mode which will
-            draw gates like the `latex` output modes.
-        usepiformat (bool): When set to True use radians for output
-        fold (int): The number of circuit elements to fold the circuit at.
-            Defaults to 20
-        cregbundle (bool): If set True bundle classical registers
-        showindex (bool): If set True draw an index.
-        compress (bool): If set True draw a compressed circuit
-        figwidth (int): The maximum width (in inches) for the output figure.
-        dpi (int): The DPI to use for the output image. Defaults to 150
-        margin (list): A list of margin values to adjust spacing around output
-            image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
-        creglinestyle (str): The style of line to use for classical registers.
-            Choices are `'solid'`, `'doublet'`, or any valid matplotlib
-            `linestyle` kwarg value. Defaults to `doublet`
 
     Example:
         .. jupyter-execute::
@@ -279,7 +303,7 @@ def circuit_drawer(circuit,
             qc = QuantumCircuit(q, c)
             qc.h(q)
             qc.measure(q, c)
-            circuit_drawer(qc)
+            circuit_drawer(qc, output='mpl', style={'showindex': True})
     """
     image = None
     config = user_config.get_config()
@@ -307,8 +331,8 @@ def circuit_drawer(circuit,
                                     initial_state=initial_state,
                                     cregbundle=cregbundle)
     elif output == 'latex':
-        image = _latex_circuit_drawer(circuit, scale=scale,
-                                      filename=filename, style=style,
+        image = _latex_circuit_drawer(circuit,
+                                      filename=filename, scale=scale,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -319,7 +343,6 @@ def circuit_drawer(circuit,
     elif output == 'latex_source':
         return _generate_latex_source(circuit,
                                       filename=filename, scale=scale,
-                                      style=style,
                                       plot_barriers=plot_barriers,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
@@ -342,84 +365,10 @@ def circuit_drawer(circuit,
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
-            'are latex, latex_source, text, and mpl' % output)
+            'are text, latex, latex_source, and mpl' % output)
     if image and interactive:
         image.show()
     return image
-
-
-# -----------------------------------------------------------------------------
-# Plot style sheet option
-# -----------------------------------------------------------------------------
-def qx_color_scheme():
-    """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
-    warn('The qx_color_scheme function is deprecated as of 0.11, and '
-         'will be removed no earlier than 3 months after that release '
-         'date.', DeprecationWarning, stacklevel=2)
-    return {
-        "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
-        "textcolor": "#000000",
-        "gatetextcolor": "#000000",
-        "subtextcolor": "#000000",
-        "linecolor": "#000000",
-        "creglinecolor": "#b9b9b9",
-        "gatefacecolor": "#ffffff",
-        "barrierfacecolor": "#bdbdbd",
-        "backgroundcolor": "#ffffff",
-        "fold": 20,
-        "fontsize": 13,
-        "subfontsize": 8,
-        "figwidth": -1,
-        "dpi": 150,
-        "displaytext": {
-            "id": "id",
-            "u0": "U_0",
-            "u1": "U_1",
-            "u2": "U_2",
-            "u3": "U_3",
-            "x": "X",
-            "y": "Y",
-            "z": "Z",
-            "h": "H",
-            "s": "S",
-            "sdg": "S^\\dagger",
-            "t": "T",
-            "tdg": "T^\\dagger",
-            "rx": "R_x",
-            "ry": "R_y",
-            "rz": "R_z",
-            "reset": "\\left|0\\right\\rangle"
-        },
-        "displaycolor": {
-            "id": "#ffca64",
-            "u0": "#f69458",
-            "u1": "#f69458",
-            "u2": "#f69458",
-            "u3": "#f69458",
-            "x": "#a6ce38",
-            "y": "#a6ce38",
-            "z": "#a6ce38",
-            "h": "#00bff2",
-            "s": "#00bff2",
-            "sdg": "#00bff2",
-            "t": "#ff6666",
-            "tdg": "#ff6666",
-            "rx": "#ffca64",
-            "ry": "#ffca64",
-            "rz": "#ffca64",
-            "reset": "#d7ddda",
-            "target": "#00bff2",
-            "meas": "#f070aa"
-        },
-        "latexdrawerstyle": True,
-        "usepiformat": False,
-        "cregbundle": False,
-        "showindex": False,
-        "compress": True,
-        "margin": [2.0, 0.0, 0.0, 0.3],
-        "creglinestyle": "solid",
-        "reversebits": False
-    }
 
 
 # -----------------------------------------------------------------------------
@@ -435,27 +384,30 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 
     Args:
         circuit (QuantumCircuit): Input circuit
-        filename (str): optional filename to write the result
+        filename (str): Optional filename to write the result
         reverse_bits (bool): Rearrange the bits in reverse order.
         plot_barriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
         idle_wires (bool): Include idle wires. Default is True.
-        with_layout (bool): Include layout information, with labels on the physical
+        with_layout (bool): Include layout information with labels on the physical
             layout. Default: True
         fold (int): Optional. Breaks the circuit drawing to this length. This
-                    useful when the drawing does not fit in the console. If
-                    None (default), it will try to guess the console width using
-                    `shutil.get_terminal_size()`. If you don't want pagination
-                   at all, set `fold=-1`.
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
-        cregbundle (bool): Optional. If set True bundle classical registers. Default: ``False``.
+            is useful when the drawing does not fit in the console. If
+            None (default), it will try to guess the console width using
+            `shutil.get_terminal_size()`. If you don't want pagination
+            at all, set `fold=-1`.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
+            Default: ``True``.
         encoding (str): Optional. Sets the encoding preference of the output.
-                   Default: ``sys.stdout.encoding``.
+            Default: ``sys.stdout.encoding``.
+
     Returns:
-        TextDrawing: An instances that, when printed, draws the circuit in ascii art.
+        TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
                                                         reverse_bits=reverse_bits,
@@ -486,7 +438,6 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 def _latex_circuit_drawer(circuit,
                           scale=0.7,
                           filename=None,
-                          style=None,
                           plot_barriers=True,
                           reverse_bits=False,
                           justify=None,
@@ -502,18 +453,18 @@ def _latex_circuit_drawer(circuit,
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
         filename (str): file path to save image to
-        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
-        cregbundle (bool): Optional. If set True bundle classical registers.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
 
     Returns:
@@ -522,14 +473,13 @@ def _latex_circuit_drawer(circuit,
     Raises:
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
-        CalledProcessError: usually points errors during diagram creation.
+        CalledProcessError: usually points to errors during diagram creation.
         ImportError: if pillow is not installed
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        _generate_latex_source(circuit, filename=tmppath,
-                               scale=scale, style=style,
+        _generate_latex_source(circuit, filename=tmppath, scale=scale,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
                                idle_wires=idle_wires, with_layout=with_layout,
@@ -578,27 +528,27 @@ def _latex_circuit_drawer(circuit,
 
 
 def _generate_latex_source(circuit, filename=None,
-                           scale=0.7, style=None, reverse_bits=False,
+                           scale=0.7, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
                            with_layout=True, initial_state=False, cregbundle=False):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
-        circuit (QuantumCircuit): input circuit
-        scale (float): image scaling
+        circuit (QuantumCircuit): a quantum circuit
+        scale (float): scaling factor
         filename (str): optional filename to write latex
-        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-                        the circuit should be justified.
+            the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
-        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
-        cregbundle (bool): Optional. If set True bundle classical registers.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
 
     Returns:
@@ -613,9 +563,8 @@ def _generate_latex_source(circuit, filename=None,
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
-                                 plot_barriers=plot_barriers,
-                                 reverse_bits=reverse_bits, layout=layout,
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
+                                 plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
                                  global_phase=global_phase)
@@ -655,7 +604,7 @@ def _matplotlib_circuit_drawer(circuit,
         scale (float): scaling factor
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file
-        reverse_bits (bool): When set to True reverse the bit order inside
+        reverse_bits (bool): When set to True, reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
@@ -664,9 +613,9 @@ def _matplotlib_circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
-        fold (int): amount ops allowed before folding. Default is 25.
+        fold (int): Number of vertical layers allowed before folding. Default is 25.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
-            the visualization output. If none is specified a new matplotlib
+            the visualization output. If none is specified, a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
@@ -693,8 +642,7 @@ def _matplotlib_circuit_drawer(circuit,
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
-                                       plot_barriers=plot_barriers,
-                                       reverse_bits=reverse_bits, layout=layout,
+                                       plot_barriers=plot_barriers, layout=layout,
                                        fold=fold, ax=ax, initial_state=initial_state,
                                        cregbundle=cregbundle, global_phase=global_phase)
     return qcd.draw(filename)
