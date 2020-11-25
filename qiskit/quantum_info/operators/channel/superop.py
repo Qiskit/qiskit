@@ -111,9 +111,9 @@ class SuperOp(QuantumChannel):
                 output_dims = data.output_dims()
         # Finally we format and validate the channel input and
         # output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__(super_mat, input_dims, output_dims, 'SuperOp')
+        input_dims, output_dims, num_qubits = self._automatic_dims(
+            input_dims, input_dim, output_dims, output_dim)
+        super().__init__(super_mat, input_dims, output_dims, num_qubits, 'SuperOp')
 
     @property
     def _shape(self):
@@ -181,11 +181,11 @@ class SuperOp(QuantumChannel):
 
         # Compute tensor contraction indices from qargs
         if front:
-            num_indices = len(self._input_dims)
-            shift = 2 * len(self._output_dims)
+            num_indices = self._num_input
+            shift = 2 * self._num_output
             right_mul = True
         else:
-            num_indices = len(self._output_dims)
+            num_indices = self._num_output
             shift = 0
             right_mul = False
 
@@ -328,8 +328,9 @@ class SuperOp(QuantumChannel):
         tensor = Operator._einsum_matmul(tensor, mat, indices)
         # Replace evolved dimensions
         new_dims = list(state.dims())
+        output_dims = self.output_dims()
         for i, qubit in enumerate(qargs):
-            new_dims[qubit] = self._output_dims[i]
+            new_dims[qubit] = output_dims[i]
         new_dim = np.product(new_dims)
         # reshape tensor to density matrix
         tensor = np.reshape(tensor, (new_dim, new_dim))
