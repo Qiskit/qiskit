@@ -21,12 +21,11 @@ from abc import abstractmethod
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.base_operator import AbstractTolerancesMeta
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
 
 
-class QuantumState(metaclass=AbstractTolerancesMeta):
+class QuantumState:
     """Abstract quantum state base class"""
 
     def __init__(self, dims):
@@ -53,38 +52,6 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
         return self._num_qubits
-
-    @property
-    def atol(self):
-        """The absolute tolerance parameter for float comparisons."""
-        return self.__class__.atol
-
-    @property
-    def rtol(self):
-        """The relative tolerance parameter for float comparisons."""
-        return self.__class__.rtol
-
-    @classmethod
-    def set_atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.atol = value instead
-        """
-        warnings.warn("`{}.set_atol` method is deprecated, use `{}.atol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.atol = value
-
-    @classmethod
-    def set_rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.rtol = value instead
-        """
-        warnings.warn("`{}.set_rtol` method is deprecated, use `{}.rtol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.rtol = value
 
     @property
     def _rng(self):
