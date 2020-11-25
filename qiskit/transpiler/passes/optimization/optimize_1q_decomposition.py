@@ -71,7 +71,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return dag
         for basis in self.basis:
             decomposer = OneQubitEulerDecomposer(basis)
-            runs = dag.collect_runs(self.euler_basis_names[basis])
+            runs = dag.collect_1q_runs()
             runs = _split_runs_on_parameters(runs)
             for run in runs:
                 if len(run) <= 1:
