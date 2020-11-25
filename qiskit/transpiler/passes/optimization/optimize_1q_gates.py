@@ -180,7 +180,7 @@ class Optimize1qGates(TransformationPass):
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
                 if abs(np.mod(right_parameters[0],
                               (2 * np.pi))) < self.eps and right_name != "u1" \
-                              and right_name != "p":
+                        and right_name != "p":
                     if use_p:
                         right_name = "p"
                     else:
@@ -212,8 +212,8 @@ class Optimize1qGates(TransformationPass):
                                             np.pi + (right_parameters[0] +
                                                      np.pi / 2))
                 # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
-                if right_name in ("u1", "p") and abs(np.mod(right_parameters[2],
-                                                     2 * np.pi)) < self.eps:
+                if right_name in ("u1", "p") and abs(
+                        np.mod(right_parameters[2], 2 * np.pi)) < self.eps:
                     right_name = "nop"
 
             if right_name == "u2" and "u2" not in self.basis:
