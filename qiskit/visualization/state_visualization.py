@@ -1050,27 +1050,41 @@ def repr_state_text(state):
                 state._data, separator=', ', prefix=prefix),
             pad, state._dims)
 
+
 class TextMatrix():
     def __init__(self, state, max_size, dims):
         self.state = state
         self.max_size = max_size
         self.dims = dims
+        obj_name = type(self.state).__name__
+        if isinstance(max_size, int):
+            self.max_size = max_size
+        elif obj_name == 'DensityMatrix':
+            # density matrices are square, so threshold for
+            # summarization is shortest side squared
+            self.max_size = min(max_size)**2
+        else:
+            self.max_size = max_size[0]
+ 
 
     def __str__(self):
-        # TODO sometime tabulated
-        # https://stackoverflow.com/questions/9535954/printing-lists-as-tabular-data
         obj_name = type(self.state).__name__
+        threshold = self.max_size
         prefix = f'{obj_name}('
-        pad = len(prefix) * ' '
-        # if self.dims:
-
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self.state._data, separator=', ', prefix=prefix),
-            pad, self.state._dims)
+        data = np.array2string(
+            self.state._data,
+            prefix=prefix,
+            threshold=threshold
+        )
+        if self.dims:
+            suffix = f',\ndims={self.state._dims})' 
+        else:
+            suffix = '\n)'
+        return prefix + data + suffix
 
     def __repr__(self):
         return self.__str__()
+
 
 def state_drawer(state,
                  output=None,
