@@ -233,6 +233,39 @@ class ParameterExpression:
 
         return ParameterExpression(parameter_symbols, expr)
 
+    def gradient(self, param) -> Union['ParameterExpression', float]:
+        """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
+
+        Args:
+            param (Parameter): Parameter w.r.t. which we want to take the derivative
+
+        Returns:
+            ParameterExpression representing the gradient of param_expr w.r.t. param
+        """
+        # Check if the parameter is contained in the parameter expression
+        if param not in self._parameter_symbols.keys():
+            # If it is not contained then return 0
+            return 0.0
+
+        # Compute the gradient of the parameter expression w.r.t. param
+        import sympy as sy
+        key = self._parameter_symbols[param]
+        # TODO enable nth derivative
+        expr_grad = sy.Derivative(self._symbol_expr, key).doit()
+
+        # generate the new dictionary of symbols
+        # this needs to be done since in the derivative some symbols might disappear (e.g.
+        # when deriving linear expression)
+        parameter_symbols = {}
+        for parameter, symbol in self._parameter_symbols.items():
+            if symbol in expr_grad.free_symbols:
+                parameter_symbols[parameter] = symbol
+        # If the gradient corresponds to a parameter expression then return the new expression.
+        if len(parameter_symbols) > 0:
+            return ParameterExpression(parameter_symbols, expr=expr_grad)
+        # If no free symbols left, return a float corresponding to the gradient.
+        return float(expr_grad)
+
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
 
