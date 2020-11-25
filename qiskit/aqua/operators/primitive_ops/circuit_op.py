@@ -142,9 +142,7 @@ class CircuitOp(PrimitiveOp):
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive('to_matrix', True, self.num_qubits, massive)
         unitary = qiskit.quantum_info.Operator(self.to_circuit()).data
-        # pylint: disable=cyclic-import
-        from ..operator_globals import EVAL_SIG_DIGITS
-        return np.round(unitary * self.coeff, decimals=EVAL_SIG_DIGITS)
+        return unitary * self.coeff
 
     def __str__(self) -> str:
         qc = self.to_circuit()  # type: ignore
