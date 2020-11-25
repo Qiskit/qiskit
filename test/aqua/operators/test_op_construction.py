@@ -705,6 +705,7 @@ class TestOpConstruction(QiskitAquaTestCase):
                 # QiskitError: multiplication of Operator with ParameterExpression isn't implemented
                 self.assertRaises(QiskitError, getattr(matrix_op, method))
 
+    @unittest.skip(reason="Multiplication of 'complex' and 'Parameter' is implemented now.")
     def test_primitive_op_to_matrix(self):
         """Test to reveal TypeError: multiplication of 'complex' and 'Parameter' is not
         implemented, which is raised on PrimitiveOps with parameter, when to_matrix is called. """

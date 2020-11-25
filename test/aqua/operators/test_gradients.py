@@ -669,6 +669,36 @@ class TestGradients(QiskitAquaTestCase):
         np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
                                              correct_values)
 
+    def test_grad_combo_fn_chain_rule_nat_grad(self):
+        """
+        Test the chain rule for a custom gradient combo function
+
+        """
+        np.random.seed(2)
+
+        def combo_fn(x):
+            amplitudes = x[0].primitive.data
+            pdf = np.multiply(amplitudes, np.conj(amplitudes))
+            return np.sum(np.log(pdf)) / (-len(amplitudes))
+
+        def grad_combo_fn(x):
+            amplitudes = x[0].primitive.data
+            pdf = np.multiply(amplitudes, np.conj(amplitudes))
+            grad = []
+            for prob in pdf:
+                grad += [-1 / prob]
+            return grad
+
+        qc = RealAmplitudes(2, reps=1)
+        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = NaturalGradient(grad_method='lin_comb', regularization='ridge'
+                               ).convert(grad_op, qc.ordered_parameters)
+        value_dict = dict(
+            zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
+        correct_values = [[0.20777236], [-18.92560338], [-15.89005475], [-10.44002031]]
+        np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
+                                             correct_values, decimal=3)
+
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_operator_coefficient_gradient(self, method):
         """Test the operator coefficient gradient
