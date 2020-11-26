@@ -18,7 +18,6 @@ Circuit synthesis for the CNOTDihedral class.
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import U1Gate
 
 
 def decompose_cnotdihedral(elem):
@@ -77,7 +76,7 @@ def decompose_cnotdihedral_2_qubits(elem):
         tpow0 = elem.poly.weight_1[0]
         xpow0 = elem.shift[0]
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if (tpow0 == 0 and xpow0 == 0):
@@ -100,11 +99,11 @@ def decompose_cnotdihedral_2_qubits(elem):
         if weight_2 == [0]:
             [tpow0, tpow1] = weight_1
             if tpow0 > 0:
-                circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+                circuit.p((tpow0 * np.pi / 4), [0])
             if xpow0 == 1:
                 circuit.x(0)
             if tpow1 > 0:
-                circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+                circuit.p((tpow1 * np.pi / 4), [1])
             if xpow1 == 1:
                 circuit.x(1)
             if (tpow0 == 0 and tpow1 == 0 and xpow0 == 0 and xpow1 == 0):
@@ -117,18 +116,18 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] - 2 * xpow1 - 4 * xpow0 * xpow1) % 8
             tpow1 = (weight_1[1] - 2 * xpow0 - 4 * xpow0 * xpow1) % 8
             if tpow0 > 0:
-                circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+                circuit.p((tpow0 * np.pi / 4), [0])
             if xpow0 == 1:
                 circuit.x(0)
             if tpow1 > 0:
-                circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+                circuit.p((tpow1 * np.pi / 4), [1])
             if xpow1 == 1:
                 circuit.x(1)
             # CS gate is implemented using 2 CX gates
-            circuit.append(U1Gate(np.pi / 4), [0])
-            circuit.append(U1Gate(np.pi / 4), [1])
+            circuit.p((np.pi / 4), [0])
+            circuit.p((np.pi / 4), [1])
             circuit.cx(0, 1)
-            circuit.append(U1Gate(7 * np.pi / 4), [1])
+            circuit.p((7 * np.pi / 4), [1])
             circuit.cx(0, 1)
 
         # CSdg-like class
@@ -137,18 +136,18 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] - 6 * xpow1 - 4 * xpow0 * xpow1) % 8
             tpow1 = (weight_1[1] - 6 * xpow0 - 4 * xpow0 * xpow1) % 8
             if tpow0 > 0:
-                circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+                circuit.p((tpow0 * np.pi / 4), [0])
             if xpow0 == 1:
                 circuit.x(0)
             if tpow1 > 0:
-                circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+                circuit.p((tpow1 * np.pi / 4), [1])
             if xpow1 == 1:
                 circuit.x(1)
             # CSdg gate is implemented using 2 CX gates
-            circuit.append(U1Gate(7 * np.pi / 4), [0])
-            circuit.append(U1Gate(7 * np.pi / 4), [1])
+            circuit.p((7 * np.pi / 4), [0])
+            circuit.p((7 * np.pi / 4), [1])
             circuit.cx(0, 1)
-            circuit.append(U1Gate(np.pi / 4), [1])
+            circuit.p((np.pi / 4), [1])
             circuit.cx(0, 1)
 
         # CZ-like class
@@ -156,11 +155,11 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] - 4 * xpow1) % 8
             tpow1 = (weight_1[1] - 4 * xpow0) % 8
             if tpow0 > 0:
-                circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+                circuit.p((tpow0 * np.pi / 4), [0])
             if xpow0 == 1:
                 circuit.x(0)
             if tpow1 > 0:
-                circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+                circuit.p((tpow1 * np.pi / 4), [1])
             if xpow1 == 1:
                 circuit.x(1)
             # CZ gate is implemented using 2 CX gates
@@ -179,16 +178,16 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] + m) % 8
             tpow1 = (weight_1[1] + m) % 8
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if tpow1 > 0:
-            circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+            circuit.p((tpow1 * np.pi / 4), [1])
         if xpow1 == 1:
             circuit.x(1)
         circuit.cx(0, 1)
         if m > 0:
-            circuit.append(U1Gate(m * np.pi / 4), [1])
+            circuit.p((m * np.pi / 4), [1])
 
     # CX10-like class
     if (linear == [[1, 1], [0, 1]]).all():
@@ -203,16 +202,16 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] + m) % 8
             tpow1 = (weight_1[1] + m) % 8
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if tpow1 > 0:
-            circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+            circuit.p((tpow1 * np.pi / 4), [1])
         if xpow1 == 1:
             circuit.x(1)
         circuit.cx(1, 0)
         if m > 0:
-            circuit.append(U1Gate(m * np.pi / 4), [0])
+            circuit.p((m * np.pi / 4), [0])
 
     # CX01*CX10-like class
     if (linear == [[0, 1], [1, 1]]).all():
@@ -227,17 +226,17 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] + m) % 8
             tpow1 = (weight_1[1] + m) % 8
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if tpow1 > 0:
-            circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+            circuit.p((tpow1 * np.pi / 4), [1])
         if xpow1 == 1:
             circuit.x(1)
         circuit.cx(0, 1)
         circuit.cx(1, 0)
         if m > 0:
-            circuit.append(U1Gate(m * np.pi / 4), [1])
+            circuit.p((m * np.pi / 4), [1])
 
     # CX10*CX01-like class
     if (linear == [[1, 1], [1, 0]]).all():
@@ -252,17 +251,17 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] + m) % 8
             tpow1 = (weight_1[1] + m) % 8
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if tpow1 > 0:
-            circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+            circuit.p((tpow1 * np.pi / 4), [1])
         if xpow1 == 1:
             circuit.x(1)
         circuit.cx(1, 0)
         circuit.cx(0, 1)
         if m > 0:
-            circuit.append(U1Gate(m * np.pi / 4), [0])
+            circuit.p((m * np.pi / 4), [0])
 
     # CX01*CX10*CX01-like class
     if (linear == [[0, 1], [1, 0]]).all():
@@ -277,17 +276,17 @@ def decompose_cnotdihedral_2_qubits(elem):
             tpow0 = (weight_1[0] + m) % 8
             tpow1 = (weight_1[1] + m) % 8
         if tpow0 > 0:
-            circuit.append(U1Gate(tpow0 * np.pi / 4), [0])
+            circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
         if tpow1 > 0:
-            circuit.append(U1Gate(tpow1 * np.pi / 4), [1])
+            circuit.p((tpow1 * np.pi / 4), [1])
         if xpow1 == 1:
             circuit.x(1)
         circuit.cx(0, 1)
         circuit.cx(1, 0)
         if m > 0:
-            circuit.append(U1Gate(m * np.pi / 4), [1])
+            circuit.p((m * np.pi / 4), [1])
         circuit.cx(0, 1)
 
     return circuit
@@ -375,7 +374,7 @@ def decompose_cnotdihedral_general(elem):
                     new_elem.cnot(j, k)
                     new_circuit.cx(i, k)
                     new_circuit.cx(j, k)
-                    new_circuit.append(U1Gate(np.pi / 4), [k])
+                    new_circuit.p((np.pi / 4), [k])
                     new_circuit.cx(i, k)
                     new_circuit.cx(j, k)
 
@@ -390,7 +389,7 @@ def decompose_cnotdihedral_general(elem):
                 new_elem.phase(tpow, j)
                 new_elem.cnot(i, j)
                 new_circuit.cx(i, j)
-                new_circuit.append(U1Gate(tpow * np.pi / 4), [j])
+                new_circuit.p((tpow * np.pi / 4), [j])
                 new_circuit.cx(i, j)
 
     # Do u1 gates to construct all monomials of weight 1
@@ -400,7 +399,7 @@ def decompose_cnotdihedral_general(elem):
         tpow = (tpow1 - tpow2) % 8
         if tpow != 0:
             new_elem.phase(tpow, i)
-            new_circuit.append(U1Gate(tpow * np.pi / 4), [i])
+            new_circuit.p((tpow * np.pi / 4), [i])
 
     if elem.poly != new_elem.poly:
         raise QiskitError("Could not recover phase polynomial.")

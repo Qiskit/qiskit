@@ -76,9 +76,9 @@ def _append_circuit(elem, circuit, qargs=None):
             elem.flip(new_qubits[0])
             elem.phase(4, new_qubits[0])
 
-        elif (instr.name == 'u1' or gate.name == 'u1'):
+        elif (instr.name == 'p' or gate.name == 'p'):
             if (len(new_qubits) != 1 or len(instr.params) != 1):
-                raise QiskitError("Invalid qubits or params for 1-qubit gate u1.")
+                raise QiskitError("Invalid qubits or params for 1-qubit gate p.")
             elem.phase(int(4 * instr.params[0] / np.pi), new_qubits[0])
 
         elif (instr.name == 'cx' or gate.name == 'cx'):

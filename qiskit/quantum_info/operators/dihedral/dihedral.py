@@ -458,7 +458,7 @@ class CNOTDihedral(BaseOperator):
         qargs = list(range(self.num_qubits))
         for instr, qregs, _ in circ.definition:
             new_qubits = [qargs[tup.index] for tup in qregs]
-            if instr.name == 'u1':
+            if instr.name == 'p':
                 params = 2 * np.pi - instr.params[0]
                 instr.params[0] = params
                 new_circ.append(instr, new_qubits)
