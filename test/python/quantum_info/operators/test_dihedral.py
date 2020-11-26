@@ -21,7 +21,8 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit.quantum_info.operators.dihedral import CNOTDihedral, random_cnotdihedral
+from qiskit.quantum_info.operators.dihedral import CNOTDihedral
+from qiskit.quantum_info.random import random_cnotdihedral
 
 
 class TestCNOTDihedral(unittest.TestCase):

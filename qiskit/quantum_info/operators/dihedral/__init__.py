@@ -14,6 +14,6 @@
 CNOTDihedral Operators
 """
 
-from .dihedral import CNOTDihedral, random_cnotdihedral
+from .dihedral import CNOTDihedral
 
 

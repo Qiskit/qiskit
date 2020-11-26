@@ -24,6 +24,7 @@ from qiskit.exceptions import QiskitError
 from .symplectic.random import random_clifford
 from .symplectic.random import random_pauli_table
 from .symplectic.random import random_stabilizer_table
+from .dihedral.random import random_cnotdihedral
 
 DEFAULT_RNG = default_rng()
 
