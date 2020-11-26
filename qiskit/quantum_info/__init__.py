@@ -32,6 +32,7 @@ Operators
    PauliTable
    StabilizerTable
    pauli_basis
+   CNOTDihedral
 
 States
 ======
@@ -95,6 +96,7 @@ Random
    random_pauli_table
    random_stabilizer_table
    random_state
+   random_cnotdihedral
 
 Analysis
 =========
@@ -127,6 +129,7 @@ from .operators.measures import (process_fidelity,
 from .operators.symplectic import (Clifford, SparsePauliOp,
                                    PauliTable, StabilizerTable)
 from .operators.symplectic import pauli_basis
+from .operators.dihedral import CNOTDihedral
 
 from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
@@ -137,7 +140,8 @@ from .random import (random_quantum_channel, random_unitary,
                      random_clifford, random_pauli_table,
                      random_stabilizer_table,
                      random_hermitian, random_statevector,
-                     random_density_matrix, random_state)
+                     random_density_matrix, random_state,
+                     random_cnotdihedral)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)
