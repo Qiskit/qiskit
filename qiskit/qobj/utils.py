@@ -38,16 +38,6 @@ class MeasLevel(IntEnum):
     CLASSIFIED = 2
 
 
-class InstructionParameters(Enum):
-    """Order sensitive parameter list of backend parameterized instruction.
-
-    TODO This should be defined in the backend default data. Need schema update.
-    """
-    u1 = ['P0']
-    u2 = ['P0', 'P1']
-    u3 = ['P0', 'P1', 'P2']
-
-
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against the .json schema.
 
