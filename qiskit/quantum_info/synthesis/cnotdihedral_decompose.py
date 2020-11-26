@@ -19,7 +19,6 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import U1Gate
-from qiskit.quantum_info.operators.dihedral.polynomial import SpecialPolynomial
 
 
 def decompose_cnotdihedral(elem):
@@ -354,10 +353,13 @@ def decompose_cnotdihedral_general(elem):
         raise QiskitError("Cannot do Gauss elimination on linear part.")
 
     # Initialize new_elem to an identity CNOTDihderal element
-    new_elem = elem.copy()
-    new_elem.poly = SpecialPolynomial(num_qubits)
-    new_elem.linear = np.eye(num_qubits, dtype=np.int8)
-    new_elem.shift = np.zeros(num_qubits, dtype=np.int8)
+    new_elem = elem_cpy.copy()
+    new_elem.poly.weight_0 = 0
+    new_elem.poly.weight_1 = np.zeros(num_qubits, dtype=np.int8)
+    new_elem.poly.weight_2 = np.zeros(int(num_qubits * (num_qubits - 1) / 2),
+                                      dtype=np.int8)
+    new_elem.poly.weight_3 = np.zeros(int(num_qubits * (num_qubits - 1) *
+                                          (num_qubits - 2) / 6), dtype=np.int8)
 
     new_circuit = QuantumCircuit(num_qubits)
 
