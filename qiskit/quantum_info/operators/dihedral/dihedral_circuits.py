@@ -18,7 +18,7 @@ Circuit simulation for the CNOTDihedral class
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit
 
 
 def _append_circuit(elem, circuit, qargs=None):

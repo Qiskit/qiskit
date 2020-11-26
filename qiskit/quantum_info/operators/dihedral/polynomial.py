@@ -22,6 +22,8 @@ from functools import reduce
 from operator import mul
 import numpy as np
 
+from qiskit.exceptions import QiskitError
+
 
 class SpecialPolynomial():
     """Multivariate polynomial with special form.
