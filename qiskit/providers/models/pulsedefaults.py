@@ -18,6 +18,7 @@ from typing import Any, Dict, List
 
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.qobj.utils import InstructionParameters
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 
@@ -200,10 +201,17 @@ class PulseDefaults:
         self.instruction_schedule_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
+
+        # a enum map of parametrized instruction name to list of parameters.
+        inst_params = kwargs.get('inst_params', InstructionParameters)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = Schedule(*pulse_insts, name=inst.name)
-            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+            try:
+                params = inst_params[inst.name].value
+            except KeyError:
+                params = []
+            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule, params)
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel
