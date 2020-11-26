@@ -24,6 +24,7 @@ import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 # pylint: disable=cyclic-import, unused-import
 from qiskit.pulse.instructions import Instruction
@@ -715,6 +716,21 @@ class Schedule(abc.ABC):
                     self._timeslots[new_channel] = chan_timeslots
 
         return self
+
+    def get_parameter(self,
+                      parameter_name: str) -> List[Parameter]:
+        """Get parameter object bound to this schedule by string name.
+
+        Because different `Parameter` objects can have the same name,
+        this method may return a list of `Parameter` for the provided name.
+
+        Args:
+            parameter_name: Name of parameter.
+
+        Returns:
+            Parameter objects that have corresponding name.
+        """
+        return [param for param in self.parameters if param.name == parameter_name]
 
     def _update_parameter_table(self, schedule: 'Schedule'):
         """

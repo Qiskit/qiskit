@@ -29,12 +29,17 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 import inspect
 from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Iterable, List, Tuple, Union, Optional
+from itertools import zip_longest
+from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
-from qiskit.circuit import ParameterExpression, Parameter
+from qiskit.circuit import ParameterExpression
+from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
-from qiskit.circuit.instruction import Instruction
+
+ScheduleParamTuple = NamedTuple('ScheduleParamTuple',
+                                [('schedule', Union[Callable, Schedule]),
+                                 ('parameters', List[str])])
 
 
 class InstructionScheduleMap():
@@ -54,7 +59,7 @@ class InstructionScheduleMap():
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(lambda: defaultdict(Schedule))
+        self._map = defaultdict(lambda: defaultdict(ScheduleParamTuple))
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
@@ -165,52 +170,47 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
-        schedule_generator = deepcopy(self._map[instruction][_to_tuple(qubits)])
+        schedule_param_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
+
+        # create parameter-value mapping
+        bind_parameters = dict(zip_longest(schedule_param_tuple.parameters, params))
+        bind_parameters.update(kwparams)
 
         # callback function
-        if callable(schedule_generator):
-            return schedule_generator(*params, **kwparams)
+        if callable(schedule_param_tuple.schedule):
+            return schedule_param_tuple.schedule(**bind_parameters)
 
         # schedule
-        sched_params = list(schedule_generator.parameters)
+        sched_params = list(schedule_param_tuple.schedule.parameters)
         if sched_params:
-            # parametrized
-            subs = {pobj: pval for pobj, pval in zip(sched_params, params)}
-            # formate kwargs. it keys are string, find the most likely parameter object.
-            for param_id, pval in kwparams.items():
-                if not isinstance(param_id, Parameter):
-                    # not a parameter object
-                    try:
-                        pind = [psched.name for psched in sched_params].index(param_id)
-                        param_id = sched_params[pind]
-                    except ValueError:
-                        param_id = Parameter(str(param_id))
-                if param_id not in sched_params:
-                    PulseError(
-                        'Parameter {pname} does not exist in the schedule. '
-                        'Check parameter name or object uuid: {plist}.'
-                        ''.format(
-                            pname=param_id.name,
-                            plist=', '.join(map(str, sched_params))))
-                subs[param_id] = pval
-            return schedule_generator.assign_parameters(subs)
+            parameter_mapping = dict()
+            for sched_param in sched_params:
+                try:
+                    value = bind_parameters[sched_param.name]
+                    # if value is not set keep parameter unbound
+                    if value is not None:
+                        parameter_mapping[sched_param] = value
+                except KeyError:
+                    raise PulseError('Value for parameter {} is not defined.'
+                                     ''.format(sched_param.name))
+            return schedule_param_tuple.schedule.assign_parameters(parameter_mapping)
 
-        return schedule_generator
+        return schedule_param_tuple.schedule
 
     def add(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
             schedule: Union[Schedule, Callable[..., Schedule]],
-            params: Optional[List[Union[str, Parameter]]] = None) -> None:
+            params: Optional[List[str]] = None) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
         Args:
             instruction: The name of the instruction to add.
             qubits: The qubits which the instruction applies to.
             schedule: The Schedule that implements the given instruction.
-            params: List of parameters to create a parameter-bound schedule from the associated
-                gate instruction. If :py:meth:`get` is called with arguments rather than
-                keyword arguments, this parameter list is used to map the input arguments to
+            params: List of parameter names to create a parameter-bound schedule from the
+                associated gate instruction. If :py:meth:`get` is called with arguments rather
+                than keyword arguments, this parameter list is used to map the input arguments to
                 parameter objects stored in the target schedule.
 
         Raises:
@@ -218,13 +218,31 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
 
+        # initialize parameter list
+        if isinstance(schedule, Callable):
+            func_parameters = list(inspect.signature(schedule).parameters.keys())
+        else:
+            func_parameters = set(param.name for param in schedule.parameters)
+
+        if params is None:
+            if len(func_parameters) > 0:
+                # for backward compatibility
+                params = sorted(func_parameters)
+            else:
+                params = []
+        else:
+            # check parameter list consistency
+            if sorted(func_parameters) != sorted(params):
+                raise PulseError('Program signature and specified parameter names do not match '
+                                 '{} != {}'.format(', '.join(func_parameters), ', '.join(params)))
+
         qubits = _to_tuple(qubits)
         if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
         if not (isinstance(schedule, Schedule) or callable(schedule)):
             raise PulseError('Supplied schedule must be either a Schedule, or a '
                              'callable that outputs a schedule.')
-        self._map[instruction][qubits] = schedule
+        self._map[instruction][qubits] = ScheduleParamTuple(schedule, params)
         self._qubit_instructions[qubits].add(instruction)
 
     def remove(self,
@@ -284,11 +302,7 @@ class InstructionScheduleMap():
         instruction = _get_instruction_string(instruction)
 
         self.assert_has(instruction, qubits)
-        schedule_generator = self._map[instruction][_to_tuple(qubits)]
-        if callable(schedule_generator):
-            return tuple(inspect.signature(schedule_generator).parameters.keys())
-        else:
-            return tuple(schedule_generator.parameters)
+        return self._map[instruction][_to_tuple(qubits)].parameters
 
     def __str__(self):
         single_q_insts = "1Q instructions:\n"

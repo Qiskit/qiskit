@@ -205,12 +205,6 @@ class PulseDefaults:
             schedule = Schedule(*pulse_insts, name=inst.name)
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
-            # clean previously defined parameters to prevent overlap of
-            # parameter object with different schedule entries.
-            # for example, if there are multiple qubits there should be multiple u2
-            # instructions. Parameter `P0` should be different among u2s.
-            self.converter.assigned_parameters.clear()
-
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel
         if discriminator is not None:

@@ -404,7 +404,6 @@ class QobjToInstructionConverter:
              run_config (dict): experimental configuration.
         """
         self._run_config = run_config
-        self.assigned_parameters = dict()
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
@@ -443,29 +442,20 @@ class QobjToInstructionConverter:
                      ) -> Union[float, ParameterExpression]:
         """A helper function to format instruction operand.
 
-        If parameter in string representation is specified, this method refers to
-        the previously defined parameters. If there is identical entry,
-        this method just reuses the object rather than defining new parameter object.
+        If parameter in string representation is specified, this method parses the
+        input string and generates Qiskit ParameterExpression object.
 
         Args:
             value_expression: Operand value in Qobj.
 
         Returns:
-            Parsed operand value. ParameterExpression object is returned if value is parameter.
+            Parsed operand value. ParameterExpression object is returned if value is not number.
         """
         try:
             value = float(value_expression)
         except ValueError:
             str_expr = parse_string_expr(value_expression, partial_binding=False)
-            kwargs = dict()
-            for pname in str_expr.params:
-                if pname not in self.assigned_parameters:
-                    pobj = Parameter(pname)
-                    self.assigned_parameters[pname] = pobj
-                else:
-                    pobj = self.assigned_parameters[pname]
-                kwargs[pname] = pobj
-            value = str_expr(**kwargs)
+            value = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
         return value
 
     @bind_name('acquire')
