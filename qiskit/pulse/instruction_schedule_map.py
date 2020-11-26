@@ -39,7 +39,7 @@ from qiskit.pulse.schedule import Schedule
 
 ScheduleParamTuple = NamedTuple('ScheduleParamTuple',
                                 [('schedule', Union[Callable, Schedule]),
-                                 ('parameters', List[str])])
+                                 ('parameters', Tuple[str])])
 
 
 class InstructionScheduleMap():
@@ -214,6 +214,14 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
 
+        # validation of input data
+        qubits = _to_tuple(qubits)
+        if qubits == ():
+            raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
+        if not (isinstance(schedule, Schedule) or callable(schedule)):
+            raise PulseError('Supplied schedule must be either a Schedule, or a '
+                             'callable that outputs a schedule.')
+
         # initialize parameter list
         if isinstance(schedule, Callable):
             func_parameters = list(inspect.signature(schedule).parameters.keys())
@@ -232,13 +240,7 @@ class InstructionScheduleMap():
                 raise PulseError('Program signature and specified parameter names do not match '
                                  '{} != {}'.format(', '.join(func_parameters), ', '.join(params)))
 
-        qubits = _to_tuple(qubits)
-        if qubits == ():
-            raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
-        if not (isinstance(schedule, Schedule) or callable(schedule)):
-            raise PulseError('Supplied schedule must be either a Schedule, or a '
-                             'callable that outputs a schedule.')
-        self._map[instruction][qubits] = ScheduleParamTuple(schedule, params)
+        self._map[instruction][qubits] = ScheduleParamTuple(schedule, tuple(params))
         self._qubit_instructions[qubits].add(instruction)
 
     def remove(self,

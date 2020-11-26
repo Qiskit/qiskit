@@ -283,8 +283,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         inst_map = InstructionScheduleMap()
 
-        inst_map.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
-                                                          name='inst_seq'))
+        inst_map.add('inst_seq', 0, Schedule(*converted_instruction, name='inst_seq'))
 
         with self.assertRaises(PulseError):
             inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3, P4=4, P5=5)
