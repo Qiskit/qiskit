@@ -144,9 +144,7 @@ class UchannelLO:
         if q < 0:
             raise QiskitError('q must be >=0')
         self.q = q
-
-        # scale from fake backends comes as a list instead of complex
-        self.scale = complex(*scale) if isinstance(scale, list) else scale
+        self.scale = scale
 
     @classmethod
     def from_dict(cls, data):
