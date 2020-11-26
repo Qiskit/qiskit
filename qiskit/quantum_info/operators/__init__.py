@@ -24,4 +24,3 @@ from .measures import (process_fidelity,
 from .symplectic import (Clifford, SparsePauliOp, PauliTable, StabilizerTable)
 from .symplectic import pauli_basis
 from .dihedral import CNOTDihedral
-

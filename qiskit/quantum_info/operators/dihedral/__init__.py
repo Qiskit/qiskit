@@ -15,5 +15,3 @@ CNOTDihedral Operators
 """
 
 from .dihedral import CNOTDihedral
-
-

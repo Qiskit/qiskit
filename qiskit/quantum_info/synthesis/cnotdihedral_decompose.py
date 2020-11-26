@@ -405,4 +405,3 @@ def decompose_cnotdihedral_general(elem):
 
     inv_circuit = circuit.inverse()
     return new_circuit.combine(inv_circuit)
-
