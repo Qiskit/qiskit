@@ -18,7 +18,7 @@ Tests for CNOT-dihedral functions
 
 import unittest
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.dihedral import CNOTDihedral, random_cnotdihedral
@@ -322,7 +322,7 @@ class TestCNOTDihedral(unittest.TestCase):
                                  'Error: is_cnotdihedral is not correct.')
 
                 test_gates = elem.to_instruction()
-                self.assertIsInstance(test_gates, qiskit.circuit.Gate,
+                self.assertIsInstance(test_gates, Gate,
                                       'Error: cannot decompose a random '
                                       'CNOTDihedral element to a Gate')
                 self.assertEqual(test_gates.num_qubits, test_circ.num_qubits,
