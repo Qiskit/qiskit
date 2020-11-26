@@ -16,6 +16,7 @@ Utils to decode fake backend configurations from json
 
 from typing import Dict, Union, List
 
+
 def decode_backend_configuration(config: Dict) -> None:
     """Decode backend configuration.
 
@@ -47,4 +48,3 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
         return value
 
     raise TypeError("{} is not in a valid complex number format.".format(value))
-
