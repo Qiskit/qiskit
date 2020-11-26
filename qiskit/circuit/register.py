@@ -25,7 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['_name', '_size', '_bits', '_hash']
+    __slots__ = ['_name', '_size', '_bits', '_hash', '_repr']
     name_format = re.compile('[a-z][a-zA-Z0-9_]*')
 
     # Counter for the number of instances in this class.
@@ -69,6 +69,7 @@ class Register:
         self._size = size
 
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
     def _update_bits_hash(self):
@@ -85,6 +86,7 @@ class Register:
         """Set the register name."""
         self._name = value
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._update_bits_hash()
 
     @property
@@ -97,11 +99,12 @@ class Register:
         """Set the register size."""
         self._size = value
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
+        return self._repr
 
     def __len__(self):
         """Return register size."""
@@ -147,12 +150,7 @@ class Register:
         Returns:
             bool: `self` and `other` are equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self._name == other._name and \
-                self._size == other._size:
-            res = True
-        return res
+        return self._repr == other._repr
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
