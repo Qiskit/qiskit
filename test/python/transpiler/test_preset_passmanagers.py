@@ -17,7 +17,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
@@ -166,6 +166,42 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
         self.assertNotIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_inital_layout_fully_connected_cm(self, level):
+        """Honor initial_layout when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        transpiled = transpile(qc, initial_layout=[0, 1], optimization_level=level,
+                               callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([qr[0], qr[1]]))
+
+    @data(0, 1, 2, 3)
+    def test_partial_layout_fully_connected_cm(self, level):
+        """Honor initial_layout (partially defined) when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        transpiled = transpile(qc, initial_layout=[4, 2], optimization_level=level,
+                               callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        ancilla = QuantumRegister(3, 'ancilla')
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1],
+                                                                     ancilla[2], qr[0]]))
 
 
 @ddt
