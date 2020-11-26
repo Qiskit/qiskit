@@ -16,15 +16,20 @@ Fake backend abstract class for mock backends.
 
 import json
 import os
-from abc import ABC
 
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend
 from qiskit.test.mock.utils.json_decoder import decode_backend_configuration
+from qiskit.exceptions import QiskitError
 
 
-class FakeQasmBackend(FakeBackend, ABC):
+class FakeQasmBackend(FakeBackend):
     """A fake qasm backend."""
+
+    dirname = None
+    conf_filename = None
+    props_filename = None
+    backend_name = None
 
     def __init__(self):
         configuration = self._get_conf_from_json()
@@ -39,6 +44,8 @@ class FakeQasmBackend(FakeBackend, ABC):
         return self._properties
 
     def _get_conf_from_json(self):
+        if not self.conf_filename:
+            raise QiskitError("No configuration file has been defined")
         conf = self._load_json(self.conf_filename)
         decode_backend_configuration(conf)
         configuration = self._get_config_from_dict(conf)
@@ -46,6 +53,8 @@ class FakeQasmBackend(FakeBackend, ABC):
         return configuration
 
     def _set_props_from_json(self):
+        if not self.props_filename:
+            raise QiskitError("No properties file has been defined")
         props = self._load_json(self.props_filename)
         self._properties = BackendProperties.from_dict(props)
 

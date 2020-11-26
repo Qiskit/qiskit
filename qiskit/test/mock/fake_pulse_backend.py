@@ -14,14 +14,15 @@
 Fake backend abstract class for mock backends supporting OpenPulse.
 """
 
-from abc import ABC
-
 from qiskit.providers.models import (PulseBackendConfiguration, PulseDefaults)
 from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
+from qiskit.exceptions import QiskitError
 
 
-class FakePulseBackend(FakeQasmBackend, ABC):
+class FakePulseBackend(FakeQasmBackend):
     """A fake pulse backend."""
+
+    defs_filename = None
 
     def defaults(self):
         """Returns a snapshot of device defaults"""
@@ -30,6 +31,8 @@ class FakePulseBackend(FakeQasmBackend, ABC):
         return self._defaults
 
     def _set_defaults_from_json(self):
+        if not self.props_filename:
+            raise QiskitError("No properties file has been defined")
         defs = self._load_json(self.defs_filename)
         self._defaults = PulseDefaults.from_dict(defs)
 
