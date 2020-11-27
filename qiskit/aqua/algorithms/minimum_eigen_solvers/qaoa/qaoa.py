@@ -54,9 +54,10 @@ class QAOA(VQE):
     starting **beta** and **gamma** parameters (as identically named in the
     original `QAOA paper <https://arxiv.org/abs/1411.4028>`__) for the QAOA variational form.
 
-    An operator may optionally also be provided as a custom `mixer` Hamiltonian. This allows,
-    as discussed in `this paper <https://doi.org/10.1103/PhysRevApplied.5.034007>`__
-    for quantum annealing, and in `this paper <https://arxiv.org/abs/1709.03489>`__ for QAOA,
+    An operator or a parameterized quantum circuit may optionally also be provided as a custom
+    `mixer` Hamiltonian. This allows, as discussed in
+    `this paper <https://doi.org/10.1103/PhysRevApplied.5.034007>`__ for quantum annealing,
+    and in `this paper <https://arxiv.org/abs/1709.03489>`__ for QAOA,
     to run constrained optimization problems where the mixer constrains
     the evolution to a feasible subspace of the full Hilbert space.
 
@@ -69,7 +70,7 @@ class QAOA(VQE):
                  optimizer: Optimizer = None,
                  p: int = 1,
                  initial_state: Optional[Union[QuantumCircuit, InitialState]] = None,
-                 mixer: Union[OperatorBase, LegacyBaseOperator] = None,
+                 mixer: Union[QuantumCircuit, OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
                                                                  List]]] = None,
@@ -88,8 +89,10 @@ class QAOA(VQE):
             p: the integer parameter p as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with
-            mixer: the mixer Hamiltonian to evolve with. Allows support of optimizations in
-                constrained subspaces as per https://arxiv.org/abs/1709.03489
+            mixer: the mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
+                of optimizations in constrained subspaces as per https://arxiv.org/abs/1709.03489
+                as well as warm-starting the optimization as introduced
+                in http://arxiv.org/abs/2009.10095.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then it will simply compute a random one.
             gradient: An optional gradient operator respectively a gradient function used for
@@ -127,7 +130,7 @@ class QAOA(VQE):
         validate_min('p', p, 1)
 
         self._p = p
-        self._mixer_operator = mixer.to_opflow() if isinstance(mixer, LegacyBaseOperator) else mixer
+        self._mixer = mixer.to_opflow() if isinstance(mixer, LegacyBaseOperator) else mixer
         self._initial_state = initial_state
 
         # VQE will use the operator setter, during its constructor, which is overridden below and
@@ -154,4 +157,4 @@ class QAOA(VQE):
         self.var_form = QAOAVarForm(self.operator,
                                     self._p,
                                     initial_state=self._initial_state,
-                                    mixer_operator=self._mixer_operator)
+                                    mixer_operator=self._mixer)
