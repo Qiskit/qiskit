@@ -110,7 +110,7 @@ class Instruction(ABC):
     @property
     def operands(self) -> Tuple:
         """Return instruction operands."""
-        return tuple(map(self._format_value, self._operands))
+        return tuple(map(_format_value, self._operands))
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -329,29 +329,6 @@ class Instruction(ABC):
                                           label=label, framechange=framechange,
                                           channels=channels)
 
-    @staticmethod
-    def _format_value(value: Union[Any, ParameterExpression]) -> Any:
-        """Convert ParameterExpression into the most suitable data type.
-
-        Args:
-            value: Operand value in arbitrary data type including ParameterExpression.
-
-        Returns:
-            Value casted to non-parameter data type.
-        """
-        if isinstance(value, ParameterExpression):
-            value = srepr(value)
-            try:
-                value = complex(value)
-                if not np.iscomplex(value):
-                    value = float(value.real)
-                    if value.is_integer():
-                        return int(value)
-            except ValueError:
-                pass
-
-        return value
-
     def __eq__(self, other: 'Instruction') -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
@@ -398,3 +375,26 @@ class Instruction(ABC):
         operands = ', '.join(str(op) for op in self.operands)
         return "{}({}{})".format(self.__class__.__name__, operands,
                                  ", name='{}'".format(self.name) if self.name else "")
+
+
+def _format_value(value: Union[Any, ParameterExpression]) -> Any:
+    """Convert ParameterExpression into the most suitable data type.
+
+    Args:
+        value: Operand value in arbitrary data type including ParameterExpression.
+
+    Returns:
+        Value casted to non-parameter data type.
+    """
+    if isinstance(value, ParameterExpression):
+        value = srepr(value)
+        try:
+            value = complex(value)
+            if not np.iscomplex(value):
+                value = float(value.real)
+                if value.is_integer():
+                    return int(value)
+        except ValueError:
+            pass
+
+    return value
