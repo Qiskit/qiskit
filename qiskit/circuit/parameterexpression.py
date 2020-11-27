@@ -381,7 +381,7 @@ class ParameterExpression:
             other (ParameterExpression or a number):
                 Parameter expression or numeric constant used for comparison
         Returns:
-            Boolean result of the comparison
+            bool: result of the comparison
         """
         from sympy import srepr
         if isinstance(other, ParameterExpression):
