@@ -289,10 +289,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3, P4=4, P5=5)
 
         with self.assertRaises(PulseError):
-            inst_map.get('inst_seq', 0, P1=1)
-
-        with self.assertRaises(PulseError):
-            inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
+            inst_map.get('inst_seq', 0, 1, 2, 3, 4, 5, 6, 7, 8)
 
         p3_expr = Parameter('p3')
         p3_expr = p3_expr.bind({p3_expr: 3})

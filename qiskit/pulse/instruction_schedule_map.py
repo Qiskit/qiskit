@@ -159,6 +159,8 @@ class InstructionScheduleMap():
         """Return the defined :py:class:`~qiskit.pulse.Schedule` for the given instruction on
         the given qubits.
 
+        If all keys are not specified this method returns schedule with unbound parameters.
+
         Args:
             instruction: Name of the instruction or the instruction itself.
             qubits: The qubits for the instruction.
@@ -167,12 +169,21 @@ class InstructionScheduleMap():
 
         Returns:
             The Schedule defined for the input.
+
+        Raises:
+            PulseError: When invalid parameters are specified.
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
         schedule_param_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
 
         # create parameter-value mapping
+        if len(params) > len(schedule_param_tuple.parameters):
+            raise PulseError('Too many values to bind: {}.'.format(', '.join(map(str, params))))
+
+        if not all(key in schedule_param_tuple.parameters for key in kwparams.keys()):
+            raise PulseError('Keys not defined: {}'.format(', '.join(kwparams.keys())))
+
         bind_parameters = dict(zip_longest(schedule_param_tuple.parameters, params))
         bind_parameters.update(kwparams)
 
