@@ -200,8 +200,6 @@ class PulseDefaults:
         self.instruction_schedule_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
-
-        # a enum map of parametrized instruction name to list of parameters.
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = Schedule(*pulse_insts, name=inst.name)
