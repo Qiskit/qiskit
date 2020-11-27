@@ -196,9 +196,9 @@ class InstructionScheduleMap():
         if sched_params:
             parameter_mapping = dict()
             for sched_param in sched_params:
-                bind_value = bind_parameters.get(sched_param.name, None)
+                bind_value = bind_parameters[sched_param.name]
+                # if value is not set, keep the parameter unassigned
                 if bind_value is not None:
-                    # if value is not set or key is not defined, keep the parameter unbound
                     parameter_mapping[sched_param] = bind_value
             return schedule_param_tuple.schedule.assign_parameters(parameter_mapping)
 
