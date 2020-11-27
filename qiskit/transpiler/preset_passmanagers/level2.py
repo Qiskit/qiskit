@@ -188,7 +188,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm2 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm2.append(_given_layout)
         pm2.append(_choose_layout_1, condition=_choose_layout_condition)
         pm2.append(_choose_layout_2, condition=_choose_layout_condition)
