@@ -25,11 +25,12 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class Statevector(QuantumState):
+class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
