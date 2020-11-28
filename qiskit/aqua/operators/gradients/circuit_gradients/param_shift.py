@@ -197,19 +197,24 @@ class ParamShift(CircuitGradient):
 
                 p_param = pshift_gate.params[param_index]
                 m_param = mshift_gate.params[param_index]
-
+                # For analytic gradients the circuit parameters are shifted once by +pi/2 and
+                # once by -pi/2.
                 if self.analytic:
                     shift_constant = 0.5
                     pshift_gate.params[param_index] = (p_param + (np.pi / (4 * shift_constant)))
                     mshift_gate.params[param_index] = (m_param - (np.pi / (4 * shift_constant)))
+                # For finite difference gradients the circuit parameters are shifted once by
+                # +epsilon and once by -epsilon.
                 else:
                     shift_constant = 1. / (2 * self._epsilon)
                     pshift_gate.params[param_index] = (p_param + self._epsilon)
                     mshift_gate.params[param_index] = (m_param - self._epsilon)
-
+                # The results of the shifted operators are now evaluated according the parameter
+                # shift / finite difference formula.
                 if isinstance(operator, ComposedOp):
                     shifted_op = shift_constant * (pshift_op - mshift_op)
-
+                # If the operator represents a quantum state then we apply a special combo
+                # function to evaluate probability gradients.
                 elif isinstance(operator, StateFn):
                     shifted_op = ListOp(
                         [pshift_op, mshift_op],
@@ -261,9 +266,16 @@ class ParamShift(CircuitGradient):
                 item = item.primitive.data
             return item
 
-        if isinstance(x, Iterable):
+        is_statefn = False
+        if isinstance(x, list):
+            # Check if all items in x are a StateFn items
+            if all(isinstance(item, StateFn) for item in x):
+                is_statefn = True
             items = [get_primitives(item) for item in x]
         else:
+            # Check if x is a StateFn item
+            if isinstance(x, StateFn):
+                is_statefn = True
             items = [get_primitives(x)]
         if isinstance(items[0], dict):
             prob_dict: Dict[str, float] = {}
@@ -273,8 +285,17 @@ class ParamShift(CircuitGradient):
                                      shift_constant * ((-1) ** i) * prob_counts
             return prob_dict
         elif isinstance(items[0], Iterable):
-            return shift_constant * np.subtract(np.multiply(items[0], np.conj(items[0])),
-                                                np.multiply(items[1], np.conj(items[1])))
+            # If x was given as StateFn the state amplitudes need to be multiplied in order to
+            # evaluate the sampling probabilities which are then subtracted according to the
+            # parameter shift rule.
+            if is_statefn:
+                return shift_constant * np.subtract(np.multiply(items[0], np.conj(items[0])),
+                                                    np.multiply(items[1], np.conj(items[1])))
+            # If x was not given as a StateFn the state amplitudes were already converted into
+            # sampling probabilities which are then only subtracted according to the
+            # parameter shift rule.
+            else:
+                return shift_constant * np.subtract(items[0], items[1])
         raise TypeError(
             'Probability gradients can only be evaluated from VectorStateFs or DictStateFns.')
 

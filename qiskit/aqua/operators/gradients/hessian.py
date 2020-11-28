@@ -241,12 +241,7 @@ class Hessian(HessianBase):
 
         elif isinstance(operator, StateFn):
             if not operator.is_measurement:
-                from .circuit_gradients import LinComb
-                if isinstance(self.hess_method, LinComb):
-                    return self.hess_method.convert(operator, params)
-                else:
-                    raise TypeError('Please set the attribute hess_method to ´lin_comb´ to compute '
-                                    'probability Hessians.')
+                return self.hess_method.convert(operator, params)
 
             else:
                 raise TypeError('The computation of Hessians is only supported for Operators which '

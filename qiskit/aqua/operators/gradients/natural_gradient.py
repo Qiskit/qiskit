@@ -91,22 +91,29 @@ class NaturalGradient(GradientBase):
                             'CircuitStateFn.')
         if not isinstance(params, Iterable):
             params = [params]
+        # Instantiate the gradient
         grad = Gradient(self._grad_method, epsilon=self._epsilon).convert(operator, params)
+        # Instantiate the QFI metric which is used to re-scale the gradient
         metric = self._qfi_method.convert(operator[-1], params) * 0.25
 
+        # Define the function which compute the natural gradient from the gradient and the QFI.
         def combo_fn(x):
             c = np.real(x[0])
             a = np.real(x[1])
             if self.regularization:
+                # If a regularization method is chosen then use a regularized solver to
+                # construct the natural gradient.
                 nat_grad = NaturalGradient._regularized_sle_solver(
                     a, c, regularization=self.regularization)
             else:
                 try:
+                    # Try to solve the system of linear equations Ax = C.
                     nat_grad = np.linalg.solve(a, c)
                 except np.linalg.LinAlgError:  # singular matrix
                     nat_grad = np.linalg.lstsq(a, c)[0]
             return np.real(nat_grad)
-
+        # Define the ListOp which combines the gradient and the QFI according to the combination
+        # function defined above.
         return ListOp([grad, metric], combo_fn=combo_fn)
 
     @property
