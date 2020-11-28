@@ -467,7 +467,8 @@ class TestGradients(QiskitAquaTestCase):
                 np.testing.assert_array_almost_equal(prob_grad_result,
                                                      correct_values[i][j], decimal=1)
 
-    def test_prob_hess_lin_comb(self):
+    @data('lin_comb', 'param_shift', 'fin_diff')
+    def test_prob_hess(self, method):
         """Test the probability Hessian using linear combination of unitaries method
 
         d^2p0/da^2 = - sin(a)sin(b) / 2
@@ -488,7 +489,7 @@ class TestGradients(QiskitAquaTestCase):
 
         op = CircuitStateFn(primitive=qc, coeff=1.)
 
-        prob_hess = Hessian(hess_method='lin_comb').convert(operator=op, params=params)
+        prob_hess = Hessian(hess_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4, b: 0}, {a: np.pi / 4, b: np.pi / 4},
                        {a: np.pi / 2, b: np.pi}]
         correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
