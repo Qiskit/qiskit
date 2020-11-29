@@ -10,57 +10,35 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utility functions for working with Results."""
+"""Utility functions for working with Result counts."""
 
-from functools import reduce
-from re import match
-from copy import deepcopy
+from collections import Counter
 
 from qiskit.exceptions import QiskitError
-from qiskit.result.result import Result
-from qiskit.result.postprocess import _bin_to_hex
 
 
-def marginal_counts(result, indices=None, inplace=False):
+def marginal_counts(result, indices=None, format_marginal=False):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
-        result (dict or Result): result to be marginalized
-            (a Result object or a dict of counts).
+        result (dict): result to be marginalized as a dict of counts.
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If ``None`` (default), do not marginalize at all.
-        inplace (bool): Default: False. Operates on the original Result
-            argument if True, leading to loss of original Job Result.
-            It has no effect if ``result`` is a dict.
+        format_marginal (bool): Default: False. If True, takes the output of
+            marginalize and formats it with placeholders between cregs and
+            for non-indices.
 
     Returns:
-        Result or dict[str, int]: a dictionary with the observed counts,
-        marginalized to only account for frequency of observations
-        of bits of interest.
+        dict(str, int): a dictionary with the observed counts, marginalized to
+        only account for frequency of observations of bits of interest.
 
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
-    if isinstance(result, Result):
-        if not inplace:
-            result = deepcopy(result)
-        for i, experiment_result in enumerate(result.results):
-            counts = result.get_counts(i)
-            new_counts = _marginalize(counts, indices)
-            new_counts_hex = {}
-            for k, v in new_counts.items():
-                new_counts_hex[_bin_to_hex(k)] = v
-            experiment_result.data.counts = new_counts_hex
-            experiment_result.header.memory_slots = len(indices)
-    else:
-        result = _marginalize(result, indices)
-
-    return result
-
-
-def count_keys(num_clbits):
-    """Return ordered count keys."""
-    return [bin(j)[2:].zfill(num_clbits) for j in range(2 ** num_clbits)]
+    counts = _marginalize(result, indices)
+    if format_marginal and indices is not None:
+        counts = _format_marginal(result, counts, indices)
+    return counts
 
 
 def _marginalize(counts, indices=None):
@@ -85,30 +63,28 @@ def _marginalize(counts, indices=None):
     # Since bitstrings have qubit-0 as least significant bit
     indices = sorted(indices, reverse=True)
 
-    # Generate bitstring keys for indices to keep
-    meas_keys = count_keys(len(indices))
-
-    # Get regex match strings for suming outcomes of other qubits
-    rgx = []
-    for key in meas_keys:
-        def _helper(x, y):
-            if y in indices:
-                return key[indices.index(y)] + x
-            return '\\d' + x
-        rgx.append(reduce(_helper, range(num_clbits), ''))
-
     # Build the return list
-    meas_counts = []
-    for m in rgx:
-        c = 0
-        for key, val in counts.items():
-            if match(m, key.replace(' ', '')):
-                c += val
-        meas_counts.append(c)
+    new_counts = Counter({})
+    for key, val in counts.items():
+        new_key = ''.join([key.replace(' ', '')[-idx-1] for idx in indices])
+        new_counts[new_key] += val
+    return dict(new_counts)
 
-    # Return as counts dict on desired indices only
-    ret = {}
-    for key, val in zip(meas_keys, meas_counts):
-        if val != 0:
-            ret[key] = val
-    return ret
+
+def _format_marginal(result, counts, indices):
+    """Take the output of marginalize and add placeholders for
+    multiple cregs and non-indices."""
+    format_counts = {}
+    res_template = next(iter(result))
+    res_len = len(res_template.replace(' ', ''))
+    indices_rev = sorted(indices, reverse=True)
+
+    for count in counts:
+        index_dict = dict(zip(indices_rev, count))
+        res_bits = ''.join([index_dict[index] if index in index_dict else 'x'
+                            for index in range(res_len)])[::-1]
+        for index, bit in enumerate(res_template):
+            if bit == ' ':
+                res_bits = res_bits[:index] + ' ' + res_bits[index:]
+        format_counts[res_bits] = counts[count]
+    return format_counts

@@ -20,7 +20,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult
-from qiskit.result import postprocess
+from qiskit.result import postprocess, utils
 from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
@@ -232,12 +232,16 @@ class Result:
         except KeyError:
             raise QiskitError('No memory for experiment "{}".'.format(experiment))
 
-    def get_counts(self, experiment=None):
+    def get_counts(self, experiment=None, indices=None, format_marginal=True):
         """Get the histogram data of an experiment.
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data([experiment])``.
+            indices (list(int)): If included, return the marginalized counts over the list
+                of indices, instead of the full counts.
+            format_marginal (bool): Only used if indices is not None. Format the output
+                of the marginal counts with placeholders between cregs and for non-indices.
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of
@@ -269,7 +273,12 @@ class Result:
                             'time_taken', 'creg_sizes', 'memory_slots'}}
                 else:
                     counts_header = {}
-                dict_list.append(Counts(self.data(key)['counts'], **counts_header))
+                if indices is not None:
+                    dict_list.append(utils.marginal_counts(Counts(self.data(key)['counts'],
+                                                                  **counts_header),
+                                                           indices, format_marginal))
+                else:
+                    dict_list.append(Counts(self.data(key)['counts'], **counts_header))
             elif 'statevector' in self.data(key).keys():
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
