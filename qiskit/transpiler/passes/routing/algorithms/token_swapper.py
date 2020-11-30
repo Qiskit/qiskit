@@ -57,9 +57,6 @@ class ApproximateTokenSwapper(Generic[_V]):
             seed (Union[int, np.random.default_rng]): Seed to use for random trials.
         """
         self.graph = graph
-        # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
-        # The nodes in graph don't have to integer nor contiguous, but those in a NumPy array are.
-#        self.node_map = {node: i for i, node in enumerate(graph.nodes())}
         self.shortest_paths = rx.graph_floyd_warshall_numpy(graph)
         if isinstance(seed, np.random.Generator):
             self.seed = seed
