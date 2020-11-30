@@ -150,7 +150,10 @@ class Register:
         Returns:
             bool: `self` and `other` are equal.
         """
-        return self._repr == other._repr
+        try:
+            return self._repr == other._repr
+        except AttributeError:
+            return False
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
