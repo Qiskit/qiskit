@@ -63,10 +63,10 @@ def deprecate_function(msg, stacklevel=2):
 
     Args:
         msg (str): Warning message to emit.
+        stacklevel (int): The warning stackevel to use, defaults to 2.
 
     Returns:
         Callable: The decorated, deprecated callable.
-        stacklevel (int): The warning stackevel to use, defaults to 2.
     """
     def decorator(func):
         @functools.wraps(func)
