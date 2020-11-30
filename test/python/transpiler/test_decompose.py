@@ -156,3 +156,4 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(len(dag.op_nodes()), 2)
         self.assertEqual(dag.op_nodes()[0].name, 'u2')
         self.assertEqual(dag.op_nodes()[1].name, 'cz')
+        
