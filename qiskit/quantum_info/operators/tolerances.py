@@ -14,8 +14,6 @@
 Tolerances mixin class.
 """
 
-import warnings
-
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
@@ -72,25 +70,3 @@ class TolerancesMixin(metaclass=TolerancesMeta):
     def rtol(self):
         """The relative tolerance parameter for float comparisons."""
         return self.__class__.rtol
-
-    @classmethod
-    def set_atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.atol = value instead
-        """
-        warnings.warn("`{}.set_atol` method is deprecated, use `{}.atol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.atol = value
-
-    @classmethod
-    def set_rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons.
-
-        DEPRECATED: use operator.rtol = value instead
-        """
-        warnings.warn("`{}.set_rtol` method is deprecated, use `{}.rtol = "
-                      "value` instead.".format(cls.__name__, cls.__name__),
-                      DeprecationWarning)
-        cls.rtol = value
