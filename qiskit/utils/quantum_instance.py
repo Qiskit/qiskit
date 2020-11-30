@@ -26,10 +26,11 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.qobj import Qobj
 from qiskit import compiler
+from qiskit.utils import circuit_utils
 
 try:
     from qiskit.providers.aer.noise import NoiseModel  # pylint: disable=unused-import
-except ImportError as ex:
+except ImportError:
     pass
 
 from ..exceptions import AquaError
@@ -40,7 +41,6 @@ from .backend_utils import (is_ibmq_provider,
                             is_aer_qasm,
                             is_basicaer_provider,
                             support_backend_options)
-from .circuit_utils import summarize_circuits
 
 logger = logging.getLogger(__name__)
 
@@ -263,10 +263,10 @@ class QuantumInstance:
 
         if logger.isEnabledFor(logging.DEBUG) and self._circuit_summary:
             logger.debug("==== Before transpiler ====")
-            logger.debug(summarize_circuits(circuits))
+            logger.debug(circuit_utils.summarize_circuits(circuits))
             if transpiled_circuits is not None:
                 logger.debug("====  After transpiler ====")
-                logger.debug(summarize_circuits(transpiled_circuits))
+                logger.debug(circuit_utils.summarize_circuits(transpiled_circuits))
 
         return transpiled_circuits
 
