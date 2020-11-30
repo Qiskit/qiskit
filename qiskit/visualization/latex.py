@@ -70,8 +70,9 @@ class QCircuitImage:
         # Map of cregs to sizes
         self.cregs = {}
 
-        # List of qregs and cregs in order of appearance in code and image
-        self.ordered_regs = []
+        # List of qubits and cbits in order of appearance in code and image
+        # May also include ClassicalRegisters if cregbundle=True
+        self.ordered_bits = []
 
         # Map from registers to the list they appear in the image
         self.img_regs = {}
@@ -107,10 +108,10 @@ class QCircuitImage:
 
         #################################
         self.qubit_list = qubits
-        self.ordered_regs = qubits + clbits
+        self.ordered_bits = qubits + clbits
         self.cregs, self.cregs_bits = self._get_register_specs(clbits)
         self.img_regs = {bit: ind for ind, bit in
-                         enumerate(self.ordered_regs)}
+                         enumerate(self.ordered_bits)}
         if cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
@@ -182,38 +183,38 @@ class QCircuitImage:
         else:
             self.wire_separation = 1.0
         self._latex = [
-            ["\\cw" if isinstance(self.ordered_regs[j], Clbit)
+            ["\\cw" if isinstance(self.ordered_bits[j], Clbit)
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
         if self.cregbundle:
             offset = 0
         for i in range(self.img_width):
-            if isinstance(self.ordered_regs[i], Clbit):
+            if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
                     self._latex[i][0] = \
-                        "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
-                    clbitsize = self.cregs[self.ordered_regs[i + offset].register]
+                        "\\lstick{" + self.ordered_bits[i + offset].register.name + ":"
+                    clbitsize = self.cregs[self.ordered_bits[i + offset].register]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                            "_{" + str(self.ordered_regs[i].index) + "}:"
+                    self._latex[i][0] = "\\lstick{" + self.ordered_bits[i].register.name + \
+                                            "_{" + str(self.ordered_bits[i].index) + "}:"
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
-                        self.ordered_regs[i].register.name, self.ordered_regs[i].index)
+                        self.ordered_bits[i].register.name, self.ordered_bits[i].index)
                 else:
-                    if self.layout[self.ordered_regs[i].index]:
+                    if self.layout[self.ordered_bits[i].index]:
                         label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                            self.layout[self.ordered_regs[i].index].register.name,
-                            self.layout[self.ordered_regs[i].index].index,
-                            self.ordered_regs[i].index)
+                            self.layout[self.ordered_bits[i].index].register.name,
+                            self.layout[self.ordered_bits[i].index].index,
+                            self.ordered_bits[i].index)
                     else:
-                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_bits[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -279,7 +280,7 @@ class QCircuitImage:
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
         max_reg_name = 3
-        for reg in self.ordered_regs:
+        for reg in self.ordered_bits:
             max_reg_name = max(max_reg_name,
                                len(reg.register.name))
         sum_column_widths += 5 + max_reg_name / 3

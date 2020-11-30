@@ -278,17 +278,18 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify,
-                                                        idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(circuit,
+                                                          reverse_bits=reverse_bits,
+                                                          justify=justify,
+                                                          idle_wires=idle_wires)
 
     if with_layout:
         layout = circuit._layout
     else:
         layout = None
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
+    text_drawing = _text.TextDrawing(qubits, clbits, ops, layout=layout,
+                                     initial_state=initial_state,
                                      cregbundle=cregbundle, global_phase=global_phase,
                                      encoding=encoding)
     text_drawing.plotbarriers = plot_barriers
@@ -424,16 +425,16 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify, idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(circuit,
+                                                          reverse_bits=reverse_bits,
+                                                          justify=justify, idle_wires=idle_wires)
     if with_layout:
         layout = circuit._layout
     else:
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, reverse_bits=reverse_bits,
+    qcimg = _latex.QCircuitImage(qubits, clbits, ops, scale, reverse_bits=reverse_bits,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
@@ -498,10 +499,10 @@ def _matplotlib_circuit_drawer(circuit,
             if the ``ax`` kwarg is not set.
     """
 
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify,
-                                                        idle_wires=idle_wires)
+    qubits, clbits, ops = utils._get_layered_instructions(circuit,
+                                                          reverse_bits=reverse_bits,
+                                                          justify=justify,
+                                                          idle_wires=idle_wires)
     if with_layout:
         layout = circuit._layout
     else:
@@ -511,7 +512,7 @@ def _matplotlib_circuit_drawer(circuit,
         fold = 25
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
+    qcd = _matplotlib.MatplotlibDrawer(qubits, clbits, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers, layout=layout,
                                        fold=fold, ax=ax, initial_state=initial_state,
                                        cregbundle=cregbundle, global_phase=global_phase)
