@@ -678,3 +678,47 @@ for inst, qargs, cargs in [
 ]:
     def_cz.append(inst, qargs, cargs)
 _sel.add_equivalence(CZGate(), def_cz)
+
+# Add CQ gate equivalences here
+
+# RX , R equivalence
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+def_rx = QuantumCircuit(q)
+def_rx.append(RXGate(theta=theta), [q[0]])
+_sel.add_equivalence(RGate(theta=theta, phi=0), def_rx)
+
+# RY , R equivalence
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+def_ry = QuantumCircuit(q)
+def_ry.append(RYGate(theta=theta), [q[0]])
+_sel.add_equivalence(RGate(theta=theta, phi=pi/2), def_ry)
+
+
+# X , RX equivalence
+q = QuantumRegister(1, 'q')
+def_x = QuantumCircuit(q)
+def_x.append(RXGate(theta=pi), [q[0]])
+_sel.add_equivalence(XGate(), def_x)
+
+# Y , RY equivalence
+q = QuantumRegister(1, 'q')
+def_y = QuantumCircuit(q)
+def_y.append(RYGate(theta=pi), [q[0]])
+_sel.add_equivalence(YGate(), def_y)
+
+
+# H , YX equivalence, H->(Y,X)->(RY,RX)->(R, R) not preferred and u2 decomp taken instead
+q = QuantumRegister(1, 'q')
+def_h = QuantumCircuit(q)
+def_h.append(RYGate(theta=pi/2), [q[0]])
+def_h.append(RXGate(theta=pi), [q[0]])
+_sel.add_equivalence(HGate(), def_h)
+
+# H R equivalence shortcut, H->(Y,X)->(RY,RX)->(R, R) not preferred and u2 decomp taken instead
+q = QuantumRegister(1, 'q')
+def_h = QuantumCircuit(q)
+def_h.append(RGate(theta=pi/2, phi=pi/2), [q[0]])
+def_h.append(RGate(theta=pi, phi=0), [q[0]])
+_sel.add_equivalence(HGate(), def_h)
