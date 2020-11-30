@@ -17,7 +17,6 @@ import sys
 import functools
 
 from qiskit.providers import BaseJob, JobStatus, JobError
-from qiskit.qobj import validate_qobj_against_schema
 
 
 def requires_submit(func):
@@ -61,15 +60,11 @@ class BasicAerJob(BaseJob):
         """Submit the job to the backend for execution.
 
         Raises:
-            QobjValidationError: if the JSON serialization of the Qobj passed
-            during construction does not validate against the Qobj schema.
-
             JobError: if trying to re-submit the job.
         """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        validate_qobj_against_schema(self._qobj)
         self._future = self._executor.submit(self._fn, self._job_id, self._qobj)
 
     @requires_submit
