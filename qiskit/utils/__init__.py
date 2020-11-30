@@ -35,14 +35,11 @@ Algorithm Utilities
    :nosignatures:
 
    summarize_circuits
-   get_subsystem_density_matrix
-   get_subsystems_counts
    get_entangler_map
    validate_entangler_map
    has_ibmq
    has_aer
    name_args
-   QuantumInstance
    aqua_globals
 
 """
@@ -55,24 +52,19 @@ from .multiprocessing import is_main_process
 from .units import apply_prefix
 
 from .circuit_utils import summarize_circuits
-from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
-from .quantum_instance import QuantumInstance
 from .aqua_globals import aqua_globals
 
 
 __all__ = [
     'summarize_circuits',
-    'get_subsystem_density_matrix',
-    'get_subsystems_counts',
     'get_entangler_map',
     'validate_entangler_map',
     'has_ibmq',
     'has_aer',
     'name_args',
-    'QuantumInstance',
     'aqua_globals',
     'deprecate_arguments',
     'deprecate_function',
