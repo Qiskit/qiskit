@@ -145,3 +145,14 @@ class TestDecompose(QiskitTestCase):
         qc.append(v, [0])
         qcd = qc.decompose()
         self.assertEqual(Operator(qc), Operator(qcd))
+
+    def test_decompose_only_h_gate(self):
+        """Test decomposition parameters so that only a certain gate is decomposed."""
+        circ = QuantumCircuit(2, 1)
+        circ.h(0)
+        circ.cz(0, 1)
+        decom_circ = circ.decompose(['h'])
+        dag = circuit_to_dag(decom_circ)
+        self.assertEqual(len(dag.op_nodes()), 2)
+        self.assertEqual(dag.op_nodes()[0].name, 'u2')
+        self.assertEqual(dag.op_nodes()[1].name, 'cz')
