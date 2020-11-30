@@ -108,13 +108,12 @@ class TestScheduledCircuit(QiskitTestCase):
         with self.assertRaises(QiskitError):
             transpile(qc, self.backend_without_dt, scheduling_method='alap')
 
-    def test_cannot_execute_delay_circuit_when_schedule_circuit_off(self):
+    def test_can_execute_delay_circuit_when_schedule_circuit_off(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        with self.assertRaises(QiskitError):
-            execute(qc, backend=self.backend_with_dt, schedule_circuit=False)
+        execute(qc, backend=self.backend_with_dt, schedule_circuit=False)
 
     def test_transpile_single_delay_circuit(self):
         qc = QuantumCircuit(1)
@@ -131,7 +130,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(1000, 0, unit='ns')  # 4500 [dt]
         qc.measure_all()  # 19200 [dt]
         scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 24020)
+        self.assertEqual(scheduled.duration, 30308)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
@@ -236,3 +235,37 @@ class TestScheduledCircuit(QiskitTestCase):
                               instruction_durations=durations
                               )
         self.assertEqual(scheduled.duration, 1500)
+
+    def test_per_qubit_durations(self):
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5109"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+        qc.h(1)
+        sc = transpile(qc,
+                       scheduling_method='alap',
+                       instruction_durations=[('h', None, 200), ('cx', [0, 1], 700)])
+        self.assertEqual(sc.qubit_start_time(0), 300)
+        self.assertEqual(sc.qubit_stop_time(0), 1200)
+        self.assertEqual(sc.qubit_start_time(1), 500)
+        self.assertEqual(sc.qubit_stop_time(1), 1400)
+        self.assertEqual(sc.qubit_start_time(2), 0)
+        self.assertEqual(sc.qubit_stop_time(2), 0)
+        self.assertEqual(sc.qubit_start_time(0, 1), 300)
+        self.assertEqual(sc.qubit_stop_time(0, 1), 1400)
+
+        qc.measure_all()
+        sc = transpile(qc,
+                       scheduling_method='alap',
+                       instruction_durations=[('h', None, 200), ('cx', [0, 1], 700),
+                                              ('measure', None, 1000)])
+        q = sc.qubits
+        self.assertEqual(sc.qubit_start_time(q[0]), 300)
+        self.assertEqual(sc.qubit_stop_time(q[0]), 2400)
+        self.assertEqual(sc.qubit_start_time(q[1]), 500)
+        self.assertEqual(sc.qubit_stop_time(q[1]), 2400)
+        self.assertEqual(sc.qubit_start_time(q[2]), 1400)
+        self.assertEqual(sc.qubit_stop_time(q[2]), 2400)
+        self.assertEqual(sc.qubit_start_time(*q), 300)
+        self.assertEqual(sc.qubit_stop_time(*q), 2400)

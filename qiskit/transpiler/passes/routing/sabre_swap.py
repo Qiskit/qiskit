@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import deepcopy
+from copy import copy
 from itertools import cycle
 import numpy as np
 
@@ -314,8 +314,15 @@ class SabreSwap(TransformationPass):
         the remaining virtual gates that must be applied.
         """
         if heuristic == 'basic':
-            return sum(self.coupling_map.distance(*[layout[q] for q in node.qargs])
-                       for node in front_layer)
+            if len(front_layer) > 1:
+                return self.coupling_map.distance_matrix[
+                    tuple(zip(*[[
+                        layout[q] for q in node.qargs] for node in front_layer]))].sum()
+            elif len(front_layer) == 1:
+                return self.coupling_map.distance(
+                    *[layout[q] for q in list(front_layer)[0].qargs])
+            else:
+                return 0
 
         elif heuristic == 'lookahead':
             first_cost = self._score_heuristic('basic', front_layer, [], layout)
@@ -336,7 +343,7 @@ class SabreSwap(TransformationPass):
 
 def _transform_gate_for_layout(op_node, layout):
     """Return node implementing a virtual op on given layout."""
-    mapped_op_node = deepcopy(op_node)
+    mapped_op_node = copy(op_node)
 
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs

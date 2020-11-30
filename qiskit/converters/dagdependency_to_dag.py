@@ -43,4 +43,8 @@ def dagdependency_to_dag(dagdependency):
 
         dagcircuit.apply_operation_back(inst, node.qargs, node.cargs, inst.condition)
 
+    # copy metadata
+    dagcircuit.global_phase = dagdependency.global_phase
+    dagcircuit.calibrations = dagdependency.calibrations
+
     return dagcircuit

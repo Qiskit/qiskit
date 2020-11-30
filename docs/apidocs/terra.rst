@@ -11,6 +11,7 @@ Qiskit Terra API Reference
    compiler
    execute
    visualization
+   classicalfunction
    converters
    assembler
    dagcircuit
@@ -29,5 +30,6 @@ Qiskit Terra API Reference
    transpiler
    transpiler_passes
    transpiler_preset
+   utils
    validation
    visualization

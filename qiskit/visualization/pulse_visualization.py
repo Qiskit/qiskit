@@ -17,7 +17,7 @@ matplotlib pulse visualization.
 """
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
+from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
@@ -30,7 +30,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def pulse_drawer(data: Union[Waveform, ScheduleComponent],
+def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
                  dt: int = 1,
                  style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
@@ -44,8 +44,8 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
                  label: bool = False,
                  framechange: bool = True,
                  channels: List[Channel] = None,
-                 show_framechange_channels: bool = True
-                 ):
+                 show_framechange_channels: bool = True,
+                 draw_title: bool = False):
     """Plot the interpolated envelope of pulse and schedule.
 
     Args:
@@ -73,6 +73,7 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
             All non-empty channels are shown if not provided.
         show_framechange_channels: When set `True` plot channels
             with only framechange instructions.
+        draw_title: Add a title to the plot when set to ``True``.
 
     Returns:
         matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -153,7 +154,8 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
                             channel_scales=channel_scales, plot_range=plot_range,
                             plot_all=plot_all, table=table, label=label,
                             framechange=framechange, channels=channels,
-                            show_framechange_channels=show_framechange_channels)
+                            show_framechange_channels=show_framechange_channels,
+                            draw_title=draw_title)
     else:
         raise VisualizationError('This data cannot be visualized.')
 

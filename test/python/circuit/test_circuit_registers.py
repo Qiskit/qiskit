@@ -33,6 +33,12 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
+    def test_qregs_eq_invalid_type(self):
+        """Test getting quantum registers from circuit.
+        """
+        qr1 = QuantumRegister(10, "q")
+        self.assertNotEqual(qr1, 3.14)
+
     def test_cregs(self):
         """Test getting classical registers from circuit.
         """
@@ -58,6 +64,14 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to create a non-integer size QuantumRegister.
         """
         self.assertRaises(CircuitError, QuantumRegister, 'string')
+
+    def test_qarg_noninteger_float(self):
+        """ Test attempt to pass non-integer float to QuantumRegister.
+        """
+        self.assertRaises(CircuitError, QuantumRegister, 2.2)
+        # but an integer float should pass
+        qr = QuantumRegister(2.0)
+        self.assertEqual(qr.size, 2)
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister.

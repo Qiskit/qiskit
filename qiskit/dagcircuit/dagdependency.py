@@ -13,11 +13,12 @@
 """DAGDependency class for representing non-commutativity in a circuit.
 """
 
+import math
 import heapq
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+import numpy as np
 import networkx as nx
 import retworkx as rx
-import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -81,6 +82,56 @@ class DAGDependency:
         # List of all Qubit/Clbit wires.
         self.qubits = []
         self.clbits = []
+
+        self._global_phase = 0
+        self._calibrations = defaultdict(dict)
+
+        self.duration = None
+        self.unit = 'dt'
+
+    @property
+    def global_phase(self):
+        """Return the global phase of the circuit."""
+        return self._global_phase
+
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the global phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression)
+        """
+        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
+        if isinstance(angle, ParameterExpression):
+            self._global_phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._global_phase = 0
+            elif angle < 0:
+                self._global_phase = angle % (-2 * math.pi)
+            else:
+                self._global_phase = angle % (2 * math.pi)
+
+    @property
+    def calibrations(self):
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
+        return dict(self._calibrations)
+
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in th format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
 
     def to_networkx(self):
         """Returns a copy of the DAGDependency in networkx format."""
@@ -386,7 +437,7 @@ class DAGDependency:
             self._multi_graph.get_node_data(current_node_id).reachable = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(prev_node_id).reachable and not _commute(
+            if self._multi_graph.get_node_data(prev_node_id).reachable and not _does_commute(
                     self._multi_graph.get_node_data(prev_node_id), max_node):
                 self._multi_graph.add_edge(prev_node_id, max_node_id, {'commute': False})
                 self._list_pred(max_node_id)
@@ -464,15 +515,15 @@ def merge_no_duplicates(*iterables):
             yield val
 
 
-def _commute(node1, node2):
-    """Function to verify commutation relation between two nodes in the DAG
+def _does_commute(node1, node2):
+    """Function to verify commutation relation between two nodes in the DAG.
 
     Args:
-        node1 (DAGnode): first node operation (attribute ['operation'] in the DAG)
+        node1 (DAGnode): first node operation
         node2 (DAGnode): second node operation
 
     Return:
-        bool: True if the gates commute and false if it is not the case.
+        bool: True if the nodes commute and false if it is not the case.
     """
 
     # Create set of qubits on which the operation acts
@@ -484,38 +535,31 @@ def _commute(node1, node2):
     carg2 = [node2.qargs[i].index for i in range(0, len(node2.cargs))]
 
     # Commutation for classical conditional gates
+    # if and only if the qubits are different.
+    # TODO: qubits can be the same if conditions are identical and
+    # the non-conditional gates commute.
     if node1.condition or node2.condition:
         intersection = set(qarg1).intersection(set(qarg2))
-        if intersection or carg1 or carg2:
-            commute_condition = False
-        else:
-            commute_condition = True
-        return commute_condition
+        return not intersection
 
-    # Commutation for measurement
-    if node1.name == 'measure' or node2.name == 'measure':
+    # Commutation for non-unitary or parameterized or opaque ops
+    # (e.g. measure, reset, directives or pulse gates)
+    # if and only if the qubits and clbits are different.
+    non_unitaries = ['measure', 'reset', 'initialize', 'delay']
+    directives = ['barrier', 'snapshot']
+
+    def _unknown_commutator(n):
+        return (n.name in non_unitaries + directives or
+                n.op.is_parameterized())
+
+    if _unknown_commutator(node1) or _unknown_commutator(node2):
         intersection_q = set(qarg1).intersection(set(qarg2))
         intersection_c = set(carg1).intersection(set(carg2))
-        if intersection_q or intersection_c:
-            commute_measurement = False
-        else:
-            commute_measurement = True
-        return commute_measurement
+        return not (intersection_q or intersection_c)
 
-    # Commutation for barrier-like directives
-    directives = ['barrier', 'snapshot']
-    if node1.name in directives or node2.name in directives:
-        intersection = set(qarg1).intersection(set(qarg2))
-        if intersection:
-            commute_directive = False
-        else:
-            commute_directive = True
-        return commute_directive
-
-    # List of non commuting gates (TO DO: add more elements)
-    non_commute_list = [{'x', 'y'}, {'x', 'z'}]
-
-    if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_list):
+    # Known non-commuting gates (TODO: add more).
+    non_commute_gates = [{'x', 'y'}, {'x', 'z'}]
+    if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_gates):
         return False
 
     # Create matrices to check commutation relation if no other criteria are matched
@@ -530,6 +574,4 @@ def _commute(node1, node2):
     op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
     op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
 
-    if_commute = (op12 == op21)
-
-    return if_commute
+    return op12 == op21

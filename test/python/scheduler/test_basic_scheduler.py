@@ -14,6 +14,7 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
@@ -44,11 +45,11 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[1])
-        qc.u2(0.5, 0.25, q[1])
-        qc.barrier(q[0], q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
+        qc.barrier(q[0], [q[1]])
         qc.cx(q[0], q[1])
         qc.measure(q, c)
         sched = schedule(qc, self.backend)
@@ -68,9 +69,9 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(0, 0, q[0])
+        qc.append(U2Gate(0, 0), [q[0]])
         qc.barrier(q[0], q[1])
-        qc.u2(0, 0, q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
         sched = schedule(qc, self.backend, method='alap')
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -93,8 +94,8 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u3(0, 0, 0, q[0])
-        qc.u2(0, 0, q[1])
+        qc.append(U3Gate(0, 0, 0), [q[0]])
+        qc.append(U2Gate(0, 0), [q[1]])
         sched = schedule(qc, self.backend, method='alap')
         expected_sched = Schedule(
             self.inst_map.get('u2', [1], 0, 0),
@@ -110,10 +111,10 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.barrier(q[0], q[1])
         qc.cx(q[0], q[1])
         qc.measure(q, c)
@@ -137,7 +138,7 @@ class TestBasicSchedule(QiskitTestCase):
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         sched = schedule(qc, self.backend, method="as_late_as_possible")
         insts = sched.instructions
         self.assertEqual(insts[0][0], 0)
@@ -145,7 +146,7 @@ class TestBasicSchedule(QiskitTestCase):
 
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.5, 0.25, q[1])
+        qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.measure(q, c)
         sched = schedule(qc, self.backend, method="as_late_as_possible")
         self.assertEqual(sched.instructions[-1][0], 50)
@@ -177,7 +178,7 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(3.14, 1.57, q[0])
+        qc.append(U2Gate(3.14, 1.57), [q[0]])
         qc.cx(q[0], q[1])
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
@@ -200,11 +201,11 @@ class TestBasicSchedule(QiskitTestCase):
         c = ClassicalRegister(3)
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
-        qc.u2(0.778, 0.122, q[2])
-        qc.u3(3.14, 1.57, 0., q[0])
-        qc.u2(3.14, 1.57, q[1])
+        qc.append(U2Gate(0.778, 0.122), [q[2]])
+        qc.append(U3Gate(3.14, 1.57, 0), [q[0]])
+        qc.append(U2Gate(3.14, 1.57), [q[1]])
         qc.cx(q[1], q[2])
-        qc.u2(0.778, 0.122, q[2])
+        qc.append(U2Gate(0.778, 0.122), [q[2]])
         sched = schedule(qc, backend)
         expected = Schedule(
             inst_map.get('cx', [0, 1]),
@@ -256,9 +257,9 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         for i in range(2):
-            qc.u2(0, 0, [qr[i]])
-            qc.u1(3.14, [qr[i]])
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
+            qc.append(U1Gate(3.14), [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -278,11 +279,11 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         for i in range(2):
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
             qc.barrier(qr[i])
-            qc.u1(3.14, [qr[i]])
+            qc.append(U1Gate(3.14), [qr[i]])
             qc.barrier(qr[i])
-            qc.u2(0, 0, [qr[i]])
+            qc.append(U2Gate(0, 0), [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
@@ -310,9 +311,9 @@ class TestBasicSchedule(QiskitTestCase):
         """Test scheduling calibrated pulse gates."""
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
-        qc.u2(0, 0, q[0])
+        qc.append(U2Gate(0, 0), [q[0]])
         qc.barrier(q[0], q[1])
-        qc.u2(0, 0, q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
         qc.add_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
         qc.add_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
 
@@ -327,7 +328,7 @@ class TestBasicSchedule(QiskitTestCase):
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
-        qc.u2(0, 0, q[0])
+        qc.append(U2Gate(0, 0), [q[0]])
         qc.measure(q[0], c[0])
 
         meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))

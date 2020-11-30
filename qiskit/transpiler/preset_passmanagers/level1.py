@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Layout2qDistance
@@ -174,7 +175,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Optimize1qGates(basis_gates), CXCancellation()]
+    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
+                        'u3' in basis_gates):
+        _opt = [Optimize1qGates(basis_gates), CXCancellation()]
+    else:
+        _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
     # 10. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
@@ -188,7 +193,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm1 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm1.append(_given_layout)
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)

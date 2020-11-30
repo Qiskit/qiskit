@@ -15,6 +15,7 @@
 import unittest
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit.library import CU1Gate
 from qiskit.test import QiskitTestCase
 
 
@@ -45,7 +46,7 @@ class TestKAKOverOptim(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
-        qc.cu1(np.pi, qr[0], qr[1])
+        qc.append(CU1Gate(np.pi), [qr[0], qr[1]])
 
         cu1_circ = transpile(qc, None, coupling_map=[[0, 1], [1, 0]],
                              basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],

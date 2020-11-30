@@ -138,7 +138,7 @@ class UCGate(Gate):
         # If there is no control, we use the ZYZ decomposition
         if not q_controls:
             theta, phi, lamb = _DECOMPOSER1Q.angles(self.params[0])
-            circuit.u3(theta, phi, lamb, q)
+            circuit.u(theta, phi, lamb, q)
             return circuit, diag
         # If there is at least one control, first,
         # we find the single qubit gates of the decomposition.

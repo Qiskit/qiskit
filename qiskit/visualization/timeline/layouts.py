@@ -28,8 +28,7 @@ The function signature of the layout is restricted to:
 
     def my_layout(bits: List[types.Bits]) -> List[types.Bits]:
 
-        # sort a list of bits
-        pass
+        # your code here: sort input bits and return list of bits
     ```
 
 2. layout.time_axis_map
@@ -44,8 +43,7 @@ The function signature of the layout is restricted to:
 
     def my_layout(time_window: Tuple[int, int]) -> types.HorizontalAxis:
 
-        # create axis config
-        pass
+        # your code here: create and return axis config
     ```
 
 Arbitrary layout function satisfying the above format can be accepted.
