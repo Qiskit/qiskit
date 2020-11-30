@@ -10,15 +10,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """
+===============================
 Utilities (:mod:`qiskit.utils`)
-========================================
-Various utility functionality...
+===============================
 
 .. currentmodule:: qiskit.utils
 
-Utilities
-=========
+.. autosummary::
+   :toctree: ../stubs/
+
+   deprecate_arguments
+   deprecate_function
+   local_hardware_info
+   is_main_process
+   apply_prefix
+
+Algorithm Utilities
+===================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -37,13 +47,6 @@ Utilities
 
 """
 
-from .circuit_utils import summarize_circuits
-from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
-from .entangler_map import get_entangler_map, validate_entangler_map
-from .backend_utils import has_ibmq, has_aer
-from .name_unnamed_args import name_args
-from .quantum_instance import QuantumInstance
-from .aqua_globals import aqua_globals
 
 __all__ = [
     'summarize_circuits',
@@ -56,4 +59,25 @@ __all__ = [
     'name_args',
     'QuantumInstance',
     'aqua_globals',
+    'deprecate_arguments',
+    'deprecate_function',
+    'local_hardware_info',
+    'is_main_process',
+    'apply_prefix',
 ]
+
+
+from .deprecation import _filter_deprecation_warnings
+from .deprecation import deprecate_arguments
+from .deprecation import deprecate_function
+from .multiprocessing import local_hardware_info
+from .multiprocessing import is_main_process
+from .units import apply_prefix
+
+from .circuit_utils import summarize_circuits
+from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
+from .entangler_map import get_entangler_map, validate_entangler_map
+from .backend_utils import has_ibmq, has_aer
+from .name_unnamed_args import name_args
+from .quantum_instance import QuantumInstance
+from .aqua_globals import aqua_globals
