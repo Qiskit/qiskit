@@ -14,7 +14,6 @@
 DensityMatrix quantum state class.
 """
 
-import warnings
 from numbers import Number
 import numpy as np
 
@@ -642,18 +641,3 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
-
-    def to_counts(self):
-        """Returns the density matrix as a counts dict of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()

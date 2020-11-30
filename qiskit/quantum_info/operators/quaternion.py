@@ -13,7 +13,6 @@
 """
 A module for using quaternions.
 """
-import warnings
 import math
 import numpy as np
 import scipy.linalg as la
@@ -150,36 +149,3 @@ class Quaternion:
                 cls.from_axis_rotation(angles[2], order[2]))
         quat.normalize(inplace=True)
         return quat
-
-
-def quaternion_from_axis_rotation(angle, axis):
-    """DEPRECATED - Return quaternion for rotation about given axis.
-
-    Args:
-        angle (float): Angle in radians.
-        axis (str): Axis for rotation
-
-    Returns:
-        Quaternion: Quaternion for axis rotation.
-
-    Raises:
-        ValueError: Invalid input axis.
-    """
-    warnings.warn("quaternion_from_axis_rotation is deprecated. "
-                  "Use Quaternion.from_axis_rotation() class method instead", DeprecationWarning)
-    return Quaternion.from_axis_rotation(angle, axis)
-
-
-def quaternion_from_euler(angles, order='yzy'):
-    """DEPRECATED - Generate a quaternion from a set of Euler angles.
-
-    Args:
-        angles (array_like): Array of Euler angles.
-        order (str): Order of Euler rotations.  'yzy' is default.
-
-    Returns:
-        Quaternion: Quaternion representation of Euler rotation.
-    """
-    warnings.warn("quaternion_from_euler is deprecated. "
-                  "Use Quaternion.from_euler() class method instead", DeprecationWarning)
-    return Quaternion.from_euler(angles, order)
