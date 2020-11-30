@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
+import unittest
 
 import copy
 import pickle
@@ -1448,6 +1449,23 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
+    def test_parameter_expression_grad(self):
+        """Verify correctness of ParameterExpression gradients."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+
+        with self.subTest(msg='first order gradient'):
+            expr = (x + y) * z
+            self.assertEqual(expr.gradient(x), z)
+            self.assertEqual(expr.gradient(z), (x + y))
+
+        with self.subTest(msg='second order gradient'):
+            expr = x * x
+            self.assertEqual(expr.gradient(x), 2 * x)
+            self.assertEqual(expr.gradient(x).gradient(x), 2)
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
@@ -1503,3 +1521,7 @@ class TestParameterEquality(QiskitTestCase):
         phi = Parameter('phi')
         cos_phi = numpy.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
+
+
+if __name__ == '__main__':
+    unittest.main()
