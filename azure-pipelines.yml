@@ -556,6 +556,7 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_CELL_TIMEOUT: 300
       steps:
         - task: UsePythonVersion@0
           inputs:
