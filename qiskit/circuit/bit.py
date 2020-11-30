@@ -76,4 +76,7 @@ class Bit:
         return self._hash
 
     def __eq__(self, other):
-        return self._repr == other._repr
+        try:
+            return self._repr == other._repr
+        except AttributeError:
+            return False
