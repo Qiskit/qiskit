@@ -16,9 +16,8 @@ from typing import Optional
 import logging
 
 import numpy as np
-from qiskit.util import local_hardware_info
-import qiskit
 
+from qiskit.tools import parallel
 from ..exceptions import AquaError
 
 
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 class QiskitAquaGlobals:
     """Aqua class for global properties."""
 
-    CPU_COUNT = local_hardware_info()['cpus']
+    CPU_COUNT = parallel.local_hardware_info()['cpus']
 
     def __init__(self) -> None:
         self._random_seed = None  # type: Optional[int]
@@ -68,7 +67,7 @@ class QiskitAquaGlobals:
         # TODO: change Terra CPU_COUNT until issue
         # gets resolved: https://github.com/Qiskit/qiskit-terra/issues/1963
         try:
-            qiskit.tools.parallel.CPU_COUNT = self.num_processes
+            parallel.CPU_COUNT = self.num_processes
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning("Failed to set qiskit.tools.parallel.CPU_COUNT "
                            "to value: '%s': Error: '%s'", self.num_processes, str(ex))
