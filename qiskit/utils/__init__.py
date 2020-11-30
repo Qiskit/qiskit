@@ -47,6 +47,21 @@ Algorithm Utilities
 
 """
 
+from .deprecation import _filter_deprecation_warnings
+from .deprecation import deprecate_arguments
+from .deprecation import deprecate_function
+from .multiprocessing import local_hardware_info
+from .multiprocessing import is_main_process
+from .units import apply_prefix
+
+from .circuit_utils import summarize_circuits
+from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
+from .entangler_map import get_entangler_map, validate_entangler_map
+from .backend_utils import has_ibmq, has_aer
+from .name_unnamed_args import name_args
+from .quantum_instance import QuantumInstance
+from .aqua_globals import aqua_globals
+
 
 __all__ = [
     'summarize_circuits',
@@ -65,19 +80,3 @@ __all__ = [
     'is_main_process',
     'apply_prefix',
 ]
-
-
-from .deprecation import _filter_deprecation_warnings
-from .deprecation import deprecate_arguments
-from .deprecation import deprecate_function
-from .multiprocessing import local_hardware_info
-from .multiprocessing import is_main_process
-from .units import apply_prefix
-
-from .circuit_utils import summarize_circuits
-from .subsystem import get_subsystem_density_matrix, get_subsystems_counts
-from .entangler_map import get_entangler_map, validate_entangler_map
-from .backend_utils import has_ibmq, has_aer
-from .name_unnamed_args import name_args
-from .quantum_instance import QuantumInstance
-from .aqua_globals import aqua_globals
