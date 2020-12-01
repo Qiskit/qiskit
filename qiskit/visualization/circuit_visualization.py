@@ -291,7 +291,8 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
     text_drawing = _text.TextDrawing(qubits, clbits, ops, layout=layout,
                                      initial_state=initial_state,
                                      cregbundle=cregbundle, global_phase=global_phase,
-                                     encoding=encoding)
+                                     encoding=encoding,
+                                     qregs=circuit.qregs, cregs=circuit.cregs)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
