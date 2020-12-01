@@ -126,7 +126,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 gate_cals = circuit.calibrations[inst.name]
                 schedule = gate_cals[(
                     tuple(inst_qubits),
-                    tuple(p if p.parameters else float(p) for p in inst.params),
+                    tuple(p if p.get(parameters) else float(p) for p in inst.params),
                 )]
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
                 continue
