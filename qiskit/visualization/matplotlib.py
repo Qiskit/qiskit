@@ -115,7 +115,7 @@ class MatplotlibDrawer:
     def __init__(self, qubits, clbits, ops,
                  scale=None, style=None, plot_barriers=True,
                  layout=None, fold=25, ax=None, initial_state=False,
-                 cregbundle=True, global_phase=None):
+                 cregbundle=True, global_phase=None, qregs=None, cregs=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -130,6 +130,14 @@ class MatplotlibDrawer:
         self._clbit = []
         self._qubit = []
         self._registers(clbits, qubits)
+        self._bit_locations = {
+            bit: {'register': register, 'index': index}
+            for register in cregs + qregs
+            for index, bit in enumerate(register)}
+        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+            if bit not in self._bit_locations:
+                self._bit_locations[bit] = {'register': None, 'index': index}
+
         self._qubit_dict = collections.OrderedDict()
         self._clbit_dict = collections.OrderedDict()
         self._ops = ops
@@ -553,7 +561,7 @@ class MatplotlibDrawer:
                        text='', qargs=None):
         # place the control label at the top or bottom of controls
         if text:
-            qlist = [qubit.index for qubit in qargs]
+            qlist = [self._bit_locations[qubit]['index'] for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
             qubits = qlist[num_ctrl_qubits:]
             max_ctbit = max(ctbits)
@@ -659,19 +667,32 @@ class MatplotlibDrawer:
         # quantum register
         fs = self._style['fs']
         for ii, reg in enumerate(self._qubit):
+            register = self._bit_locations[reg]['register']
+            index = self._bit_locations[reg]['index']
+
             if len(self._qubit) > 1:
                 if self._layout is None:
-                    qubit_name = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
-                                                                   index=reg.index)
+                    qubit_name = '${{{name}}}_{{{index}}}$'.format(name=register.name,
+                                                                   index=index)
                 else:
-                    if self._layout[reg.index]:
-                        qubit_name = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
-                            name=self._layout[reg.index].register.name,
-                            index=self._layout[reg.index].index, physical=reg.index)
+                    if self._layout[index]:
+                        virt_bit = self._layout[index]
+                        try:
+                            virt_reg = next(reg for reg in self._layout.get_registers()
+                                            if virt_bit in reg)
+                            qubit_name = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                                name=virt_reg.name,
+                                index=virt_reg[:].index(virt_bit),
+                                physical=index)
+
+                        except StopIteration:
+                            qubit_name = '${{{name}}} \\mapsto {{{physical}}}$'.format(
+                                name=virt_bit,
+                                physical=index)
                     else:
-                        qubit_name = '${{{physical}}}$'.format(physical=reg.index)
+                        qubit_name = '${{{physical}}}$'.format(physical=index)
             else:
-                qubit_name = '{name}'.format(name=reg.register.name)
+                qubit_name = '{name}'.format(name=register.name)
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, fs) * 1.15
 
@@ -679,7 +700,7 @@ class MatplotlibDrawer:
                 longest_reg_name_width = text_width
             pos = -ii
             self._qubit_dict[ii] = {
-                'y': pos, 'reg_name': qubit_name, 'index': reg.index, 'group': reg.register}
+                'y': pos, 'reg_name': qubit_name, 'index': index, 'group': register}
             self._n_lines += 1
 
         # classical register
@@ -690,24 +711,27 @@ class MatplotlibDrawer:
             y_off = -len(self._qubit)
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
                 pos = y_off - idx
+                register = self._bit_locations[reg]['register']
+                index = self._bit_locations[reg]['index']
+
                 if self._cregbundle:
-                    clbit_name = '{}'.format(reg.register.name)
+                    clbit_name = '{}'.format(register.name)
                     clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(reg.register.name, fs) * 1.15
+                    text_width = self._get_text_width(register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {'y': pos, 'reg_name': clbit_name, 'index': reg.index,
-                                            'group': reg.register}
-                    if not (not nreg or reg.register != nreg.register):
+                    self._clbit_dict[ii] = {'y': pos, 'reg_name': clbit_name, 'index': index,
+                                            'group': register}
+                    if not (not nreg or register != self._bit_locations[nreg]['register']):
                         continue
                 else:
-                    clbit_name = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    clbit_name = '${}_{{{}}}$'.format(register.name, index)
                     clbit_name = _fix_double_script(clbit_name) + initial_cbit
-                    text_width = self._get_text_width(reg.register.name, fs) * 1.15
+                    text_width = self._get_text_width(register.name, fs) * 1.15
                     if text_width > longest_reg_name_width:
                         longest_reg_name_width = text_width
-                    self._clbit_dict[ii] = {'y': pos, 'reg_name': clbit_name, 'index': reg.index,
-                                            'group': reg.register}
+                    self._clbit_dict[ii] = {'y': pos, 'reg_name': clbit_name, 'index': index,
+                                            'group': register}
                 self._n_lines += 1
                 idx += 1
 
@@ -854,8 +878,8 @@ class MatplotlibDrawer:
                 q_idxs = []
                 for qarg in op.qargs:
                     for index, reg in self._qubit_dict.items():
-                        if (reg['group'] == qarg.register and
-                                reg['index'] == qarg.index):
+                        if (reg['group'] == self._bit_locations[qarg]['register'] and
+                                reg['index'] == self._bit_locations[qarg]['index']):
                             q_idxs.append(index)
                             break
 
@@ -863,8 +887,8 @@ class MatplotlibDrawer:
                 c_idxs = []
                 for carg in op.cargs:
                     for index, reg in self._clbit_dict.items():
-                        if (reg['group'] == carg.register and
-                                reg['index'] == carg.index):
+                        if (reg['group'] == self._bit_locations[carg]['register'] and
+                                reg['index'] == self._bit_locations[carg]['index']):
                             c_idxs.append(index)
                             break
 
@@ -904,7 +928,7 @@ class MatplotlibDrawer:
                             ii in self._clbit_dict]
                     mask = 0
                     for index, cbit in enumerate(self._clbit):
-                        if cbit.register == op.condition[0]:
+                        if self._bit_locations[cbit]['register'] == op.condition[0]:
                             mask |= (1 << index)
                     val = op.condition[1]
                     # cbit list to consider
