@@ -41,55 +41,6 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecom
 _CUTOFF_PRECISION = 1e-12
 
 
-def euler_angles_1q(unitary_matrix):
-    """DEPRECATED: Compute Euler angles for a single-qubit gate.
-
-    Find angles (theta, phi, lambda) such that
-    unitary_matrix = phase * Rz(phi) * Ry(theta) * Rz(lambda)
-
-    Args:
-        unitary_matrix (ndarray): 2x2 unitary matrix
-
-    Returns:
-        tuple: (theta, phi, lambda) Euler angles of SU(2)
-
-    Raises:
-        QiskitError: if unitary_matrix not 2x2, or failure
-    """
-    warnings.warn("euler_angles_1q` is deprecated. "
-                  "Use `synthesis.OneQubitEulerDecomposer().angles instead.",
-                  DeprecationWarning)
-    if unitary_matrix.shape != (2, 2):
-        raise QiskitError("euler_angles_1q: expected 2x2 matrix")
-    phase = la.det(unitary_matrix)**(-1.0/2.0)
-    U = phase * unitary_matrix  # U in SU(2)
-    # OpenQASM SU(2) parameterization:
-    # U[0, 0] = exp(-i(phi+lambda)/2) * cos(theta/2)
-    # U[0, 1] = -exp(-i(phi-lambda)/2) * sin(theta/2)
-    # U[1, 0] = exp(i(phi-lambda)/2) * sin(theta/2)
-    # U[1, 1] = exp(i(phi+lambda)/2) * cos(theta/2)
-    theta = 2 * math.atan2(abs(U[1, 0]), abs(U[0, 0]))
-
-    # Find phi and lambda
-    phiplambda = 2 * np.angle(U[1, 1])
-    phimlambda = 2 * np.angle(U[1, 0])
-    phi = (phiplambda + phimlambda) / 2.0
-    lamb = (phiplambda - phimlambda) / 2.0
-
-    # Check the solution
-    Rzphi = np.array([[np.exp(-1j*phi/2.0), 0],
-                      [0, np.exp(1j*phi/2.0)]], dtype=complex)
-    Rytheta = np.array([[np.cos(theta/2.0), -np.sin(theta/2.0)],
-                        [np.sin(theta/2.0), np.cos(theta/2.0)]], dtype=complex)
-    Rzlambda = np.array([[np.exp(-1j*lamb/2.0), 0],
-                         [0, np.exp(1j*lamb/2.0)]], dtype=complex)
-    V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
-    if la.norm(V - U) > _CUTOFF_PRECISION:
-        raise QiskitError("compiling.euler_angles_1q incorrect result norm(V-U)={}".
-                          format(la.norm(V-U)))
-    return theta, phi, lamb
-
-
 def decompose_two_qubit_product_gate(special_unitary_matrix):
     """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
     Throws QiskitError if this isn't possible.
