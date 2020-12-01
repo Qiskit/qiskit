@@ -14,7 +14,6 @@
 DensityMatrix quantum state class.
 """
 
-import warnings
 from numbers import Number
 import numpy as np
 
@@ -22,6 +21,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
 
 
-class DensityMatrix(QuantumState):
+class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(self, data, dims=None):
@@ -523,13 +523,13 @@ class DensityMatrix(QuantumState):
         """Evolve density matrix by an operator"""
         if qargs is None:
             # Evolution on full matrix
-            if self._dim != other._input_dim:
+            if self._dim != other.dim[0]:
                 raise QiskitError(
                     "Operator input dimension is not equal to density matrix dimension."
                 )
             op_mat = other.data
             mat = np.dot(op_mat, self.data).dot(op_mat.T.conj())
-            return DensityMatrix(mat, dims=other._output_dims)
+            return DensityMatrix(mat, dims=other.output_dims())
         # Otherwise we are applying an operator only to subsystems
         # Check dimensions of subsystems match the operator
         if self.dims(qargs) != other.input_dims():
@@ -551,8 +551,8 @@ class DensityMatrix(QuantumState):
                                          True)
         # Replace evolved dimensions
         new_dims = list(self.dims())
-        for i, qubit in enumerate(qargs):
-            new_dims[qubit] = other._output_dims[i]
+        for qubit, dim in zip(qargs, other.output_dims()):
+            new_dims[qubit] = dim
         new_dim = np.product(new_dims)
         return DensityMatrix(np.reshape(tensor, (new_dim, new_dim)),
                              dims=new_dims)
@@ -641,18 +641,3 @@ class DensityMatrix(QuantumState):
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
-
-    def to_counts(self):
-        """Returns the density matrix as a counts dict of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()

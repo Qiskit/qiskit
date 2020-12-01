@@ -253,6 +253,20 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(reshaped2.output_dims(), (2, 4))
         self.assertEqual(reshaped2.input_dims(), (4, 2))
 
+    def test_reshape_num_qubits(self):
+        """Test Operator reshape method with num_qubits."""
+        op = Operator(self.rand_matrix(8, 8),
+                      input_dims=(4, 2), output_dims=(2, 4))
+        reshaped = op.reshape(num_qubits=3)
+        self.assertEqual(reshaped.num_qubits, 3)
+        self.assertEqual(reshaped.output_dims(), (2, 2, 2))
+        self.assertEqual(reshaped.input_dims(), (2, 2, 2))
+
+    def test_reshape_raise(self):
+        """Test Operator reshape method with invalid args."""
+        op = Operator(self.rand_matrix(3, 3))
+        self.assertRaises(QiskitError, op.reshape, num_qubits=2)
+
     def test_copy(self):
         """Test Operator copy method"""
         mat = np.eye(2)
