@@ -144,7 +144,7 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test assembling a circuit schedule with `meas_level`."""
         qobj = assemble(self.circ,
                         meas_level=1,
-                        meas_return='single')                        
+                        meas_return='single')
         validate_qobj_against_schema(qobj)
 
         self.assertIsInstance(qobj, QasmQobj)

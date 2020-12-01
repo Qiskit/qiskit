@@ -263,7 +263,7 @@ class QasmQobjConfig(SimpleNamespace):
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
             meas_level (int): Measurement level 0, 1, or 2
-            meas_return (str): For measurement level 1, whether `single` or `avg` shots are returned.
+            meas_return (str): For measurement level < 2, whether single or avg shots are returned
             memory_slots (int): The number of memory slots on the device
             n_qubits (int): The number of qubits on the device
             pulse_library (list): List of :class:`PulseLibraryItem`.
