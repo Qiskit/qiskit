@@ -349,7 +349,7 @@ def _parse_circuit_args(parameter_binds, backend, meas_level, meas_return,
     if meas_level:
         run_config_dict['meas_level'] = meas_level
         # only enable `meas_return` if `meas_level` isn't classified
-        if meas_level == MeasLevel.KERNELED:
+        if meas_level != MeasLevel.CLASSIFIED:
             run_config_dict['meas_return'] = meas_return
 
     run_config = RunConfig(
