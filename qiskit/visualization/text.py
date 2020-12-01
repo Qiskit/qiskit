@@ -529,9 +529,11 @@ class TextDrawing():
 
     def __init__(self, qubits, clbits, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False, global_phase=None, encoding=None):
+                 cregbundle=False, global_phase=None, encoding=None, qregs=None, cregs=None):
         self.qubits = qubits
         self.clbits = clbits
+        self.qregs = qregs
+        self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
@@ -542,6 +544,7 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+
         if encoding:
             self.encoding = encoding
         else:
@@ -549,6 +552,14 @@ class TextDrawing():
                 self.encoding = sys.stdout.encoding
             else:
                 self.encoding = 'utf8'
+
+        self.bit_locations = {
+            bit: {'register': register, 'index': index}
+            for register in cregs + qregs
+            for index, bit in enumerate(register)}
+        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+            if bit not in self.bit_locations:
+                self.bit_locations[bit] = {'register': None, 'index': index}
 
     def __str__(self):
         return self.single_string()
@@ -684,33 +695,51 @@ class TextDrawing():
         if self.layout is None:
             for bit in self.qubits:
                 label = '{name}_{index}: ' + initial_qubit_value
-                qubit_labels.append(label.format(name=bit.register.name,
-                                                 index=bit.index,
-                                                 physical=''))
+                if self.bit_locations[bit]['register'] is not None:
+                    qubit_labels.append(label.format(name=self.bit_locations[bit]['register'].name,
+                                                     index=self.bit_locations[bit]['index'],
+                                                     physical=''))
+                else:
+                    qubit_labels.append(label.format(name='',
+                                                     index=self.bit_locations[bit]['index'],
+                                                     physical=''))
+
         else:
             for bit in self.qubits:
-                if self.layout[bit.index]:
-                    label = '{name}_{index} -> {physical} ' + initial_qubit_value
-                    qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
-                                                     index=self.layout[bit.index].index,
-                                                     physical=bit.index))
+                bit_index = self.bit_locations[bit]['index']
+                if self.layout[bit_index]:
+                    try:
+                        layout_reg = next(reg for reg in self.layout.get_registers()
+                                          if self.layout[bit_index] in reg)
+                        label = '{name}_{index} -> {physical} ' + initial_qubit_value
+                        qubit_labels.append(
+                            label.format(name=layout_reg.name,
+                                         index=layout_reg[:].index(self.layout[bit_index]),
+                                         physical=bit_index))
+                    except StopIteration:
+                        label = '{name} -> {physical} ' + initial_qubit_value
+                        qubit_labels.append(label.format(name='',
+                                                         physical=bit_index))
                 else:
-                    qubit_labels.append('%s ' % bit.index + initial_qubit_value)
+                    qubit_labels.append('%s ' % bit_index + initial_qubit_value)
 
         clbit_labels = []
         previous_creg = None
         for bit in self.clbits:
-            if self.cregbundle:
-                if previous_creg and previous_creg == bit.register:
+            register = self.bit_locations[bit]['register']
+            index = self.bit_locations[bit]['index']
+            if self.cregbundle and register is not None:
+                if previous_creg and previous_creg == register:
                     continue
-                previous_creg = bit.register
+                previous_creg = register
                 label = '{name}: {initial_value}{size}/'
-                clbit_labels.append(label.format(name=bit.register.name,
+                clbit_labels.append(label.format(name=register.name,
                                                  initial_value=initial_clbit_value,
-                                                 size=bit.register.size))
+                                                 size=register.size))
             else:
                 label = '{name}_{index}: ' + initial_clbit_value
-                clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
+                clbit_labels.append(label.format(name=register.name if register is not None else '',
+                                                 index=index))
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
@@ -994,7 +1023,8 @@ class TextDrawing():
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             if self.cregbundle:
-                layer.set_clbit(instruction.cargs[0], MeasureTo(str(instruction.cargs[0].index)))
+                layer.set_clbit(instruction.cargs[0],
+                                MeasureTo(str(self.bit_locations[instruction.cargs[0]]['index'])))
             else:
                 layer.set_clbit(instruction.cargs[0], MeasureTo())
 
@@ -1104,7 +1134,7 @@ class TextDrawing():
         layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle)
+            layer = Layer(self.qubits, self.clbits, self.cregbundle, self.cregs)
 
             for instruction in instruction_layer:
                 layer, current_connections, connection_label = \
@@ -1120,16 +1150,27 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, qubits, clbits, cregbundle=False):
+    def __init__(self, qubits, clbits, cregbundle=False, cregs=None):
+        cregs = [] if cregs is None else cregs
+
         self.qubits = qubits
+
+        self._clbit_locations = {
+            bit: {'register': register, 'index': index}
+            for register in cregs
+            for index, bit in enumerate(register)}
+        for index, bit in enumerate(clbits):
+            if bit not in self._clbit_locations:
+                self._clbit_locations[bit] = {'register': None, 'index': index}
+
         if cregbundle:
             self.clbits = []
             previous_creg = None
             for bit in clbits:
-                if previous_creg and previous_creg == bit.register:
+                if previous_creg and previous_creg == self._clbit_locations[bit]['register']:
                     continue
-                previous_creg = bit.register
-                self.clbits.append(bit.register)
+                previous_creg = self._clbit_locations[bit]['register']
+                self.clbits.append(previous_creg)
         else:
             self.clbits = clbits
         self.qubit_layer = [None] * len(qubits)
@@ -1163,7 +1204,7 @@ class Layer:
             element (DrawElement): Element to set in the clbit
         """
         if self.cregbundle:
-            self.clbit_layer[self.clbits.index(clbit.register)] = element
+            self.clbit_layer[self.clbits.index(self._clbit_locations[clbit]['register'])] = element
         else:
             self.clbit_layer[self.clbits.index(clbit)] = element
 
@@ -1272,7 +1313,8 @@ class Layer:
         if self.cregbundle:
             self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
-            clbit = [bit for bit in self.clbits if bit.register == creg]
+            clbit = [bit for bit in self.clbits
+                     if self._clbit_locations[bit]['register'] == creg]
             self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
