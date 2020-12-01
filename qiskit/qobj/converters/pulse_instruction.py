@@ -12,14 +12,15 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import hashlib
 import re
 import warnings
 
 from enum import Enum
 
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
@@ -640,6 +641,15 @@ class QobjToInstructionConverter:
     def convert_parametric(self, instruction):
         """Return the ParametricPulse implementation that is described by the instruction.
 
+        If parametric pulse label is not provided by the backend, this method naively generates
+        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+        to, for example, `gaussian_a4e3`, here the last four digits are a part of
+        the hash string generated based on the pulse shape and the parameters.
+        Because we are using a truncated hash for readability,
+        there may be a small risk of pulse name collision with other pulses.
+        Basically the parametric pulse name is used just for visualization purpose and
+        the pulse module should not have dependency on the parametric pulse names.
+
         Args:
             instruction (PulseQobjInstruction): pulse qobj
         Returns:
@@ -647,7 +657,19 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+
+        try:
+            pulse_name = instruction.label
+        except AttributeError:
+            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            base_str = '{pulse}_{params}'.format(
+                pulse=instruction.pulse_shape,
+                params=str(sorted_params))
+            short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+            pulse_name = '{0}_{1}'.format(instruction.pulse_shape, short_pulse_id)
+
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters,
+                                                                     name=pulse_name)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
