@@ -18,6 +18,7 @@ import copy
 import pprint
 import json
 from types import SimpleNamespace
+import warnings
 
 import numpy
 
@@ -579,6 +580,13 @@ class QasmQobj:
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
+            warnings.warn(
+                "The jsonschema validation included in qiskit-terra is "
+                "deprecated and will be removed in a future release. "
+                "If you're relying on this schema validation you should "
+                "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                "validate your payloads with that", DeprecationWarning,
+                stacklevel=2)
             self._validate_json_schema(out_dict)
         return out_dict
 

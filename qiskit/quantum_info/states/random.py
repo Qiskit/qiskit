@@ -14,7 +14,6 @@
 Random state generation.
 """
 
-import warnings
 import numpy as np
 from numpy.random import default_rng
 
@@ -53,26 +52,6 @@ def random_statevector(dims, seed=None):
     sumx = sum(x)
     phases = rng.random(dim) * 2.0 * np.pi
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
-
-
-def random_state(dim, seed=None):
-    """
-    DEPRECATED Return a random quantum state.
-
-    Args:
-        dim (int): the dim of the state space
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
-
-    Returns:
-        ndarray:  state(2**num) a random quantum state.
-    """
-    warnings.warn(
-        'The `random_state` function is deprecated as of 0.13.0,'
-        ' and will be removed no earlier than 3 months after that '
-        'release date. You should use the `random_statevector`'
-        ' function instead.', DeprecationWarning, stacklevel=2)
-    return random_statevector(dim, seed=seed).data
 
 
 def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
