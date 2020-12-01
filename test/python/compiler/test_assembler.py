@@ -580,7 +580,6 @@ class TestPulseAssembler(QiskitTestCase):
                          {'experiment_type': 'gst',
                           'execution_number': '1234'})
 
-
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()

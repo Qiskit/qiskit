@@ -83,8 +83,8 @@ class QuantumCircuit:
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
         global_phase (float): The global phase of the circuit in radians.
-        metadata: Arbitrary key value metadata to associate with the circuit. This gets
-            stored as free-form data in a dict in the
+        metadata (dict): Arbitrary key value metadata to associate with the
+            circuit. This gets stored as free-form data in a dict in the
             :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
             not be directly used in the circuit.
 
