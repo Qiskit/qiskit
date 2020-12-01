@@ -144,7 +144,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None, global_phase=0, **metadata):
+    def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
@@ -193,6 +193,8 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = 'dt'
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
     @property
@@ -263,6 +265,8 @@ class QuantumCircuit:
     @metadata.setter
     def metadata(self, metadata):
         """Update the circuit metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
     def __str__(self):

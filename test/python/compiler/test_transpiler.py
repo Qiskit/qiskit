@@ -931,7 +931,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
         """Verify that transpile preserves circuit metadata in the output."""
-        circuit = QuantumCircuit(2, experiment_id='1234', execution_number=4)
+        circuit = QuantumCircuit(2, metadata=dict(experiment_id='1234', execution_number=4))
         circuit.h(0)
         circuit.cx(0, 1)
 
