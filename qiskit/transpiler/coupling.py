@@ -140,6 +140,13 @@ class CouplingMap:
         """
         return self.graph.neighbors(physical_qubit)
 
+    @property
+    def distance_matrix(self):
+        """Return the distance matrix for the coupling map."""
+        if self._dist_matrix is None:
+            self._compute_distance_matrix()
+        return self._dist_matrix
+
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
 
