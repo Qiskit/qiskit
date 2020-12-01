@@ -39,7 +39,7 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, reverse_bits=False,
                  plot_barriers=True, layout=None, initial_state=False,
-                 cregbundle=False, global_phase=None):
+                 cregbundle=False, global_phase=None, qregs=None, cregs=None):
         """QCircuitImage initializer.
 
         Args:
@@ -47,7 +47,7 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
-            reverse_bits: when True, reverse the bit ordering of the registers
+            reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
@@ -55,6 +55,8 @@ class QCircuitImage:
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
             global_phase (float): Optional, the global phase for the circuit.
+            qregs (list): List qregs present in the circuit.
+            cregs (list): List of cregs present in the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -110,6 +112,15 @@ class QCircuitImage:
         self.qubit_list = qubits
         self.ordered_bits = qubits + clbits
         self.cregs, self.cregs_bits = self._get_register_specs(clbits)
+
+        self.bit_locations = {
+            bit: {'register': register, 'index': index}
+            for register in cregs + qregs
+            for index, bit in enumerate(register)}
+        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+            if bit not in self.bit_locations:
+                self.bit_locations[bit] = {'register': None, 'index': index}
+
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_bits)}
         if cregbundle:
@@ -192,29 +203,43 @@ class QCircuitImage:
         for i in range(self.img_width):
             if isinstance(self.ordered_bits[i], Clbit):
                 if self.cregbundle:
+                    reg = self.bit_locations[self.ordered_bits[i + offset]]['register']
                     self._latex[i][0] = \
-                        "\\lstick{" + self.ordered_bits[i + offset].register.name + ":"
-                    clbitsize = self.cregs[self.ordered_bits[i + offset].register]
+                        "\\lstick{" + reg.name + ":"
+                    clbitsize = self.cregs[reg]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
-                    self._latex[i][0] = "\\lstick{" + self.ordered_bits[i].register.name + \
-                                            "_{" + str(self.ordered_bits[i].index) + "}:"
+                    self._latex[i][0] = (
+                        "\\lstick{"
+                        + self.bit_locations[self.ordered_bits[i]]['register'].name
+                        + "_{" + str(self.bit_locations[self.ordered_bits[i]]['index']) + "}:"
+                    )
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
             else:
                 if self.layout is None:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
-                        self.ordered_bits[i].register.name, self.ordered_bits[i].index)
+                        self.bit_locations[self.ordered_bits[i]]['register'].name,
+                        self.bit_locations[self.ordered_bits[i]]['index'])
                 else:
-                    if self.layout[self.ordered_bits[i].index]:
-                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                            self.layout[self.ordered_bits[i].index].register.name,
-                            self.layout[self.ordered_bits[i].index].index,
-                            self.ordered_bits[i].index)
+                    bit_location = self.bit_locations[self.ordered_bits[i]]
+                    if bit_location and self.layout[bit_location['index']]:
+                        virt_bit = self.layout[bit_location['index']]
+                        try:
+                            virt_reg = next(reg for reg in self.layout.get_registers()
+                                            if virt_bit in reg)
+                            label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                                virt_reg.name,
+                                virt_reg[:].index(virt_bit),
+                                bit_location['index'])
+                        except StopIteration:
+                            label = "\\lstick{{ {{{}}} : ".format(
+                                bit_location['index'])
                     else:
-                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_bits[i].index)
+                        label = "\\lstick{{ {{{}}} : ".format(
+                            bit_location['index'])
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -282,7 +307,7 @@ class QCircuitImage:
         max_reg_name = 3
         for reg in self.ordered_bits:
             max_reg_name = max(max_reg_name,
-                               len(reg.register.name))
+                               len(self.bit_locations[reg]['register'].name))
         sum_column_widths += 5 + max_reg_name / 3
 
         # could be a fraction so ceil

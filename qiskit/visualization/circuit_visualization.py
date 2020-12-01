@@ -439,7 +439,8 @@ def _generate_latex_source(circuit, filename=None,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
-                                 global_phase=global_phase)
+                                 global_phase=global_phase,
+                                 qregs=circuit.qregs, cregs=circuit.cregs)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
