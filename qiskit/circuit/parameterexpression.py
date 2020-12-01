@@ -351,7 +351,10 @@ class ParameterExpression:
     def arccos(self):
         """Arccos of a ParameterExpression"""
         from sympy import acos as _acos
-        return self._call(_acos)
+        if self.parameters:
+            return self._call(_acos)
+        else:
+            return float(self._call(_acos))
 
     def arctan(self):
         """Arctan of a ParameterExpression"""

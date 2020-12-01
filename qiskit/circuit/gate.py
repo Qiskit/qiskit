@@ -230,7 +230,9 @@ class Gate(Instruction):
         if isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real:
+            # the "n()" is needed here since sympy seems to consider some objects (e.g. acos)
+            # to be complex without evaluating them.
+            if not parameter._symbol_expr.n().is_real:
                 raise CircuitError("Bound parameter expression is complex in gate {}".format(
                     self.name))
             return parameter  # per default assume parameters must be real when bound
