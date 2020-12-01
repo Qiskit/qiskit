@@ -108,10 +108,14 @@ def _assemble_experiments(
             run_config,
             user_pulselib)
 
+        metadata = schedule.metadata
+        if metadata is None:
+            metadata = {}
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=schedule.name or 'Experiment-%d' % idx)
+            name=schedule.name or 'Experiment-%d' % idx,
+            metadata=metadata)
 
         experiment = qobj.PulseQobjExperiment(
             header=qobj_experiment_header,

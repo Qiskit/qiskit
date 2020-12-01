@@ -50,7 +50,8 @@ class Schedule(abc.ABC):
     def __init__(self,
                  *schedules: Union[Union['Schedule', Instruction],
                                    Tuple[int, Union['Schedule', Instruction]]],
-                 name: Optional[str] = None):
+                 name: Optional[str] = None,
+                 metadata: Optional[dict] = None):
         """Create an empty schedule.
 
         Args:
@@ -77,6 +78,9 @@ class Schedule(abc.ABC):
                 # recreate as sequence starting at 0.
                 time, sched = 0, sched_pair
             self._mutable_insert(time, sched)
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for schedule metadata")
+        self._metadata = metadata
 
     @property
     def name(self) -> str:
@@ -134,6 +138,27 @@ class Schedule(abc.ABC):
                     sorted(chan.name for chan in inst.channels))
 
         return tuple(sorted(self._instructions(), key=key))
+
+    @property
+    def metadata(self):
+        """The user provided metadata associated with the schedule
+
+        The metadata for the schedule is a user provided ``dict`` of metadata
+        for the schedule. It will not be used to influence the execution or
+        operation of the schedule, but it is expected to be passed betweeen
+        all transforms of the schedule and that providers will associate any
+        schedule metadata with the results it returns from execution of that
+        schedule.
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Update the schedule metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for schedule metadata")
+        self._metadata = metadata
+
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return the time of the end of the last instruction over the supplied channels.

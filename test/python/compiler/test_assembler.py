@@ -570,6 +570,17 @@ class TestPulseAssembler(QiskitTestCase):
             'backend_version': '0.0.0'
         }
 
+    def test_assemble_adds_schedule_metadata_to_experiment_header(self):
+        """Verify that any circuit metadata is added to the exeriment header."""
+        self.schedule.metadata = {'experiment_type': 'gst', 'execution_number': '1234'}
+        qobj = assemble(self.schedule, shots=100, qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[])
+        self.assertEqual(qobj.experiments[0].header.metadata,
+                         {'experiment_type': 'gst',
+                          'execution_number': '1234'})
+
+
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
