@@ -108,13 +108,12 @@ class TestScheduledCircuit(QiskitTestCase):
         with self.assertRaises(QiskitError):
             transpile(qc, self.backend_without_dt, scheduling_method='alap')
 
-    def test_cannot_execute_delay_circuit_when_schedule_circuit_off(self):
+    def test_can_execute_delay_circuit_when_schedule_circuit_off(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        with self.assertRaises(QiskitError):
-            execute(qc, backend=self.backend_with_dt, schedule_circuit=False)
+        execute(qc, backend=self.backend_with_dt, schedule_circuit=False)
 
     def test_transpile_single_delay_circuit(self):
         qc = QuantumCircuit(1)
@@ -131,7 +130,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(1000, 0, unit='ns')  # 4500 [dt]
         qc.measure_all()  # 19200 [dt]
         scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 24020)
+        self.assertEqual(scheduled.duration, 30308)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)

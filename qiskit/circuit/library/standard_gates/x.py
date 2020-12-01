@@ -236,7 +236,7 @@ class CCXGate(ControlledGate):
     .. math::
 
         CCX q_0, q_1, q_2 =
-            |0 \rangle \langle 0| \otimes I \otimes I + |1 \rangle \langle 1| \otimes CX =
+            I \otimes I \otimes |0 \rangle \langle 0| + CX \otimes |1 \rangle \langle 1| =
            \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
@@ -267,7 +267,7 @@ class CCXGate(ControlledGate):
         .. math::
 
             CCX\ q_2, q_1, q_0 =
-                I \otimes I \otimes |0 \rangle \langle 0| + CX \otimes |1 \rangle \langle 1| =
+                |0 \rangle \langle 0| \otimes I \otimes I + |1 \rangle \langle 1| \otimes CX =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
                     0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
@@ -628,10 +628,12 @@ class RC3XGate(Gate):
 class C4XGate(ControlledGate):
     """The 4-qubit controlled X gate.
 
-    This implementation is based on Page 21, Lemma 7.5, of [1].
+    This implementation is based on Page 21, Lemma 7.5, of [1], with the use
+    of the relative phase version of c3x, the rc3x [2].
 
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
     def __init__(self, label=None, ctrl_state=None):
@@ -661,9 +663,9 @@ class C4XGate(ControlledGate):
         gate c4x a,b,c,d,e
         {
             h e; cu1(-pi/2) d,e; h e;
-            c3x a,b,c,d;
+            rc3x a,b,c,d;
             h e; cu1(pi/4) d,e; h e;
-            c3x a,b,c,d;
+            rc3x a,b,c,d;
             c3sqrtx a,b,c,e;
         }
         """
@@ -676,11 +678,11 @@ class C4XGate(ControlledGate):
             (HGate(), [q[4]], []),
             (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
             (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
             (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
         ]
         for instr, qargs, cargs in rules:

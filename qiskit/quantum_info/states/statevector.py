@@ -16,7 +16,6 @@ Statevector quantum state class.
 
 import copy
 import re
-import warnings
 from numbers import Number
 
 import numpy as np
@@ -25,11 +24,12 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class Statevector(QuantumState):
+class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
@@ -388,22 +388,6 @@ class Statevector(QuantumState):
             Operator(reset, input_dims=dims, output_dims=dims),
             qargs=qargs)
 
-    def to_counts(self):
-        """Returns the statevector as a counts dict
-        of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()
-
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
@@ -677,6 +661,7 @@ class Statevector(QuantumState):
                 obj.name, type(obj.definition)))
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
+        qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
@@ -684,8 +669,8 @@ class Statevector(QuantumState):
                         instr.name))
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [tup.index for tup in qregs]
+                new_qargs = [qubits[tup] for tup in qregs]
             else:
-                new_qargs = [qargs[tup.index] for tup in qregs]
+                new_qargs = [qargs[qubits[tup]] for tup in qregs]
             Statevector._evolve_instruction(statevec, instr, qargs=new_qargs)
         return statevec

@@ -22,7 +22,9 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.library.standard_gates.x import CXGate, XGate
+from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
@@ -43,24 +45,61 @@ class Initialize(Instruction):
     def __init__(self, params):
         """Create new initialize composite.
 
-        params (list): vector of complex amplitudes to initialize to
+        params (str or list):
+          * list: vector of complex amplitudes to initialize to.
+          * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+               :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+               Notice the order of the labels is reversed with respect to the qubit index to
+               be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+               qubit one to `|0>`
         """
-        num_qubits = math.log2(len(params))
+        if isinstance(params, str):
+            self._fromlabel = True
+            num_qubits = len(params)
+        else:
+            self._fromlabel = False
+            num_qubits = math.log2(len(params))
 
-        # Check if param is a power of 2
-        if num_qubits == 0 or not num_qubits.is_integer():
-            raise QiskitError("Desired statevector length not a positive power of 2.")
+            # Check if param is a power of 2
+            if num_qubits == 0 or not num_qubits.is_integer():
+                raise QiskitError("Desired statevector length not a positive power of 2.")
 
-        # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
-                            abs_tol=_EPS):
-            raise QiskitError("Sum of amplitudes-squared does not equal one.")
+            # Check if probabilities (amplitudes squared) sum to 1
+            if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
+                                abs_tol=_EPS):
+                raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
-        num_qubits = int(num_qubits)
+            num_qubits = int(num_qubits)
 
         super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):
+        self.definition = self._define_fromlabel() if self._fromlabel else self._define_synthesis()
+
+    def _define_fromlabel(self):
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
+
+        for qubit, param in enumerate(reversed(self.params)):
+            initialize_circuit.append(Reset(), [q[qubit]])
+
+            if param == '1':
+                initialize_circuit.append(XGate(), [q[qubit]])
+            elif param == '+':
+                initialize_circuit.append(HGate(), [q[qubit]])
+            elif param == '-':
+                initialize_circuit.append(XGate(), [q[qubit]])
+                initialize_circuit.append(HGate(), [q[qubit]])
+            elif param == 'r':  # |+i>
+                initialize_circuit.append(HGate(), [q[qubit]])
+                initialize_circuit.append(SGate(), [q[qubit]])
+            elif param == 'l':  # |-i>
+                initialize_circuit.append(HGate(), [q[qubit]])
+                initialize_circuit.append(SdgGate(), [q[qubit]])
+
+        return initialize_circuit
+
+    def _define_synthesis(self):
         """Calculate a subcircuit that implements this initialization
 
         Implements a recursive initialization algorithm, including optimizations,
@@ -83,7 +122,7 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit
+        return initialize_circuit
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
@@ -257,7 +296,16 @@ class Initialize(Instruction):
         yield flat_qargs, []
 
     def validate_parameter(self, parameter):
-        """Initialize instruction parameter can be int, float, and complex."""
+        """Initialize instruction parameter can be str, int, float, and complex."""
+
+        # Initialize instruction parameter can be str
+        if self._fromlabel:
+            if parameter in ['0', '1', '+', '-', 'l', 'r']:
+                return parameter
+            raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
+                               "0, 1, +, -, l, or r ".format(type(parameter), self.name))
+
+        # Initialize instruction parameter can be int, float, and complex.
         if isinstance(parameter, (int, float, complex)):
             return complex(parameter)
         elif isinstance(parameter, np.number):

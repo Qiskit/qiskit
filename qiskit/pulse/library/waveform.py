@@ -94,6 +94,9 @@ class Waveform(Pulse):
 
         return samples
 
+    def is_parameterized(self) -> bool:
+        return False
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Waveform':
