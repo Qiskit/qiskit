@@ -72,7 +72,7 @@ class TestJupyter(QiskitTestCase):
 
     @unittest.skipIf(
         sys.version_info >= (3, 8) and
-        sys.platform not in ('linux', 'darwin'), 'Fails with Python 3.8 on osx and windows')
+        sys.platform != 'linux', 'Fails with Python >=3.8 on osx and windows')
     def test_jupyter_jobs_pbars(self):
         """Test Jupyter progress bars and job status functionality"""
         self._execute_notebook(self._get_resource_path(
