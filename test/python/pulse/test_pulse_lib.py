@@ -223,6 +223,14 @@ class TestParametricPulses(QiskitTestCase):
             self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
             self.assertEqual(len(const.get_waveform().samples), 150)
 
+    def test_hash_generation(self):
+        """Test if pulse generate unique hash."""
+        test_hash = [hash(GaussianSquare(duration=688, amp=0.1+0.1j, sigma=64, width=432))
+                     for _ in range(10)]
+
+        ref_hash = [test_hash[0] for _ in range(10)]
+
+        self.assertListEqual(test_hash, ref_hash)
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
 

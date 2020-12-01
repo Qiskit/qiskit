@@ -12,20 +12,21 @@
 
 """Converter Test."""
 
+import hashlib
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from qiskit.pulse import LoConfig, Kernel, Discriminator
+from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
+                                   MemorySlot, RegisterSlot)
+from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
+                                       Delay, Acquire, Snapshot)
+from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseLibraryItem,
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
-from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
-                                       Delay, Acquire, Snapshot)
-from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
-                                   MemorySlot, RegisterSlot)
-from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
-from qiskit.pulse import LoConfig, Kernel, Discriminator
+from qiskit.test import QiskitTestCase
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -206,9 +207,11 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
-        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j), DriveChannel(0))
+        instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name='pulse1'),
+                           DriveChannel(0))
         qobj = PulseQobjInstruction(
             name='parametric_pulse',
+            label='pulse1',
             pulse_shape='gaussian',
             ch='d0',
             t0=0,
@@ -217,6 +220,22 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.start_time, 0)
         self.assertEqual(converted_instruction.duration, 25)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+        self.assertEqual(converted_instruction.instructions[0][-1].pulse.name, 'pulse1')
+
+    def test_parametric_pulses_no_label(self):
+        """Test converted qobj from ParametricInstruction without label."""
+        base_str = "gaussian_[('amp', (-0.5+0.2j)), ('duration', 25), ('sigma', 15)]"
+        short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+        pulse_name = 'gaussian_{}'.format(short_pulse_id)
+
+        qobj = PulseQobjInstruction(
+            name='parametric_pulse',
+            pulse_shape='gaussian',
+            ch='d0',
+            t0=0,
+            parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
+        converted_instruction = self.converter(qobj)
+        self.assertEqual(converted_instruction.instructions[0][-1].pulse.name, pulse_name)
 
     def test_frame_change(self):
         """Test converted qobj from ShiftPhase."""
