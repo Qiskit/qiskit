@@ -46,13 +46,12 @@ class CheckMap(AnalysisPass):
         if self.coupling_map is None:
             return
 
-        bit_indices = {bit: index
-                       for bits in [dag.qubits, dag.clbits]
-                       for index, bit in enumerate(bits)}
+        qubit_indices = {bit: index
+                         for index, bit in enumerate(dag.qubits)}
 
         for gate in dag.two_qubit_ops():
-            physical_q0 = bit_indices[gate.qargs[0]]
-            physical_q1 = bit_indices[gate.qargs[1]]
+            physical_q0 = qubit_indices[gate.qargs[0]]
+            physical_q1 = qubit_indices[gate.qargs[1]]
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                 self.property_set['check_map_msg'] = "%s(%s, %s) failed" % \
