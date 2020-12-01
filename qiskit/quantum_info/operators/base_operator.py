@@ -15,7 +15,6 @@ Abstract BaseOperator class.
 """
 
 import copy
-import warnings
 from abc import abstractmethod
 
 import numpy as np
@@ -298,54 +297,6 @@ class BaseOperator:
         for _ in range(1, n):
             ret = ret.compose(self)
         return ret
-
-    def add(self, other):
-        """Return the linear operator self + other.
-
-        DEPRECATED: use ``operator + other`` instead.
-
-        Args:
-            other (BaseOperator): an operator object.
-
-        Returns:
-            BaseOperator: the operator self + other.
-        """
-        warnings.warn("`BaseOperator.add` method is deprecated, use"
-                      "`op + other` instead.", DeprecationWarning)
-        return self._add(other)
-
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        DEPRECATED: use ``operator - other`` instead.
-
-        Args:
-            other (BaseOperator): an operator object.
-
-        Returns:
-            BaseOperator: the operator self - other.
-        """
-        warnings.warn("`BaseOperator.subtract` method is deprecated, use"
-                      "`op - other` instead", DeprecationWarning)
-        return self._add(-other)
-
-    def multiply(self, other):
-        """Return the linear operator other * self.
-
-        DEPRECATED: use ``other * operator`` instead.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            BaseOperator: the linear operator other * self.
-
-        Raises:
-            NotImplementedError: if subclass does not support multiplication.
-        """
-        warnings.warn("`BaseOperator.multiply` method is deprecated, use"
-                      "the `other * op` instead", DeprecationWarning)
-        return self._multiply(other)
 
     def _add(self, other, qargs=None):
         """Return the linear operator self + other.
