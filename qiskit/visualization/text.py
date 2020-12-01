@@ -701,7 +701,7 @@ class TextDrawing():
         previous_creg = None
         for bit in self.cregs:
             if self.cregbundle:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 label = '{name}: {initial_value}{size}/'
@@ -1130,7 +1130,7 @@ class Layer:
             self.cregs = []
             previous_creg = None
             for bit in cregs:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 self.cregs.append(bit.register)
