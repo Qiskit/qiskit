@@ -516,5 +516,6 @@ def _matplotlib_circuit_drawer(circuit,
     qcd = _matplotlib.MatplotlibDrawer(qubits, clbits, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers, layout=layout,
                                        fold=fold, ax=ax, initial_state=initial_state,
-                                       cregbundle=cregbundle, global_phase=global_phase)
+                                       cregbundle=cregbundle, global_phase=global_phase,
+                                       qregs=circuit.qregs, cregs=circuit.cregs)
     return qcd.draw(filename)
