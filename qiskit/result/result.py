@@ -232,7 +232,7 @@ class Result:
         except KeyError:
             raise QiskitError('No memory for experiment "{}".'.format(experiment))
 
-    def get_counts(self, experiment=None, indices=None, format_marginal=True):
+    def get_counts(self, experiment=None, indices=None, format_marg=True):
         """Get the histogram data of an experiment.
 
         Args:
@@ -276,7 +276,7 @@ class Result:
                 if indices is not None:
                     dict_list.append(utils.marginal_counts(Counts(self.data(key)['counts'],
                                                                   **counts_header),
-                                                           indices, format_marginal))
+                                                           indices, format_marg))
                 else:
                     dict_list.append(Counts(self.data(key)['counts'], **counts_header))
             elif 'statevector' in self.data(key).keys():

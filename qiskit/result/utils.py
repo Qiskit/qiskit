@@ -17,11 +17,11 @@ from collections import Counter
 from qiskit.exceptions import QiskitError
 
 
-def marginal_counts(result, indices=None, format_marginal=False):
+def marginal_counts(counts, indices=None, format_marg=False):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
-        result (dict): result to be marginalized as a dict of counts.
+        counts (dict): counts to be marginalized as a dict of (str: int).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If ``None`` (default), do not marginalize at all.
         format_marginal (bool): Default: False. If True, takes the output of
@@ -35,10 +35,10 @@ def marginal_counts(result, indices=None, format_marginal=False):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
-    counts = _marginalize(result, indices)
-    if format_marginal and indices is not None:
-        counts = _format_marginal(result, counts, indices)
-    return counts
+    marg_counts = _marginalize(counts, indices)
+    if format_marg and indices is not None:
+        marg_counts = _format_marginal(counts, marg_counts, indices)
+    return marg_counts
 
 
 def _marginalize(counts, indices=None):
@@ -71,20 +71,20 @@ def _marginalize(counts, indices=None):
     return dict(new_counts)
 
 
-def _format_marginal(result, counts, indices):
+def _format_marginal(counts, marg_counts, indices):
     """Take the output of marginalize and add placeholders for
     multiple cregs and non-indices."""
     format_counts = {}
-    res_template = next(iter(result))
-    res_len = len(res_template.replace(' ', ''))
+    counts_template = next(iter(counts))
+    counts_len = len(counts_template.replace(' ', ''))
     indices_rev = sorted(indices, reverse=True)
 
-    for count in counts:
+    for count in marg_counts:
         index_dict = dict(zip(indices_rev, count))
-        res_bits = ''.join([index_dict[index] if index in index_dict else 'x'
-                            for index in range(res_len)])[::-1]
-        for index, bit in enumerate(res_template):
+        count_bits = ''.join([index_dict[index] if index in index_dict else 'x'
+                              for index in range(counts_len)])[::-1]
+        for index, bit in enumerate(counts_template):
             if bit == ' ':
-                res_bits = res_bits[:index] + ' ' + res_bits[index:]
-        format_counts[res_bits] = counts[count]
+                count_bits = count_bits[:index] + ' ' + count_bits[index:]
+        format_counts[count_bits] = marg_counts[count]
     return format_counts
