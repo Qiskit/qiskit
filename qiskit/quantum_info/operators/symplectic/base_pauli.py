@@ -36,9 +36,9 @@ class BasePauli(BaseOperator):
         P = (-i)^phase Z^z X^x.
 
         Args:
-            z (array): input z matrix.
-            x (array): input x matrix.
-            phase (array): input phase vector.
+            z (np.ndarray): input z matrix.
+            x (np.ndarray): input x matrix.
+            phase (np.ndarray): input phase vector.
         """
         self._z = z
         self._x = x
@@ -90,7 +90,7 @@ class BasePauli(BaseOperator):
         return BasePauli(z, x, phase)
 
     # pylint: disable=arguments-differ
-    def compose(self, other, qargs=None, front=True, inplace=False):
+    def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition of Paulis self∘other.
 
         Note that this discards phases.
@@ -240,16 +240,16 @@ class BasePauli(BaseOperator):
         return a_dot_b == b_dot_a
 
     def evolve(self, other, qargs=None):
-        r"""Evolve Pauli by a Clifford.
+        r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
-        This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
+        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
         Args:
             other (BasePauli or QuantumCircuit): The Clifford circuit to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
 
         Returns:
-            BasePauli: the Pauli :math:`C.P.C^\dagger`.
+            BasePauli: the Pauli :math:`C^\dagger.P.C`.
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
@@ -266,12 +266,12 @@ class BasePauli(BaseOperator):
 
         # Evolve via Pauli
         if isinstance(other, BasePauli):
-            ret = self.compose(other, qargs=qargs)
-            ret = ret.dot(other.adjoint(), qargs=qargs)
+            ret = self.compose(other.adjoint(), qargs=qargs)
+            ret = ret.dot(other, qargs=qargs)
             return ret
 
-        # Otherwise evolve by circuit evolution
-        return self.copy()._append_circuit(other, qargs=qargs)
+        # Otherwise evolve by the inverse circuit to compute C^dg.P.C
+        return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     # ---------------------------------------------------------------------
     # Helper Methods
@@ -363,12 +363,6 @@ class BasePauli(BaseOperator):
             array: if sparse=False.
             csr_matrix: if sparse=True.
         """
-        def count1(i):
-            """Count number of set bits in int or array"""
-            i = i - ((i >> 1) & 0x55555555)
-            i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
-            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
-
         num_qubits = z.size
 
         # Convert to zx_phase
@@ -378,15 +372,17 @@ class BasePauli(BaseOperator):
 
         dim = 2**num_qubits
         twos_array = 1 << np.arange(num_qubits)
-        x_indices = np.array(x).dot(twos_array)
-        z_indices = np.array(z).dot(twos_array)
+        x_indices = np.asarray(x).dot(twos_array)
+        z_indices = np.asarray(z).dot(twos_array)
 
         indptr = np.arange(dim + 1, dtype=np.uint)
         indices = indptr ^ x_indices
-        data = (-1)**np.mod(count1(z_indices & indptr), 2)
         if phase:
-            data = (-1j)**phase * data
-
+            coeff = (-1j)**phase
+        else:
+            coeff = 1
+        data = np.array([coeff * (-1) ** (bin(i).count('1') % 2)
+                         for i in z_indices & indptr])
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
@@ -469,9 +465,6 @@ class BasePauli(BaseOperator):
             qargs = list(range(self.num_qubits))
 
         if isinstance(circuit, QuantumCircuit):
-            phase = float(circuit.global_phase)
-            if phase:
-                self._phase += self._phase_from_complex(np.exp(1j * phase))
             gate = circuit.to_instruction()
         else:
             gate = circuit
@@ -550,7 +543,7 @@ class BasePauli(BaseOperator):
 # ---------------------------------------------------------------------
 
 def _evolve_h(base_pauli, qubit):
-    """Evolve by HGate"""
+    """Update P -> H.P.H"""
     x = base_pauli._x[:, qubit].copy()
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
@@ -560,7 +553,7 @@ def _evolve_h(base_pauli, qubit):
 
 
 def _evolve_s(base_pauli, qubit):
-    """Evolve by SGate"""
+    """Update P -> S.P.Sdg"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
     base_pauli._phase += x.T
@@ -568,7 +561,7 @@ def _evolve_s(base_pauli, qubit):
 
 
 def _evolve_sdg(base_pauli, qubit):
-    """Evolve by SdgGate"""
+    """Update P -> Sdg.P.S"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
     base_pauli._phase -= x.T
@@ -577,37 +570,37 @@ def _evolve_sdg(base_pauli, qubit):
 
 # pylint: disable=unused-argument
 def _evolve_i(base_pauli, qubit):
-    """Evolve by IGate"""
+    """Update P -> P"""
     return base_pauli
 
 
 def _evolve_x(base_pauli, qubit):
-    """Evolve by XGate"""
+    """Update P -> X.P.X"""
     base_pauli._phase += 2 * base_pauli._z[:, qubit].T
     return base_pauli
 
 
 def _evolve_y(base_pauli, qubit):
-    """Evolve by YGate"""
+    """Update P -> Y.P.Y"""
     base_pauli._phase += 2 * base_pauli._x[:, qubit].T + 2 * base_pauli._z[:, qubit].T
     return base_pauli
 
 
 def _evolve_z(base_pauli, qubit):
-    """Evolve by ZGate"""
+    """Update P -> Z.P.Z"""
     base_pauli._phase += 2 * base_pauli._x[:, qubit].T
     return base_pauli
 
 
 def _evolve_cx(base_pauli, qctrl, qtrgt):
-    """Evolve by CXGate"""
+    """Update P -> CX.P.CX"""
     base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
     base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
     return base_pauli
 
 
 def _evolve_cz(base_pauli, q1, q2):
-    """Evolve by CZGate"""
+    """Update P -> CZ.P.CZ"""
     x1 = base_pauli._x[:, q1]
     x2 = base_pauli._x[:, q2]
     base_pauli._z[:, q1] ^= x1
@@ -617,7 +610,7 @@ def _evolve_cz(base_pauli, q1, q2):
 
 
 def _evolve_cy(base_pauli, qctrl, qtrgt):
-    """Evolve by CYGate"""
+    """Update P -> CY.P.CY"""
     x1 = base_pauli._x[:, qctrl]
     x2 = base_pauli._x[:, qtrgt]
     z2 = base_pauli._z[:, qtrgt]
@@ -629,7 +622,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
 
 
 def _evolve_swap(base_pauli, q1, q2):
-    """Evolve by SwapGate"""
+    """Update P -> SWAP.P.SWAP"""
     x1 = base_pauli._x[:, q1]
     z1 = base_pauli._z[:, q1]
     base_pauli._x[:, q1] = base_pauli._x[:, q2]

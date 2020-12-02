@@ -365,7 +365,7 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(cliff))
-        target = op.dot(pauli).dot(op.adjoint())
+        target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
 
     @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()),
@@ -377,7 +377,7 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(cliff))
-        target = op.dot(pauli).dot(op.adjoint())
+        target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
 
     def test_evolve_clifford_qargs(self):
@@ -387,8 +387,8 @@ class TestPauli(QiskitTestCase):
         pauli = random_pauli(5, seed=10)
         qargs = [3, 0, 1]
         value = Operator(pauli.evolve(cliff, qargs=qargs))
-        target = Operator(pauli).compose(op, qargs=qargs).dot(
-            op.adjoint(), qargs=qargs)
+        target = Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(
+            op, qargs=qargs)
         self.assertEqual(value, target)
 
 

@@ -61,7 +61,7 @@ class Pauli(BasePauli):
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
     ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
 
-    The string representaiton can be converted to a ``Pauli`` using the
+    The string representation can be converted to a ``Pauli`` using the
     class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
     converted back to the string representation using the
     :meth:`to_label` method or ``str(pauli)``.
@@ -132,8 +132,8 @@ class Pauli(BasePauli):
         label, Pauli operator, or ScalarOp input data.
 
         Args:
-            z (array or str or ScalarOp or Pauli): input data or symplectic z vector.
-            x (array): Optional, symplectic x vector.
+            z (np.ndarray or str or ScalarOp or Pauli): input data or symplectic z vector.
+            x (np.ndarray): Optional, symplectic x vector.
             phase (int or None): Optional, phase exponent from Z_4.
             label (str): DEPRECATED, string label.
 
@@ -185,7 +185,8 @@ class Pauli(BasePauli):
         """Test if two Paulis are equal."""
         if not isinstance(other, Pauli):
             return False
-        return (np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
+        return (len(self) == len(other)
+                and np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
                 and np.all(self._z == other._z)
                 and np.all(self._x == other._x))
 
@@ -216,7 +217,7 @@ class Pauli(BasePauli):
 
     @phase.setter
     def phase(self, value):
-        # Convert group phase convetion to internal ZX-phase convention
+        # Convert group phase convention to internal ZX-phase convention
         self._phase[:] = np.mod(value + self._count_y(), 4)
 
     @property
@@ -332,7 +333,7 @@ class Pauli(BasePauli):
 
     def __hash__(self):
         """Make hashable based on string representation."""
-        return hash(self.__str__())
+        return hash(self.to_label())
 
     def to_label(self):
         """Convert a Pauli to a string label.
@@ -522,16 +523,16 @@ class Pauli(BasePauli):
         return np.logical_not(self.commutes(other, qargs=qargs))
 
     def evolve(self, other, qargs=None):
-        r"""Evolve the Pauli by a Clifford.
+        r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
-        This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
+        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
 
         Returns:
-            Pauli: the Pauli :math:`C.P.C^\dagger`.
+            Pauli: the Pauli :math:`C^\dagger.P.C`.
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
@@ -542,7 +543,7 @@ class Pauli(BasePauli):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
-        # Convert quantum circuits to Clifford
+        # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
             other = other.to_circuit()
 
@@ -994,7 +995,9 @@ def _split_pauli_label(label):
     pauli = label[span[0]:]
     coeff = label[:span[0]]
     if span[1] != len(label):
-        raise QiskitError('Pauli string is not valid.')
+        invalid = set(re.sub(r'[IXYZ]+', '', label[span[0]:]))
+        raise QiskitError("Pauli string contains invalid characters "
+                          "{} ∉ ['I', 'X', 'Y', 'Z']".format(invalid))
     return pauli, coeff
 
 
@@ -1003,4 +1006,6 @@ def _phase_from_label(label):
     # Returns None if label is invalid
     label = label.replace('+', '', 1).replace('1', '', 1).replace('j', 'i', 1)
     phases = {'': 0, '-i': 1, '-': 2, 'i': 3}
+    if label not in phases:
+        raise QiskitError("Invalid Pauli phase label '{}'".format(label))
     return phases.get(label)
