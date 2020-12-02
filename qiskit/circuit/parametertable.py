@@ -12,6 +12,8 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
+import warnings
+import functools
 from collections.abc import MutableMapping, MappingView
 
 from .instruction import Instruction
@@ -81,10 +83,22 @@ class ParameterTable(MutableMapping):
         return 'ParameterTable({})'.format(repr(self._table))
 
 
-# m = MutableSet()
-# m.add
-
-# pylint: disable=invalid-name
+def _deprecated_set_method():
+    def deprecate(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # warn only once
+            if not wrapper._warned:
+                warnings.warn(f'The {func} method is deprecated as of Qiskit Terra 0.17.0 and will '
+                              'be removed no sooner than 3 months after the release date. Circuit '
+                              'parameters are returned as View object, not set. To use set methods '
+                              'you can explicitly cast to a set.',
+                              DeprecationWarning, stacklevel=2)
+                wrapper._warned = True
+            return func(*args, **kwargs)
+        wrapper._warned = False
+        return wrapper
+    return deprecate
 
 
 class ParameterView(MappingView):
@@ -95,134 +109,153 @@ class ParameterView(MappingView):
     """
 
     def __init__(self, iterable=None):
-        super().__init__(iterable)
-
         self.data = []
 
         if iterable is not None:
             for x in iterable:
                 self.add(x)
 
+        super().__init__(self.data)
+
+    @_deprecated_set_method()
     def add(self, x):
         """Add a new element."""
         if x not in self.data:
             self.data.append(x)
 
+    @_deprecated_set_method()
     def copy(self):
         """Copy the ParameterView."""
         return self.__class__(self.data.copy())
 
+    @_deprecated_set_method()
     def difference(self, *s):
         """Get the difference between self and the input."""
-        diff = self.__class__()
-        for element in self:
-            if element not in s:
-                diff.add(element)
+        return self.__sub__(s)
 
-        return diff
-
+    @_deprecated_set_method()
     def difference_update(self, *s):
         """Get the difference between self and the input in-place."""
         for element in self:
             if element in s:
                 self.remove(element)
 
+    @_deprecated_set_method()
     def discard(self, x):
         """Remove an element from self."""
         if x in self:
             self.remove(x)
 
-    def intersection(self, *s):
+    @_deprecated_set_method()
+    def intersection(self, *x):
         """Get the intersection between self and the input."""
-        inter = self.__class__()
-        for element in self:
-            if element in s:
-                inter.add(element)
+        return self.__and__(x)
 
-        return inter
-
-    def intersection_update(self, *s):
+    @_deprecated_set_method()
+    def intersection_update(self, *x):
         """Get the intersection between self and the input in-place."""
-        for element in self:
-            if element not in s:
-                self.remove(element)
+        return self.__iand__(x)
 
-    def isdisjoint(self, s):
+    def isdisjoint(self, x):
         """Check whether self and the input are disjoint."""
-        return not any(element in self for element in s)
+        return not any(element in self for element in x)
 
-    def issubset(self, s):
+    @_deprecated_set_method()
+    def issubset(self, x):
         """Check whether self is a subset of the input."""
-        return all(element in s for element in self)
+        return self.__le__(x)
 
-    def issuperset(self, s):
+    @_deprecated_set_method()
+    def issuperset(self, x):
         """Check whether self is a superset of the input."""
-        return all(element in self for element in s)
+        return self.__ge__(x)
 
-    def symmetric_difference(self, s):
+    @_deprecated_set_method()
+    def symmetric_difference(self, x):
         """Get the symmetric difference of self and the input."""
-        forward = self.difference(s)
-        backward = s.difference(self)
-        return forward.update(backward)
+        return self.__xor__(x)
 
-    def symmetric_difference_update(self, s):
+    @_deprecated_set_method()
+    def symmetric_difference_update(self, x):
         """Get the symmetric difference of self and the input in-place."""
-        backward = s.difference(self)
-        self.difference_update(s)
+        backward = x.difference(self)
+        self.difference_update(x)
         self.update(backward)
 
-    def union(self, *s):
+    @_deprecated_set_method()
+    def union(self, *x):
         """Get the union of self and the input."""
-        joint = self.copy()
-        joint.update(s)
-        return joint
+        return self.__or__(x)
 
-    def update(self, *s):
+    @_deprecated_set_method()
+    def update(self, *x):
         """Update self with the input."""
-        for element in s:
+        for element in x:
             self.add(element)
 
     def remove(self, x):
         """Remove an existing element from the view."""
         self.data.remove(x)
 
-    def __and__(self, s):
-        """Get the intersection between self and the input."""
-        return self.intersection(s)
+    def __repr__(self):
+        """Format the class as string."""
+        return f'ParameterView({self.data})'
 
-    def __iand__(self, s):
+    def __getitem__(self, index):
+        """Get items."""
+        return self.data[index]
+
+    def __and__(self, x):
+        """Get the intersection between self and the input."""
+        inter = []
+        for element in self:
+            print('checking', element)
+            if element in x:
+                inter.append(element)
+
+        return self.__class__(inter)
+
+    def __rand__(self, x):
+        """Get the intersection between self and the input."""
+        return self.__and__(x)
+
+    def __iand__(self, x):
         """Get the intersection between self and the input in-place."""
-        self.intersection_update(s)
+        for element in self:
+            if element not in x:
+                self.remove(element)
         return self
 
     def __len__(self):
         """Get the length."""
         return len(self.data)
 
-    def __or__(self, s):
+    def __or__(self, x):
         """Get the union of self and the input."""
-        return self.union(s)
+        return set(self) | set(x)
 
-    def __ior__(self, s):
+    def __ior__(self, x):
         """Update self with the input."""
-        self.update(s)
+        self.update(*x)
         return self
 
-    def __sub__(self, s):
+    def __sub__(self, x):
         """Get the difference between self and the input."""
-        return self.difference(s)
+        return set(self) - set(x)
 
-    def __isub__(self, s):
+    @_deprecated_set_method()
+    def __isub__(self, x):
         """Get the difference between self and the input in-place."""
-        return self.difference_update(s)
+        return self.difference_update(*x)
 
-    def __xor__(self, s):
+    def __xor__(self, x):
         """Get the symmetric difference between self and the input."""
-        return self.symmetric_difference(s)
+        return set(self) ^ set(x)
 
-    def __ixor__(self, s):
+    @_deprecated_set_method()
+    def __ixor__(self, x):
         """Get the symmetric difference between self and the input in-place."""
-        self.symmetric_difference_update(s)
+        self.symmetric_difference_update(x)
         return self
 
     def __ne__(self, other):
@@ -231,26 +264,28 @@ class ParameterView(MappingView):
     def __eq__(self, other):
         return set(other) == set(self)
 
-    def __le__(self, s):
-        return self.issubset(s)
+    def __le__(self, x):
+        return all(element in x for element in self)
 
-    def __lt__(self, s):
-        if s != self:
-            return self <= s
+    def __lt__(self, x):
+        if x != self:
+            return self <= x
         return False
 
-    def __ge__(self, s):
-        return self.issuperset(s)
+    def __ge__(self, x):
+        return all(element in self for element in x)
 
-    def __gt__(self, s):
-        if s != self:
-            return self >= s
+    def __gt__(self, x):
+        if x != self:
+            return self >= x
         return False
 
     def __iter__(self):
         return iter(self.data)
 
-    def __contains__(self, o):
-        return o in self.data
+    def __contains__(self, x):
+        return x in self.data
 
     __hash__: None  # type: ignore
+    __rand__ = __and__
+    __ror__ = __or__
