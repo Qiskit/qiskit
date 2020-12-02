@@ -28,6 +28,7 @@ Operators
    SparsePauliOp
    Pauli
    pauli_group
+   Quaternion
    PauliTable
    StabilizerTable
    pauli_basis
@@ -93,6 +94,7 @@ Random
    random_quantum_channel
    random_pauli_table
    random_stabilizer_table
+   random_state
 
 Analysis
 =========
@@ -111,11 +113,12 @@ Synthesis
    OneQubitEulerDecomposer
    TwoQubitBasisDecomposer
    two_qubit_cnot_decompose
-   Quaternion
+   euler_angles_1q
 """
 
 from .operators import Operator, ScalarOp
 from .operators.pauli import Pauli, pauli_group
+from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import (process_fidelity,
                                  average_gate_fidelity,
@@ -134,9 +137,9 @@ from .random import (random_quantum_channel, random_unitary,
                      random_clifford, random_pauli_table,
                      random_stabilizer_table,
                      random_hermitian, random_statevector,
-                     random_density_matrix)
+                     random_density_matrix, random_state)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
-                        two_qubit_cnot_decompose, Quaternion)
+                        two_qubit_cnot_decompose, euler_angles_1q)
 
 from .analysis import hellinger_fidelity

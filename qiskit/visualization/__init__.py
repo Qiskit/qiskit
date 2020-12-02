@@ -104,6 +104,7 @@ Exceptions
 import os
 import sys
 
+from qiskit.util import _has_connection
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_bloch_vector,
@@ -126,9 +127,10 @@ from .timeline import draw as timeline_drawer
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
         or os.getenv('QISKIT_DOCS') == 'TRUE':
-    from qiskit.visualization.interactive import (iplot_bloch_multivector,
-                                                  iplot_state_city,
-                                                  iplot_state_qsphere,
-                                                  iplot_state_hinton,
-                                                  iplot_histogram,
-                                                  iplot_state_paulivec)
+    if _has_connection('qvisualization.mybluemix.net', 443):
+        from qiskit.visualization.interactive import (iplot_bloch_multivector,
+                                                      iplot_state_city,
+                                                      iplot_state_qsphere,
+                                                      iplot_state_hinton,
+                                                      iplot_histogram,
+                                                      iplot_state_paulivec)

@@ -1,2 +1,1 @@
 docplex==2.15.194
-appnope==0.1.0

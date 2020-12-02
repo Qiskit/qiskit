@@ -15,16 +15,18 @@ Abstract QuantumState class.
 """
 
 import copy
+import warnings
 from abc import abstractmethod
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.base_operator import AbstractTolerancesMeta
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
 
 
-class QuantumState:
+class QuantumState(metaclass=AbstractTolerancesMeta):
     """Abstract quantum state base class"""
 
     def __init__(self, dims):
@@ -51,6 +53,38 @@ class QuantumState:
     def num_qubits(self):
         """Return the number of qubits if a N-qubit state or None otherwise."""
         return self._num_qubits
+
+    @property
+    def atol(self):
+        """The absolute tolerance parameter for float comparisons."""
+        return self.__class__.atol
+
+    @property
+    def rtol(self):
+        """The relative tolerance parameter for float comparisons."""
+        return self.__class__.rtol
+
+    @classmethod
+    def set_atol(cls, value):
+        """Set the class default absolute tolerance parameter for float comparisons.
+
+        DEPRECATED: use operator.atol = value instead
+        """
+        warnings.warn("`{}.set_atol` method is deprecated, use `{}.atol = "
+                      "value` instead.".format(cls.__name__, cls.__name__),
+                      DeprecationWarning)
+        cls.atol = value
+
+    @classmethod
+    def set_rtol(cls, value):
+        """Set the class default relative tolerance parameter for float comparisons.
+
+        DEPRECATED: use operator.rtol = value instead
+        """
+        warnings.warn("`{}.set_rtol` method is deprecated, use `{}.rtol = "
+                      "value` instead.".format(cls.__name__, cls.__name__),
+                      DeprecationWarning)
+        cls.rtol = value
 
     @property
     def _rng(self):
@@ -182,6 +216,63 @@ class QuantumState:
         """
         raise NotImplementedError(
             "{} does not support scalar multiplication".format(type(self)))
+
+    def add(self, other):
+        """Return the linear combination self + other.
+
+        DEPRECATED: use ``state + other`` instead.
+
+        Args:
+            other (QuantumState): a quantum state object.
+
+        Returns:
+            LinearOperator: the linear combination self + other.
+
+        Raises:
+            QiskitError: if other is not a quantum state, or has
+                         incompatible dimensions.
+        """
+        warnings.warn("`{}.add` method is deprecated, use + binary operator"
+                      "`state + other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(other)
+
+    def subtract(self, other):
+        """Return the linear operator self - other.
+
+        DEPRECATED: use ``state - other`` instead.
+
+        Args:
+            other (QuantumState): a quantum state object.
+
+        Returns:
+            LinearOperator: the linear combination self - other.
+
+        Raises:
+            QiskitError: if other is not a quantum state, or has
+                         incompatible dimensions.
+        """
+        warnings.warn("`{}.subtract` method is deprecated, use - binary operator"
+                      "`state - other` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._add(-other)
+
+    def multiply(self, other):
+        """Return the scalar multipled state other * self.
+
+        Args:
+            other (complex): a complex number.
+
+        Returns:
+            QuantumState: the scalar multipled state other * self.
+
+        Raises:
+            QiskitError: if other is not a valid complex number.
+        """
+        warnings.warn("`{}.multiply` method is deprecated, use * binary operator"
+                      "`other * state` instead.".format(self.__class__),
+                      DeprecationWarning)
+        return self._multiply(other)
 
     @abstractmethod
     def evolve(self, other, qargs=None):

@@ -452,11 +452,10 @@ def align_equispaced(schedule: Schedule,
     Notes:
         This context is convenient for writing PDD or Hahn echo sequence for example.
     """
-    total_duration = sum([child.duration for _, child in schedule._children])
-    if duration and duration < total_duration:
+    if duration and duration < schedule.duration:
         return schedule
-
-    total_delay = duration - total_duration
+    else:
+        total_delay = duration - schedule.duration
 
     if len(schedule._children) > 1:
         # Calculate the interval in between sub-schedules.

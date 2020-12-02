@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Added `meas_level=1` (kerneled data) support to qasm circuit jobs.
-    `meas_return` is also enabled when level 1 is specified.

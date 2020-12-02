@@ -314,15 +314,8 @@ class SabreSwap(TransformationPass):
         the remaining virtual gates that must be applied.
         """
         if heuristic == 'basic':
-            if len(front_layer) > 1:
-                return self.coupling_map.distance_matrix[
-                    tuple(zip(*[[
-                        layout[q] for q in node.qargs] for node in front_layer]))].sum()
-            elif len(front_layer) == 1:
-                return self.coupling_map.distance(
-                    *[layout[q] for q in list(front_layer)[0].qargs])
-            else:
-                return 0
+            return sum(self.coupling_map.distance(*[layout[q] for q in node.qargs])
+                       for node in front_layer)
 
         elif heuristic == 'lookahead':
             first_cost = self._score_heuristic('basic', front_layer, [], layout)
