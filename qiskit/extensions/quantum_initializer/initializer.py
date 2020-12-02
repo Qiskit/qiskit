@@ -315,7 +315,7 @@ class Initialize(Instruction):
                                "{1}".format(type(parameter), self.name))
 
 
-def initialize(self, params, qubits):
+def initialize(self, params, qubits=None):
     """
     Qubit initializalition is done by appending instructions to the quantum circuit (by
     calling Initialize(params)) and the qubits we wish to iniatilize. Note that the
@@ -387,9 +387,15 @@ def initialize(self, params, qubits):
              └────────────────────────────────────┘
 
     """
-    if not isinstance(qubits, list):
-        qubits = [qubits]
-    return self.append(Initialize(params), qubits)
+    if qubits is None:
+        qubits = self.qubits
+    else:
+        if isinstance(qubits, int):
+            qubits = [qubits]
+        qubits = self._bit_argument_conversion(qubits, self.qubits)
+
+    num_qubits = None if not isinstance(params, int) else len(qubits)
+    return self.append(Initialize(params, num_qubits), qubits)
 
 
 QuantumCircuit.initialize = initialize
