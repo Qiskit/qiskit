@@ -18,6 +18,7 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -234,6 +235,86 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         self.assertTrue(
             Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
                 Operator(result.bind_parameters({theta: 3.14, phi: 10}))))
+
+    def test_identity_xyx(self):
+        """Test lone identity gates in rx ry basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.rx(0, 1)
+        circuit.ry(0, 0)
+        basis = ['rxx', 'rx', 'ry']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_zxz(self):
+        """Test lone identity gates in rx rz basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.rx(0, 1)
+        circuit.rz(0, 0)
+        basis = ['cz', 'rx', 'rz']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_psx(self):
+        """Test lone identity gates in p sx basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.p(0, 0)
+        basis = ['cx', 'p', 'sx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u(self):
+        """Test lone identity gates in u basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.u(0, 0, 0, 0)
+        basis = ['cx', 'u']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u3(self):
+        """Test lone identity gates in u3 basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.append(U3Gate(0, 0, 0), [0])
+        basis = ['cx', 'u3']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_r(self):
+        """Test lone identity gates in r basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.r(0, 0, 0)
+        basis = ['r']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u1x(self):
+        """Test lone identity gates in u1 rx basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.u1(0, 0)
+        circuit.rx(0, 1)
+        basis = ['cx', 'u1', 'rx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
 
 
 if __name__ == '__main__':
