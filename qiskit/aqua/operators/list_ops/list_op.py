@@ -170,9 +170,9 @@ class ListOp(OperatorBase):
         #  always come in pairs, so an AdjointOp holding a reference could save copying.
         if self.__class__ == ListOp:
             return ListOp([op.adjoint() for op in self.oplist],  # type: ignore
-                          **self._state(coeff=np.conj(self.coeff)))  # coeff is conjugated
+                          **self._state(coeff=self.coeff.conjugate()))  # coeff is conjugated
         return self.__class__([op.adjoint() for op in self.oplist],  # type: ignore
-                              coeff=np.conj(self.coeff), abelian=self.abelian)
+                              coeff=self.coeff.conjugate(), abelian=self.abelian)
 
     def traverse(self,
                  convert_fn: Callable,

@@ -24,6 +24,7 @@ from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.circuit_op import CircuitOp
+from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
 from ..state_fns.state_fn import StateFn
@@ -130,6 +131,9 @@ class PauliBasisChange(ConverterBase):
             The converted Operator.
 
         """
+        # TODO: implement direct way
+        if isinstance(operator, PauliSumOp):
+            operator = operator.to_pauli_op()
 
         if isinstance(operator, (Pauli, PrimitiveOp)):
             cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator)

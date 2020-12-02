@@ -80,7 +80,7 @@ class CircuitOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def adjoint(self) -> OperatorBase:
-        return CircuitOp(self.primitive.inverse(), coeff=np.conj(self.coeff))  # type: ignore
+        return CircuitOp(self.primitive.inverse(), coeff=self.coeff.conjugate())  # type: ignore
 
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, CircuitOp) or not self.coeff == other.coeff:

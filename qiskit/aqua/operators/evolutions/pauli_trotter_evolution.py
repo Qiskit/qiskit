@@ -22,6 +22,7 @@ from .evolution_base import EvolutionBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..primitive_ops.pauli_op import PauliOp
+from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..converters.pauli_basis_change import PauliBasisChange
 # TODO uncomment when we implement Abelian grouped evolution.
@@ -101,6 +102,8 @@ class PauliTrotterEvolution(EvolutionBase):
 
     def _recursive_convert(self, operator: OperatorBase) -> OperatorBase:
         if isinstance(operator, EvolvedOp):
+            if isinstance(operator.primitive, PauliSumOp):
+                operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {'Pauli'} == operator.primitive_strings():
                 logger.warning('Evolved Hamiltonian is not composed of only Paulis, converting to '
                                'Pauli representation, which can be expensive.')

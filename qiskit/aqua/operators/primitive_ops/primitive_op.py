@@ -23,8 +23,9 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info import Operator as MatrixOperator
 
-from ..operator_base import OperatorBase
 from ..legacy.base_operator import LegacyBaseOperator
+from ..list_ops.summed_op import SummedOp
+from ..operator_base import OperatorBase
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class PrimitiveOp(OperatorBase):
     def __new__(cls,
                 primitive:
                 Optional[Union[Instruction, QuantumCircuit, List,
-                               np.ndarray, spmatrix, MatrixOperator, Pauli]] = None,
+                               np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> 'PrimitiveOp':
         """ A factory method to produce the correct type of PrimitiveOp subclass
         based on the primitive passed in. Primitive and coeff arguments are passed into
@@ -82,13 +83,17 @@ class PrimitiveOp(OperatorBase):
             from .pauli_op import PauliOp
             return PauliOp.__new__(PauliOp)
 
+        if isinstance(primitive, SparsePauliOp):
+            from .pauli_sum_op import PauliSumOp
+            return PauliSumOp.__new__(PauliSumOp)
+
         raise TypeError('Unsupported primitive type {} passed into PrimitiveOp '
                         'factory constructor'.format(type(primitive)))
 
     def __init__(self,
                  primitive:
                  Optional[Union[Instruction, QuantumCircuit, List,
-                                np.ndarray, spmatrix, MatrixOperator, Pauli]] = None,
+                                np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
                  coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
         """
             Args:
@@ -264,9 +269,10 @@ class PrimitiveOp(OperatorBase):
         """ Returns a ``CircuitOp`` equivalent to this Operator. """
         # pylint: disable=import-outside-toplevel
         from .circuit_op import CircuitOp
+        if self.coeff == 0:
+            return CircuitOp(QuantumCircuit(self.num_qubits), coeff=0)
         return CircuitOp(self.to_circuit(), coeff=self.coeff)
 
-    # TODO change the PauliOp to depend on SparsePauliOp as its primitive
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a sum of ``PauliOp`` s equivalent to this Operator. """
         mat_op = self.to_matrix_op(massive=massive)
@@ -275,7 +281,18 @@ class PrimitiveOp(OperatorBase):
             # pylint: disable=import-outside-toplevel
             from ..operator_globals import I
             return (I ^ self.num_qubits) * 0.0
+        if len(sparse_pauli) == 1:
+            label, coeff = sparse_pauli.to_list()[0]
+            coeff = coeff.real if np.isreal(coeff) else coeff
+            return PrimitiveOp(Pauli.from_label(label), coeff * self.coeff)
 
-        return sum([PrimitiveOp(Pauli.from_label(label),  # type: ignore
-                                coeff.real if coeff == coeff.real else coeff)
-                    for (label, coeff) in sparse_pauli.to_list()]) * self.coeff
+        return SummedOp(
+            [
+                PrimitiveOp(
+                    Pauli.from_label(label),  # type: ignore
+                    coeff.real if coeff == coeff.real else coeff,
+                )
+                for (label, coeff) in sparse_pauli.to_list()
+            ],
+            self.coeff,
+        )

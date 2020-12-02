@@ -75,7 +75,7 @@ class VectorStateFn(StateFn):
 
     def adjoint(self) -> OperatorBase:
         return VectorStateFn(self.primitive.conjugate(),
-                             coeff=np.conj(self.coeff),
+                             coeff=self.coeff.conjugate(),
                              is_measurement=(not self.is_measurement))
 
     def permute(self, permutation: List[int]) -> 'VectorStateFn':

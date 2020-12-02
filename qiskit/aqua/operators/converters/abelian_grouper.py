@@ -24,6 +24,7 @@ from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.pauli_op import PauliOp
+from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..state_fns.operator_state_fn import OperatorStateFn
 
 
@@ -60,6 +61,10 @@ class AbelianGrouper(ConverterBase):
         """
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..evolutions.evolved_op import EvolvedOp
+
+        # TODO: implement direct way
+        if isinstance(operator, PauliSumOp):
+            operator = operator.to_pauli_op()
 
         if isinstance(operator, ListOp):
             if isinstance(operator, SummedOp) and all(isinstance(op, PauliOp)
@@ -99,6 +104,10 @@ class AbelianGrouper(ConverterBase):
             warnings.warn('Options `fast` and `use_nx` of `AbelianGrouper.group_subops` are '
                           'no longer used and are now deprecated and will be removed no '
                           'sooner than 3 months following the 0.8.0 release.')
+
+        # TODO: implement direct way
+        if isinstance(list_op, PauliSumOp):
+            list_op = list_op.to_pauli_op()
 
         for op in list_op.oplist:
             if not isinstance(op, PauliOp):

@@ -105,7 +105,7 @@ class DictStateFn(StateFn):
 
     def adjoint(self) -> OperatorBase:
         return DictStateFn({b: np.conj(v) for (b, v) in self.primitive.items()},
-                           coeff=np.conj(self.coeff),
+                           coeff=self.coeff.conjugate(),
                            is_measurement=(not self.is_measurement))
 
     def permute(self, permutation: List[int]) -> 'DictStateFn':

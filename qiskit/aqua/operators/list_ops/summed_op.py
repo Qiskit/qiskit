@@ -127,6 +127,11 @@ class SummedOp(ListOp):
         if isinstance(reduced_ops, SummedOp):
             reduced_ops = reduced_ops.collapse_summands()
 
+        # pylint: disable=cyclic-import
+        from ..primitive_ops.pauli_sum_op import PauliSumOp
+        if isinstance(reduced_ops, PauliSumOp):
+            reduced_ops = reduced_ops.reduce()
+
         if isinstance(reduced_ops, SummedOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]
         else:
@@ -163,6 +168,21 @@ class SummedOp(ListOp):
             accum += self.oplist[i].to_matrix_op(massive=massive)  # type: ignore
 
         return accum * self.coeff
+
+    def to_pauli_op(self, massive: bool = False) -> OperatorBase:
+        # pylint: disable=cyclic-import
+        from ..state_fns.state_fn import StateFn
+        pauli_sum = SummedOp(
+            [
+                op.to_pauli_op(massive=massive)  # type: ignore
+                if not isinstance(op, StateFn)
+                else op
+                for op in self.oplist
+            ],
+            coeff=self.coeff,
+            abelian=self.abelian,
+        ).reduce()
+        return pauli_sum.to_pauli_op()  # type: ignore
 
     def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
         # We do this recursively in case there are SummedOps of PauliOps in oplist.

@@ -97,7 +97,7 @@ class MatrixOp(PrimitiveOp):
 
     def adjoint(self) -> OperatorBase:
         return MatrixOp(self.primitive.conjugate().transpose(),  # type: ignore
-                        coeff=np.conj(self.coeff))
+                        coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, MatrixOp):
@@ -214,7 +214,7 @@ class MatrixOp(PrimitiveOp):
 
     # Op Conversions
 
-    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
+    def to_matrix_op(self, massive: bool = False) -> "MatrixOp":
         return self
 
     def to_instruction(self) -> Instruction:

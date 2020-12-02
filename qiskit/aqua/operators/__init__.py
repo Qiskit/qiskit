@@ -139,7 +139,7 @@ from .legacy import (LegacyBaseOperator, WeightedPauliOperator, Z2Symmetries,
 
 # New Operators
 from .operator_base import OperatorBase
-from .primitive_ops import PrimitiveOp, PauliOp, MatrixOp, CircuitOp
+from .primitive_ops import PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp
 from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
                         CircuitStateFn, OperatorStateFn)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
@@ -172,7 +172,7 @@ __all__ = [
     'MatrixOperator',
     # Operators
     'OperatorBase',
-    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp',
+    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp',
     'StateFn', 'DictStateFn', 'VectorStateFn', 'CircuitStateFn', 'OperatorStateFn',
     'CVaRMeasurement',
     'ListOp', 'SummedOp', 'ComposedOp', 'TensoredOp',
