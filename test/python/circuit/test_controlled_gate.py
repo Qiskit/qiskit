@@ -82,6 +82,16 @@ class TestControlledGate(QiskitTestCase):
         theta = 0.5
         self.assertEqual(U1Gate(theta).control(), CU1Gate(theta))
 
+        circ = QuantumCircuit(1)
+        circ.append(U1Gate(theta), circ.qregs[0])
+
+        unroller = Unroller(['cx', 'u', 'p'])
+        ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
+        ctrl_circ = QuantumCircuit(2)
+        ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
+        ctrl_circ = ctrl_circ.decompose().decompose()
+        self.assertEqual(ctrl_circ.size(), 1)
+
     def test_controlled_rz(self):
         """Test the creation of a controlled RZ gate."""
         theta = 0.5
@@ -108,6 +118,17 @@ class TestControlledGate(QiskitTestCase):
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(U3Gate(theta, phi, lamb).control(),
                          CU3Gate(theta, phi, lamb))
+
+        circ = QuantumCircuit(1)
+        circ.append(U3Gate(theta, phi, lamb), circ.qregs[0])
+
+        unroller = Unroller(['cx', 'u', 'p'])
+        ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
+        ctrl_circ = QuantumCircuit(2)
+        ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
+        ctrl_circ = ctrl_circ.decompose().decompose()
+
+        self.assertEqual(ctrl_circ.size(), 1)
 
     def test_controlled_cx(self):
         """Test creation of controlled cx gate"""
