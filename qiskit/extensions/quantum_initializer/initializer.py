@@ -363,7 +363,83 @@ class Initialize(Instruction):
 
 
 def initialize(self, params, qubits=None):
-    """Apply initialize to circuit."""
+    """
+    Qubit initializalition is done by appending instructions to the quantum circuit (by
+    calling Initialize(params)) and the qubits we wish to iniatilize. Note that the
+    qubits are first set to |0> and then the desired state is achieved by applying
+    a state preparing unitary.
+    Args:
+        params (str or list):
+            * list: vector of complex amplitudes to initialize to.
+            * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+                Notice the order of the labels is reversed with respect to the qubit index to
+                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+                qubit one to `|0>`
+        qubits (QuantumRegister or int):
+            * QuantumRegister: A list of qubits to be initialized
+            * int: Index of qubit to initialzied
+    Returns:
+        qiskit.circuit.Instruction: a handle to the instruction that was just initialized
+
+
+    Examples:
+        Prepare a qubit in the anti-symmetric state 1/sqrt(2)(|0> - |1>).
+
+        .. code-block::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.initialize([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+            circuit.draw()
+
+        output:
+             ┌──────────────────────────────┐
+        q_0: ┤ initialize(0.70711,-0.70711) ├
+             └──────────────────────────────┘
+
+
+        Initialize from a string two qubits in the state |10>.
+        The order of the labels is reversed with respect to qubit index.
+        More information about labels for basis states are in
+        :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+
+        .. code-block::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.initialize('01', circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌──────────────────┐
+        q_0: ┤0                 ├
+             │  initialize(0,1) │
+        q_1: ┤1                 ├
+             └──────────────────┘
+
+
+        Initialize two qubits from an array of complex amplitudes
+        .. code-block::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌────────────────────────────────────┐
+        q_0: ┤0                                   ├
+             │  initialize(0,0.70711,-0.70711j,0) │
+        q_1: ┤1                                   ├
+             └────────────────────────────────────┘
+    """
     if qubits is None:
         qubits = self.qubits
     else:
