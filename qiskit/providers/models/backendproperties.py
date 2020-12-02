@@ -18,7 +18,7 @@ from typing import Any, Iterable, Tuple, Union
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.util import apply_prefix
+from qiskit.utils.units import apply_prefix
 
 
 class Nduv:
