@@ -342,8 +342,9 @@ def initialize(self, params, qubits=None):
         Prepare a qubit in the anti-symmetric state 1/sqrt(2)(|0> - |1>).
 
         .. jupyter-execute::
-            import numpy as np
+
             from qiskit import QuantumCircuit
+
             circuit = QuantumCircuit(1)
             circuit.initialize([1/np.sqrt(2), -1/np.sqrt(2)], 0)
             circuit.draw()
@@ -359,8 +360,9 @@ def initialize(self, params, qubits=None):
         :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
 
         .. jupyter-execute::
-            import numpy as np
+
             from qiskit import QuantumCircuit
+
             circuit = QuantumCircuit(2)
             circuit.initialize('01', circuit.qubits)
             circuit.draw()
@@ -374,8 +376,9 @@ def initialize(self, params, qubits=None):
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
-            import numpy as np
+
             from qiskit import QuantumCircuit
+
             circuit = QuantumCircuit(2)
             circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
             circuit.draw()
