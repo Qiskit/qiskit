@@ -1219,7 +1219,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction()
 
-        self.assertEqual(gate.params, [phi, theta])
+        self.assertEqual(gate.params, [theta, phi])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -1266,7 +1266,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [phi_p, theta_p])
+        self.assertEqual(gate.params, [theta_p, phi_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
