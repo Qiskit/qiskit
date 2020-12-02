@@ -84,3 +84,10 @@ from .version import _get_qiskit_versions  # noqa
 
 
 __qiskit_version__ = _get_qiskit_versions()
+
+
+if sys.version_info[0] == 3 and sys.version_info[1] == 6:
+    warnings.warn(
+        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
+        "Support for running Qiskit with Python 3.6 will be removed in a "
+        "future release.", DeprecationWarning)
