@@ -19,6 +19,7 @@ from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock.utils.json_decoder import decode_pulse_defaults
 
+
 class FakePulseBackend(FakeQasmBackend):
     """A fake pulse backend."""
 
