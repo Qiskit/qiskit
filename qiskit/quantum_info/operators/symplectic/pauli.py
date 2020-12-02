@@ -70,7 +70,9 @@ class Pauli(BasePauli):
 
         Using ``str`` to convert a ``Pauli`` to a string will truncate the
         returned string for large numbers of qubits while :meth:`to_label`
-        will return the full string with no truncation.
+        will return the full string with no truncation. The default
+        truncation length is 100 characters. The default value can be
+        changed using the class method :meth:`set_truncation`.
 
     **Array Representation**
 
@@ -122,6 +124,8 @@ class Pauli(BasePauli):
         print('P[:] =', repr(P[:]))
         print('P[::-1] =, repr(P[::-1]))
     """
+    # Set the max Pauli string size before truncation
+    __truncate__ = 100
 
     # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, z=None, x=None, phase=None, *, label=None):
@@ -175,11 +179,23 @@ class Pauli(BasePauli):
 
     def __str__(self):
         """Print representation."""
-        if self.num_qubits > 100:
-            front = self[-2:].to_label()
-            back = self[:2].to_label()
-            return "%s...%s" % (front, back)
+        if self.__truncate__ and self.num_qubits > self.__truncate__:
+            front = self[-self.__truncate__:].to_label()
+            return front + '...'
         return self.to_label()
+
+    @classmethod
+    def set_truncation(cls, val):
+        """Set the max number of Pauli characters to display before truncation/
+
+        Args:
+            val (int): the number of characters.
+
+        .. note::
+
+            Truncation will be disabled if the truncation value is set to 0.
+        """
+        cls.__truncate__ = int(val)
 
     def __eq__(self, other):
         """Test if two Paulis are equal."""
