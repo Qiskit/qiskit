@@ -390,5 +390,4 @@ class ParameterExpression:
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)
-        else:
-            return False
+        return False
