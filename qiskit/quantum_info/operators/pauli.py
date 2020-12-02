@@ -88,7 +88,8 @@ class Pauli:
             self._init_from_bool(z, x)
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     @classmethod

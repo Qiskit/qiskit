@@ -72,7 +72,8 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+           return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     def __repr__(self):

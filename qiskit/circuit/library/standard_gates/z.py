@@ -106,9 +106,8 @@ class ZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, -1]], dtype=complex)
+                            [0, -1]], dtype=dtype)
 
 
 class CZGate(ControlledGate):
@@ -172,14 +171,13 @@ class CZGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""
-        # pylint: disable=unused-argument
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, 1, 0],
-                                [0, 0, 0, -1]], dtype=complex)
+                                [0, 0, 0, -1]], dtype=dtype)
         else:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, -1, 0],
-                                [0, 0, 0, 1]], dtype=complex)
+                                [0, 0, 0, 1]], dtype=dtype)

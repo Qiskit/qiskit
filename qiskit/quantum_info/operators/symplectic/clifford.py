@@ -101,7 +101,8 @@ class Clifford(BaseOperator):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     def __init__(self, data, validate=True):

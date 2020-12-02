@@ -73,9 +73,8 @@ class TGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
 
 
 class TdgGate(Gate):
@@ -132,6 +131,5 @@ class TdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
+                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)

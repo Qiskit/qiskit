@@ -56,9 +56,8 @@ class Delay(Instruction):
 
     def __array__(self, dtype=None):
         """Return the identity matrix."""
-        # pylint: disable=unused-argument
         return np.array([[1, 0],
-                         [0, 1]], dtype=complex)
+                         [0, 1]], dtype=dtype)
 
     def __repr__(self):
         """Return the official string representing the delay."""

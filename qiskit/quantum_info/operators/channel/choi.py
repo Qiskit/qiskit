@@ -128,7 +128,8 @@ class Choi(QuantumChannel):
         super().__init__(choi_mat, input_dims, output_dims, num_qubits, 'Choi')
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
         return self.data
 
     @property

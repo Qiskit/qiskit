@@ -103,7 +103,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         super().__init__(self._automatic_dims(dims, shape[0]))
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
         return self.data
 
     def __eq__(self, other):

@@ -103,11 +103,10 @@ class RZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZ gate."""
-        # pylint: disable=unused-argument
         import numpy as np
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[np.exp(-ilam2), 0],
-                         [0, np.exp(ilam2)]], dtype=complex)
+                         [0, np.exp(ilam2)]], dtype=dtype)
 
 
 class CRZGate(ControlledGate):
@@ -206,7 +205,6 @@ class CRZGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRZ gate."""
-        # pylint: disable=unused-argument
         import numpy
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
@@ -214,10 +212,10 @@ class CRZGate(ControlledGate):
                                 [0, numpy.exp(-arg), 0, 0],
                                 [0, 0, 1, 0],
                                 [0, 0, 0, numpy.exp(arg)]],
-                               dtype=complex)
+                               dtype=dtype)
         else:
             return numpy.array([[numpy.exp(-arg), 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, numpy.exp(arg), 0],
                                 [0, 0, 0, 1]],
-                               dtype=complex)
+                               dtype=dtype)

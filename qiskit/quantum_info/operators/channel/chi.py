@@ -120,7 +120,8 @@ class Chi(QuantumChannel):
         super().__init__(chi_mat, None, None, num_qubits, 'Chi')
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
         return self.data
 
     @property

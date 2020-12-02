@@ -146,7 +146,6 @@ class RZXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZX gate."""
-        # pylint: disable=unused-argument
         import numpy
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
@@ -155,4 +154,4 @@ class RZXGate(Gate):
                             [0, cos, 0, isin],
                             [-isin, 0, cos, 0],
                             [0, isin, 0, cos]],
-                           dtype=complex)
+                           dtype=dtype)

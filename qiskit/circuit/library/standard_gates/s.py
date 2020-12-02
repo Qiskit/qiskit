@@ -72,9 +72,8 @@ class SGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, 1j]], dtype=complex)
+                            [0, 1j]], dtype=dtype)
 
 
 class SdgGate(Gate):
@@ -131,6 +130,5 @@ class SdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, -1j]], dtype=complex)
+                            [0, -1j]], dtype=dtype)

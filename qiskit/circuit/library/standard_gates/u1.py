@@ -120,9 +120,8 @@ class U1Gate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the U1 gate."""
-        # pylint: disable=unused-argument
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
+        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
 
 class CU1Gate(ControlledGate):
@@ -216,20 +215,19 @@ class CU1Gate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
-        # pylint: disable=unused-argument
         eith = numpy.exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, 1, 0],
                                 [0, 0, 0, eith]],
-                               dtype=complex)
+                               dtype=dtype)
         else:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, eith, 0],
                                 [0, 0, 0, 1]],
-                               dtype=complex)
+                               dtype=dtype)
 
 
 class MCU1Gate(ControlledGate):

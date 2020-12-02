@@ -95,9 +95,8 @@ class HGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 1],
-                            [1, -1]], dtype=complex) / numpy.sqrt(2)
+                            [1, -1]], dtype=dtype) / numpy.sqrt(2)
 
 
 class CHGate(ControlledGate):
@@ -206,8 +205,7 @@ class CHGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CH gate."""
-        # pylint: disable=unused-argument
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

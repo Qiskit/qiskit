@@ -100,7 +100,6 @@ class RXXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
-        # pylint: disable=unused-argument
         import numpy
         theta2 = float(self.params[0]) / 2
         cos = numpy.cos(theta2)
@@ -109,4 +108,4 @@ class RXXGate(Gate):
             [cos, 0, 0, -isin],
             [0, cos, -isin, 0],
             [0, -isin, cos, 0],
-            [-isin, 0, 0, cos]], dtype=complex)
+            [-isin, 0, 0, cos]], dtype=dtype)

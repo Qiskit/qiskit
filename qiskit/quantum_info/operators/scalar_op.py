@@ -49,7 +49,8 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         super().__init__(*self._automatic_dims(dims, np.product(dims)))
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     def __repr__(self):

@@ -49,6 +49,5 @@ class IGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[1, 0],
-                            [0, 1]], dtype=complex)
+                            [0, 1]], dtype=dtype)

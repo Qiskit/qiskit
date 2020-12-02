@@ -107,9 +107,8 @@ class YGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Y gate."""
-        # pylint: disable=unused-argument
         return numpy.array([[0, -1j],
-                            [1j, 0]], dtype=complex)
+                            [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
@@ -168,11 +167,11 @@ class CYGate(ControlledGate):
     _matrix1 = numpy.array([[1, 0, 0, 0],
                             [0, 0, 0, -1j],
                             [0, 0, 1, 0],
-                            [0, 1j, 0, 0]], dtype=complex)
+                            [0, 1j, 0, 0]])
     _matrix0 = numpy.array([[0, 0, -1j, 0],
                             [0, 1, 0, 0],
                             [1j, 0, 0, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 1]])
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
@@ -205,8 +204,7 @@ class CYGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CY gate."""
-        # pylint: disable=unused-argument
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

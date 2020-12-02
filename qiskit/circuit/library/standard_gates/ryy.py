@@ -102,7 +102,6 @@ class RYYGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RYY gate."""
-        # pylint: disable=unused-argument
         theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
@@ -111,4 +110,4 @@ class RYYGate(Gate):
             [0, cos, -isin, 0],
             [0, -isin, cos, 0],
             [isin, 0, 0, cos]
-        ], dtype=complex)
+        ], dtype=dtype)

@@ -92,11 +92,10 @@ class RYGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RY gate."""
-        # pylint: disable=unused-argument
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin],
-                            [sin, cos]], dtype=complex)
+                            [sin, cos]], dtype=dtype)
 
 
 class CRYGate(ControlledGate):
@@ -189,7 +188,6 @@ class CRYGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
-        # pylint: disable=unused-argument
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
@@ -198,10 +196,10 @@ class CRYGate(ControlledGate):
                                 [0, cos, 0, -sin],
                                 [0, 0, 1, 0],
                                 [0, sin, 0, cos]],
-                               dtype=complex)
+                               dtype=dtype)
         else:
             return numpy.array([[cos, 0, -sin, 0],
                                 [0, 1, 0, 0],
                                 [sin, 0, cos, 0],
                                 [0, 0, 0, 1]],
-                               dtype=complex)
+                               dtype=dtype)

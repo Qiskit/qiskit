@@ -91,7 +91,6 @@ class UGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the U gate."""
-        # pylint: disable=unused-argument
         theta, phi, lam = [float(param) for param in self.params]
         return numpy.array([
             [
@@ -102,7 +101,7 @@ class UGate(Gate):
                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
             ]
-        ], dtype=complex)
+        ], dtype=dtype)
 
 
 class CUGate(ControlledGate):
@@ -209,7 +208,6 @@ class CUGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
-        # pylint: disable=unused-argument
         theta, phi, lam, gamma = [float(param) for param in self.params]
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
@@ -221,12 +219,12 @@ class CUGate(ControlledGate):
             return numpy.array([[1, 0, 0, 0],
                                 [0, a, 0, b],
                                 [0, 0, 1, 0],
-                                [0, c, 0, d]], dtype=complex)
+                                [0, c, 0, d]], dtype=dtype)
         else:
             return numpy.array([[a, 0, b, 0],
                                 [0, 1, 0, 0],
                                 [c, 0, d, 0],
-                                [0, 0, 0, 1]], dtype=complex)
+                                [0, 0, 0, 1]], dtype=dtype)
 
     @property
     def params(self):

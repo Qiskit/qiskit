@@ -110,10 +110,9 @@ class RZZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZZ gate."""
-        # pylint: disable=unused-argument
         import numpy
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
                             [0, numpy.exp(itheta2), 0, 0],
                             [0, 0, numpy.exp(itheta2), 0],
-                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)
+                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=dtype)

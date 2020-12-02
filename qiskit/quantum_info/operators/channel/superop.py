@@ -116,7 +116,8 @@ class SuperOp(QuantumChannel):
         super().__init__(super_mat, input_dims, output_dims, num_qubits, 'SuperOp')
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
         return self.data
 
     @property

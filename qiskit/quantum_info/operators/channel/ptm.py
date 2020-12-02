@@ -125,7 +125,8 @@ class PTM(QuantumChannel):
         super().__init__(ptm, None, None, num_qubits, 'PTM')
 
     def __array__(self, dtype=None):
-        # pylint: disable=unused-argument
+        if dtype:
+            np.asarray(self.data, dtype=dtype)
         return self.data
 
     @property
