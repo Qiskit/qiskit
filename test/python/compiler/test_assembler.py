@@ -140,6 +140,25 @@ class TestCircuitAssembler(QiskitTestCase):
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
 
+    def test_assemble_meas_level_meas_return(self):
+        """Test assembling a circuit schedule with `meas_level`."""
+        qobj = assemble(self.circ,
+                        meas_level=1,
+                        meas_return='single')
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 1)
+        self.assertEqual(qobj.config.meas_return, 'single')
+
+        # no meas_level set
+        qobj = assemble(self.circ)
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 2)
+        self.assertEqual(hasattr(qobj.config, 'meas_return'), False)
+
     def test_assemble_backend_rep_delays(self):
         """Check that rep_delay is properly set from backend values."""
         backend = FakeYorktown()
