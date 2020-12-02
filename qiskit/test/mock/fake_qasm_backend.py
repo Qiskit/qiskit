@@ -19,7 +19,8 @@ import os
 
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend
-from qiskit.test.mock.utils.json_decoder import decode_backend_configuration
+from qiskit.test.mock.utils.json_decoder import (decode_backend_configuration,
+                                                 decode_backend_properties)
 from qiskit.exceptions import QiskitError
 
 
@@ -56,6 +57,7 @@ class FakeQasmBackend(FakeBackend):
         if not self.props_filename:
             raise QiskitError("No properties file has been defined")
         props = self._load_json(self.props_filename)
+        decode_backend_properties(props)
         self._properties = BackendProperties.from_dict(props)
 
     def _load_json(self, filename):
