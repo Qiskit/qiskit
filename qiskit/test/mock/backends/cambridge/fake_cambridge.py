@@ -39,6 +39,7 @@ class FakeCambridge(FakeQasmBackend):
 
 
 class FakeCambridgeAlternativeBasis(FakeCambridge):
+    """A fake Cambridge backend with alternate 1q basis gates."""
 
     props_filename = "props_cambridge_alt.json"
 
