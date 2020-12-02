@@ -54,14 +54,10 @@ class LayoutTransformation(TransformationPass):
                 How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
+        self.coupling_map = coupling_map
         self.from_layout = from_layout
         self.to_layout = to_layout
-        if coupling_map:
-            self.coupling_map = coupling_map
-            graph = coupling_map.graph.to_undirected()
-        else:
-            self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph
+        graph = coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 
@@ -104,6 +100,7 @@ class LayoutTransformation(TransformationPass):
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
-        qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
-        dag.compose(perm_circ.circuit, qubits=qubits)
+        edge_map = {vqubit: dag.qubits[pqubit]
+                    for (pqubit, vqubit) in perm_circ.inputmap.items()}
+        dag.compose(perm_circ.circuit, edge_map=edge_map)
         return dag

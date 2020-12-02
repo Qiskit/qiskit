@@ -15,6 +15,7 @@
 A collection of useful quantum information functions for operators.
 """
 
+import warnings
 import numpy as np
 from scipy import sparse
 
@@ -34,7 +35,8 @@ except ImportError:
 def process_fidelity(channel,
                      target=None,
                      require_cp=True,
-                     require_tp=False):
+                     require_tp=False,
+                     require_cptp=False):
     r"""Return the process fidelity of a noisy quantum channel.
 
     This process fidelity :math:`F_{\text{pro}}` is given by
@@ -56,6 +58,8 @@ def process_fidelity(channel,
             [Default: True].
         require_tp (bool): require channel to be trace-preserving
             [Default: False].
+        require_cptp (bool): (DEPRECATED) require input channels to be
+            CPTP [Default: False].
 
     Returns:
         float: The process fidelity :math:`F_{\text{pro}}`.
@@ -85,6 +89,14 @@ def process_fidelity(channel,
                 'dimensions ({} != {}).'.format(channel.dim, target.dim))
 
     # Validate complete-positivity and trace-preserving
+    if require_cptp:
+        # require_cptp kwarg is DEPRECATED
+        # Remove in future qiskit version
+        warnings.warn(
+            "Please use `require_cp=True, require_tp=True` "
+            "instead of `require_cptp=True`.", DeprecationWarning)
+        require_cp = True
+        require_tp = True
     if require_cp or require_tp:
         # Validate target channel
         if target is not None:

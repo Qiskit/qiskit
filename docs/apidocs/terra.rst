@@ -30,6 +30,5 @@ Qiskit Terra API Reference
    transpiler
    transpiler_passes
    transpiler_preset
-   utils
    validation
    visualization
