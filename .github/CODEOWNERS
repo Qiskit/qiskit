@@ -9,4 +9,4 @@
 providers/            @Qiskit/terra-core @jyu00
 pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
 scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
-visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod
+visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod @nkanazawa1989

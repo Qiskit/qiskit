@@ -142,7 +142,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
-        run_config = _parse_circuit_args(parameter_binds, backend, parametric_pulses,
+        run_config = _parse_circuit_args(parameter_binds, backend, meas_level,
+                                         meas_return, parametric_pulses,
                                          **run_config_common_dict)
 
         # If circuits are parameterized, bind parameters and remove from run_config
@@ -327,7 +328,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     return run_config
 
 
-def _parse_circuit_args(parameter_binds, backend, parametric_pulses, **run_config):
+def _parse_circuit_args(parameter_binds, backend, meas_level, meas_return,
+                        parametric_pulses, **run_config):
     """Build a circuit RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
 
@@ -343,7 +345,16 @@ def _parse_circuit_args(parameter_binds, backend, parametric_pulses, **run_confi
                                                        [])
     if parametric_pulses:
         run_config_dict['parametric_pulses'] = parametric_pulses
-    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
+
+    if meas_level:
+        run_config_dict['meas_level'] = meas_level
+        # only enable `meas_return` if `meas_level` isn't classified
+        if meas_level != MeasLevel.CLASSIFIED:
+            run_config_dict['meas_return'] = meas_return
+
+    run_config = RunConfig(
+        **{k: v
+           for k, v in run_config_dict.items() if v is not None})
 
     return run_config
 
