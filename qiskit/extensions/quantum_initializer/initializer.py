@@ -28,6 +28,7 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
+from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -36,8 +37,7 @@ class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
-    flexible collection of qubit registers (assuming the qubits are in the
-    zero state).
+    flexible collection of qubit registers.
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
@@ -45,7 +45,8 @@ class Initialize(Instruction):
     def __init__(self, params, num_qubits=None):
         """Create new initialize composite.
 
-        params (str, list, or int):
+        params (str, list, int or Statevector):
+          * Statevector: Statevector to initialize to.
           * list: vector of complex amplitudes to initialize to.
           * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
@@ -60,11 +61,15 @@ class Initialize(Instruction):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         """
+        if isinstance(params, Statevector):
+            params = params.data
+
         if not isinstance(params, int) and num_qubits is not None:
             raise QiskitError("The num_qubits parameter to Initialize should only be"
                               " used when params is an integer")
         self._from_label = False
         self._from_int = False
+
         if isinstance(params, str):
             self._from_label = True
             num_qubits = len(params)
