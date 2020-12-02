@@ -100,7 +100,7 @@ def process_fidelity(channel,
     # Validate complete-positivity and trace-preserving
     for label, chan in [('Input', channel), ('Target', target)]:
         if isinstance(chan, Operator) and (require_cp or require_tp):
-            is_unitary = channel.is_unitary()
+            is_unitary = chan.is_unitary()
             # Validate as unitary
             if require_cp and not is_unitary:
                 raise QiskitError('{} channel is not completely-positive'.format(label))
@@ -108,9 +108,9 @@ def process_fidelity(channel,
                 raise QiskitError('{} channel is not trace-preserving'.format(label))
         elif chan is not None:
             # Validate as QuantumChannel
-            if require_cp and not channel.is_cp():
+            if require_cp and not chan.is_cp():
                 raise QiskitError('{} channel is not completely-positive'.format(label))
-            if require_tp and not channel.is_tp():
+            if require_tp and not chan.is_tp():
                 raise QiskitError('{} channel is not trace-preserving'.format(label))
 
     if isinstance(target, Operator):
