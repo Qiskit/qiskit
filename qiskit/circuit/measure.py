@@ -22,9 +22,9 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement"""
 
-    def __init__(self, name='measure', params=[]):
+    def __init__(self, name='measure', num_qubits=1, num_clbits=1, params=[]):
         """Create new measurement instruction."""
-        super().__init__(name, 1, 1, params=params)
+        super().__init__(name, num_qubits, num_clbits, params=params)
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
@@ -63,24 +63,35 @@ QuantumCircuit.measure = measure
 class MeasurePauli(Measure):
     """Perform a measurement with preceding basis change operations."""
 
-    def __init__(self, basis):
+    def __init__(self, basis, num_qubits, num_clbits):
         """Create a new basis transformation measurement.
 
         Args:
             basis (str): The target measurement basis,
                          consists of the characters 'X', 'Y', and 'Z'.
+            num_qubits (integer): number of qubits to measure.
+            num_clbits (integer): number of classical bits.
 
         Raises:
-            ValueError: If an unsupported basis is specified.
+            ValueError: If an unsupported basis is specified,
+                        or in case of mismatch between the number of qubits,
+                        classical bits, and basis length.
         """
 
         params = []
         for qubit_basis in basis.upper():
             if qubit_basis not in ['X', 'Y', 'Z']:
-                raise ValueError('Unsupported measurement basis, choose either of X, Y or Z.')
+                raise ValueError('Unsupported measurement basis, choose either of X, Y, or Z.')
             params.append(qubit_basis)
-        
-        super().__init__('measure_pauli', params)
+
+        if num_qubits != num_clbits or num_qubits != len(basis):
+            raise ValueError('Mismatch between the number of qubits, classical bits, and basis length.')
+
+        super().__init__('measure_pauli', num_qubits, num_clbits, params)
+
+    def broadcast_arguments(self, qargs, cargs):
+        yield [qarg[0] for qarg in qargs], \
+              [carg[0] for carg in cargs]
 
     def _define(self):
         definition = []
@@ -118,9 +129,10 @@ class MeasurePauli(Measure):
         self.definition = qc
 
 
-def measure_pauli(self, basis, qubit, cbit):
-    """Measure in the the Pauli X, Y or Z basis."""
-    return self.append(MeasurePauli(basis=basis), [qubit], [cbit])
+def measure_pauli(self, basis, qubits, clbits):
+    """Measure in the the Pauli X, Y, or Z basis."""
+    return self.append(MeasurePauli(basis, len(qubits), len(clbits)),
+                       qubits, clbits)
 
 
 QuantumCircuit.measure_pauli = measure_pauli

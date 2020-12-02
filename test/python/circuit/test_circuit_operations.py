@@ -277,13 +277,14 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(expected, circuit)
 
     def test_measure_pauli(self):
-        """Test measurements in Pauli X and Y basis."""
-        circuit = QuantumCircuit(3, 3)
-        circuit.measure_pauli('x', 0, 0)
-        circuit.measure_pauli('y', 1, 1)
-        circuit.measure_pauli('z', 2, 2)
+        """Test measurements in Pauli basis."""
+        circuit = QuantumCircuit(6, 6)
+        circuit.measure_pauli('x', [0], [0])
+        circuit.measure_pauli('y', [1], [1])
+        circuit.measure_pauli('z', [2], [2])
+        circuit.measure_pauli('xyz', [3, 4, 5], [3, 4, 5])
 
-        expected = QuantumCircuit(3, 3)
+        expected = QuantumCircuit(6, 6)
         # measurement in X basis
         expected.h(0)
         expected.measure(0, 0)
@@ -299,15 +300,16 @@ class TestCircuitOperations(QiskitTestCase):
         # measurement in Z basis
         expected.measure(2, 2)
 
-        self.assertEqual(expected, circuit.decompose())
-
-    def test_measure_pauli_broadcast(self):
-        """Test broadcasting works properly."""
-        circuit = QuantumCircuit(3, 3)
-        circuit.measure_pauli('z', [0, 1, 2], [0, 1, 2])
-
-        expected = QuantumCircuit(3, 3)
-        expected.measure([0, 1, 2], [0, 1, 2])
+        # multiple qubits
+        expected.h(3)
+        expected.measure(3, 3)
+        expected.h(3)
+        expected.sdg(4)
+        expected.h(4)
+        expected.measure(4, 4)
+        expected.h(4)
+        expected.s(4)
+        expected.measure(5, 5)
 
         self.assertEqual(expected, circuit.decompose())
 
