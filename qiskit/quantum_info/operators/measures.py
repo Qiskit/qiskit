@@ -345,6 +345,7 @@ def _cvxpy_check(name):
             ' Install version >=1.0.'.format(version))
 
 
+# pylint: disable=too-many-return-statements
 def _input_formatter(obj, fallback_class, func_name, arg_name):
     """Formatting function for input conversion"""
     # Empty input
