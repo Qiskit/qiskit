@@ -396,6 +396,7 @@ def initialize(self, params, qubits=None):
             circuit.initialize([1/np.sqrt(2), -1/np.sqrt(2)], 0)
             circuit.draw()
 
+        output:
              ┌──────────────────────────────┐
         q_0: ┤ initialize(0.70711,-0.70711) ├
              └──────────────────────────────┘
@@ -414,6 +415,7 @@ def initialize(self, params, qubits=None):
             circuit.initialize('01', circuit.qubits)
             circuit.draw()
 
+        output:
              ┌──────────────────┐
         q_0: ┤0                 ├
              │  initialize(0,1) │
@@ -430,12 +432,12 @@ def initialize(self, params, qubits=None):
             circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
             circuit.draw()
 
+        output:
              ┌────────────────────────────────────┐
         q_0: ┤0                                   ├
              │  initialize(0,0.70711,-0.70711j,0) │
         q_1: ┤1                                   ├
              └────────────────────────────────────┘
-
     """
     if qubits is None:
         qubits = self.qubits
