@@ -16,7 +16,6 @@ Statevector quantum state class.
 
 import copy
 import re
-import warnings
 from numbers import Number
 
 import numpy as np
@@ -25,11 +24,12 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class Statevector(QuantumState):
+class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
@@ -387,22 +387,6 @@ class Statevector(QuantumState):
         return self.evolve(
             Operator(reset, input_dims=dims, output_dims=dims),
             qargs=qargs)
-
-    def to_counts(self):
-        """Returns the statevector as a counts dict
-        of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()
 
     @classmethod
     def from_label(cls, label):
