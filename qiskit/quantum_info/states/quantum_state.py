@@ -15,7 +15,6 @@ Abstract QuantumState class.
 """
 
 import copy
-import warnings
 from abc import abstractmethod
 
 import numpy as np
@@ -183,63 +182,6 @@ class QuantumState:
         """
         raise NotImplementedError(
             "{} does not support scalar multiplication".format(type(self)))
-
-    def add(self, other):
-        """Return the linear combination self + other.
-
-        DEPRECATED: use ``state + other`` instead.
-
-        Args:
-            other (QuantumState): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self + other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        warnings.warn("`{}.add` method is deprecated, use + binary operator"
-                      "`state + other` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._add(other)
-
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        DEPRECATED: use ``state - other`` instead.
-
-        Args:
-            other (QuantumState): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        warnings.warn("`{}.subtract` method is deprecated, use - binary operator"
-                      "`state - other` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._add(-other)
-
-    def multiply(self, other):
-        """Return the scalar multipled state other * self.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            QuantumState: the scalar multipled state other * self.
-
-        Raises:
-            QiskitError: if other is not a valid complex number.
-        """
-        warnings.warn("`{}.multiply` method is deprecated, use * binary operator"
-                      "`other * state` instead.".format(self.__class__),
-                      DeprecationWarning)
-        return self._multiply(other)
 
     @abstractmethod
     def evolve(self, other, qargs=None):
