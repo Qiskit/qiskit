@@ -26,7 +26,8 @@ from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
 
 from qiskit.aqua import QuantumInstance, AquaError
-from qiskit.aqua.utils import get_subsystem_density_matrix, name_args
+from qiskit.aqua.utils import name_args
+from qiskit.quantum_info import partial_trace
 from qiskit.aqua.utils.validation import validate_min, validate_in_set
 from qiskit.aqua.algorithms import QuantumAlgorithm, AlgorithmResult
 from qiskit.aqua.components.initial_states import InitialState
@@ -302,11 +303,8 @@ class Grover(QuantumAlgorithm):
             num_bits = len(self._grover_operator.reflection_qubits)
             # trace out work qubits
             if qc.width() != num_bits:
-                rho = get_subsystem_density_matrix(
-                    statevector,
-                    range(num_bits, qc.width())
-                )
-                statevector = np.diag(rho)
+                rho = partial_trace(statevector, range(num_bits, qc.width()))
+                statevector = np.diag(rho.data)
             max_amplitude = max(statevector.max(), statevector.min(), key=abs)
             max_amplitude_idx = np.where(statevector == max_amplitude)[0][0]
             top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
