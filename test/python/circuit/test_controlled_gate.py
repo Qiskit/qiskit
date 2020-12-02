@@ -85,7 +85,7 @@ class TestControlledGate(QiskitTestCase):
         circ = QuantumCircuit(1)
         circ.append(U1Gate(theta), circ.qregs[0])
 
-        unroller = Unroller(['cx', 'u', 'u1'])
+        unroller = Unroller(['cx', 'u', 'p'])
         ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
         ctrl_circ = QuantumCircuit(2)
         ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
@@ -122,7 +122,7 @@ class TestControlledGate(QiskitTestCase):
         circ = QuantumCircuit(1)
         circ.append(U3Gate(theta, phi, lamb), circ.qregs[0])
 
-        unroller = Unroller(['cx', 'u', 'u1'])
+        unroller = Unroller(['cx', 'u', 'p'])
         ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
         ctrl_circ = QuantumCircuit(2)
         ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
