@@ -346,16 +346,18 @@ class TestInitialize(QiskitTestCase):
     def test_from_labels(self):
         """Initialize from labels."""
         desired_sv = Statevector.from_label('01+-lr')
-
         qc = QuantumCircuit(6)
         qc.initialize('01+-lr', range(6))
-        job = execute(qc, BasicAer.get_backend('statevector_simulator'))
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_sv)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
+
+    def test_from_int(self):
+        """Initialize from int."""
+        desired_sv = Statevector.from_label('110101')
+        qc = QuantumCircuit(6)
+        qc.initialize(53, range(6))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
 
 
 class TestInstructionParam(QiskitTestCase):
