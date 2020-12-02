@@ -15,6 +15,8 @@ Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
 import copy
+import sympy as sym
+from sympy.parsing.sympy_parser import parse_expr
 
 from qiskit.circuit import ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -424,9 +426,6 @@ class TemplateSubstitution:
                 the parameters bound. If no binding satisfies the
                 parameter constraints, returns None.
         """
-        import sympy as sym
-        from sympy.parsing.sympy_parser import parse_expr
-
         circuit_params, template_params = [], []
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)

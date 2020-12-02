@@ -711,15 +711,19 @@ class QuantumCircuit:
 
         Examples:
 
-            .. jupyter-execute::
-
-                from qiskit import QuantumCircuit
-                top = QuantumCircuit(1)
-                top.x(0);
-                bottom = QuantumCircuit(2)
-                bottom.cry(0.2, 0, 1);
-                tensored = bottom.tensor(top)
-                print(tensored.draw())
+            >>> from qiskit import QuantumCircuit
+            >>> top = QuantumCircuit(1)
+            >>> top.x(0);
+            >>> bottom = QuantumCircuit(2)
+            >>> bottom.cry(0.2, 0, 1);
+            >>> bottom.tensor(top).draw()
+                    ┌───┐
+            q_0: ───┤ X ├───
+                    └───┘
+            q_1: ─────■─────
+                 ┌────┴────┐
+            q_2: ┤ RY(0.2) ├
+                 └─────────┘
 
         Returns:
             QuantumCircuit: The tensored circuit (returns None if inplace==True).
@@ -2191,11 +2195,6 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
         return self.append(RGate(theta, phi), [qubit], [])
-
-    def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
-        """Apply :class:`~qiskit.circuit.library.RVGate`."""
-        from .library.generalized_gates.rv import RVGate
-        return self.append(RVGate(vx, vy, vz), [qubit], [])
 
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.RCCXGate`."""
