@@ -280,7 +280,8 @@ class TestOpConstruction(QiskitAquaTestCase):
 
     def test_summed_op_reduce(self):
         """Test SummedOp"""
-        sum_op = (X ^ X * 2) + (Y ^ Y)  # type: SummedOp
+        sum_op = (X ^ X * 2) + (Y ^ Y)  # type: PauliSumOp
+        sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
         with self.subTest('SummedOp test 1'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
@@ -288,6 +289,7 @@ class TestOpConstruction(QiskitAquaTestCase):
 
         sum_op = (X ^ X * 2) + (Y ^ Y)
         sum_op += Y ^ Y
+        sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
         with self.subTest('SummedOp test 2-a'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'YY'])
@@ -301,12 +303,13 @@ class TestOpConstruction(QiskitAquaTestCase):
 
         sum_op = (X ^ X * 2) + (Y ^ Y)
         sum_op += (Y ^ Y) + (X ^ X * 2)
+        sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
         with self.subTest('SummedOp test 3-a'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'YY', 'XX'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 1, 1, 2])
 
-        sum_op = sum_op.reduce()
+        sum_op = sum_op.reduce().to_pauli_op()
         with self.subTest('SummedOp test 3-b'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
@@ -338,7 +341,7 @@ class TestOpConstruction(QiskitAquaTestCase):
             self.assertListEqual([op.coeff for op in sum_op], [4, 3])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2)
-        sum_op += (X ^ X) * 2 + (Y ^ Y)
+        sum_op += ((X ^ X) * 2 + (Y ^ Y)).to_pauli_op()
         with self.subTest('SummedOp test 6-a'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'XX', 'YY'])
