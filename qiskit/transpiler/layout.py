@@ -129,6 +129,11 @@ class Layout():
     def __len__(self):
         return len(self._p2v)
 
+    def __eq__(self, other):
+        if isinstance(other, Layout):
+            return self._p2v == other._p2v and self._v2p == other._v2p
+        return False
+
     def copy(self):
         """Returns a copy of a Layout instance."""
         layout_copy = type(self)()
