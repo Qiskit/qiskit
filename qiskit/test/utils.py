@@ -14,7 +14,6 @@
 
 import logging
 import os
-import unittest
 from enum import Enum
 from itertools import product
 
@@ -64,32 +63,6 @@ def setup_test_logging(logger, log_level, filename):
     # to INFO if it is not a valid level.
     level = logging._nameToLevel.get(log_level, logging.INFO)
     logger.setLevel(level)
-
-
-class _AssertNoLogsContext(unittest.case._AssertLogsContext):
-    """A context manager used to implement TestCase.assertNoLogs()."""
-
-    # pylint: disable=inconsistent-return-statements
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
-        """
-        self.logger.handlers = self.old_handlers
-        self.logger.propagate = self.old_propagate
-        self.logger.setLevel(self.old_level)
-        if exc_type is not None:
-            # let unexpected exceptions pass through
-            return False
-
-        if self.watcher.records:
-            msg = 'logs of level {} or higher triggered on {}:\n'.format(
-                logging.getLevelName(self.level), self.logger.name)
-            for record in self.watcher.records:
-                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
-                                                  record.lineno,
-                                                  record.getMessage())
-
-            self._raiseFailure(msg)
 
 
 class Case(dict):
