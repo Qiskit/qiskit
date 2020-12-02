@@ -22,14 +22,41 @@ from qiskit.exceptions import QiskitError
 class ExperimentResultData:
     """Class representing experiment result data"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, counts=None, snapshots=None, memory=None,
+                 statevector=None, unitary=None, **kwargs):
         """Initialize an ExperimentalResult Data class
 
         Args:
-            kwargs (any): experiment result data key-value pairs.
+            counts (dict): A dictionary where the keys are the result in
+                hexadecimal as string of the format "0xff" and the value
+                is the number of counts for that result
+            snapshots (dict): A dictionary where the key is the snapshot
+                slot and the value is a dictionary of the snapshots for
+                that slot.
+            memory (list): A list of results per shot if the run had
+                memory enabled
+            statevector (list or numpy.array): A list or numpy array of the
+                statevector result
+            unitary (list or numpy.array): A list or numpy arrray of the
+                unitary result
+            kwargs (any): additional data key-value pairs.
         """
         self._data_attributes = []
-
+        if counts is not None:
+            self._data_attributes.append('counts')
+            self.counts = counts
+        if snapshots is not None:
+            self._data_attributes.append('snapshots')
+            self.snapshots = snapshots
+        if memory is not None:
+            self._data_attributes.append('memory')
+            self.memory = memory
+        if statevector is not None:
+            self._data_attributes.append('statevector')
+            self.statevector = statevector
+        if unitary is not None:
+            self._data_attributes.append('unitary')
+            self.unitary = unitary
         for key, value in kwargs.items():
             setattr(self, key, value)
             self._data_attributes.append(key)
@@ -97,7 +124,8 @@ class ExperimentResult:
             shots(int or tuple): if an integer the number of shots or if a
                 tuple the starting and ending shot for this data
             success (bool): True if the experiment was successful
-            data (ExperimentResultData): The data for the experiment's result
+            data (ExperimentResultData): The data for the experiment's
+                result
             meas_level (int): Measurement result level
             status (str): The status of the experiment
             seed (int): The seed used for simulation (if run on a simulator)
