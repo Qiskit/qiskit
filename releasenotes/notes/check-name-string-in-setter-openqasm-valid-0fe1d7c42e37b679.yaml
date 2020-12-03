@@ -2,8 +2,8 @@
 fixes:
   - |
     The :meth:`~qiskit.circuit.ParameterExpression.name` setter method of class
-    :class:`~qiskit.circuit.Register` previously did not check if the assigned
-    string to be is a valid register  name as per OPENQASM requirements. 
+    :class:`~qiskit.circuit.Register` previously did not check the assigned
+    string to be is a valid register name as per OPENQASM requirements. 
     This check is performed when the name is specified in the constructor.
     With this update, this check is also now performed in the setter method
 
