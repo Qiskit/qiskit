@@ -158,3 +158,35 @@ class QAOA(VQE):
                                     self._p,
                                     initial_state=self._initial_state,
                                     mixer_operator=self._mixer)
+
+    @property
+    def initial_state(self) -> Optional[Union[QuantumCircuit, InitialState]]:
+        """
+        Returns:
+            Returns the initial state.
+        """
+        return self._initial_state
+
+    @initial_state.setter
+    def initial_state(self, initial_state: Optional[Union[QuantumCircuit, InitialState]]) -> None:
+        """
+        Args:
+            initial_state: Initial state to set.
+        """
+        self._initial_state = initial_state
+
+    @property
+    def mixer(self) -> Union[QuantumCircuit, OperatorBase, LegacyBaseOperator]:
+        """
+        Returns:
+            Returns the mixer.
+        """
+        return self._mixer
+
+    @mixer.setter
+    def mixer(self, mixer: Union[QuantumCircuit, OperatorBase, LegacyBaseOperator]) -> None:
+        """
+        Args:
+            mixer: Mixer to set.
+        """
+        self._mixer = mixer
