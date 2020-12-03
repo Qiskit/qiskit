@@ -23,7 +23,7 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.util import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:

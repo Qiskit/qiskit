@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Python 3.6 support has been deprecated and will be removed in a future
+    release. When support is removed you will need to upgrade the Python
+    version you're using to Python 3.7 or above.
