@@ -90,3 +90,20 @@ class TestBitClass(QiskitTestCase):
         orig_reg.size = 3
         test_bit = bit.Bit(orig_reg, 0)
         self.assertNotEqual(test_bit, 3.14)
+
+
+class TestNewStyleBit(QiskitTestCase):
+    """Test behavior of new-style bits."""
+
+    def test_bits_do_not_require_registers(self):
+        """Verify we can create a bit outside the context of a register."""
+        self.assertIsInstance(bit.Bit(), bit.Bit)
+
+    def test_newstyle_bit_equality(self):
+        """Verify bits instances are equal only to themselves."""
+        bit1 = bit.Bit()
+        bit2 = bit.Bit()
+
+        self.assertEqual(bit1, bit1)
+        self.assertNotEqual(bit1, bit2)
+        self.assertNotEqual(bit1, 3.14)
