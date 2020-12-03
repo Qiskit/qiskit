@@ -363,10 +363,11 @@ class Initialize(Instruction):
 
 
 def initialize(self, params, qubits=None):
-    """Qubit initializalition is done by appending instructions to the quantum circuit (by
-    calling Initialize(params)) and the qubits we wish to initialize. Note that the
-    qubits are first set to `|0>` and then the desired state is achieved by applying
-    a state preparing unitary.
+    r"""Initialize qubits in a specific state.
+
+    Qubit initializalition is done by first resetting the qubits to :math:`|0\rangle`
+    followed by an state preparing unitary. Both these steps are included in the
+    `Initialize` instruction.
 
     Args:
         params (str or list or int):
@@ -387,7 +388,7 @@ def initialize(self, params, qubits=None):
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
 
     Examples:
-        Prepare a qubit in the anti-symmetric state 1/sqrt(2)(`|0>` - `|1>`).
+        Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
         .. code-block::
 
