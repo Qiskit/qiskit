@@ -84,6 +84,8 @@ class Register:
     @name.setter
     def name(self, value):
         """Set the register name."""
+        if self.name_format.match(value) is None:
+            raise CircuitError("%s is an invalid OPENQASM register name." % value)
         self._name = value
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
