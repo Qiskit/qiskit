@@ -16,6 +16,8 @@
 
 import unittest
 
+from qiskit import transpile
+from qiskit.pulse import Schedule
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
@@ -450,6 +452,13 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(circ.calibrations), 1)
         self.assertEqual(len(circ.calibrations['h']), 2)
         self.assertEqual(len(circ_left.calibrations), 1)
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        qc = transpile(qc, None, basis_gates=['h', 'cx'], coupling_map=[[0, 1], [1, 0]])
+        qc.add_calibration('cx', [0, 1], Schedule())
 
     def test_compose_one_liner(self):
         """Test building a circuit in one line, for fun.
