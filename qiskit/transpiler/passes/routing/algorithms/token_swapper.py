@@ -49,7 +49,8 @@ class ApproximateTokenSwapper(Generic[_V]):
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(self, graph: rx.PyGraph, seed: Union[int, np.random.Generator, None] = None) -> None:
+    def __init__(self, graph: rx.PyGraph,
+                 seed: Union[int, np.random.Generator, None] = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
