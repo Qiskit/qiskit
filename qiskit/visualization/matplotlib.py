@@ -535,10 +535,10 @@ class MatplotlibDrawer:
 
         # measurement basis label
         if basis != 'z':
-            self.ax.text(qx - 0.4 * WID, qy + 0.25 * HIG, basis.upper(),
-                         color=self._style.not_gate_lc,
-                         clip_on=True, zorder=PORDER_TEXT, fontsize=0.5 * self._style.fs,
-                         fontweight='bold')
+            self._ax.text(qx - 0.4 * WID, qy + 0.25 * HIG, basis.upper(),
+                          color=self._style['not_gate_lc'],
+                          clip_on=True, zorder=PORDER_TEXT, fontsize=0.5 * self._style['fs'],
+                          fontweight='bold')
 
     def _conditional(self, xy, istrue=False):
         xpos, ypos = xy

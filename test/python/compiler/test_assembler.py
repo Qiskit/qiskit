@@ -219,21 +219,19 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qobj = assemble(qc)
 
-        first_measure, second_measure, third_measure =
-        [op for op in qobj.experiments[0].instructions
-         if op.name == 'measure' or op.name == 'measure_pauli']
+        first_measure, second_measure, third_measure = [op for op
+                                                        in qobj.experiments[0].instructions
+                                                        if op.name == 'measure'
+                                                        or op.name == 'measure_pauli']
 
         self.assertTrue(hasattr(first_measure, 'register'))
         self.assertEqual(first_measure.register, first_measure.memory)
         self.assertTrue(hasattr(second_measure, 'register'))
         self.assertEqual(second_measure.register, second_measure.memory)
-        self.assertTrue(hasattr(second_measure, 'register'))
-        self.assertEqual(second_measure.register, second_measure.memory)
+        self.assertTrue(hasattr(third_measure, 'register'))
+        self.assertEqual(third_measure.register, second_measure.memory)
 
     def test_measure_pauli_to_registers_when_conditionals(self):
-        print('hi1')
-        return
-        print('hi2')
         """Verify assemble_circuits maps all measure ops on to a register slot
         for a circuit containing conditionals because of measure_pauli."""
         qr = QuantumRegister(3)
@@ -248,16 +246,17 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qobj = assemble(qc)
 
-        first_measure, second_measure, third_measure =
-        [op for op in qobj.experiments[0].instructions
-         if op.name == 'measure' or op.name == 'measure_pauli']
+        first_measure, second_measure, third_measure = [op for op
+                                                        in qobj.experiments[0].instructions
+                                                        if op.name == 'measure'
+                                                        or op.name == 'measure_pauli']
 
         self.assertTrue(hasattr(first_measure, 'register'))
         self.assertEqual(first_measure.register, first_measure.memory)
         self.assertTrue(hasattr(second_measure, 'register'))
         self.assertEqual(second_measure.register, second_measure.memory)
-        self.assertTrue(hasattr(second_measure, 'register'))
-        self.assertEqual(second_measure.register, second_measure.memory)
+        self.assertTrue(hasattr(third_measure, 'register'))
+        self.assertEqual(third_measure.register, second_measure.memory)
 
     def test_convert_to_bfunc_plus_conditional(self):
         """Verify assemble_circuits converts conditionals from QASM to Qobj."""

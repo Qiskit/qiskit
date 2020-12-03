@@ -22,6 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement"""
 
+    #ptlint disable dangerous-default-value
     def __init__(self, name='measure', num_qubits=1, num_clbits=1, params=[]):
         """Create new measurement instruction."""
         super().__init__(name, num_qubits, num_clbits, params=params)
@@ -99,6 +100,7 @@ class MeasurePauli(Measure):
         q = QuantumRegister(self.num_qubits, 'q')
         c = ClassicalRegister(self.num_clbits, 'c')
 
+        # pylint: disable=cyclic-import
         from .library import HGate, SGate, SdgGate
 
         for i, qubit_basis in enumerate(self.params):
@@ -121,9 +123,6 @@ class MeasurePauli(Measure):
             # apply inverse basis transformation for correct post-measurement state
             for gate in post_rotation:
                 definition += [(gate, [q[i]], [])]
-
-        # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
 
         qc = QuantumCircuit(q, c)
         qc._data = definition
