@@ -2043,7 +2043,10 @@ class QuantumCircuit:
         if isinstance(value, ParameterExpression):
             entry = self._parameter_table.pop(parameter)
             for new_parameter in value.parameters:
-                self._parameter_table[new_parameter] = entry
+                if new_parameter in self._parameter_table:
+                    self._parameter_table[new_parameter].extend(entry)
+                else:
+                    self._parameter_table[new_parameter] = entry
         else:
             del self._parameter_table[parameter]  # clear evaluated expressions
 
