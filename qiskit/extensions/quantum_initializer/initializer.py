@@ -363,11 +363,11 @@ class Initialize(Instruction):
 
 
 def initialize(self, params, qubits=None):
-    """
-    Qubit initializalition is done by appending instructions to the quantum circuit (by
+    """Qubit initializalition is done by appending instructions to the quantum circuit (by
     calling Initialize(params)) and the qubits we wish to iniatilize. Note that the
-    qubits are first set to |0> and then the desired state is achieved by applying
+    qubits are first set to `|0>` and then the desired state is achieved by applying
     a state preparing unitary.
+
     Args:
         params (str or list):
             * list: vector of complex amplitudes to initialize to.
@@ -375,16 +375,16 @@ def initialize(self, params, qubits=None):
                 :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
                 Notice the order of the labels is reversed with respect to the qubit index to
                 be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-                qubit one to `|0>`
+                qubit one to `|0>`.
         qubits (QuantumRegister or int):
-            * QuantumRegister: A list of qubits to be initialized
-            * int: Index of qubit to initialzied
+            * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * int: Index of qubit to initialzied [Default: None].
+
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
 
-
     Examples:
-        Prepare a qubit in the anti-symmetric state 1/sqrt(2)(|0> - |1>).
+        Prepare a qubit in the anti-symmetric state 1/sqrt(2)(`|0>` - `|1>`).
 
         .. code-block::
 
@@ -401,7 +401,7 @@ def initialize(self, params, qubits=None):
              └──────────────────────────────┘
 
 
-        Initialize from a string two qubits in the state |10>.
+        Initialize from a string two qubits in the state `|10>`.
         The order of the labels is reversed with respect to qubit index.
         More information about labels for basis states are in
         :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
