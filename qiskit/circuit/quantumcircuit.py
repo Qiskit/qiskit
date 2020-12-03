@@ -24,13 +24,13 @@ from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.util import is_main_process
+from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
