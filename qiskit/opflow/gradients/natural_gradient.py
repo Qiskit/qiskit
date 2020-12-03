@@ -17,6 +17,7 @@ from typing import List, Tuple, Callable, Optional, Union
 
 import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.exceptions import MissingOptionalLibraryError
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -279,9 +280,18 @@ class NaturalGradient(GradientBase):
         Returns:
            regularization coefficient, solution to the regularization inverse problem
 
-        """
+        Raises:
+            MissingOptionalLibraryError: scikit-learn not installed
 
-        from sklearn.linear_model import Ridge
+        """
+        try:
+            from sklearn.linear_model import Ridge
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname='scikit-learn',
+                name='_ridge',
+                pip_install='pip install scikit-learn') from ex
+
         reg = Ridge(alpha=lambda_, fit_intercept=fit_intercept, normalize=normalize, copy_X=copy_a,
                     max_iter=max_iter,
                     tol=tol, solver=solver, random_state=random_state)
@@ -340,8 +350,18 @@ class NaturalGradient(GradientBase):
         Returns:
             regularization coefficient, solution to the regularization inverse problem
 
+        Raises:
+            MissingOptionalLibraryError: scikit-learn not installed
+
         """
-        from sklearn.linear_model import Lasso
+        try:
+            from sklearn.linear_model import Lasso
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname='scikit-learn',
+                name='_lasso',
+                pip_install='pip install scikit-learn') from ex
+
         reg = Lasso(alpha=lambda_, fit_intercept=fit_intercept, normalize=normalize,
                     precompute=precompute,
                     copy_X=copy_a, max_iter=max_iter, tol=tol, warm_start=warm_start,
