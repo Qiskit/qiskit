@@ -20,23 +20,25 @@ from qiskit.result.result import Result
 from qiskit.result.postprocess import _bin_to_hex
 
 
-def marginal_counts(result, indices=None, format_marginal=False, inplace=True):
+def marginal_counts(result, indices=None, format_marginal=False, inplace=False):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
         result (dict or Result): result to be marginalized
-            (a Result object or a dict (str: int) of counts).
+            (a Result object or a dict(str, int) of counts).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If ``None`` (default), do not marginalize at all.
         format_marginal (bool): Default: False. If True, takes the output of
             marginalize and formats it with placeholders between cregs and
             for non-indices.
-        inplace (bool): Default: True. If True, changes the Result object
-            directly, else it makes a deepcopy
+        inplace (bool): Default: False. Operates on the original Result
+            argument if True, leading to loss of original Job Result.
+            It has no effect if ``result`` is a dict.
 
     Returns:
-        dict(str, int): a dictionary with the observed counts, marginalized to
-            only account for frequency of observations of bits of interest.
+        Result or dict(str, int): A Result object or a dictionary with
+            the observed counts, marginalized to only account for frequency
+            of observations of bits of interest.
 
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
