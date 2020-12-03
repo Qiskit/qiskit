@@ -948,7 +948,7 @@ class MatplotlibDrawer:
                     basis = 'z'
                 if op.name == 'meaure_pauli':
                     basis = op.params
-                        
+
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc, basis=basis)
 

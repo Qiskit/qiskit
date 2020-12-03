@@ -112,7 +112,7 @@ def _assemble_circuit(
             # If the experiment has conditional instructions, assume every
             # measurement result may be needed for a conditional gate.
             if (instruction.name == "measure" or instruction.name == "measure_pauli") \
-                   and is_conditional_experiment:
+               and is_conditional_experiment:
                 instruction.register = clbit_indices
 
         # To convert to a qobj-style conditional, insert a bfunc prior

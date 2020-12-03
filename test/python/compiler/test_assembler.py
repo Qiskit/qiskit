@@ -219,9 +219,9 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qobj = assemble(qc)
 
-        first_measure, second_measure, third_measure = \
-                       [op for op in qobj.experiments[0].instructions
-                        if op.name == 'measure' or op.name == 'measure_pauli']
+        first_measure, second_measure, third_measure =
+        [op for op in qobj.experiments[0].instructions
+         if op.name == 'measure' or op.name == 'measure_pauli']
 
         self.assertTrue(hasattr(first_measure, 'register'))
         self.assertEqual(first_measure.register, first_measure.memory)
@@ -248,9 +248,9 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qobj = assemble(qc)
 
-        first_measure, second_measure, third_measure = \
-                       [op for op in qobj.experiments[0].instructions
-                        if op.name == 'measure' or op.name == 'measure_pauli']
+        first_measure, second_measure, third_measure =
+        [op for op in qobj.experiments[0].instructions
+         if op.name == 'measure' or op.name == 'measure_pauli']
 
         self.assertTrue(hasattr(first_measure, 'register'))
         self.assertEqual(first_measure.register, first_measure.memory)

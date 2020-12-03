@@ -85,7 +85,8 @@ class MeasurePauli(Measure):
             params.append(qubit_basis)
 
         if num_qubits != num_clbits or num_qubits != len(basis):
-            raise ValueError('Mismatch between the number of qubits, classical bits, and basis length.')
+            raise ValueError('Mismatch between the number of qubits, \
+            classical bits, and basis length.')
 
         super().__init__('measure_pauli', num_qubits, num_clbits, params)
 
@@ -107,7 +108,7 @@ class MeasurePauli(Measure):
                 # since measure and S commute, S and Sdg cancel each other
                 pre_rotation = [SdgGate(), HGate()]
                 post_rotation = [HGate(), SGate()]
-            else: # Z
+            else:  # Z
                 pre_rotation = post_rotation = []
 
             # switch to the measurement basis
