@@ -364,21 +364,24 @@ class Initialize(Instruction):
 
 def initialize(self, params, qubits=None):
     """Qubit initializalition is done by appending instructions to the quantum circuit (by
-    calling Initialize(params)) and the qubits we wish to iniatilize. Note that the
+    calling Initialize(params)) and the qubits we wish to initialize. Note that the
     qubits are first set to `|0>` and then the desired state is achieved by applying
     a state preparing unitary.
 
     Args:
-        params (str or list):
+        params (str, list or int):
             * list: vector of complex amplitudes to initialize to.
             * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                 :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
                 Notice the order of the labels is reversed with respect to the qubit index to
                 be applied to. Example label '01' initializes the qubit zero to `|1>` and the
                 qubit one to `|0>`.
+            * int: an integer that is used as a bitmap indicating which qubits to initialize
+               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+               to `|1>` and qubit 1 to `|0>`.
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
-            * int: Index of qubit to initialzied [Default: None].
+            * int: Index of qubit to initialized [Default: None].
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
