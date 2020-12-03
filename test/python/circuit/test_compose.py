@@ -453,6 +453,7 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(circ.calibrations['h']), 2)
         self.assertEqual(len(circ_left.calibrations), 1)
 
+        # Ensure that transpiled _calibration is defaultdict
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.cx(0, 1)
