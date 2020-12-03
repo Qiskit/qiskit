@@ -122,6 +122,7 @@ class DAGCircuit:
                 MultiDiGraph.
         Raises:
             ImportError: If networkx is not installed
+            DAGCircuitError: If input networkx graph is malformed
         """
         try:
             import networkx as nx
@@ -133,7 +134,13 @@ class DAGCircuit:
             if node.type == 'out':
                 continue
             if node.type == 'in':
-                dag._add_wire(node.wire)
+                if isinstance(node.wire, Qubit):
+                    dag.add_qubits([node.wire])
+                elif isinstance(node.wire, Clbit):
+                    dag.add_clbits([node.wire])
+                else:
+                    raise DAGCircuitError('unknown node wire type: {}'.format(
+                        node.wire))
             elif node.type == 'op':
                 dag.apply_operation_back(node.op.copy(), node.qargs,
                                          node.cargs, node.condition)
@@ -888,9 +895,36 @@ class DAGCircuit:
         if self.calibrations != other.calibrations:
             return False
 
+        self_bit_indices = {bit: idx
+                            for idx, bit in
+                            enumerate(self.qubits + self.clbits)}
+        other_bit_indices = {bit: idx
+                             for idx, bit in
+                             enumerate(other.qubits + other.clbits)}
+
+        self_qreg_indices = [(regname, [self_bit_indices[bit] for bit in reg])
+                             for regname, reg in self.qregs.items()]
+        self_creg_indices = [(regname, [self_bit_indices[bit] for bit in reg])
+                             for regname, reg in self.cregs.items()]
+
+        other_qreg_indices = [(regname, [other_bit_indices[bit] for bit in reg])
+                              for regname, reg in other.qregs.items()]
+        other_creg_indices = [(regname, [other_bit_indices[bit] for bit in reg])
+                              for regname, reg in other.cregs.items()]
+
+        if (
+                self_qreg_indices != other_qreg_indices
+                or self_creg_indices != other_creg_indices
+        ):
+            return False
+
+        def node_eq(node_self, node_other):
+            return DAGNode.semantic_eq(node_self, node_other,
+                                       self_bit_indices, other_bit_indices)
+
         return rx.is_isomorphic_node_match(self._multi_graph,
                                            other._multi_graph,
-                                           DAGNode.semantic_eq)
+                                           node_eq)
 
     def topological_nodes(self):
         """

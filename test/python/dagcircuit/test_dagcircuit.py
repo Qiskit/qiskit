@@ -1028,7 +1028,7 @@ class TestDagEquivalence(QiskitTestCase):
         super().setUp()
         self.qr1 = QuantumRegister(4, 'qr1')
         self.qr2 = QuantumRegister(2, 'qr2')
-        circ1 = QuantumCircuit(self.qr2, self.qr1)
+        circ1 = QuantumCircuit(self.qr1, self.qr2)
         circ1.h(self.qr1[0])
         circ1.cx(self.qr1[2], self.qr1[3])
         circ1.h(self.qr1[2])
@@ -1082,9 +1082,21 @@ class TestDagEquivalence(QiskitTestCase):
 
     def test_dag_from_networkx(self):
         """Test DAG from networkx creates an expected DAGCircuit object."""
+        from copy import deepcopy
+        from collections import OrderedDict
+
         nx_graph = self.dag1.to_networkx()
         from_nx_dag = DAGCircuit.from_networkx(nx_graph)
-        self.assertEqual(self.dag1, from_nx_dag)
+
+        # to_/from_networkx does not preserve Registers or bit indexing,
+        # so remove them from reference DAG.
+        dag = deepcopy(self.dag1)
+        dag.qregs = OrderedDict()
+        dag.cregs = OrderedDict()
+        dag.qubits = from_nx_dag.qubits
+        dag.clbits = from_nx_dag.clbits
+
+        self.assertEqual(dag, from_nx_dag)
 
 
 class TestDagSubstitute(QiskitTestCase):
