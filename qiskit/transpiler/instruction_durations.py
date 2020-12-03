@@ -17,7 +17,7 @@ from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.util import apply_prefix
+from qiskit.utils.units import apply_prefix
 from qiskit.circuit.duration import duration_in_dt
 
 

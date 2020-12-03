@@ -98,7 +98,7 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix(Statevector(vec))
         self.assertEqual(rho, target)
 
-    def test_from_circuit(self):
+    def test_init_circuit(self):
         """Test initialization from a circuit."""
         # random unitaries
         u0 = random_unitary(2).data
@@ -110,7 +110,7 @@ class TestDensityMatrix(QiskitTestCase):
         circ.unitary(u1, [qr[1]])
         target_vec = Statevector(np.kron(u1, u0).dot([1, 0, 0, 0]))
         target = DensityMatrix(target_vec)
-        rho = DensityMatrix.from_instruction(circ)
+        rho = DensityMatrix(circ)
         self.assertEqual(rho, target)
 
         # Test tensor product of 1-qubit gates
@@ -119,7 +119,7 @@ class TestDensityMatrix(QiskitTestCase):
         circuit.x(1)
         circuit.ry(np.pi / 2, 2)
         target = DensityMatrix.from_label('000').evolve(Operator(circuit))
-        rho = DensityMatrix.from_instruction(circuit)
+        rho = DensityMatrix(circuit)
         self.assertEqual(rho, target)
 
         # Test decomposition of Controlled-Phase gate
@@ -129,8 +129,19 @@ class TestDensityMatrix(QiskitTestCase):
         circuit.h(1)
         circuit.cp(lam, 0, 1)
         target = DensityMatrix.from_label('00').evolve(Operator(circuit))
-        rho = DensityMatrix.from_instruction(circuit)
+        rho = DensityMatrix(circuit)
         self.assertEqual(rho, target)
+
+    def test_from_circuit(self):
+        """Test initialization from a circuit."""
+        # random unitaries
+        u0 = random_unitary(2).data
+        u1 = random_unitary(2).data
+        # add to circuit
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.unitary(u0, [qr[0]])
+        circ.unitary(u1, [qr[1]])
 
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
