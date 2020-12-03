@@ -375,18 +375,104 @@ class OpShape:
                        num_qargs_l=num_qargs_l,
                        num_qargs_r=num_qargs_r)
 
-    def conjugate(self):
-        """Return the conjugated shape"""
-        return self
+    def transpose(self, dims_l=None, dims_r=None):
+        """Return the transposed OpShape.
 
-    def transpose(self):
-        """Return the transposed shape"""
-        ret = copy.copy(self)
-        ret._dims_l = self._dims_r
-        ret._dims_r = self._dims_l
-        ret._num_qargs_l = self._num_qargs_r
-        ret._num_qargs_r = self._num_qargs_l
-        return ret
+        Subsystems are specified by their number for left subsystems
+        or their number plus num_qargs_l for right subsystems.
+
+        Args:
+            dims_l (tuple): Optional, the subsystem indices for the
+                            returned left dims.
+            dims_r (tuple): Optional, the subsystem indices for the
+                            returned right dims.
+
+        Returns:
+            OpShape: the transposed OpShape. If both dims_l and dims_r
+                     are None, this is the matrix transpose.
+
+        Raises:
+            QiskitError: If the number of subsystems is not preserved.
+        """
+        # Matrix transpose left and right qargs
+        if dims_l is None and dims_r is None:
+            ret = copy.copy(self)
+            ret._dims_l = self._dims_r
+            ret._dims_r = self._dims_l
+            ret._num_qargs_l = self._num_qargs_r
+            ret._num_qargs_r = self._num_qargs_l
+            return ret
+
+        # Tensor transpose
+        num_l = len(dims_l) if dims_l else 0
+        num_r = len(dims_r) if dims_r else 0
+
+        if num_l + num_r != self.num_qargs_l + self.num_qargs_r:
+            raise QiskitError('Total number of left and right dimensions must be constant.')
+
+        # Check if qubit shape
+        if not self._dims_l and not self._dims_r:
+            return OpShape(num_qargs_l=num_l, num_qargs_r=num_r)
+
+        # Get concatenated list of dimensions
+        dims = self.dims_l() + self.dims_r()
+
+        new_dims_l = tuple(dims(i) for i in dims_l)
+        if set(new_dims_l) == {2}:
+            new_dims_l = None
+
+        new_dims_r = tuple(dims(i) for i in dims_r)
+        if set(new_dims_r) == {2}:
+            new_dims_r = None
+
+        return OpShape(num_qargs_l=num_l, num_qargs_r=num_r,
+                       dims_l=new_dims_l, dims_r=new_dims_r)
+
+    def transpose_axes(self, dims_l=None, dims_r=None):
+        """Return the axes to transpose an array using numpy.transpose.
+
+        This handles conversion from subsystem number to array axes
+        for use with a numpy array transpose `axes` kwarg.
+
+        Args:
+            dims_l (tuple): Optional, the subsystem indices for the
+                            returned left dims.
+            dims_r (tuple): Optional, the subsystem indices for the
+                            returned right dims.
+
+        Returns:
+            tuple: the value for axes for numpy.transpose to transpose an
+                   array of shape OpShape.tensor_shape.
+
+        Raises:
+            QiskitError: If the number of subsystems is not preserved.
+        """
+        # Matrix transpose of tensor shape
+        if dims_l is None and dims_r is None:
+            axes_l = tuple(self.num_qargs_l + i for i in range(self.num_qargs_r))
+            axes_r = tuple(range(self.num_qargs_l))
+            return axes_l + axes_r
+
+        # Tensor transpose
+        dims = (dims_l if dims_l else tuple()) + (dims_r if dims_r else tuple())
+        num_total = self.num_qargs_l + self.num_qargs_r
+        if len(dims) != num_total:
+            raise QiskitError(
+                'Total number of left and right dimensions must be constant.')
+        if len(set(dims)) != num_total:
+            raise QiskitError('Duplicate dimension indices. Tranpose dimension'
+                              ' indices must be unique.')
+
+        # Remap subsystem index to tensor axes index
+        axes = tuple()
+        for i in dims:
+            if i < self.num_qargs_l:
+                idx = self.num_qargs_l - i
+            else:
+                idx = num_total + self.num_qargs_l - i
+            axes += (idx, )
+
+        return axes
 
     def tensor(self, other):
         """Return the tensor product shape"""
