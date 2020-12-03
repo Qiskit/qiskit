@@ -36,7 +36,6 @@ REQUIREMENTS = [
     "fastjsonschema>=2.10",
     "python-constraint>=1.4",
     "python-dateutil>=2.8.0",
-    "scikit-learn>=0.20.0",
 ]
 
 # Add Cython extensions here
