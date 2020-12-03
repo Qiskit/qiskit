@@ -229,7 +229,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertTrue(hasattr(second_measure, 'register'))
         self.assertEqual(second_measure.register, second_measure.memory)
         self.assertTrue(hasattr(third_measure, 'register'))
-        self.assertEqual(third_measure.register, second_measure.memory)
+        self.assertEqual(third_measure.register, third_measure.memory)
 
     def test_measure_pauli_to_registers_when_conditionals(self):
         """Verify assemble_circuits maps all measure ops on to a register slot
@@ -256,7 +256,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertTrue(hasattr(second_measure, 'register'))
         self.assertEqual(second_measure.register, second_measure.memory)
         self.assertTrue(hasattr(third_measure, 'register'))
-        self.assertEqual(third_measure.register, second_measure.memory)
+        self.assertEqual(third_measure.register, third_measure.memory)
 
     def test_convert_to_bfunc_plus_conditional(self):
         """Verify assemble_circuits converts conditionals from QASM to Qobj."""
