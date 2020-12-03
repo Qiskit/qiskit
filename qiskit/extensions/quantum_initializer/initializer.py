@@ -369,13 +369,13 @@ def initialize(self, params, qubits=None):
     a state preparing unitary.
 
     Args:
-        params (str, list or int):
-            * list: vector of complex amplitudes to initialize to.
-            * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+        params (str or list or int):
+            * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
                 :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
                 Notice the order of the labels is reversed with respect to the qubit index to
                 be applied to. Example label '01' initializes the qubit zero to `|1>` and the
                 qubit one to `|0>`.
+            * list: vector of complex amplitudes to initialize to.
             * int: an integer that is used as a bitmap indicating which qubits to initialize
                to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                to `|1>` and qubit 1 to `|0>`.
