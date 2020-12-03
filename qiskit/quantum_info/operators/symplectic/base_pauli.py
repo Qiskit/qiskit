@@ -118,7 +118,7 @@ class BasePauli(BaseOperator):
                 "Number of qubits of the other {} does not match qargs.".format(
                     type(self).__name__))
 
-        if len(other) not in [1, len(self)]:
+        if other._num_paulis not in [1, self._num_paulis]:
             raise QiskitError("Incompatible BasePaulis. Second list must "
                               "either have 1 or the same number of Paulis.")
 
