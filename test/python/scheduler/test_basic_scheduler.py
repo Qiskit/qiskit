@@ -384,7 +384,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.append(Gate('pulse_gate', 1, [x]), [0])
         expected_schedule = Schedule()
         qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
-        qc.assign_parameters({x: 1})
+        qc = qc.assign_parameters({x: 1})
         sched = schedule(qc, self.backend)
         self.assertEqual(sched, expected_schedule)
 
