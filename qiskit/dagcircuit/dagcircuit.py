@@ -179,7 +179,7 @@ class DAGCircuit:
             calibrations (dict): A dictionary of input in th format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
