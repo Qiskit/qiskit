@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class SwapGate(Gate):
@@ -62,15 +61,10 @@ class SwapGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
+        qc = QuantumCircuit(2, name=self.name)
+        rules = [(CXGate(), [0, 1], []), (CXGate(), [1, 0], []), (CXGate(), [0, 1], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -225,15 +219,10 @@ class CSwapGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate, CCXGate
 
-        q = QuantumRegister(3, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[2], q[1]], []),
-            (CCXGate(), [q[0], q[1], q[2]], []),
-            (CXGate(), [q[2], q[1]], []),
-        ]
+        qc = QuantumCircuit(3, name=self.name)
+        rules = [(CXGate(), [2, 1], []), (CCXGate(), [0, 1, 2], []), (CXGate(), [2, 1], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

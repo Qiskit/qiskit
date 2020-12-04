@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import pi
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
@@ -59,11 +58,10 @@ class HGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u2 import U2Gate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U2Gate(0, pi), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name)
+        rules = [(U2Gate(0, pi), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -180,19 +178,18 @@ class CHGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (SGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (TGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (TdgGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], []),
+            (SGate(), [1], []),
+            (HGate(), [1], []),
+            (TGate(), [1], []),
+            (CXGate(), [0, 1], []),
+            (TdgGate(), [1], []),
+            (HGate(), [1], []),
+            (SdgGate(), [1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

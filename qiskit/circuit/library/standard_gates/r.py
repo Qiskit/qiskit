@@ -16,7 +16,6 @@ import math
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RGate(Gate):
@@ -55,13 +54,12 @@ class RGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(1, name=self.name)
         theta = self.params[0]
         phi = self.params[1]
-        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
+        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

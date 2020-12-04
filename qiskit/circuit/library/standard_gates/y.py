@@ -18,7 +18,6 @@ from qiskit.qasm import pi
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class YGate(Gate):
@@ -73,11 +72,10 @@ class YGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name)
+        rules = [(U3Gate(pi, pi / 2, pi / 2), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -181,11 +179,10 @@ class CYGate(ControlledGate):
         from .s import SGate, SdgGate
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
+        qc = QuantumCircuit(2, name=self.name)
+        rules = [(SdgGate(), [1], []), (CXGate(), [0, 1], []), (SGate(), [1], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

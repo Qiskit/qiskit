@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 
 
@@ -83,11 +82,10 @@ class U1Gate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate  # pylint: disable=cyclic-import
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(0, 0, self.params[0]), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name)
+        rules = [(U3Gate(0, 0, self.params[0]), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -185,17 +183,16 @@ class CU1Gate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], []),
+            (U1Gate(self.params[0] / 2), [0], []),
+            (CXGate(), [0, 1], []),
+            (U1Gate(-self.params[0] / 2), [1], []),
+            (CXGate(), [0, 1], []),
+            (U1Gate(self.params[0] / 2), [1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -275,8 +272,7 @@ class MCU1Gate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(self.num_qubits, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
@@ -287,9 +283,9 @@ class MCU1Gate(ControlledGate):
 
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CU1Gate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
+            definition = _gray_code_chain(qc.qubits, self.num_ctrl_qubits, bottom_gate)
         for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):

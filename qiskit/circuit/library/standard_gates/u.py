@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -195,8 +194,7 @@ class CUGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         qc.p(self.params[3], 0)
         qc.p((self.params[2] + self.params[1]) / 2, 0)
         qc.p((self.params[2] - self.params[1]) / 2, 1)

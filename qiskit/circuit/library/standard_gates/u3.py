@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class U3Gate(Gate):
@@ -90,8 +89,7 @@ class U3Gate(Gate):
     def _define(self):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(1, name=self.name)
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
@@ -197,18 +195,17 @@ class CU3Gate(ControlledGate):
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], []),
+            (U1Gate((self.params[2] + self.params[1]) / 2), [0], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [1], []),
+            (CXGate(), [0, 1], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [1], []),
+            (CXGate(), [0, 1], []),
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

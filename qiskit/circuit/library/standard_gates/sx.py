@@ -16,7 +16,6 @@ import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class SXGate(Gate):
@@ -67,9 +66,8 @@ class SXGate(Gate):
         from .s import SdgGate
         from .h import HGate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
-        rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name, global_phase=pi / 4)
+        rules = [(SdgGate(), [0], []), (HGate(), [0], []), (SdgGate(), [0], [])]
         qc.data = rules
         self.definition = qc
 
@@ -141,9 +139,8 @@ class SXdgGate(Gate):
         from .s import SGate
         from .h import HGate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
-        rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name, global_phase=-pi / 4)
+        rules = [(SGate(), [0], []), (HGate(), [0], []), (SGate(), [0], [])]
         qc.data = rules
         self.definition = qc
 
@@ -241,9 +238,8 @@ class CSXGate(ControlledGate):
         from .h import HGate
         from .u1 import CU1Gate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        qc = QuantumCircuit(2, name=self.name)
+        rules = [(HGate(), [1], []), (CU1Gate(pi / 2), [0, 1], []), (HGate(), [1], [])]
         qc.data = rules
         self.definition = qc
 

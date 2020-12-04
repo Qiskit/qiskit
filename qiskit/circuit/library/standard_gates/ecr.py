@@ -15,7 +15,6 @@
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from .rzx import RZXGate
 from .x import XGate
 
@@ -87,15 +86,14 @@ class ECRGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (RZXGate(np.pi / 4), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-            (RZXGate(-np.pi / 4), [q[0], q[1]], []),
+            (RZXGate(np.pi / 4), [0, 1], []),
+            (XGate(), [0], []),
+            (RZXGate(-np.pi / 4), [0, 1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

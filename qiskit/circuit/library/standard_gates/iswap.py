@@ -14,7 +14,6 @@
 
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class iSwapGate(Gate):
@@ -96,18 +95,17 @@ class iSwapGate(Gate):
         from .s import SGate
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (SGate(), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], []),
+            (SGate(), [0], []),
+            (SGate(), [1], []),
+            (HGate(), [0], []),
+            (CXGate(), [0, 1], []),
+            (CXGate(), [1, 0], []),
+            (HGate(), [1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

@@ -16,7 +16,6 @@ import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class ZGate(Gate):
@@ -71,11 +70,10 @@ class ZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name)
+        rules = [(U1Gate(pi), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -153,11 +151,10 @@ class CZGate(ControlledGate):
         from .h import HGate
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        qc = QuantumCircuit(2, name=self.name)
+        rules = [(HGate(), [1], []), (CXGate(), [0, 1], []), (HGate(), [1], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

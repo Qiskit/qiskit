@@ -17,7 +17,6 @@ import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RXGate(Gate):
@@ -56,11 +55,10 @@ class RXGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(RGate(self.params[0], 0), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name)
+        rules = [(RGate(self.params[0], 0), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -179,17 +177,16 @@ class CRXGate(ControlledGate):
         from .u3 import U3Gate
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (U1Gate(pi / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
+            (U1Gate(pi / 2), [1], []),
+            (CXGate(), [0, 1], []),
+            (U3Gate(-self.params[0] / 2, 0, 0), [1], []),
+            (CXGate(), [0, 1], []),
+            (U3Gate(self.params[0] / 2, -pi / 2, 0), [1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

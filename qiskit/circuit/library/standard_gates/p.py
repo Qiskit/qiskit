@@ -15,7 +15,6 @@
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class PhaseGate(Gate):
@@ -78,8 +77,7 @@ class PhaseGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u import UGate
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(1, name=self.name)
         qc.append(UGate(0, 0, self.params[0]), [0])
         self.definition = qc
 
@@ -176,8 +174,7 @@ class CPhaseGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         qc.p(self.params[0] / 2, 0)
         qc.cx(0, 1)
         qc.p(-self.params[0] / 2, 1)
@@ -257,8 +254,7 @@ class MCPhaseGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(self.num_qubits, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
@@ -269,7 +265,7 @@ class MCPhaseGate(ControlledGate):
 
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CPhaseGate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
+            definition = _gray_code_chain(qc.qubits[:], self.num_ctrl_qubits, bottom_gate)
             qc.data = definition
         self.definition = qc
 

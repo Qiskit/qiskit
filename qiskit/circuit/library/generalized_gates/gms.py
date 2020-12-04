@@ -19,7 +19,6 @@ from typing import Union, List
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
 
@@ -113,10 +112,9 @@ class MSGate(Gate):
 
     def _define(self):
         theta = self.params[0]
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(self.num_qubits, name=self.name)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
-                qc._append(RXXGate(theta), [q[i], q[j]], [])
+                qc.append(RXXGate(theta), [i, j], [])
 
         self.definition = qc

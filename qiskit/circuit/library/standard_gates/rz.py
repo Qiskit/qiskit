@@ -14,7 +14,6 @@
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RZGate(Gate):
@@ -66,12 +65,11 @@ class RZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
 
-        q = QuantumRegister(1, "q")
         theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
+        qc = QuantumCircuit(1, name=self.name, global_phase=-theta / 2)
+        rules = [(U1Gate(theta), [0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
@@ -192,16 +190,15 @@ class CRZGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(2, name=self.name)
         rules = [
-            (RZGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
+            (RZGate(self.params[0] / 2), [1], []),
+            (CXGate(), [0, 1], []),
+            (RZGate(-self.params[0] / 2), [1], []),
+            (CXGate(), [0, 1], []),
         ]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 

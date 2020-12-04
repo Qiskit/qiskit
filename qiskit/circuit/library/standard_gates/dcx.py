@@ -14,7 +14,6 @@
 
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class DCXGate(Gate):
@@ -56,11 +55,10 @@ class DCXGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]
+        qc = QuantumCircuit(2, name=self.name)
+        rules = [(CXGate(), [0, 1], []), (CXGate(), [1, 0], [])]
         for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+            qc.append(instr, qargs, cargs)
 
         self.definition = qc
 
