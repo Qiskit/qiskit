@@ -182,7 +182,7 @@ class InstructionScheduleMap():
             raise PulseError('Too many values to bind: {}.'.format(', '.join(map(str, params))))
 
         if not all(key in schedule_param_tuple.parameters for key in kwparams.keys()):
-            raise PulseError('Keys not defined: {}'.format(', '.join(kwparams.keys())))
+            raise PulseError('Parameters not defined: {}'.format(', '.join(kwparams.keys())))
 
         bind_parameters = dict(zip_longest(schedule_param_tuple.parameters, params))
         bind_parameters.update(kwparams)
