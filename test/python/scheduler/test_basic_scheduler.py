@@ -20,7 +20,7 @@ from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
 from qiskit.pulse import build, macros
 
-from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q, FakeAlmaden
+from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
 
 
