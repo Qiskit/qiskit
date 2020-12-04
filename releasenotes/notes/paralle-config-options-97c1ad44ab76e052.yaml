@@ -10,6 +10,18 @@ features:
     it to ``True`` will enable parallel execution. The ``num_processes`` option
     takes an integer which sets how many CPUs to use when executing in parallel.
     By default it will use the number of CPU cores on a system.
+  - |
+    There are 2 new environment variables, ``QISKIT_PARALLEL`` and
+    ``QISKIT_NUM_PROCS``, that can be used to control the default behavior of
+    :func:`~qiskit.tools.parallel_map`. The ``QISKIT_PARALLEL`` option can be
+    set to the ``TRUE`` (any capitalization) to set the default to run in
+    multiple processes when :func:`~qiskit.tools.parallel_map` is called. If it
+    is set to any other
+    value :func:`~qiskit.tools.parallel_map` will be executed serially.
+    ``QISKIT_NUM_PROCS`` takes an integer (for example ``QISKIT_NUM_PROCS=5``)
+    which will be used as the default number of processes to run with. Both
+    of these will take precedence over the equivalent option set in the user
+    config file.
 upgrade:
   - |
     By default on macOS :func:`~qiskit.tools.parallel_map` will no longer run
