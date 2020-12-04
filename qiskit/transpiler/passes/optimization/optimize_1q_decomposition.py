@@ -12,7 +12,6 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-from itertools import groupby
 import logging
 
 import numpy as np
@@ -72,7 +71,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
         for basis in self.basis:
             decomposer = OneQubitEulerDecomposer(basis)
             runs = dag.collect_1q_runs()
-            runs = _split_runs_on_parameters(runs)
             for run in runs:
                 if len(run) <= 1:
                     params = run[0].op.params
@@ -96,19 +94,3 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     for current_node in run[1:]:
                         dag.remove_op_node(current_node)
         return dag
-
-
-def _split_runs_on_parameters(runs):
-    """Finds runs containing parameterized gates and splits them into sequential
-    runs excluding the parameterized gates.
-    """
-
-    out = []
-    for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized())
-
-        for group_is_parameterized, gates in groups:
-            if not group_is_parameterized:
-                out.append(list(gates))
-
-    return out

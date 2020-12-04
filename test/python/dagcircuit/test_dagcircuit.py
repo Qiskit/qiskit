@@ -25,6 +25,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.x import CXGate
@@ -764,6 +765,21 @@ class TestDagNodeSelection(QiskitTestCase):
             self.assertEqual(len(run), 1)
             self.assertEqual(['h'], [x.name for x in run])
             self.assertEqual([[self.qubit0]], [x.qargs for x in run])
+
+    def test_dag_collect_1q_runs_with_parameterized_gate(self):
+        """Test collect 1q splits on parameterized gates."""
+        theta = Parameter('theta')
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(theta), [self.qubit0])
+        self.dag.apply_operation_back(XGate(), [self.qubit0])
+        self.dag.apply_operation_back(XGate(), [self.qubit0])
+        collected_runs = self.dag.collect_1q_runs()
+        self.assertEqual(len(collected_runs), 2)
+        run_gates = [[x.name for x in run] for run in collected_runs]
+        self.assertIn(['h', 'h'], run_gates)
+        self.assertIn(['x', 'x'], run_gates)
+        self.assertNotIn('u1', [x.name for run in collected_runs for x in run])
 
     def test_dag_collect_1q_runs_with_cx_in_middle(self):
         """Test collect_1q_runs_with a cx in the middle of the run."""
