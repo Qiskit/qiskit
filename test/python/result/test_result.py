@@ -339,7 +339,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(statevector, processed_sv)
 
     def test_circuit_statevector_repr_decimal(self):
-        """ Test postprocessing of statevector giving decimals arg. """
+        """Test postprocessing of statevector giving decimals arg."""
         raw_statevector = np.array([0.35355339+0.j, 0.35355339+0.j, 0.35355339+0.j, 0.35355339+0.j,
                                     0.35355339+0.j, 0.35355339+0.j, 0.35355339+0.j, 0.35355339+0.j],
                                    dtype=np.complex_)
@@ -354,7 +354,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(statevector, processed_sv)
 
     def test_circuit_unitary_repr_without_decimal(self):
-        """ Test postprocessing of unitary without giving any decimals arg. """
+        """Test postprocessing of unitary without giving any decimals arg."""
         raw_unitary = np.array([[0.70710678+0.00000000e+00j, 0.70710678-8.65956056e-17j],
                                 [0.70710678+0.00000000e+00j, -0.70710678+8.65956056e-17j]],
                                dtype=np.complex_)
@@ -370,7 +370,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(unitary, processed_unitary)
 
     def test_circuit_unitary_repr_decimal(self):
-        """ Test postprocessing of unitary giving decimals arg. """
+        """Test postprocessing of unitary giving decimals arg."""
         raw_unitary = np.array([[0.70710678+0.00000000e+00j, 0.70710678-8.65956056e-17j],
                                 [0.70710678+0.00000000e+00j, -0.70710678+8.65956056e-17j]],
                                dtype=np.complex_)
