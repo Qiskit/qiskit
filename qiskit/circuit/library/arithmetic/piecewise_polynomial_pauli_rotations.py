@@ -39,10 +39,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         f(x) = \begin{cases}
             0, x < x_0 \\
-            \sum_{i=0}^{i=d}a_{j,i} x^i, x_j \leq x < x_{j+1}
+            \sum_{i=0}^{i=d}a_{j,i}/2 x^i, x_j \leq x < x_{j+1}
             \end{cases}
 
     where we implicitly assume :math:`x_{J+1} = 2^n`.
+
+    .. note::
+        Note the :math:`1/2` factor in the coefficients of :math:`f(x)`, this is consistent with
+        Qiskit's Pauli rotations.
 
     Examples:
         >>> from qiskit import QuantumCircuit
@@ -223,7 +227,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 raise CircuitError('Not enough qubits in the circuit, need at least '
                                    '{}.'.format(self.num_state_qubits + 1))
 
-        if len(self._breakpoints) != len(self.coeffs):
+        if len(self.breakpoints) != len(self.coeffs):
             valid = False
             if raise_on_failure:
                 raise ValueError('Mismatching number of breakpoints and polynomials.')
@@ -237,7 +241,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = [qr_state, qr_target]
 
             # Calculate number of ancilla qubits required
-            num_ancillas = num_state_qubits - 1 + len(self.breakpoints)
+            num_ancillas = num_state_qubits + 1
             if self.contains_zero_breakpoint:
                 num_ancillas -= 1
             num_ancillas += max(1, self._degree - 1)
@@ -249,6 +253,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = []
 
     def _build(self):
+        # The number of ancilla might have changed, so reset registers
         super()._build()
 
         qr_state = self.qubits[:self.num_state_qubits]
@@ -266,18 +271,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 poly_r = PolynomialPauliRotations(num_state_qubits=self.num_state_qubits,
                                                   coeffs=self.mapped_coeffs[i],
                                                   basis=self.basis)
-                self.append(poly_r.to_gate(), qr_state[:] + qr_target + qr_ancilla_rot[:])
+                self.append(poly_r.to_gate(), qr_state[:] + qr_target +
+                            qr_ancilla_rot[:poly_r.num_ancillas])
 
             else:
-                if self.contains_zero_breakpoint:
-                    i_compare = i - 1
-                else:
-                    i_compare = i
-
                 # apply Comparator
                 comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
-                qr_state_full = qr_state[:] + [qr_ancilla[i_compare]]  # add compare qubit
-                qr_remaining_ancilla = qr_ancilla[i_compare + 1:]  # take remaining ancillas
+                qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
+                qr_remaining_ancilla = qr_ancilla[1:]  # take remaining ancillas
 
                 self.append(comp.to_gate(),
                             qr_state_full[:] + qr_remaining_ancilla[:comp.num_ancillas])
@@ -287,7 +288,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                                                   coeffs=self.mapped_coeffs[i],
                                                   basis=self.basis)
                 self.append(poly_r.to_gate().control(),
-                            [qr_ancilla[i_compare]] + qr_state[:] + qr_target + qr_ancilla_rot[:])
+                            [qr_ancilla[0]] + qr_state[:] + qr_target +
+                            qr_ancilla_rot[:poly_r.num_ancillas])
 
                 # uncompute comparator
                 self.append(comp.to_gate().inverse(),
