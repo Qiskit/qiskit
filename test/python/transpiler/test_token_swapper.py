@@ -28,7 +28,7 @@
 
 import itertools
 
-import networkx as nx
+import retworkx as rx
 from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
@@ -46,7 +46,7 @@ class TestGeneral(QiskitTestCase):
 
     def test_simple(self) -> None:
         """Test a simple permutation on a path graph of size 4."""
-        graph = nx.path_graph(4)
+        graph = rx.generators.path_graph(4)
         permutation = {0: 0, 1: 3, 3: 1, 2: 2}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
@@ -57,7 +57,7 @@ class TestGeneral(QiskitTestCase):
 
     def test_small(self) -> None:
         """Test an inverting permutation on a small path graph of size 8"""
-        graph = nx.path_graph(8)
+        graph = rx.generators.path_graph(8)
         permutation = {i: 7 - i for i in range(8)}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
@@ -67,9 +67,10 @@ class TestGeneral(QiskitTestCase):
 
     def test_bug1(self) -> None:
         """Tests for a bug that occured in happy swap chains of length >2."""
-        graph = nx.Graph()
-        graph.add_edges_from([(0, 1), (0, 2), (0, 3), (0, 4),
-                              (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)])
+        graph = rx.PyGraph()
+        graph.extend_from_edge_list([
+            (0, 1), (0, 2), (0, 3), (0, 4),
+            (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)])
         permutation = {0: 4, 1: 0, 2: 3, 3: 6, 4: 2, 6: 1}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
@@ -79,7 +80,7 @@ class TestGeneral(QiskitTestCase):
 
     def test_partial_simple(self) -> None:
         """Test a partial mapping on a small graph."""
-        graph = nx.path_graph(4)
+        graph = rx.generators.path_graph(4)
         mapping = {0: 3}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
         out = list(swapper.map(mapping))
@@ -89,7 +90,7 @@ class TestGeneral(QiskitTestCase):
 
     def test_partial_small(self) -> None:
         """Test an partial inverting permutation on a small path graph of size 5"""
-        graph = nx.path_graph(4)
+        graph = rx.generators.path_graph(4)
         permutation = {i: 3 - i for i in range(2)}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
@@ -102,11 +103,15 @@ class TestGeneral(QiskitTestCase):
         """Test a random (partial) mapping on a large randomly generated graph"""
         size = 100
         # Note that graph may have "gaps" in the node counts, i.e. the numbering is noncontiguous.
-        graph = nx.dense_gnm_random_graph(size, size ** 2 // 10)
-        graph.remove_edges_from((i, i) for i in graph.nodes)  # Remove self-loops.
+        graph = rx.undirected_gnm_random_graph(size, size ** 2 // 10)
+        for i in graph.node_indexes():
+            try:
+                graph.remove_edge(i, i)  # Remove self-loops.
+            except rx.NoEdgeBetweenNodes:
+                continue
         # Make sure the graph is connected by adding C_n
-        nodes = list(graph.nodes)
-        graph.add_edges_from((node, nodes[(i + 1) % len(nodes)]) for i, node in enumerate(nodes))
+        graph.add_edges_from_no_data(
+            [(i, i + 1) for i in range(len(graph) - 1)])
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         # Generate a randomized permutation.
