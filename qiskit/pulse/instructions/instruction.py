@@ -384,7 +384,7 @@ def _format_value(value: Union[Any, ParameterExpression]) -> Any:
         value: Operand value in arbitrary data type including ParameterExpression.
 
     Returns:
-        Value casted to non-parameter data type.
+        Value casted to non-parameter data type, when possible.
     """
     if isinstance(value, ParameterExpression):
         value = srepr(value)
