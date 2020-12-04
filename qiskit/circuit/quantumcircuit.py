@@ -205,12 +205,12 @@ class QuantumCircuit:
 
     @property
     def calibrations(self):
-        """Return calibration default dictionary.
+        """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
             {'gate_name': {(qubits, params): schedule}}
         """
-        return self._calibrations
+        return dict(self._calibrations)
 
     @calibrations.setter
     def calibrations(self, calibrations):
