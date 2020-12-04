@@ -38,7 +38,6 @@ from .types import Swap, Permutation
 from .util import PermutationCircuit, permutation_circuit
 
 _V = TypeVar('_V')
-_T = TypeVar('_T')
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,7 @@ class ApproximateTokenSwapper(Generic[_V]):
                              for _ in range(trials))
 
         # Once we find a zero solution we stop.
-        def take_until_zero(results: Iterable[List[_T]]) -> Iterator[List[_T]]:
+        def take_until_zero(results: Iterable[List[int]]) -> Iterator[List[int]]:
             """Take results until one is emitted of length zero (and also emit that)."""
             for result in results:
                 yield result
