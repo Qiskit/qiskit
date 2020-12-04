@@ -63,6 +63,7 @@ PORDER_SUBP = 4
 
 class Anchor:
     """Locate the anchors for the gates"""
+
     def __init__(self, reg_num, yind, fold):
         self.__yind = yind
         self.__fold = fold
@@ -366,8 +367,7 @@ class MatplotlibDrawer:
 
         if gate_text in self._style['disptex']:
             gate_text = "{}".format(self._style['disptex'][gate_text])
-        elif gate_text in (op.name, base_name) and type(op.op) not in {Gate,
-                Instruction}:
+        elif gate_text in (op.name, base_name) and type(op.op) not in {Gate, Instruction}:
             gate_text = gate_text.capitalize()
 
         return gate_text, ctrl_text
