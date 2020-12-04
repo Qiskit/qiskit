@@ -239,11 +239,8 @@ class InstructionScheduleMap():
             func_parameters = set(param.name for param in schedule.parameters)
 
         if params is None:
-            if len(func_parameters) > 0:
-                # for backward compatibility
-                params = sorted(func_parameters)
-            else:
-                params = []
+            # for backward compatibility
+            params = sorted(func_parameters)
         else:
             # check parameter list consistency
             if sorted(func_parameters) != sorted(params):
