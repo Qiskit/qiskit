@@ -274,13 +274,14 @@ class CouplingMap:
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
         cmap = cls(description='full')
-        edge_list = []
-        for i in range(num_qubits):
-            for j in range(i):
-                edge_list.append((j, i))
-                if bidirectional:
-                    edge_list.append((i, j))
-        cmap.graph.extend_from_edge_list(edge_list)
+        if bidirectional:
+            cmap.graph = rx.generators.directed_mesh_graph(num_qubits)
+        else:
+            edge_list = []
+            for i in range(num_qubits):
+                for j in range(i):
+                    edge_list.append((j, i))
+            cmap.graph.extend_from_edge_list(edge_list)
         return cmap
 
     @classmethod
@@ -303,25 +304,8 @@ class CouplingMap:
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
         """Return qubits connected on a grid of num_rows x num_columns."""
         cmap = cls(description='grid')
-        edge_list = []
-        for i in range(num_rows):
-            for j in range(num_columns):
-                node = i * num_columns + j
-
-                up = (node-num_columns) if i > 0 else None  # pylint: disable=invalid-name
-                down = (node+num_columns) if i < num_rows-1 else None
-                left = (node-1) if j > 0 else None
-                right = (node+1) if j < num_columns-1 else None
-
-                if up is not None and bidirectional:
-                    edge_list.append((node, up))
-                if left is not None and bidirectional:
-                    edge_list.append((node, left))
-                if down is not None:
-                    edge_list.append((node, down))
-                if right is not None:
-                    edge_list.append((node, right))
-        cmap.graph.extend_from_edge_list(edge_list)
+        cmap.graph = rx.generators.directed_grid_graph(
+            num_rows, num_columns, bidirectional=bidirectional)
         return cmap
 
     def largest_connected_component(self):
