@@ -219,11 +219,9 @@ class ApproximateTokenSwapper(Generic[_V]):
         token1 = tokens.pop(node1, None)
         token2 = tokens.pop(node2, None)
         if token2 is not None:
-            if token2 is not None:
-                tokens[node1] = token2
+            tokens[node1] = token2
         if token1 is not None:
-            if token1 is not None:
-                tokens[node2] = token1
+            tokens[node2] = token1
         # Recompute the edges incident to node 1 and 2
         for node in [node1, node2]:
             digraph.remove_edges_from(
