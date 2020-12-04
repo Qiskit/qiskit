@@ -375,7 +375,19 @@ class ParameterExpression:
         return self
 
     def __eq__(self, other):
+        """Check if this parameter expression is equal to another parameter expression
+           or a fixed value (only if this is a bound expression).
+        Args:
+            other (ParameterExpression or a number):
+                Parameter expression or numeric constant used for comparison
+        Returns:
+            bool: result of the comparison
+        """
         from sympy import srepr
-        return (isinstance(other, ParameterExpression)
-                and self.parameters == other.parameters
-                and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+        if isinstance(other, ParameterExpression):
+            return (self.parameters == other.parameters
+                    and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+        elif isinstance(other, numbers.Number):
+            return (len(self.parameters) == 0
+                    and complex(self._symbol_expr) == other)
+        return False

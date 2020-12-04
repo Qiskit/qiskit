@@ -32,6 +32,7 @@ from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableS
 
 import networkx as nx
 import numpy as np
+import retworkx as rx
 
 from .types import Swap, Permutation
 from .util import PermutationCircuit, permutation_circuit
@@ -48,7 +49,8 @@ class ApproximateTokenSwapper(Generic[_V]):
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.Generator] = None) -> None:
+    def __init__(self, graph: rx.PyGraph,
+                 seed: Union[int, np.random.Generator, None] = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
@@ -56,11 +58,7 @@ class ApproximateTokenSwapper(Generic[_V]):
             seed (Union[int, np.random.default_rng]): Seed to use for random trials.
         """
         self.graph = graph
-        # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
-        # The nodes in graph don't have to integer nor contiguous, but those in a NumPy array are.
-        nodelist = list(graph.nodes())
-        self.node_map = {node: i for i, node in enumerate(nodelist)}
-        self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
+        self.shortest_paths = rx.graph_floyd_warshall_numpy(graph)
         if isinstance(seed, np.random.Generator):
             self.seed = seed
         else:
@@ -68,7 +66,7 @@ class ApproximateTokenSwapper(Generic[_V]):
 
     def distance(self, vertex0: _V, vertex1: _V) -> int:
         """Compute the distance between two nodes in `graph`."""
-        return self.shortest_paths[self.node_map[vertex0], self.node_map[vertex1]]
+        return self.shortest_paths[vertex0, vertex1]
 
     def permutation_circuit(self, permutation: Permutation,
                             trials: int = 4) -> PermutationCircuit:
@@ -106,7 +104,7 @@ class ApproximateTokenSwapper(Generic[_V]):
         digraph = nx.DiGraph()
         sub_digraph = nx.DiGraph()  # Excludes self-loops in digraph.
         todo_nodes = {node for node, destination in tokens.items() if node != destination}
-        for node in self.graph.nodes:
+        for node in self.graph.node_indexes():
             self._add_token_edges(node, tokens, digraph, sub_digraph)
 
         trial_results = iter(list(self._trial_map(digraph.copy(),
@@ -147,7 +145,7 @@ class ApproximateTokenSwapper(Generic[_V]):
 
         # Can't just iterate over todo_nodes, since it may change during iteration.
         steps = 0
-        while todo_nodes and steps <= 4 * self.graph.number_of_nodes() ** 2:
+        while todo_nodes and steps <= 4 * len(self.graph) ** 2:
             todo_node_id = self.seed.integers(0, len(todo_nodes))
             todo_node = tuple(todo_nodes)[todo_node_id]
 
