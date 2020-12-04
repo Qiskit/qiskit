@@ -36,7 +36,7 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit.util import local_hardware_info
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
