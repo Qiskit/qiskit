@@ -95,11 +95,11 @@ def _marginalize(counts, indices=None):
     num_clbits = len(next(iter(counts)).replace(' ', ''))
 
     # Check if we do not need to marginalize and if so, trim
-    # whitespace and return
+    # whitespace and '_' and return
     if (indices is None) or set(range(num_clbits)) == set(indices):
         ret = {}
         for key, val in counts.items():
-            key = key.replace(' ', '')
+            key = key.replace(' ', '').replace('_', '')
             ret[key] = val
         return ret
 
@@ -113,7 +113,7 @@ def _marginalize(counts, indices=None):
     # Build the return list
     new_counts = Counter({})
     for key, val in counts.items():
-        new_key = ''.join([key.replace(' ', '')[-idx-1] for idx in indices])
+        new_key = ''.join([key.replace(' ', '').replace('_', '')[-idx-1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 
