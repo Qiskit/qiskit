@@ -130,7 +130,7 @@ class DAGDependency:
             calibrations (dict): A dictionary of input in th format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     def to_networkx(self):
         """Returns a copy of the DAGDependency in networkx format."""
