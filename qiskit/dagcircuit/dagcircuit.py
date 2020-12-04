@@ -148,9 +148,7 @@ class DAGCircuit:
     @property
     def wires(self):
         """Return a list of the wires in order."""
-        out_list = [bit for reg in self.qregs.values() for bit in reg]
-        out_list += [bit for reg in self.cregs.values() for bit in reg]
-        return out_list
+        return self.qubits + self.clbits
 
     @property
     def node_counter(self):
@@ -273,9 +271,11 @@ class DAGCircuit:
         if qreg.name in self.qregs:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
+        existing_qubits = set(self.qubits)
         for j in range(qreg.size):
-            self.qubits.append(qreg[j])
-            self._add_wire(qreg[j])
+            if qreg[j] not in existing_qubits:
+                self.qubits.append(qreg[j])
+                self._add_wire(qreg[j])
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -284,9 +284,11 @@ class DAGCircuit:
         if creg.name in self.cregs:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
+        existing_clbits = set(self.clbits)
         for j in range(creg.size):
-            self.clbits.append(creg[j])
-            self._add_wire(creg[j])
+            if creg[j] not in existing_clbits:
+                self.clbits.append(creg[j])
+                self._add_wire(creg[j])
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -382,6 +384,9 @@ class DAGCircuit:
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
         target_dag.metadata = self.metadata
+
+        target_dag.add_qubits(self.qubits)
+        target_dag.add_clbits(self.clbits)
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)
@@ -784,11 +789,11 @@ class DAGCircuit:
            DAGCircuit.width() now returns qubits + clbits for
            consistency with Circuit.width() [qiskit-terra #2564].
         """
-        return len(self._wires) - self.num_clbits()
+        return len(self.qubits)
 
     def num_clbits(self):
         """Return the total number of classical bits used by the circuit."""
-        return sum(creg.size for creg in self.cregs.values())
+        return len(self.clbits)
 
     def num_tensor_factors(self):
         """Compute how many components the circuit can decompose into."""
@@ -1387,14 +1392,7 @@ class DAGCircuit:
                 return
 
             # Construct a shallow copy of self
-            new_layer = DAGCircuit()
-            new_layer.name = self.name
-
-            # add in the registers - this adds the input/output nodes
-            for creg in self.cregs.values():
-                new_layer.add_creg(creg)
-            for qreg in self.qregs.values():
-                new_layer.add_qreg(qreg)
+            new_layer = self._copy_circuit_metadata()
 
             for node in op_nodes:
                 # this creates new DAGNodes in the new_layer
@@ -1418,11 +1416,8 @@ class DAGCircuit:
         same structure as in layers().
         """
         for next_node in self.topological_op_nodes():
-            new_layer = DAGCircuit()
-            for qreg in self.qregs.values():
-                new_layer.add_qreg(qreg)
-            for creg in self.cregs.values():
-                new_layer.add_creg(creg)
+            new_layer = self._copy_circuit_metadata()
+
             # Save the support of the operation we add to the layer
             support_list = []
             # Operation data
