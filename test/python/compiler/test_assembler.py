@@ -113,6 +113,11 @@ class TestCircuitAssembler(QiskitTestCase):
         backend = FakeYorktown()
         self.assertRaises(QiskitError, assemble, backend, shots=1024000)
 
+    def test_shots_not_of_type_int(self):
+        """Test assembling with shots having type other than int"""
+        backend = FakeYorktown()
+        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         backend = FakeYorktown()

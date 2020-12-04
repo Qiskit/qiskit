@@ -38,9 +38,13 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """Initialize a density matrix object.
 
         Args:
-            data (matrix_like or vector_like): a density matrix or
-                statevector. If a vector the density matrix is constructed
-                as the projector of that vector.
+            data (np.ndarray or list or matrix_like or QuantumCircuit or
+                  qiskit.circuit.Instruction):
+                A statevector, quantum instruction or an object with a ``to_operator`` or
+                ``to_matrix`` method from which the density matrix can be constructed.
+                If a vector the density matrix is constructed as the projector of that vector.
+                If a quantum instruction, the density matrix is constructed by assuming all
+                qubits are initialized in the zero state.
             dims (int or tuple or list): Optional. The subsystem dimension
                     of the state (See additional information).
 
@@ -64,6 +68,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             # Finally we check if the input is a raw matrix in either a
             # python list or numpy array format.
             self._data = np.asarray(data, dtype=complex)
+        elif isinstance(data, (QuantumCircuit, Instruction)):
+            # If the data is a circuit or an instruction use the classmethod
+            # to construct the DensityMatrix object
+            self._data = DensityMatrix.from_instruction(data)._data
         elif hasattr(data, 'to_operator'):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
