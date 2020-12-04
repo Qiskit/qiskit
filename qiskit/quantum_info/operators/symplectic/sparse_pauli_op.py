@@ -73,7 +73,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
 
     def __array__(self, dtype=None):
         if dtype:
-           return np.asarray(self.to_matrix(), dtype=dtype)
+            return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     def __repr__(self):
