@@ -10,4 +10,4 @@ upgrade:
       - :class:`qiskit.dagcircuit.DAGDependency.to_networkx`
 
     If you are using any of these methods you need to manually install
-    networkx in your environment,
+    networkx in your environment.
