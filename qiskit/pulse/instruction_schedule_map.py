@@ -177,10 +177,9 @@ class InstructionScheduleMap():
         self.assert_has(instruction, qubits)
         schedule_param_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
 
-        # create parameter-value mapping
+        # Verify parameter-value mapping
         if len(params) > len(schedule_param_tuple.parameters):
             raise PulseError('Too many values to bind: {}.'.format(', '.join(map(str, params))))
-
         if not all(key in schedule_param_tuple.parameters for key in kwparams.keys()):
             raise PulseError('Parameters not defined: {}'.format(', '.join(kwparams.keys())))
 
