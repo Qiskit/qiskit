@@ -28,8 +28,7 @@
 
 import copy
 import logging
-from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, \
-    Iterable, Union
+from typing import Iterator, Mapping, MutableMapping, MutableSet, List, Iterable, Union
 
 import numpy as np
 import retworkx as rx
@@ -37,12 +36,11 @@ import retworkx as rx
 from .types import Swap, Permutation
 from .util import PermutationCircuit, permutation_circuit
 
-_V = TypeVar('_V')
 
 logger = logging.getLogger(__name__)
 
 
-class ApproximateTokenSwapper(Generic[_V]):
+class ApproximateTokenSwapper:
     """A class for computing approximate solutions to the Token Swapping problem.
 
     Internally caches the graph and associated datastructures for re-use.
