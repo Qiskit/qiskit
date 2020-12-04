@@ -346,7 +346,8 @@ class QuantumCircuit:
             q_1: ┤ RX(1.57) ├─────
                  └──────────┘
         """
-        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        reverse_circ = QuantumCircuit(self.qubits, self.clbits,
+                                      *self.qregs, *self.cregs,
                                       name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
@@ -427,7 +428,8 @@ class QuantumCircuit:
             q_1: ┤ RX(-1.57) ├─────
                  └───────────┘
         """
-        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        inverse_circ = QuantumCircuit(self.qubits, self.clbits,
+                                      *self.qregs, *self.cregs,
                                       name=self.name + '_dg', global_phase=-self.global_phase)
 
         for inst, qargs, cargs in reversed(self._data):
@@ -443,7 +445,8 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
-        repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        repeated_circ = QuantumCircuit(self.qubits, self.clbits,
+                                       *self.qregs, *self.cregs,
                                        name=self.name + '**{}'.format(reps))
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -493,7 +496,7 @@ class QuantumCircuit:
                                'controlled. Note that no qiskit.circuit.Instruction objects may '
                                'be in the circuit for this operation.')
 
-        power_circuit = QuantumCircuit(*self.qregs, *self.cregs)
+        power_circuit = QuantumCircuit(self.qubits, self.clbits, *self.qregs, *self.cregs)
         power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
         return power_circuit
 
@@ -521,7 +524,7 @@ class QuantumCircuit:
 
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
         control_qreg = QuantumRegister(num_ctrl_qubits)
-        controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+        controlled_circ = QuantumCircuit(control_qreg, self.qubits, *self.qregs,
                                          name='c_{}'.format(self.name))
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
@@ -785,7 +788,8 @@ class QuantumCircuit:
 
         # Now we don't have to handle any more cases arising from special implicit naming
         else:
-            dest = QuantumCircuit(*other.qregs, *self.qregs, *other.cregs, *self.cregs)
+            dest = QuantumCircuit(other.qubits, self.qubits, other.clbits, self.clbits,
+                                  *other.qregs, *self.qregs, *other.cregs, *self.cregs)
 
         # compose self onto the output, and then other
         dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
@@ -1032,12 +1036,16 @@ class QuantumCircuit:
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
-                self._qubits.extend(register)
-                self._qubit_set.update(register)
+                new_bits = [bit for bit in register
+                            if bit not in self._qubit_set]
+                self._qubits.extend(new_bits)
+                self._qubit_set.update(new_bits)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
-                self._clbits.extend(register)
-                self._clbit_set.update(register)
+                new_bits = [bit for bit in register
+                            if bit not in self._qubit_set]
+                self._clbits.extend(new_bits)
+                self._clbit_set.update(new_bits)
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
@@ -1205,11 +1213,29 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
+
+        qreg_bits = set(bit for reg in self.qregs for bit in reg)
+        creg_bits = set(bit for reg in self.cregs for bit in reg)
+        regless_qubits = []
+        regless_clbits = []
+
+        if set(self.qubits) != qreg_bits:
+            regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
+            string_temp += "qreg %s[%d];\n" % ('regless', len(regless_qubits))
+
+        if set(self.clbits) != creg_bits:
+            regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
+            string_temp += "creg %s[%d];\n" % ('regless', len(regless_clbits))
+
         unitary_gates = []
 
         bit_labels = {bit: "%s[%d]" % (reg.name, idx)
                       for reg in self.qregs + self.cregs
                       for (idx, bit) in enumerate(reg)}
+
+        bit_labels.update({bit: "regless[%d]" % idx
+                           for reg in (regless_qubits, regless_clbits)
+                           for idx, bit in enumerate(reg)})
 
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
@@ -1496,15 +1522,12 @@ class QuantumCircuit:
             int: Width of circuit.
 
         """
-        return sum(reg.size for reg in self.qregs + self.cregs)
+        return len(self.qubits) + len(self.clbits)
 
     @property
     def num_qubits(self):
         """Return number of qubits."""
-        qubits = 0
-        for reg in self.qregs:
-            qubits += reg.size
-        return qubits
+        return len(self.qubits)
 
     @property
     def num_ancillas(self):
@@ -1514,7 +1537,7 @@ class QuantumCircuit:
     @property
     def num_clbits(self):
         """Return number of classical bits."""
-        return sum(len(reg) for reg in self.cregs)
+        return len(self.clbits)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -2044,9 +2067,7 @@ class QuantumCircuit:
         qubits = []
 
         if not qargs:  # None
-            for qreg in self.qregs:
-                for j in range(qreg.size):
-                    qubits.append(qreg[j])
+            qubits.extend(self.qubits)
 
         for qarg in qargs:
             if isinstance(qarg, QuantumRegister):
