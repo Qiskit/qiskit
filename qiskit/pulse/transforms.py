@@ -119,7 +119,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
         """Return the time needed to allow for readout discrimination calibration pulses."""
         # TODO fix behavior of this.
         #  This implicitly assumes cal_gate always has three parameters.
-        #  For example, when we scpefify the `x` instruction it doesn't have parameters.
+        #  For example, when we specify the `x` instruction it doesn't have parameters.
         max_calibration_duration = 0
         for qubits in inst_map.qubits_with_instruction(cal_gate):
             try:
