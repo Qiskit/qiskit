@@ -38,4 +38,6 @@ def circuit_to_dagdependency(circuit):
 
     dagdependency._add_successors()
 
+    dagdependency.calibrations = circuit.calibrations
+
     return dagdependency
