@@ -9,8 +9,8 @@ fixes:
 
     The following code should now raise a CircuitError
 
-    .. jupyter-execute::
-        from qiskit import *
-  
-        q = QuantumRegister(1)
-        q.name = '_q'
+    .. code-block::
+
+       >>> from qiskit import QuantumRegister
+       >>> q = QuantumRegister(1)
+       >>> q.name = '_q'
