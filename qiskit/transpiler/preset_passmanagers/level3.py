@@ -207,7 +207,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3 = PassManager()
     pm3.append(_unroll3q)
     pm3.append(_reset + _meas)
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
