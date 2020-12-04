@@ -66,7 +66,7 @@ class TestPauliConversions(QiskitTestCase):
     @data(*pauli_group_labels(1), *pauli_group_labels(2))
     def test_to_operator(self, label):
         """Test Pauli operator conversion"""
-        value = Pauli(label).to_operator()
+        value = Operator(Pauli(label))
         target = operator_from_label(label)
         self.assertEqual(value, target)
 
@@ -83,7 +83,7 @@ class TestPauliConversions(QiskitTestCase):
         """Test Pauli to instruction"""
         pauli = Pauli(label)
         value = Operator(pauli.to_instruction())
-        target = pauli.to_operator()
+        target = Operator(pauli)
         self.assertEqual(value, target)
 
     @data((IGate(), 'I'), (XGate(), 'X'), (YGate(), 'Y'), (ZGate(), 'Z'))

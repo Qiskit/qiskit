@@ -63,7 +63,7 @@ class PauliGate(Gate):
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators import Pauli
-        return Pauli(self.params[0]).to_matrix()
+        return Pauli(self.params[0]).__array__(dtype=dtype)
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):

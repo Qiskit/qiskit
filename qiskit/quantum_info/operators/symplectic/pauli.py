@@ -184,6 +184,11 @@ class Pauli(BasePauli):
             return front + '...'
         return self.to_label()
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
+
     @classmethod
     def set_truncation(cls, val):
         """Set the max number of Pauli characters to display before truncation/
@@ -375,11 +380,6 @@ class Pauli(BasePauli):
             array: The Pauli matrix.
         """
         return self._to_matrix(self.z, self.x, self._phase[0], sparse=sparse)
-
-    def to_operator(self):
-        """Convert to a matrix Operator object"""
-        from qiskit.quantum_info.operators.operator import Operator
-        return Operator(self.to_matrix())
 
     def to_instruction(self):
         """Convert to Pauli circuit instruction."""
