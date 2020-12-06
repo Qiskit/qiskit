@@ -377,24 +377,33 @@ class Instruction(ABC):
                                  ", name='{}'".format(self.name) if self.name else "")
 
 
-def _format_value(value: Union[Any, ParameterExpression]) -> Any:
+def _format_value(operand: Union[Any, ParameterExpression]) -> Any:
     """Convert ParameterExpression into the most suitable data type.
 
     Args:
-        value: Operand value in arbitrary data type including ParameterExpression.
+        operand: Operand value in arbitrary data type including ParameterExpression.
 
     Returns:
         Value casted to non-parameter data type, when possible.
     """
-    if isinstance(value, ParameterExpression):
-        value = srepr(value)
+    if isinstance(operand, ParameterExpression):
+        # to evaluate parameter expression object, sympy srepr function is used.
+        # this function converts the parameter object into string with tiny round error.
+        # therefore evaluated value is not completely equal to the assigned value.
+        # however this error can be ignored in practice though we need to be careful for unittests.
+        # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
+        # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
+        math_expr = srepr(operand)
         try:
-            value = complex(value)
-            if not np.iscomplex(value):
-                value = float(value.real)
-                if value.is_integer():
-                    return int(value)
+            # value is assigned
+            evaluated = complex(math_expr)
+            if not np.iscomplex(evaluated):
+                evaluated = float(evaluated.real)
+                if evaluated.is_integer():
+                    evaluated = int(evaluated)
+            return evaluated
         except ValueError:
+            # value is not assigned
             pass
-
-    return value
+    # not parameter object or cannot be evaluated
+    return operand

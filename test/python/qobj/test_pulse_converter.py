@@ -233,7 +233,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         instruction = ShiftPhase(4., MeasureChannel(0))
         shifted = instruction << 10
 
-        qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1**2')
+        qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1*2')
         converted_instruction = self.converter(qobj)
 
         self.assertIsInstance(converted_instruction, Schedule)

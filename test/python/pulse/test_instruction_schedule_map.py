@@ -22,7 +22,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule,
                           Waveform)
 from qiskit.pulse.channels import DriveChannel
-from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
