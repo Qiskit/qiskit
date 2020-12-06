@@ -212,10 +212,10 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(
             inst_map.get('cx', [0, 1]),
             (22, inst_map.get('u2', [1], 3.14, 1.57)),
-            (46, inst_map.get('u2', [2], 0.778, 0.122)),
-            (50, inst_map.get('cx', [1, 2])),
-            (72, inst_map.get('u2', [2], 0.778, 0.122)),
-            (74, inst_map.get('u3', [0], 3.14, 1.57)))
+            (22, inst_map.get('u2', [2], 0.778, 0.122)),
+            (24, inst_map.get('cx', [1, 2])),
+            (44, inst_map.get('u3', [0], 3.14, 1.57, 0)),
+            (46, inst_map.get('u2', [2], 0.778, 0.122)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
