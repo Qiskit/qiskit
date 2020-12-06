@@ -27,15 +27,17 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 
 """
 import inspect
+import warnings
+
 from collections import defaultdict
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, Parameter
 from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 
 ScheduleArgumentsTuple = NamedTuple('ScheduleArgumentsTuple',
                                     [('schedule', Union[Callable, Schedule]),
@@ -227,6 +229,12 @@ class InstructionScheduleMap():
             PulseError: If the qubits are provided as an empty iterable.
         """
         instruction = _get_instruction_string(instruction)
+
+        if isinstance(schedule, ParameterizedSchedule):
+            warnings.warn('ParameterizedSchedule has been deprecated. '
+                          'Define Schedule with Parameter objects.', DeprecationWarning)
+            bind_dict = {pname: Parameter(pname) for pname in schedule.parameters}
+            schedule = schedule.bind_parameters(**bind_dict)
 
         # validation of input data
         qubits = _to_tuple(qubits)
