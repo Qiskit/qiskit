@@ -84,6 +84,31 @@ class TestInstructions(QiskitTestCase):
         self.assertNotEqual(Instruction('u', 1, 0, [0.3, phi, 0.4]),
                             Instruction('u', 1, 0, [theta, phi, 0.5]))
 
+    def test_instructions_soft_compare(self):
+        """Test soft comparison between instructions."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        # Verify that we are insensitive when there are parameters.
+        self.assertTrue(Instruction('u', 1, 0, [0.3, phi, 0.4]).soft_compare(
+            Instruction('u', 1, 0, [theta, phi, 0.4])))
+
+        # Verify that normal equality still holds.
+        self.assertTrue(Instruction('u', 1, 0, [0.4, 0.5]).soft_compare(
+            Instruction('u', 1, 0, [0.4, 0.5])))
+
+        # Test that when names differ we get False.
+        self.assertFalse(Instruction('u', 1, 0, [0.4, phi]).soft_compare(
+            Instruction('v', 1, 0, [theta, phi])))
+
+        # Test cutoff precision.
+        self.assertFalse(Instruction('v', 1, 0, [0.401, phi]).soft_compare(
+            Instruction('v', 1, 0, [0.4, phi])))
+
+        # Test cutoff precision.
+        self.assertTrue(Instruction('v', 1, 0, [0.4+1.0e-20, phi]).soft_compare(
+            Instruction('v', 1, 0, [0.4, phi])))
+
     def test_instructions_equal_with_parameter_expressions(self):
         """Test equality of instructions for cases with ParameterExpressions."""
         theta = Parameter('theta')
