@@ -412,14 +412,14 @@ class QobjToInstructionConverter:
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
-    def get_channel(self, channel) -> channels.PulseChannel:
+    def get_channel(self, channel: str) -> channels.PulseChannel:
         """Parse and retrieve channel from ch string.
 
         Args:
-            channel (str): Channel to match
+            channel: Channel to match
 
         Returns:
-            (Channel, int): Matched channel
+            Matched channel
 
         Raises:
             QiskitError: Is raised if valid channel is not matched
@@ -437,26 +437,23 @@ class QobjToInstructionConverter:
 
         raise QiskitError('Channel %s is not valid' % channel)
 
-    def format_value(self,
-                     value_expression: Union[float, str]
-                     ) -> Union[float, ParameterExpression]:
+    @staticmethod
+    def disassemble_value(value_expr: Union[float, str]) -> Union[float, ParameterExpression]:
         """A helper function to format instruction operand.
 
         If parameter in string representation is specified, this method parses the
         input string and generates Qiskit ParameterExpression object.
 
         Args:
-            value_expression: Operand value in Qobj.
+            value_expr: Operand value in Qobj.
 
         Returns:
             Parsed operand value. ParameterExpression object is returned if value is not number.
         """
-        try:
-            value = float(value_expression)
-        except ValueError:
-            str_expr = parse_string_expr(value_expression, partial_binding=False)
-            value = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
-        return value
+        if isinstance(value_expr, str):
+            str_expr = parse_string_expr(value_expr, partial_binding=False)
+            value_expr = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
+        return value_expr
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
@@ -522,7 +519,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = self.format_value(instruction.phase)
+        phase = self.disassemble_value(instruction.phase)
 
         return instructions.SetPhase(phase, channel) << t0
 
@@ -537,7 +534,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = self.format_value(instruction.phase)
+        phase = self.disassemble_value(instruction.phase)
 
         return instructions.ShiftPhase(phase, channel) << t0
 
@@ -554,7 +551,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.format_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -572,7 +569,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.format_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 

@@ -37,9 +37,12 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 
-ScheduleParamTuple = NamedTuple('ScheduleParamTuple',
-                                [('schedule', Union[Callable, Schedule]),
-                                 ('parameters', Tuple[str])])
+ScheduleArgumentsTuple = NamedTuple('ScheduleArgumentsTuple',
+                                    [('schedule', Union[Callable, Schedule]),
+                                     ('arguments', Tuple[str])])
+ScheduleArgumentsTuple.__doc__ = 'Set of schedule generator and associated parameter names.'
+ScheduleArgumentsTuple.schedule.__doc__ = 'Schedule generator function or Schedule.'
+ScheduleArgumentsTuple.arguments.__doc__ = 'Name of parameters to be assigned.'
 
 
 class InstructionScheduleMap():
@@ -59,7 +62,7 @@ class InstructionScheduleMap():
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(lambda: defaultdict(ScheduleParamTuple))
+        self._map = defaultdict(lambda: defaultdict(ScheduleArgumentsTuple))
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
@@ -175,46 +178,47 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
-        schedule_param_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
+        schedule_args_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
 
         # Verify parameter-value mapping
-        if len(params) > len(schedule_param_tuple.parameters):
+        if len(params) > len(schedule_args_tuple.arguments):
             raise PulseError('Too many values to bind: {}.'.format(', '.join(map(str, params))))
-        if not all(key in schedule_param_tuple.parameters for key in kwparams.keys()):
+        if not all(key in schedule_args_tuple.arguments for key in kwparams.keys()):
             raise PulseError('Parameters not defined: {}'.format(', '.join(kwparams.keys())))
 
-        bind_parameters = dict(zip_longest(schedule_param_tuple.parameters, params))
+        bind_parameters = dict(zip_longest(schedule_args_tuple.arguments, params))
         bind_parameters.update(kwparams)
 
+        sched = schedule_args_tuple.schedule
+
         # callback function
-        if callable(schedule_param_tuple.schedule):
-            return schedule_param_tuple.schedule(**bind_parameters)
+        if callable(sched):
+            return sched(**bind_parameters)
 
         # schedule
-        sched_params = list(schedule_param_tuple.schedule.parameters)
-        if sched_params:
+        if sched.is_parameterized():
             parameter_mapping = dict()
-            for sched_param in sched_params:
-                bind_value = bind_parameters[sched_param.name]
+            for param_obj in sched.parameters:
+                bind_value = bind_parameters[param_obj.name]
                 # if value is not set, keep the parameter unassigned
                 if bind_value is not None:
-                    parameter_mapping[sched_param] = bind_value
-            return schedule_param_tuple.schedule.assign_parameters(parameter_mapping)
+                    parameter_mapping[param_obj] = bind_value
+            return sched.assign_parameters(parameter_mapping)
 
-        return schedule_param_tuple.schedule
+        return sched
 
     def add(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
             schedule: Union[Schedule, Callable[..., Schedule]],
-            params: Optional[List[str]] = None) -> None:
+            arguments: Optional[List[str]] = None) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
         Args:
             instruction: The name of the instruction to add.
             qubits: The qubits which the instruction applies to.
             schedule: The Schedule that implements the given instruction.
-            params: List of parameter names to create a parameter-bound schedule from the
+            arguments: List of parameter names to create a parameter-bound schedule from the
                 associated gate instruction. If :py:meth:`get` is called with arguments rather
                 than keyword arguments, this parameter list is used to map the input arguments to
                 parameter objects stored in the target schedule.
@@ -238,16 +242,18 @@ class InstructionScheduleMap():
         else:
             func_parameters = set(param.name for param in schedule.parameters)
 
-        if params is None:
+        if arguments is None:
             # for backward compatibility
-            params = sorted(func_parameters)
+            arguments = sorted(func_parameters)
         else:
             # check parameter list consistency
-            if sorted(func_parameters) != sorted(params):
+            if sorted(func_parameters) != sorted(arguments):
+                str_func_parameters = ', '.join(func_parameters)
+                str_arguments = ', '.join(arguments)
                 raise PulseError('Program signature and specified parameter names do not match '
-                                 '{} != {}'.format(', '.join(func_parameters), ', '.join(params)))
+                                 '{} != {}'.format(str_func_parameters, str_arguments))
 
-        self._map[instruction][qubits] = ScheduleParamTuple(schedule, tuple(params))
+        self._map[instruction][qubits] = ScheduleArgumentsTuple(schedule, tuple(arguments))
         self._qubit_instructions[qubits].add(instruction)
 
     def remove(self,
@@ -307,7 +313,7 @@ class InstructionScheduleMap():
         instruction = _get_instruction_string(instruction)
 
         self.assert_has(instruction, qubits)
-        return self._map[instruction][_to_tuple(qubits)].parameters
+        return self._map[instruction][_to_tuple(qubits)].arguments
 
     def __str__(self):
         single_q_insts = "1Q instructions:\n"
