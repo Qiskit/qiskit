@@ -721,8 +721,8 @@ class Schedule(abc.ABC):
                       parameter_name: str) -> List[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
-        Because different `Parameter` objects can have the same name,
-        this method returns a list of `Parameter`s for the provided name.
+        Because different ``Parameter`` objects can have the same name,
+        this method returns a list of ``Parameter`` s for the provided name.
 
         Args:
             parameter_name: Name of parameter.
