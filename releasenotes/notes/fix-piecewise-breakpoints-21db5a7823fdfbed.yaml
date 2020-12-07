@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix breakpoints to allow giving an end of the interval where the functions are computed.
