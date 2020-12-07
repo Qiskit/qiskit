@@ -31,7 +31,7 @@ from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
@@ -628,19 +628,17 @@ class TestTranspile(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
 
-    @data(1, 2, 3)
-    def test_hadamard_to_rot_gates(self, optimization_level):
+    def test_hadamard_to_rot_gates(self):
         """Test a transpilation from H to Rx, Ry gates"""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.h(0)
 
         expected = QuantumCircuit(qr)
-        expected.append(RYGate(theta=pi/2), [0])
-        expected.append(RXGate(theta=pi), [0])
+        expected.append(RYGate(theta=np.pi/2), [0])
+        expected.append(RXGate(theta=np.pi), [0])
 
-        circuit = transpile(qc, basis_gates=['rx', 'ry'],
-                            optimization_level=optimization_level)
+        circuit = transpile(qc, basis_gates=['rx', 'ry'], optimization_level=0)
         self.assertEqual(circuit, expected)
 
     def test_basis_subset(self):

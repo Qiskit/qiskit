@@ -718,7 +718,7 @@ def_h.append(RYGate(theta=pi/2), [q[0]])
 def_h.append(RXGate(theta=pi), [q[0]])
 _sel.add_equivalence(HGate(), def_h)
 
-# HGate, RGate(pi, 0).RGate(pi/2, pi/2) equivalence 
+# HGate, RGate(pi, 0).RGate(pi/2, pi/2) equivalence
 
 q = QuantumRegister(1, 'q')
 def_h = QuantumCircuit(q)
