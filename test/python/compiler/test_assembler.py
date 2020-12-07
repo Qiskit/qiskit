@@ -552,11 +552,12 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test that a single delay gate is translated to an instruction."""
         circ = QuantumCircuit(2)
         circ.append(Gate('test', 1, []), [0])
-        circ.add_calibration('test', [0], pulse.Delay(160, DriveChannel(0)))
+        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+        circ.add_calibration('test', [0], test_sched)
         qobj = assemble(circ, FakeOpenPulse2Q())
-        self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 1)
-        self.assertEqual(qobj.config.calibrations.gates[0].instructions[0].to_dict(),
-                         {"name": "delay", "t0": 0, "ch": "d0", "duration": 160})
+        self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
+        self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
+                         {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
 
 
 class TestPulseAssembler(QiskitTestCase):
