@@ -844,19 +844,6 @@ class TestPulseAssembler(QiskitTestCase):
         # two user pulses and one measurement pulse should be contained
         self.assertEqual(len(qobj.config.pulse_library), 3)
 
-    def test_assemble_with_delay(self):
-        """Test that delay instruction is ignored in assembly."""
-        orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
-
-        orig_qobj = assemble(orig_schedule, self.backend)
-        validate_qobj_against_schema(orig_qobj)
-        delay_qobj = assemble(delay_schedule, self.backend)
-        validate_qobj_against_schema(delay_qobj)
-
-        self.assertEqual(orig_qobj.experiments[0].to_dict(),
-                         delay_qobj.experiments[0].to_dict())
-
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
         qobj = assemble(self.schedule,
