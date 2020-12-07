@@ -113,6 +113,11 @@ class TestCircuitAssembler(QiskitTestCase):
         backend = FakeYorktown()
         self.assertRaises(QiskitError, assemble, backend, shots=1024000)
 
+    def test_shots_not_of_type_int(self):
+        """Test assembling with shots having type other than int"""
+        backend = FakeYorktown()
+        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         backend = FakeYorktown()
@@ -139,6 +144,25 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_meas_level_meas_return(self):
+        """Test assembling a circuit schedule with `meas_level`."""
+        qobj = assemble(self.circ,
+                        meas_level=1,
+                        meas_return='single')
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 1)
+        self.assertEqual(qobj.config.meas_return, 'single')
+
+        # no meas_level set
+        qobj = assemble(self.circ)
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 2)
+        self.assertEqual(hasattr(qobj.config, 'meas_return'), False)
 
     def test_assemble_backend_rep_delays(self):
         """Check that rep_delay is properly set from backend values."""
