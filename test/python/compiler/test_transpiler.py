@@ -628,6 +628,19 @@ class TestTranspile(QiskitTestCase):
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
 
+    def test_hadamard_to_rot_gates(self):
+        """Test a transpilation from H to Rx, Ry gates"""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.h(0)
+
+        expected = QuantumCircuit(qr)
+        expected.append(RYGate(theta=pi/2), 0)
+        expected.append(RXGate(theta=pi), 0)
+
+        circuit = transpile(qc, basis_gates=['rx', 'ry'])
+        self.assertEqual(circuit, expected)
+
     def test_basis_subset(self):
         """Test a transpilation with a basis subset of the standard basis"""
         qr = QuantumRegister(1, 'q1')
