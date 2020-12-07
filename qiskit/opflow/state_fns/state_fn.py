@@ -144,7 +144,7 @@ class StateFn(OperatorBase):
         raise NotImplementedError
 
     def permute(self, permutation: List[int]) -> OperatorBase:
-        """Permute the qubits of the state function.
+        """Permute the qubits of the state abstract function.
 
         Args:
             permutation: A list defining where each qubit should be permuted. The qubit at index
@@ -152,6 +152,9 @@ class StateFn(OperatorBase):
 
         Returns:
             A new StateFn containing the permuted primitive.
+        Raises:
+            NotImplementedError: unless :class:`~qiskit.opflow.StateFn` subclass
+                implements this method.
         """
         raise NotImplementedError
 
