@@ -13,11 +13,11 @@
 """ Test Entangler Map """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
+from qiskit.test import QiskitTestCase
+from qiskit.utils import get_entangler_map, validate_entangler_map
 
 
-class TestEntanglerMap(QiskitAquaTestCase):
+class TestEntanglerMap(QiskitTestCase):
     """ Test Entangler Map """
     def test_map_type_linear(self):
         """ ,ap type linear test """

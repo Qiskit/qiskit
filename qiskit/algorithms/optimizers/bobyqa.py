@@ -15,7 +15,7 @@
 
 import logging
 import numpy as np
-from qiskit.aqua import MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class BOBYQA(Optimizer):
             raise MissingOptionalLibraryError(
                 libname='scikit-quant',
                 name='BOBYQA',
-                pip_install='pip install qiskit-aqua[skquant]')
+                pip_install='pip install scikit-quant')
         super().__init__()
         self._maxiter = maxiter
 

@@ -17,8 +17,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Dict
 
 import numpy as np
-from qiskit.aqua.algorithms import AlgorithmResult
-from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
+from qiskit.opflow import OperatorBase, LegacyBaseOperator
+from ..algorithm_result import AlgorithmResult
 
 
 class MinimumEigensolver(ABC):

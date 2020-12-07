@@ -14,15 +14,15 @@
 
 import unittest
 import math
-from test.aqua import QiskitAquaTestCase
 from ddt import ddt, data, idata, unpack
+from qiskit.test import QiskitTestCase
 from qiskit import BasicAer
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import Shor
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import Shor
 
 
 @ddt
-class TestShor(QiskitAquaTestCase):
+class TestShor(QiskitTestCase):
     """test Shor's algorithm"""
 
     @idata([

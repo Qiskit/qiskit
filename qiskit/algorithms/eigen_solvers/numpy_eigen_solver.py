@@ -19,10 +19,10 @@ import warnings
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.aqua import AquaError
-from qiskit.aqua.algorithms import ClassicalAlgorithm
-from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator, I, StateFn, ListOp
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.exceptions import AquaError
+from qiskit.utils import aqua_globals
+from qiskit.opflow import OperatorBase, LegacyBaseOperator, I, StateFn, ListOp
+from qiskit.utils.validation import validate_min
 from .eigen_solver import Eigensolver, EigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
-class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
+class NumPyEigensolver(Eigensolver):
     r"""
     The NumPy Eigensolver algorithm.
 
@@ -39,7 +39,7 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
 
     Note:
-        Operators are automatically converted to :class:`~qiskit.aqua.operators.MatrixOperator`
+        Operators are automatically converted to :class:`~qiskit.opflow.MatrixOperator`
         as needed and this conversion can be costly in terms of memory and performance as the
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
@@ -81,6 +81,19 @@ class NumPyEigensolver(ClassicalAlgorithm, Eigensolver):
         self._filter_criterion = filter_criterion
 
         self._ret = {}  # type: Dict[str, Any]
+
+    @property
+    def random(self):
+        """Return a numpy random."""
+        return aqua_globals.random
+
+    def run(self) -> Dict:
+        """Execute the classical algorithm.
+        Returns:
+            dict: results of an algorithm.
+        """
+
+        return self._run()
 
     @property
     def operator(self) -> Optional[OperatorBase]:

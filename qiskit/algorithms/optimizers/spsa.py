@@ -18,8 +18,8 @@ import logging
 
 import numpy as np
 
-from qiskit.aqua import aqua_globals
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.utils import aqua_globals
+from qiskit.utils.validation import validate_min
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)

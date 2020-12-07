@@ -13,22 +13,23 @@
 """ Test VQE """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
 import numpy as np
 from ddt import ddt, unpack, data
+from qiskit.test import QiskitTestCase
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 
-from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
-from qiskit.aqua.operators import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
-                                   AerPauliExpectation, PauliExpectation,
-                                   MatrixExpectation, ExpectationBase)
-from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
-from qiskit.aqua.algorithms import VQE
+from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.exceptions import AquaError
+from qiskit.opflow import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
+                           AerPauliExpectation, PauliExpectation,
+                           MatrixExpectation, ExpectationBase)
+from qiskit.algorithms.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
+from qiskit.algorithms import VQE
 
 
 @ddt
-class TestVQE(QiskitAquaTestCase):
+class TestVQE(QiskitTestCase):
     """ Test VQE """
 
     def setUp(self):

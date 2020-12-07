@@ -13,14 +13,14 @@
 """ Test NumPy Minimum Eigensolver """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
 import numpy as np
-from qiskit.aqua import AquaError
-from qiskit.aqua.algorithms import NumPyMinimumEigensolver
-from qiskit.aqua.operators import WeightedPauliOperator
+from qiskit.test import QiskitTestCase
+from qiskit.exceptions import AquaError
+from qiskit.algorithms import NumPyMinimumEigensolver
+from qiskit.opflow import WeightedPauliOperator
 
 
-class TestNumPyMinimumEigensolver(QiskitAquaTestCase):
+class TestNumPyMinimumEigensolver(QiskitTestCase):
     """ Test NumPy Minimum Eigensolver """
 
     def setUp(self):

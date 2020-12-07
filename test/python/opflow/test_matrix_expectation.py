@@ -13,21 +13,21 @@
 " Test MatrixExpectation"
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import itertools
 import numpy as np
 
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
-                                   ListOp, Zero, One, Plus, Minus, StateFn,
-                                   MatrixExpectation, CircuitSampler)
+from qiskit.test import QiskitTestCase
+
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import (X, Y, Z, I, CX, H, S,
+                           ListOp, Zero, One, Plus, Minus, StateFn,
+                           MatrixExpectation, CircuitSampler)
 from qiskit import BasicAer
 
 
 # pylint: disable=invalid-name
 
-class TestMatrixExpectation(QiskitAquaTestCase):
+class TestMatrixExpectation(QiskitTestCase):
     """Pauli Change of Basis Expectation tests."""
 
     def setUp(self) -> None:

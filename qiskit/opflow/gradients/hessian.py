@@ -15,7 +15,7 @@
 from typing import Optional, Union, List, Tuple
 
 import numpy as np
-from qiskit.exceptions import AquaError
+from qiskit.exceptions import AquaError, MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -101,6 +101,7 @@ class Hessian(HessianBase):
             TypeError: If the operator does not include a StateFn given by a quantum circuit
             TypeError: If the parameters were given in an unsupported format.
             Exception: Unintended code is reached
+            MissingOptionalLibraryError: jax not installed
         """
 
         def is_coeff_c(coeff, c):
@@ -216,20 +217,24 @@ class Hessian(HessianBase):
                     second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
                                                        holomorphic=True))
                 else:
-                    raise AquaError(
-                        'This automatic differentiation function is based on JAX. Please '
-                        'install jax and use `import jax.numpy as jnp` instead of '
-                        '`import numpy as np` when defining a combo_fn.')
+                    raise MissingOptionalLibraryError(
+                        libname='jax',
+                        name='get_hessian',
+                        msg='This automatic differentiation function is based on JAX. Please '
+                            'install jax and use `import jax.numpy as jnp` instead of '
+                            '`import numpy as np` when defining a combo_fn.')
             else:
                 if _HAS_JAX:
                     first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
                     second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
                                                        holomorphic=True))
                 else:
-                    raise AquaError(
-                        'This automatic differentiation function is based on JAX. Please install '
-                        'jax and use `import jax.numpy as jnp` instead of `import numpy as np` when'
-                        'defining a combo_fn.')
+                    raise MissingOptionalLibraryError(
+                        libname='jax',
+                        name='get_hessian',
+                        msg='This automatic differentiation function is based on JAX. '
+                            'Please install jax and use `import jax.numpy as jnp` instead '
+                            'of `import numpy as np` when defining a combo_fn.')
 
             # For a general combo_fn F(g_0, g_1, ..., g_k)
             # dF/d θ0,θ1 = sum_i: (∂F/∂g_i)•(d g_i/ d θ0,θ1) + (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d

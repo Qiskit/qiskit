@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Variational Forms (:mod:`qiskit.aqua.components.variational_forms`)
+Variational Forms (:mod:`qiskit.algorithms.variational_forms`)
 ===================================================================
 In quantum mechanics, the *variational method* is one way of finding approximations to the lowest
 energy eigenstate, or *ground state*, and some excited states. This allows calculating approximate
@@ -23,10 +23,10 @@ depends on one or more parameters, and finding the values of these parameters fo
 expectation value of the energy is the lowest possible.  The wave function obtained by fixing the
 parameters to such values is then an approximation to the ground state wave function, and the
 expectation value of the energy in that state is an upper bound to the ground state energy. Quantum
-variational algorithms, such as :class:`~qiskit.aqua.algorithms.VQE`, apply the variational method.
+variational algorithms, such as :class:`~qiskit.algorithms.VQE`, apply the variational method.
 As such, they require a variational form.
 
-.. currentmodule:: qiskit.aqua.components.variational_forms
+.. currentmodule:: qiskit.algorithms.variational_forms
 
 Variational Form Base Class
 ===========================

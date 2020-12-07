@@ -19,12 +19,11 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import OperatorBase, ExpectationBase, LegacyBaseOperator
-from qiskit.aqua.operators.gradients import GradientBase
-from qiskit.aqua.components.initial_states import InitialState
-from qiskit.aqua.components.optimizers import Optimizer
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.opflow import OperatorBase, ExpectationBase, LegacyBaseOperator
+from qiskit.opflow.gradients import GradientBase
+from qiskit.algorithms.optimizers import Optimizer
+from qiskit.utils.validation import validate_min
+from qiskit.utils.quantum_instance import QuantumInstance
 from .var_form import QAOAVarForm
 from ..vqe import VQE
 
@@ -42,7 +41,7 @@ class QAOA(VQE):
 
     `QAOA <https://arxiv.org/abs/1411.4028>`__ is a well-known algorithm for finding approximate
     solutions to combinatorial-optimization problems.
-    The QAOA implementation in Aqua directly extends :class:`VQE` and inherits VQE's
+    The QAOA implementation directly extends :class:`VQE` and inherits VQE's
     general hybrid optimization structure.
     However, unlike VQE, which can be configured with arbitrary variational forms,
     QAOA uses its own fine-tuned variational form, which comprises :math:`p` parameterized global
@@ -61,15 +60,13 @@ class QAOA(VQE):
     to run constrained optimization problems where the mixer constrains
     the evolution to a feasible subspace of the full Hilbert space.
 
-    An initial state from Aqua's :mod:`~qiskit.aqua.components.initial_states` may optionally
-    be supplied.
     """
 
     def __init__(self,
                  operator: Union[OperatorBase, LegacyBaseOperator] = None,
                  optimizer: Optimizer = None,
                  p: int = 1,
-                 initial_state: Optional[Union[QuantumCircuit, InitialState]] = None,
+                 initial_state: Optional[QuantumCircuit] = None,
                  mixer: Union[QuantumCircuit, OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
@@ -99,7 +96,7 @@ class QAOA(VQE):
                       optimization.
             expectation: The Expectation converter for taking the average value of the
                 Observable over the var_form state function. When None (the default) an
-                :class:`~qiskit.aqua.operators.expectations.ExpectationFactory` is used to select
+                :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
                 an appropriate expectation based on the operator and backend. When using Aer
                 qasm_simulator backend, with paulis, it is however much faster to leverage custom
                 Aer function for the computation but, although VQE performs much faster
@@ -160,7 +157,7 @@ class QAOA(VQE):
                                     mixer_operator=self._mixer)
 
     @property
-    def initial_state(self) -> Optional[Union[QuantumCircuit, InitialState]]:
+    def initial_state(self) -> Optional[QuantumCircuit]:
         """
         Returns:
             Returns the initial state.
@@ -168,7 +165,7 @@ class QAOA(VQE):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: Optional[Union[QuantumCircuit, InitialState]]) -> None:
+    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
         """
         Args:
             initial_state: Initial state to set.

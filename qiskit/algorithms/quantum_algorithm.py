@@ -22,7 +22,9 @@ from abc import ABC, abstractmethod
 from typing import Union, Dict, Optional
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
-from qiskit.aqua import aqua_globals, QuantumInstance, AquaError
+from qiskit.utils import aqua_globals
+from qiskit.exceptions import AquaError
+from qiskit.utils.quantum_instance import QuantumInstance
 
 
 class QuantumAlgorithm(ABC):

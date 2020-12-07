@@ -14,19 +14,19 @@
 
 import itertools
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
 
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
-                                   ListOp, Zero, One, Plus, Minus, StateFn,
-                                   AerPauliExpectation, CircuitSampler, CircuitStateFn,
-                                   PauliExpectation)
+from qiskit.test import QiskitTestCase
+
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import (X, Y, Z, I, CX, H, S,
+                           ListOp, Zero, One, Plus, Minus, StateFn,
+                           AerPauliExpectation, CircuitSampler, CircuitStateFn,
+                           PauliExpectation)
 from qiskit.circuit.library import RealAmplitudes
 
 
-class TestAerPauliExpectation(QiskitAquaTestCase):
+class TestAerPauliExpectation(QiskitTestCase):
     """Pauli Change of Basis Expectation tests."""
 
     def setUp(self) -> None:

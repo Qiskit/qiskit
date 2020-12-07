@@ -13,15 +13,15 @@
 """ Test Matrix Operators """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
 
-from qiskit.aqua.operators import MatrixOperator
-from qiskit.aqua import aqua_globals
+from qiskit.test import QiskitTestCase
+
+from qiskit.opflow import MatrixOperator
+from qiskit.utils import aqua_globals
 
 
-class TestMatrixOperator(QiskitAquaTestCase):
+class TestMatrixOperator(QiskitTestCase):
     """MatrixOperator tests."""
 
     def setUp(self):

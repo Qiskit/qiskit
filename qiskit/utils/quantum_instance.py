@@ -18,14 +18,7 @@ import logging
 import time
 import numpy as np
 
-from qiskit.providers import Backend, BaseBackend
-from qiskit.transpiler import CouplingMap, PassManager
-from qiskit.transpiler.layout import Layout
-from qiskit.assembler.run_config import RunConfig
-from qiskit.circuit import QuantumCircuit
-from qiskit.result import Result
 from qiskit.qobj import Qobj
-from qiskit import compiler
 from qiskit.utils import circuit_utils
 
 try:
@@ -33,7 +26,7 @@ try:
 except ImportError:
     pass
 
-from ..exceptions import AquaError
+from qiskit.exceptions import AquaError
 from .backend_utils import (is_ibmq_provider,
                             is_statevector_backend,
                             is_simulator_backend,
@@ -61,17 +54,17 @@ class QuantumInstance:
                         "statevector_hpc_gate_opt"] + _BACKEND_OPTIONS_QASM_ONLY
 
     def __init__(self,
-                 backend: Union[Backend, BaseBackend],
+                 backend: Union['Backend', 'BaseBackend'],
                  # run config
                  shots: int = 1024,
                  seed_simulator: Optional[int] = None,
                  max_credits: int = 10,
                  # backend properties
                  basis_gates: Optional[List[str]] = None,
-                 coupling_map: Optional[Union[CouplingMap, List[List]]] = None,
+                 coupling_map: Optional[Union['CouplingMap', List[List]]] = None,
                  # transpile
-                 initial_layout: Optional[Union[Layout, Dict, List]] = None,
-                 pass_manager: Optional[PassManager] = None,
+                 initial_layout: Optional[Union['Layout', Dict, List]] = None,
+                 pass_manager: Optional['PassManager'] = None,
                  seed_transpiler: Optional[int] = None,
                  optimization_level: Optional[int] = None,
                  # simulation
@@ -145,6 +138,8 @@ class QuantumInstance:
                 raise AquaError('The maximum shots supported by the selected backend is {} '
                                 'but you specified {}'.format(max_shots, shots))
 
+        # pylint: disable=cyclic-import
+        from qiskit.assembler.run_config import RunConfig
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
@@ -243,7 +238,8 @@ class QuantumInstance:
         return info
 
     def transpile(self,
-                  circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> List[QuantumCircuit]:
+                  circuits: Union['QuantumCircuit',
+                                  List['QuantumCircuit']]) -> List['QuantumCircuit']:
         """
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
@@ -251,6 +247,8 @@ class QuantumInstance:
         Returns:
             The transpiled circuits, it is always a list even though the length is one.
         """
+        # pylint: disable=cyclic-import
+        from qiskit import compiler
         if self._pass_manager is not None:
             transpiled_circuits = self._pass_manager.run(circuits)
         else:
@@ -271,13 +269,15 @@ class QuantumInstance:
         return transpiled_circuits
 
     def assemble(self,
-                 circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> Qobj:
+                 circuits: Union['QuantumCircuit', List['QuantumCircuit']]) -> Qobj:
         """ assemble circuits """
+        # pylint: disable=cyclic-import
+        from qiskit import compiler
         return compiler.assemble(circuits, **self._run_config.to_dict())
 
     def execute(self,
-                circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-                had_transpiled: bool = False) -> Result:
+                circuits: Union['QuantumCircuit', List['QuantumCircuit']],
+                had_transpiled: bool = False) -> 'Result':
         """
         A wrapper to interface with quantum backend.
 
@@ -292,10 +292,11 @@ class QuantumInstance:
               assembling to the qobj.
         """
         # pylint: disable=import-outside-toplevel
-        from .run_circuits import run_qobj
+        from qiskit.utils.run_circuits import run_qobj
 
-        from .measurement_error_mitigation import (get_measured_qubits_from_qobj,
-                                                   build_measurement_error_mitigation_qobj)
+        from qiskit.utils.measurement_error_mitigation import \
+            (get_measured_qubits_from_qobj, build_measurement_error_mitigation_qobj)
+
         # maybe compile
         if not had_transpiled:
             circuits = self.transpile(circuits)

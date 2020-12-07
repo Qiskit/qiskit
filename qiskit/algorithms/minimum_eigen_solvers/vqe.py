@@ -26,16 +26,17 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.aqua import QuantumInstance, AquaError
-from qiskit.aqua.algorithms import QuantumAlgorithm
-from qiskit.aqua.operators import (OperatorBase, ExpectationBase, ExpectationFactory, StateFn,
-                                   CircuitStateFn, LegacyBaseOperator, ListOp, I, CircuitSampler)
-from qiskit.aqua.operators.gradients import GradientBase
-from qiskit.aqua.components.optimizers import Optimizer, SLSQP
-from qiskit.aqua.components.variational_forms import VariationalForm
-from qiskit.aqua.utils.validation import validate_min
-from qiskit.aqua.utils.backend_utils import is_aer_provider
-from ..vq_algorithm import VQAlgorithm, VQResult
+from qiskit.exceptions import AquaError
+from qiskit.opflow import (OperatorBase, ExpectationBase, ExpectationFactory, StateFn,
+                           CircuitStateFn, LegacyBaseOperator, ListOp, I, CircuitSampler)
+from qiskit.opflow.gradients import GradientBase
+from qiskit.utils.validation import validate_min
+from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.quantum_instance import QuantumInstance
+from ..quantum_algorithm import QuantumAlgorithm
+from ..optimizers import Optimizer, SLSQP
+from ..variational_forms import VariationalForm
+from ..variational_quantum_algorithm import VQAlgorithm, VQResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -52,8 +53,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     the minimum eigenvalue of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQE requires defining two algorithmic sub-components:
-    a trial state (ansatz) from Aqua's :mod:`~qiskit.aqua.components.variational_forms`, and one
-    of the classical :mod:`~qiskit.aqua.components.optimizers`. The ansatz is varied, via its set
+    a trial state (ansatz) from  :mod:`~qiskit.algorithms.variational_forms`, and one
+    of the classical :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set
     of parameters, by the optimizer, such that it works towards a state, as determined by the
     parameters applied to the variational form, that will result in the minimum expectation value
     being measured of the input operator (Hamiltonian).
@@ -64,7 +65,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     point.  As an example, when building the dissociation profile of a molecule,
     it is likely that using the previous computed optimal solution as the starting
     initial point for the next interatomic distance is going to reduce the number of iterations
-    necessary for the variational algorithm to converge.  Aqua provides an
+    necessary for the variational algorithm to converge.  It provides an
     `initial point tutorial <https://github.com/Qiskit/qiskit-tutorials-community/blob/master
     /chemistry/h2_vqe_initial_point.ipynb>`__ detailing this use case.
 
@@ -113,7 +114,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
             gradient: An optional gradient function or operator for optimizer.
             expectation: The Expectation converter for taking the average value of the
                 Observable over the var_form state function. When ``None`` (the default) an
-                :class:`~qiskit.aqua.operators.expectations.ExpectationFactory` is used to select
+                :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
                 an appropriate expectation based on the operator and backend. When using Aer
                 qasm_simulator backend, with paulis, it is however much faster to leverage custom
                 Aer function for the computation but, although VQE performs much faster
@@ -559,7 +560,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the optimal circuit. """
         # pylint: disable=import-outside-toplevel
-        from qiskit.aqua.utils.run_circuits import find_regs_by_name
+        from qiskit.utils.run_circuits import find_regs_by_name
 
         if 'opt_params' not in self._ret:
             raise AquaError("Cannot find optimal vector before running the "

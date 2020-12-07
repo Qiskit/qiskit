@@ -24,7 +24,7 @@ except ImportError:
 from abc import ABC, abstractmethod
 import numpy as np
 from qiskit import QuantumRegister
-from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
+from qiskit.utils import get_entangler_map, validate_entangler_map
 
 
 class VariationalForm(ABC):

@@ -13,16 +13,15 @@
 """ Test Pauli Change of Basis Converter """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import itertools
 import numpy as np
+from qiskit.test import QiskitTestCase
 
-from qiskit.aqua.operators import X, Y, Z, I, SummedOp, ComposedOp
-from qiskit.aqua.operators.converters import PauliBasisChange
+from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp
+from qiskit.opflow.converters import PauliBasisChange
 
 
-class TestPauliCoB(QiskitAquaTestCase):
+class TestPauliCoB(QiskitTestCase):
     """Pauli Change of Basis Converter tests."""
 
     def test_pauli_cob_singles(self):

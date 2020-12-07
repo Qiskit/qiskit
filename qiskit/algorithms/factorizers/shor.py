@@ -24,11 +24,13 @@ from qiskit.circuit import Gate, Instruction, ParameterVector
 from qiskit.circuit.library import QFT
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
-from qiskit.aqua.utils import get_subsystem_density_matrix, summarize_circuits
-from qiskit.aqua.utils.arithmetic import is_power
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.quantum_info import partial_trace
+from qiskit.utils import summarize_circuits
+from qiskit.utils.arithmetic import is_power
+from qiskit.utils.validation import validate_min
+from qiskit.utils.quantum_instance import QuantumInstance
+from ..algorithm_result import AlgorithmResult
+from ..quantum_algorithm import QuantumAlgorithm
 
 logger = logging.getLogger(__name__)
 
@@ -384,7 +386,7 @@ class Shor(QuantumAlgorithm):
                 result = self._quantum_instance.execute(circuit)
                 complete_state_vec = result.get_statevector(circuit)
                 # TODO: this uses too much memory
-                up_qreg_density_mat = get_subsystem_density_matrix(
+                up_qreg_density_mat = partial_trace(
                     complete_state_vec,
                     range(2 * self._n, 4 * self._n + 2)
                 )

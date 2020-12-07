@@ -15,16 +15,15 @@
 import random
 import unittest
 from itertools import combinations
-from test.aqua import QiskitAquaTestCase
-
 from ddt import ddt, data
+from qiskit.test import QiskitTestCase
 
-from qiskit.aqua import AquaError
-from qiskit.aqua.operators import (X, Y, Z, I, Zero, Plus, AbelianGrouper)
+from qiskit.exceptions import AquaError
+from qiskit.opflow import (X, Y, Z, I, Zero, Plus, AbelianGrouper)
 
 
 @ddt
-class TestAbelianGrouper(QiskitAquaTestCase):
+class TestAbelianGrouper(QiskitTestCase):
     """Abelian Grouper tests."""
 
     @data('h2_op', 'generic')

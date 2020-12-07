@@ -14,34 +14,34 @@
 
 
 import unittest
-
-from test.aqua import QiskitAquaTestCase
 import itertools
 import scipy
 from scipy.stats import unitary_group
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.test import QiskitTestCase
+
 from qiskit import QiskitError
-from qiskit.aqua import AquaError
+from qiskit.exceptions import AquaError
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
 
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import Operator, Pauli, Statevector
 from qiskit.circuit.library import CZGate, ZGate
 
-from qiskit.aqua.operators import (
+from qiskit.opflow import (
     X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp, OperatorBase, Zero
 )
-from qiskit.aqua.operators import MatrixOperator
+from qiskit.opflow import MatrixOperator
 
 
 # pylint: disable=invalid-name
 
 @ddt
-class TestOpConstruction(QiskitAquaTestCase):
+class TestOpConstruction(QiskitTestCase):
     """Operator Construction tests."""
 
     def test_pauli_primitives(self):
@@ -942,7 +942,7 @@ class TestOpConstruction(QiskitAquaTestCase):
         self.assertEqual(sum_op3, sum_op3)
 
 
-class TestOpMethods(QiskitAquaTestCase):
+class TestOpMethods(QiskitTestCase):
     """Basic method tests."""
 
     def test_listop_num_qubits(self):
@@ -961,7 +961,7 @@ class TestOpMethods(QiskitAquaTestCase):
 
 
 @ddt
-class TestListOpMethods(QiskitAquaTestCase):
+class TestListOpMethods(QiskitTestCase):
     """Test ListOp accessing methods"""
 
     @data(ListOp, SummedOp, ComposedOp, TensoredOp)
@@ -989,7 +989,7 @@ class TestListOpMethods(QiskitAquaTestCase):
         self.assertEqual(list_two_elements.coeff, coeff)
 
 
-class TestListOpComboFn(QiskitAquaTestCase):
+class TestListOpComboFn(QiskitTestCase):
     """Test combo fn is propagated."""
 
     def setUp(self):

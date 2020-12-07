@@ -14,9 +14,6 @@
 
 from .vqe import VQE, VQEResult
 from .qaoa import QAOA
-from .iqpe import IQPE, IQPEResult
-from .qpe import QPE, QPEResult
-from .cplex import ClassicalCPLEX, CPLEX_Ising
 from .numpy_minimum_eigen_solver import NumPyMinimumEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -24,12 +21,6 @@ __all__ = [
     'VQE',
     'VQEResult',
     'QAOA',
-    'IQPE',
-    'IQPEResult',
-    'QPE',
-    'QPEResult',
-    'ClassicalCPLEX',
-    'CPLEX_Ising',
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult'

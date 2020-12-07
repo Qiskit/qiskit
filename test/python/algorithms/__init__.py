@@ -9,9 +9,3 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-""" Aqua test packages """
-
-from .aqua_test_case import QiskitAquaTestCase
-
-__all__ = ['QiskitAquaTestCase']

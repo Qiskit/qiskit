@@ -19,7 +19,7 @@ import os
 
 import csv
 import numpy as np
-from qiskit.aqua import aqua_globals
+from qiskit.utils import aqua_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)

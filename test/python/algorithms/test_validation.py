@@ -13,19 +13,19 @@
 """ Test Validation """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-from qiskit.aqua.utils.validation import (validate_in_set,
-                                          validate_min,
-                                          validate_min_exclusive,
-                                          validate_max,
-                                          validate_max_exclusive,
-                                          validate_range,
-                                          validate_range_exclusive,
-                                          validate_range_exclusive_min,
-                                          validate_range_exclusive_max)
+from qiskit.test import QiskitTestCase
+from qiskit.utils.validation import (validate_in_set,
+                                     validate_min,
+                                     validate_min_exclusive,
+                                     validate_max,
+                                     validate_max_exclusive,
+                                     validate_range,
+                                     validate_range_exclusive,
+                                     validate_range_exclusive_min,
+                                     validate_range_exclusive_max)
 
 
-class TestValidation(QiskitAquaTestCase):
+class TestValidation(QiskitTestCase):
     """Validation tests."""
 
     def test_validate_in_set(self):

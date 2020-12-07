@@ -12,17 +12,18 @@
 
 """ Test of AQGD optimizer """
 
-from test.aqua import QiskitAquaTestCase
+from qiskit.test import QiskitTestCase
 from qiskit import BasicAer
 
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
-from qiskit.aqua.operators import WeightedPauliOperator
-from qiskit.aqua.components.optimizers import AQGD
-from qiskit.aqua.algorithms import VQE
+from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.exceptions import AquaError
+from qiskit.opflow import WeightedPauliOperator
+from qiskit.algorithms.optimizers import AQGD
+from qiskit.algorithms import VQE
 
 
-class TestOptimizerAQGD(QiskitAquaTestCase):
+class TestOptimizerAQGD(QiskitTestCase):
     """ Test AQGD optimizer using RY for analytic gradient with VQE """
 
     def setUp(self):

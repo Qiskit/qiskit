@@ -13,20 +13,20 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
 import numpy as np
 
+from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, BasicAer, execute
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 
-from qiskit.aqua.operators import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
-                                   SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
+from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
+                           SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
 
 
 # pylint: disable=invalid-name
 
-class TestStateConstruction(QiskitAquaTestCase):
+class TestStateConstruction(QiskitTestCase):
     """State Construction tests."""
 
     def test_state_singletons(self):
