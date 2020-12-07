@@ -30,8 +30,8 @@ ibmq_examples_dir = os.path.join(examples_dir, 'ibmq')
 class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
 
-    @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
-                     "Multiprocess spawn fails on macOS python 3.8 without "
+    @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] >= 8,
+                     "Multiprocess spawn fails on macOS python >=3.8 without "
                      "__name__ == '__main__' guard")
     def test_all_examples(self):
         """Execute the example python files and pass if it returns 0."""
@@ -52,8 +52,8 @@ class TestPythonExamples(QiskitTestCase):
                     stdout, stderr)
                 self.assertEqual(run_example.returncode, 0, error_string)
 
-    @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
-                     "Multiprocess spawn fails on macOS python 3.8 without "
+    @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] >= 8,
+                     "Multiprocess spawn fails on macOS python >=3.8 without "
                      "__name__ == '__main__' guard")
     @online_test
     @slow_test

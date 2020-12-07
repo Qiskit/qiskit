@@ -61,7 +61,7 @@ class LayoutTransformation(TransformationPass):
             graph = coupling_map.graph.to_undirected()
         else:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph
+            graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 

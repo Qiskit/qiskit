@@ -220,7 +220,7 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -681,7 +681,9 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
-        dest._calibrations.update(other.calibrations)
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
 
         dest.global_phase += other.global_phase
 
@@ -2043,7 +2045,10 @@ class QuantumCircuit:
         if isinstance(value, ParameterExpression):
             entry = self._parameter_table.pop(parameter)
             for new_parameter in value.parameters:
-                self._parameter_table[new_parameter] = entry
+                if new_parameter in self._parameter_table:
+                    self._parameter_table[new_parameter].extend(entry)
+                else:
+                    self._parameter_table[new_parameter] = entry
         else:
             del self._parameter_table[parameter]  # clear evaluated expressions
 

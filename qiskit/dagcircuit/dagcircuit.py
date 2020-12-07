@@ -78,18 +78,8 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        class DummyCallableList(list):
-            """Dummy class so we can deprecate dag.qubits() and do
-            dag.qubits as property.
-            """
-
-            def __call__(self):
-                warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
-                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
-                              stacklevel=2)
-                return self
-        self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
-        self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
+        self.qubits = []
+        self.clbits = []
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -133,18 +123,6 @@ class DAGCircuit:
                 dag.apply_operation_back(node.op.copy(), node.qargs,
                                          node.cargs, node.condition)
         return dag
-
-    @property
-    def qubits(self):
-        """Return a list of qubits (as a list of Qubit instances)."""
-        # TODO: remove this property after DeprecationWarning period (~9/2020)
-        return self._qubits
-
-    @property
-    def clbits(self):
-        """Return a list of classical bits (as a list of Clbit instances)."""
-        # TODO: remove this property after DeprecationWarning period (~9/2020)
-        return self._clbits
 
     @property
     def wires(self):
@@ -201,7 +179,7 @@ class DAGCircuit:
             calibrations (dict): A dictionary of input in th format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
@@ -1378,29 +1356,12 @@ class DAGCircuit:
 
         Nodes must have only one successor to continue the run.
         """
-        group_list = []
 
-        # Iterate through the nodes of self in topological order
-        # and form tuples containing sequences of gates
-        # on the same qubit(s).
-        topo_ops = list(self.topological_op_nodes())
-        nodes_seen = dict(zip(topo_ops, [False] * len(topo_ops)))
-        for node in topo_ops:
-            if node.name in namelist and node.condition is None \
-                    and not nodes_seen[node]:
-                group = [node]
-                nodes_seen[node] = True
-                s = self._multi_graph.successors(node._node_id)
-                while len(s) == 1 and \
-                        s[0].type == "op" and \
-                        s[0].name in namelist and \
-                        s[0].condition is None:
-                    group.append(s[0])
-                    nodes_seen[s[0]] = True
-                    s = self._multi_graph.successors(s[0]._node_id)
-                if len(group) >= 1:
-                    group_list.append(tuple(group))
-        return set(group_list)
+        def filter_fn(node):
+            return node.type == "op" and node.name in namelist and node.condition is None
+
+        group_list = rx.collect_runs(self._multi_graph, filter_fn)
+        return set(tuple(x) for x in group_list)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
