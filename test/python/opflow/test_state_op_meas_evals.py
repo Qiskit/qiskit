@@ -16,7 +16,6 @@ import unittest
 import numpy
 
 from qiskit.test import QiskitTestCase
-from qiskit import Aer
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
@@ -62,6 +61,12 @@ class TestStateOpMeasEvals(QiskitTestCase):
 
     def test_coefficients_correctly_propagated(self):
         """Test that the coefficients in SummedOp and states are correctly used."""
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
         with self.subTest('zero coeff in SummedOp'):
             op = 0 * (I + Z)
             state = Plus
@@ -82,6 +87,12 @@ class TestStateOpMeasEvals(QiskitTestCase):
 
     def test_is_measurement_correctly_propagated(self):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
         backend = Aer.get_backend('qasm_simulator')
         q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
         state = Plus
@@ -90,6 +101,12 @@ class TestStateOpMeasEvals(QiskitTestCase):
 
     def test_parameter_binding_on_listop(self):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
         x, y = Parameter('x'), Parameter('y')
 
         circuit1 = QuantumCircuit(1)
