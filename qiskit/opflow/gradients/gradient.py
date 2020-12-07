@@ -15,7 +15,7 @@
 from typing import Union, List, Optional
 
 import numpy as np
-from qiskit.exceptions import AquaError
+from qiskit.exceptions import AquaError, MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
@@ -95,6 +95,7 @@ class Gradient(GradientBase):
                        installed.
             TypeError: If the operator does not include a StateFn given by a quantum circuit
             Exception: Unintended code is reached
+            MissingOptionalLibraryError: jax not installed
         """
 
         def is_coeff_c(coeff, c):
@@ -189,10 +190,12 @@ class Gradient(GradientBase):
                 if _HAS_JAX:
                     grad_combo_fn = jit(grad(operator._combo_fn, holomorphic=True))
                 else:
-                    raise AquaError(
-                        'This automatic differentiation function is based on JAX. Please install '
-                        'jax and use `import jax.numpy as jnp` instead of `import numpy as np` when'
-                        'defining a combo_fn.')
+                    raise MissingOptionalLibraryError(
+                        libname='jax',
+                        name='get_gradient',
+                        msg='This automatic differentiation function is based on JAX. '
+                            'Please install jax and use `import jax.numpy as jnp` instead '
+                            'of `import numpy as np` when defining a combo_fn.')
 
             def chain_rule_combo_fn(x):
                 result = np.dot(x[1], x[0])

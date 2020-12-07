@@ -13,20 +13,19 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import numpy
 
+from qiskit.test import QiskitTestCase
 from qiskit import Aer
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import (
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import (
     StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
 )
 
 
 # pylint: disable=invalid-name
-class TestStateOpMeasEvals(QiskitAquaTestCase):
+class TestStateOpMeasEvals(QiskitTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 
     def test_statefn_overlaps(self):

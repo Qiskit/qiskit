@@ -13,21 +13,20 @@
 """ Test Evolution """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
 import scipy.linalg
 
+from qiskit.test import QiskitTestCase
 import qiskit
 from qiskit.circuit import ParameterVector, Parameter
 
-from qiskit.aqua.operators import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, EvolutionFactory,
-                                   EvolvedOp, PauliTrotterEvolution, QDrift, Trotter, Suzuki)
+from qiskit.opflow import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, EvolutionFactory,
+                           EvolvedOp, PauliTrotterEvolution, QDrift, Trotter, Suzuki)
 
 # pylint: disable=invalid-name
 
 
-class TestEvolution(QiskitAquaTestCase):
+class TestEvolution(QiskitTestCase):
     """Evolution tests."""
 
     def test_exp_i(self):

@@ -17,7 +17,7 @@ from enum import Enum
 from abc import abstractmethod
 import logging
 import numpy as np
-from qiskit.aqua import MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from ..optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)

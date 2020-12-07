@@ -13,17 +13,17 @@
 """ Test of scikit-quant optimizers. """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
+from qiskit.test import QiskitTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.aqua import QuantumInstance, MissingOptionalLibraryError
-from qiskit.aqua.operators import WeightedPauliOperator
-from qiskit.aqua.algorithms import VQE
-from qiskit.aqua import aqua_globals
-from qiskit.aqua.components.optimizers import BOBYQA, SNOBFIT, IMFIL
+from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.opflow import WeightedPauliOperator
+from qiskit.algorithms import VQE
+from qiskit.algorithms.optimizers import BOBYQA, SNOBFIT, IMFIL
 
 
-class TestOptimizers(QiskitAquaTestCase):
+class TestOptimizers(QiskitTestCase):
     """ Test scikit-quant optimizers. """
 
     def setUp(self):

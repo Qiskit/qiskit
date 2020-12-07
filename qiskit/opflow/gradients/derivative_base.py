@@ -22,7 +22,6 @@ from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import BaseBackend
 
-from ..converters import CircuitSampler
 from ..converters.converter_base import ConverterBase
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
@@ -97,6 +96,7 @@ class DerivativeBase(ConverterBase):
             callable(param_values): Function to compute a gradient, Hessian or QFI. The function
             takes an iterable as argument which holds the parameter values.
         """
+        from ..converters import CircuitSampler
         if not grad_params:
             grad_params = bind_params
 

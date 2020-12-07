@@ -13,15 +13,15 @@
 """ Test PauliExpectation """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import itertools
 import numpy as np
 
-from qiskit.aqua import QuantumInstance, aqua_globals
-from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
-                                   ListOp, Zero, One, Plus, Minus, StateFn,
-                                   PauliExpectation, CircuitSampler)
+from qiskit.test import QiskitTestCase
+from qiskit.utils import QuantumInstance
+from qiskit.utils import aqua_globals
+from qiskit.opflow import (X, Y, Z, I, CX, H, S,
+                           ListOp, Zero, One, Plus, Minus, StateFn,
+                           PauliExpectation, CircuitSampler)
 
 from qiskit import BasicAer
 
@@ -29,7 +29,7 @@ from qiskit import BasicAer
 # pylint: disable=invalid-name
 
 
-class TestPauliExpectation(QiskitAquaTestCase):
+class TestPauliExpectation(QiskitTestCase):
     """Pauli Change of Basis Expectation tests."""
 
     def setUp(self) -> None:

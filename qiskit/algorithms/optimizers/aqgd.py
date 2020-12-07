@@ -17,9 +17,9 @@ import warnings
 from typing import Callable, Tuple, List, Dict, Union
 
 import numpy as np
-from qiskit.aqua import AquaError
-from qiskit.aqua.components.optimizers import Optimizer, OptimizerSupportLevel
-from qiskit.aqua.utils.validation import validate_range_exclusive_max
+from qiskit.exceptions import AquaError
+from qiskit.utils.validation import validate_range_exclusive_max
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 

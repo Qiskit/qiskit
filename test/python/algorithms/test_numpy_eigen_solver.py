@@ -13,14 +13,14 @@
 """ Test NumPy Eigen solver """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
 import numpy as np
-from qiskit.aqua import AquaError
-from qiskit.aqua.algorithms import NumPyEigensolver
-from qiskit.aqua.operators import WeightedPauliOperator
+from qiskit.test import QiskitTestCase
+from qiskit.exceptions import AquaError
+from qiskit.algorithms import NumPyEigensolver
+from qiskit.opflow import WeightedPauliOperator
 
 
-class TestNumPyEigensolver(QiskitAquaTestCase):
+class TestNumPyEigensolver(QiskitTestCase):
     """ Test NumPy Eigen solver """
 
     def setUp(self):

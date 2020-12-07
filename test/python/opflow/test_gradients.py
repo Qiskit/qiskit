@@ -14,9 +14,7 @@
 """ Test Quantum Gradient Framework """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
 from itertools import product
-
 import numpy as np
 from ddt import ddt, data, idata, unpack
 from sympy import Symbol, cos
@@ -27,22 +25,25 @@ try:
 except ImportError:
     _HAS_JAX = False
 
+from qiskit.test import QiskitTestCase
+
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua import aqua_globals
-from qiskit.aqua.algorithms import VQE
-from qiskit.aqua.components.optimizers import CG
-from qiskit.aqua.operators import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
-from qiskit.aqua.operators.gradients import Gradient, NaturalGradient, Hessian
-from qiskit.aqua.operators.gradients.qfi import QFI
-from qiskit.aqua.operators.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
+from qiskit.utils import QuantumInstance
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import aqua_globals
+from qiskit.algorithms import VQE
+from qiskit.algorithms.optimizers import CG
+from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
+from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
+from qiskit.opflow.gradients.qfi import QFI
+from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 
 
 @ddt
-class TestGradients(QiskitAquaTestCase):
+class TestGradients(QiskitTestCase):
     """ Test Qiskit Gradient Framework """
 
     def setUp(self):
@@ -531,27 +532,31 @@ class TestGradients(QiskitAquaTestCase):
     @unpack
     def test_natural_gradient(self, method, regularization):
         """Test the natural gradient"""
-        ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [a, b]
+        try:
+            ham = 0.5 * X - 1 * Z
+            a = Parameter('a')
+            b = Parameter('b')
+            params = [a, b]
 
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(params[0], q[0])
-        qc.rx(params[1], q[0])
+            q = QuantumRegister(1)
+            qc = QuantumCircuit(q)
+            qc.h(q)
+            qc.rz(params[0], q[0])
+            qc.rx(params[1], q[0])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-        nat_grad = NaturalGradient(grad_method=method,
-                                   regularization=regularization).convert(operator=op,
-                                                                          params=params)
-        values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-        correct_values = [[-2.36003979, 2.06503481]] if regularization == 'ridge' else [[-4.2, 0]]
-        for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=0)
+            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+            nat_grad = NaturalGradient(grad_method=method,
+                                       regularization=regularization).convert(operator=op,
+                                                                              params=params)
+            values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
+            correct_values = [[-2.36003979, 2.06503481]] \
+                if regularization == 'ridge' else [[-4.2, 0]]
+            for i, value_dict in enumerate(values_dict):
+                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
+                                                     correct_values[i],
+                                                     decimal=0)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
 
     def test_natural_gradient2(self):
         """Test the natural gradient 2"""
@@ -574,27 +579,29 @@ class TestGradients(QiskitAquaTestCase):
         """Test the natural gradient 4"""
 
         # Avoid regularization = lasso intentionally because it does not converge
+        try:
+            ham = 0.5 * X - 1 * Z
+            a = Parameter('a')
+            params = a
 
-        ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        params = a
+            q = QuantumRegister(1)
+            qc = QuantumCircuit(q)
+            qc.h(q)
+            qc.rz(a, q[0])
 
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(a, q[0])
-
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-        nat_grad = NaturalGradient(grad_method=grad_method,
-                                   qfi_method=qfi_method,
-                                   regularization=regularization).convert(operator=op,
-                                                                          params=params)
-        values_dict = [{a: np.pi / 4}]
-        correct_values = [[0.]] if regularization == 'ridge' else [[-1.41421342]]
-        for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=0)
+            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+            nat_grad = NaturalGradient(grad_method=grad_method,
+                                       qfi_method=qfi_method,
+                                       regularization=regularization).convert(operator=op,
+                                                                              params=params)
+            values_dict = [{a: np.pi / 4}]
+            correct_values = [[0.]] if regularization == 'ridge' else [[-1.41421342]]
+            for i, value_dict in enumerate(values_dict):
+                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
+                                                     correct_values[i],
+                                                     decimal=0)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
 
     @unittest.skipIf(not _HAS_JAX, 'Skipping test due to missing jax module.')
     @idata(product(['lin_comb', 'param_shift', 'fin_diff'], [True, False]))
@@ -690,15 +697,18 @@ class TestGradients(QiskitAquaTestCase):
                 grad += [-1 / prob]
             return grad
 
-        qc = RealAmplitudes(2, reps=1)
-        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
-        grad = NaturalGradient(grad_method='lin_comb', regularization='ridge'
-                               ).convert(grad_op, qc.ordered_parameters)
-        value_dict = dict(
-            zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
-        correct_values = [[0.20777236], [-18.92560338], [-15.89005475], [-10.44002031]]
-        np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
-                                             correct_values, decimal=3)
+        try:
+            qc = RealAmplitudes(2, reps=1)
+            grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+            grad = NaturalGradient(grad_method='lin_comb', regularization='ridge'
+                                   ).convert(grad_op, qc.ordered_parameters)
+            value_dict = dict(
+                zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
+            correct_values = [[0.20777236], [-18.92560338], [-15.89005475], [-10.44002031]]
+            np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
+                                                 correct_values, decimal=3)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_operator_coefficient_gradient(self, method):
@@ -933,7 +943,7 @@ class TestGradients(QiskitAquaTestCase):
 
 
 @ddt
-class TestParameterGradients(QiskitAquaTestCase):
+class TestParameterGradients(QiskitTestCase):
     """Test taking the gradient of parameter expressions."""
 
     def test_grad(self):

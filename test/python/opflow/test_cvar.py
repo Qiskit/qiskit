@@ -12,20 +12,19 @@
 
 """The Conditional Value at Risk (CVaR) measurement."""
 
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
-from qiskit.aqua import AquaError
-from qiskit.aqua.operators import (
+from qiskit.exceptions import AquaError
+from qiskit.opflow import (
     CVaRMeasurement, StateFn, Z, I, X, Y, Plus, PauliExpectation, MatrixExpectation,
     CVaRExpectation, ListOp, CircuitOp, AerPauliExpectation, MatrixOp
 )
 
 
-class TestCVaRMeasurement(QiskitAquaTestCase):
+class TestCVaRMeasurement(QiskitTestCase):
     """Test the CVaR measurement."""
 
     def expected_cvar(self, statevector, operator, alpha):
@@ -151,7 +150,7 @@ class TestCVaRMeasurement(QiskitAquaTestCase):
 
 
 @ddt
-class TestCVaRExpectation(QiskitAquaTestCase):
+class TestCVaRExpectation(QiskitTestCase):
     """Test the CVaR expectation object."""
 
     def test_construction(self):

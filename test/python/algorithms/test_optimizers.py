@@ -13,17 +13,16 @@
 """ Test Optimizers """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 from scipy.optimize import rosen
 import numpy as np
+from qiskit.test import QiskitTestCase
 
-from qiskit.aqua import aqua_globals
-from qiskit.aqua.components.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
-                                               POWELL, SLSQP, SPSA, TNC, GSLS)
+from qiskit.utils import aqua_globals
+from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
+                                          POWELL, SLSQP, SPSA, TNC, GSLS)
 
 
-class TestOptimizers(QiskitAquaTestCase):
+class TestOptimizers(QiskitTestCase):
     """ Test Optimizers """
 
     def setUp(self):

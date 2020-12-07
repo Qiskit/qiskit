@@ -13,19 +13,18 @@
 """ Test NLOpt Optimizers """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 from ddt import ddt, idata, unpack
 from scipy.optimize import rosen
 import numpy as np
-from qiskit.aqua import MissingOptionalLibraryError
-from qiskit.aqua.components.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
+from qiskit.test import QiskitTestCase
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.algorithms.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
 # pylint: disable=unused-import,import-outside-toplevel
 
 
 @ddt
-class TestNLOptOptimizers(QiskitAquaTestCase):
+class TestNLOptOptimizers(QiskitTestCase):
     """ Test NLOpt Optimizers """
 
     def _optimize(self, optimizer, use_bound):

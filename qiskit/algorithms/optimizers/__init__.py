@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """
-Optimizers (:mod:`qiskit.aqua.components.optimizers`)
+Optimizers (:mod:`qiskit.algorithms.optimizers`)
 =====================================================
-Aqua  contains a variety of classical optimizers for use by quantum variational algorithms,
-such as :class:`~qiskit.aqua.algorithms.VQE`.
+It  contains a variety of classical optimizers for use by quantum variational algorithms,
+such as :class:`~qiskit.algorithms.VQE`.
 Logically, these optimizers can be divided into two categories:
 
 `Local Optimizers`_
@@ -25,7 +25,7 @@ Logically, these optimizers can be divided into two categories:
   Given an optimization problem, a **global optimizer** is a function
   that attempts to find an optimal value among all possible solutions.
 
-.. currentmodule:: qiskit.aqua.components.optimizers
+.. currentmodule:: qiskit.algorithms.optimizers
 
 Optimizer Base Class
 ====================
@@ -58,12 +58,12 @@ Local Optimizers
    SPSA
    TNC
 
-Qiskit Aqua also provides the following optimizers, which are built-out using the optimizers from
+Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
 explicitly installed, if desired, by the user - the optimizers therein are provided under various
 licenses so it has been made an optional install for the end user to choose whether to do so or
 not. To install the `scikit-quant` dependent package you can use
-`pip install qiskit-aqua[skquant]`.
+`pip install scikit-quant`.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -81,7 +81,7 @@ section for installation instructions.
 
 .. toctree::
 
-   qiskit.aqua.components.optimizers.nlopts
+   qiskit.algorithms.optimizers.nlopts
 
 The global optimizers are as follows:
 

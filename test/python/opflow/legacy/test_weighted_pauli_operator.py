@@ -15,21 +15,19 @@
 import unittest
 import itertools
 import os
-from test.aqua import QiskitAquaTestCase
 import numpy as np
-from ddt import ddt, idata, unpack
+
+from qiskit.test import QiskitTestCase
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EfficientSU2
-from qiskit.quantum_info import Pauli, state_fidelity
-from qiskit.aqua import aqua_globals, QuantumInstance
-from qiskit.aqua.operators import WeightedPauliOperator
-from qiskit.aqua.operators.legacy import op_converter
-from qiskit.aqua.components.initial_states import Custom
-from qiskit.aqua.operators import I, X, Y, Z
+from qiskit.quantum_info import Pauli
+from qiskit.utils import aqua_globals
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import WeightedPauliOperator
+from qiskit.opflow import I, X, Y, Z
 
 
-@ddt
-class TestWeightedPauliOperator(QiskitAquaTestCase):
+class TestWeightedPauliOperator(QiskitTestCase):
     """WeightedPauliOperator tests."""
 
     def setUp(self):
@@ -58,7 +56,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         weights = [0.2 + -1j * 0.8, 0.6 + -1j * 0.6, 0.8 + -1j * 0.2,
                    -0.2 + -1j * 0.8, -0.6 - -1j * 0.6, -0.8 - -1j * 0.2]
         op = WeightedPauliOperator.from_list(paulis, weights)
-        file_path = self.get_resource_path('temp_op.json')
+        file_path = self._get_resource_path('temp_op.json')
         op.to_file(file_path)
         self.assertTrue(os.path.exists(file_path))
 
@@ -522,61 +520,6 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             statevector_mode=True,
             use_simulator_snapshot_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
-
-    @idata([
-        ['trotter', 1, 3],
-        ['suzuki', 1, 3]
-    ])
-    @unpack
-    def test_evolve(self, expansion_mode, evo_time, num_time_slices):
-        """ evolve test """
-        expansion_orders = [1, 2, 3, 4] if expansion_mode == 'suzuki' else [1]
-        num_qubits = 2
-        paulis = [Pauli.from_label(pauli_label)
-                  for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
-        weights = aqua_globals.random.random(len(paulis))
-        pauli_op = WeightedPauliOperator.from_list(paulis, weights)
-        matrix_op = op_converter.to_matrix_operator(pauli_op)
-        state_in = Custom(num_qubits, state='random')
-
-        # get the exact state_out from raw matrix multiplication
-        state_out_exact = matrix_op.evolve(
-            state_in=state_in.construct_circuit('vector'),
-            evo_time=evo_time,
-            num_time_slices=0
-        )
-        # self.log.debug('exact:\n%s', state_out_exact)
-        self.log.debug('Under %s expansion mode:', expansion_mode)
-        for expansion_order in expansion_orders:
-            # assure every time the operator from the original one
-            if expansion_mode == 'suzuki':
-                self.log.debug('With expansion order %s:', expansion_order)
-            state_out_matrix = matrix_op.evolve(
-                state_in=state_in.construct_circuit('vector'),
-                evo_time=evo_time,
-                num_time_slices=num_time_slices,
-                expansion_mode=expansion_mode,
-                expansion_order=expansion_order
-            )
-            quantum_registers = QuantumRegister(pauli_op.num_qubits, name='q')
-            qc = QuantumCircuit(quantum_registers)
-            qc += state_in.construct_circuit('circuit', quantum_registers)
-            qc += pauli_op.copy().evolve(
-                evo_time=evo_time,
-                num_time_slices=num_time_slices,
-                quantum_registers=quantum_registers,
-                expansion_mode=expansion_mode,
-                expansion_order=expansion_order,
-            )
-            state_out_circuit = self.quantum_instance_statevector.execute(qc).get_statevector(qc)
-
-            self.log.debug('The fidelity between exact and matrix:   %s',
-                           state_fidelity(state_out_exact, state_out_matrix))
-            self.log.debug('The fidelity between exact and circuit:  %s',
-                           state_fidelity(state_out_exact, state_out_circuit))
-            f_mc = state_fidelity(state_out_matrix, state_out_circuit)
-            self.log.debug('The fidelity between matrix and circuit: %s', f_mc)
-            self.assertAlmostEqual(f_mc, 1)
 
     def test_simplification(self):
         """ Test Hamiltonians produce same result after simplification by constructor """

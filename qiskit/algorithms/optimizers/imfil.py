@@ -13,7 +13,7 @@
 """IMplicit FILtering (IMFIL) optimizer."""
 
 import logging
-from qiskit.aqua import MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class IMFIL(Optimizer):
             raise MissingOptionalLibraryError(
                 libname='scikit-quant',
                 name='IMFIL',
-                pip_install='pip install qiskit-aqua[skquant]')
+                pip_install='pip install scikit-quant')
         super().__init__()
         self._maxiter = maxiter
 

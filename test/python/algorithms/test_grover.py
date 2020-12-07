@@ -12,99 +12,18 @@
 
 """ test Grover """
 
-import itertools
 import unittest
 import warnings
-from test.aqua import QiskitAquaTestCase
+from qiskit.test import QiskitTestCase
 
-from ddt import ddt, idata, unpack
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import Grover
-from qiskit.aqua.components.initial_states import Zero, Custom
-from qiskit.aqua.components.oracles import LogicalExpressionOracle as LEO
-from qiskit.aqua.components.oracles import TruthTableOracle as TTO
-from qiskit.aqua.components.oracles import CustomCircuitOracle
+from qiskit import BasicAer, QuantumCircuit
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import Grover
 from qiskit.circuit.library import GroverOperator
 from qiskit.quantum_info import Operator, Statevector
 
-TESTS = [
-    ['p cnf 3 5 \n -1 -2 -3 0 \n 1 -2 3 0 \n 1 2 -3 0 \n 1 -2 -3 0 \n -1 2 3 0',
-     ['101', '000', '011'], LEO],
-    ['p cnf 2 2 \n 1  0 \n -2  0', ['01'], LEO],
-    ['p cnf 2 4 \n 1  0 \n -1 0 \n 2  0 \n -2 0', [], LEO],
-    ['a & b & c', ['111'], LEO],
-    ['(a ^ b) & a & b', [], LEO],
-    ['a & b | c & d', ['0011', '1011', '0111', '1100', '1101', '1110', '1111'], LEO],
-    ['1000000000000001', ['0000', '1111'], TTO],
-    ['00000000', [], TTO],
-    ['0001', ['11'], TTO],
-]
 
-MCT_MODES = ['basic', 'basic-dirty-ancilla', 'advanced', 'noancilla']
-SIMULATORS = ['statevector_simulator', 'qasm_simulator']
-OPTIMIZATIONS = [True, False]
-LAMBDA = [1.44, 8/7]
-ROTATION_COUNTS = [
-    None,
-    [0, 0, 0, 1, 1, 0, 1, 1, 2, 1, 2, 3, 1, 4, 5, 1, 6, 2, 7, 9,
-     11, 13, 16, 5, 20, 24, 28, 34, 2, 41, 49, 4, 60]
-]
-
-
-@ddt
-class TestGrover(QiskitAquaTestCase):
-    """ Grover test """
-
-    def setUp(self):
-        super().setUp()
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-
-    def tearDown(self):
-        super().tearDown()
-        warnings.filterwarnings('always', category=DeprecationWarning)
-
-    @idata(
-        [x[0] + list(x[1:]) for x in list(itertools.product(TESTS, MCT_MODES, SIMULATORS,
-                                                            OPTIMIZATIONS, LAMBDA,
-                                                            ROTATION_COUNTS))]
-    )
-    @unpack
-    def test_grover(self, input_test, sol, oracle_cls, mct_mode,
-                    simulator, optimization, lam, rotation_counts):
-        """ grover test """
-        groundtruth = sol
-        oracle = oracle_cls(input_test, optimization=optimization)
-        grover = Grover(oracle, incremental=True, lam=lam,
-                        rotation_counts=rotation_counts, mct_mode=mct_mode)
-        backend = BasicAer.get_backend(simulator)
-        quantum_instance = QuantumInstance(backend, shots=1000)
-
-        ret = grover.run(quantum_instance)
-
-        self.log.debug('Ground-truth Solutions: %s.', groundtruth)
-        self.log.debug('Top measurement:        %s.', ret.top_measurement)
-        if ret.oracle_evaluation:
-            self.assertIn(ret.top_measurement, groundtruth)
-            self.log.debug('Search Result:          %s.', ret.assignment)
-        else:
-            self.assertEqual(groundtruth, [])
-            self.log.debug('Nothing found.')
-
-    def test_old_signature(self):
-        """Test the old signature without naming arguments works."""
-        oracle = TTO('0001')
-        circuit = QuantumCircuit(2)
-        circuit.h([0, 1])
-        init_state = Custom(2, circuit=circuit)
-        backend = BasicAer.get_backend('statevector_simulator')
-        grover = Grover(oracle, init_state, True, 10, 1.44, ROTATION_COUNTS[1],
-                        'noancilla', backend)
-        ret = grover.run()
-        self.assertEqual(ret.top_measurement, '11')
-
-
-class TestGroverConstructor(QiskitAquaTestCase):
+class TestGroverConstructor(QiskitTestCase):
     """Test for the constructor of Grover"""
 
     def setUp(self):
@@ -140,22 +59,6 @@ class TestGroverConstructor(QiskitAquaTestCase):
         expected_grover_op = GroverOperator(oracle, state_preparation=state_preparation)
         self.assertTrue(Operator(grover_op).equiv(Operator(expected_grover_op)))
 
-    def test_state_preparation_type_error(self):
-        """Test InitialState state_preparation with QuantumCircuit oracle"""
-        init_state = Zero(2)
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        # filtering the following:
-        # DeprecationWarning: Passing an InitialState component is deprecated as of 0.8.0,
-        # and will be removed no earlier than 3 months after the release date.
-        # You should pass a QuantumCircuit instead.
-        try:
-            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
-            with self.assertRaises(TypeError):
-                Grover(oracle=oracle, state_preparation=init_state)
-        finally:
-            warnings.filterwarnings(action="always", category=DeprecationWarning)
-
     def test_is_good_state_list(self):
         """Test List is_good_state"""
         oracle = QuantumCircuit(2)
@@ -183,7 +86,7 @@ class TestGroverConstructor(QiskitAquaTestCase):
         self.assertTrue(Operator(grover_op).equiv(Operator(self._expected_grover_op)))
 
 
-class TestGroverPublicMethods(QiskitAquaTestCase):
+class TestGroverPublicMethods(QiskitTestCase):
     """Test for the public methods of Grover"""
 
     def test_is_good_state(self):
@@ -222,28 +125,6 @@ class TestGroverPublicMethods(QiskitAquaTestCase):
         expected.compose(grover_op, inplace=True)
         self.assertTrue(Operator(constructed).equiv(Operator(expected)))
 
-    def test_post_processing(self):
-        """Test post_processing"""
-        # For the Oracle class
-        q_v = QuantumRegister(2, name='v')
-        q_o = QuantumRegister(1, name='o')
-        circuit = QuantumCircuit(q_v, q_o)
-        circuit.ccx(q_v[0], q_v[1], q_o[0])
-        oracle = CustomCircuitOracle(variable_register=q_v, output_register=q_o, circuit=circuit,
-                                     evaluate_classically_callback=lambda m: (m == '11', [1, 2]))
-        grover = Grover(oracle)
-        self.assertListEqual(grover.post_processing("11"), [1, 2])
-        # For the specified post_processing
-        oracle = QuantumCircuit(2)
-        oracle.cz(0, 1)
-        grover = Grover(oracle, good_state=["11"],
-                        post_processing=lambda bitstr: [idx for idx, x_i in enumerate(bitstr)
-                                                        if x_i == '1'])
-        self.assertEqual(grover.post_processing("11"), [0, 1])
-        # When Not specified
-        grover = Grover(oracle, good_state=["11"])
-        self.assertEqual(grover.post_processing("11"), "11")
-
     def test_grover_operator_getter(self):
         """Test the getter of grover_operator"""
         oracle = QuantumCircuit(2)
@@ -254,7 +135,7 @@ class TestGroverPublicMethods(QiskitAquaTestCase):
         self.assertTrue(Operator(constructed).equiv(Operator(expected)))
 
 
-class TestGroverFunctionality(QiskitAquaTestCase):
+class TestGroverFunctionality(QiskitTestCase):
     """Test for the functionality of Grover"""
 
     def setUp(self):
@@ -294,7 +175,7 @@ class TestGroverFunctionality(QiskitAquaTestCase):
         self.assertIn(ret.top_measurement, ['111'])
 
 
-class TestGroverExecution(QiskitAquaTestCase):
+class TestGroverExecution(QiskitTestCase):
     """Test for the execution of Grover"""
 
     def setUp(self):

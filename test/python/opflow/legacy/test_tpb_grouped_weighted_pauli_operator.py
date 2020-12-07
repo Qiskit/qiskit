@@ -14,18 +14,20 @@
 
 import unittest
 import itertools
-from test.aqua import QiskitAquaTestCase
 import numpy as np
+
+from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Pauli
 from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
-from qiskit.aqua import aqua_globals, QuantumInstance
-from qiskit.aqua.operators import (WeightedPauliOperator,
-                                   TPBGroupedWeightedPauliOperator)
-from qiskit.aqua.operators.legacy import op_converter
+from qiskit.utils import aqua_globals
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import (WeightedPauliOperator,
+                           TPBGroupedWeightedPauliOperator)
+from qiskit.opflow.legacy import op_converter
 
 
-class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
+class TestTPBGroupedWeightedPauliOperator(QiskitTestCase):
     """TPBGroupedWeightedPauliOperator tests."""
 
     def setUp(self):

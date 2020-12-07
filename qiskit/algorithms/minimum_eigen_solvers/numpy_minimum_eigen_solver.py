@@ -17,8 +17,9 @@ import logging
 import pprint
 import numpy as np
 
-from qiskit.aqua.algorithms import ClassicalAlgorithm, NumPyEigensolver
-from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
+from qiskit.utils import aqua_globals
+from qiskit.opflow import OperatorBase, LegacyBaseOperator
+from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 
-class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
+class NumPyMinimumEigensolver(MinimumEigensolver):
     """
     The Numpy Minimum Eigensolver algorithm.
     """
@@ -53,6 +54,19 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
                                      filter_criterion=filter_criterion)
         # TODO remove
         self._ret = {}  # type: Dict[str, Any]
+
+    @property
+    def random(self):
+        """Return a numpy random."""
+        return aqua_globals.random
+
+    def run(self) -> Dict:
+        """Execute the classical algorithm.
+        Returns:
+            dict: results of an algorithm.
+        """
+
+        return self._run()
 
     @property
     def operator(self) -> Optional[OperatorBase]:

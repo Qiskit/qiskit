@@ -30,11 +30,12 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
-from qiskit.aqua.components.optimizers import Optimizer, SLSQP
-from qiskit.aqua.components.variational_forms import VariationalForm
-from qiskit.aqua.operators.gradients import GradientBase
+from qiskit.opflow.gradients import GradientBase
+from qiskit.utils.quantum_instance import QuantumInstance
+from .algorithm_result import AlgorithmResult
+from .quantum_algorithm import QuantumAlgorithm
+from .optimizers import Optimizer, SLSQP
+from .variational_forms import VariationalForm
 
 logger = logging.getLogger(__name__)
 

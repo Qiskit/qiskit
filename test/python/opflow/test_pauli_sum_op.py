@@ -13,13 +13,12 @@
 """ Test PauliSumOp """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
 from scipy.sparse import csr_matrix
 
+from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, transpile
-from qiskit.aqua.operators import (
+from qiskit.opflow import (
     CX,
     CircuitStateFn,
     DictStateFn,
@@ -37,7 +36,7 @@ from qiskit.circuit import Parameter, ParameterVector
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
-class TestPauliSumOp(QiskitAquaTestCase):
+class TestPauliSumOp(QiskitTestCase):
     """PauliSumOp tests."""
 
     def test_construct(self):

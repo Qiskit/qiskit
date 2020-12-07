@@ -17,11 +17,9 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.aqua.operators import (OperatorBase, X, I, H, CircuitStateFn,
-                                   EvolutionFactory, CircuitOp)
-from qiskit.aqua.components.variational_forms import VariationalForm
-from qiskit.aqua.components.initial_states import InitialState
-
+from qiskit.opflow import (OperatorBase, X, I, H, CircuitStateFn,
+                           EvolutionFactory, CircuitOp)
+from qiskit.algorithms.variational_forms import VariationalForm
 
 # pylint: disable=invalid-name
 
@@ -32,7 +30,7 @@ class QAOAVarForm(VariationalForm):
     def __init__(self,
                  cost_operator: OperatorBase,
                  p: int,
-                 initial_state: Optional[Union[QuantumCircuit, InitialState]] = None,
+                 initial_state: Optional[QuantumCircuit] = None,
                  mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]] = None):
         """
         Constructor, following the QAOA paper https://arxiv.org/abs/1411.4028

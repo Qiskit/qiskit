@@ -14,17 +14,17 @@
 
 import unittest
 import itertools
-from test.aqua import QiskitAquaTestCase
-
 import numpy as np
+
+from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Pauli
 
-from qiskit.aqua import aqua_globals
-from qiskit.aqua.operators import WeightedPauliOperator, MatrixOperator
-from qiskit.aqua.operators.legacy import op_converter
+from qiskit.utils import aqua_globals
+from qiskit.opflow import WeightedPauliOperator, MatrixOperator
+from qiskit.opflow.legacy import op_converter
 
 
-class TestOpConverter(QiskitAquaTestCase):
+class TestOpConverter(QiskitTestCase):
     """OpConverter tests."""
 
     def setUp(self):

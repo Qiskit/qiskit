@@ -13,10 +13,11 @@
 """ Test Skip Qobj Validation """
 
 import unittest
-from test.aqua import QiskitAquaTestCase
+from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer
-from qiskit.aqua import QuantumInstance, AquaError
+from qiskit.utils import QuantumInstance
+from qiskit.exceptions import AquaError
 
 
 def _compare_dict(dict1, dict2):
@@ -31,7 +32,7 @@ def _compare_dict(dict1, dict2):
     return equal
 
 
-class TestSkipQobjValidation(QiskitAquaTestCase):
+class TestSkipQobjValidation(QiskitTestCase):
     """ Test Skip Qobj Validation """
     def setUp(self):
         super().setUp()
