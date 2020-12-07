@@ -206,6 +206,15 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
 
+    @combine(basis=['U', 'PSX', 'ZSX', 'U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
+             name='test_one_qubit_global_phase_{basis}_basis_{seed}')
+    def test_one_qubit_global_phase_all_basis(self, basis, seed):
+        """Verify for {basis} basis and random_unitary (seed={seed})."""
+        unitary = random_unitary(2, seed=seed)
+        decomposer = OneQubitEulerDecomposer(basis)
+        decomp_unitary = Operator(decomposer(unitary))
+        self.assertTrue(np.allclose(unitary.data, decomp_unitary.data))
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
