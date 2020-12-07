@@ -13,6 +13,7 @@
 """ Test VQE """
 
 import unittest
+import warnings
 import numpy as np
 from ddt import ddt, unpack, data
 from qiskit.test import QiskitTestCase
@@ -54,6 +55,11 @@ class TestVQE(QiskitTestCase):
                                                      shots=1,
                                                      seed_simulator=self.seed,
                                                      seed_transpiler=self.seed)
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+    def tearDown(self):
+        super().tearDown()
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_basic_aer_statevector(self):
         """Test the VQE on BasicAer's statevector simulator."""

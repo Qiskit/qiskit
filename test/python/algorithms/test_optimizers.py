@@ -13,6 +13,7 @@
 """ Test Optimizers """
 
 import unittest
+import warnings
 from scipy.optimize import rosen
 import numpy as np
 from qiskit.test import QiskitTestCase
@@ -28,6 +29,11 @@ class TestOptimizers(QiskitTestCase):
     def setUp(self):
         super().setUp()
         aqua_globals.random_seed = 52
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+    def tearDown(self):
+        super().tearDown()
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def _optimize(self, optimizer):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
