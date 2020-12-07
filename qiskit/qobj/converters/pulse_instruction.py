@@ -341,6 +341,24 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Delay)
+    def convert_shift_phase(self, shift, instruction):
+        """Return converted `ShiftPhase`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (ShiftPhase): Shift phase instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'delay',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'duration': instruction.duration
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.Play)
     def convert_play(self, shift, instruction):
         """Return the converted `Play`.
