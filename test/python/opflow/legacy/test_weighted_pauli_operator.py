@@ -59,10 +59,11 @@ class TestWeightedPauliOperator(QiskitTestCase):
         file_path = self._get_resource_path('temp_op.json')
         op.to_file(file_path)
         self.assertTrue(os.path.exists(file_path))
-
-        load_op = WeightedPauliOperator.from_file(file_path)
-        self.assertEqual(op, load_op)
-        os.remove(file_path)
+        try:
+            load_op = WeightedPauliOperator.from_file(file_path)
+            self.assertEqual(op, load_op)
+        finally:
+            os.remove(file_path)
 
     def test_num_qubits(self):
         """ num qubits test """

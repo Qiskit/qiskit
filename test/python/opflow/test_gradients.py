@@ -25,7 +25,7 @@ try:
 except ImportError:
     _HAS_JAX = False
 
-from qiskit.test import QiskitTestCase
+from qiskit.test import QiskitTestCase, slow_test
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
 from qiskit.utils import QuantumInstance
@@ -905,6 +905,7 @@ class TestGradients(QiskitTestCase):
             result = prob_grad(value)
             np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
 
+    @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
         method = 'lin_comb'
