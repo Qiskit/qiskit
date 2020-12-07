@@ -25,8 +25,8 @@ from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations impo
 
 
 @ddt
-class TestFunctionalPauliRotations(QiskitTestCase):
-    """Test the functional Pauli rotations."""
+class TestPiecewisePolynomialRotations(QiskitTestCase):
+    """Test the piecewise polynomial Pauli rotations."""
 
     def assertFunctionIsCorrect(self, function_circuit, reference):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""

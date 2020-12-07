@@ -16,7 +16,6 @@ Statevector quantum state class.
 
 import copy
 import re
-import warnings
 from numbers import Number
 
 import numpy as np
@@ -25,18 +24,25 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class Statevector(QuantumState):
+class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
         """Initialize a statevector object.
 
         Args:
-            data (vector_like): a complex statevector.
+            data (np.array or list or Statevector or Operator or QuantumCircuit or
+                  qiskit.circuit.Instruction):
+                Data from which the statevector can be constructed. This can be either a complex
+                vector, another statevector, a ``Operator` with only one column or a
+                ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
+                the statevector is constructed by assuming that all qubits are initialized to the
+                zero state.
             dims (int or tuple or list): Optional. The subsystem dimension of
                                          the state (See additional information).
 
@@ -70,6 +76,8 @@ class Statevector(QuantumState):
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
             self._data = np.ravel(data.data)
+        elif isinstance(data, (QuantumCircuit, Instruction)):
+            self._data = Statevector.from_instruction(data).data
         else:
             raise QiskitError("Invalid input data format for Statevector")
         # Check that the input is a numpy vector or column-vector numpy
@@ -242,10 +250,16 @@ class Statevector(QuantumState):
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
     def equiv(self, other, rtol=None, atol=None):
-        """Return True if statevectors are equivalent up to global phase.
+        """Return True if other is equivalent as a statevector up to global phase.
+
+        .. note::
+
+            If other is not a Statevector, but can be used to initialize a statevector object,
+            this will check that Statevector(other) is equivalent to the current statevector up
+            to global phase.
 
         Args:
-            other (Statevector): a statevector object.
+            other (Statevector): an object from which a ``Statevector`` can be constructed.
             rtol (float): relative tolerance value for comparison.
             atol (float): absolute tolerance value for comparison.
 
@@ -387,22 +401,6 @@ class Statevector(QuantumState):
         return self.evolve(
             Operator(reset, input_dims=dims, output_dims=dims),
             qargs=qargs)
-
-    def to_counts(self):
-        """Returns the statevector as a counts dict
-        of probabilities.
-
-        DEPRECATED: use :meth:`probabilities_dict` instead.
-
-        Returns:
-            dict: Counts of probabilities.
-        """
-        warnings.warn(
-            'The `Statevector.to_counts` method is deprecated as of 0.13.0,'
-            ' and will be removed no earlier than 3 months after that '
-            'release date. You should use the `Statevector.probabilities_dict`'
-            ' method instead.', DeprecationWarning, stacklevel=2)
-        return self.probabilities_dict()
 
     @classmethod
     def from_label(cls, label):
