@@ -143,10 +143,6 @@ class StateFn(OperatorBase):
     def _expand_dim(self, num_qubits: int) -> 'StateFn':
         raise NotImplementedError
 
-    def permute(self, permutation: List[int]) -> OperatorBase:
-        """Permute the qubits of the state abstract function."""
-        raise NotImplementedError
-
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, type(self)) or not self.coeff == other.coeff:
             return False
