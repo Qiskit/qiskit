@@ -20,7 +20,7 @@ from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 
 from qiskit.utils import QuantumInstance, aqua_globals
-from qiskit.exceptions import AquaError
+from qiskit.exceptions import AquaError, MissingOptionalLibraryError
 from qiskit.opflow import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
                            AerPauliExpectation, PauliExpectation,
                            MatrixExpectation, ExpectationBase)
@@ -94,14 +94,18 @@ class TestVQE(QiskitTestCase):
     @unpack
     def test_construct_circuit(self, expectation, num_circuits):
         """Test construct circuits returns QuantumCircuits and the right number of them."""
-        wavefunction = EfficientSU2(2, reps=1)
-        vqe = VQE(self.h2_op, wavefunction, expectation=expectation)
-        params = [0] * wavefunction.num_parameters
-        circuits = vqe.construct_circuit(params)
+        try:
+            wavefunction = EfficientSU2(2, reps=1)
+            vqe = VQE(self.h2_op, wavefunction, expectation=expectation)
+            params = [0] * wavefunction.num_parameters
+            circuits = vqe.construct_circuit(params)
 
-        self.assertEqual(len(circuits), num_circuits)
-        for circuit in circuits:
-            self.assertIsInstance(circuit, QuantumCircuit)
+            self.assertEqual(len(circuits), num_circuits)
+            for circuit in circuits:
+                self.assertIsInstance(circuit, QuantumCircuit)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
+            return
 
     def test_legacy_operator(self):
         """Test the VQE accepts and converts the legacy WeightedPauliOperator."""
