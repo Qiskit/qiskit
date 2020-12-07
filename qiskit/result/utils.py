@@ -12,6 +12,8 @@
 
 """Utility functions for working with Result counts."""
 
+from re import match
+from functools import reduce
 from collections import Counter
 from copy import deepcopy
 
@@ -90,9 +92,65 @@ def _adjust_creg_sizes(creg_sizes, indices):
     return new_creg_sizes
 
 
+def count_keys(num_clbits):
+    """Return ordered count keys."""
+    return [bin(j)[2:].zfill(num_clbits) for j in range(2 ** num_clbits)]
+
+
 def _marginalize(counts, indices=None):
-    """Get the marginal counts for the given set of indices"""
+    # Extract total number of clbits from first count key
+    # We trim the whitespace separating classical registers
+    # and count the number of digits
     num_clbits = len(next(iter(counts)).replace(' ', ''))
+
+    # Check if we do not need to marginalize. In this case we just trim
+    # whitespace from count keys
+    if (indices is None) or set(range(num_clbits)) == set(indices):
+        ret = {}
+        for key, val in counts.items():
+            key = key.replace(' ', '')
+            ret[key] = val
+        return ret
+
+    if not set(indices).issubset(set(range(num_clbits))):
+        raise QiskitError('indices must be in range [0, {}].'.format(num_clbits-1))
+
+    # Sort the indices to keep in decending order
+    # Since bitstrings have qubit-0 as least significant bit
+    indices = sorted(indices, reverse=True)
+
+    # Generate bitstring keys for indices to keep
+    meas_keys = count_keys(len(indices))
+
+    # Get regex match strings for suming outcomes of other qubits
+    rgx = []
+    for key in meas_keys:
+        def _helper(x, y):
+            if y in indices:
+                return key[indices.index(y)] + x
+            return '\\d' + x
+        rgx.append(reduce(_helper, range(num_clbits), ''))
+
+    # Build the return list
+    meas_counts = []
+    for m in rgx:
+        c = 0
+        for key, val in counts.items():
+            if match(m, key.replace(' ', '')):
+                c += val
+        meas_counts.append(c)
+
+    # Return as counts dict on desired indices only
+    ret = {}
+    for key, val in zip(meas_keys, meas_counts):
+        if val != 0:
+            ret[key] = val
+    return ret
+
+
+#def _marginalize(counts, indices=None):
+    """Get the marginal counts for the given set of indices"""
+    """num_clbits = len(next(iter(counts)).replace(' ', ''))
 
     # Check if we do not need to marginalize and if so, trim
     # whitespace and '_' and return
@@ -115,8 +173,7 @@ def _marginalize(counts, indices=None):
     for key, val in counts.items():
         new_key = ''.join([key.replace(' ', '').replace('_', '')[-idx-1] for idx in indices])
         new_counts[new_key] += val
-    return dict(new_counts)
-
+    return dict(new_counts)"""
 
 def _format_marginal(counts, marg_counts, indices):
     """Take the output of marginalize and add placeholders for
