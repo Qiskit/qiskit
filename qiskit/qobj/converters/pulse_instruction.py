@@ -342,12 +342,12 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(instructions.Delay)
-    def convert_shift_phase(self, shift, instruction):
-        """Return converted `ShiftPhase`.
+    def convert_delay(self, shift, instruction):
+        """Return converted `Delay`.
 
         Args:
             shift(int): Offset time.
-            instruction (ShiftPhase): Shift phase instruction.
+            instruction (Delay): Delay instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
