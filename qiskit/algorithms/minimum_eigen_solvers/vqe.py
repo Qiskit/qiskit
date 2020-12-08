@@ -26,7 +26,6 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.exceptions import AquaError
 from qiskit.opflow import (OperatorBase, ExpectationBase, ExpectationFactory, StateFn,
                            CircuitStateFn, LegacyBaseOperator, ListOp, I, CircuitSampler)
 from qiskit.opflow.gradients import GradientBase
@@ -38,6 +37,7 @@ from ..optimizers import Optimizer, SLSQP
 from ..variational_forms import VariationalForm
 from ..variational_quantum_algorithm import VQAlgorithm, VQResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -277,9 +277,10 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                     self.var_form.num_qubits = self.operator.num_qubits
                     self._var_form_params = sorted(self.var_form.parameters, key=lambda p: p.name)
                 except AttributeError as ex:
-                    raise AquaError("The number of qubits of the variational form does not match "
-                                    "the operator, and the variational form does not allow setting "
-                                    "the number of qubits using `num_qubits`.") from ex
+                    raise AlgorithmError("The number of qubits of the variational form "
+                                         "does not match the operator, and the variational "
+                                         "form does not allow setting the number of qubits "
+                                         " using `num_qubits`.") from ex
 
     @VQAlgorithm.optimizer.setter  # type: ignore
     def optimizer(self, optimizer: Optimizer):
@@ -342,10 +343,10 @@ class VQE(VQAlgorithm, MinimumEigensolver):
             Observable's expectation :class:`StateFn`.
 
         Raises:
-            AquaError: If no operator has been provided.
+            AlgorithmError: If no operator has been provided.
         """
         if self.operator is None:
-            raise AquaError("The operator was never provided.")
+            raise AlgorithmError("The operator was never provided.")
 
         # ensure operator and varform are compatible
         self._check_operator_varform()
@@ -362,9 +363,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
 
         # If setting the expectation failed, raise an Error:
         if self._expectation is None:
-            raise AquaError('No expectation set and could not automatically set one, please '
-                            'try explicitly setting an expectation or specify a backend so it '
-                            'can be chosen automatically.')
+            raise AlgorithmError('No expectation set and could not automatically set one, please '
+                                 'try explicitly setting an expectation or specify a backend so it '
+                                 'can be chosen automatically.')
 
         observable_meas = self.expectation.convert(StateFn(self.operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
@@ -408,10 +409,10 @@ class VQE(VQAlgorithm, MinimumEigensolver):
             The result of the VQE algorithm as ``VQEResult``.
 
         Raises:
-            AquaError: Wrong setting of operator and backend.
+            AlgorithmError: Wrong setting of operator and backend.
         """
         if self.operator is None:
-            raise AquaError("The operator was never provided.")
+            raise AlgorithmError("The operator was never provided.")
 
         self._check_operator_varform()
 
@@ -544,15 +545,15 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     def get_optimal_cost(self) -> float:
         """Get the minimal cost or energy found by the VQE."""
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot return optimal cost before running the "
-                            "algorithm to find optimal params.")
+            raise AlgorithmError("Cannot return optimal cost before running the "
+                                 "algorithm to find optimal params.")
         return self._ret['min_val']
 
     def get_optimal_circuit(self) -> QuantumCircuit:
         """Get the circuit with the optimal parameters."""
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal circuit before running the "
-                            "algorithm to find optimal params.")
+            raise AlgorithmError("Cannot find optimal circuit before running the "
+                                 "algorithm to find optimal params.")
         if isinstance(self.var_form, VariationalForm):
             return self._var_form.construct_circuit(self._ret['opt_params'])
         return self.var_form.assign_parameters(self._ret['opt_params_dict'])
@@ -563,8 +564,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         from qiskit.utils.run_circuits import find_regs_by_name
 
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal vector before running the "
-                            "algorithm to find optimal params.")
+            raise AlgorithmError("Cannot find optimal vector before running the "
+                                 "algorithm to find optimal params.")
         qc = self.get_optimal_circuit()
         if self._quantum_instance.is_statevector:
             ret = self._quantum_instance.execute(qc)
@@ -583,7 +584,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     def optimal_params(self) -> List[float]:
         """The optimal parameters for the variational form."""
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal params before running the algorithm.")
+            raise AlgorithmError("Cannot find optimal params before running the algorithm.")
         return self._ret['opt_params']
 
 

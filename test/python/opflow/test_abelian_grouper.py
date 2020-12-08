@@ -18,8 +18,7 @@ from itertools import combinations
 from ddt import ddt, data
 from qiskit.test import QiskitTestCase
 
-from qiskit.exceptions import AquaError
-from qiskit.opflow import (X, Y, Z, I, Zero, Plus, AbelianGrouper)
+from qiskit.opflow import (X, Y, Z, I, Zero, Plus, AbelianGrouper, OpflowError)
 
 
 @ddt
@@ -53,7 +52,7 @@ class TestAbelianGrouper(QiskitTestCase):
     def test_ablian_grouper_no_commute(self):
         """Abelian grouper test when non-PauliOp is given"""
         ops = Zero ^ Plus + X ^ Y
-        with self.assertRaises(AquaError):
+        with self.assertRaises(OpflowError):
             _ = AbelianGrouper.group_subops(ops)
 
     def test_group_subops(self):

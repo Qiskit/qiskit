@@ -17,10 +17,9 @@ from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
-from qiskit.exceptions import AquaError
 from qiskit.opflow import (
     CVaRMeasurement, StateFn, Z, I, X, Y, Plus, PauliExpectation, MatrixExpectation,
-    CVaRExpectation, ListOp, CircuitOp, AerPauliExpectation, MatrixOp
+    CVaRExpectation, ListOp, CircuitOp, AerPauliExpectation, MatrixOp, OpflowError
 )
 
 
@@ -116,22 +115,22 @@ class TestCVaRMeasurement(QiskitTestCase):
 
         with self.subTest('Single pauli operator not diagonal'):
             op = Y
-            with self.assertRaises(AquaError):
+            with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
         with self.subTest('Summed pauli operator not diagonal'):
             op = X ^ Z + Z ^ I
-            with self.assertRaises(AquaError):
+            with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
         with self.subTest('List operator not diagonal'):
             op = ListOp([X ^ Z, Z ^ I])
-            with self.assertRaises(AquaError):
+            with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
         with self.subTest('Matrix operator not diagonal'):
             op = MatrixOp([[1, 1], [0, 1]])
-            with self.assertRaises(AquaError):
+            with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
     def test_unsupported_operations(self):
@@ -145,7 +144,7 @@ class TestCVaRMeasurement(QiskitTestCase):
                     _ = getattr(cvar, attr)()
 
         with self.subTest('adjoint'):
-            with self.assertRaises(AquaError):
+            with self.assertRaises(OpflowError):
                 cvar.adjoint()
 
 

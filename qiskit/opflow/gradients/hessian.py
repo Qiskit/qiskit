@@ -15,7 +15,7 @@
 from typing import Optional, Union, List, Tuple
 
 import numpy as np
-from qiskit.exceptions import AquaError, MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -28,6 +28,7 @@ from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from .gradient import Gradient
 from .hessian_base import HessianBase
+from ..exceptions import OpflowError
 
 try:
     from jax import grad, jit
@@ -95,9 +96,9 @@ class Hessian(HessianBase):
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
-            AquaError: If the coefficient of the operator could not be reduced to 1.
-                        AquaError: If the differentiation of a combo_fn requires JAX but the package
-                        is not installed.
+            OpflowError: If the coefficient of the operator could not be reduced to 1.
+            OpflowError: If the differentiation of a combo_fn
+                         requires JAX but the package is not installed.
             TypeError: If the operator does not include a StateFn given by a quantum circuit
             TypeError: If the parameters were given in an unsupported format.
             Exception: Unintended code is reached
@@ -173,8 +174,8 @@ class Hessian(HessianBase):
         if isinstance(operator, ComposedOp):
 
             if not is_coeff_c(operator.coeff, 1.):
-                raise AquaError('Operator pre-processing failed. Coefficients were not properly '
-                                'collected inside the ComposedOp.')
+                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
+                                  'collected inside the ComposedOp.')
 
             # Do some checks to make sure operator is sensible
             # TODO enable compatibility with sum of CircuitStateFn operators

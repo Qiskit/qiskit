@@ -23,7 +23,6 @@ from ddt import ddt, data
 from qiskit.test import QiskitTestCase
 
 from qiskit import QiskitError
-from qiskit.exceptions import AquaError
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
 
 from qiskit.extensions.exceptions import ExtensionError
@@ -33,7 +32,7 @@ from qiskit.circuit.library import CZGate, ZGate
 from qiskit.opflow import (
     X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
-    SummedOp, OperatorBase, Zero
+    SummedOp, OperatorBase, Zero, OpflowError
 )
 from qiskit.opflow import MatrixOperator
 
@@ -791,7 +790,7 @@ class TestOpConstruction(QiskitTestCase):
 
     def test_op_to_circuit_with_parameters(self):
         """On parametrized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
-        the infinite recursion, AquaError is raised. """
+        the infinite recursion, OpflowError is raised. """
         m1 = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0]])  # non-unitary
         m2 = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, -1, 0, 0]])  # non-unitary
 
@@ -799,12 +798,13 @@ class TestOpConstruction(QiskitTestCase):
         op2_with_param = MatrixOp(m2, Parameter('beta'))  # non-unitary
 
         summed_op_with_param = op1_with_param + op2_with_param  # unitary
-        self.assertRaises(AquaError, summed_op_with_param.to_circuit)  # should raise Aqua error
+        # should raise OpflowError error
+        self.assertRaises(OpflowError, summed_op_with_param.to_circuit)
 
     def test_permute_list_op_with_inconsistent_num_qubits(self):
         """Test if permute raises error if ListOp contains operators with different num_qubits."""
         list_op = ListOp([X, X ^ X])
-        self.assertRaises(AquaError, list_op.permute, [0, 1])
+        self.assertRaises(OpflowError, list_op.permute, [0, 1])
 
     @data(Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]))
     def test_op_indent(self, op):

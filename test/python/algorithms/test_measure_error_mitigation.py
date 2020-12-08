@@ -17,8 +17,8 @@ import unittest
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 
+from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, aqua_globals
-from qiskit.exceptions import AquaError
 from qiskit.algorithms import VQE
 from qiskit.opflow import I, X, Z
 from qiskit.algorithms.optimizers import SPSA
@@ -78,7 +78,7 @@ class TestMeasurementErrorMitigation(QiskitTestCase):
         qc3.measure(2, 1)
         qc3.measure(1, 2)
 
-        self.assertRaises(AquaError, quantum_instance.execute, [qc1, qc3])
+        self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
     def test_measurement_error_mitigation_with_vqe(self):
         """ measurement error mitigation test with vqe """

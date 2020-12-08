@@ -15,8 +15,7 @@
 import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
-from qiskit.exceptions import AquaError
-from qiskit.algorithms import NumPyMinimumEigensolver
+from qiskit.algorithms import NumPyMinimumEigensolver, AlgorithmError
 from qiskit.opflow import WeightedPauliOperator
 
 
@@ -60,7 +59,7 @@ class TestNumPyMinimumEigensolver(QiskitTestCase):
     def test_cme_fail(self):
         """ Test no operator """
         algo = NumPyMinimumEigensolver()
-        with self.assertRaises(AquaError):
+        with self.assertRaises(AlgorithmError):
             _ = algo.run()
 
     def test_cme_reuse(self):
@@ -74,7 +73,7 @@ class TestNumPyMinimumEigensolver(QiskitTestCase):
 
         # Set operator to None and go again
         algo.operator = None
-        with self.assertRaises(AquaError):
+        with self.assertRaises(AlgorithmError):
             _ = algo.run()
 
         # Set operator back as it was and go again

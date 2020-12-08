@@ -26,12 +26,13 @@ from qiskit.quantum_info import Pauli
 from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
-from qiskit.exceptions import AquaError, MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import aqua_globals
 from .base_operator import LegacyBaseOperator
 from .common import (measure_pauli_z, covariance, pauli_measurement,
                      kernel_F2, suzuki_expansion_slice_pauli_list,
                      check_commutativity, evolution_instruction)
+from ..exceptions import OpflowError
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +184,12 @@ class WeightedPauliOperator(LegacyBaseOperator):
             WeightedPauliOperator: operator
 
         Raises:
-            AquaError: two operators have different number of qubits.
+            OpflowError: two operators have different number of qubits.
         """
 
         if not self.is_empty() and not other.is_empty():
             if self.num_qubits != other.num_qubits:
-                raise AquaError("Can not add/sub two operators with different number of qubits.")
+                raise OpflowError("Can not add/sub two operators with different number of qubits.")
 
         ret_op = self.copy() if copy else self
 
@@ -554,23 +555,23 @@ class WeightedPauliOperator(LegacyBaseOperator):
             WeightedPauliOperator: the operator created from the input dictionary.
 
         Raises:
-            AquaError: Invalid dictionary
+            OpflowError: Invalid dictionary
         """
         if 'paulis' not in dictionary:
-            raise AquaError('Dictionary missing "paulis" key')
+            raise OpflowError('Dictionary missing "paulis" key')
 
         paulis = []
         for op in dictionary['paulis']:
             if 'label' not in op:
-                raise AquaError('Dictionary missing "label" key')
+                raise OpflowError('Dictionary missing "label" key')
 
             pauli_label = op['label']
             if 'coeff' not in op:
-                raise AquaError('Dictionary missing "coeff" key')
+                raise OpflowError('Dictionary missing "coeff" key')
 
             pauli_coeff = op['coeff']
             if 'real' not in pauli_coeff:
-                raise AquaError('Dictionary missing "real" key')
+                raise OpflowError('Dictionary missing "real" key')
 
             coeff = pauli_coeff['real']
             if 'imag' in pauli_coeff:
@@ -611,10 +612,10 @@ class WeightedPauliOperator(LegacyBaseOperator):
             float: the mean value
             float: the standard deviation
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
         # convert to matrix first?
         # pylint: disable=import-outside-toplevel
         from .op_converter import to_matrix_operator
@@ -649,24 +650,24 @@ class WeightedPauliOperator(LegacyBaseOperator):
                                   circuit_name_prefix + Pauli string
 
         Raises:
-            AquaError: if Operator is empty
-            AquaError: if quantum register is not provided explicitly and
+            OpflowError: if Operator is empty
+            OpflowError: if quantum register is not provided explicitly and
                        cannot find quantum register with `q` as the name
-            AquaError: The provided qr is not in the wave_function
+            OpflowError: The provided qr is not in the wave_function
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
         # pylint: disable=import-outside-toplevel
         from qiskit.utils.run_circuits import find_regs_by_name
 
         if qr is None:
             qr = find_regs_by_name(wave_function, 'q')
             if qr is None:
-                raise AquaError("Either provide the quantum register (qr) explicitly or use"
-                                " `q` as the name of the quantum register in the input circuit.")
+                raise OpflowError("Either provide the quantum register (qr) explicitly or use"
+                                  " `q` as the name of the quantum register in the input circuit.")
         else:
             if not wave_function.has_register(qr):
-                raise AquaError("The provided QuantumRegister (qr) is not in the circuit.")
+                raise OpflowError("The provided QuantumRegister (qr) is not in the circuit.")
 
         n_qubits = self.num_qubits
         instructions = self.evaluation_instruction(statevector_mode, use_simulator_snapshot_mode)
@@ -714,11 +715,11 @@ class WeightedPauliOperator(LegacyBaseOperator):
             dict: Pauli-instruction pair.
 
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
             MissingOptionalLibraryError: qiskit-aer not installed
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
@@ -776,10 +777,10 @@ class WeightedPauliOperator(LegacyBaseOperator):
             float: the standard deviation
 
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
         if use_simulator_snapshot_mode:
@@ -888,15 +889,15 @@ class WeightedPauliOperator(LegacyBaseOperator):
             QuantumCircuit: The constructed circuit.
 
         Raises:
-            AquaError: quantum_registers must be in the provided state_in circuit
-            AquaError: if operator is empty
+            OpflowError: quantum_registers must be in the provided state_in circuit
+            OpflowError: if operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, can not evolve.")
+            raise OpflowError("Operator is empty, can not evolve.")
 
         if state_in is not None and quantum_registers is not None:
             if not state_in.has_register(quantum_registers):
-                raise AquaError("quantum_registers must be in the provided state_in circuit.")
+                raise OpflowError("quantum_registers must be in the provided state_in circuit.")
         elif state_in is None and quantum_registers is None:
             quantum_registers = QuantumRegister(self.num_qubits)
             qc = QuantumCircuit(quantum_registers)
@@ -933,10 +934,10 @@ class WeightedPauliOperator(LegacyBaseOperator):
         Raises:
             ValueError: Number of time slices should be a non-negative integer
             NotImplementedError: expansion mode not supported
-            AquaError: if operator is empty
+            OpflowError: if operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, can not build evolve instruction.")
+            raise OpflowError("Operator is empty, can not build evolve instruction.")
         # pylint: disable=no-member
         if num_time_slices <= 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
@@ -975,20 +976,20 @@ class Z2Symmetries:
             tapering_values (list[int], optional): values determines the sector.
 
         Raises:
-            AquaError: Invalid paulis
+            OpflowError: Invalid paulis
         """
         if len(symmetries) != len(sq_paulis):
-            raise AquaError("Number of Z2 symmetries has to be the same as number "
-                            "of single-qubit pauli x.")
+            raise OpflowError("Number of Z2 symmetries has to be the same as number "
+                              "of single-qubit pauli x.")
 
         if len(sq_paulis) != len(sq_list):
-            raise AquaError("Number of single-qubit pauli x has to be the same "
-                            "as length of single-qubit list.")
+            raise OpflowError("Number of single-qubit pauli x has to be the same "
+                              "as length of single-qubit list.")
 
         if tapering_values is not None:
             if len(sq_list) != len(tapering_values):
-                raise AquaError("The length of single-qubit list has "
-                                "to be the same as length of tapering values.")
+                raise OpflowError("The length of single-qubit list has "
+                                  "to be the same as length of tapering values.")
 
         self._symmetries = symmetries
         self._sq_paulis = sq_paulis
@@ -1194,11 +1195,11 @@ class Z2Symmetries:
                 otherwise, :class:`WeightedPauliOperator`
 
         Raises:
-            AquaError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
         """
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
-            raise AquaError("Z2 symmetries, single qubit pauli and "
-                            "single qubit list cannot be empty.")
+            raise OpflowError("Z2 symmetries, single qubit pauli and "
+                              "single qubit list cannot be empty.")
 
         if operator.is_empty():
             logger.warning("The operator is empty, return the empty operator directly.")
@@ -1305,14 +1306,14 @@ class Z2Symmetries:
             TaperedWeightedPauliOperator: the tapered operator
 
         Raises:
-            AquaError: The given operator does not commute with the symmetry
+            OpflowError: The given operator does not commute with the symmetry
         """
         if operator.is_empty():
-            raise AquaError("Can not taper an empty operator.")
+            raise OpflowError("Can not taper an empty operator.")
 
         for symmetry in self._symmetries:
             if not operator.commute_with(symmetry):
-                raise AquaError("The given operator does not commute with "
-                                "the symmetry, can not taper it.")
+                raise OpflowError("The given operator does not commute with "
+                                  "the symmetry, can not taper it.")
 
         return self.taper(operator)

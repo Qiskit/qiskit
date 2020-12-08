@@ -82,7 +82,7 @@ class VectorStateFn(StateFn):
         new_num_qubits = max(permutation) + 1
 
         if self.num_qubits != len(permutation):
-            # raise AquaError("New index must be defined for each qubit of the operator.")
+            # raise OpflowError("New index must be defined for each qubit of the operator.")
             pass
         if self.num_qubits < new_num_qubits:
             # pad the operator with identities

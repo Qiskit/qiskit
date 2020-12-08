@@ -24,8 +24,8 @@ from qiskit.quantum_info import Pauli
 from qiskit.tools.parallel import parallel_map
 from qiskit.tools.events import TextProgressBar
 
-from qiskit.exceptions import AquaError
 from qiskit.utils import aqua_globals
+from ..exceptions import OpflowError
 from .weighted_pauli_operator import WeightedPauliOperator
 from .matrix_operator import MatrixOperator
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
@@ -50,7 +50,7 @@ def to_weighted_pauli_operator(
     Returns:
         The converted weighted pauli operator
     Raises:
-        AquaError: Unsupported type to convert
+        OpflowError: Unsupported type to convert
 
     Warnings:
         Converting time from a MatrixOperator to a Pauli-type Operator grows exponentially.
@@ -97,8 +97,8 @@ def to_weighted_pauli_operator(
         return WeightedPauliOperator(paulis, z2_symmetries=operator.z2_symmetries,
                                      name=operator.name)
     else:
-        raise AquaError("Unsupported type to convert to WeightedPauliOperator: "
-                        "{}".format(operator.__class__))
+        raise OpflowError("Unsupported type to convert to WeightedPauliOperator: "
+                          "{}".format(operator.__class__))
 
 
 def to_matrix_operator(
@@ -112,7 +112,7 @@ def to_matrix_operator(
     Returns:
         the converted matrix operator
     Raises:
-        AquaError: Unsupported type to convert
+        OpflowError: Unsupported type to convert
     """
     if operator.__class__ == WeightedPauliOperator:
         op_w = cast(WeightedPauliOperator, operator)
@@ -131,8 +131,8 @@ def to_matrix_operator(
     elif operator.__class__ == MatrixOperator:
         return cast(MatrixOperator, operator)
     else:
-        raise AquaError("Unsupported type to convert to MatrixOperator: "
-                        "{}".format(operator.__class__))
+        raise OpflowError("Unsupported type to convert to MatrixOperator: "
+                          "{}".format(operator.__class__))
 
 
 # pylint: disable=invalid-name
@@ -150,7 +150,7 @@ def to_tpb_grouped_weighted_pauli_operator(
         the converted tensor-product-basis grouped weighted pauli operator
 
     Raises:
-        AquaError: Unsupported type to convert
+        OpflowError: Unsupported type to convert
     """
     if operator.__class__ == WeightedPauliOperator:
         return grouping_func(operator, **kwargs)
@@ -165,5 +165,5 @@ def to_tpb_grouped_weighted_pauli_operator(
         op = to_weighted_pauli_operator(operator)
         return grouping_func(op, **kwargs)
     else:
-        raise AquaError("Unsupported type to convert to TPBGroupedWeightedPauliOperator: "
-                        "{}".format(operator.__class__))
+        raise OpflowError("Unsupported type to convert to TPBGroupedWeightedPauliOperator: "
+                          "{}".format(operator.__class__))
