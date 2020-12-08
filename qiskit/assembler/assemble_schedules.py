@@ -198,10 +198,6 @@ def _assemble_instructions(
             acquire_instruction_map[(time, instruction.duration)].append(instruction)
             continue
 
-        if isinstance(instruction, (instructions.Delay, instructions.Directive)):
-            # delay instructions are ignored as timing is explicit within qobj
-            continue
-
         qobj_instructions.append(instruction_converter(time, instruction))
 
     if acquire_instruction_map:
