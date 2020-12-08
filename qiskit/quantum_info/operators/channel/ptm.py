@@ -124,6 +124,11 @@ class PTM(QuantumChannel):
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, None, None, num_qubits, 'PTM')
 
+    def __array__(self, dtype=None):
+        if dtype:
+            np.asarray(self.data, dtype=dtype)
+        return self.data
+
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""

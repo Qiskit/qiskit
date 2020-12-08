@@ -115,6 +115,11 @@ class SuperOp(QuantumChannel):
             input_dims, input_dim, output_dims, output_dim)
         super().__init__(super_mat, input_dims, output_dims, num_qubits, 'SuperOp')
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
+
     @property
     def _shape(self):
         """Return the tensor shape of the superoperator matrix"""
