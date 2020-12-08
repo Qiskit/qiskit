@@ -212,7 +212,8 @@ class DAGCircuit:
 
         for cals in self.calibrations.values():
             for qubit, params in cals.keys():
-                if (len(qubit)>0 and isinstance(qubit[0], ParameterExpression)) or (len(params)>0 and isinstance(params[0], ParameterExpression)):
+                if (len(qubit) > 0 and isinstance(qubit[0], ParameterExpression)) or \
+                        (len(params) > 0 and isinstance(params[0], ParameterExpression)):
                     return True
         qubits = tuple(qubit.index for qubit in node.qargs)
         params = []

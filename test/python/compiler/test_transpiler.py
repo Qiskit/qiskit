@@ -943,8 +943,6 @@ class TestTranspile(QiskitTestCase):
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
-        with pulse.build() as q1_y90:
-            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
 
         # Add calibration
         circ.add_calibration("mycustom", [qubit], q0_x180, [theta])
@@ -974,18 +972,13 @@ class TestTranspile(QiskitTestCase):
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
-        with pulse.build() as q1_y90:
-            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
 
         # Add calibration
         circ.add_calibration('h', [1], q0_x180)
 
         backend = FakeAlmaden()
         with self.assertRaises(QiskitError):
-            transpiled_circuit = transpile(
-                circ,
-                backend=backend,
-            )
+            transpile(circ, backend=backend)
 
 
 class StreamHandlerRaiseException(StreamHandler):
