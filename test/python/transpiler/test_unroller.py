@@ -19,7 +19,8 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.simulator import snapshot
 from qiskit.transpiler.passes import Unroller
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Parameter
@@ -263,6 +264,22 @@ class TestUnroller(QiskitTestCase):
         expected.cu(pi, pi, pi, 0, 1, 0)
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
+
+    def test_unrolling_global_phase_1q(self):
+        """Test unrolling a circuit with global phase in a composite gate."""
+        circ = QuantumCircuit(1, global_phase=pi / 2)
+        circ.x(0)
+        circ.h(0)
+        v = circ.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(v, [0])
+
+        dag = circuit_to_dag(qc)
+        out_dag = Unroller(['cx', 'x', 'h']).run(dag)
+        qcd = dag_to_circuit(out_dag)
+
+        self.assertEqual(Operator(qc), Operator(qcd))
 
 
 class TestUnrollAllInstructions(QiskitTestCase):

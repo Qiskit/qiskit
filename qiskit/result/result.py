@@ -62,7 +62,7 @@ class Result:
     def __repr__(self):
         out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
                "job_id='%s', success=%s, results=%s" % (
-                   self.backend_version,
+                   self.backend_name,
                    self.backend_version, self.qobj_id, self.job_id, self.success,
                    self.results))
         if hasattr(self, 'date'):
@@ -229,14 +229,19 @@ class Result:
                 raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
         except KeyError:
-            raise QiskitError('No memory for experiment "{}".'.format(repr(experiment)))
+            raise QiskitError(
+                'No memory for experiment "{}". '
+                'Please verify that you either ran a measurement level 2 job '
+                'with the memory flag set, eg., "memory=True", '
+                'or a measurement level 0/1 job.'.format(repr(experiment))
+            )
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data([experiment])``.
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of

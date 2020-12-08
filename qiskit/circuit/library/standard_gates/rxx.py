@@ -98,7 +98,7 @@ class RXXGate(Gate):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
         import numpy
         theta2 = float(self.params[0]) / 2
@@ -108,4 +108,4 @@ class RXXGate(Gate):
             [cos, 0, 0, -isin],
             [0, cos, -isin, 0],
             [0, -isin, cos, 0],
-            [-isin, 0, 0, cos]], dtype=complex)
+            [-isin, 0, 0, cos]], dtype=dtype)

@@ -13,7 +13,7 @@
 """Scheduling utility functions."""
 
 # pylint: disable=invalid-name
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.pulse import macros, utils
 
 format_meas_map = deprecate_function(

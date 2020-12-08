@@ -66,7 +66,7 @@ class TestChi(ChannelTestCase):
 
     def test_copy(self):
         """Test copy method"""
-        mat = np.eye(2)
+        mat = np.eye(4)
         with self.subTest("Deep copy"):
             orig = Chi(mat)
             cpy = orig.copy()
