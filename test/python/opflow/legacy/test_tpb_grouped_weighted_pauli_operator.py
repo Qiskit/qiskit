@@ -13,10 +13,10 @@
 """ Test TPB Grouped WeightedPauliOperator """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import itertools
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Pauli
 from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
@@ -27,7 +27,7 @@ from qiskit.opflow import (WeightedPauliOperator,
 from qiskit.opflow.legacy import op_converter
 
 
-class TestTPBGroupedWeightedPauliOperator(QiskitTestCase):
+class TestTPBGroupedWeightedPauliOperator(QiskitOpflowTestCase):
     """TPBGroupedWeightedPauliOperator tests."""
 
     def setUp(self):

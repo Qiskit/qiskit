@@ -14,6 +14,7 @@
 """ Test Quantum Gradient Framework """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
@@ -24,8 +25,6 @@ try:
     _HAS_JAX = True
 except ImportError:
     _HAS_JAX = False
-
-from qiskit.test import QiskitTestCase, slow_test
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
 from qiskit.utils import QuantumInstance
@@ -43,7 +42,7 @@ from qiskit.circuit.library import RealAmplitudes
 
 
 @ddt
-class TestGradients(QiskitTestCase):
+class TestGradients(QiskitOpflowTestCase):
     """ Test Qiskit Gradient Framework """
 
     def setUp(self):
@@ -905,9 +904,10 @@ class TestGradients(QiskitTestCase):
             result = prob_grad(value)
             np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
 
-    @slow_test
+    @unittest.skip(reason="Logging too much info and crashing stestr.")
     def test_vqe(self):
         """Test VQE with gradients"""
+
         method = 'lin_comb'
         backend = 'qasm_simulator'
         q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
@@ -944,7 +944,7 @@ class TestGradients(QiskitTestCase):
 
 
 @ddt
-class TestParameterGradients(QiskitTestCase):
+class TestParameterGradients(QiskitOpflowTestCase):
     """Test taking the gradient of parameter expressions."""
 
     def test_grad(self):

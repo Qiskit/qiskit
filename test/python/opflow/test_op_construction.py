@@ -14,13 +14,12 @@
 
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import itertools
 import scipy
 from scipy.stats import unitary_group
 import numpy as np
 from ddt import ddt, data
-
-from qiskit.test import QiskitTestCase
 
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
@@ -40,7 +39,7 @@ from qiskit.opflow import MatrixOperator
 # pylint: disable=invalid-name
 
 @ddt
-class TestOpConstruction(QiskitTestCase):
+class TestOpConstruction(QiskitOpflowTestCase):
     """Operator Construction tests."""
 
     def test_pauli_primitives(self):
@@ -942,7 +941,7 @@ class TestOpConstruction(QiskitTestCase):
         self.assertEqual(sum_op3, sum_op3)
 
 
-class TestOpMethods(QiskitTestCase):
+class TestOpMethods(QiskitOpflowTestCase):
     """Basic method tests."""
 
     def test_listop_num_qubits(self):
@@ -961,7 +960,7 @@ class TestOpMethods(QiskitTestCase):
 
 
 @ddt
-class TestListOpMethods(QiskitTestCase):
+class TestListOpMethods(QiskitOpflowTestCase):
     """Test ListOp accessing methods"""
 
     @data(ListOp, SummedOp, ComposedOp, TensoredOp)
@@ -989,7 +988,7 @@ class TestListOpMethods(QiskitTestCase):
         self.assertEqual(list_two_elements.coeff, coeff)
 
 
-class TestListOpComboFn(QiskitTestCase):
+class TestListOpComboFn(QiskitOpflowTestCase):
     """Test combo fn is propagated."""
 
     def setUp(self):

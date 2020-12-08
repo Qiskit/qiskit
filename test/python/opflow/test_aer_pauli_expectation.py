@@ -14,9 +14,8 @@
 
 import itertools
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
-
-from qiskit.test import QiskitTestCase
 
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (X, Y, Z, I, CX, H, S,
@@ -26,7 +25,7 @@ from qiskit.opflow import (X, Y, Z, I, CX, H, S,
 from qiskit.circuit.library import RealAmplitudes
 
 
-class TestAerPauliExpectation(QiskitTestCase):
+class TestAerPauliExpectation(QiskitOpflowTestCase):
     """Pauli Change of Basis Expectation tests."""
 
     def setUp(self) -> None:

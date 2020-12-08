@@ -18,13 +18,11 @@ import itertools
 import logging
 import json
 from operator import add as op_add, sub as op_sub
-import sys
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Pauli
 from qiskit.tools import parallel_map
-from qiskit.tools.events import TextProgressBar
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import aqua_globals
@@ -804,7 +802,7 @@ class WeightedPauliOperator(LegacyBaseOperator):
         else:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("Computing the expectation from measurement results:")
-                TextProgressBar(sys.stderr)
+
             # pick the first result to get the total number of shots
             num_shots = sum(list(result.get_counts(0).values()))
             results = parallel_map(WeightedPauliOperator._routine_compute_mean_and_var,

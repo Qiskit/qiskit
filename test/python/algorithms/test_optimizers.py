@@ -13,27 +13,21 @@
 """ Test Optimizers """
 
 import unittest
-import warnings
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.optimize import rosen
 import numpy as np
-from qiskit.test import QiskitTestCase
 
 from qiskit.utils import aqua_globals
 from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
                                           POWELL, SLSQP, SPSA, TNC, GSLS)
 
 
-class TestOptimizers(QiskitTestCase):
+class TestOptimizers(QiskitAlgorithmsTestCase):
     """ Test Optimizers """
 
     def setUp(self):
         super().setUp()
         aqua_globals.random_seed = 52
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-
-    def tearDown(self):
-        super().tearDown()
-        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def _optimize(self, optimizer):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]

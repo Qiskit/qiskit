@@ -13,11 +13,11 @@
 """ Test WeightedPauliOperator """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import itertools
 import os
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EfficientSU2
 from qiskit.quantum_info import Pauli
@@ -27,7 +27,7 @@ from qiskit.opflow import WeightedPauliOperator
 from qiskit.opflow import I, X, Y, Z
 
 
-class TestWeightedPauliOperator(QiskitTestCase):
+class TestWeightedPauliOperator(QiskitOpflowTestCase):
     """WeightedPauliOperator tests."""
 
     def setUp(self):

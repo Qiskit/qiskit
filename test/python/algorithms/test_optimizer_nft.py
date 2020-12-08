@@ -12,17 +12,17 @@
 
 """ Test of NFT optimizer """
 
-from qiskit.test import QiskitTestCase
+import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-
 from qiskit.utils import QuantumInstance, aqua_globals
 from qiskit.opflow import WeightedPauliOperator
 from qiskit.algorithms.optimizers import NFT
 from qiskit.algorithms import VQE
 
 
-class TestOptimizerNFT(QiskitTestCase):
+class TestOptimizerNFT(QiskitAlgorithmsTestCase):
     """ Test NFT optimizer using RY with VQE """
 
     def setUp(self):
@@ -49,3 +49,7 @@ class TestOptimizerNFT(QiskitTestCase):
                                          seed_simulator=aqua_globals.random_seed,
                                          seed_transpiler=aqua_globals.random_seed))
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
+
+
+if __name__ == '__main__':
+    unittest.main()

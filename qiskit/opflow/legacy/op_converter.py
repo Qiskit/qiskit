@@ -17,12 +17,10 @@
 from typing import Union, Callable, cast
 import itertools
 import logging
-import sys
 
 import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit.tools.parallel import parallel_map
-from qiskit.tools.events import TextProgressBar
 
 from qiskit.utils import aqua_globals
 from ..exceptions import OpflowError
@@ -84,7 +82,7 @@ def to_weighted_pauli_operator(
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Converting a MatrixOperator to a Pauli-type Operator:")
-            TextProgressBar(sys.stderr)
+
         results = parallel_map(_conversion,
                                list(itertools.product(possible_basis, repeat=num_qubits)),
                                task_kwargs={"matrix": op_m._matrix},

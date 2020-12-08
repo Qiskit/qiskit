@@ -13,10 +13,10 @@
 """ Test Op Converter """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import itertools
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Pauli
 
 from qiskit.utils import aqua_globals
@@ -24,7 +24,7 @@ from qiskit.opflow import WeightedPauliOperator, MatrixOperator
 from qiskit.opflow.legacy import op_converter
 
 
-class TestOpConverter(QiskitTestCase):
+class TestOpConverter(QiskitOpflowTestCase):
     """OpConverter tests."""
 
     def setUp(self):

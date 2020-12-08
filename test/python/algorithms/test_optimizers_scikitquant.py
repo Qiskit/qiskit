@@ -13,7 +13,8 @@
 """ Test of scikit-quant optimizers. """
 
 import unittest
-from qiskit.test import QiskitTestCase
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, aqua_globals
@@ -23,7 +24,7 @@ from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import BOBYQA, SNOBFIT, IMFIL
 
 
-class TestOptimizers(QiskitTestCase):
+class TestOptimizers(QiskitAlgorithmsTestCase):
     """ Test scikit-quant optimizers. """
 
     def setUp(self):

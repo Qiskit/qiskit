@@ -13,9 +13,8 @@
 """ test Grover """
 
 import unittest
-import warnings
-from qiskit.test import QiskitTestCase
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Grover
@@ -23,7 +22,7 @@ from qiskit.circuit.library import GroverOperator
 from qiskit.quantum_info import Operator, Statevector
 
 
-class TestGroverConstructor(QiskitTestCase):
+class TestGroverConstructor(QiskitAlgorithmsTestCase):
     """Test for the constructor of Grover"""
 
     def setUp(self):
@@ -86,7 +85,7 @@ class TestGroverConstructor(QiskitTestCase):
         self.assertTrue(Operator(grover_op).equiv(Operator(self._expected_grover_op)))
 
 
-class TestGroverPublicMethods(QiskitTestCase):
+class TestGroverPublicMethods(QiskitAlgorithmsTestCase):
     """Test for the public methods of Grover"""
 
     def test_is_good_state(self):
@@ -135,7 +134,7 @@ class TestGroverPublicMethods(QiskitTestCase):
         self.assertTrue(Operator(constructed).equiv(Operator(expected)))
 
 
-class TestGroverFunctionality(QiskitTestCase):
+class TestGroverFunctionality(QiskitAlgorithmsTestCase):
     """Test for the functionality of Grover"""
 
     def setUp(self):
@@ -147,21 +146,6 @@ class TestGroverFunctionality(QiskitTestCase):
         self._expected.compose(self._expected_grover_op.power(2), inplace=True)
         backend = BasicAer.get_backend('statevector_simulator')
         self._sv = QuantumInstance(backend)
-
-    def test_num_iteration(self):
-        """Test specified num_iterations"""
-        # filtering the following:
-        # DeprecationWarning: The num_iterations argument is deprecated as of 0.8.0,
-        # and will be removed no earlier than 3 months after the release date.
-        # If you want to use the num_iterations argument you should use the iterations
-        # argument instead and pass an integer for the number of iterations.
-        try:
-            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
-            grover = Grover(oracle=self._oracle, good_state=['111'], num_iterations=2)
-        finally:
-            warnings.filterwarnings(action="always", category=DeprecationWarning)
-        ret = grover.run(self._sv)
-        self.assertTrue(Operator(ret['circuit']).equiv(Operator(self._expected)))
 
     def test_iterations(self):
         """Test the iterations argument"""
@@ -175,7 +159,7 @@ class TestGroverFunctionality(QiskitTestCase):
         self.assertIn(ret.top_measurement, ['111'])
 
 
-class TestGroverExecution(QiskitTestCase):
+class TestGroverExecution(QiskitAlgorithmsTestCase):
     """Test for the execution of Grover"""
 
     def setUp(self):

@@ -14,9 +14,8 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
-
 from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, aqua_globals
 from qiskit.algorithms import VQE
@@ -25,7 +24,7 @@ from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import EfficientSU2
 
 
-class TestMeasurementErrorMitigation(QiskitTestCase):
+class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
