@@ -37,8 +37,22 @@ class Channel(metaclass=ABCMeta):
     should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
     """
 
-    prefix = None  # type: str
+    prefix = None  # type: Optional[str]
     """A shorthand string prefix for characterizing the channel type."""
+
+    # pylint: disable=unused-argument
+    def __new__(cls, *args, **kwargs):
+        if cls.prefix is None:
+            name = cls.__name__
+            raise TypeError(
+                f'Class {name}.prefix is "None". '
+                f'The channel {name} cannot (and should not) be instantiated '
+                'as it represents a class of channels. '
+                'Classes with a prefix of "None" are to be inherited '
+                'by channels that define a prefix and can be instantiated.'
+            )
+
+        return super(Channel, cls).__new__(cls)
 
     def __init__(self, index: int):
         """Channel class.
