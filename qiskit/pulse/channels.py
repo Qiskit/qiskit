@@ -37,8 +37,9 @@ class Channel(metaclass=ABCMeta):
     should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
 
     When serialized channels are identified by their serialized name ``<prefix><index>``.
-    The type of the channel is interpreted from the prefix, and the index often (but not always) maps
-    to the qubit index. All concrete channel classes must have a ``prefix`` class attribute
+    The type of the channel is interpreted from the prefix,
+    and the index often (but not always) maps to the qubit index.
+    All concrete channel classes must have a ``prefix`` class attribute
     (and instances of that class have an index attribute). Base classes which have
     ``prefix`` set to ``None`` are prevented from being instantiated.
 
