@@ -13,12 +13,12 @@
 """Test cases for the pulse scheduler passes."""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
-from qiskit.pulse import macros
+from qiskit.pulse import build, macros
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -376,3 +376,26 @@ class TestBasicSchedule(QiskitTestCase):
         # Doesn't use the calibrated schedule because the classical memory slots do not match
         expected = Schedule(macros.measure([0], self.backend, qubit_mem_slots={0: 1}))
         self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_scheduler_with_params_bound(self):
+        """Test scheduler with parameters defined and bound"""
+        x = Parameter('x')
+        qc = QuantumCircuit(2)
+        qc.append(Gate('pulse_gate', 1, [x]), [0])
+        expected_schedule = Schedule()
+        qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
+        qc = qc.assign_parameters({x: 1})
+        sched = schedule(qc, self.backend)
+        self.assertEqual(sched, expected_schedule)
+
+    def test_scheduler_with_params_not_bound(self):
+        """Test scheduler with parameters defined but not bound"""
+        x = Parameter('amp')
+        qc = QuantumCircuit(2)
+        qc.append(Gate('pulse_gate', 1, [x]), [0])
+        with build() as expected_schedule:
+            Play(Gaussian(duration=160, amp=x, sigma=40), DriveChannel(0))
+        qc.add_calibration(gate='pulse_gate', qubits=[0], schedule=expected_schedule, params=[x])
+        sched = schedule(qc, self.backend)
+        self.assertEqual(sched,
+                         expected_schedule)
