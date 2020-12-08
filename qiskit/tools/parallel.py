@@ -51,7 +51,7 @@ from the multiprocessing library.
 import os
 from concurrent.futures import ProcessPoolExecutor
 from qiskit.exceptions import QiskitError
-from qiskit.util import local_hardware_info
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
 
@@ -61,8 +61,9 @@ CONFIG = user_config.get_config()
 if os.getenv('QISKIT_IN_PARALLEL') is None:
     os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
-# Number of local physical cpus
-if 'num_processes' in CONFIG:
+if os.getenv("QISKIT_NUM_PROCS") is not None:
+    CPU_COUNT = int(os.getenv('QISKIT_NUM_PROCS'))
+elif 'num_processes' in CONFIG:
     CPU_COUNT = CONFIG['num_processes']
 else:
     CPU_COUNT = local_hardware_info()['cpus']
