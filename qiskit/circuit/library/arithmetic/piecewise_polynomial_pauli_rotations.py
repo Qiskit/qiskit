@@ -42,7 +42,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             \sum_{i=0}^{i=d}a_{j,i}/2 x^i, x_j \leq x < x_{j+1}
             \end{cases}
 
-    where we implicitly assume :math:`x_{J+1} = 2^n`.
+    where if given the same number of breakpoints as polynomials, we implicitly assume
+    :math:`x_{J+1} = 2^n`.
 
     .. note::
         Note the :math:`1/2` factor in the coefficients of :math:`f(x)`, this is consistent with
@@ -227,7 +228,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 raise CircuitError('Not enough qubits in the circuit, need at least '
                                    '{}.'.format(self.num_state_qubits + 1))
 
-        if len(self.breakpoints) != len(self.coeffs):
+        if len(self.breakpoints) != len(self.coeffs) + 1:
             valid = False
             if raise_on_failure:
                 raise ValueError('Mismatching number of breakpoints and polynomials.')
@@ -253,6 +254,11 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = []
 
     def _build(self):
+        # Add the last breakpoint if necessary
+        if self.num_state_qubits is not None and len(self._breakpoints) == len(self._coeffs) and\
+                self._breakpoints[-1] < 2 ** self.num_state_qubits:
+            self.breakpoints = self._breakpoints + [2 ** self.num_state_qubits]
+
         # The number of ancilla might have changed, so reset registers
         super()._build()
 
@@ -265,7 +271,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         qr_ancilla = self.qubits[self.num_state_qubits + 1 + max(1, self._degree - 1):]
 
         # apply comparators and controlled linear rotations
-        for i, point in enumerate(self.breakpoints):
+        for i, point in enumerate(self.breakpoints[:-1]):
             if i == 0 and self.contains_zero_breakpoint:
                 # apply rotation
                 poly_r = PolynomialPauliRotations(num_state_qubits=self.num_state_qubits,
