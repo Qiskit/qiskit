@@ -230,7 +230,12 @@ class Result:
                 raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
         except KeyError:
-            raise QiskitError('No memory for experiment "{}".'.format(experiment))
+            raise QiskitError(
+                'No memory for experiment "{}". '
+                'Please verify that you either ran a measurement level 2 job '
+                'with the memory flag set, eg., "memory=True", '
+                'or a measurement level 0/1 job.'.format(experiment)
+            )
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
