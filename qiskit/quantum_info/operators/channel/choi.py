@@ -127,6 +127,11 @@ class Choi(QuantumChannel):
             input_dims, input_dim, output_dims, output_dim)
         super().__init__(choi_mat, input_dims, output_dims, num_qubits, 'Choi')
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
+
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
