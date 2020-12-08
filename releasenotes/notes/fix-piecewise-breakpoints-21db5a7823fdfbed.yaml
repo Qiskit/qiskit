@@ -1,5 +1,5 @@
 ---
-fixes:
+features:
   - |
     For ``n`` intervals allow ``n+1`` breakpoints in ``PiecewisePolynomialPauliRotations``
     to specify another end interval than``2 ^ num_qubits``. From the end of the last 
