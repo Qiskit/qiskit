@@ -61,7 +61,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
     @data((1, [0], [[1]]),
           (2, [0, 2], [[2], [-0.5, 1]]),
           (3, [0, 2, 5], [[1, 0, -1], [2, 1], [1, 1, 1]]),
-          (4, [2, 5, 7], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
+          (4, [2, 5, 7, 16], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
           (3, [0, 1], [[1, 0], [1, -2]]),
           )
     @unpack
@@ -69,7 +69,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         """Test the piecewise linear rotations."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints)):
+            for i, point in enumerate(reversed(breakpoints[:len(coeffs)])):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
@@ -86,7 +86,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         """Test the mutability of the linear rotations circuit."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints)):
+            for i, point in enumerate(reversed(breakpoints[:len(coeffs)])):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
