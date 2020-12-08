@@ -39,6 +39,9 @@ class QuantumState:
         # RNG for measure functions
         self._rng_generator = None
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.dims() == other.dims()
 
