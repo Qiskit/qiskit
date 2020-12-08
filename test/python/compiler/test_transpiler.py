@@ -928,6 +928,65 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(out, expected)
 
+    def test_unresolved_calibrations(self):
+        """Test if the transpiled calibrations work for Parameters."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        theta = Parameter('theta')
+        qubit = Parameter('qubit')
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
+
+        # Add calibration
+        circ.add_calibration("mycustom", [qubit], q0_x180, [theta])
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(list(transpiled_circuit.count_ops().keys()), ['mycustom', 'u2'])
+        self.assertEqual(list(transpiled_circuit.count_ops().values()), [2, 1])
+
+    def test_error_unresolved_calibrations(self):
+        """Test if the transpiled calibrations raise error for custom, non calibrated gate."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        theta = Parameter('theta')
+        qubit = Parameter('qubit')
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
+
+        # Add calibration
+        circ.add_calibration('h', [1], q0_x180)
+
+        backend = FakeAlmaden()
+        with self.assertRaises(QiskitError):
+            transpiled_circuit = transpile(
+                circ,
+                backend=backend,
+            )
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
