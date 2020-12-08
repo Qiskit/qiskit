@@ -20,17 +20,6 @@ import retworkx as rx
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
-try:
-    import pydot  # pylint: disable=unused-import
-    HAS_PYDOT = True
-except ImportError:
-    HAS_PYDOT = False
-try:
-    from PIL import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
 
 Key = namedtuple('Key', ['name',
                          'num_qubits'])
@@ -172,6 +161,17 @@ class EquivalenceLibrary():
         Raises:
             ImportError: when pydot or pillow are not installed.
         """
+        try:
+            import pydot  # pylint: disable=unused-import
+            HAS_PYDOT = True
+        except ImportError:
+            HAS_PYDOT = False
+        try:
+            from PIL import Image
+            HAS_PIL = True
+        except ImportError:
+            HAS_PIL = False
+
         if not HAS_PYDOT:
             raise ImportError('EquivalenceLibrary.draw requires pydot. '
                               "You can use 'pip install pydot' to install")
