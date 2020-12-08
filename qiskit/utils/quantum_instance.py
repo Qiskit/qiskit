@@ -383,7 +383,16 @@ class QuantumInstance:
 
             if meas_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
-                skip_num_circuits = len(result.results) - len(circuits)
+                if (hasattr(self._run_config, 'parameterizations')
+                        and len(self._run_config.parameterizations) > 0
+                        and len(self._run_config.parameterizations[0]) > 0
+                        and len(self._run_config.parameterizations[0][0]) > 0):
+                    num_circuit_templates = len(self._run_config.parameterizations)
+                    num_param_variations = len(self._run_config.parameterizations[0][0])
+                    num_circuits = num_circuit_templates * num_param_variations
+                else:
+                    num_circuits = len(circuits)
+                skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
                 result.results = result.results[skip_num_circuits:]
