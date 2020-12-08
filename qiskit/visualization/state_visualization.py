@@ -26,37 +26,41 @@ from qiskit.quantum_info.states import DensityMatrix
 from qiskit.utils.deprecation import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
-if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-    from matplotlib.patches import FancyArrowPatch
-    from matplotlib.patches import Circle
-    import matplotlib.colors as mcolors
-    from matplotlib.colors import Normalize, LightSource
-    import matplotlib.gridspec as gridspec
-    from mpl_toolkits.mplot3d import proj3d
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.visualization.exceptions import VisualizationError
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
-    from qiskit.circuit.tools.pi_check import pi_check
 
+def import_mpl():
+    if HAS_MATPLOTLIB:
+        from matplotlib import get_backend
+        from matplotlib import pyplot as plt
+        from matplotlib.patches import FancyArrowPatch
+        from matplotlib.patches import Circle
+        import matplotlib.colors as mcolors
+        from matplotlib.colors import Normalize, LightSource
+        import matplotlib.gridspec as gridspec
+        from mpl_toolkits.mplot3d import proj3d
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        from qiskit.visualization.exceptions import VisualizationError
+        from qiskit.visualization.bloch import Bloch
+        from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+        from qiskit.circuit.tools.pi_check import pi_check
 
-if HAS_MATPLOTLIB:
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
+        class Arrow3D(FancyArrowPatch):
+            """Standard 3D arrow."""
 
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
+            def __init__(self, xs, ys, zs, *args, **kwargs):
+                """Create arrow."""
+                FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+                self._verts3d = xs, ys, zs
 
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+            def draw(self, renderer):
+                """Draw the arrow."""
+                xs3d, ys3d, zs3d = self._verts3d
+                xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+                self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+                FancyArrowPatch.draw(self, renderer)
+
+    else:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
 
 
 @deprecate_arguments({'rho': 'state'})
@@ -104,9 +108,8 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
             state = DensityMatrix.from_instruction(qc)
             plot_state_hinton(state, title="New Hinton Plot")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+    import_mpl()
+
     # Figure data
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -214,9 +217,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+    import_mpl()
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -271,9 +272,7 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
             state = Statevector.from_instruction(qc)
             plot_bloch_multivector(state, title="New Bloch Multivector")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+    import_mpl()
     # Data
     bloch_data = _bloch_multivector_data(state)
     num = len(bloch_data)
@@ -344,9 +343,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
            plot_state_city(state, color=['midnightblue', 'midnightblue'],
                 title="New State City")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+    import_mpl()
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -542,9 +539,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
            plot_state_paulivec(state, color='midnightblue',
                 title="New PauliVec plot")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+    import_mpl()
     labels, values = _paulivec_data(state)
     numelem = len(values)
 
@@ -687,9 +682,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
            state = Statevector.from_instruction(qc)
            plot_state_qsphere(state)
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+    import_mpl()
     try:
         import seaborn as sns
     except ImportError:

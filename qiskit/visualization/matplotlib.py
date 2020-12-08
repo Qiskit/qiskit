@@ -24,14 +24,6 @@ from warnings import warn
 
 import numpy as np
 
-try:
-    from matplotlib import get_backend
-    from matplotlib import patches
-    from matplotlib import pyplot as plt
-
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
 
 try:
     from pylatexenc.latex2text import LatexNodes2Text
@@ -130,6 +122,8 @@ class MatplotlibDrawer:
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
+        from matplotlib import patches
+        from matplotlib import pyplot as plt
         if not HAS_PYLATEX:
             raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
                               'to install, run "pip install pylatexenc".')
@@ -643,6 +637,7 @@ class MatplotlibDrawer:
             self._figure.savefig(filename, dpi=self._style['dpi'], bbox_inches='tight',
                                  facecolor=self._figure.get_facecolor())
         if self._return_fig:
+            from matplotlib import get_backend
             if get_backend() in ['module://ipykernel.pylab.backend_inline',
                                  'nbAgg']:
                 plt.close(self._figure)
@@ -1080,3 +1075,22 @@ class MatplotlibDrawer:
                 self._ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                               va='center', fontsize=sfs,
                               color=self._style['tc'], clip_on=True, zorder=PORDER_TEXT)
+
+
+class HasMatplotlibWrapper:
+    """Wrapper to lazily import matplotlib."""
+    has_matplotlib = False
+
+    def __bool__(self):
+        if not self.has_matplotlib:
+            try:
+                from matplotlib import get_backend
+                from matplotlib import patches
+                from matplotlib import pyplot as plt
+                self.has_matplotlib = True
+            except ImportError:
+                self.has_matplotlib = False
+        return self.has_matplotlib
+
+
+HAS_MATPLOTLIB = HasMatplotlibWrapper()

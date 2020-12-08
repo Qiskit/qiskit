@@ -22,12 +22,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-
-try:
-    from matplotlib import get_backend
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 
 
 def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
@@ -145,6 +140,7 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    from matplotlib import get_backend
     if isinstance(data, (SamplePulse, Waveform)):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
