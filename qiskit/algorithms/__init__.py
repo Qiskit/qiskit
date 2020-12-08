@@ -105,6 +105,13 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AlgorithmnError
 """
 
 from .algorithm_result import AlgorithmResult
@@ -116,6 +123,7 @@ from .factorizers import Shor
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .exceptions import AlgorithmError
 
 __all__ = [
     'AlgorithmResult',
@@ -135,4 +143,5 @@ __all__ = [
     'NumPyMinimumEigensolver',
     'MinimumEigensolver',
     'MinimumEigensolverResult',
+    'AlgorithmError',
 ]

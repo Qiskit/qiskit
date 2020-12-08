@@ -126,6 +126,13 @@ only diagonal Paulis.
    expectations
    gradients
 
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpflowError
 """
 
 from .legacy import (evolution_instruction,
@@ -160,6 +167,8 @@ from .operator_globals import (EVAL_SIG_DIGITS,
 from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
                         HessianBase, Hessian, QFIBase, QFI,
                         CircuitGradient, CircuitQFI)
+# Exceptions
+from .exceptions import OpflowError
 
 __all__ = [
     # Common
@@ -186,4 +195,6 @@ __all__ = [
     'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
     # Gradients
     'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
-    'HessianBase', 'Hessian', 'QFIBase', 'QFI']
+    'HessianBase', 'Hessian', 'QFIBase', 'QFI',
+    'OpflowError',
+]

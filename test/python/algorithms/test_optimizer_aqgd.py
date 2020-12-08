@@ -17,10 +17,9 @@ from qiskit import BasicAer
 
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, aqua_globals
-from qiskit.exceptions import AquaError
 from qiskit.opflow import WeightedPauliOperator
 from qiskit.algorithms.optimizers import AQGD
-from qiskit.algorithms import VQE
+from qiskit.algorithms import VQE, AlgorithmError
 
 
 class TestOptimizerAQGD(QiskitTestCase):
@@ -62,7 +61,7 @@ class TestOptimizerAQGD(QiskitTestCase):
 
     def test_raises_exception(self):
         """ tests that AQGD raises an exception when incorrect values are passed. """
-        self.assertRaises(AquaError, AQGD, maxiter=[1000], eta=[1.0, 0.5], momentum=[0.0, 0.5])
+        self.assertRaises(AlgorithmError, AQGD, maxiter=[1000], eta=[1.0, 0.5], momentum=[0.0, 0.5])
 
     def test_int_values(self):
         """ test AQGD with int values passed as eta and momentum. """

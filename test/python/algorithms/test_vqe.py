@@ -21,12 +21,12 @@ from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 
 from qiskit.utils import QuantumInstance, aqua_globals
-from qiskit.exceptions import AquaError, MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
                            AerPauliExpectation, PauliExpectation,
                            MatrixExpectation, ExpectationBase)
 from qiskit.algorithms.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
-from qiskit.algorithms import VQE
+from qiskit.algorithms import VQE, AlgorithmError
 
 
 @ddt
@@ -243,19 +243,19 @@ class TestVQE(QiskitTestCase):
     def test_reuse(self):
         """Test re-using a VQE algorithm instance."""
         vqe = VQE()
-        with self.subTest(msg='assert running empty raises AquaError'):
-            with self.assertRaises(AquaError):
+        with self.subTest(msg='assert running empty raises AlgorithmError'):
+            with self.assertRaises(AlgorithmError):
                 _ = vqe.run()
 
         var_form = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
         vqe.var_form = var_form
-        with self.subTest(msg='assert missing operator raises AquaError'):
-            with self.assertRaises(AquaError):
+        with self.subTest(msg='assert missing operator raises AlgorithmError'):
+            with self.assertRaises(AlgorithmError):
                 _ = vqe.run()
 
         vqe.operator = self.h2_op
-        with self.subTest(msg='assert missing backend raises AquaError'):
-            with self.assertRaises(AquaError):
+        with self.subTest(msg='assert missing backend raises AlgorithmError'):
+            with self.assertRaises(AlgorithmError):
                 _ = vqe.run()
 
         vqe.quantum_instance = self.statevector_simulator

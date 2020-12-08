@@ -17,9 +17,9 @@ import warnings
 from typing import Callable, Tuple, List, Dict, Union
 
 import numpy as np
-from qiskit.exceptions import AquaError
 from qiskit.utils.validation import validate_range_exclusive_max
 from .optimizer import Optimizer, OptimizerSupportLevel
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class AQGD(Optimizer):
                 convergence criterion
 
         Raises:
-            AquaError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.
+            AlgorithmError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.
         """
         super().__init__()
         if isinstance(maxiter, int):
@@ -82,8 +82,8 @@ class AQGD(Optimizer):
         if isinstance(momentum, (int, float)):
             momentum = [momentum]
         if len(maxiter) != len(eta) or len(maxiter) != len(momentum):
-            raise AquaError("AQGD input parameter length mismatch. Parameters `maxiter`, `eta`, "
-                            "and `momentum` must have the same length.")
+            raise AlgorithmError("AQGD input parameter length mismatch. Parameters `maxiter`, "
+                                 "`eta`, and `momentum` must have the same length.")
         for m in momentum:
             validate_range_exclusive_max('momentum', m, 0, 1)
 

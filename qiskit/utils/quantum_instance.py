@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
-from qiskit.exceptions import AquaError
+from qiskit.exceptions import QiskitError
 from .backend_utils import (is_ibmq_provider,
                             is_statevector_backend,
                             is_simulator_backend,
@@ -116,9 +116,9 @@ class QuantumInstance:
                 queue_position, job`
 
         Raises:
-            AquaError: the shots exceeds the maximum number of shots
-            AquaError: set noise model but the backend does not support that
-            AquaError: set backend_options but the backend does not support that
+            QiskitError: the shots exceeds the maximum number of shots
+            QiskitError: set noise model but the backend does not support that
+            QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
         self._pass_manager = pass_manager
@@ -131,8 +131,8 @@ class QuantumInstance:
                 shots = 1
             max_shots = self._backend.configuration().max_shots
             if max_shots is not None and shots > max_shots:
-                raise AquaError('The maximum shots supported by the selected backend is {} '
-                                'but you specified {}'.format(max_shots, shots))
+                raise QiskitError('The maximum shots supported by the selected backend is {} '
+                                  'but you specified {}'.format(max_shots, shots))
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
@@ -167,10 +167,11 @@ class QuantumInstance:
             if is_simulator_backend(self._backend) and not is_basicaer_provider(self._backend):
                 self._noise_config = {'noise_model': noise_model}
             else:
-                raise AquaError("The noise model is not supported on the selected backend {} ({}) "
-                                "only certain backends, such as Aer qasm simulator "
-                                "support noise.".format(self.backend_name,
-                                                        self._backend.provider()))
+                raise QiskitError("The noise model is not supported "
+                                  "on the selected backend {} ({}) "
+                                  "only certain backends, such as Aer qasm simulator "
+                                  "support noise.".format(self.backend_name,
+                                                          self._backend.provider()))
 
         # setup backend options for run
         self._backend_options = {}
@@ -178,14 +179,15 @@ class QuantumInstance:
             if support_backend_options(self._backend):
                 self._backend_options = {'backend_options': backend_options}
             else:
-                raise AquaError("backend_options can not used with the backends in IBMQ provider.")
+                raise QiskitError("backend_options can not used with the backends in "
+                                  "IBMQ provider.")
 
         # setup measurement error mitigation
         self._meas_error_mitigation_cls = None
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
-                raise AquaError("Measurement error mitigation does not work "
-                                "with the statevector simulation.")
+                raise QiskitError("Measurement error mitigation does not work "
+                                  "with the statevector simulation.")
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
         self._meas_error_mitigation_fitters: Dict[str, Tuple[np.ndarray, float]] = {}
@@ -423,19 +425,20 @@ class QuantumInstance:
                 self._backend_config[k] = v
             elif k in QuantumInstance._BACKEND_OPTIONS:
                 if not support_backend_options(self._backend):
-                    raise AquaError("backend_options can not be used with this backend "
-                                    "{} ({}).".format(self.backend_name, self._backend.provider()))
+                    raise QiskitError("backend_options can not be used with this backend "
+                                      "{} ({}).".format(self.backend_name,
+                                                        self._backend.provider()))
 
                 if k in QuantumInstance._BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
-                    raise AquaError("'{}' is only applicable for qasm simulator but "
-                                    "statevector simulator is used as the backend.")
+                    raise QiskitError("'{}' is only applicable for qasm simulator but "
+                                      "statevector simulator is used as the backend.")
 
                 if 'backend_options' not in self._backend_options:
                     self._backend_options['backend_options'] = {}
                 self._backend_options['backend_options'][k] = v
             elif k in QuantumInstance._NOISE_CONFIG:
                 if not is_simulator_backend(self._backend) or is_basicaer_provider(self._backend):
-                    raise AquaError(
+                    raise QiskitError(
                         "The noise model is not supported on the selected backend {} ({}) "
                         "only certain backends, such as Aer qasm support "
                         "noise.".format(self.backend_name, self._backend.provider()))

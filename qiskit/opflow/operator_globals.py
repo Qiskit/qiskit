@@ -39,7 +39,7 @@ def make_immutable(obj):
 
     # TODO figure out how to get correct error message
     # def throw_immutability_exception(self, *args):
-    #     raise AquaError('Operator convenience globals are immutable.')
+    #     raise OpflowError('Operator convenience globals are immutable.')
 
     obj.__setattr__ = None
     return obj

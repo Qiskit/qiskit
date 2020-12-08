@@ -19,11 +19,11 @@ import warnings
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.exceptions import AquaError
 from qiskit.utils import aqua_globals
 from qiskit.opflow import OperatorBase, LegacyBaseOperator, I, StateFn, ListOp
 from qiskit.utils.validation import validate_min
 from .eigen_solver import Eigensolver, EigensolverResult
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -253,10 +253,10 @@ class NumPyEigensolver(Eigensolver):
         Returns:
             dict: Dictionary of results
         Raises:
-            AquaError: if no operator has been provided
+            AlgorithmError: if no operator has been provided
         """
         if self._operator is None:
-            raise AquaError("Operator was never provided")
+            raise AlgorithmError("Operator was never provided")
 
         k_orig = self._k
         if self._filter_criterion:

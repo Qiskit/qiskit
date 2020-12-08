@@ -15,8 +15,7 @@
 import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
-from qiskit.exceptions import AquaError
-from qiskit.algorithms import NumPyEigensolver
+from qiskit.algorithms import NumPyEigensolver, AlgorithmError
 from qiskit.opflow import WeightedPauliOperator
 
 
@@ -55,7 +54,7 @@ class TestNumPyEigensolver(QiskitTestCase):
     def test_ce_fail(self):
         """ Test no operator """
         algo = NumPyEigensolver()
-        with self.assertRaises(AquaError):
+        with self.assertRaises(AlgorithmError):
             _ = algo.run()
 
     def test_ce_k4_filtered(self):

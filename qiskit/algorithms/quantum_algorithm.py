@@ -23,8 +23,8 @@ from typing import Union, Dict, Optional
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.utils import aqua_globals
-from qiskit.exceptions import AquaError
 from qiskit.utils.quantum_instance import QuantumInstance
+from .exceptions import AlgorithmError
 
 
 class QuantumAlgorithm(ABC):
@@ -59,11 +59,11 @@ class QuantumAlgorithm(ABC):
         Returns:
             dict: results of an algorithm.
         Raises:
-            AquaError: If a quantum instance or backend has not been provided
+            AlgorithmError: If a quantum instance or backend has not been provided
         """
         if quantum_instance is None and self.quantum_instance is None:
-            raise AquaError("A QuantumInstance or Backend "
-                            "must be supplied to run the quantum algorithm.")
+            raise AlgorithmError("A QuantumInstance or Backend "
+                                 "must be supplied to run the quantum algorithm.")
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             self.set_backend(quantum_instance, **kwargs)
         else:

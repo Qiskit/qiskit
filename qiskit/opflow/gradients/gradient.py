@@ -15,7 +15,7 @@
 from typing import Union, List, Optional
 
 import numpy as np
-from qiskit.exceptions import AquaError, MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
@@ -26,6 +26,7 @@ from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
+from ..exceptions import OpflowError
 
 try:
     from jax import grad, jit
@@ -90,8 +91,8 @@ class Gradient(GradientBase):
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
-            AquaError: If the coefficient of the operator could not be reduced to 1.
-            AquaError: If the differentiation of a combo_fn requires JAX but the package is not
+            OpflowError: If the coefficient of the operator could not be reduced to 1.
+            OpflowError: If the differentiation of a combo_fn requires JAX but the package is not
                        installed.
             TypeError: If the operator does not include a StateFn given by a quantum circuit
             Exception: Unintended code is reached
@@ -148,8 +149,8 @@ class Gradient(GradientBase):
 
             # Gradient of an expectation value
             if not is_coeff_c(operator._coeff, 1.0):
-                raise AquaError('Operator pre-processing failed. Coefficients were not properly '
-                                'collected inside the ComposedOp.')
+                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
+                                  'collected inside the ComposedOp.')
 
             # Do some checks to make sure operator is sensible
             # TODO add compatibility with sum of circuit state fns
@@ -163,8 +164,8 @@ class Gradient(GradientBase):
         elif isinstance(operator, CircuitStateFn):
             # Gradient of an a state's sampling probabilities
             if not is_coeff_c(operator._coeff, 1.0):
-                raise AquaError('Operator pre-processing failed. Coefficients were not properly '
-                                'collected inside the ComposedOp.')
+                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
+                                  'collected inside the ComposedOp.')
             return self.grad_method.convert(operator, param)
 
         # Handle the chain rule
