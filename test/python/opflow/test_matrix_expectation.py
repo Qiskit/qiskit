@@ -13,10 +13,9 @@
 " Test MatrixExpectation"
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import itertools
 import numpy as np
-
-from qiskit.test import QiskitTestCase
 
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (X, Y, Z, I, CX, H, S,
@@ -27,7 +26,7 @@ from qiskit import BasicAer
 
 # pylint: disable=invalid-name
 
-class TestMatrixExpectation(QiskitTestCase):
+class TestMatrixExpectation(QiskitOpflowTestCase):
     """Pauli Change of Basis Expectation tests."""
 
     def setUp(self) -> None:

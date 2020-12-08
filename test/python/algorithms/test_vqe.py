@@ -13,13 +13,12 @@
 """ Test VQE """
 
 import unittest
-import warnings
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, unpack, data
-from qiskit.test import QiskitTestCase
+
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
-
 from qiskit.utils import QuantumInstance, aqua_globals
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
@@ -30,7 +29,7 @@ from qiskit.algorithms import VQE, AlgorithmError
 
 
 @ddt
-class TestVQE(QiskitTestCase):
+class TestVQE(QiskitAlgorithmsTestCase):
     """ Test VQE """
 
     def setUp(self):
@@ -55,11 +54,6 @@ class TestVQE(QiskitTestCase):
                                                      shots=1,
                                                      seed_simulator=self.seed,
                                                      seed_transpiler=self.seed)
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-
-    def tearDown(self):
-        super().tearDown()
-        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_basic_aer_statevector(self):
         """Test the VQE on BasicAer's statevector simulator."""

@@ -12,10 +12,11 @@
 
 """The Conditional Value at Risk (CVaR) measurement."""
 
+import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.opflow import (
     CVaRMeasurement, StateFn, Z, I, X, Y, Plus, PauliExpectation, MatrixExpectation,
@@ -23,7 +24,7 @@ from qiskit.opflow import (
 )
 
 
-class TestCVaRMeasurement(QiskitTestCase):
+class TestCVaRMeasurement(QiskitOpflowTestCase):
     """Test the CVaR measurement."""
 
     def expected_cvar(self, statevector, operator, alpha):
@@ -149,7 +150,7 @@ class TestCVaRMeasurement(QiskitTestCase):
 
 
 @ddt
-class TestCVaRExpectation(QiskitTestCase):
+class TestCVaRExpectation(QiskitOpflowTestCase):
     """Test the CVaR expectation object."""
 
     def test_construction(self):
@@ -207,3 +208,7 @@ class TestCVaRExpectation(QiskitTestCase):
             op = ~StateFn(Z ^ Z) @ (Plus ^ Plus)
             cvar_var = cvar_expecation.compute_variance(op)
             np.testing.assert_almost_equal(cvar_var, correct_vars[i], decimal=3)
+
+
+if __name__ == '__main__':
+    unittest.main()

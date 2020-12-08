@@ -13,9 +13,9 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, BasicAer, execute
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
@@ -26,7 +26,7 @@ from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
 
 # pylint: disable=invalid-name
 
-class TestStateConstruction(QiskitTestCase):
+class TestStateConstruction(QiskitOpflowTestCase):
     """State Construction tests."""
 
     def test_state_singletons(self):

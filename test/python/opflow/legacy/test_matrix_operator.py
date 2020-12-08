@@ -13,15 +13,14 @@
 """ Test Matrix Operators """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
-
-from qiskit.test import QiskitTestCase
 
 from qiskit.opflow import MatrixOperator
 from qiskit.utils import aqua_globals
 
 
-class TestMatrixOperator(QiskitTestCase):
+class TestMatrixOperator(QiskitOpflowTestCase):
     """MatrixOperator tests."""
 
     def setUp(self):

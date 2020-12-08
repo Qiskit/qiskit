@@ -13,10 +13,10 @@
 """ Test Evolution """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 import scipy.linalg
 
-from qiskit.test import QiskitTestCase
 import qiskit
 from qiskit.circuit import ParameterVector, Parameter
 
@@ -26,7 +26,7 @@ from qiskit.opflow import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, Evolution
 # pylint: disable=invalid-name
 
 
-class TestEvolution(QiskitTestCase):
+class TestEvolution(QiskitOpflowTestCase):
     """Evolution tests."""
 
     def test_exp_i(self):

@@ -13,13 +13,14 @@
 """ Test NumPy Eigen solver """
 
 import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from qiskit.test import QiskitTestCase
+
 from qiskit.algorithms import NumPyEigensolver, AlgorithmError
 from qiskit.opflow import WeightedPauliOperator
 
 
-class TestNumPyEigensolver(QiskitTestCase):
+class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     """ Test NumPy Eigen solver """
 
     def setUp(self):

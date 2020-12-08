@@ -12,9 +12,9 @@
 
 """ Test of AQGD optimizer """
 
-from qiskit.test import QiskitTestCase
+import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
-
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, aqua_globals
 from qiskit.opflow import WeightedPauliOperator
@@ -22,7 +22,7 @@ from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
 
 
-class TestOptimizerAQGD(QiskitTestCase):
+class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     """ Test AQGD optimizer using RY for analytic gradient with VQE """
 
     def setUp(self):
@@ -72,3 +72,7 @@ class TestOptimizerAQGD(QiskitTestCase):
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
         result = VQE(self.qubit_op, RealAmplitudes(), aqgd).run(q_instance)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
+
+
+if __name__ == '__main__':
+    unittest.main()

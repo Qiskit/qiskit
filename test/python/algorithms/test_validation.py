@@ -13,8 +13,8 @@
 """ Test Validation """
 
 import unittest
-import warnings
-from qiskit.test import QiskitTestCase
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.utils.validation import (validate_in_set,
                                      validate_min,
                                      validate_min_exclusive,
@@ -26,16 +26,8 @@ from qiskit.utils.validation import (validate_in_set,
                                      validate_range_exclusive_max)
 
 
-class TestValidation(QiskitTestCase):
+class TestValidation(QiskitAlgorithmsTestCase):
     """Validation tests."""
-
-    def setUp(self):
-        super().setUp()
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-
-    def tearDown(self):
-        super().tearDown()
-        warnings.filterwarnings('always', category=DeprecationWarning)
 
     def test_validate_in_set(self):
         """ validate in set test """

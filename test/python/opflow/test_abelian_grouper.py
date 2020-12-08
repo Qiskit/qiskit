@@ -14,15 +14,15 @@
 
 import random
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 from itertools import combinations
 from ddt import ddt, data
-from qiskit.test import QiskitTestCase
 
 from qiskit.opflow import (X, Y, Z, I, Zero, Plus, AbelianGrouper, OpflowError)
 
 
 @ddt
-class TestAbelianGrouper(QiskitTestCase):
+class TestAbelianGrouper(QiskitOpflowTestCase):
     """Abelian Grouper tests."""
 
     @data('h2_op', 'generic')

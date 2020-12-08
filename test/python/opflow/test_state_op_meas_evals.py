@@ -13,9 +13,9 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
+from test.python.opflow import QiskitOpflowTestCase
 import numpy
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
@@ -24,7 +24,7 @@ from qiskit.opflow import (
 
 
 # pylint: disable=invalid-name
-class TestStateOpMeasEvals(QiskitTestCase):
+class TestStateOpMeasEvals(QiskitOpflowTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 
     def test_statefn_overlaps(self):

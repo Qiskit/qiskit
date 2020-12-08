@@ -13,11 +13,12 @@
 """ Test Entangler Map """
 
 import unittest
-from qiskit.test import QiskitTestCase
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.utils import get_entangler_map, validate_entangler_map
 
 
-class TestEntanglerMap(QiskitTestCase):
+class TestEntanglerMap(QiskitAlgorithmsTestCase):
     """ Test Entangler Map """
     def test_map_type_linear(self):
         """ ,ap type linear test """

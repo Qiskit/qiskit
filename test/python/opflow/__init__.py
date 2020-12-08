@@ -9,3 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Opflow test module"""
+
+from .opflow_test_case import QiskitOpflowTestCase
+
+__all__ = ['QiskitOpflowTestCase']

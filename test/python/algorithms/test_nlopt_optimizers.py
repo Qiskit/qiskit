@@ -13,10 +13,11 @@
 """ Test NLOpt Optimizers """
 
 import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, idata, unpack
 from scipy.optimize import rosen
 import numpy as np
-from qiskit.test import QiskitTestCase
+
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.algorithms.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
@@ -24,7 +25,7 @@ from qiskit.algorithms.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
 
 @ddt
-class TestNLOptOptimizers(QiskitTestCase):
+class TestNLOptOptimizers(QiskitAlgorithmsTestCase):
     """ Test NLOpt Optimizers """
 
     def _optimize(self, optimizer, use_bound):

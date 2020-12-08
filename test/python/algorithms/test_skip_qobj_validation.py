@@ -13,7 +13,8 @@
 """ Test Skip Qobj Validation """
 
 import unittest
-from qiskit.test import QiskitTestCase
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer
 from qiskit.utils import QuantumInstance
@@ -32,7 +33,7 @@ def _compare_dict(dict1, dict2):
     return equal
 
 
-class TestSkipQobjValidation(QiskitTestCase):
+class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
     """ Test Skip Qobj Validation """
     def setUp(self):
         super().setUp()
@@ -60,11 +61,11 @@ class TestSkipQobjValidation(QiskitTestCase):
                                            shots=1024)
         # run without backend_options and without noise
         res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_wo_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_wo_bo, res_wo_bo_skip_validation))
 
@@ -76,11 +77,11 @@ class TestSkipQobjValidation(QiskitTestCase):
                                            backend_options={
                                                'initial_statevector': [.5, .5, .5, .5]})
         res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_w_bo, res_w_bo_skip_validation))
 
