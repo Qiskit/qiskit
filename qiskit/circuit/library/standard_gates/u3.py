@@ -94,7 +94,7 @@ class U3Gate(Gate):
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -103,7 +103,7 @@ class U3Gate(Gate):
         return numpy.array([
             [cos, -numpy.exp(1j * lam) * sin],
             [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
-        ], dtype=complex)
+        ], dtype=dtype)
 
 
 class CU3Gate(ControlledGate):
@@ -213,7 +213,7 @@ class CU3Gate(ControlledGate):
             ctrl_state=self.ctrl_state
         )
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -225,14 +225,14 @@ class CU3Gate(ControlledGate):
                  [0, cos, 0, -numpy.exp(1j * lam) * sin],
                  [0, 0, 1, 0],
                  [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-                dtype=complex)
+                dtype=dtype)
         else:
             return numpy.array(
                 [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
                  [0, 1, 0, 0],
                  [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
                  [0, 0, 0, 1]],
-                dtype=complex)
+                dtype=dtype)
 
 
 def _generate_gray_code(num_bits):
