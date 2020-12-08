@@ -25,7 +25,7 @@ class TestChannel(QiskitTestCase):
 
     def test_cannot_be_instantiated(self):
         """Test base channel cannot be instantiated."""
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NotImplementedError):
             Channel(0)
 
 
@@ -34,7 +34,7 @@ class TestPulseChannel(QiskitTestCase):
 
     def test_cannot_be_instantiated(self):
         """Test base pulse channel cannot be instantiated."""
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NotImplementedError):
             PulseChannel(0)
 
 

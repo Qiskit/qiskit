@@ -36,9 +36,14 @@ class Channel(metaclass=ABCMeta):
     of the hardware backend. For instance, ``DriveChannel(0)`` holds instructions which the backend
     should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
 
-    To implement a new :class:`Channel` the `prefix` class variable must be set to a string. Which
-    will prefix the channel name when converted to a string. If `prefix` is not set the channel
-    is considered as a base class and may not be instantiated.
+    When serialized channels are identified by their serialized name ``<prefix><index>``. 
+    The type of the channel is interpreted from the prefix, and the index often (but not always) maps 
+    to the qubit index. All concrete channel classes must have a ``prefix`` class attribute 
+    (and instances of that class have an index attribute). Base classes which have
+    ``prefix`` set to ``None`` are prevented from being instantiated.
+
+    To implement a new channel inherit from :class:`Channel` and provide a unique string identifier 
+    for the ``prefix`` class attribute.
     """
 
     prefix = None  # type: Optional[str]
