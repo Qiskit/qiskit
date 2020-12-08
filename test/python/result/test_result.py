@@ -162,7 +162,7 @@ class TestResultOperations(QiskitTestCase):
                          expected_marginal_counts_2)
 
     def test_marginal_counts_result_creg_sizes(self):
-        """Test that a Result object containing counts marginalizes correctly."""
+        """Test that marginal_counts with Result input properly changes creg_sizes."""
         raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data = models.ExperimentResultData(counts=dict(**raw_counts))
         exp_result_header = QobjExperimentHeader(creg_sizes=[['c0', 1], ['c1', 3]],
@@ -184,7 +184,7 @@ class TestResultOperations(QiskitTestCase):
                          expected_marginal_counts)
 
     def test_marginal_counts_result_format(self):
-        """Test that a Result object containing counts marginalizes correctly."""
+        """Test that marginal_counts with format_marginal true properly formats output."""
         raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0x12': 8}
         data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
         exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 2], ['c1', 3]],
