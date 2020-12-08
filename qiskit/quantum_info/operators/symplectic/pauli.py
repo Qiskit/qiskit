@@ -71,8 +71,9 @@ class Pauli(BasePauli):
         Using ``str`` to convert a ``Pauli`` to a string will truncate the
         returned string for large numbers of qubits while :meth:`to_label`
         will return the full string with no truncation. The default
-        truncation length is 100 characters. The default value can be
-        changed using the class method :meth:`set_truncation`.
+        truncation length is 50 characters. The default value can be
+        changed by setting the class `__truncate__` attribute to an integer
+        value. If set to ``0`` no truncation will be performed.
 
     **Array Representation**
 
@@ -125,7 +126,7 @@ class Pauli(BasePauli):
         print('P[::-1] =, repr(P[::-1]))
     """
     # Set the max Pauli string size before truncation
-    __truncate__ = 100
+    __truncate__ = 50
 
     # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, z=None, x=None, phase=None, *, label=None):
