@@ -679,22 +679,6 @@ for inst, qargs, cargs in [
     def_cz.append(inst, qargs, cargs)
 _sel.add_equivalence(CZGate(), def_cz)
 
-# RXGate, RGate equivalence
-
-q = QuantumRegister(1, 'q')
-theta = Parameter('theta')
-def_rx = QuantumCircuit(q)
-def_rx.append(RXGate(theta=theta), [q[0]])
-_sel.add_equivalence(RGate(theta=theta, phi=0), def_rx)
-
-# RYGate, RGate equivalence
-
-q = QuantumRegister(1, 'q')
-theta = Parameter('theta')
-def_ry = QuantumCircuit(q)
-def_ry.append(RYGate(theta=theta), [q[0]])
-_sel.add_equivalence(RGate(theta=theta, phi=pi/2), def_ry)
-
 # RXGate, XGate equivalence
 
 q = QuantumRegister(1, 'q')
