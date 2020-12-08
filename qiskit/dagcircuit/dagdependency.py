@@ -17,7 +17,6 @@ import math
 import heapq
 from collections import OrderedDict, defaultdict
 import numpy as np
-import networkx as nx
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -131,13 +130,17 @@ class DAGDependency:
             calibrations (dict): A dictionary of input in th format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     def to_networkx(self):
         """Returns a copy of the DAGDependency in networkx format."""
         # For backwards compatibility, return networkx structure from terra 0.12
         # where DAGNodes instances are used as indexes on the networkx graph.
-
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError("Networkx is needed to use to_networkx(). It "
+                              "can be installed with 'pip install networkx'")
         dag_networkx = nx.MultiDiGraph()
 
         for node in self.get_nodes():
