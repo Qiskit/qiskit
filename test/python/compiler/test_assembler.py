@@ -113,6 +113,11 @@ class TestCircuitAssembler(QiskitTestCase):
         backend = FakeYorktown()
         self.assertRaises(QiskitError, assemble, backend, shots=1024000)
 
+    def test_shots_not_of_type_int(self):
+        """Test assembling with shots having type other than int"""
+        backend = FakeYorktown()
+        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         backend = FakeYorktown()
@@ -551,6 +556,17 @@ class TestCircuitAssembler(QiskitTestCase):
                          {'experiment_type': 'gst',
                           'execution_number': '1234'})
 
+    def test_pulse_gates_delay_only(self):
+        """Test that a single delay gate is translated to an instruction."""
+        circ = QuantumCircuit(2)
+        circ.append(Gate('test', 1, []), [0])
+        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+        circ.add_calibration('test', [0], test_sched)
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
+        self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
+                         {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
+
 
 class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
@@ -849,16 +865,13 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
-        orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
-
-        orig_qobj = assemble(orig_schedule, self.backend)
-        validate_qobj_against_schema(orig_qobj)
+        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
+        delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
-        validate_qobj_against_schema(delay_qobj)
 
-        self.assertEqual(orig_qobj.experiments[0].to_dict(),
-                         delay_qobj.experiments[0].to_dict())
+        validate_qobj_against_schema(delay_qobj)
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""

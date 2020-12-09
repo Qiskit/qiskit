@@ -29,6 +29,8 @@ def dagdependency_to_circuit(dagdependency):
                              name=name)
     circuit.metadata = dagdependency.metadata
 
+    circuit.calibrations = dagdependency.calibrations
+
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()

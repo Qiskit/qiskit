@@ -29,7 +29,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.util import is_main_process
+from qiskit.utils.multiprocessing import is_main_process
 
 # pylint: disable=missing-return-doc
 

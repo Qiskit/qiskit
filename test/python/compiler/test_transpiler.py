@@ -662,6 +662,32 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none(self, optimization_level):
+        """CCX without routing method."""
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        out = transpile(qc, routing_method='none',
+                        basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                        coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none_failed(self, optimization_level):
+        """CCX without routing method cannot be routed."""
+
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+
+        with self.assertRaises(TranspilerError):
+            transpile(qc, routing_method='none',
+                      basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                      coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
+
+    @data(0, 1, 2, 3)
     def test_ms_unrolls_to_cx(self, optimization_level):
         """Verify a Rx,Ry,Rxx circuit transpile to a U3,CX target."""
 
