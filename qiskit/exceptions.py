@@ -38,20 +38,7 @@ class QiskitUserConfigError(QiskitError):
     message = "User config invalid"
 
 
-class AquaError(QiskitError):
-    """Base class for errors raised by Aqua."""
-
-    def __init__(self, *message) -> None:
-        """Set the error message."""
-        super().__init__(' '.join(message))
-        self.message = ' '.join(message)
-
-    def __str__(self) -> str:
-        """Return the message."""
-        return repr(self.message)
-
-
-class MissingOptionalLibraryError(AquaError):
+class MissingOptionalLibraryError(QiskitError):
     """Raised when an optional library is missing."""
 
     def __init__(self,

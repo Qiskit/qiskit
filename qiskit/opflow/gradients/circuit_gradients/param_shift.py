@@ -19,7 +19,6 @@ from typing import List, Union, Optional, Tuple, Dict
 
 import numpy as np
 from qiskit import transpile, QuantumCircuit
-from qiskit.exceptions import AquaError
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from .circuit_gradient import CircuitGradient
 from ...operator_base import OperatorBase
@@ -32,6 +31,7 @@ from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...exceptions import OpflowError
 from ..derivative_base import DerivativeBase
 
 
@@ -101,7 +101,7 @@ class ParamShift(CircuitGradient):
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         Raises:
-            AquaError: If the parameters are given in an invalid format.
+            OpflowError: If the parameters are given in an invalid format.
 
         """
         if isinstance(params, (ParameterExpression, ParameterVector)):
@@ -116,11 +116,12 @@ class ParamShift(CircuitGradient):
                     [self._parameter_shift(self._parameter_shift(operator, pair[0]), pair[1])
                      for pair in params])
             else:
-                raise AquaError('The linear combination gradient does only support the computation '
-                                'of 1st gradients and 2nd order gradients.')
+                raise OpflowError('The linear combination gradient does only support '
+                                  'the computation '
+                                  'of 1st gradients and 2nd order gradients.')
         else:
-            raise AquaError('The linear combination gradient does only support the computation '
-                            'of 1st gradients and 2nd order gradients.')
+            raise OpflowError('The linear combination gradient does only support the computation '
+                              'of 1st gradients and 2nd order gradients.')
 
     # pylint: disable=too-many-return-statements
     def _parameter_shift(self,
