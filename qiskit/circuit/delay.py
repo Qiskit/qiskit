@@ -54,10 +54,10 @@ class Delay(Instruction):
         """Set the duration of this delay."""
         self.params = [duration]
 
-    def to_matrix(self) -> np.ndarray:
+    def __array__(self, dtype=None):
         """Return the identity matrix."""
         return np.array([[1, 0],
-                         [0, 1]], dtype=complex)
+                         [0, 1]], dtype=dtype)
 
     def __repr__(self):
         """Return the official string representing the delay."""

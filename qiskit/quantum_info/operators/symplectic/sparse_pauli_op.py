@@ -71,6 +71,11 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
+
     def __repr__(self):
         prefix = 'SparsePauliOp('
         pad = len(prefix) * ' '

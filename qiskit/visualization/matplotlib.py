@@ -1059,7 +1059,8 @@ class MatplotlibDrawer:
             self._xmax = self._fold + 1 + self._x_offset - 0.9
             self._ymax = (n_fold + 1) * (self._n_lines + 1) - 1
         else:
-            self._xmax = max_anc + 1 + self._x_offset - 0.9
+            x_incr = 0.4 if not self._ops else 0.9
+            self._xmax = max_anc + 1 + self._x_offset - x_incr
             self._ymax = self._n_lines
 
         # add horizontal lines

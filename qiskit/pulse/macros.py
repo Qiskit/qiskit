@@ -56,7 +56,7 @@ def measure(qubits: List[int],
     except AttributeError:
         raise exceptions.PulseError(
             'inst_map or meas_map, and backend cannot be None simultaneously')
-    if isinstance(meas_map, List):
+    if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
 
     measure_groups = set()

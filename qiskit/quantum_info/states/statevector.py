@@ -91,6 +91,11 @@ class Statevector(QuantumState, TolerancesMixin):
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(self._automatic_dims(dims, shape[0]))
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
+
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
             self._data, other._data, rtol=self.rtol, atol=self.atol)
