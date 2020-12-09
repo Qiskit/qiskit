@@ -17,7 +17,7 @@ from functools import reduce, partial
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
 from .list_op import ListOp
@@ -92,12 +92,12 @@ class TensoredOp(ListOp):
             The circuit representation of the tensored operator.
 
         Raises:
-            AquaError: for operators where a single underlying circuit can not be produced.
+            OpflowError: for operators where a single underlying circuit can not be produced.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         circuit_op = self.to_circuit_op()
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):
             return circuit_op.to_circuit()
-        raise AquaError('Conversion to_circuit supported only for operators, where a single '
-                        'underlying circuit can be produced.')
+        raise OpflowError('Conversion to_circuit supported only for operators, where a single '
+                          'underlying circuit can be produced.')
