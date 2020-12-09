@@ -46,4 +46,3 @@ class FakeCambridgeAlternativeBasis(FakeCambridge):
     def __init__(self):
         super().__init__()
         self._configuration.basis_gates = ['u', 'sx', 'p', 'cx', 'id']
-
