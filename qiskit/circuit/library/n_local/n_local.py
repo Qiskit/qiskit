@@ -17,7 +17,8 @@ from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
 import numpy
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
 
@@ -112,7 +113,7 @@ class NLocal(BlueprintCircuit):
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             TypeError: If an ``initial_state`` is specified but not of the correct type,
                 ``qiskit.aqua.components.initial_states.InitialState``.
-
+            ValueError: If reps parameter is less than or equal to 0.
         """
         super().__init__(name=name)
 
@@ -134,6 +135,9 @@ class NLocal(BlueprintCircuit):
         self._initial_state, self._initial_state_circuit = None, None
         self._data = None
         self._bounds = None
+
+        if reps <= 0:
+            raise ValueError('The value of reps should be larger than or equal to 1')
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -478,7 +482,12 @@ class NLocal(BlueprintCircuit):
 
         Args:
             repetitions: The new repetitions.
+
+        Raises:
+            ValueError: If reps setter has parameter repetitions <= 0.
         """
+        if repetitions <= 0:
+            raise ValueError('The repetitions should be larger than or equal to 1')
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions

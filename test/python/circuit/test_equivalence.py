@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
+from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 
@@ -26,18 +27,21 @@ from qiskit.circuit import EquivalenceLibrary
 
 class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
+
     def __init__(self):
         super().__init__('1q0p', 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one  param gate."""
+
     def __init__(self, theta):
         super().__init__('1q1p', 1, [theta])
 
 
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
+
     def __init__(self, phi, lam):
         super().__init__('1q2p', 1, [phi, lam])
 
@@ -83,7 +87,7 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         eq_lib.add_equivalence(gate, first_equiv)
 
         second_equiv = QuantumCircuit(1)
-        second_equiv.u2(0, np.pi, 0)
+        second_equiv.append(U2Gate(0, np.pi), [0])
 
         eq_lib.add_equivalence(gate, second_equiv)
 
@@ -104,7 +108,7 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         eq_lib.add_equivalence(gate, first_equiv)
 
         second_equiv = QuantumCircuit(1)
-        second_equiv.u2(0, np.pi, 0)
+        second_equiv.append(U2Gate(0, np.pi), [0])
 
         eq_lib.set_entry(gate, [second_equiv])
 
@@ -193,7 +197,7 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         eq_lib = EquivalenceLibrary(base=base)
 
         second_equiv = QuantumCircuit(1)
-        second_equiv.u2(0, np.pi, 0)
+        second_equiv.append(U2Gate(0, np.pi), [0])
 
         eq_lib.add_equivalence(gate, second_equiv)
 
@@ -215,7 +219,7 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         eq_lib = EquivalenceLibrary(base=base)
 
         second_equiv = QuantumCircuit(1)
-        second_equiv.u2(0, np.pi, 0)
+        second_equiv.append(U2Gate(0, np.pi), [0])
 
         eq_lib.set_entry(gate, [second_equiv])
 
@@ -242,7 +246,7 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
 
         gate = OneQubitZeroParamGate()
         equiv2 = QuantumCircuit(1)
-        equiv.u2(0, np.pi, 0)
+        equiv.append(U2Gate(0, np.pi), [0])
 
         eq_lib.add_equivalence(gate, equiv2)
 
@@ -270,7 +274,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
-        equiv.u1(phi, 0)
+        equiv.p(phi, 0)
 
         with self.assertRaises(CircuitError):
             eq_lib.add_equivalence(gate, equiv)
@@ -286,7 +290,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
-        equiv.u1(theta, 0)
+        equiv.p(theta, 0)
 
         eq_lib.add_equivalence(gate, equiv)
 
@@ -296,7 +300,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         entry = eq_lib.get_entry(gate_phi)
 
         expected = QuantumCircuit(1)
-        expected.u1(phi, 0)
+        expected.p(phi, 0)
 
         self.assertEqual(len(entry), 1)
         self.assertEqual(entry[0], expected)
@@ -310,7 +314,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         gate = OneQubitTwoParamGate(theta, phi)
         equiv = QuantumCircuit(1)
-        equiv.u2(theta, phi, 0)
+        equiv.u(theta, phi, 0, 0)
 
         eq_lib.add_equivalence(gate, equiv)
 
@@ -320,7 +324,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         entry = eq_lib.get_entry(gate_partial)
 
         expected = QuantumCircuit(1)
-        expected.u2(lam, 1.59, 0)
+        expected.u(lam, 1.59, 0, 0)
 
         self.assertEqual(len(entry), 1)
         self.assertEqual(entry[0], expected)
@@ -333,7 +337,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         gate_theta = OneQubitOneParamGate(theta)
         equiv_theta = QuantumCircuit(1)
-        equiv_theta.u1(theta, 0)
+        equiv_theta.p(theta, 0)
 
         eq_lib.add_equivalence(gate_theta, equiv_theta)
 
@@ -350,7 +354,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         entry = eq_lib.get_entry(gate_query)
 
         first_expected = QuantumCircuit(1)
-        first_expected.u1(lam, 0)
+        first_expected.p(lam, 0)
 
         second_expected = QuantumCircuit(1)
         second_expected.rz(lam, 0)
@@ -369,7 +373,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         # e.g. RGate(theta, phi)
         gate_full = OneQubitTwoParamGate(theta, phi)
         equiv_full = QuantumCircuit(1)
-        equiv_full.u2(theta, phi, 0)
+        equiv_full.append(U2Gate(theta, phi), [0])
 
         eq_lib.add_equivalence(gate_full, equiv_full)
 
@@ -385,7 +389,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         entry = eq_lib.get_entry(gate_query)
 
         first_expected = QuantumCircuit(1)
-        first_expected.u2(lam, 0, 0)
+        first_expected.append(U2Gate(lam, 0), [0])
 
         second_expected = QuantumCircuit(1)
         second_expected.rx(lam, 0)

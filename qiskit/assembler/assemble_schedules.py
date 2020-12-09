@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
-from collections import defaultdict
-from typing import Any, Dict, List, Tuple
 import hashlib
+from collections import defaultdict
+
+from typing import Any, Dict, List, Tuple, Union
 
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
@@ -23,10 +24,11 @@ from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
-def assemble_schedules(schedules: List[pulse.Schedule],
-                       qobj_id: int,
-                       qobj_header: qobj.QobjHeader,
-                       run_config: RunConfig) -> qobj.PulseQobj:
+def assemble_schedules(
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        qobj_id: int,
+        qobj_header: qobj.QobjHeader,
+        run_config: RunConfig) -> qobj.PulseQobj:
     """Assembles a list of schedules into a qobj that can be run on the backend.
 
     Args:
@@ -60,7 +62,7 @@ def assemble_schedules(schedules: List[pulse.Schedule],
 
 
 def _assemble_experiments(
-        schedules: List[pulse.Schedule],
+        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -194,10 +196,6 @@ def _assemble_instructions(
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
             # together into the Qobj as one instruction with many channels
             acquire_instruction_map[(time, instruction.duration)].append(instruction)
-            continue
-
-        if isinstance(instruction, (instructions.Delay, instructions.Directive)):
-            # delay instructions are ignored as timing is explicit within qobj
             continue
 
         qobj_instructions.append(instruction_converter(time, instruction))

@@ -54,7 +54,7 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc)
@@ -62,7 +62,7 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.params, [phi, theta])
         self.assertEqual(inst.definition[0][0].params, [theta])
         self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [theta, phi])
+        self.assertEqual(inst.definition[2][0].params, [theta, phi, 0])
         self.assertEqual(str(inst.definition[3][0].params[0]), 'phi + theta')
 
     def test_underspecified_parameter_map_raises(self):
@@ -78,7 +78,7 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         self.assertRaises(QiskitError, circuit_to_instruction, qc, {theta: gamma})
@@ -101,7 +101,7 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc, {theta: gamma, phi: phi})
@@ -109,7 +109,7 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.params, [gamma, phi])
         self.assertEqual(inst.definition[0][0].params, [gamma])
         self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [gamma, phi])
+        self.assertEqual(inst.definition[2][0].params, [gamma, phi, 0])
         self.assertEqual(
             str(inst.definition[3][0].params[0]), 'gamma + phi')
 

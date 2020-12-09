@@ -42,6 +42,7 @@ class RxGate(Gate):
     Note: Parallel maps (e.g., in assemble_circuits) pickle their input,
           so circuit features have to be defined top level.
     """
+
     def __init__(self, theta):
         super().__init__('rxtheta', 1, [theta])
 
@@ -112,6 +113,11 @@ class TestCircuitAssembler(QiskitTestCase):
         backend = FakeYorktown()
         self.assertRaises(QiskitError, assemble, backend, shots=1024000)
 
+    def test_shots_not_of_type_int(self):
+        """Test assembling with shots having type other than int"""
+        backend = FakeYorktown()
+        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         backend = FakeYorktown()
@@ -138,6 +144,25 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_meas_level_meas_return(self):
+        """Test assembling a circuit schedule with `meas_level`."""
+        qobj = assemble(self.circ,
+                        meas_level=1,
+                        meas_return='single')
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 1)
+        self.assertEqual(qobj.config.meas_return, 'single')
+
+        # no meas_level set
+        qobj = assemble(self.circ)
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 2)
+        self.assertEqual(hasattr(qobj.config, 'meas_return'), False)
 
     def test_assemble_backend_rep_delays(self):
         """Check that rep_delay is properly set from backend values."""
@@ -282,10 +307,10 @@ class TestCircuitAssembler(QiskitTestCase):
         full_param_circ = QuantumCircuit(qr)
         partial_param_circ = QuantumCircuit(qr)
 
-        partial_param_circ.u1(x, qr[0])
+        partial_param_circ.p(x, qr[0])
 
-        full_param_circ.u1(x, qr[0])
-        full_param_circ.u1(y, qr[1])
+        full_param_circ.p(x, qr[0])
+        full_param_circ.p(y, qr[1])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
         full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
@@ -321,7 +346,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         expr_circ = QuantumCircuit(qr)
 
-        expr_circ.u1(x+y, qr[0])
+        expr_circ.p(x+y, qr[0])
 
         partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
 
@@ -344,12 +369,12 @@ class TestCircuitAssembler(QiskitTestCase):
         sum_ = x + y
         product_ = x * y
 
-        qc1.u2(x, y, qr[0])
+        qc1.u(x, y, 0, qr[0])
 
         qc2.rz(x, qr[0])
         qc2.rz(y, qr[0])
 
-        qc3.u2(sum_, product_, qr[0])
+        qc3.u(sum_, product_, 0, qr[0])
 
         bind_args = {'parameter_binds': [{x: 0, y: 0},
                                          {x: 1, y: 0},
@@ -367,9 +392,9 @@ class TestCircuitAssembler(QiskitTestCase):
             inst = expt.instructions[inst_no]
             return [float(p) for p in inst.params]
 
-        self.assertEqual(_qobj_inst_params(0, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(1, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(2, 0), [1, 1])
+        self.assertEqual(_qobj_inst_params(0, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(1, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(2, 0), [1, 1, 0])
 
         self.assertEqual(_qobj_inst_params(3, 0), [0])
         self.assertEqual(_qobj_inst_params(3, 1), [0])
@@ -378,9 +403,9 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(5, 0), [1])
         self.assertEqual(_qobj_inst_params(5, 1), [1])
 
-        self.assertEqual(_qobj_inst_params(6, 0), [0, 0])
-        self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
-        self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
+        self.assertEqual(_qobj_inst_params(6, 0), [0, 0, 0])
+        self.assertEqual(_qobj_inst_params(7, 0), [1, 0, 0])
+        self.assertEqual(_qobj_inst_params(8, 0), [2, 1, 0])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
@@ -522,6 +547,17 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.calibrations.gates[0].qubits, [1])
         self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
         self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
+
+    def test_pulse_gates_delay_only(self):
+        """Test that a single delay gate is translated to an instruction."""
+        circ = QuantumCircuit(2)
+        circ.append(Gate('test', 1, []), [0])
+        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+        circ.add_calibration('test', [0], test_sched)
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
+        self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
+                         {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
 
 
 class TestPulseAssembler(QiskitTestCase):
@@ -811,16 +847,13 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
-        orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
-
-        orig_qobj = assemble(orig_schedule, self.backend)
-        validate_qobj_against_schema(orig_qobj)
+        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
+        delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
-        validate_qobj_against_schema(delay_qobj)
 
-        self.assertEqual(orig_qobj.experiments[0].to_dict(),
-                         delay_qobj.experiments[0].to_dict())
+        validate_qobj_against_schema(delay_qobj)
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""

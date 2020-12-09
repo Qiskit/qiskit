@@ -12,18 +12,21 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import hashlib
 import re
 import warnings
 
 from enum import Enum
 
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
 from qiskit.qobj.utils import MeasLevel
+
+GIGAHERTZ_TO_SI_UNITS = 1e9
 
 
 class ParametricPulseShapes(Enum):
@@ -338,6 +341,24 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Delay)
+    def convert_delay(self, shift, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Delay): Delay instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'delay',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'duration': instruction.duration
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.Play)
     def convert_play(self, shift, instruction):
         """Return the converted `Play`.
@@ -544,21 +565,26 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): set frequency qobj instruction
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.SetFrequency(_frequency, channel) << t0
+                return instructions.SetFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
+                                                 channel) << t0
 
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+        else:
+            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.SetFrequency(frequency, channel) << t0
 
@@ -568,22 +594,27 @@ class QobjToInstructionConverter:
 
         Args:
             instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
 
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency * 1e9
+        frequency = instruction.frequency
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
 
             def gen_sf_schedule(*args, **kwargs):
                 _frequency = frequency_expr(*args, **kwargs)
-                return instructions.ShiftFrequency(_frequency, channel) << t0
+                return instructions.ShiftFrequency(_frequency * GIGAHERTZ_TO_SI_UNITS,
+                                                   channel) << t0
 
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+        else:
+            frequency = frequency * GIGAHERTZ_TO_SI_UNITS
 
         return instructions.ShiftFrequency(frequency, channel) << t0
 
@@ -628,6 +659,15 @@ class QobjToInstructionConverter:
     def convert_parametric(self, instruction):
         """Return the ParametricPulse implementation that is described by the instruction.
 
+        If parametric pulse label is not provided by the backend, this method naively generates
+        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+        to, for example, `gaussian_a4e3`, here the last four digits are a part of
+        the hash string generated based on the pulse shape and the parameters.
+        Because we are using a truncated hash for readability,
+        there may be a small risk of pulse name collision with other pulses.
+        Basically the parametric pulse name is used just for visualization purpose and
+        the pulse module should not have dependency on the parametric pulse names.
+
         Args:
             instruction (PulseQobjInstruction): pulse qobj
         Returns:
@@ -635,7 +675,19 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
+
+        try:
+            pulse_name = instruction.label
+        except AttributeError:
+            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            base_str = '{pulse}_{params}'.format(
+                pulse=instruction.pulse_shape,
+                params=str(sorted_params))
+            short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+            pulse_name = '{0}_{1}'.format(instruction.pulse_shape, short_pulse_id)
+
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters,
+                                                                     name=pulse_name)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')

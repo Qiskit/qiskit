@@ -25,8 +25,7 @@ except ImportError:
 REQUIREMENTS = [
     "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
-    "networkx>=2.2",
-    "retworkx>=0.5.0",
+    "retworkx>=0.7.0",
     "numpy>=1.17",
     "ply>=3.10",
     "psutil>=5",
@@ -77,7 +76,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.16.0",
+    version="0.17.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
@@ -97,6 +96,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",

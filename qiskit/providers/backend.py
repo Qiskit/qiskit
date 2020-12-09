@@ -112,7 +112,7 @@ class BackendV1(Backend, ABC):
                 options
         """
         for field in fields:
-            if not hasattr(field, self._options):
+            if not hasattr(self._options, field):
                 raise AttributeError(
                     "Options field %s is not valid for this "
                     "backend" % field)

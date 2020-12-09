@@ -100,10 +100,10 @@ class SXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SX gate."""
         return numpy.array([[1 + 1j, 1 - 1j],
-                            [1 - 1j, 1 + 1j]], dtype=complex) / 2
+                            [1 - 1j, 1 + 1j]], dtype=dtype) / 2
 
 
 class SXdgGate(Gate):
@@ -158,10 +158,10 @@ class SXdgGate(Gate):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SXdg gate."""
         return numpy.array([[1 - 1j, 1 + 1j],
-                            [1 + 1j, 1 - 1j]], dtype=complex) / 2
+                            [1 + 1j, 1 - 1j]], dtype=dtype) / 2
 
 
 class CSXGate(ControlledGate):
@@ -220,11 +220,11 @@ class CSXGate(ControlledGate):
     _matrix1 = numpy.array([[1, 0, 0, 0],
                             [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
                             [0, 0, 1, 0],
-                            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2]], dtype=complex)
+                            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2]])
     _matrix0 = numpy.array([[(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
                             [0, 1, 0, 0],
                             [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+                            [0, 0, 0, 1]])
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSX gate."""
@@ -249,9 +249,9 @@ class CSXGate(ControlledGate):
         qc.data = rules
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CSX gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

@@ -18,20 +18,20 @@ try:
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.gate import Gate
+from qiskit.circuit import quantumregister
+from qiskit.circuit import gate
 from qiskit.exceptions import QiskitError
 from .utils import tweedledum2qiskit
 from .classical_function_visitor import ClassicalFunctionVisitor
 
 
-class ClassicalFunction(Gate):
-    """An ClassicalFunction object represents an classicalfunction function and
-    its logic network."""
+class ClassicalFunction(gate.Gate):
+    """Represent a classical function function and its logic network."""
 
     def __init__(self, source, name=None):
-        """Creates a ``ClassicalFunction`` from Python source code in ``source``. The code should
-        be a single function with types.
+        """Creates a ``ClassicalFunction`` from Python source code in ``source``.
+
+        The code should be a single function with types.
 
         Args:
             source (str): Python code with type hints.
@@ -87,6 +87,7 @@ class ClassicalFunction(Gate):
     @property
     def types(self):
         """Dumps a list of scopes with their variables and types.
+
         Returns:
             list(dict): A list of scopes as dicts, where key is the variable name and
             value is its type.
@@ -100,8 +101,8 @@ class ClassicalFunction(Gate):
         """Runs ``tweedledum.simulate`` on the logic network."""
         return simulate(self._network)
 
-    def synth(self, registerless=True) -> QuantumCircuit:
-        """Synthesis the logic network into a ``QuantumCircuit``.
+    def synth(self, registerless=True):
+        """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
             registerless (bool): Default ``True``. If ``False`` uses the parameter names to create
@@ -123,8 +124,10 @@ class ClassicalFunction(Gate):
     @property
     def qregs(self):
         """The list of qregs used by the classicalfunction"""
-        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
+        qregs = [
+            quantumregister.QuantumRegister(
+                1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
         if self.types[0]['return'] == 'Int1':
-            qregs.append(QuantumRegister(1, name='return'))
+            qregs.append(quantumregister.QuantumRegister(1, name='return'))
         return qregs

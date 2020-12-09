@@ -81,6 +81,7 @@ Timeline Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
+   timeline_drawer
    ~qiskit.visualization.timeline.draw
 
 Single Qubit State Transition Visualizations
@@ -103,7 +104,6 @@ Exceptions
 import os
 import sys
 
-from qiskit.util import _has_connection
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_bloch_vector,
@@ -113,7 +113,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_qsphere)
 from qiskit.visualization.transition_visualization import visualize_transition
 
-from .circuit_visualization import circuit_drawer, qx_color_scheme
+from .circuit_visualization import circuit_drawer
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
@@ -126,10 +126,9 @@ from .timeline import draw as timeline_drawer
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
         or os.getenv('QISKIT_DOCS') == 'TRUE':
-    if _has_connection('qvisualization.mybluemix.net', 443):
-        from qiskit.visualization.interactive import (iplot_bloch_multivector,
-                                                      iplot_state_city,
-                                                      iplot_state_qsphere,
-                                                      iplot_state_hinton,
-                                                      iplot_histogram,
-                                                      iplot_state_paulivec)
+    from qiskit.visualization.interactive import (iplot_bloch_multivector,
+                                                  iplot_state_city,
+                                                  iplot_state_qsphere,
+                                                  iplot_state_hinton,
+                                                  iplot_histogram,
+                                                  iplot_state_paulivec)

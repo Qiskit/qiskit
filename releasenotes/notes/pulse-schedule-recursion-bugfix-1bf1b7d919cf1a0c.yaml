@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    A bug was fixed that caused long pulse schedules to throw a recursion error.

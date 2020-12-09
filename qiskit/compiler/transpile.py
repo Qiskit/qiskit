@@ -124,7 +124,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
-        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
+        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre', 'none')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
@@ -191,19 +191,19 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
             or errors in passes
     """
-    circuits = circuits if isinstance(circuits, list) else [circuits]
+    arg_circuits_list = isinstance(circuits, list)
+    circuits = circuits if arg_circuits_list else [circuits]
 
     # transpiling schedules is not supported yet.
     start_time = time()
     if all(isinstance(c, Schedule) for c in circuits):
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
-        if len(circuits) == 1:
-            end_time = time()
-            _log_transpile_time(start_time, end_time)
-            return circuits[0]
         end_time = time()
         _log_transpile_time(start_time, end_time)
-        return circuits
+        if arg_circuits_list:
+            return circuits
+        else:
+            return circuits[0]
 
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
@@ -242,13 +242,13 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
-    if len(circuits) == 1:
-        end_time = time()
-        _log_transpile_time(start_time, end_time)
-        return circuits[0]
     end_time = time()
     _log_transpile_time(start_time, end_time)
-    return circuits
+
+    if arg_circuits_list:
+        return circuits
+    else:
+        return circuits[0]
 
 
 def _check_conflicting_argument(**kargs):
