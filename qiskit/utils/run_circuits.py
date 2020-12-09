@@ -27,7 +27,7 @@ from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
 from qiskit.result import Result
 from qiskit.qobj import QasmQobj
-from ..exceptions import QiskitError, AquaError, MissingOptionalLibraryError
+from ..exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (is_aer_provider,
                             is_basicaer_provider,
                             is_simulator_backend,
@@ -96,7 +96,7 @@ def _split_qobj_to_qobjs(qobj: QasmQobj,
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
                 qobjs = _maybe_split_qobj_by_gates(qobjs, temp_qobj)
         else:
-            raise AquaError("Only support QasmQobj now.")
+            raise QiskitError("Only support QasmQobj now.")
 
     return qobjs
 
@@ -196,9 +196,9 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
                            "Terra job error: %s", job_id, ex)
             time.sleep(5)
         except Exception as ex:  # pylint: disable=broad-except
-            raise AquaError("FAILURE: job id: {}, "
-                            "status: 'FAIL_TO_GET_STATUS' "
-                            "Unknown error: ({})".format(job_id, ex)) from ex
+            raise QiskitError("FAILURE: job id: {}, "
+                              "status: 'FAIL_TO_GET_STATUS' "
+                              "Unknown error: ({})".format(job_id, ex)) from ex
     return job_status
 
 
@@ -232,7 +232,7 @@ def run_qobj(qobj: QasmQobj,
 
     Raises:
         ValueError: invalid backend
-        AquaError: Any error except for JobError raised by Qiskit Terra
+        QiskitError: Any error except for JobError raised by Qiskit Terra
     """
     qjob_config = qjob_config or {}
     backend_options = backend_options or {}
@@ -343,7 +343,7 @@ def run_qobj(qobj: QasmQobj,
                 if not res.success:
                     msg += ', ' + res.status
                     break
-        raise AquaError('Circuit execution failed: {}'.format(msg))
+        raise QiskitError('Circuit execution failed: {}'.format(msg))
 
     if not hasattr(result, 'time_taken'):
         setattr(result, 'time_taken', 0.)

@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 from ..legacy.base_operator import LegacyBaseOperator
 from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 from ..operator_base import OperatorBase
@@ -142,7 +142,7 @@ class SummedOp(ListOp):
         """Returns the quantum circuit, representing the SummedOp. In the first step,
         the SummedOp is converted to MatrixOp. This is straightforward for most operators,
         but it is not supported for operators containing parametrized PrimitiveOps (in that case,
-        AquaError is raised). In the next step, the MatrixOp representation of SummedOp is
+        OpflowError is raised). In the next step, the MatrixOp representation of SummedOp is
         converted to circuit. In most cases, if the summands themselves are unitary operators,
         the SummedOp itself is non-unitary and can not be converted to circuit. In that case,
         ExtensionError is raised in the underlying modules.
@@ -151,7 +151,7 @@ class SummedOp(ListOp):
             The circuit representation of the summed operator.
 
         Raises:
-            AquaError: if SummedOp can not be converted to MatrixOp (e.g. SummedOp is composed of
+            OpflowError: if SummedOp can not be converted to MatrixOp (e.g. SummedOp is composed of
             parametrized PrimitiveOps).
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
@@ -159,8 +159,8 @@ class SummedOp(ListOp):
         matrix_op = self.to_matrix_op()
         if isinstance(matrix_op, MatrixOp):
             return matrix_op.to_circuit()
-        raise AquaError("The SummedOp can not be converted to circuit, because to_matrix_op did "
-                        "not return a MatrixOp.")
+        raise OpflowError("The SummedOp can not be converted to circuit, because to_matrix_op did "
+                          "not return a MatrixOp.")
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns an equivalent Operator composed of only NumPy-based primitives, such as

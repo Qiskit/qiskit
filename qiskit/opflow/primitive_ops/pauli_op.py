@@ -21,8 +21,8 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, Instruction
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.circuit.library import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
-from qiskit.exceptions import AquaError
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
@@ -125,13 +125,14 @@ class PauliOp(PrimitiveOp):
               indices=[1,2,4], it returns (X ^ I ^ Y ^ Z ^ I).
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         pauli_string = self.primitive.__str__()
         length = max(permutation) + 1  # size of list must be +1 larger then its max index
         new_pauli_list = ['I'] * length
         if len(permutation) != self.num_qubits:
-            raise AquaError("List of indices to permute must have the same size as Pauli Operator")
+            raise OpflowError("List of indices to permute must "
+                              "have the same size as Pauli Operator")
         for i, index in enumerate(permutation):
             new_pauli_list[-index - 1] = pauli_string[-i - 1]
         return PauliOp(Pauli(label=''.join(new_pauli_list)), self.coeff)
