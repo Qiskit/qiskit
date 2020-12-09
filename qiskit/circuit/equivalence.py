@@ -163,19 +163,19 @@ class EquivalenceLibrary():
         """
         try:
             import pydot  # pylint: disable=unused-import
-            HAS_PYDOT = True
+            has_pydot = True
         except ImportError:
-            HAS_PYDOT = False
+            has_pydot = False
         try:
             from PIL import Image
-            HAS_PIL = True
+            has_pil = True
         except ImportError:
-            HAS_PIL = False
+            has_pil = False
 
-        if not HAS_PYDOT:
+        if not has_pydot:
             raise ImportError('EquivalenceLibrary.draw requires pydot. '
                               "You can use 'pip install pydot' to install")
-        if not HAS_PIL and not filename:
+        if not has_pil and not filename:
             raise ImportError('EquivalenceLibrary.draw requires pillow. '
                               "You can use 'pip install pillow' to install")
 
