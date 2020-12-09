@@ -16,7 +16,6 @@ Qiskit Terra API Reference
    assembler
    dagcircuit
    extensions
-   opflow
    providers_basicaer
    providers
    providers_models
@@ -34,3 +33,5 @@ Qiskit Terra API Reference
    utils
    validation
    visualization
+   opflow
+   algorithms
