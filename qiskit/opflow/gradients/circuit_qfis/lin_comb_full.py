@@ -22,7 +22,7 @@ from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
 
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
-from ...operator_globals import I, Z, Y, X
+from ...operator_globals import I, Z, Y
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb

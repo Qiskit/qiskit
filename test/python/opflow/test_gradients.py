@@ -946,6 +946,7 @@ class TestParameterGradients(QiskitOpflowTestCase):
 
 @ddt
 class TestQFI(QiskitOpflowTestCase):
+    """Tests for the quantum Fisher information."""
 
     @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
     def test_qfi_simple(self, method):
