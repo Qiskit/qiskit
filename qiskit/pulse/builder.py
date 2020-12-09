@@ -1237,7 +1237,7 @@ def frequency_offset(frequency: float,
         if compensate_phase:
             duration = builder.context_schedule.duration - t0
             dt = active_backend().configuration().dt
-            accumulated_phase = duration * dt * frequency % (2*np.pi)
+            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 
