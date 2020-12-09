@@ -89,7 +89,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=lambda circ: circ.depth())
-                if qc.depth() >= new_circ.depth():
+                if qc.depth() > new_circ.depth():
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
