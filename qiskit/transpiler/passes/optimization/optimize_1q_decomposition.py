@@ -50,11 +50,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         }
         self.basis = None
         if basis:
-            self.basis = []
+            self.basis = {}
             basis_set = set(basis)
             for basis_name, gates in self.euler_basis_names.items():
                 if set(gates).issubset(basis_set):
-                    self.basis.append(basis_name)
+                    self.basis[basis_name] = OneQubitEulerDecomposer(basis_name)
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -68,10 +68,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if not self.basis:
             LOG.info("Skipping pass because no basis is set")
             return dag
-        for basis in self.basis:
-            decomposer = OneQubitEulerDecomposer(basis)
-            runs = dag.collect_1q_runs()
-            for run in runs:
+        runs = dag.collect_1q_runs()
+        for run in runs:
+            new_circs = []
+            for basis, decomposer in self.basis.items():
                 if len(run) <= 1:
                     params = run[0].op.params
                     # Remove single identity gates
@@ -80,13 +80,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                                            np.eye(2)):
                         dag.remove_op_node(run[0])
                     # Don't try to optimize a single 1q gate
-                    continue
+                    break
                 q = QuantumRegister(1, "q")
                 qc = QuantumCircuit(1)
                 for gate in run:
                     qc.append(gate.op, [q[0]], [])
                 operator = Operator(qc)
-                new_circ = decomposer(operator)
+                new_circs.append(decomposer(operator))
+            if new_circs:
+                new_circ = min(new_circs, key=lambda circ: circ.depth())
                 if qc.depth() >= new_circ.depth():
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
