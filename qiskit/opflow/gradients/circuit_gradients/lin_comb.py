@@ -523,7 +523,7 @@ class LinComb(CircuitGradient):
         # replace the parameter we compute the derivative of with the replacement
         # TODO can this be done more efficiently?
         if trim_after_grad_gate:  # remove everything after the gradient gate
-            out._data[gate_idx:gate_idx + 1] = replacement
+            out._data[gate_idx:] = replacement
             # reset parameter table
             table = ParameterTable()
             for op, _, _ in out._data:

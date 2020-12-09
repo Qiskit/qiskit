@@ -1015,6 +1015,96 @@ class TestQFI(QiskitOpflowTestCase):
         actual = np.array(qfi.bind_parameters(point).eval()).real
         np.testing.assert_array_almost_equal(actual, reference, decimal=3)
 
+    def test_qfi_circuit_shared_params(self):
+        """Test the QFI circuits for parameters shared across some gates."""
+        # create the test circuit
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.rx(x, 0)
+        circuit.rx(x, 0)
+
+        # construct the QFI circuits used in the evaluation
+
+        # this naming and adding of register is required bc circuit's are only equal if the
+        # register have the same names
+        qr = QuantumRegister(1, 'work_qubit')
+        circuit1 = QuantumCircuit(1)
+        circuit1.add_register(qr)
+        circuit1.h(1)
+        circuit1.x(1)
+        circuit1.cx(1, 0)
+        circuit1.x(1)
+        circuit1.cx(1, 0)
+        # circuit1.rx(x, 0)  # trimmed
+        # circuit1.rx(x, 0)  # trimmed
+        circuit1.h(1)
+
+        circuit2 = QuantumCircuit(1)
+        circuit2.add_register(qr)
+        circuit2.h(1)
+        circuit2.x(1)
+        circuit2.cx(1, 0)
+        circuit2.x(1)
+        circuit2.rx(x, 0)
+        circuit2.cx(1, 0)
+        # circuit2.rx(x, 0)  # trimmed
+        circuit2.h(1)
+
+        circuit3 = QuantumCircuit(1)
+        circuit3.add_register(qr)
+        circuit3.h(1)
+        circuit3.cx(1, 0)
+        circuit3.x(1)
+        circuit3.rx(x, 0)
+        circuit3.cx(1, 0)
+        # circuit3.rx(x, 0)  # trimmed
+        circuit3.x(1)
+        circuit3.h(1)
+
+        circuit4 = QuantumCircuit(1)
+        circuit4.add_register(qr)
+        circuit4.h(1)
+        circuit4.rx(x, 0)
+        circuit4.x(1)
+        circuit4.cx(1, 0)
+        circuit4.x(1)
+        circuit4.cx(1, 0)
+        # circuit4.rx(x, 0)  # trimmed
+        circuit4.h(1)
+
+        # this naming and adding of register is required bc circuit's are only equal if the
+        # register have the same names
+        qr = QuantumRegister(1, 'q0')
+        circuit5 = QuantumCircuit(1)
+        circuit5.add_register(qr)
+        circuit5.h(1)
+        circuit5.sdg(1)
+        circuit5.cx(1, 0)
+        # circuit5.rx(x, 0)  # trimmed
+        circuit5.h(1)
+
+        circuit6 = QuantumCircuit(1)
+        circuit6.add_register(qr)
+        circuit6.h(1)
+        circuit6.sdg(1)
+        circuit6.rx(x, 0)
+        circuit6.cx(1, 0)
+        circuit6.h(1)
+
+        # compare
+        qfi = QFI().convert(StateFn(circuit), params=[x])
+
+        circuit_sets = ([circuit1, circuit2, circuit3, circuit4],
+                        [circuit5, circuit6], [circuit5, circuit6])
+        list_ops = (qfi.oplist[0].oplist[0].oplist[:-1],
+                    qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
+                    qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist)
+
+        for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
+            for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
+                with self.subTest(f'set {i} circuit {j}'):
+                    self.assertEqual(composed_op[1].primitive, reference)
+
 
 if __name__ == '__main__':
     unittest.main()

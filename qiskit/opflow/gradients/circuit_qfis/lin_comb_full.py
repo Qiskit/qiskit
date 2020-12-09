@@ -58,13 +58,13 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits))
-        phase_fix_observable = ~StateFn((X + 1j * Y) ^ (I ^ operator.num_qubits))
+        phase_fix_observable = ~StateFn((Z - 1j * Y) ^ (I ^ operator.num_qubits))
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
-            raise TypeError(
-                'LinCombFull is only compatible with states that are given as CircuitStateFn')
+            raise TypeError('LinCombFull is only compatible with states that are given as '
+                            f'CircuitStateFn, not {type(operator)}')
 
         # If a single parameter is given wrap it into a list.
         if not isinstance(params, (list, np.ndarray)):
@@ -75,7 +75,9 @@ class LinCombFull(CircuitQFI):
         gradient_states = LinComb()._gradient_states(
             operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=False,
             trim_after_grad_gate=True
+            # trim_after_grad_gate=False
         )
+        # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
         if type(gradient_states) == ListOp:  # pylint: disable=unidiomatic-typecheck
             phase_fix_states = gradient_states.oplist
         else:
@@ -99,6 +101,13 @@ class LinCombFull(CircuitQFI):
                 for gate_i, idx_i in param_gates_i:
                     grad_coeffs_i, grad_gates_i = LinComb._gate_gradient_dict(gate_i)[idx_i]
 
+                    # get the location of gate_i, used for trimming
+                    location_i = None
+                    for idx, (op, _, _) in enumerate(state_qc._data):
+                        if op is gate_i:
+                            location_i = idx
+                            break
+
                     for grad_coeff_i, grad_gate_i in zip(grad_coeffs_i, grad_gates_i):
 
                         # Get the gates of the quantum state which are parameterized by param_j
@@ -106,18 +115,25 @@ class LinCombFull(CircuitQFI):
                         for gate_j, idx_j in param_gates_j:
                             grad_coeffs_j, grad_gates_j = LinComb._gate_gradient_dict(gate_j)[idx_j]
 
+                            # get the location of gate_j, used for trimming
+                            location_j = None
+                            for idx, (op, _, _) in enumerate(state_qc._data):
+                                if op is gate_j:
+                                    location_j = idx
+                                    break
+
                             for grad_coeff_j, grad_gate_j in zip(grad_coeffs_j, grad_gates_j):
 
                                 grad_coeff_ij = np.conj(grad_coeff_i) * grad_coeff_j
                                 qfi_circuit = LinComb.apply_grad_gate(
                                     state_qc, gate_i, idx_i, grad_gate_i, grad_coeff_ij, qr_work,
-                                    open_ctrl=True, trim_after_grad_gate=False  # (j < i)
+                                    open_ctrl=True, trim_after_grad_gate=(location_j < location_i)
                                 )
 
                                 # create a copy of the original circuit with the same registers
                                 qfi_circuit = LinComb.apply_grad_gate(
                                     qfi_circuit, gate_j, idx_j, grad_gate_j, 1, qr_work,
-                                    open_ctrl=False, trim_after_grad_gate=False  # (j >= i)
+                                    open_ctrl=False, trim_after_grad_gate=(location_j >= location_i)
                                 )
 
                                 qfi_circuit.h(qr_work)
