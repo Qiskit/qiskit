@@ -111,7 +111,7 @@ def _marginalize(counts, indices=None):
     indices = sorted(indices, reverse=True)
 
     # Build the return list
-    new_counts = Counter({})
+    new_counts = Counter()
     for key, val in counts.items():
         new_key = ''.join([key.replace(' ', '').replace('_', '')[-idx-1] for idx in indices])
         new_counts[new_key] += val
