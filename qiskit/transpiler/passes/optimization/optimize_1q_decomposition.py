@@ -70,6 +70,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return dag
         runs = dag.collect_1q_runs()
         for run in runs:
+            # Don't try to optimize a single 1q gate
+            if len(run) <= 1:
+                params = run[0].op.params
+                # Remove single identity gates
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
+                                                      np.eye(2)):
+                    dag.remove_op_node(run[0])
+                continue
+
             new_circs = []
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
@@ -77,15 +86,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 qc.append(gate.op, [q[0]], [])
             operator = Operator(qc)
             for basis, decomposer in self.basis.items():
-                if len(run) <= 1:
-                    params = run[0].op.params
-                    # Remove single identity gates
-                    if run[0].op.name in self.euler_basis_names[basis] and len(
-                            params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                           np.eye(2)):
-                        dag.remove_op_node(run[0])
-                    # Don't try to optimize a single 1q gate
-                    break
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=lambda circ: circ.depth())
