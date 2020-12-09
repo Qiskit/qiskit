@@ -18,8 +18,8 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qiskit.exceptions import AquaError
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from .list_op import ListOp
 
@@ -68,7 +68,7 @@ class ComposedOp(ListOp):
             The circuit representation of the composed operator.
 
         Raises:
-            AquaError: for operators where a single underlying circuit can not be obtained.
+            OpflowError: for operators where a single underlying circuit can not be obtained.
         """
         # pylint: disable=import-outside-toplevel,cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -76,8 +76,8 @@ class ComposedOp(ListOp):
         circuit_op = self.to_circuit_op()
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):
             return circuit_op.to_circuit()
-        raise AquaError('Conversion to_circuit supported only for operators, where a single '
-                        'underlying circuit can be produced.')
+        raise OpflowError('Conversion to_circuit supported only for operators, where a single '
+                          'underlying circuit can be produced.')
 
     def adjoint(self) -> OperatorBase:
         return ComposedOp([op.adjoint() for op in reversed(self.oplist)], coeff=self.coeff)
