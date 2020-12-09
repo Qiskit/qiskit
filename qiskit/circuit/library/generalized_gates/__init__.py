@@ -18,3 +18,4 @@ from .mcmt import MCMT, MCMTVChain
 from .gms import GMS, MSGate
 from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate
+from .rv import RVGate

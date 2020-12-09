@@ -251,7 +251,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.qubit_lo_freq, self.backend.defaults().qubit_freq_est)
         self.assertEqual(run_config_out.rep_time, 99)
         self.assertEqual(len(scheds), 1)
-        self.assertEqual(scheds[0], sched.exclude(instruction_types=[pulse.Delay]))
+        self.assertEqual(scheds[0], sched)
 
     def test_disassemble_multiple_schedules(self):
         """Test disassembling multiple schedules, all should have the same config.
@@ -290,8 +290,8 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.shots, 2000)
         self.assertEqual(run_config_out.memory, False)
         self.assertEqual(len(scheds), 2)
-        self.assertEqual(scheds[0], sched0.exclude(instruction_types=[pulse.Delay]))
-        self.assertEqual(scheds[1], sched1.exclude(instruction_types=[pulse.Delay]))
+        self.assertEqual(scheds[0], sched0)
+        self.assertEqual(scheds[1], sched1)
 
     def test_disassemble_parametric_pulses(self):
         """Test disassembling multiple schedules all should have the same config.
