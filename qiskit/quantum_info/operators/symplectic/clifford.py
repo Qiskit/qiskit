@@ -100,6 +100,10 @@ class Clifford(BaseOperator):
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     def __init__(self, data, validate=True):
         """Initialize an operator object."""
@@ -131,8 +135,7 @@ class Clifford(BaseOperator):
                     ' symplectic matrix.')
 
         # Initialize BaseOperator
-        dims = self._table.num_qubits * (2,)
-        super().__init__(dims, dims)
+        super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
         return 'Clifford({})'.format(repr(self.table))
