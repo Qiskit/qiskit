@@ -26,6 +26,9 @@ class Register:
     """Implement a generic register."""
 
     __slots__ = ['_name', '_size', '_bits', '_hash', '_repr']
+
+    # Register name should conform to OpenQASM 2.0 specification
+    # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
     name_format = re.compile('[a-z][a-zA-Z0-9_]*')
 
     # Counter for the number of instances in this class.
@@ -63,7 +66,8 @@ class Register:
                 raise CircuitError("The circuit name should be castable to a string "
                                    "(or None for autogenerate a name).")
             if self.name_format.match(name) is None:
-                raise CircuitError("%s is an invalid OPENQASM register name." % name)
+                raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
+                                   " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name)
 
         self._name = name
         self._size = size
@@ -84,6 +88,9 @@ class Register:
     @name.setter
     def name(self, value):
         """Set the register name."""
+        if self.name_format.match(value) is None:
+            raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
+                               " A of https://arxiv.org/pdf/1707.03429v2.pdf." % value)
         self._name = value
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
