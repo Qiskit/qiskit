@@ -148,6 +148,14 @@ stages:
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
           displayName: Cache pip
         - bash: |
             set -e
@@ -303,6 +311,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -369,6 +385,14 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -440,6 +464,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -512,6 +544,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
