@@ -21,9 +21,9 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ParameterExpression, Instruction
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
-from qiskit.exceptions import AquaError
 from qiskit.utils import arithmetic
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from ..primitive_ops.circuit_op import CircuitOp
 from ..list_ops.summed_op import SummedOp
@@ -146,13 +146,13 @@ class MatrixOp(PrimitiveOp):
             A new MatrixOp representing the permuted operator.
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         new_self = self
         new_matrix_size = max(permutation) + 1
 
         if self.num_qubits != len(permutation):
-            raise AquaError("New index must be defined for each qubit of the operator.")
+            raise OpflowError("New index must be defined for each qubit of the operator.")
         if self.num_qubits < new_matrix_size:
             # pad the operator with identities
             new_self = self._expand_dim(new_matrix_size - self.num_qubits)

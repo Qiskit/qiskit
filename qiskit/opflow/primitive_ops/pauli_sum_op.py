@@ -20,7 +20,7 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
@@ -138,10 +138,11 @@ class PauliSumOp(PrimitiveOp):
               indices=[1,2,4], it returns (X ^ I ^ Y ^ Z ^ I).
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         if len(permutation) != self.num_qubits:
-            raise AquaError("List of indices to permute must have the same size as Pauli Operator")
+            raise OpflowError("List of indices to permute must have the "
+                              "same size as Pauli Operator")
         length = max(permutation) + 1
         spop = self.primitive.tensor(  # type:ignore
             SparsePauliOp(Pauli(label="I" * (length - self.num_qubits)))

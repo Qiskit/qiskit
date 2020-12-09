@@ -16,7 +16,7 @@ import copy
 import logging
 
 from qiskit import compiler
-from ..exceptions import AquaError, MissingOptionalLibraryError
+from ..exceptions import QiskitError, MissingOptionalLibraryError
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def get_measured_qubits(transpiled_circuits):
         dict: key is qubit index str connected by '_',
               value is the experiment index. {str: list[int]}
     Raises:
-        AquaError: invalid qubit mapping
+        QiskitError: invalid qubit mapping
     """
     qubit_index = None
     qubit_mappings = {}
@@ -50,9 +50,9 @@ def get_measured_qubits(transpiled_circuits):
         if qubit_index is None:
             qubit_index = measured_qubits
         elif set(qubit_index) != set(measured_qubits):
-            raise AquaError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
-                            "we only support all circuits using the same set of qubits "
-                            "regardless qubit order.".format(qubit_index, measured_qubits))
+            raise QiskitError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
+                              "we only support all circuits using the same set of qubits "
+                              "regardless qubit order.".format(qubit_index, measured_qubits))
 
     return sorted(qubit_index), qubit_mappings
 
@@ -69,7 +69,7 @@ def get_measured_qubits_from_qobj(qobj):
         dict: key is qubit index str connected by '_',
               value is the experiment index. {str: list[int]}
      Raises:
-        AquaError: invalid qubit mapping
+        QiskitError: invalid qubit mapping
     """
 
     qubit_index = None
@@ -89,9 +89,9 @@ def get_measured_qubits_from_qobj(qobj):
             qubit_index = measured_qubits
         else:
             if set(qubit_index) != set(measured_qubits):
-                raise AquaError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
-                                "we only support all circuits using the same set of qubits "
-                                "regardless qubit order.".format(qubit_index, measured_qubits))
+                raise QiskitError("The used qubit index are different. ({}) vs ({}).\nCurrently, "
+                                  "we only support all circuits using the same set of qubits "
+                                  "regardless qubit order.".format(qubit_index, measured_qubits))
 
     return sorted(qubit_index), qubit_mappings
 
@@ -115,7 +115,7 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
             list[str]: the labels of the calibration circuits
 
         Raises:
-            AquaError: when the fitter_cls is not recognizable.
+            QiskitError: when the fitter_cls is not recognizable.
             MissingOptionalLibraryError: Qiskit-Ignis not installed
         """
     try:
@@ -130,16 +130,16 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
     circlabel = 'mcal'
 
     if not qubit_list:
-        raise AquaError("The measured qubit list can not be [].")
+        raise QiskitError("The measured qubit list can not be [].")
 
     if fitter_cls == CompleteMeasFitter:
         meas_calibs_circuits, state_labels = \
             complete_meas_cal(qubit_list=range(len(qubit_list)), circlabel=circlabel)
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
-        raise AquaError("Does not support TensoredMeasFitter yet.")
+        raise QiskitError("Does not support TensoredMeasFitter yet.")
     else:
-        raise AquaError("Unknown fitter {}".format(fitter_cls))
+        raise QiskitError("Unknown fitter {}".format(fitter_cls))
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
