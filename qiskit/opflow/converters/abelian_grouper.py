@@ -18,7 +18,6 @@ from typing import List, Tuple, Dict, cast, Optional
 import numpy as np
 import retworkx as rx
 
-from qiskit.exceptions import AquaError
 from .converter_base import ConverterBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
@@ -26,6 +25,7 @@ from ..operator_base import OperatorBase
 from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..state_fns.operator_state_fn import OperatorStateFn
+from ..exceptions import OpflowError
 
 
 class AbelianGrouper(ConverterBase):
@@ -98,7 +98,7 @@ class AbelianGrouper(ConverterBase):
             The grouped Operator.
 
         Raises:
-            AquaError: If any of list_op's sub-ops is not ``PauliOp``.
+            OpflowError: If any of list_op's sub-ops is not ``PauliOp``.
         """
         if fast is not None or use_nx is not None:
             warnings.warn('Options `fast` and `use_nx` of `AbelianGrouper.group_subops` are '
@@ -111,7 +111,7 @@ class AbelianGrouper(ConverterBase):
 
         for op in list_op.oplist:
             if not isinstance(op, PauliOp):
-                raise AquaError(
+                raise OpflowError(
                     'Cannot determine Abelian groups if any Operator in list_op is not '
                     '`PauliOp`. E.g., {} ({})'.format(op, type(op)))
 

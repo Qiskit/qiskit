@@ -23,7 +23,6 @@ from qiskit.providers import Backend
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit import QiskitError
 from qiskit.utils.quantum_instance import QuantumInstance
-from qiskit.exceptions import AquaError
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
@@ -31,6 +30,7 @@ from ..state_fns.state_fn import StateFn
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..state_fns.dict_state_fn import DictStateFn
 from .converter_base import ConverterBase
+from ..exceptions import OpflowError
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ class CircuitSampler(ConverterBase):
         Returns:
             The converted Operator with CircuitStateFns replaced by DictStateFns or VectorStateFns.
         Raises:
-            AquaError: if extracted circuits are empty.
+            OpflowError: if extracted circuits are empty.
         """
         if self._last_op is None or id(operator) != id(self._last_op):
             # Clear caches
@@ -186,7 +186,7 @@ class CircuitSampler(ConverterBase):
             self._circuit_ops_cache = {}
             self._extract_circuitstatefns(self._reduced_op_cache)
             if not self._circuit_ops_cache:
-                raise AquaError(
+                raise OpflowError(
                     'Circuits are empty. '
                     'Check that the operator is an instance of CircuitStateFn or its ListOp.'
                 )
@@ -258,10 +258,10 @@ class CircuitSampler(ConverterBase):
         Returns:
             The dictionary mapping ids of the CircuitStateFns to their replacement StateFns.
         Raises:
-            AquaError: if extracted circuits are empty.
+            OpflowError: if extracted circuits are empty.
         """
         if not circuit_sfns and not self._transpiled_circ_cache:
-            raise AquaError('CircuitStateFn is empty and there is no cache.')
+            raise OpflowError('CircuitStateFn is empty and there is no cache.')
 
         if circuit_sfns:
             self._transpiled_circ_templates = None
