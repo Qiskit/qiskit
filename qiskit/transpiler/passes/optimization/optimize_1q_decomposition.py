@@ -50,11 +50,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         }
         self.basis = None
         if basis:
-            self.basis = {}
+            self.basis = []
             basis_set = set(basis)
             for basis_name, gates in self.euler_basis_names.items():
                 if set(gates).issubset(basis_set):
-                    self.basis[basis_name] = OneQubitEulerDecomposer(basis_name)
+                    self.basis.append(OneQubitEulerDecomposer(basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -85,7 +85,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for gate in run:
                 qc.append(gate.op, [q[0]], [])
             operator = Operator(qc)
-            for basis, decomposer in self.basis.items():
+            for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=lambda circ: circ.depth())
