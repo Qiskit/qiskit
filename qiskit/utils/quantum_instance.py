@@ -18,22 +18,9 @@ import logging
 import time
 import numpy as np
 
-from qiskit.providers import Backend, BaseBackend
-from qiskit.transpiler import CouplingMap, PassManager
-from qiskit.transpiler.layout import Layout
-from qiskit.assembler.run_config import RunConfig
-from qiskit.circuit import QuantumCircuit
-from qiskit.result import Result
 from qiskit.qobj import Qobj
-from qiskit import compiler
 from qiskit.utils import circuit_utils
-
-try:
-    from qiskit.providers.aer.noise import NoiseModel  # pylint: disable=unused-import
-except ImportError:
-    pass
-
-from ..exceptions import AquaError
+from qiskit.exceptions import QiskitError
 from .backend_utils import (is_ibmq_provider,
                             is_statevector_backend,
                             is_simulator_backend,
@@ -61,22 +48,22 @@ class QuantumInstance:
                         "statevector_hpc_gate_opt"] + _BACKEND_OPTIONS_QASM_ONLY
 
     def __init__(self,
-                 backend: Union[Backend, BaseBackend],
+                 backend,
                  # run config
                  shots: int = 1024,
                  seed_simulator: Optional[int] = None,
                  max_credits: int = 10,
                  # backend properties
                  basis_gates: Optional[List[str]] = None,
-                 coupling_map: Optional[Union[CouplingMap, List[List]]] = None,
+                 coupling_map=None,
                  # transpile
-                 initial_layout: Optional[Union[Layout, Dict, List]] = None,
-                 pass_manager: Optional[PassManager] = None,
+                 initial_layout=None,
+                 pass_manager=None,
                  seed_transpiler: Optional[int] = None,
                  optimization_level: Optional[int] = None,
                  # simulation
                  backend_options: Optional[Dict] = None,
-                 noise_model: Optional['NoiseModel'] = None,
+                 noise_model=None,
                  # job
                  timeout: Optional[float] = None,
                  wait: float = 5.,
@@ -92,23 +79,25 @@ class QuantumInstance:
         execute the circuits it needs to run using the instance.
 
         Args:
-            backend: Instance of selected backend
+            backend (Union['Backend', 'BaseBackend']): Instance of selected backend
             shots: Number of repetitions of each circuit, for sampling
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
                                                target. Defaults to basis gates of the backend.
-            coupling_map: Coupling map (perhaps custom) to
-                                                      target in mapping
-            initial_layout: Initial layout of qubits in mapping
-            pass_manager: Pass manager to handle how to compile the circuits
+            coupling_map (Optional[Union['CouplingMap', List[List]]]):
+                        Coupling map (perhaps custom) to target in mapping
+            initial_layout (Optional[Union['Layout', Dict, List]]):
+                        Initial layout of qubits in mapping
+            pass_manager (Optional['PassManager']):
+                        Pass manager to handle how to compile the circuits
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
                 transpilation time.
             backend_options: All running options for backend, please refer
                 to the provider of the backend for information as to what options it supports.
-            noise_model: noise model for simulator
+            noise_model (Optional['NoiseModel']): noise model for simulator
             timeout: Seconds to wait for job. If None, wait indefinitely.
             wait: Seconds between queries for job result
             skip_qobj_validation: Bypass Qobj validation to decrease circuit
@@ -127,9 +116,9 @@ class QuantumInstance:
                 queue_position, job`
 
         Raises:
-            AquaError: the shots exceeds the maximum number of shots
-            AquaError: set noise model but the backend does not support that
-            AquaError: set backend_options but the backend does not support that
+            QiskitError: the shots exceeds the maximum number of shots
+            QiskitError: set noise model but the backend does not support that
+            QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
         self._pass_manager = pass_manager
@@ -142,9 +131,11 @@ class QuantumInstance:
                 shots = 1
             max_shots = self._backend.configuration().max_shots
             if max_shots is not None and shots > max_shots:
-                raise AquaError('The maximum shots supported by the selected backend is {} '
-                                'but you specified {}'.format(max_shots, shots))
+                raise QiskitError('The maximum shots supported by the selected backend is {} '
+                                  'but you specified {}'.format(max_shots, shots))
 
+        # pylint: disable=cyclic-import
+        from qiskit.assembler.run_config import RunConfig
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
@@ -176,10 +167,11 @@ class QuantumInstance:
             if is_simulator_backend(self._backend) and not is_basicaer_provider(self._backend):
                 self._noise_config = {'noise_model': noise_model}
             else:
-                raise AquaError("The noise model is not supported on the selected backend {} ({}) "
-                                "only certain backends, such as Aer qasm simulator "
-                                "support noise.".format(self.backend_name,
-                                                        self._backend.provider()))
+                raise QiskitError("The noise model is not supported "
+                                  "on the selected backend {} ({}) "
+                                  "only certain backends, such as Aer qasm simulator "
+                                  "support noise.".format(self.backend_name,
+                                                          self._backend.provider()))
 
         # setup backend options for run
         self._backend_options = {}
@@ -187,14 +179,15 @@ class QuantumInstance:
             if support_backend_options(self._backend):
                 self._backend_options = {'backend_options': backend_options}
             else:
-                raise AquaError("backend_options can not used with the backends in IBMQ provider.")
+                raise QiskitError("backend_options can not used with the backends in "
+                                  "IBMQ provider.")
 
         # setup measurement error mitigation
         self._meas_error_mitigation_cls = None
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
-                raise AquaError("Measurement error mitigation does not work "
-                                "with the statevector simulation.")
+                raise QiskitError("Measurement error mitigation does not work "
+                                  "with the statevector simulation.")
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
         self._meas_error_mitigation_fitters: Dict[str, Tuple[np.ndarray, float]] = {}
@@ -243,14 +236,17 @@ class QuantumInstance:
         return info
 
     def transpile(self,
-                  circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> List[QuantumCircuit]:
+                  circuits):
         """
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
-            circuits: circuits to transpile
+            circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
         Returns:
-            The transpiled circuits, it is always a list even though the length is one.
+            List['QuantumCircuit']: The transpiled circuits, it is always a list even though
+                                    the length is one.
         """
+        # pylint: disable=cyclic-import
+        from qiskit import compiler
         if self._pass_manager is not None:
             transpiled_circuits = self._pass_manager.run(circuits)
         else:
@@ -271,31 +267,35 @@ class QuantumInstance:
         return transpiled_circuits
 
     def assemble(self,
-                 circuits: Union[QuantumCircuit, List[QuantumCircuit]]) -> Qobj:
+                 circuits) -> Qobj:
         """ assemble circuits """
+        # pylint: disable=cyclic-import
+        from qiskit import compiler
         return compiler.assemble(circuits, **self._run_config.to_dict())
 
     def execute(self,
-                circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-                had_transpiled: bool = False) -> Result:
+                circuits,
+                had_transpiled: bool = False):
         """
         A wrapper to interface with quantum backend.
 
         Args:
-            circuits: circuits to execute
+            circuits (Union['QuantumCircuit', List['QuantumCircuit']]):
+                        circuits to execute
             had_transpiled: whether or not circuits had been transpiled
 
         Returns:
-            Result object
+            Result: result object
 
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
         # pylint: disable=import-outside-toplevel
-        from .run_circuits import run_qobj
+        from qiskit.utils.run_circuits import run_qobj
 
-        from .measurement_error_mitigation import (get_measured_qubits_from_qobj,
-                                                   build_measurement_error_mitigation_qobj)
+        from qiskit.utils.measurement_error_mitigation import \
+            (get_measured_qubits_from_qobj, build_measurement_error_mitigation_qobj)
+
         # maybe compile
         if not had_transpiled:
             circuits = self.transpile(circuits)
@@ -425,19 +425,20 @@ class QuantumInstance:
                 self._backend_config[k] = v
             elif k in QuantumInstance._BACKEND_OPTIONS:
                 if not support_backend_options(self._backend):
-                    raise AquaError("backend_options can not be used with this backend "
-                                    "{} ({}).".format(self.backend_name, self._backend.provider()))
+                    raise QiskitError("backend_options can not be used with this backend "
+                                      "{} ({}).".format(self.backend_name,
+                                                        self._backend.provider()))
 
                 if k in QuantumInstance._BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
-                    raise AquaError("'{}' is only applicable for qasm simulator but "
-                                    "statevector simulator is used as the backend.")
+                    raise QiskitError("'{}' is only applicable for qasm simulator but "
+                                      "statevector simulator is used as the backend.")
 
                 if 'backend_options' not in self._backend_options:
                     self._backend_options['backend_options'] = {}
                 self._backend_options['backend_options'][k] = v
             elif k in QuantumInstance._NOISE_CONFIG:
                 if not is_simulator_backend(self._backend) or is_basicaer_provider(self._backend):
-                    raise AquaError(
+                    raise QiskitError(
                         "The noise model is not supported on the selected backend {} ({}) "
                         "only certain backends, such as Aer qasm support "
                         "noise.".format(self.backend_name, self._backend.provider()))

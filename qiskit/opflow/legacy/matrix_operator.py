@@ -20,7 +20,7 @@ import numpy as np
 from scipy import sparse as scisparse
 from scipy import linalg as scila
 
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 from .base_operator import LegacyBaseOperator
 
 logger = logging.getLogger(__name__)
@@ -245,10 +245,10 @@ class MatrixOperator(LegacyBaseOperator):
             float: the mean value
             float: the standard deviation
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         del use_simulator_snapshot_mode  # unused
         avg, std_dev = 0.0, 0.0
@@ -267,10 +267,10 @@ class MatrixOperator(LegacyBaseOperator):
             float: the mean value
             float: the standard deviation
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg, 0.0
@@ -336,13 +336,13 @@ class MatrixOperator(LegacyBaseOperator):
             numpy.array: Return the matrix vector multiplication result.
         Raises:
             ValueError: Invalid arguments
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         # pylint: disable=import-outside-toplevel
         from .op_converter import to_weighted_pauli_operator
 
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
