@@ -16,7 +16,6 @@ from typing import List, Union, Optional
 
 import numpy as np
 from scipy.linalg import block_diag
-from qiskit.exceptions import AquaError
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
@@ -24,6 +23,7 @@ from ...expectations.pauli_expectation import PauliExpectation
 from ...operator_globals import Zero
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
+from ...exceptions import OpflowError
 
 from .circuit_qfi import CircuitQFI
 from ..derivative_base import DerivativeBase
@@ -77,7 +77,7 @@ class OverlapBlockDiag(CircuitQFI):
         Raises:
             NotImplementedError: If a circuit is found such that one parameter controls multiple
                 gates, or one gate contains multiple parameters.
-            AquaError: If there are more than one parameter.
+            OpflowError: If there are more than one parameter.
 
         """
 
@@ -131,8 +131,8 @@ class OverlapBlockDiag(CircuitQFI):
                                               "circuits use LinCombFull")
                 gate = circuit._parameter_table[param][0][0]
                 if len(gate.params) > 1:
-                    raise AquaError("OverlapDiag cannot yet support gates with more than one "
-                                    "parameter.")
+                    raise OpflowError("OverlapDiag cannot yet support gates with more than one "
+                                      "parameter.")
 
                 param_value = gate.params[0]
                 return param_value
