@@ -25,7 +25,6 @@ except ImportError:
 REQUIREMENTS = [
     "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
-    "networkx>=2.2",
     "retworkx>=0.7.0",
     "numpy>=1.17",
     "ply>=3.10",
