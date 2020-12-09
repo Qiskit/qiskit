@@ -18,7 +18,7 @@ import logging
 import numpy as np
 
 from qiskit.tools import parallel
-from ..exceptions import AquaError
+from ..exceptions import QiskitError
 
 
 logger = logging.getLogger(__name__)
@@ -59,10 +59,10 @@ class QiskitAquaGlobals:
         if num_processes is None:
             num_processes = QiskitAquaGlobals.CPU_COUNT
         elif num_processes < 1:
-            raise AquaError('Invalid Number of Processes {}.'.format(num_processes))
+            raise QiskitError('Invalid Number of Processes {}.'.format(num_processes))
         elif num_processes > QiskitAquaGlobals.CPU_COUNT:
-            raise AquaError('Number of Processes {} cannot be greater than cpu count {}.'
-                            .format(num_processes, QiskitAquaGlobals.CPU_COUNT))
+            raise QiskitError('Number of Processes {} cannot be greater than cpu count {}.'
+                              .format(num_processes, QiskitAquaGlobals.CPU_COUNT))
         self._num_processes = num_processes
         # TODO: change Terra CPU_COUNT until issue
         # gets resolved: https://github.com/Qiskit/qiskit-terra/issues/1963

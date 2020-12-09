@@ -17,10 +17,10 @@ from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
 
-from qiskit.exceptions import AquaError
 from qiskit.utils import aqua_globals
 from qiskit.circuit import ParameterExpression, ParameterVector
 from .legacy.base_operator import LegacyBaseOperator
+from .exceptions import OpflowError
 
 
 class OperatorBase(ABC):
@@ -475,7 +475,7 @@ class OperatorBase(ABC):
             A new OperatorBase containing the permuted operator.
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         raise NotImplementedError
 
@@ -519,7 +519,7 @@ class OperatorBase(ABC):
                                                                i))
                 return unrolled_value_dict_list
             except IndexError as ex:
-                raise AquaError('Parameter binding lists must all be the same length.') from ex
+                raise OpflowError('Parameter binding lists must all be the same length.') from ex
         return unrolled_value_dict  # type: ignore
 
     @staticmethod
