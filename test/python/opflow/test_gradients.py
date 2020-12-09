@@ -500,32 +500,6 @@ class TestGradients(QiskitOpflowTestCase):
                 np.testing.assert_array_almost_equal(prob_hess_result,
                                                      correct_values[i][j], decimal=1)
 
-    @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
-    def test_qfi(self, method):
-        """Test if the quantum fisher information calculation is correct
-
-        QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
-        """
-
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [a, b]
-
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(params[0], q[0])
-        qc.rx(params[1], q[0])
-
-        op = CircuitStateFn(primitive=qc, coeff=1.)
-        qfi = QFI(qfi_method=method).convert(operator=op, params=params)
-        values_dict = [{params[0]: np.pi / 4, params[1]: 0.1}, {params[0]: np.pi, params[1]: 0.1},
-                       {params[0]: np.pi / 2, params[1]: 0.1}]
-        correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
-        for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(qfi.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
-
     @idata(product(['lin_comb', 'param_shift', 'fin_diff'],
                    [None, 'lasso', 'ridge', 'perturb_diag', 'perturb_diag_elements']))
     @unpack
@@ -648,10 +622,7 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_grad_combo_fn_chain_rule(self, method):
-        """
-        Test the chain rule for a custom gradient combo function
-
-        """
+        """Test the chain rule for a custom gradient combo function."""
         np.random.seed(2)
 
         def combo_fn(x):
@@ -677,10 +648,7 @@ class TestGradients(QiskitOpflowTestCase):
                                              correct_values)
 
     def test_grad_combo_fn_chain_rule_nat_grad(self):
-        """
-        Test the chain rule for a custom gradient combo function
-
-        """
+        """Test the chain rule for a custom gradient combo function."""
         np.random.seed(2)
 
         def combo_fn(x):
@@ -974,6 +942,78 @@ class TestParameterGradients(QiskitOpflowTestCase):
         expr = 2 * x + 1
         grad = Gradient.parameter_expression_grad(expr, x)
         self.assertIsInstance(grad, float)
+
+
+@ddt
+class TestQFI(QiskitOpflowTestCase):
+
+    @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
+    def test_qfi_simple(self, method):
+        """Test if the quantum fisher information calculation is correct for a simple test case.
+
+        QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
+        """
+        # create the circuit
+        a, b = Parameter('a'), Parameter('b')
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
+
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = QFI(qfi_method=method).convert(operator=op, params=[a, b])
+
+        # test for different values
+        values_dict = [{a: np.pi / 4, b: 0.1},
+                       {a: np.pi, b: 0.1},
+                       {a: np.pi / 2, b: 0.1}]
+        correct_values = [[[1, 0], [0, 0.5]],
+                          [[1, 0], [0, 0]],
+                          [[1, 0], [0, 1]]]
+
+        for i, value_dict in enumerate(values_dict):
+            actual = qfi.assign_parameters(value_dict).eval()
+            np.testing.assert_array_almost_equal(actual, correct_values[i], decimal=1)
+
+    def test_qfi_maxcut(self):
+        """Test the QFI for a simple MaxCut problem.
+
+        This is interesting because it contains the same parameters in different gates.
+        """
+        # create maxcut circuit for the hamiltonian
+        # H = (I ^ I ^ Z ^ Z) + (I ^ Z ^ I ^ Z) + (Z ^ I ^ I ^ Z) + (I ^ Z ^ Z ^ I)
+
+        x = ParameterVector('x', 2)
+        ansatz = QuantumCircuit(4)
+
+        # initial hadamard layer
+        ansatz.h(ansatz.qubits)
+
+        # e^{iZZ} layers
+        def expiz(qubit0, qubit1):
+            ansatz.cx(qubit0, qubit1)
+            ansatz.rz(2 * x[0], qubit1)
+            ansatz.cx(qubit0, qubit1)
+
+        expiz(2, 1)
+        expiz(3, 0)
+        expiz(2, 0)
+        expiz(1, 0)
+
+        # mixer layer with RX gates
+        for i in range(ansatz.num_qubits):
+            ansatz.rx(2 * x[1], i)
+
+        point = {x[0]: 0.4, x[1]: 0.69}
+
+        # reference computed via finite difference
+        reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
+
+        # QFI from gradient framework
+        qfi = QFI().convert(CircuitStateFn(ansatz), params=x[:])
+        actual = np.array(qfi.bind_parameters(point).eval()).real
+        np.testing.assert_array_almost_equal(actual, reference, decimal=3)
 
 
 if __name__ == '__main__':
