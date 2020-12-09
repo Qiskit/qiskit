@@ -26,7 +26,6 @@ import itertools
 import warnings
 import math
 
-import networkx as nx
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -89,6 +88,11 @@ class DAGCircuit:
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError("Networkx is needed to use to_networkx(). It "
+                              "can be installed with 'pip install networkx'")
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
             G.add_node(node)
@@ -111,8 +115,14 @@ class DAGCircuit:
         Returns:
             DAGCircuit: The dagcircuit object created from the networkx
                 MultiDiGraph.
+        Raises:
+            ImportError: If networkx is not installed
         """
-
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError("Networkx is needed to use from_networkx(). It "
+                              "can be installed with 'pip install networkx'")
         dag = DAGCircuit()
         for node in nx.topological_sort(graph):
             if node.type == 'out':

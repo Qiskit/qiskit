@@ -47,6 +47,14 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
 
+    def test_qreg_name_set_invalid(self):
+        """Test attempt to set an invalid name
+        """
+        qr1 = QuantumRegister(1)
+        # As per OPENQASM requirement, name cannot start with '_'
+        with self.assertRaises(CircuitError):
+            qr1.name = '_q'
+
     def test_aregs(self):
         """Test getting ancilla registers from circuit.
         """
