@@ -274,4 +274,4 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.Play(waveform1, DriveChannel(0))
         schedule += pulse.Play(waveform2, DriveChannel(1))
 
-        self.assertEqual(len(schedule.get_parameter('amp')), 2)
+        self.assertEqual(len(schedule.get_parameters('amp')), 2)

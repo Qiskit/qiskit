@@ -21,6 +21,7 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
+import functools
 import warnings
 
 from abc import ABC
@@ -110,7 +111,8 @@ class Instruction(ABC):
     @property
     def operands(self) -> Tuple:
         """Return instruction operands."""
-        return tuple(map(_format_value, self._operands))
+        return tuple([_format_value(operand) if isinstance(operand, ParameterExpression)
+                      else operand for operand in self._operands])
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -377,6 +379,7 @@ class Instruction(ABC):
                                  ", name='{}'".format(self.name) if self.name else "")
 
 
+@functools.lru_cache(maxsize=None)
 def _format_value(operand: Union[Any, ParameterExpression]) -> Any:
     """Convert ParameterExpression into the most suitable data type.
 
@@ -386,24 +389,23 @@ def _format_value(operand: Union[Any, ParameterExpression]) -> Any:
     Returns:
         Value casted to non-parameter data type, when possible.
     """
-    if isinstance(operand, ParameterExpression):
-        # to evaluate parameter expression object, sympy srepr function is used.
-        # this function converts the parameter object into string with tiny round error.
-        # therefore evaluated value is not completely equal to the assigned value.
-        # however this error can be ignored in practice though we need to be careful for unittests.
-        # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
-        # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
-        math_expr = srepr(operand)
-        try:
-            # value is assigned
-            evaluated = complex(math_expr)
-            if not np.iscomplex(evaluated):
-                evaluated = float(evaluated.real)
-                if evaluated.is_integer():
-                    evaluated = int(evaluated)
-            return evaluated
-        except ValueError:
-            # value is not assigned
-            pass
-    # not parameter object or cannot be evaluated
+    # to evaluate parameter expression object, sympy srepr function is used.
+    # this function converts the parameter object into string with tiny round error.
+    # therefore evaluated value is not completely equal to the assigned value.
+    # however this error can be ignored in practice though we need to be careful for unittests.
+    # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
+    # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
+    math_expr = srepr(operand)
+    try:
+        # value is assigned
+        evaluated = complex(math_expr)
+        if not np.iscomplex(evaluated):
+            evaluated = float(evaluated.real)
+            if evaluated.is_integer():
+                evaluated = int(evaluated)
+        return evaluated
+    except ValueError:
+        # value is not assigned
+        pass
+
     return operand

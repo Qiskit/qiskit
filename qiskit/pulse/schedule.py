@@ -717,8 +717,8 @@ class Schedule(abc.ABC):
 
         return self
 
-    def get_parameter(self,
-                      parameter_name: str) -> List[Parameter]:
+    def get_parameters(self,
+                       parameter_name: str) -> List[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
         Because different ``Parameter`` objects can have the same name,

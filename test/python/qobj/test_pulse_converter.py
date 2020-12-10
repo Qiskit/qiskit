@@ -257,7 +257,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.assertIsInstance(converted_instruction, Schedule)
 
-        bind_dict = {converted_instruction.get_parameter('P1')[0]: 2.}
+        bind_dict = {converted_instruction.get_parameters('P1')[0]: 2.}
         evaluated_instruction = converted_instruction.assign_parameters(bind_dict)
 
         self.assertEqual(evaluated_instruction.start_time, shifted.start_time)
@@ -280,7 +280,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
         self.assertIsInstance(converted_instruction, Schedule)
 
-        bind_dict = {converted_instruction.get_parameter('p')[0]: 3.14}
+        bind_dict = {converted_instruction.get_parameters('p')[0]: 3.14}
         evaluated_instruction = converted_instruction.assign_parameters(bind_dict)
 
         instruction = SetPhase(3.14 / 2, MeasureChannel(0))
@@ -308,7 +308,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
         self.assertIsInstance(converted_instruction, Schedule)
 
-        bind_dict = {converted_instruction.get_parameter('f')[0]: 2.}
+        bind_dict = {converted_instruction.get_parameters('f')[0]: 2.}
         evaluated_instruction = converted_instruction.assign_parameters(bind_dict)
 
         instruction = SetFrequency(2.e9, DriveChannel(0))
@@ -339,7 +339,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
         self.assertIsInstance(converted_instruction, Schedule)
 
-        bind_dict = {converted_instruction.get_parameter('f')[0]: 3.14}
+        bind_dict = {converted_instruction.get_parameters('f')[0]: 3.14}
         evaluated_instruction = converted_instruction.assign_parameters(bind_dict)
 
         instruction = ShiftFrequency(3.14e6, DriveChannel(0))
