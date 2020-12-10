@@ -42,8 +42,21 @@ Algorithm Utilities
    name_args
    aqua_globals
 
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   QuantumInstance
+
+A QuantumInstance holds the Qiskit `backend` as well as a number of compile and
+runtime parameters controlling circuit compilation and execution. Quantum
+:mod:`algorithms <qiskit.algorithms>`
+are run on a device or simulator by passing a QuantumInstance setup with the desired
+backend etc.
+
 """
 
+from .quantum_instance import QuantumInstance
 from .deprecation import _filter_deprecation_warnings
 from .deprecation import deprecate_arguments
 from .deprecation import deprecate_function
@@ -59,6 +72,7 @@ from .aqua_globals import aqua_globals
 
 
 __all__ = [
+    'QuantumInstance',
     'summarize_circuits',
     'get_entangler_map',
     'validate_entangler_map',

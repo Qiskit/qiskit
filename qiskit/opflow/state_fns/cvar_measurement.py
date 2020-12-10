@@ -16,11 +16,11 @@
 from typing import Union, Optional, Callable, Tuple
 import numpy as np
 
-from qiskit.exceptions import AquaError
 from qiskit.circuit import ParameterExpression, QuantumCircuit, Instruction
 from qiskit.result import Result
 from qiskit.quantum_info import Statevector
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from ..list_ops import ListOp, SummedOp
 from .state_fn import StateFn
@@ -65,7 +65,7 @@ class CVaRMeasurement(OperatorStateFn):
         Raises:
             ValueError: TODO remove that this raises an error
             ValueError: If alpha is not in [0, 1].
-            AquaError: If the primitive is not diagonal.
+            OpflowError: If the primitive is not diagonal.
         """
         if primitive is None:
             raise ValueError
@@ -75,8 +75,8 @@ class CVaRMeasurement(OperatorStateFn):
         self._alpha = alpha
 
         if not _check_is_diagonal(primitive):
-            raise AquaError('Input operator to CVaRMeasurement must be diagonal, but is not:',
-                            str(primitive))
+            raise OpflowError('Input operator to CVaRMeasurement must be diagonal, but is not:',
+                              str(primitive))
 
         super().__init__(primitive, coeff=coeff, is_measurement=True)
 
@@ -104,9 +104,9 @@ class CVaRMeasurement(OperatorStateFn):
             Does not return anything, raises an error.
 
         Raises:
-            AquaError: The adjoint of a CVaRMeasurement is not defined.
+            OpflowError: The adjoint of a CVaRMeasurement is not defined.
         """
-        raise AquaError('Adjoint of a CVaR measurement not defined')
+        raise OpflowError('Adjoint of a CVaR measurement not defined')
 
     def mul(self, scalar: Union[int, float, complex, ParameterExpression]) -> OperatorBase:
         if not isinstance(scalar, (int, float, complex, ParameterExpression)):
@@ -365,7 +365,7 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
         True, if the operator is diagonal, False otherwise.
 
     Raises:
-        AquaError: If the operator is not diagonal.
+        OpflowError: If the operator is not diagonal.
     """
     # this must be a local import to avoid a cyclic import with components.uncertainty_models
     # TODO figure out why, it was not really clear to me why

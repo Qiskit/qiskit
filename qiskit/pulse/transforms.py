@@ -141,7 +141,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for sched_idx, schedule in enumerate(schedules):
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
         stop_time = schedule.stop_time
 
         if align_all:
@@ -194,7 +194,7 @@ def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
     Returns:
         A ``Schedule`` with the additional acquisition instructions.
     """
-    new_schedule = Schedule(name=schedule.name)
+    new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
@@ -293,7 +293,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     new_schedules = []
 
     for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
 
         for time, inst in schedule.instructions:
             if isinstance(inst, instructions.Play):
