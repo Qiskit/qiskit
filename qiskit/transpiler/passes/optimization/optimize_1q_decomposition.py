@@ -83,7 +83,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
-                qc.append(gate.op, [q[0]], [])
+                qc._append(gate.op, [q[0]], [])
             operator = Operator(qc)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
