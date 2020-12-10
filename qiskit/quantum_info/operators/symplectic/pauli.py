@@ -54,11 +54,14 @@ class Pauli(BasePauli):
 
         ``Pauli(obj)``
             where ``obj`` is a Pauli string, ``Pauli`` or
-            :class:`~qiskit.quantum_info.ScalarOp` operator, or a Pauli gate or
-            QuantumCircuit containing only Pauli gates.
-        ``Pauli((z, x, phase))
-            where ``z`` and ``x`` are boolean ``ndarrays`` and ``phase`` is
-            an integer in [0, 1, 2, 3].
+            :class:`~qiskit.quantum_info.ScalarOp` operator, or a Pauli
+            gate or :class:`~qiskit.QuantumCircuit` containing only
+            Pauli gates.
+
+        ``Pauli((z, x, phase))``
+            where ``z`` and ``x`` are boolean ``numpy.ndarrays`` and ``phase`` is
+            an integer in ``[0, 1, 2, 3]``.
+
         ``Pauli((z, x))``
             equivalent to ``Pauli((z, x, 0))`` with trivial phase.
 
@@ -746,6 +749,9 @@ class Pauli(BasePauli):
             QiskitError: If the input list is empty or contains invalid
             Pauli strings.
         """
+        if isinstance(label, tuple):
+            # Legacy usage from aqua
+            label = ''.join(label)
         return Pauli(label)
 
     @staticmethod
