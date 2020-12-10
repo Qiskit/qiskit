@@ -878,7 +878,14 @@
                     "description": "Pulse instructions implementing the given gate.",
                     "type": "array",
                     "items": {
-                        "$ref": ["#/definitions/qobjinstructions", "#/definitions/parameter"]
+                        "oneOf": [
+                            {
+                                "$ref": "#/definitions/parameter"
+                            },
+                            {
+                                "$ref": "#/definitions/qobjinstructions"
+                            }
+                        ]
                     }
                 }
             },
