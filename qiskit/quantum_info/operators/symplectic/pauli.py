@@ -48,6 +48,20 @@ class Pauli(BasePauli):
         Y = \begin{pmatrix} 0 & -i \\ i & 0  \end{pmatrix},
         Z = \begin{pmatrix} 1 & 0  \\ 0 & -1 \end{pmatrix}.
 
+    **Initialization**
+
+    A Pauli object can be initialized in several ways:
+
+        ``Pauli(obj)``
+            where ``obj`` is a Pauli string, ``Pauli`` or
+            :class:`~qiskit.quantum_info.ScalarOp` operator, or a Pauli gate or
+            QuantumCircuit containing only Pauli gates.
+        ``Pauli((z, x, phase))
+            where ``z`` and ``x`` are boolean ``ndarrays`` and ``phase`` is
+            an integer in [0, 1, 2, 3].
+        ``Pauli((z, x))``
+            equivalent to ``Pauli((z, x, 0))`` with trivial phase.
+
     **String representation**
 
     An :math:`n`-qubit Pauli may be represented by a string consisting of
@@ -129,7 +143,7 @@ class Pauli(BasePauli):
     __truncate__ = 50
 
     # pylint: disable = missing-param-doc, missing-type-doc
-    def __init__(self, z=None, x=None, phase=None, *, label=None):
+    def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -137,41 +151,44 @@ class Pauli(BasePauli):
         label, Pauli operator, or ScalarOp input data.
 
         Args:
-            z (np.ndarray or str or ScalarOp or Pauli): input data or symplectic z vector.
-            x (np.ndarray): Optional, symplectic x vector.
-            phase (int or None): Optional, phase exponent from Z_4.
+            data (str or tuple or Pauli or ScalarOp): input data for Pauli. If input is
+                a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
+                ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from Z_4.
+            x (np.ndarray): DEPRECATED, symplectic x vector.
+            z (np.ndarray): DEPRECATED, symplectic z vector.
             label (str): DEPRECATED, string label.
 
         Raises:
             QiskitError: if input array is invalid shape.
         """
-        if isinstance(z, BasePauli):
-            # BasePauli initialization
-            base_z, base_x, base_phase = z._z, z._x, z._phase
-            if base_z.shape[0] != 1:
-                raise QiskitError("Input is not a single Pauli")
-        elif x is not None:
-            base_z, base_x, base_phase = self._from_array(z, x, phase)
-            if base_z.shape[0] != 1:
-                raise QiskitError("Input is not a single Pauli")
-        elif isinstance(z, str):
-            base_z, base_x, base_phase = self._from_label(z)
+        if isinstance(data, BasePauli):
+            base_z, base_x, base_phase = data._z, data._x, data._phase
+        elif isinstance(data, tuple):
+            if len(data) not in [2, 3]:
+                raise QiskitError(
+                    "Invalid input tuple for Pauli, input tuple must be"
+                    " `(z, x, phase)` or `(z, x)`")
+            base_z, base_x, base_phase = self._from_array(*data)
+            print(base_z, base_x, base_phase)
+        elif isinstance(data, str):
+            base_z, base_x, base_phase = self._from_label(data)
+        elif isinstance(data, ScalarOp):
+            base_z, base_x, base_phase = self._from_scalar_op(data)
+        elif isinstance(data, (QuantumCircuit, Instruction)):
+            base_z, base_x, base_phase = self._from_circuit(data)
+        elif x is not None:  # DEPRECATED
+            if z is None:
+                # Using old Pauli initialization with positional args instead of kwargs
+                z = data
+            base_z, base_x, base_phase = self._from_array_deprecated(z, x)
         elif label is not None:  # DEPRECATED
             base_z, base_x, base_phase = self._from_label_deprecated(label)
-        elif isinstance(z, ScalarOp):
-            base_z, base_x, base_phase = self._from_scalar_op(z)
-        elif isinstance(z, (QuantumCircuit, Instruction)):
-            base_z, base_x, base_phase = self._from_circuit(z)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
-        # Add phase
-        if phase is not None:
-            base_phase = np.mod(
-                np.sum(np.logical_and(base_z, base_x),
-                       axis=1, dtype=np.int) + phase, 4)
-
         # Initialize BasePauli
+        if base_z.shape[0] != 1:
+            raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
 
     def __repr__(self):
@@ -273,7 +290,7 @@ class Pauli(BasePauli):
         # Set group phase to 0 so returned Pauli is always +1 coeff
         if isinstance(qubits, (int, np.int)):
             qubits = [qubits]
-        return Pauli(self.z[qubits], self.x[qubits])
+        return Pauli((self.z[qubits], self.x[qubits]))
 
     def __setitem__(self, qubits, value):
         """Update the Pauli for a subset of qubits."""
@@ -307,7 +324,7 @@ class Pauli(BasePauli):
             raise QiskitError("Cannot delete all qubits of Pauli")
         z = np.delete(self._z, qubits, axis=1)
         x = np.delete(self._x, qubits, axis=1)
-        return Pauli(z, x, phase=self.phase)
+        return Pauli((z, x, self.phase))
 
     def insert(self, qubits, value):
         """Insert a Pauli at specific qubit value.
@@ -327,8 +344,8 @@ class Pauli(BasePauli):
 
         # Initialize empty operator
         ret_qubits = self.num_qubits + value.num_qubits
-        ret = Pauli(np.zeros(ret_qubits, dtype=np.bool),
-                    np.zeros(ret_qubits, dtype=np.bool))
+        ret = Pauli((np.zeros(ret_qubits, dtype=np.bool),
+                     np.zeros(ret_qubits, dtype=np.bool)))
         if isinstance(qubits, (int, np.int)):
             if value.num_qubits == 1:
                 qubits = [qubits]
@@ -685,13 +702,23 @@ class Pauli(BasePauli):
 
     @classmethod
     @deprecate_function(
-        'Initializing Pauli from `label` kwarg is deprecated '
-        'and will be removed no earlier than 3 months after the release date. '
-        'Use `Pauli(str)` instead.')
+        'Initializing Pauli from `Pauli(label=l)` kwarg is deprecated as of '
+        'version 0.17.0 and will be removed no earlier than 3 months after '
+        'the release date. Use `Pauli(l)` instead.')
     def _from_label_deprecated(cls, label):
         # Deprecated wrapper of `_from_label` so that a deprecation warning
         # can be displaced during initialization with deprecated kwarg
         return cls._from_label(label)
+
+    @classmethod
+    @deprecate_function(
+        'Initializing Pauli from `Pauli(z=z, x=x)` kwargs is deprecated as of '
+        'version 0.17.0 and will be removed no earlier than 3 months after '
+        'the release date. Use tuple initialization `Pauli((z, x))` instead.')
+    def _from_array_deprecated(cls, z, x):
+        # Deprecated wrapper of `_from_array` so that a deprecation warning
+        # can be displaced during initialization with deprecated kwarg
+        return cls._from_array(z, x)
 
     @staticmethod
     def _make_np_bool(arr):
@@ -907,7 +934,7 @@ class Pauli(BasePauli):
                 indices = [indices]
             z = np.insert(self.z, indices, paulis.z)
             x = np.insert(self.x, indices, paulis.x)
-        pauli = Pauli(z, x, self.phase + paulis.phase)
+        pauli = Pauli((z, x, self.phase + paulis.phase))
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
@@ -973,8 +1000,8 @@ class Pauli(BasePauli):
             Pauli: single qubit pauli
         """
         tmp = Pauli(pauli_label)
-        ret = Pauli(np.zeros(num_qubits, dtype=np.bool),
-                    np.zeros(num_qubits, dtype=np.bool))
+        ret = Pauli((np.zeros(num_qubits, dtype=np.bool),
+                     np.zeros(num_qubits, dtype=np.bool)))
         ret.x[index] = tmp.x[0]
         ret.z[index] = tmp.z[0]
         ret.phase = tmp.phase

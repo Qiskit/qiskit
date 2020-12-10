@@ -323,7 +323,7 @@ class TestPauli(QiskitTestCase):
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):
         """Test multiply method."""
-        op = val * Pauli([True, True], [False, False], phase=0)
+        op = val * Pauli(([True, True], [False, False], 0))
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
 
@@ -335,7 +335,7 @@ class TestPauli(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_negate(self, phase):
         """Test negate method"""
-        op = Pauli([False], [True], phase)
+        op = Pauli(([False], [True], phase))
         neg = -op
         self.assertTrue(op.equiv(neg))
         self.assertEqual(neg.phase, (op.phase + 2) % 4)

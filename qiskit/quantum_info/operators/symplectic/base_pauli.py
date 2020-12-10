@@ -310,7 +310,7 @@ class BasePauli(BaseOperator):
         raise QiskitError("Pauli can only be multiplied by 1, -1j, -1, 1j.")
 
     @staticmethod
-    def _from_array(z, x, phase):
+    def _from_array(z, x, phase=0):
         """Convert array data to BasePauli data."""
         if isinstance(z, np.ndarray) and z.dtype == np.bool:
             base_z = z
@@ -333,12 +333,9 @@ class BasePauli(BaseOperator):
         if base_z.shape != base_x.shape:
             raise QiskitError("z and x vectors are different size.")
 
-        base_phase = None
-        if phase is None:
-            # Convert group phase convention to internal ZX-phase convertion.
-            # If phase is not None it will be converted later.
-            base_phase = np.mod(
-                np.sum(np.logical_and(base_x, base_z), axis=1, dtype=np.int), 4)
+        # Convert group phase convention to internal ZX-phase convertion.
+        base_phase = np.mod(np.sum(np.logical_and(base_x, base_z),
+                                   axis=1, dtype=np.int) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
