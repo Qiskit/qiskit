@@ -83,6 +83,10 @@ class QuantumCircuit:
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
         global_phase (float): The global phase of the circuit in radians.
+        metadata (dict): Arbitrary key value metadata to associate with the
+            circuit. This gets stored as free-form data in a dict in the
+            :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
+            not be directly used in the circuit.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -140,7 +144,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None, global_phase=0):
+    def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
@@ -189,6 +193,9 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = 'dt'
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     @property
     def data(self):
@@ -241,6 +248,26 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
+
+    @property
+    def metadata(self):
+        """The user provided metadata associated with the circuit
+
+        The metadata for the circuit is a user provided ``dict`` of metadata
+        for the circuit. It will not be used to influence the execution or
+        operation of the circuit, but it is expected to be passed betweeen
+        all transforms of the circuit (ie transpilation) and that providers will
+        associate any circuit metadata with the results it returns from
+        execution of that circuit.
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Update the circuit metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     def __str__(self):
         return str(self.draw(output='text'))
