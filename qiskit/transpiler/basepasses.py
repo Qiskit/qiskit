@@ -114,7 +114,15 @@ class BasePass(metaclass=MetaPass):
         if conf is None:
             conf = {}
 
+        property_set_ = None
+        if isinstance(property_set, dict):
+            property_set_ = PropertySet(property_set)
+
         cls_pass = cls(**conf)
+
+        if isinstance(property_set_, PropertySet):
+            cls_pass.property_set = property_set_
+
         result = cls_pass.run(circuit_to_dag(circuit))
 
         if isinstance(property_set, (dict, PropertySet)):
