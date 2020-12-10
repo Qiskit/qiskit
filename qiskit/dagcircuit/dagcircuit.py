@@ -1098,7 +1098,6 @@ class DAGCircuit:
         Returns:
             list[DAGNode]: the list of node ids containing the given op.
         """
-        # import pdb; pdb.set_trace()
         nodes = []
         for node in self._multi_graph.nodes():
             if node.type == "op":
