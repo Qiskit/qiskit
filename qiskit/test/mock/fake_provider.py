@@ -68,6 +68,7 @@ class FakeProvider(BaseProvider):
                           FakeJohannesburg(),
                           FakeBoeblingen(),
                           FakeCambridge(),
+                          FakeCambridgeAlternativeBasis(),
                           FakeParis(),
                           FakeRochester(),
                           FakeRome(),
