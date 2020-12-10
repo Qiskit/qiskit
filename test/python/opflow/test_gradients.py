@@ -1026,11 +1026,7 @@ class TestQFI(QiskitOpflowTestCase):
 
         # construct the QFI circuits used in the evaluation
 
-        # this naming and adding of register is required bc circuit's are only equal if the
-        # register have the same names
-        qr = QuantumRegister(1, 'work_qubit')
-        circuit1 = QuantumCircuit(1)
-        circuit1.add_register(qr)
+        circuit1 = QuantumCircuit(2)
         circuit1.h(1)
         circuit1.x(1)
         circuit1.cx(1, 0)
@@ -1040,8 +1036,7 @@ class TestQFI(QiskitOpflowTestCase):
         # circuit1.rx(x, 0)  # trimmed
         circuit1.h(1)
 
-        circuit2 = QuantumCircuit(1)
-        circuit2.add_register(qr)
+        circuit2 = QuantumCircuit(2)
         circuit2.h(1)
         circuit2.x(1)
         circuit2.cx(1, 0)
@@ -1051,8 +1046,7 @@ class TestQFI(QiskitOpflowTestCase):
         # circuit2.rx(x, 0)  # trimmed
         circuit2.h(1)
 
-        circuit3 = QuantumCircuit(1)
-        circuit3.add_register(qr)
+        circuit3 = QuantumCircuit(2)
         circuit3.h(1)
         circuit3.cx(1, 0)
         circuit3.x(1)
@@ -1062,8 +1056,7 @@ class TestQFI(QiskitOpflowTestCase):
         circuit3.x(1)
         circuit3.h(1)
 
-        circuit4 = QuantumCircuit(1)
-        circuit4.add_register(qr)
+        circuit4 = QuantumCircuit(2)
         circuit4.h(1)
         circuit4.rx(x, 0)
         circuit4.x(1)
@@ -1075,17 +1068,14 @@ class TestQFI(QiskitOpflowTestCase):
 
         # this naming and adding of register is required bc circuit's are only equal if the
         # register have the same names
-        qr = QuantumRegister(1, 'q0')
-        circuit5 = QuantumCircuit(1)
-        circuit5.add_register(qr)
+        circuit5 = QuantumCircuit(2)
         circuit5.h(1)
         circuit5.sdg(1)
         circuit5.cx(1, 0)
         # circuit5.rx(x, 0)  # trimmed
         circuit5.h(1)
 
-        circuit6 = QuantumCircuit(1)
-        circuit6.add_register(qr)
+        circuit6 = QuantumCircuit(2)
         circuit6.h(1)
         circuit6.sdg(1)
         circuit6.rx(x, 0)
@@ -1101,10 +1091,14 @@ class TestQFI(QiskitOpflowTestCase):
                     qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
                     qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist)
 
+        # compose both on the same circuit such that the comparison works
+        base = QuantumCircuit(2)
+
         for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
             for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
                 with self.subTest(f'set {i} circuit {j}'):
-                    self.assertEqual(composed_op[1].primitive, reference)
+                    self.assertEqual(base.compose(composed_op[1].primitive),
+                                     base.compose(reference))
 
 
 if __name__ == '__main__':
