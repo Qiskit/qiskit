@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Improve the performance of the linear combination of unitaries gradients by
+    grouping all ``insert_gate`` and ``trim_circuit`` calls into a single method
+    and minimize the modification and access of the circuit's ``data`` member.
+fixes:
+  - |
+    Fix a bug in the linear combination of unitaries approach for computing gradients
+    that occured when the same parameter instance was used in different gates,
+    which produced wrong (e.g. asymmetric) results.
