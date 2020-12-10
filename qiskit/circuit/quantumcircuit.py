@@ -2526,8 +2526,7 @@ class QuantumCircuit:
             gate (Union[Gate, str]): Gate information.
             qubits (Union[int, Tuple[int], ParameterExpression]): List of qubits to be measured.
             schedule (Schedule): Schedule information.
-            params (Optional[List[Union[float, Parameter]]]): A list
-                of parameters.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
 
         Raises:
             Exception: if the gate is of type string and params is None.
