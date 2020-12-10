@@ -96,15 +96,17 @@ class BasePass(metaclass=MetaPass):
         return isinstance(self, AnalysisPass)
 
     @classmethod
-    def on(cls, circuit, property_set=None, conf=None):
+    def on(cls, circuit, property_set=None, conf=None):  # pylint: disable=invalid-name
         """Runs the pass on circuit.
 
         Args:
             circuit (QuantumCircuit): the dag on which the pass is run.
-            property_set (PropertySet, dict, or None): input/output property set.
-            conf (dict): kwargs to the pass constructor. See cls.__init__() for details.
+            property_set (PropertySet or dict or None): input/output property set.
+            conf (dict): kwargs to the pass constructor. See `cls.__init__()` for details.
+
         Returns:
-            circuit (QuantumCircuit or None): when this is left unimplemented for a pass.
+            QuantumCircuit or None: If on transformation pass, a QuantumCircuit. If analysis
+                   pass, None.
         """
         from qiskit.converters import circuit_to_dag, dag_to_circuit
         from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -114,10 +116,13 @@ class BasePass(metaclass=MetaPass):
 
         cls_pass = cls(**conf)
         result = cls_pass.run(circuit_to_dag(circuit))
+
         if isinstance(property_set, (dict, PropertySet)):
             property_set.update(cls_pass.property_set)
+
         if isinstance(result, DAGCircuit):
             result = dag_to_circuit(result)
+
         return result
 
 
