@@ -41,12 +41,12 @@ def execute(experiments, backend,
             basis_gates=None, coupling_map=None,  # circuit transpile options
             backend_properties=None, initial_layout=None,
             seed_transpiler=None, optimization_level=None, pass_manager=None,
-            qobj_id=None, qobj_header=None, shots=1024,  # common run options
-            memory=False, max_credits=10, seed_simulator=None,
+            qobj_id=None, qobj_header=None, shots=None,  # common run options
+            memory=False, max_credits=None, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
-            schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
-            meas_return=MeasReturnType.AVERAGE,
-            memory_slots=None, memory_slot_size=100, rep_time=None, rep_delay=None,
+            schedule_los=None, meas_level=None,
+            meas_return=None,
+            memory_slots=None, memory_slot_size=None, rep_time=None, rep_delay=None,
             parameter_binds=None, schedule_circuit=False, inst_map=None, meas_map=None,
             scheduling_method=None, init_qubits=None,
             **run_config):
@@ -267,6 +267,17 @@ def execute(experiments, backend,
 
     if isinstance(backend, BaseBackend):
         # assembling the circuits into a qobj to be run on the backend
+        if shots is None:
+            shots = 1024
+        if max_credits is None:
+            max_credits = 10
+        if meas_level is None:
+            meas_level = MeasLevel.CLASSIFIED
+        if meas_return is None:
+            meas_return = MeasReturnType.AVERAGE
+        if memory_slot_size is None:
+            memory_slot_size = 100
+
         qobj = assemble(experiments,
                         qobj_id=qobj_id,
                         qobj_header=qobj_header,
@@ -295,22 +306,41 @@ def execute(experiments, backend,
         _log_submission_time(start_time, end_time)
     elif isinstance(backend, Backend):
         start_time = time()
-        job = backend.run(experiments,
-                          shots=shots,
-                          memory=memory,
-                          seed_simulator=seed_simulator,
-                          default_qubit_los=default_qubit_los,
-                          default_meas_los=default_meas_los,
-                          schedule_los=schedule_los,
-                          meas_level=meas_level,
-                          meas_return=meas_return,
-                          memory_slots=memory_slots,
-                          memory_slot_size=memory_slot_size,
-                          rep_time=rep_time,
-                          rep_delay=rep_delay,
-                          parameter_binds=parameter_binds,
-                          init_qubits=init_qubits,
-                          **run_config)
+        run_kwargs = {
+            'shots': shots,
+            'memory': memory,
+            'seed_simulator': seed_simulator,
+            'default_qubit_los': default_qubit_los,
+            'default_meas_los': default_meas_los,
+            'schedule_los': schedule_los,
+            'meas_level': meas_level,
+            'meas_return': meas_return,
+            'memory_slots': memory_slots,
+            'memory_slot_size': memory_slot_size,
+            'rep_time': rep_time,
+            'rep_delay': rep_delay,
+            'parameter_binds': parameter_binds,
+            'init_qubits': init_qubits,
+        }
+        for key in run_kwargs:
+            if not hasattr(backend.options, key):
+                if run_kwargs[key] is not None:
+                    logger.info("%s backend doesn't support option %s so not "
+                                "passing that kwarg to run()", backend.name, key)
+                del run_kwargs[key]
+            elif key == 'shots' and run_kwargs[key] is None:
+                run_kwargs[key] = 1024
+            elif key == 'max_credits' and run_kwargs[key] is None:
+                run_kwargs[key] = 10
+            elif key == 'meas_level' and run_kwargs[key] is None:
+                run_kwargs[key] = MeasLevel.CLASSIFIED
+            elif key == 'meas_return' and run_kwargs[key] is None:
+                run_kwargs[key] = MeasReturnType.AVERAGE
+            elif key == 'memory_slot_size' and run_kwargs[key] is None:
+                run_kwargs[key] = 100
+
+        run_kwargs.update(run_config)
+        job = backend.run(experiments, **run_kwargs)
         end_time = time()
         _log_submission_time(start_time, end_time)
     else:

@@ -64,7 +64,6 @@ class Pauli:
     over GF(2)
     Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
-
     def __init__(self, z=None, x=None, label=None):
         r"""Make the Pauli object.
 
@@ -87,6 +86,11 @@ class Pauli:
             self._x = a.x
         else:
             self._init_from_bool(z, x)
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     @classmethod
     def from_label(cls, label):
