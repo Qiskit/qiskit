@@ -736,10 +736,10 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if not a directed acyclic graph
         """
-        if not rx.is_directed_acyclic_graph(self._multi_graph):
+        try:
+            depth = rx.dag_longest_path_length(self._multi_graph) - 1
+        except rx.DAGHasCycle:
             raise DAGCircuitError("not a DAG")
-
-        depth = rx.dag_longest_path_length(self._multi_graph) - 1
         return depth if depth >= 0 else 0
 
     def width(self):
