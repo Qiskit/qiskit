@@ -54,6 +54,9 @@ class DAGCircuit:
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
 
+        # Circuit metadata
+        self.metadata = None
+
         # Set of wires (Register,idx) in the dag
         self._wires = set()
 
@@ -329,6 +332,7 @@ class DAGCircuit:
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
+        target_dag.metadata = self.metadata
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)
