@@ -162,7 +162,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
                                      tolerance=1e-12,
-                                     phase_equal=False):
+                                     phase_equal=True):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):
@@ -176,7 +176,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
              name='test_one_qubit_clifford_{basis}_basis')
     def test_one_qubit_clifford_all_basis(self, basis):
         """Verify for {basis} basis and all Cliffords."""
@@ -188,6 +188,8 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('ZXZ', 1e-12),
                               ('ZYZ', 1e-12),
                               ('U1X', 1e-7),
+                              ('PSX', 1e-7),
+                              ('ZSX', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
     # Lower tolerance for U1X test since decomposition since it is
@@ -199,21 +201,12 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
                                               basis_tolerance[1])
 
-    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
              name='test_one_qubit_random_{basis}_basis_{seed}')
     def test_one_qubit_random_all_basis(self, basis, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
-
-    @combine(basis=['U', 'PSX', 'ZSX', 'U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
-             name='test_one_qubit_global_phase_{basis}_basis_{seed}')
-    def test_one_qubit_global_phase_all_basis(self, basis, seed):
-        """Verify for {basis} basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        decomposer = OneQubitEulerDecomposer(basis)
-        decomp_unitary = Operator(decomposer(unitary))
-        self.assertTrue(np.allclose(unitary.data, decomp_unitary.data))
 
 
 # FIXME: streamline the set of test cases
