@@ -26,6 +26,12 @@
                         "type": "object"
                     },
                     "type": "array"
+                },
+                "parameter": {
+                    "description": "A class for variable parameters",
+                    "items": {
+                        "type": "object"
+                    }
                 }
             },
             "required": [

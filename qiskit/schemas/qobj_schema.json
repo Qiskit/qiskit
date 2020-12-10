@@ -824,6 +824,12 @@
             ],
             "type": "object"
         },
+        "parameter": {
+            "description": "A class for variable parameters",
+            "items": {
+                "type": "object"
+            }
+        },
         "pulse": {
             "properties": {
                 "name": {
@@ -858,6 +864,7 @@
                 "qubits": {
                     "items": {
                         "minimum": 0,
+                        "$ref": "#/definitions/parameter",
                         "type": "integer"
                     },
                     "minItems": 1,
@@ -871,7 +878,7 @@
                     "description": "Pulse instructions implementing the given gate.",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/qobjinstructions"
+                        "$ref": ["#/definitions/qobjinstructions", "#/definitions/parameter"]
                     }
                 }
             },
