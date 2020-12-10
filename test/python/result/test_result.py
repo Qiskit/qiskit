@@ -57,6 +57,19 @@ class TestResultOperations(QiskitTestCase):
 
         self.assertEqual(result.get_counts(0), processed_counts)
 
+    def test_counts_by_name(self):
+        """Test that counts are extracted properly by name."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        processed_counts = {'0 0 00': 4, '0 0 10': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4, name='a_name')
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        self.assertEqual(result.get_counts('a_name'), processed_counts)
+
     def test_counts_duplicate_name(self):
         """Test results containing multiple entries of a single name will warn."""
         data = models.ExperimentResultData(counts=dict())
@@ -256,7 +269,7 @@ class TestResultOperations(QiskitTestCase):
         """Test measurement level 1 average result."""
         # 3 qubits
         raw_memory = [[0., 1.], [1., 0.], [0.5, 0.5]]
-        processed_memory = np.array([1.j, 1., 0.5+0.5j], dtype=np.complex_)
+        processed_memory = np.array([1.j, 1., 0.5 + 0.5j], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='avg', data=data)
@@ -272,8 +285,8 @@ class TestResultOperations(QiskitTestCase):
         # 3 qubits
         raw_memory = [[[0., 1.], [1., 0.], [0.5, 0.5]],
                       [[0.5, 0.5], [1., 0.], [0., 1.]]]
-        processed_memory = np.array([[1.j, 1., 0.5+0.5j],
-                                     [0.5+0.5j, 1., 1.j]], dtype=np.complex_)
+        processed_memory = np.array([[1.j, 1., 0.5 + 0.5j],
+                                     [0.5 + 0.5j, 1., 1.j]], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='single', data=data)
@@ -321,3 +334,55 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(memory.shape, (2, 2, 3))
         self.assertEqual(memory.dtype, np.complex_)
         np.testing.assert_almost_equal(memory, processed_memory)
+
+
+class TestResultOperationsFailed(QiskitTestCase):
+    """Result operations methods."""
+
+    def setUp(self):
+        self.base_result_args = dict(backend_name='test_backend',
+                                     backend_version='1.0.0',
+                                     qobj_id='id-123',
+                                     job_id='job-123',
+                                     success=True)
+        super().setUp()
+
+    def test_counts_int_out(self):
+        """Test that fails when get_count is called with a nonexistent int."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_counts(99)
+        self.assertEqual('Result for experiment "99" could not be found.',
+                         context.exception.message)
+
+    def test_counts_name_out(self):
+        """Test that fails when get_count is called with a nonexistent name."""
+        raw_counts = {'0x0': 4, '0x2': 10}
+        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4, name='a_name')
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             data=data, header=exp_result_header)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_counts('another_name')
+        self.assertEqual('Data for experiment "another_name" could not be found.',
+                         context.exception.message)
+
+    def test_memory_int_out(self):
+        """Test that memory bitstrings are extracted properly without header."""
+        raw_memory = ['0x0', '0x0', '0x2', '0x2', '0x2', '0x2', '0x2']
+        data = models.ExperimentResultData(memory=raw_memory)
+        exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
+                                             memory=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+
+        with self.assertRaises(Exception) as context:
+            result.get_memory(99)
+        self.assertEqual('Result for experiment "99" could not be found.',
+                         context.exception.message)
