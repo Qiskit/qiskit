@@ -18,7 +18,7 @@ N-qubit Pauli Operator Class
 import re
 import numpy as np
 
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
