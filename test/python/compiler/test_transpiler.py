@@ -662,6 +662,32 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none(self, optimization_level):
+        """CCX without routing method."""
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        out = transpile(qc, routing_method='none',
+                        basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                        coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_ccx_routing_method_none_failed(self, optimization_level):
+        """CCX without routing method cannot be routed."""
+
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+
+        with self.assertRaises(TranspilerError):
+            transpile(qc, routing_method='none',
+                      basis_gates=['u', 'cx'], initial_layout=[0, 1, 2], seed_transpiler=0,
+                      coupling_map=[[0, 1], [1, 2]], optimization_level=optimization_level)
+
+    @data(0, 1, 2, 3)
     def test_ms_unrolls_to_cx(self, optimization_level):
         """Verify a Rx,Ry,Rxx circuit transpile to a U3,CX target."""
 
@@ -927,6 +953,23 @@ class TestTranspile(QiskitTestCase):
         expected.p(np.pi, 0)
 
         self.assertEqual(out, expected)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_preserves_circuit_metadata(self, optimization_level):
+        """Verify that transpile preserves circuit metadata in the output."""
+        circuit = QuantumCircuit(2, metadata=dict(experiment_id='1234', execution_number=4))
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        res = transpile(circuit, basis_gates=['id', 'p', 'sx', 'cx'],
+                        coupling_map=cmap,
+                        optimization_level=optimization_level)
+        self.assertEqual(circuit.metadata, res.metadata)
 
 
 class StreamHandlerRaiseException(StreamHandler):
