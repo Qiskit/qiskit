@@ -23,6 +23,7 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
+from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -59,8 +60,10 @@ class DrawElement():
     @property
     def top(self):
         """ Constructs the top line of the element"""
-        ret = self.top_format % self.top_connect.center(
-            self.width, self.top_pad)
+        if (self.width % 2) == 0 and len(self.top_format) % 2 == 1 and len(self.top_connect) == 1:
+            ret = self.top_format % (self.top_pad+self.top_connect).center(self.width, self.top_pad)
+        else:
+            ret = self.top_format % self.top_connect.center(self.width, self.top_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
@@ -83,8 +86,10 @@ class DrawElement():
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
-        ret = self.bot_format % self.bot_connect.center(
-            self.width, self.bot_pad)
+        if (self.width % 2) == 0 and len(self.top_format) % 2 == 1:
+            ret = self.bot_format % (self.bot_pad+self.bot_connect).center(self.width, self.bot_pad)
+        else:
+            ret = self.bot_format % self.bot_connect.center(self.width, self.bot_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
@@ -166,7 +171,7 @@ class BoxOnQuWire(DrawElement):
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
-        self.bot_connect = '┬' if conditional else '─'
+        self.bot_connect = '╥' if conditional else '─'
         self.mid_content = label
         self.top_connector = {"│": '┴'}
         self.bot_connector = {"│": '┬'}
@@ -252,7 +257,8 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.bot_connect = self.bot_pad = " "
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.left_fill = len(self.wire_label)
-        self.top_format = "┌{}%s──┐".format(self.top_pad * self.left_fill)
+        self.top_format = "┌─" + "s".center(self.left_fill + 1, '─') + "─┐"
+        self.top_format = self.top_format.replace('s', '%s')
         self.mid_format = "┤{} %s ├".format(self.wire_label)
         self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = top_connect if top_connect else '─'
@@ -293,9 +299,10 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.left_fill = len(self.wire_label)
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
+        self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
-        self.bot_connect = '┬' if conditional else bot_connect
+        self.bot_connect = '╥' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
         if input_length <= 2:
@@ -333,7 +340,8 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
         self.bot_pad = '─'
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "╡{} %s ╞".format(self.wire_label)
-        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
+        self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
         self.bot_connect = bot_connect
 
@@ -387,7 +395,7 @@ class Ex(DirectOnQuWire):
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
-        self.bot_connect = "│" if conditional else bot_connect
+        self.bot_connect = "║" if conditional else bot_connect
         self.top_connect = top_connect
 
 
@@ -397,7 +405,7 @@ class Reset(DirectOnQuWire):
     def __init__(self, conditional=False):
         super().__init__("|0>")
         if conditional:
-            self.bot_connect = "│"
+            self.bot_connect = "║"
 
 
 class Bullet(DirectOnQuWire):
@@ -414,7 +422,7 @@ class Bullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('■')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -436,7 +444,7 @@ class OpenBullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('o')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -688,7 +696,7 @@ class TextDrawing():
         previous_creg = None
         for bit in self.cregs:
             if self.cregbundle:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 label = '{name}: {initial_value}{size}/'
@@ -708,7 +716,7 @@ class TextDrawing():
         if self.vertical_compression == 'low':
             return False
         for top, bot in zip(top_line, bot_line):
-            if top == '┴' and bot == '┬':
+            if top in ['┴', '╨'] and bot in ['┬', '╥']:
                 return False
         for line in (bot_line, top_line):
             no_spaces = line.replace(' ', '')
@@ -807,7 +815,10 @@ class TextDrawing():
         params = TextDrawing.params_for_label(instruction)
 
         if params:
-            label += "(%s)" % ','.join(params)
+            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
+                label += "(%s[%s])" % (params[0], instruction.op.unit)
+            else:
+                label += "(%s)" % ','.join(params)
         return label
 
     @staticmethod
@@ -948,7 +959,7 @@ class TextDrawing():
         if instruction.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='┴')
+            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1109,7 +1120,7 @@ class Layer:
             self.cregs = []
             previous_creg = None
             for bit in cregs:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 self.cregs.append(bit.register)

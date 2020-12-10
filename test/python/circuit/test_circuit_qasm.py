@@ -29,9 +29,8 @@ class TestCircuitQasm(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         cr = ClassicalRegister(3, 'cr')
         qc = QuantumCircuit(qr1, qr2, cr)
-        qc.u1(0.3, qr1[0])
-        qc.u2(0.2, 0.1, qr2[0])
-        qc.u3(0.3, 0.2, 0.1, qr2[1])
+        qc.p(0.3, qr1[0])
+        qc.u(0.3, 0.2, 0.1, qr2[1])
         qc.s(qr2[1])
         qc.sdg(qr2[1])
         qc.cx(qr1[0], qr2[1])
@@ -50,9 +49,8 @@ include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
 creg cr[3];
-u1(0.3) qr1[0];
-u2(0.2,0.1) qr2[0];
-u3(0.3,0.2,0.1) qr2[1];
+p(0.3) qr1[0];
+u(0.3,0.2,0.1) qr2[1];
 s qr2[1];
 sdg qr2[1];
 cx qr1[0],qr2[1];
@@ -91,7 +89,7 @@ measure qr2[1] -> cr[2];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate composite_circ q0,q1 {h q0; x q1; cx q0,q1; }
+gate composite_circ q0,q1 { h q0; x q1; cx q0,q1; }
 qreg qr[2];
 creg cr[2];
 h qr[0];
@@ -126,7 +124,7 @@ measure qr[1] -> cr[1];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate composite_circ q0,q1 {h q0; x q1; cx q0,q1; }
+gate composite_circ q0,q1 { h q0; x q1; cx q0,q1; }
 qreg qr[2];
 creg cr[2];
 h qr[0];
@@ -165,9 +163,9 @@ measure qr[1] -> cr[1];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate my_gate_{0} q0 {{x q0; }}
-gate my_gate_{1} q0 {{x q0; }}
-gate my_gate q0 {{h q0; }}
+gate my_gate_{0} q0 {{ x q0; }}
+gate my_gate_{1} q0 {{ x q0; }}
+gate my_gate q0 {{ h q0; }}
 qreg qr[1];
 my_gate qr[0];
 my_gate_{1} qr[0];
@@ -180,7 +178,37 @@ my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
         circuit = QuantumCircuit(2)
         circuit.append(random_unitary(4, seed=1234), [0, 1])
         circuit = circuit.decompose()
-        circuit.u3(2*pi, 3*pi, -5*pi, 0)
+        circuit.u(2*pi, 3*pi, -5*pi, 0)
         qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
         self.assertEqual(circuit, circuit2)
+
+    def test_circuit_qasm_with_composite_circuit_with_one_param(self):
+        """Test circuit qasm() method when a composite circuit instruction
+        has one param
+        """
+        original_str = """OPENQASM 2.0;
+include "qelib1.inc";
+gate nG0(param0) q0 { h q0; }
+qreg q[3];
+creg c[3];
+nG0(pi) q[0];\n"""
+        qc = QuantumCircuit.from_qasm_str(original_str)
+
+        self.assertEqual(original_str, qc.qasm())
+
+    def test_circuit_qasm_with_composite_circuit_with_many_params_and_qubits(self):
+        """Test circuit qasm() method when a composite circuit instruction
+        has many params and qubits
+        """
+        original_str = """OPENQASM 2.0;
+include "qelib1.inc";
+gate nG0(param0,param1) q0,q1 { h q0; h q1; }
+qreg q[3];
+qreg r[3];
+creg c[3];
+creg d[3];
+nG0(pi,pi/2) q[0],r[0];\n"""
+        qc = QuantumCircuit.from_qasm_str(original_str)
+
+        self.assertEqual(original_str, qc.qasm())

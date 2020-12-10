@@ -38,6 +38,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
     DriveChannel,
+    ControlChannel,
     AcquireChannel,
     SnapshotChannel,
     MeasureChannel,
@@ -954,6 +955,17 @@ class TestScheduleEquality(BaseTestSchedule):
                         (1, Acquire(10, AcquireChannel(0), MemorySlot(1)))]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
+
+    def test_same_commands_on_two_channels_at_same_time_out_of_order(self):
+        """Test that schedule with same commands on two channels at the same time equal
+        when out of order."""
+        sched1 = Schedule()
+        sched1 = sched1.append(Delay(100, DriveChannel(1)))
+        sched1 = sched1.append(Delay(100, ControlChannel(1)))
+        sched2 = Schedule()
+        sched2 = sched2.append(Delay(100, ControlChannel(1)))
+        sched2 = sched2.append(Delay(100, DriveChannel(1)))
+        self.assertEqual(sched1, sched2)
 
     def test_different_name_equal(self):
         """Test that names are ignored when checking equality."""

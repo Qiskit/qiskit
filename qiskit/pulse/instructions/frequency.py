@@ -13,10 +13,11 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Optional
+from typing import Optional, Union
 
-from ..channels import PulseChannel
-from .instruction import Instruction
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class SetFrequency(Instruction):
@@ -33,7 +34,7 @@ class SetFrequency(Instruction):
     The duration of SetFrequency is 0.
     """
 
-    def __init__(self, frequency: float,
+    def __init__(self, frequency: Union[float, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Creates a new set channel frequency instruction.
@@ -43,28 +44,28 @@ class SetFrequency(Instruction):
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
-        self._frequency = float(frequency)
-        self._channel = channel
+        if not isinstance(frequency, ParameterExpression):
+            frequency = float(frequency)
         super().__init__((frequency, channel), 0, (channel,), name=name)
 
     @property
-    def frequency(self) -> float:
+    def frequency(self) -> Union[float, ParameterExpression]:
         """New frequency."""
-        return self._frequency
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
 
 
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
     def __init__(self,
-                 frequency: float,
+                 frequency: Union[float, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Creates a new shift frequency instruction.
@@ -74,18 +75,18 @@ class ShiftFrequency(Instruction):
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
-        self._frequency = float(frequency)
-        self._channel = channel
+        if not isinstance(frequency, ParameterExpression):
+            frequency = float(frequency)
         super().__init__((frequency, channel), 0, (channel,), name=name)
 
     @property
-    def frequency(self) -> float:
+    def frequency(self) -> Union[float, ParameterExpression]:
         """Frequency shift from the set frequency."""
-        return self._frequency
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]

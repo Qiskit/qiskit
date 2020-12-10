@@ -18,8 +18,6 @@ Tools for working with Pauli Operators.
 A simple pauli class and some tools.
 """
 
-import warnings
-
 import numpy as np
 from scipy import sparse
 
@@ -66,7 +64,6 @@ class Pauli:
     over GF(2)
     Phys. Rev. A 68, 042318 – Published 20 October 2003
     """
-
     def __init__(self, z=None, x=None, label=None):
         r"""Make the Pauli object.
 
@@ -89,6 +86,11 @@ class Pauli:
             self._x = a.x
         else:
             self._init_from_bool(z, x)
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     @classmethod
     def from_label(cls, label):
@@ -259,15 +261,6 @@ class Pauli:
     def num_qubits(self):
         """Number of qubits."""
         return len(self)
-
-    @property
-    def numberofqubits(self):
-        """Deprecated, use ``num_qubits`` instead. Number of qubits."""
-        warnings.warn('The Pauli.numberofqubits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the Pauli.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     def to_label(self):
         """Present the pauli labels in I, X, Y, Z format.

@@ -13,8 +13,8 @@
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
 from typing import Optional
 
-from ..channels import Channel
-from .instruction import Instruction
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class Delay(Instruction):
@@ -45,7 +45,6 @@ class Delay(Instruction):
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
         """
-        self._channel = channel
         super().__init__((duration, channel), duration, (channel,), name=name)
 
     @property
@@ -53,4 +52,4 @@ class Delay(Instruction):
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]

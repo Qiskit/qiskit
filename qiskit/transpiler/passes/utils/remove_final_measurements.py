@@ -13,7 +13,6 @@
 """Remove final measurements and barriers at the end of a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 
 
 class RemoveFinalMeasurements(TransformationPass):
@@ -54,8 +53,6 @@ class RemoveFinalMeasurements(TransformationPass):
         if not final_ops:
             return dag
 
-        new_dag = DAGCircuit()
-
         for node in final_ops:
             for carg in node.cargs:
                 # Add the clbit that was attached to the measure we are removing
@@ -75,11 +72,7 @@ class RemoveFinalMeasurements(TransformationPass):
             if val in cregs_to_remove and cregs_to_remove[val] == val.size:
                 del dag.cregs[key]
 
-        # Fill new DAGCircuit
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         for node in dag.topological_op_nodes():
             # copy the condition over too

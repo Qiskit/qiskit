@@ -33,6 +33,12 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
+    def test_qregs_eq_invalid_type(self):
+        """Test getting quantum registers from circuit.
+        """
+        qr1 = QuantumRegister(10, "q")
+        self.assertNotEqual(qr1, 3.14)
+
     def test_cregs(self):
         """Test getting classical registers from circuit.
         """
@@ -40,6 +46,14 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(cr1.name, "c")
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
+
+    def test_qreg_name_set_invalid(self):
+        """Test attempt to set an invalid name
+        """
+        qr1 = QuantumRegister(1)
+        # As per OPENQASM requirement, name cannot start with '_'
+        with self.assertRaises(CircuitError):
+            qr1.name = '_q'
 
     def test_aregs(self):
         """Test getting ancilla registers from circuit.
@@ -58,6 +72,14 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to create a non-integer size QuantumRegister.
         """
         self.assertRaises(CircuitError, QuantumRegister, 'string')
+
+    def test_qarg_noninteger_float(self):
+        """ Test attempt to pass non-integer float to QuantumRegister.
+        """
+        self.assertRaises(CircuitError, QuantumRegister, 2.2)
+        # but an integer float should pass
+        qr = QuantumRegister(2.0)
+        self.assertEqual(qr.size, 2)
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister.
@@ -183,6 +205,24 @@ class TestCircuitRegisters(QiskitTestCase):
         with self.subTest('qubit is not an ancilla'):
             action_qubits = [qubit for qubit in qc.qubits if not isinstance(qubit, AncillaQubit)]
             self.assertEqual(len(action_qubits), 2)
+
+    def test_decomposing_with_boxed_ancillas(self):
+        """Test decomposing a circuit which contains an instruction with ancillas.
+
+        This was a previous bug where the wire-map in the DAG raised an error upon mapping
+        the Qubit type to the AncillaQubit type.
+        """
+        ar = AncillaRegister(1)
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr, ar)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+
+        qc2 = QuantumCircuit(*qc.qregs)
+        qc2.append(qc, [0, 1])
+        decomposed = qc2.decompose()  # used to raise a DAGCircuitError
+
+        self.assertEqual(decomposed, qc)
 
     def test_qregs_circuit(self):
         """Test getting quantum registers from circuit.

@@ -15,7 +15,10 @@ import argparse
 import multiprocessing
 import os
 import sys
+import re
 
+# regex for character encoding from PEP 263
+pep263 = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)")
 
 def discover_files(code_paths):
     out_paths = []
@@ -51,7 +54,9 @@ def validate_header(file_path):
     for index, line in enumerate(lines):
         count += 1
         if count > 5:
-            return (file_path, False, "Header not found in first 5 lines")
+            return file_path, False, "Header not found in first 5 lines"
+        if count<=2 and pep263.match(line):
+            return file_path, False, "Unnecessary encoding specification (PEP 263, 3120)"
         if line == "# This code is part of Qiskit.\n":
             start = index
             break
@@ -82,9 +87,9 @@ def main():
     res = pool.map(validate_header, files)
     failed_files = [x for x in res if x[1] is False]
     if len(failed_files) > 0:
-        for i in failed_files:
-            sys.stderr.write("%s failed header check because:\n\n" % i[0])
-            sys.stderr.write("%s\n\n" % i[2])
+        for failed_file in failed_files:
+            sys.stderr.write("%s failed header check because:\n" % failed_file[0])
+            sys.stderr.write("%s\n\n" % failed_file[2])
         sys.exit(1)
     sys.exit(0)
 

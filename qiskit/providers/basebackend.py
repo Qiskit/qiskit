@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module implements the abstract base class for backend modules.
+"""This module implements the legacy abstract base class for backend modules.
 
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
@@ -23,7 +23,7 @@ from .models import BackendStatus
 
 
 class BaseBackend(ABC):
-    """Base class for backends."""
+    """Legacy Base class for backends."""
 
     @abstractmethod
     def __init__(self, configuration, provider=None):

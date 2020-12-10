@@ -36,7 +36,7 @@ class RGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RY(\theta) = e^{-i \th Y} =
+        R(\theta, \phi) = e^{-i \th (\cos{\phi} x + \sin{\phi} y)} =
             \begin{pmatrix}
                 \cos{\th} & -i e^{-i \phi} \sin{\th} \\
                 -i e^{i \phi} \sin{\th} & \cos{\th}
@@ -73,7 +73,7 @@ class RGate(Gate):
         """
         return RGate(-self.params[0], self.params[1])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the R gate."""
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
@@ -81,4 +81,4 @@ class RGate(Gate):
         exp_m = numpy.exp(-1j * phi)
         exp_p = numpy.exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin],
-                            [-1j * exp_p * sin, cos]], dtype=complex)
+                            [-1j * exp_p * sin, cos]], dtype=dtype)

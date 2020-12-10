@@ -19,6 +19,7 @@ import unittest
 from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
@@ -59,16 +60,16 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])
         circuit.rz(pi, qr[0])
-        circuit.u1(pi, qr[0])
-        circuit.u2(pi, pi, qr[0])
-        circuit.u3(pi, pi, pi, qr[0])
+        circuit.append(U1Gate(pi), [qr[0]])
+        circuit.append(U2Gate(pi, pi), [qr[0]])
+        circuit.append(U3Gate(pi, pi, pi), [qr[0]])
         circuit.swap(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cy(qr[0], qr[1])
         circuit.cz(qr[0], qr[1])
         circuit.ch(qr[0], qr[1])
-        circuit.cu1(pi, qr[0], qr[1])
-        circuit.cu3(pi, pi, pi, qr[0], qr[1])
+        circuit.append(CU1Gate(pi), [qr[0], qr[1]])
+        circuit.append(CU3Gate(pi, pi, pi), [qr[0], qr[1]])
         circuit.crz(pi, qr[0], qr[1])
         circuit.cry(pi, qr[0], qr[1])
         circuit.crx(pi, qr[0], qr[1])

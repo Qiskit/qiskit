@@ -22,6 +22,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import transpile
 from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
@@ -74,6 +75,17 @@ class TestStatevector(QiskitTestCase):
         self.assertEqual(state.dims(), (2, 3, 4))
         self.assertIsNone(state.num_qubits)
 
+    def test_init_circuit(self):
+        """Test initialization from circuit."""
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        state = Statevector(circuit)
+
+        self.assertEqual(state.dim, 8)
+        self.assertEqual(state.dims(), (2, 2, 2))
+        self.assertTrue(all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex)))
+        self.assertEqual(state.num_qubits, 3)
+
     def test_init_array_except(self):
         """Test initialization exception from array."""
         vec = self.rand_vec(4)
@@ -110,12 +122,12 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.h(1)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         target = Statevector.from_label('00').evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
@@ -125,6 +137,20 @@ class TestStatevector(QiskitTestCase):
         circ.x(0)
         circuit.ch(0, 1)
         target = Statevector.from_label('00').evolve(Operator(circuit))
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test custom controlled gate
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        gate = qc.to_gate()
+        gate_ctrl = gate.control()
+
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        circuit.append(gate_ctrl, range(3))
+        target = Statevector.from_label('000').evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -345,13 +371,22 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(-state, Statevector(-1 * vec))
 
     def test_equiv(self):
-        """Test negate method"""
+        """Test equiv method"""
         vec = np.array([1, 0, 0, -1j]) / np.sqrt(2)
         phase = np.exp(-1j * np.pi / 4)
         statevec = Statevector(vec)
         self.assertTrue(statevec.equiv(phase * vec))
         self.assertTrue(statevec.equiv(Statevector(phase * vec)))
         self.assertFalse(statevec.equiv(2 * vec))
+
+    def test_equiv_on_circuit(self):
+        """Test the equiv method on different types of input."""
+        statevec = Statevector([1, 0])
+
+        qc = QuantumCircuit(1)
+        self.assertTrue(statevec.equiv(qc))
+        qc.x(0)
+        self.assertFalse(statevec.equiv(qc))
 
     def test_to_dict(self):
         """Test to_dict method"""
@@ -865,6 +900,17 @@ class TestStatevector(QiskitTestCase):
                 op = Operator.from_label(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+    def test_global_phase(self):
+        """Test global phase is handled correctly when evolving statevector."""
+
+        qc = QuantumCircuit(1)
+        qc.rz(0.5, 0)
+        qc2 = transpile(qc, basis_gates=['p'])
+        sv = Statevector.from_instruction(qc2)
+        expected = np.array([0.96891242-0.24740396j, 0])
+        self.assertEqual(float(qc2.global_phase), -1/4)
+        self.assertEqual(sv, Statevector(expected))
 
 
 if __name__ == '__main__':

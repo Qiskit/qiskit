@@ -13,6 +13,7 @@
 """Test the LookaheadSwap pass"""
 
 import unittest
+from numpy import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler import CouplingMap
@@ -231,6 +232,24 @@ class TestLookaheadSwap(QiskitTestCase):
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 
         self.assertIsInstance(out, DAGCircuit)
+
+    def test_global_phase_preservation(self):
+        """Test that LookaheadSwap preserves global phase
+        """
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = pi / 3
+        circuit.cx(qr[0], qr[2])
+        dag_circuit = circuit_to_dag(circuit)
+
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
+
+        mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
+
+        self.assertEqual(mapped_dag.global_phase, circuit.global_phase)
+        self.assertEqual(mapped_dag.count_ops().get('swap', 0),
+                         dag_circuit.count_ops().get('swap', 0) + 1)
 
 
 if __name__ == '__main__':

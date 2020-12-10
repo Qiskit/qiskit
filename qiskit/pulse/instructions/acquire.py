@@ -17,10 +17,10 @@ import warnings
 
 from typing import List, Optional
 
-from ..channels import MemorySlot, RegisterSlot, AcquireChannel
-from ..configuration import Kernel, Discriminator
-from ..exceptions import PulseError
-from .instruction import Instruction
+from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
+from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class Acquire(Instruction):
@@ -72,14 +72,11 @@ class Acquire(Instruction):
         if not (mem_slot or reg_slot):
             raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
 
-        self._channel = channel
-        self._mem_slot = mem_slot
-        self._reg_slot = reg_slot
         self._kernel = kernel
         self._discriminator = discriminator
 
         all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
-        super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
+        super().__init__((duration, channel, mem_slot, reg_slot),
                          duration, all_channels, name=name)
 
     @property
@@ -87,7 +84,7 @@ class Acquire(Instruction):
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
 
     @property
     def kernel(self) -> Kernel:
@@ -104,40 +101,40 @@ class Acquire(Instruction):
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
-        return self._channel
+        return self.channel
 
     @property
     def mem_slot(self) -> MemorySlot:
         """The classical memory slot which will store the classified readout result."""
-        return self._mem_slot
+        return self.operands[2]
 
     @property
     def reg_slot(self) -> RegisterSlot:
         """The fast-access register slot which will store the classified readout result for
         fast-feedback computation.
         """
-        return self._reg_slot
+        return self.operands[3]
 
     @property
     def acquires(self) -> List[AcquireChannel]:
         """Acquire channels to be acquired on."""
         warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
                       DeprecationWarning)
-        return [self._channel]
+        return [self.channel]
 
     @property
     def mem_slots(self) -> List[MemorySlot]:
         """MemorySlots."""
         warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
                       DeprecationWarning)
-        return [self._mem_slot]
+        return [self.mem_slot]
 
     @property
     def reg_slots(self) -> List[RegisterSlot]:
         """RegisterSlots."""
         warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
                       DeprecationWarning)
-        return [self._reg_slot]
+        return [self.reg_slot]
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(

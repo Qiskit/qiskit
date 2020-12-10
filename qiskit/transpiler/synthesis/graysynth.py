@@ -105,7 +105,7 @@ def graysynth(cnots, angles, section_size=2):
                 elif angles[index] == 'z':
                     qcir.z(qubit)
                 else:
-                    qcir.u1(angles[index] % np.pi, qubit)
+                    qcir.p(angles[index] % np.pi, qubit)
                 del angles[index]
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
@@ -142,7 +142,7 @@ def graysynth(cnots, angles, section_size=2):
                                 elif angles[index] == 'z':
                                     qcir.z(qubit)
                                 else:
-                                    qcir.u1(angles[index] % np.pi, qubit)
+                                    qcir.p(angles[index] % np.pi, qubit)
                                 del angles[index]
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 if index == len(cnots_copy):

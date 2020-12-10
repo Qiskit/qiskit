@@ -14,7 +14,12 @@
 Pulse visualization module.
 """
 
-from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
+# interface
+from qiskit.visualization.pulse_v2.interface import draw
 
-
-PULSE_STYLE = QiskitPulseStyle()
+# stylesheets
+from qiskit.visualization.pulse_v2.stylesheet import (
+    IQXStandard,
+    IQXSimple,
+    IQXDebugging
+)

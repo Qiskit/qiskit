@@ -40,6 +40,7 @@ class TestBuilder(QiskitTestCase):
 
 class TestBuilderBase(TestBuilder):
     """Test builder base."""
+
     def test_schedule_supplied(self):
         """Test that schedule is used if it is supplied to the builder."""
         d0 = pulse.DriveChannel(0)
@@ -278,8 +279,9 @@ class TestContexts(TestBuilder):
         reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(
-            -(1e9*10*self.configuration.dt % (2*np.pi)), d0)
+            -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0)
         reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+
         self.assertEqual(schedule, reference)
 
 
@@ -488,7 +490,7 @@ class TestInstructions(TestBuilder):
         reference = inst_map.get('u1', (0,), 0.0)
 
         u1_qc = circuit.QuantumCircuit(2)
-        u1_qc.u1(0.0, 0)
+        u1_qc.append(circuit.library.U1Gate(0.0), [0])
 
         transpiler_settings = {'optimization_level': 0}
 
@@ -784,7 +786,7 @@ class TestGates(TestBuilder):
             pulse.u1(np.pi, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.u1(np.pi, 0)
+        reference_qc.append(circuit.library.U1Gate(np.pi), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertEqual(schedule, reference)
@@ -795,7 +797,7 @@ class TestGates(TestBuilder):
             pulse.u2(np.pi, 0, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.u2(np.pi, 0, 0)
+        reference_qc.append(circuit.library.U2Gate(np.pi, 0), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertEqual(schedule, reference)
@@ -806,7 +808,7 @@ class TestGates(TestBuilder):
             pulse.u3(np.pi, 0, np.pi/2, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
-        reference_qc.u3(np.pi, 0, np.pi/2, 0)
+        reference_qc.append(circuit.library.U3Gate(np.pi, 0, np.pi/2), [0])
         reference = compiler.schedule(reference_qc, self.backend)
 
         self.assertEqual(schedule, reference)
@@ -902,7 +904,7 @@ class TestBuilderComposition(TestBuilder):
 
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
-        single_u2_qc.u2(0, pi/2, 1)
+        single_u2_qc.append(circuit.library.U2Gate(0, pi/2), [1])
         single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
         single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
@@ -925,9 +927,9 @@ class TestBuilderComposition(TestBuilder):
 
         # align left
         triple_u2_qc = circuit.QuantumCircuit(2)
-        triple_u2_qc.u2(0, pi/2, 0)
-        triple_u2_qc.u2(0, pi/2, 1)
-        triple_u2_qc.u2(0, pi/2, 0)
+        triple_u2_qc.append(circuit.library.U2Gate(0, pi/2), [0])
+        triple_u2_qc.append(circuit.library.U2Gate(0, pi/2), [1])
+        triple_u2_qc.append(circuit.library.U2Gate(0, pi/2), [0])
         triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
         align_left_reference = compiler.schedule(
             triple_u2_qc, self.backend, method='alap')

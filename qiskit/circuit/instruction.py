@@ -49,7 +49,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
         Args:
@@ -58,6 +58,8 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
+            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
+            unit (str): time unit of duration
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -80,6 +82,9 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
+
+        self._duration = duration
+        self._unit = unit
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -124,6 +129,45 @@ class Instruction:
 
         return True
 
+    def soft_compare(self, other: 'Instruction') -> bool:
+        """
+        Soft comparison between gates. Their names, number of qubits, and classical
+        bit numbers must match. The number of parameters must match. Each parameter
+        is compared. If one is a ParameterExpression then it is not taken into
+        account.
+
+        Args:
+            other (instruction): other instruction.
+
+        Returns:
+            bool: are self and other equal up to parameter expressions.
+        """
+        if self.name != other.name or \
+                other.num_qubits != other.num_qubits or \
+                other.num_clbits != other.num_clbits or \
+                len(self.params) != len(other.params):
+            return False
+
+        for self_param, other_param in zip_longest(self.params, other.params):
+            if isinstance(self_param, ParameterExpression) or \
+                    isinstance(other_param, ParameterExpression):
+                continue
+            if isinstance(self_param, numpy.ndarray) and \
+                    isinstance(other_param, numpy.ndarray):
+                if numpy.shape(self_param) == numpy.shape(other_param) \
+                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                    continue
+            else:
+                try:
+                    if numpy.isclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                        continue
+                except TypeError:
+                    pass
+
+            return False
+
+        return True
+
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
         pass
@@ -137,7 +181,10 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            self._params.append(self.validate_parameter(single_param))
+            if isinstance(single_param, ParameterExpression):
+                self._params.append(single_param)
+            else:
+                self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
         """Instruction parameters has no validation or normalization."""
@@ -180,6 +227,26 @@ class Instruction:
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         sel.add_equivalence(self, decomposition)
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        """Set the duration."""
+        self._duration = duration
+
+    @property
+    def unit(self):
+        """Get the time unit of duration."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit):
+        """Set the time unit of duration."""
+        self._unit = unit
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

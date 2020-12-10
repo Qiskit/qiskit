@@ -16,7 +16,6 @@ Methods to create random operators.
 
 import numpy as np
 from numpy.random import default_rng
-from scipy import stats
 
 from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
@@ -25,6 +24,8 @@ from qiskit.exceptions import QiskitError
 from .symplectic.random import random_clifford
 from .symplectic.random import random_pauli_table
 from .symplectic.random import random_stabilizer_table
+
+DEFAULT_RNG = default_rng()
 
 
 def random_unitary(dims, seed=None):
@@ -41,13 +42,14 @@ def random_unitary(dims, seed=None):
         Operator: a unitary operator.
     """
     if seed is None:
-        random_state = np.random.default_rng()
+        random_state = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
         random_state = default_rng(seed)
 
     dim = np.product(dims)
+    from scipy import stats
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
@@ -69,7 +71,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         Operator: a Hermitian operator.
     """
     if seed is None:
-        rng = np.random.default_rng()
+        rng = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -77,6 +79,7 @@ def random_hermitian(dims, traceless=False, seed=None):
 
     # Total dimension
     dim = np.product(dims)
+    from scipy import stats
 
     if traceless:
         mat = np.zeros((dim, dim), dtype=complex)
@@ -139,6 +142,7 @@ def random_quantum_channel(input_dims=None,
         rank = d_in * d_out
     if rank < 1:
         raise QiskitError("Rank {} must be greater than 0.".format(rank))
+    from scipy import stats
 
     # Generate a random unitary matrix
     unitary = stats.unitary_group.rvs(
