@@ -152,13 +152,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         if all(isinstance(data, (list, np.ndarray)) for data in result.circuit_results):
             interval = 2 * [result.estimation]
 
-        if kind in ['likelihood_ratio', 'lr']:
+        elif kind in ['likelihood_ratio', 'lr']:
             interval = _likelihood_ratio_confint(result, alpha)
 
-        if kind in ['fisher', 'fi']:
+        elif kind in ['fisher', 'fi']:
             interval = _fisher_confint(result, alpha, observed=False)
 
-        if kind in ['observed_fisher', 'observed_information', 'oi']:
+        elif kind in ['observed_fisher', 'observed_information', 'oi']:
             interval = _fisher_confint(result, alpha, observed=True)
 
         if interval is None:

@@ -118,6 +118,13 @@ from .algorithm_result import AlgorithmResult
 from .quantum_algorithm import QuantumAlgorithm
 from .variational_quantum_algorithm import VQAlgorithm, VQResult
 from .amplitude_amplifiers import Grover, GroverResult
+from .amplitude_estimators import (
+    AmplitudeEstimator, AmplitudeEstimatorResult,
+    AmplitudeEstimation, AmplitudeEstimationResult,
+    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem
+)
 from .eigen_solvers import NumPyEigensolver, ExactEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
@@ -132,6 +139,15 @@ __all__ = [
     'VQResult',
     'Grover',
     'GroverResult',
+    'AmplitudeEstimator',
+    'AmplitudeEstimatorResult',
+    'AmplitudeEstimation',
+    'AmplitudeEstimationResult',
+    'IterativeAmplitudeEstimation',
+    'IterativeAmplitudeEstimationResult',
+    'MaximumLikelihoodAmplitudeEstimation',
+    'MaximumLikelihoodAmplitudeEstimationResult',
+    'EstimationProblem',
     'NumPyEigensolver',
     'ExactEigensolver',
     'Eigensolver',

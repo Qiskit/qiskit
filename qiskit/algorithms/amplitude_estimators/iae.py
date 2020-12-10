@@ -355,7 +355,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 a_intervals.append([a_l, a_u])
 
         # get the latest confidence interval for the estimate of a
-        confidence_interval = a_intervals[-1]
+        confidence_interval = tuple(a_intervals[-1])
 
         # the final estimate is the mean of the confidence interval
         estimation = np.mean(confidence_interval)
