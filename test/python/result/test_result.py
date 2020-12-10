@@ -335,6 +335,73 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(memory.dtype, np.complex_)
         np.testing.assert_almost_equal(memory, processed_memory)
 
+    def test_circuit_statevector_repr_without_decimal(self):
+        """Test postprocessing of statevector without giving any decimals arg."""
+        raw_statevector = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        processed_sv = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        data = models.ExperimentResultData(statevector=raw_statevector)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        statevector = result.get_statevector()
+        self.assertEqual(statevector.shape, (8,))
+        self.assertEqual(statevector.dtype, np.complex_)
+        np.testing.assert_almost_equal(statevector, processed_sv)
+
+    def test_circuit_statevector_repr_decimal(self):
+        """Test postprocessing of statevector giving decimals arg."""
+        raw_statevector = np.array(
+            [0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j,
+             0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j, 0.35355339 + 0.j],
+            dtype=np.complex_)
+        processed_sv = np.array(
+            [0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j, 0.354 + 0.j,
+             0.354 + 0.j, 0.354 + 0.j], dtype=np.complex_)
+        data = models.ExperimentResultData(statevector=raw_statevector)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        statevector = result.get_statevector(decimals=3)
+        self.assertEqual(statevector.shape, (8,))
+        self.assertEqual(statevector.dtype, np.complex_)
+        np.testing.assert_almost_equal(statevector, processed_sv)
+
+    def test_circuit_unitary_repr_without_decimal(self):
+        """Test postprocessing of unitary without giving any decimals arg."""
+        raw_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                [0.70710678 + 0.00000000e+00j, -0.70710678 + 8.65956056e-17j]],
+                               dtype=np.complex_)
+        processed_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                      [0.70710678 + 0.00000000e+00j,
+                                       -0.70710678 + 8.65956056e-17j]],
+                                     dtype=np.complex_)
+        data = models.ExperimentResultData(unitary=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary()
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
+    def test_circuit_unitary_repr_decimal(self):
+        """Test postprocessing of unitary giving decimals arg."""
+        raw_unitary = np.array([[0.70710678 + 0.00000000e+00j, 0.70710678 - 8.65956056e-17j],
+                                [0.70710678 + 0.00000000e+00j, -0.70710678 + 8.65956056e-17j]],
+                               dtype=np.complex_)
+        processed_unitary = np.array([[0.707 + 0.j, 0.707 - 0.j],
+                                      [0.707 + 0.j, -0.707 + 0.j]], dtype=np.complex_)
+        data = models.ExperimentResultData(unitary=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary(decimals=3)
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
 
 class TestResultOperationsFailed(QiskitTestCase):
     """Result operations methods."""
