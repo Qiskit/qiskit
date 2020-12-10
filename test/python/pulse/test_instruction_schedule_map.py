@@ -356,17 +356,17 @@ class TestInstructionScheduleMap(QiskitTestCase):
         lamb = Parameter('lambda')
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)))
-        target_sched.insert(10, ShiftPhase(phi, DriveChannel(0)))
-        target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)))
+        target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(phi, DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add('target_sched', (0,), target_sched, arguments=['theta', 'phi', 'lambda'])
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)))
-        ref_sched.insert(10, ShiftPhase(1, DriveChannel(0)))
-        ref_sched.insert(20, ShiftPhase(2, DriveChannel(0)))
+        ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1, DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(2, DriveChannel(0)), inplace=True)
 
         # if parameter is alphanumerical ordering this maps to
         # theta -> 2
@@ -387,7 +387,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param = Parameter('param')
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)))
+        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add('target_sched', (0,), target_sched)
@@ -400,7 +400,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param = Parameter('param')
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)))
+        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add('target_sched', (0,), target_sched)
@@ -415,17 +415,17 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param3 = Parameter('param')
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)))
-        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)))
-        target_sched.insert(20, ShiftPhase(param3, DriveChannel(0)))
+        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(param3, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add('target_sched', (0,), target_sched)
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(1.23, DriveChannel(0)))
-        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)))
-        ref_sched.insert(20, ShiftPhase(1.23, DriveChannel(0)))
+        ref_sched.insert(0, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
 
         test_sched = inst_map.get('target_sched', (0,), param=1.23)
 
@@ -439,15 +439,15 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param2 = Parameter('param2')
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)))
-        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)))
+        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add('target_sched', (0,), target_sched)
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(param1, DriveChannel(0)))
-        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)))
+        ref_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
 
         test_sched = inst_map.get('target_sched', (0,), param2=1.23)
 
