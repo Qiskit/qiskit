@@ -215,6 +215,7 @@ class DAGCircuit:
                 if (len(qubit) > 0 and isinstance(qubit[0], ParameterExpression)) or \
                         (len(params) > 0 and isinstance(params[0], ParameterExpression)):
                     return True
+
         qubits = tuple(qubit.index for qubit in node.qargs)
         params = []
         for p in node.op.params:
