@@ -49,7 +49,7 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name,
                              global_phase=dag.global_phase)
-
+    circuit.metadata = dag.metadata
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
