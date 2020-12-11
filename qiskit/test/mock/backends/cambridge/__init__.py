@@ -13,3 +13,4 @@
 # pylint: disable=missing-docstring
 
 from .fake_cambridge import FakeCambridge
+from .fake_cambridge import FakeCambridgeAlternativeBasis
