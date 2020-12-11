@@ -172,7 +172,6 @@ class Pauli(BasePauli):
                     "Invalid input tuple for Pauli, input tuple must be"
                     " `(z, x, phase)` or `(z, x)`")
             base_z, base_x, base_phase = self._from_array(*data)
-            print(base_z, base_x, base_phase)
         elif isinstance(data, str):
             base_z, base_x, base_phase = self._from_label(data)
         elif isinstance(data, ScalarOp):
