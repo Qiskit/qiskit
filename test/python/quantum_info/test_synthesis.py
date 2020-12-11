@@ -79,7 +79,7 @@ class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
     def check_one_qubit_euler_angles(self, operator, basis='U3', tolerance=1e-12,
-                                     phase_equal=False):
+                                     phase_equal=True):
         """Check OneQubitEulerDecomposer works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
