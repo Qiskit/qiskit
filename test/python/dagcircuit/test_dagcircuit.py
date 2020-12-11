@@ -25,11 +25,13 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.z import CZGate
 from qiskit.circuit.library.standard_gates.x import XGate
+from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
@@ -707,6 +709,112 @@ class TestDagNodeSelection(QiskitTestCase):
             self.assertEqual(len(run), 1)
             self.assertEqual(['h'], [x.name for x in run])
             self.assertEqual([[self.qubit0]], [x.qargs for x in run])
+
+    def test_dag_collect_1q_runs(self):
+        """Test the collect_1q_runs method with 3 different gates."""
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(HGate(), [self.qubit2])
+        collected_runs = self.dag.collect_1q_runs()
+        self.assertEqual(len(collected_runs), 2)
+        for run in collected_runs:
+            if run[0].name == 'h':
+                self.assertEqual(len(run), 1)
+                self.assertEqual(['h'], [x.name for x in run])
+                self.assertEqual([[self.qubit2]], [x.qargs for x in run])
+            elif run[0].name == 'u1':
+                self.assertEqual(len(run), 3)
+                self.assertEqual(['u1'] * 3, [x.name for x in run])
+                self.assertEqual(
+                    [[self.qubit0], [self.qubit0], [self.qubit0]],
+                    [x.qargs for x in run])
+            else:
+                self.fail('Unknown run encountered')
+
+    def test_dag_collect_1q_runs_start_with_conditional(self):
+        """Test collect 1q runs with a conditional at the start of the run."""
+        h_gate = HGate()
+        h_gate.condition = self.condition
+        self.dag.apply_operation_back(
+            h_gate, [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        collected_runs = self.dag.collect_1q_runs()
+        self.assertEqual(len(collected_runs), 1)
+        run = collected_runs.pop()
+        self.assertEqual(len(run), 2)
+        self.assertEqual(['h', 'h'], [x.name for x in run])
+        self.assertEqual([[self.qubit0], [self.qubit0]],
+                         [x.qargs for x in run])
+
+    def test_dag_collect_1q_runs_conditional_in_middle(self):
+        """Test collect_1q_runs with a conditional in the middle of a run."""
+        h_gate = HGate()
+        h_gate.condition = self.condition
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(
+            h_gate, [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        collected_runs = self.dag.collect_1q_runs()
+        # Should return 2 single h gate runs (1 before condition, 1 after)
+        self.assertEqual(len(collected_runs), 2)
+        for run in collected_runs:
+            self.assertEqual(len(run), 1)
+            self.assertEqual(['h'], [x.name for x in run])
+            self.assertEqual([[self.qubit0]], [x.qargs for x in run])
+
+    def test_dag_collect_1q_runs_with_parameterized_gate(self):
+        """Test collect 1q splits on parameterized gates."""
+        theta = Parameter('theta')
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(theta), [self.qubit0])
+        self.dag.apply_operation_back(XGate(), [self.qubit0])
+        self.dag.apply_operation_back(XGate(), [self.qubit0])
+        collected_runs = self.dag.collect_1q_runs()
+        self.assertEqual(len(collected_runs), 2)
+        run_gates = [[x.name for x in run] for run in collected_runs]
+        self.assertIn(['h', 'h'], run_gates)
+        self.assertIn(['x', 'x'], run_gates)
+        self.assertNotIn('u1', [x.name for run in collected_runs for x in run])
+
+    def test_dag_collect_1q_runs_with_cx_in_middle(self):
+        """Test collect_1q_runs_with a cx in the middle of the run."""
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit1])
+        self.dag.apply_operation_back(U1Gate(3.14), [self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit1])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(YGate(), [self.qubit0])
+        self.dag.apply_operation_back(YGate(), [self.qubit0])
+        self.dag.apply_operation_back(XGate(), [self.qubit1])
+        self.dag.apply_operation_back(XGate(), [self.qubit1])
+        collected_runs = self.dag.collect_1q_runs()
+        self.assertEqual(len(collected_runs), 4)
+        for run in collected_runs:
+            if run[0].name == 'h':
+                self.assertEqual(len(run), 3)
+                self.assertEqual(['h', 'h', 'u1'], [x.name for x in run])
+                self.assertEqual([[self.qubit0]] * 3, [x.qargs for x in run])
+            elif run[0].name == 'u1':
+                self.assertEqual(len(run), 3)
+                self.assertEqual(['u1', 'u1', 'h'], [x.name for x in run])
+                self.assertEqual([[self.qubit1]] * 3, [x.qargs for x in run])
+            elif run[0].name == 'x':
+                self.assertEqual(len(run), 2)
+                self.assertEqual(['x', 'x'], [x.name for x in run])
+                self.assertEqual([[self.qubit1]] * 2, [x.qargs for x in run])
+            elif run[0].name == 'y':
+                self.assertEqual(len(run), 2)
+                self.assertEqual(['y', 'y'], [x.name for x in run])
+                self.assertEqual([[self.qubit0]] * 2, [x.qargs for x in run])
+            else:
+                self.fail("Unknown run encountered")
 
 
 class TestDagLayers(QiskitTestCase):
