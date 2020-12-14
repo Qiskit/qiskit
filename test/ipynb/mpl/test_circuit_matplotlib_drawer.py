@@ -84,6 +84,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='empty_circut.png')
 
+    def test_no_ops(self):
+        """Test circuit with no ops.
+        See https://github.com/Qiskit/qiskit-terra/issues/5393 """
+        circuit = QuantumCircuit(2, 3)
+        self.circuit_drawer(circuit, filename='no_op_circut.png')
+
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
