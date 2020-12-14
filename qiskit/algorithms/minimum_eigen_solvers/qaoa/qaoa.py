@@ -63,7 +63,6 @@ class QAOA(VQE):
     """
 
     def __init__(self,
-                 operator: Union[OperatorBase, LegacyBaseOperator] = None,
                  optimizer: Optimizer = None,
                  p: int = 1,
                  initial_state: Optional[QuantumCircuit] = None,
@@ -74,14 +73,11 @@ class QAOA(VQE):
                  expectation: Optional[ExpectationBase] = None,
                  include_custom: bool = False,
                  max_evals_grouped: int = 1,
-                 aux_operators: Optional[List[Optional[Union[OperatorBase, LegacyBaseOperator]]]] =
-                 None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
                  quantum_instance: Optional[
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         """
         Args:
-            operator: Qubit operator
             optimizer: A classical optimizer.
             p: the integer parameter p as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
@@ -113,10 +109,6 @@ class QAOA(VQE):
                 multiple points to compute the gradient can be passed and if computed in parallel
                 improve overall execution time. Ignored if a gradient operator or function is
                 given.
-            aux_operators: Optional list of auxiliary operators to be evaluated with the eigenstate
-                of the minimum eigenvalue main result and their expectation values returned.
-                For instance in chemistry these can be dipole operators, total particle count
-                operators so we can get values for these at the ground state.
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
@@ -132,29 +124,25 @@ class QAOA(VQE):
 
         # VQE will use the operator setter, during its constructor, which is overridden below and
         # will cause the var form to be built
-        super().__init__(operator,
-                         None,
-                         optimizer,
+        super().__init__(var_form=None,
+                         optimizer=optimizer,
                          initial_point=initial_point,
                          gradient=gradient,
                          expectation=expectation,
                          include_custom=include_custom,
                          max_evals_grouped=max_evals_grouped,
                          callback=callback,
-                         quantum_instance=quantum_instance,
-                         aux_operators=aux_operators)
+                         quantum_instance=quantum_instance)
 
-    @VQE.operator.setter  # type: ignore
-    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
-        """ Sets operator """
+    def _check_operator(self,
+                        operator: Union[OperatorBase, LegacyBaseOperator]) -> OperatorBase:
         # Need to wipe the var_form in case number of qubits differs from operator.
-        self.var_form = None
-        # Setting with VQE's operator property
-        super(QAOA, self.__class__).operator.__set__(self, operator)  # type: ignore
+        operator = super()._check_operator(operator)
         self.var_form = QAOAVarForm(self.operator,
                                     self._p,
                                     initial_state=self._initial_state,
                                     mixer_operator=self._mixer)
+        return operator
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

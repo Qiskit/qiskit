@@ -43,12 +43,13 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def _optimize(self, optimizer):
         """ launch vqe """
-        result = VQE(self.qubit_op,
-                     RealAmplitudes(),
-                     optimizer).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                         seed_simulator=aqua_globals.random_seed,
-                                         seed_transpiler=aqua_globals.random_seed))
+        qe = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                             seed_simulator=aqua_globals.random_seed,
+                             seed_transpiler=aqua_globals.random_seed)
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=optimizer,
+                  quantum_instance=qe)
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
     def test_bobyqa(self):

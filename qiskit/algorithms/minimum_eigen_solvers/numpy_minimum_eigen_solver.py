@@ -14,10 +14,8 @@
 
 from typing import List, Optional, Union, Dict, Any, Callable
 import logging
-import pprint
 import numpy as np
 
-from qiskit.utils import aqua_globals
 from qiskit.opflow import OperatorBase, LegacyBaseOperator
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
@@ -33,16 +31,11 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     """
 
     def __init__(self,
-                 operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
-                 aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                             LegacyBaseOperator]]]] = None,
                  filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
                                             bool] = None
                  ) -> None:
         """
         Args:
-            operator: Operator instance
-            aux_operators: Auxiliary operators to be evaluated at minimum eigenvalue
             filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
                 eigensolver is only searching over feasible states and returns an eigenstate that
                 has the smallest eigenvalue among feasible states. The callable has the signature
@@ -50,41 +43,8 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 whether to consider this value or not. If there is no
                 feasible element, the result can even be empty.
         """
-        self._ces = NumPyEigensolver(operator=operator, k=1, aux_operators=aux_operators,
-                                     filter_criterion=filter_criterion)
-        # TODO remove
+        self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
         self._ret = {}  # type: Dict[str, Any]
-
-    @property
-    def random(self):
-        """Return a numpy random."""
-        return aqua_globals.random
-
-    def run(self) -> Dict:
-        """Execute the classical algorithm.
-        Returns:
-            dict: results of an algorithm.
-        """
-
-        return self._run()
-
-    @property
-    def operator(self) -> Optional[OperatorBase]:
-        return self._ces.operator
-
-    @operator.setter
-    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
-        self._ces.operator = operator
-
-    @property
-    def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
-        return self._ces.aux_operators
-
-    @aux_operators.setter
-    def aux_operators(self,
-                      aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                                  LegacyBaseOperator]]]]) -> None:
-        self._ces.aux_operators = aux_operators
 
     @property
     def filter_criterion(self) -> Optional[
@@ -104,20 +64,12 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     def compute_minimum_eigenvalue(
             self,
-            operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+            operator: Union[OperatorBase, LegacyBaseOperator],
             aux_operators: Optional[List[Optional[Union[OperatorBase,
                                                         LegacyBaseOperator]]]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
-        return self._run()
-
-    def _run(self) -> MinimumEigensolverResult:
-        """
-        Run the algorithm to compute up to the minimum eigenvalue.
-        Returns:
-            dict: Dictionary of results
-        """
-        result_ces = self._ces.run()
+        result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
         self._ret = self._ces._ret  # TODO remove
 
         result = MinimumEigensolverResult()
@@ -132,7 +84,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
             result.eigenstate = None
             result.aux_operator_eigenvalues = None
 
-        logger.debug('NumPyMinimumEigensolver dict:\n%s',
-                     pprint.pformat(result.data, indent=4))
+        logger.debug('NumPyMinimumEigensolver dict:\n%s', result)
 
         return result

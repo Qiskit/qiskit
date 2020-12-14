@@ -12,9 +12,8 @@
 
 """The Minimum Eigensolver interface"""
 
-import warnings
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union
 
 import numpy as np
 from qiskit.opflow import OperatorBase, LegacyBaseOperator
@@ -32,7 +31,7 @@ class MinimumEigensolver(ABC):
     @abstractmethod
     def compute_minimum_eigenvalue(
             self,
-            operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+            operator: Union[OperatorBase, LegacyBaseOperator],
             aux_operators: Optional[List[Optional[Union[OperatorBase,
                                                         LegacyBaseOperator]]]] = None
     ) -> 'MinimumEigensolverResult':
@@ -43,16 +42,15 @@ class MinimumEigensolver(ABC):
         are optional. To 'remove' a previous aux_operators array use an empty list here.
 
         Args:
-            operator: If not None replaces operator in algorithm
-            aux_operators:  If not None replaces aux_operators in algorithm
+            operator: Qubit operator of the Observable
+            aux_operators: Optional list of auxiliary operators to be evaluated with the
+                eigenstate of the minimum eigenvalue main result and their expectation values
+                returned. For instance in chemistry these can be dipole operators, total particle
+                count operators so we can get values for these at the ground state.
 
         Returns:
             MinimumEigensolverResult
         """
-        if operator is not None:
-            self.operator = operator  # type: ignore
-        if aux_operators is not None:
-            self.aux_operators = aux_operators  # type: ignore
         return MinimumEigensolverResult()
 
     @classmethod
@@ -68,92 +66,42 @@ class MinimumEigensolver(ABC):
         """
         return False
 
-    @property  # type: ignore
-    @abstractmethod
-    def operator(self) -> Optional[Union[OperatorBase, LegacyBaseOperator]]:
-        """Return the operator."""
-        raise NotImplementedError
-
-    @operator.setter  # type: ignore
-    @abstractmethod
-    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
-        """Set the operator."""
-        raise NotImplementedError
-
-    @property  # type: ignore
-    @abstractmethod
-    def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
-        """Returns the auxiliary operators."""
-        raise NotImplementedError
-
-    @aux_operators.setter  # type: ignore
-    @abstractmethod
-    def aux_operators(self,
-                      aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                                  LegacyBaseOperator]]]]) -> None:
-        """Set the auxiliary operators."""
-        raise NotImplementedError
-
 
 class MinimumEigensolverResult(AlgorithmResult):
     """ Minimum Eigensolver Result."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._eigenvalue = None
+        self._eigenstate = None
+        self._aux_operator_eigenvalues = None
+
     @property
     def eigenvalue(self) -> Optional[complex]:
         """ returns eigen value """
-        return self.get('eigenvalue')
+        return self._eigenvalue
 
     @eigenvalue.setter
     def eigenvalue(self, value: complex) -> None:
         """ set eigen value """
-        self.data['eigenvalue'] = value
+        self._eigenvalue = value
 
     @property
     def eigenstate(self) -> Optional[np.ndarray]:
         """ return eigen state """
-        return self.get('eigenstate')
+        return self._eigenstate
 
     @eigenstate.setter
     def eigenstate(self, value: np.ndarray) -> None:
         """ set eigen state """
-        self.data['eigenstate'] = value
+        self._eigenstate = value
 
     @property
     def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
         """ return aux operator eigen values """
-        return self.get('aux_operator_eigenvalues')
+        return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
     def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
         """ set aux operator eigen values """
-        self.data['aux_operator_eigenvalues'] = value
-
-    @staticmethod
-    def from_dict(a_dict: Dict) -> 'MinimumEigensolverResult':
-        """ create new object from a dictionary """
-        return MinimumEigensolverResult(a_dict)
-
-    def __getitem__(self, key: object) -> object:
-        if key == 'energy':
-            warnings.warn('energy deprecated, use eigenvalue property.', DeprecationWarning)
-            value = super().__getitem__('eigenvalue')
-            return None if value is None else value.real
-        elif key == 'energies':
-            warnings.warn('energies deprecated, use eigenvalue property.', DeprecationWarning)
-            value = super().__getitem__('eigenvalue')
-            return None if value is None else [value.real]
-        elif key == 'eigvals':
-            warnings.warn('eigvals deprecated, use eigenvalue property.', DeprecationWarning)
-            value = super().__getitem__('eigenvalue')
-            return None if value is None else [value]
-        elif key == 'eigvecs':
-            warnings.warn('eigvecs deprecated, use eigenstate property.', DeprecationWarning)
-            value = super().__getitem__('eigenstate')
-            return None if value is None else [value]
-        elif key == 'aux_ops':
-            warnings.warn('aux_ops deprecated, use aux_operator_eigenvalues property.',
-                          DeprecationWarning)
-            value = super().__getitem__('aux_operator_eigenvalues')
-            return None if value is None else [value]
-
-        return super().__getitem__(key)
+        self._aux_operator_eigenvalues = value
