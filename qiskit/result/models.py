@@ -63,16 +63,8 @@ class ExperimentResultData:
 
     def __repr__(self):
         string_list = []
-        if hasattr(self, 'counts'):
-            string_list.append("counts=%s" % self.counts)
-        if hasattr(self, 'snapshots'):
-            string_list.append("snapshots=%s" % self.snapshots)
-        if hasattr(self, 'memory'):
-            string_list.append("memory=%s" % self.memory)
-        if hasattr(self, 'statevector'):
-            string_list.append("statevector=%s" % self.statevector)
-        if hasattr(self, 'unitary'):
-            string_list.append("unitary=%s" % self.statevector)
+        for field in self._data_attributes:
+            string_list.append(f"{field}={getattr(self, field)}")
         out = "ExperimentResultData(%s)" % ', '.join(string_list)
         return out
 
