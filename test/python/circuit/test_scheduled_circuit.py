@@ -269,3 +269,22 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(q[2]), 2400)
         self.assertEqual(sc.qubit_start_time(*q), 300)
         self.assertEqual(sc.qubit_stop_time(*q), 2400)
+
+    def test_change_dt_in_transpile(self):
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        # default case
+        scheduled = transpile(qc,
+                              backend=self.backend_with_dt,
+                              scheduling_method='asap'
+                              )
+        org_duration = scheduled.duration
+
+        # halve dt in sec = double duration in dt
+        scheduled = transpile(qc,
+                              backend=self.backend_with_dt,
+                              scheduling_method='asap',
+                              dt=self.dt/2
+                              )
+        self.assertEqual(scheduled.duration, org_duration*2)
