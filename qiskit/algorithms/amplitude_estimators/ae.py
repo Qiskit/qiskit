@@ -346,91 +346,81 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
 
 class AmplitudeEstimationResult(AmplitudeEstimatorResult):
-    """ AmplitudeEstimation Result."""
+    """The ``AmplitudeEstimation`` result object."""
 
     @property
     def num_evaluation_qubits(self) -> int:
-        """ returns num_evaluation_qubits """
+        """Returns the number of evaluation qubits."""
         return self.get('num_evaluation_qubits')
 
     @num_evaluation_qubits.setter
     def num_evaluation_qubits(self, num_evaluation_qubits: int) -> None:
-        """ sets num_evaluation_qubits """
+        """Set the number of evaluation qubits."""
         self.data['num_evaluation_qubits'] = num_evaluation_qubits
 
     @property
     def mle_processed(self) -> float:
-        """ returns mle_processed """
+        """Return the post-processed MLE for the amplitude."""
         return self.get('mle_processed')
 
     @mle_processed.setter
     def mle_processed(self, value: float) -> None:
-        """ set mle_processed """
+        """Set the post-processed MLE for the amplitude."""
         self.data['mle_processed'] = value
 
     @property
-    def samples_processed(self) -> List[float]:
-        """ return samples_processed  """
+    def samples_processed(self) -> Dict[float, float]:
+        """Return the post-processed measurement samples with their measurement probability."""
         return self.get('samples_processed')
 
     @samples_processed.setter
-    def samples_processed(self, value: List[float]) -> None:
-        """ set samples_processed """
+    def samples_processed(self, value: Dict[float, float]) -> None:
+        """Set the post-processed measurement samples."""
         self.data['samples_processed'] = value
 
     @property
-    def probabilities(self) -> List[float]:
-        """ return probabilities """
-        return self.get('probabilities')
-
-    @probabilities.setter
-    def probabilities(self, value: List[float]) -> None:
-        """ set probabilities """
-        self.data['probabilities'] = value
-
-    @property
     def mle(self) -> float:
-        """ return mle """
+        r"""Return the MLE for the amplitude, in $[0, 1]$."""
         return self.get('mle')
 
     @mle.setter
     def mle(self, value: float) -> None:
-        """ set mle """
+        r"""Set the MLE for the amplitude, in $[0, 1]$."""
         self.data['mle'] = value
 
     @property
     def samples(self) -> Dict[float, float]:
-        """ return samples """
+        """Return the measurement samples with their measurement probability."""
         return self.get('samples')
 
     @samples.setter
     def samples(self, value: Dict[float, float]) -> None:
-        """ set samples """
+        """Set the measurement samples with their measurement probability."""
         self.data['samples'] = value
 
     @property
     def measurements(self) -> Dict[int, float]:
-        """ return y_measurements """
+        """Return the measurements as integers with their measurement probability."""
         return self.get('y_measurements')
 
     @measurements.setter
     def measurements(self, value: Dict[int, float]) -> None:
-        """ set y_measurements """
+        """Set the measurements as integers with their measurement probability."""
         self.data['y_measurements'] = value
 
     @property
     def max_probability(self) -> float:
-        """ return max_probability """
+        """Return the maximum sampling probability."""
         return self.get('max_probability')
 
     @max_probability.setter
     def max_probability(self, value: float) -> None:
-        """ set max_probability """
+        """Set the maximum sampling probability."""
         self.data['max_probability'] = value
 
     @staticmethod
     def from_dict(a_dict: Dict) -> 'AmplitudeEstimationResult':
-        """ create new object from a dictionary """
+        """Create a result object from a dictionary."""
         return AmplitudeEstimationResult(a_dict)
 
 

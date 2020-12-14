@@ -266,61 +266,63 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
 
 class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
-    """ MaximumLikelihoodAmplitudeEstimation Result."""
+    """The ``MaximumLikelihoodAmplitudeEstimation`` result object."""
 
     @property
     def theta(self) -> float:
-        """ returns theta """
+        r"""Return the estimate for the angle :math:`\theta`."""
         return self.get('theta')
 
     @theta.setter
     def theta(self, value: float) -> None:
-        """ set theta """
+        r"""Set the estimate for the angle :math:`\theta`."""
         self.data['theta'] = value
 
     @property
     def likelihood_nevals(self) -> int:
-        """ returns theta """
+        """Return the number evaluations used for the brute-force search of the likelihood function.
+        """
         return self.get('likelihood_nevals')
 
     @likelihood_nevals.setter
     def likelihood_nevals(self, value: int) -> None:
-        """ set theta """
+        """Set the number evaluations used for the brute-force search of the likelihood function.
+        """
         self.data['likelihood_nevals'] = value
 
     @property
     def good_counts(self) -> List[float]:
-        """ returns the percentage of good counts per circuit power """
+        """Return the percentage of good counts per circuit power."""
         return self.get('good_counts')
 
     @good_counts.setter
     def good_counts(self, counts: List[float]) -> None:
-        """ sets the percentage of good counts per circuit power """
+        """Set the percentage of good counts per circuit power."""
         self.data['good_counts'] = counts
 
     @property
     def evaluation_schedule(self) -> List[int]:
-        """ returns the evaluation schedule """
+        """Return the evaluation schedule for the powers of the Grover operator."""
         return self.get('evaluation_schedule')
 
     @evaluation_schedule.setter
     def evaluation_schedule(self, evaluation_schedule: List[int]) -> None:
-        """ sets the evaluation schedule """
+        """Set the evaluation schedule for the powers of the Grover operator."""
         self.data['evaluation_schedule'] = evaluation_schedule
 
     @property
     def fisher_information(self) -> float:
-        """ return fisher_information  """
+        """Return the Fisher information for the estimated amplitude."""
         return self.get('fisher_information')
 
     @fisher_information.setter
     def fisher_information(self, value: float) -> None:
-        """ set fisher_information """
+        """Set the Fisher information for the estimated amplitude."""
         self.data['fisher_information'] = value
 
     @staticmethod
     def from_dict(a_dict: Dict) -> 'MaximumLikelihoodAmplitudeEstimationResult':
-        """ create new object from a dictionary """
+        """Create a new result object from a dictionary."""
         return MaximumLikelihoodAmplitudeEstimationResult(a_dict)
 
 

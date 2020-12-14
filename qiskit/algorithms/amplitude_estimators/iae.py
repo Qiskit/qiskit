@@ -383,101 +383,101 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
 
 class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
-    """ IterativeAmplitudeEstimation Result."""
+    """The ``IterativeAmplitudeEstimation`` result object."""
 
     @property
     def alpha(self) -> float:
-        """ return alpha """
+        r"""Return the confidence level :math:`\alpha`."""
         return self.get('alpha')
 
     @alpha.setter
     def alpha(self, value: float) -> None:
-        """ set alpha """
+        r"""Set the confidence level :math:`\alpha`."""
         self.data['alpha'] = value
 
     @property
     def epsilon_target(self) -> float:
-        """ return target epsilon """
+        """Return the target half-width of the confidence interval."""
         return self.get('epsilon_target')
 
     @epsilon_target.setter
     def epsilon_target(self, value: float) -> None:
-        """ set mle """
+        """Set the target half-width of the confidence interval."""
         self.data['epsilon_target'] = value
 
     @property
     def epsilon_estimated(self) -> float:
-        """ return mle """
+        """Return the estimated half-width of the confidence interval."""
         return self.get('epsilon_estimated')
 
     @epsilon_estimated.setter
     def epsilon_estimated(self, value: float) -> None:
-        """ set mle """
+        """Set the estimated half-width of the confidence interval."""
         self.data['epsilon_estimated'] = value
 
     @property
     def epsilon_estimated_processed(self) -> float:
-        """ return estimated, processed epsilon """
+        """Return the post-processed estimated half-width of the confidence interval."""
         return self.get('epsilon_estimated_processed')
 
     @epsilon_estimated_processed.setter
     def epsilon_estimated_processed(self, value: float) -> None:
-        """ set estimated, processed epsilon """
+        """Set the post-processed estimated half-width of the confidence interval."""
         self.data['epsilon_estimated_processed'] = value
 
     @property
     def estimate_intervals(self) -> List[List[float]]:
-        """ return estimate_intervals """
+        """Return the confidence intervals for the estimate in each iteration."""
         return self.get('estimate_intervals')
 
     @estimate_intervals.setter
     def estimate_intervals(self, value: List[List[float]]) -> None:
-        """ set estimate_intervals """
+        """Set the confidence intervals for the estimate in each iteration."""
         self.data['estimate_intervals'] = value
 
     @property
     def theta_intervals(self) -> List[List[float]]:
-        """ return theta_intervals """
+        """Return the confidence intervals for the angles in each iteration."""
         return self.get('theta_intervals')
 
     @theta_intervals.setter
     def theta_intervals(self, value: List[List[float]]) -> None:
-        """ set theta_intervals """
+        """Set the confidence intervals for the angles in each iteration."""
         self.data['theta_intervals'] = value
 
     @property
     def powers(self) -> List[int]:
-        """ return powers """
+        """Return the powers of the Grover operator in each iteration."""
         return self.get('powers')
 
     @powers.setter
     def powers(self, value: List[int]) -> None:
-        """ set powers """
+        """Set the powers of the Grover operator in each iteration."""
         self.data['powers'] = value
 
     @property
     def ratios(self) -> List[float]:
-        """ return ratios """
+        r"""Return the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         return self.get('ratios')
 
     @ratios.setter
     def ratios(self, value: List[float]) -> None:
-        """ set ratios """
+        r"""Set the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         self.data['ratios'] = value
 
     @property
-    def confidence_interval_processed(self) -> List[float]:
-        """ return confidence_interval_processed  """
+    def confidence_interval_processed(self) -> Tuple[float, float]:
+        """Return the post-processed confidence interval."""
         return self.get('confidence_interval_processed')
 
     @confidence_interval_processed.setter
-    def confidence_interval_processed(self, value: List[float]) -> None:
-        """ set confidence_interval_processed """
+    def confidence_interval_processed(self, value: Tuple[float, float]) -> None:
+        """Set the post-processed confidence interval."""
         self.data['confidence_interval_processed'] = value
 
     @staticmethod
     def from_dict(a_dict: Dict) -> 'IterativeAmplitudeEstimationResult':
-        """ create new object from a dictionary """
+        """Create a new result object from a dictionary."""
         return IterativeAmplitudeEstimationResult(a_dict)
 
 

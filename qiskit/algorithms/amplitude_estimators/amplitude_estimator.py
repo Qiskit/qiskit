@@ -70,22 +70,22 @@ class AmplitudeEstimatorResult(AlgorithmResult):
 
     @property
     def circuit_results(self) -> Optional[Union[np.ndarray, Dict[str, int]]]:
-        """ return circuit result """
+        """Return the circuit results. Can be a statevector or counts dictionary."""
         return self.get('circuit_results')
 
     @circuit_results.setter
     def circuit_results(self, value: Union[np.ndarray, Dict[str, int]]) -> None:
-        """ set circuit result """
+        """Set the circuit results."""
         self.data['circuit_results'] = value
 
     @property
     def shots(self) -> int:
-        """ return shots """
+        """Return the number of shots used. Is 1 for statevector-based simulations."""
         return self.get('shots')
 
     @shots.setter
     def shots(self, value: int) -> None:
-        """ set shots """
+        """Set the number of shots used."""
         self.data['shots'] = value
 
     @property
@@ -95,7 +95,7 @@ class AmplitudeEstimatorResult(AlgorithmResult):
 
     @estimation.setter
     def estimation(self, value: float) -> None:
-        """ set estimation """
+        r"""Set the estimation for the amplitude in :math:`[0, 1]`."""
         self.data['estimation'] = value
 
     @property
@@ -105,52 +105,50 @@ class AmplitudeEstimatorResult(AlgorithmResult):
 
     @estimation_processed.setter
     def estimation_processed(self, value: float) -> None:
-        """ set estimation """
+        """Set the estimation for the amplitude after the post-processing has been applied."""
         self.data['estimation_processed'] = value
 
     @property
     def num_oracle_queries(self) -> int:
-        """ return num_oracle_queries """
+        """Return the number of Grover oracle queries."""
         return self.get('num_oracle_queries')
 
     @num_oracle_queries.setter
     def num_oracle_queries(self, value: int) -> None:
-        """ set num_oracle_queries """
+        """Set the number of Grover oracle queries."""
         self.data['num_oracle_queries'] = value
 
     @property
     def post_processing(self) -> Callable[[float], float]:
-        """ returns post_processing """
+        """Return a handle to the post processing function."""
         return self._post_processing
-        # return self.get('post_processing')
 
     @post_processing.setter
     def post_processing(self, post_processing: Callable[[float], float]) -> None:
-        """ sets post_processing """
+        """Set a handle to the post processing function."""
         self._post_processing = post_processing
-        # self.data['post_processing'] = post_processing
 
     @property
     def confidence_interval(self) -> Tuple[float, float]:
-        """ returns the confidence interval (95% by default) """
+        """Return the confidence interval for the amplitude (95% interval by default)."""
         return self.get('confidence_interval')
 
     @confidence_interval.setter
     def confidence_interval(self, confidence_interval: Tuple[float, float]) -> None:
-        """ sets confidence interval """
+        """Set the confidence interval for the amplitude (95% interval by default)."""
         self.data['confidence_interval'] = confidence_interval
 
     @property
     def confidence_interval_processed(self) -> Tuple[float, float]:
-        """ returns the confidence interval (95% by default) """
+        """Return the post-processed confidence interval (95% interval by default)."""
         return self.get('confidence_interval_processed')
 
     @confidence_interval_processed.setter
     def confidence_interval_processed(self, confidence_interval: Tuple[float, float]) -> None:
-        """ sets confidence interval """
+        """Set the post-processed confidence interval (95% interval by default)."""
         self.data['confidence_interval_processed'] = confidence_interval
 
     @staticmethod
     def from_dict(a_dict: Dict) -> 'AmplitudeEstimationAlgorithmResult':
-        """ create new object from a dictionary """
+        """Create a new result object from a dictionary."""
         return AmplitudeEstimatorResult(a_dict)
