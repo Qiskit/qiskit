@@ -21,8 +21,7 @@ from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
@@ -72,8 +71,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
             quantum_instance: The backend (or `QuantumInstance`) to execute the circuits on.
+
+        Raises:
+            ValueError: If the number of evaluation qubits is smaller than 1.
         """
-        validate_min('num_eval_qubits', num_eval_qubits, 1)
+        if num_eval_qubits < 1:
+            raise ValueError('The number of evaluation qubits must at least be 1.')
 
         super().__init__(quantum_instance)
 

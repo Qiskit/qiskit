@@ -16,8 +16,8 @@ from abc import abstractmethod
 from typing import Union, Optional, Dict, Callable, Tuple
 import numpy as np
 from qiskit.providers import BaseBackend, Backend
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import AlgorithmResult
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import AlgorithmResult
 
 from .estimation_problem import EstimationProblem
 

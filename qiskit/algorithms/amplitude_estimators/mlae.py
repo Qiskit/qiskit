@@ -21,8 +21,8 @@ from scipy.stats import norm, chi2
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.aqua import QuantumInstance, AquaError
-from qiskit.aqua.utils.validation import validate_min
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import AlgorithmError
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 
@@ -62,8 +62,12 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             likelihood_evals: The number of gridpoints for the maximum search of the likelihood
                 function
             quantum_instance: Quantum Instance or Backend
+
+        Raises:
+            ValueError: If the number of oracle circuits is smaller than 1.
         """
-        validate_min('num_oracle_circuits', num_oracle_circuits, 1)
+        if num_oracle_circuits < 1:
+            raise ValueError('The number of oracle circuits must at least be 1.')
 
         super().__init__(quantum_instance)
 
@@ -143,7 +147,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             The specified confidence interval.
 
         Raises:
-            AquaError: If `run()` hasn't been called yet.
+            AlgorithmError: If `run()` hasn't been called yet.
             NotImplementedError: If the method `kind` is not supported.
         """
         interval = None
@@ -212,8 +216,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
     def estimate(self, estimation_problem: EstimationProblem
                  ) -> 'MaximumLikelihoodAmplitudeEstimationResult':
         if estimation_problem.state_preparation is None:
-            raise AquaError('Either the state_preparation variable or the a_factory '
-                            '(deprecated) must be set to run the algorithm.')
+            raise AlgorithmError('Either the state_preparation variable or the a_factory '
+                                 '(deprecated) must be set to run the algorithm.')
 
         result = MaximumLikelihoodAmplitudeEstimationResult()
         result.likelihood_nevals = self._likelihood_nevals
@@ -485,7 +489,7 @@ def _get_counts(circuit_results: List[Union[np.ndarray, List[float], Dict[str, i
         A pair of two lists, ([1-counts per experiment], [shots per experiment]).
 
     Raises:
-        AquaError: If self.run() has not been called yet.
+        AlgorithmError: If self.run() has not been called yet.
     """
     one_hits = []  # h_k: how often 1 has been measured, for a power Q^(m_k)
     all_hits = []  # shots_k: how often has been measured at a power Q^(m_k)

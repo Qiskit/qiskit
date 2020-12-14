@@ -20,8 +20,8 @@ from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import BaseBackend, Backend
-from qiskit.aqua import QuantumInstance, AquaError
-from qiskit.aqua.utils.validation import validate_range, validate_in_set
+from qiskit.utils import QuantumInstance
+from qiskit.algorithms import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
@@ -72,12 +72,21 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             quantum_instance: Quantum Instance or Backend
 
         Raises:
-            AquaError: if the method to compute the confidence intervals is not supported
+            AlgorithmError: if the method to compute the confidence intervals is not supported
+            ValueError: If the target epsilon is not in (0, 0.5]
+            ValueError: If alpha is not in (0, 1)
+            ValueError: If confint_method is not supported
         """
         # validate ranges of input arguments
-        validate_range('epsilon', epsilon_target, 0, 0.5)
-        validate_range('alpha', alpha, 0, 1)
-        validate_in_set('confint_method', confint_method, {'chernoff', 'beta'})
+        if not 0 < epsilon_target <= 0.5:
+            raise ValueError(f'The target epsilon must be in (0, 0.5], but is {epsilon_target}.')
+
+        if not 0 < alpha < 1:
+            raise ValueError(f'The confidence level alpha must be in (0, 1), but is {alpha}')
+
+        if confint_method not in {'chernoff', 'beta'}:
+            raise ValueError('The confidence interval method must be chernoff or beta, but '
+                             f'is {confint_method}.')
 
         super().__init__(quantum_instance)
 
@@ -122,10 +131,10 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             The next power k, and boolean flag for the extrapolated interval.
 
         Raises:
-            AquaError: if min_ratio is smaller or equal to 1
+            AlgorithmError: if min_ratio is smaller or equal to 1
         """
         if min_ratio <= 1:
-            raise AquaError('min_ratio must be larger than 1 to ensure convergence')
+            raise AlgorithmError('min_ratio must be larger than 1 to ensure convergence')
 
         # initialize variables
         theta_l, theta_u = theta_interval
