@@ -42,7 +42,7 @@ from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 ScheduleArgumentsTuple = NamedTuple('ScheduleArgumentsTuple',
                                     [('schedule', Union[Callable, Schedule]),
                                      ('arguments', Tuple[str])])
-ScheduleArgumentsTuple.__doc__ = 'Set of schedule generator and associated arguments names.'
+ScheduleArgumentsTuple.__doc__ = 'Set of schedule generator and associated argument names.'
 ScheduleArgumentsTuple.schedule.__doc__ = 'Schedule generator function or Schedule.'
 ScheduleArgumentsTuple.arguments.__doc__ = 'Name of parameters to be assigned.'
 
