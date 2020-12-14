@@ -22,9 +22,10 @@ from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms import AlgorithmError
+
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
