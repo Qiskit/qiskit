@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Add the refactored Amplitude Estimation algorithms.
+    The algorithms,
+    * ``AmplitudeEstimation`` (Brassard et al.)
+    * ``MaximumLikelihoodAmplitudeEstimation`` (Suzuki et al.)
+    * ``IterativeAmplitudeEstimation`` (Grinko et al.)
+    are separated from the problem-specific information, such as the :math:`\mathcal{A}`
+    and :math:`\mathcal{Q}` operators. This information is encapsulated in an
+    ``EstimationProblem``. Each of the algorithms is thus re-usable for different problems and
+    different algorithms can easily be compared on the same problem.
