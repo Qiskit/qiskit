@@ -180,7 +180,7 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
-        schedule_args_tuple = deepcopy(self._map[instruction][_to_tuple(qubits)])
+        schedule_args_tuple = self._map[instruction][_to_tuple(qubits)]
 
         # Verify parameter-value mapping
         if len(params) > len(schedule_args_tuple.arguments):
@@ -197,17 +197,18 @@ class InstructionScheduleMap():
         if callable(sched):
             return sched(**bind_parameters)
 
+        sched_copy = deepcopy(sched)
         # schedule
-        if sched.is_parameterized():
+        if sched_copy.is_parameterized():
             parameter_mapping = dict()
-            for param_obj in sched.parameters:
+            for param_obj in sched_copy.parameters:
                 bind_value = bind_parameters[param_obj.name]
                 # if value is not set, keep the parameter unassigned
                 if bind_value is not None:
                     parameter_mapping[param_obj] = bind_value
-            return sched.assign_parameters(parameter_mapping)
+            return sched_copy.assign_parameters(parameter_mapping)
 
-        return sched
+        return sched_copy
 
     def add(self,
             instruction: Union[str, Instruction],
