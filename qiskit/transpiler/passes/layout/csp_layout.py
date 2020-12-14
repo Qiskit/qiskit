@@ -16,6 +16,7 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
+import warnings
 from time import time
 import numpy as np
 from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
@@ -109,8 +110,8 @@ class CSPLayout(AnalysisPass):
 
         if not self.limit_solutions and not self.backend_prop:
             self.limit_solutions = True
-            raise Warning("Can only check multiple solutions when backend properties are given. \
-                           Defaulting to limiting solutions!")
+            warnings.warn("Can only check multiple solutions when backend properties are given. "
+                          "Defaulting to limiting solutions!", RuntimeWarning)
 
     def run(self, dag):
         qubits = dag.qubits
@@ -151,7 +152,7 @@ class CSPLayout(AnalysisPass):
     def _get_csp_problem(self, solver, dag):
         """ Create a CSP Problem """
 
-        physical_edges = self.coupling_map.get_edges()
+        physical_edges = set(self.coupling_map.get_edges())
         logical_edges = self._get_logical_edges(dag)
 
         problem = Problem(solver)

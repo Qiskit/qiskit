@@ -354,7 +354,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'call limit reached')
 
     def test_solution_limit(self):
-        """Test warning if solution limit is set but backend_prop is not."""
+        """Test warning if solution limit is set but backend_prop is not"""
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
         with self.assertWarns(Warning):
             CSPLayout(coupling_map, limit_solutions=False)
