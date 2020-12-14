@@ -197,18 +197,17 @@ class InstructionScheduleMap():
         if callable(sched):
             return sched(**bind_parameters)
 
-        sched_copy = deepcopy(sched)
         # schedule
-        if sched_copy.is_parameterized():
+        if sched.is_parameterized():
             parameter_mapping = dict()
-            for param_obj in sched_copy.parameters:
+            for param_obj in sched.parameters:
                 bind_value = bind_parameters[param_obj.name]
                 # if value is not set, keep the parameter unassigned
                 if bind_value is not None:
                     parameter_mapping[param_obj] = bind_value
-            return sched_copy.assign_parameters(parameter_mapping)
+            return deepcopy(sched).assign_parameters(parameter_mapping)
 
-        return sched_copy
+        return sched
 
     def add(self,
             instruction: Union[str, Instruction],
