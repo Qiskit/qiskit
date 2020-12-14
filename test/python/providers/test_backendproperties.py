@@ -93,6 +93,11 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.readout_error(0),
                          self.properties._qubits[0]['readout_error'][0])
 
+    def test_readout_length(self):
+        """Test for getting the readout length of given qubit."""
+        self.assertEqual(self.properties.readout_length(0),
+                         self.properties._qubits[0]['readout_length'][0])
+
     def test_apply_prefix(self):
         """Testing unit conversions."""
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'µs'),
