@@ -22,6 +22,55 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.2
+*************
+
+Terra 0.16.1
+============
+
+No change
+
+Aer 0.7.2
+==========
+
+.. _Release Notes_0.7.2_New Features:
+
+New Features
+------------
+
+- Add the CMake flag ``DISABLE_CONAN`` (default=``OFF``)s. When installing from source,
+  setting this to ``ON`` allows bypassing the Conan package manager to find libraries
+  that are already installed on your system. This is also available as an environment
+  variable ``DISABLE_CONAN``, which takes precedence over the CMake flag.
+  This is not the official procedure to build AER. Thus, the user is responsible
+  of providing all needed libraries and corresponding files to make them findable to CMake.
+
+
+.. _Release Notes_0.7.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes a bug with nested OpenMP flag was being set to true when it
+  shouldn't be.
+
+Ignis 0.5.1
+===========
+
+No change
+
+Aqua 0.8.1
+==========
+
+No change
+
+IBM Q Provider 0.11.1
+=====================
+
+No change
+
+
+*************
 Qiskit 0.23.1
 *************
 
@@ -203,9 +252,9 @@ Bug Fixes
   any seed. This was only affecting the value 0. This has been fixed.
 
 
- .. _Release Notes_IBMQ_0.8.1:
+ .. _Release Notes_IBMQ_0.11.1:
 
-IBM Q Provider 0.11.0
+IBM Q Provider 0.11.1
 =====================
 
  .. _Release Notes_IBMQ_0.11.1_New Features:
