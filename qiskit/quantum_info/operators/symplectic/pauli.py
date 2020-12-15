@@ -796,7 +796,7 @@ class Pauli(BasePauli):
 
     @deprecate_function(
         '`kron` is deprecated and will be removed no earlier than '
-        '3 months after the release date. Use `tensor` instead.')
+        '3 months after the release date. Use `expand` instead.')
     def kron(self, other):
         r"""DEPRECATED: Kronecker product of two paulis.
 
