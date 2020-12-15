@@ -2011,9 +2011,16 @@ class QuantumCircuit:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in param_dict.keys() - self._parameter_table]))
 
-        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-        for parameter, value in unrolled_param_dict.items():
-            bound_circuit._assign_parameter(parameter, value)
+        if (len(unrolled_param_dict) > 0 and
+                len(unrolled_param_dict) == len(self._parameter_table) and
+                len({p for p, v in unrolled_param_dict.items()
+                     if not isinstance(v, numbers.Real)}) == 0):
+            bound_circuit._assign_all_parameters(unrolled_param_dict)
+            bound_circuit._parameter_table = ParameterTable()
+        else:
+            # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+            for parameter, value in unrolled_param_dict.items():
+                bound_circuit._assign_parameter(parameter, value)
 
         return None if inplace else bound_circuit
 
@@ -2083,6 +2090,38 @@ class QuantumCircuit:
                 parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.assign(parameter, value)
         self._assign_calibration_parameters(parameter, value)
+
+    def _assign_all_parameters(self, param_dict):
+        """Update this circuit where instances of parameters (keys of ``param_dict``)
+        are replaced by values (values of ``param_dict``), which must be numeric values.
+        In ``_assign_parameter()``, parameters in a ParameterExpression are resolved
+        by iteratively assigning values. Instead,  in `_assign_all_parameters()`,
+        parameters is resolved by a single call to bind multiple values.
+
+        Args:
+            param_dict (dict): A dictionary of parameters to be bound and their values
+                               numeric to replace instances of the parameters.
+        """
+        for param in self._parameter_table:
+            for (instr, param_index) in self._parameter_table[param]:
+                if not isinstance(instr.params[param_index], ParameterExpression):
+                    continue
+                if len(instr.params[param_index].parameters) == 0:
+                    continue
+                binding_param = instr.params[param_index]
+                binding_inst_params = {}
+                for inst_param in binding_param.parameters:
+                    binding_inst_params[inst_param] = param_dict[inst_param]
+                    # For instructions which have already been defined (e.g. composite
+                    # instructions), search the definition for instances of the
+                    # parameter which also need to be bound.
+                    self._rebind_definition(instr, inst_param, param_dict[inst_param])
+                instr.params[param_index] = binding_param.bind(binding_inst_params)
+
+            # bind circuit's phase
+            if (isinstance(self.global_phase, ParameterExpression) and
+                    param in self.global_phase.parameters):
+                self.global_phase = self.global_phase.assign(param, param_dict[param])
 
     def _assign_calibration_parameters(self, parameter, value):
         """Update parameterized pulse gate calibrations, if there are any which contain

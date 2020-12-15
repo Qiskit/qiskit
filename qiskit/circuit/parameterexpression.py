@@ -27,7 +27,8 @@ ParameterValueType = Union['ParameterExpression', float, int]
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
+    __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names',
+                 '_subs_once', '_lambda']
 
     def __init__(self, symbol_map: Dict, expr):
         """Create a new :class:`ParameterExpression`.
@@ -45,6 +46,8 @@ class ParameterExpression:
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
         self._names = None
+        self._subs_once = False
+        self._lambda = None
 
     @property
     def parameters(self) -> Set:
@@ -94,9 +97,15 @@ class ParameterExpression:
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
+        # To avoid exec of unsanitized codes, subs is called once before executing lambdify
+        if len(parameter_values) == len(self.parameters) and self._subs_once:
+            from sympy import sympify
+            return ParameterExpression({}, sympify(self._resolve(parameter_values)))
+
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
+        self._subs_once = True
 
         # Don't use sympy.free_symbols to count remaining parameters here.
         # sympy will in some cases reduce the expression and remove even
@@ -114,6 +123,34 @@ class ParameterExpression:
                                         self, parameter_values))
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
+
+    def _resolve(self, parameter_values: Dict):
+        """Returns a value with replacement Parameters.
+        Args:
+            parameter_values (dict): Mapping from Parameters in self to the
+                                     ParameterExpression instances with which they
+                                     should be replaced. All of the parameters
+                                     in this expression must be included.
+        Raises:
+            CircuitError:
+                - If parameter_values contains Parameters outside those in self.
+                - If parameter_values does not contain all the Parameters in self.
+                - If parameter_values contains non-real or non-numeric values.
+        Returns:
+            float: a value with the specified parameters replaced.
+        """
+        self._raise_if_passed_unknown_or_missing_parameters(parameter_values.keys())
+        self._raise_if_passed_nan(parameter_values)
+
+        keys = sorted(parameter_values.keys(), key=lambda x: x.name)
+        values = [parameter_values[key] for key in keys]
+
+        if self._lambda is None:
+            from sympy import lambdify
+            symbols = [param._symbol_expr for param in keys]
+            self._lambda = lambdify(symbols, self._symbol_expr)
+
+        return self._lambda(*values)
 
     def subs(self,
              parameter_map: Dict) -> 'ParameterExpression':
@@ -158,8 +195,19 @@ class ParameterExpression:
         }
 
         substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
+        self._subs_once = True
 
         return ParameterExpression(new_parameter_symbols, substituted_symbol_expr)
+
+    def _raise_if_passed_unknown_or_missing_parameters(self, parameters):
+        unknown_parameters = parameters - self.parameters
+        if unknown_parameters:
+            raise CircuitError('Cannot bind Parameters ({}) not present in '
+                               'expression.'.format([str(p) for p in unknown_parameters]))
+        if len(self.parameters) != len(parameters):
+            missing_parameters = self.parameters - parameters
+            raise CircuitError('Cannot bind Parameters ({}) not specified. '
+                               .format([str(p) for p in missing_parameters]))
 
     def _raise_if_passed_unknown_parameters(self, parameters):
         unknown_parameters = parameters - self.parameters
