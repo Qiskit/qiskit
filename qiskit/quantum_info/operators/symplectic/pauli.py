@@ -796,7 +796,9 @@ class Pauli(BasePauli):
 
     @deprecate_function(
         '`kron` is deprecated and will be removed no earlier than '
-        '3 months after the release date. Use `tensor` instead.')
+        '3 months after the release date of Qiskit Terra 0.17.0. '
+        'Use `expand` instead, but note this does not change '
+        'the operator in-place.')
     def kron(self, other):
         r"""DEPRECATED: Kronecker product of two paulis.
 

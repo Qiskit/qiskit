@@ -112,7 +112,7 @@ class PauliSumOp(PrimitiveOp):
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
         return PauliSumOp(
             self.primitive.tensor(  # type:ignore
-                SparsePauliOp(Pauli(label="I" * num_qubits))
+                SparsePauliOp(Pauli("I" * num_qubits))
             ),
             coeff=self.coeff,
         )
@@ -145,7 +145,7 @@ class PauliSumOp(PrimitiveOp):
                               "same size as Pauli Operator")
         length = max(permutation) + 1
         spop = self.primitive.tensor(  # type:ignore
-            SparsePauliOp(Pauli(label="I" * (length - self.num_qubits)))
+            SparsePauliOp(Pauli("I" * (length - self.num_qubits)))
         )
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permutation = np.arange(length)[np.argsort(permutation)]
@@ -299,13 +299,13 @@ class PauliSumOp(PrimitiveOp):
 
         if len(self.primitive) == 1:
             return PauliOp(
-                Pauli(x=self.primitive.table.X[0], z=self.primitive.table.Z[0]),  # type: ignore
+                Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),  # type: ignore
                 to_native(to_real(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
             )
         return SummedOp(
             [
                 PauliOp(
-                    Pauli(x=s.table.X[0], z=s.table.Z[0]),
+                    Pauli((s.table.Z[0], s.table.X[0])),
                     to_native(to_real(s.coeffs[0])),
                 )
                 for s in self.primitive
