@@ -62,8 +62,8 @@ class PauliGate(Gate):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info import Pauli
-        return Pauli(label=self.params[0]).__array__(dtype=dtype)
+        from qiskit.quantum_info.operators import Pauli
+        return Pauli(self.params[0]).__array__(dtype=dtype)
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):
