@@ -368,7 +368,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         result = qae.estimate(estimation_problem)
         for method, expected_confint in expect.items():
             confint = qae.compute_confidence_interval(result, alpha, method)
-            self.assertEqual(confint, expected_confint)
+            np.testing.assert_array_almost_equal(confint, expected_confint)
             self.assertTrue(confint[0] <= getattr(result, key) <= confint[1])
 
     def test_iqae_confidence_intervals(self):
@@ -392,7 +392,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         qae.quantum_instance = self._qasm(shots)
         result = qae.estimate(estimation_problem)
         confint = result.confidence_interval
-        self.assertEqual(confint, expected_confint)
+        np.testing.assert_array_almost_equal(confint, expected_confint)
         self.assertTrue(confint[0] <= result.estimation <= confint[1])
 
 
