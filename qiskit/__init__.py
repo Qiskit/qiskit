@@ -21,9 +21,6 @@ import sys
 import warnings
 import os
 
-# First, check for required Python and API version
-from . import util
-
 # qiskit errors operator
 from qiskit.exceptions import QiskitError
 
