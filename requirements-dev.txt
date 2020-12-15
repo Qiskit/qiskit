@@ -26,5 +26,5 @@ tweedledum
 networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant
-jax
-jaxlib
+jax;platform_system != 'Windows'
+jaxlib;platform_system != 'Windows'
