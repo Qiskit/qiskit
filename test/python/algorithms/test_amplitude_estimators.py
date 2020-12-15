@@ -333,14 +333,14 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
     @idata([
         [AmplitudeEstimation(3), 'mle',
-         {'likelihood_ratio': (0.24947346406470136, 0.3003771197734433),
-          'fisher': (0.24861769995820207, 0.2999286066724035),
-          'observed_fisher': (0.24845622030041542, 0.30009008633019013)}
+         {'likelihood_ratio': (0.2494734, 0.3003771),
+          'fisher': (0.2486176, 0.2999286),
+          'observed_fisher': (0.2484562, 0.3000900)}
          ],
         [MaximumLikelihoodAmplitudeEstimation(3), 'estimation',
-         {'likelihood_ratio': (0.25987941798909114, 0.27985361366769945),
-          'fisher': (0.2584889015125656, 0.2797018754936686),
-          'observed_fisher': (0.2659279996107888, 0.2722627773954454)}],
+         {'likelihood_ratio': (0.2598794, 0.2798536),
+          'fisher': (0.2584889, 0.2797018),
+          'observed_fisher': (0.2659279, 0.2722627)}],
     ])
     @unpack
     def test_confidence_intervals(self, qae, key, expect):
@@ -375,7 +375,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         """End-to-end test for the IQAE confidence interval."""
         n = 3
         qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
-        expected_confint = (0.19840508760087738, 0.35110155403424115)
+        expected_confint = (0.1984050, 0.3511015)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         # statevector simulator
