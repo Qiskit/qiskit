@@ -111,7 +111,7 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             PulseError: When parameters are not bound.
         """
-        if isinstance(self._tree.body, ast.Constant):
+        if isinstance(self._tree.body, (ast.Constant, ast.Num)):
             return self._tree.body.n
 
         self._locals_dict.clear()
@@ -132,7 +132,7 @@ class PulseExpression(ast.NodeTransformer):
 
         expr = self.visit(self._tree)
 
-        if not isinstance(expr.body, ast.Constant):
+        if not isinstance(expr.body, (ast.Constant, ast.Num)):
             if self._partial_binding:
                 return PulseExpression(expr, self._partial_binding)
             else:
@@ -238,7 +238,7 @@ class PulseExpression(ast.NodeTransformer):
             Evaluated value.
         """
         node.operand = self.visit(node.operand)
-        if isinstance(node.operand, ast.Constant):
+        if isinstance(node.operand, (ast.Constant, ast.Num)):
             val = ast.Constant(n=self._match_ops(node.op, self._unary_ops, node.operand.n))
             return ast.copy_location(val, node)
         return node
@@ -254,7 +254,8 @@ class PulseExpression(ast.NodeTransformer):
         """
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
-        if isinstance(node.left, ast.Constant) and isinstance(node.right, ast.Constant):
+        if isinstance(node.left, (ast.Constant, ast.Num)) \
+                and isinstance(node.right, (ast.Constant, ast.Num)):
             val = ast.Constant(n=self._match_ops(node.op, self._binary_ops,
                                                  node.left.n, node.right.n))
             return ast.copy_location(val, node)
@@ -275,7 +276,7 @@ class PulseExpression(ast.NodeTransformer):
         if not isinstance(node.func, ast.Name):
             raise PulseError('Unsafe expression is detected.')
         node.args = [self.visit(arg) for arg in node.args]
-        if all(isinstance(arg, ast.Constant) for arg in node.args):
+        if all(isinstance(arg, (ast.Constant, ast.Num)) for arg in node.args):
             if node.func.id not in self._math_ops.keys():
                 raise PulseError('Function %s is not supported.' % node.func.id)
             _args = [arg.n for arg in node.args]
