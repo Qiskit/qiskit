@@ -51,14 +51,13 @@ Legacy Operator support
     commutator
     check_commutativity
     PauliGraph
-    Z2Symmetries
 """
 from .common import (evolution_instruction, suzuki_expansion_slice_pauli_list, pauli_measurement,
                      measure_pauli_z, covariance, row_echelon_F2,
                      kernel_F2, commutator, check_commutativity)
 
 from .base_operator import LegacyBaseOperator
-from .weighted_pauli_operator import WeightedPauliOperator, Z2Symmetries
+from .weighted_pauli_operator import WeightedPauliOperator
 from .matrix_operator import MatrixOperator
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
 from .pauli_graph import PauliGraph
@@ -76,7 +75,6 @@ __all__ = [
     'PauliGraph',
     'LegacyBaseOperator',
     'WeightedPauliOperator',
-    'Z2Symmetries',
     'TPBGroupedWeightedPauliOperator',
     'MatrixOperator'
 ]

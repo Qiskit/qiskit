@@ -15,6 +15,7 @@
 from copy import deepcopy
 from functools import reduce
 import logging
+import warnings
 
 import numpy as np
 from scipy import sparse as scisparse
@@ -53,6 +54,12 @@ class MatrixOperator(LegacyBaseOperator):
             atol (float): atol
             name (str): name
         """
+        warnings.warn(
+            "MatrixOperator is deprecated as of 0.17.0, "
+            "and will be removed no earlier than 3 months after that "
+            "release date. You should use the `opflow.MatrixOp` "
+            "class instead.", DeprecationWarning
+            )
         super().__init__(basis, z2_symmetries, name)
         if matrix is not None:
             matrix = matrix if scisparse.issparse(matrix) else scisparse.csr_matrix(matrix)

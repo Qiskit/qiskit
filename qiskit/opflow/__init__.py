@@ -139,8 +139,8 @@ from .legacy import (evolution_instruction,
                      suzuki_expansion_slice_pauli_list,
                      pauli_measurement,
                      measure_pauli_z, covariance, row_echelon_F2,
-                     kernel_F2, commutator, check_commutativity)
-from .legacy import (LegacyBaseOperator, WeightedPauliOperator, Z2Symmetries,
+                     kernel_F2, check_commutativity)
+from .legacy import (LegacyBaseOperator, WeightedPauliOperator,
                      TPBGroupedWeightedPauliOperator, MatrixOperator,
                      PauliGraph, op_converter)
 
@@ -151,12 +151,13 @@ from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
                         CircuitStateFn, OperatorStateFn)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
 from .converters import (ConverterBase, CircuitSampler, PauliBasisChange,
-                         DictToCircuitSum, AbelianGrouper)
+                         DictToCircuitSum, AbelianGrouper, Z2Symmetries, Z2Taper)
 from .expectations import (ExpectationBase, ExpectationFactory, PauliExpectation,
                            MatrixExpectation, AerPauliExpectation, CVaRExpectation)
 from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotterEvolution,
                          MatrixEvolution, TrotterizationBase, TrotterizationFactory, Trotter,
                          Suzuki, QDrift)
+from .utils import commutator, anti_commutator
 
 # Convenience immutable instances
 from .operator_globals import (EVAL_SIG_DIGITS,
@@ -174,10 +175,10 @@ __all__ = [
     # Common
     'evolution_instruction', 'suzuki_expansion_slice_pauli_list',
     'pauli_measurement', 'measure_pauli_z',
-    'covariance', 'row_echelon_F2', 'kernel_F2', 'commutator', 'check_commutativity',
+    'covariance', 'row_echelon_F2', 'kernel_F2', 'check_commutativity',
     # Legacy
     'PauliGraph', 'LegacyBaseOperator', 'WeightedPauliOperator',
-    'Z2Symmetries', 'TPBGroupedWeightedPauliOperator',
+    'TPBGroupedWeightedPauliOperator',
     'MatrixOperator',
     # Operators
     'OperatorBase',
@@ -191,10 +192,13 @@ __all__ = [
     'AerPauliExpectation', 'CVaRExpectation',
     'EvolutionBase', 'EvolvedOp', 'EvolutionFactory', 'PauliTrotterEvolution', 'MatrixEvolution',
     'TrotterizationBase', 'TrotterizationFactory', 'Trotter', 'Suzuki', 'QDrift',
+    'Z2Taper', 'Z2Symmetries',
     # Convenience immutable instances
     'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
     # Gradients
     'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
     'HessianBase', 'Hessian', 'QFIBase', 'QFI',
     'OpflowError',
+    # utils
+    'commutator', 'anti_commutator',
 ]

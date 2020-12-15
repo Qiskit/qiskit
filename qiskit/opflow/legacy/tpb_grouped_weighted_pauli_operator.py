@@ -13,6 +13,7 @@
 """ TPB Grouped Weighted Pauli Operator """
 
 import copy
+import warnings
 
 from .pauli_graph import PauliGraph
 from .weighted_pauli_operator import WeightedPauliOperator
@@ -60,6 +61,12 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
             grouping_func (Callable, optional): Function to group paulis
             kwargs (dict): Optional parameters for grouping function call
         """
+        warnings.warn(
+            "TPBGroupedWeightedPauliOperator is deprecated as of 0.17.0, "
+            "and will be removed no earlier than 3 months after that "
+            "release date. You should use the `opflow.SummedOp`"
+            "class with `abelian=True` instead.", DeprecationWarning
+            )
         super().__init__(paulis, basis, z2_symmetries, atol, name)
         self._grouping_func = grouping_func
         self._kwargs = kwargs or {}

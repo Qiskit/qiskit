@@ -15,6 +15,7 @@ For coloring Pauli Graph for transforming paulis into grouped Paulis
 """
 
 import copy
+import warnings
 
 import numpy as np
 
@@ -23,6 +24,12 @@ class PauliGraph:
     """Pauli Graph."""
 
     def __init__(self, paulis, mode="largest-degree"):
+        warnings.warn(
+            "PauliGraph is deprecated as of 0.17.0, "
+            "and will be removed no earlier than 3 months after that "
+            "release date. You should use the `opflow.AbelianGrouper`"
+            "class with instead.", DeprecationWarning
+            )
         self.nodes, self.weights = self._create_nodes(paulis)  # must be pauli list
         self._nqbits = self._get_nqbits()
         self.edges = self._create_edges()

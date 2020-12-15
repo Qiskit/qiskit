@@ -20,12 +20,18 @@ from qiskit.quantum_info import Pauli  # pylint: disable=unused-import
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
 from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.utils import deprecate_function
 
 from ..exceptions import OpflowError
 
 logger = logging.getLogger(__name__)
 
+# pylint: disable=bad-docstring-quotes
 
+
+@deprecate_function('The pauli_measurement function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
     """
     Add the proper post-rotation gate on the circuit.
@@ -57,6 +63,9 @@ def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
     return circuit
 
 
+@deprecate_function('The measure_pauli_z function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def measure_pauli_z(data, pauli):
     """
     Appropriate post-rotations on the state are assumed.
@@ -80,6 +89,9 @@ def measure_pauli_z(data, pauli):
     return observable
 
 
+@deprecate_function('The covariance function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
     """
     Compute the covariance matrix element between two
@@ -114,7 +126,11 @@ def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
     return cov
 
 
-def row_echelon_F2(matrix_in):  # pylint: disable=invalid-name
+# pylint: disable=invalid-name
+@deprecate_function('The row_echelon_F2 function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
+def row_echelon_F2(matrix_in):
     """
     Computes the row Echelon form of a binary matrix on the binary finite field
 
@@ -152,7 +168,11 @@ def row_echelon_F2(matrix_in):  # pylint: disable=invalid-name
     return matrix_out
 
 
-def kernel_F2(matrix_in):  # pylint: disable=invalid-name
+# pylint: disable=invalid-name
+@deprecate_function('The kernel_F2 function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
+def kernel_F2(matrix_in):
     """
     Computes the kernel of a binary matrix on the binary finite field
 
@@ -175,6 +195,9 @@ def kernel_F2(matrix_in):  # pylint: disable=invalid-name
     return kernel
 
 
+@deprecate_function('The suzuki_expansion_slice_pauli_list function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 # pylint: disable=invalid-name
 def suzuki_expansion_slice_pauli_list(pauli_list, lam_coef, expansion_order):
     """
@@ -210,6 +233,9 @@ def suzuki_expansion_slice_pauli_list(pauli_list, lam_coef, expansion_order):
         return side + middle + side
 
 
+@deprecate_function('The check_commutativity function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def check_commutativity(op_1, op_2, anti=False):
     """
     Check the (anti-)commutativity between two operators.
@@ -227,6 +253,9 @@ def check_commutativity(op_1, op_2, anti=False):
     return bool(com.is_empty())
 
 
+@deprecate_function('The evolution_instruction function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def evolution_instruction(pauli_list, evo_time, num_time_slices,
                           controlled=False, power=1,
                           use_basis_gates=True, shallow_slicing=False,
@@ -384,6 +413,9 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
     return qc.to_instruction()
 
 
+@deprecate_function('The commutator function is deprecated as of 0.17.0.'
+                    'It will be removed no earlier than 3 months '
+                    'after the release date. You should use the opflow module.')
 def commutator(op_a, op_b, op_c=None, sign=False, threshold=1e-12):
     r"""
     Compute commutator of `op_a` and `op_b` or

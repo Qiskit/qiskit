@@ -14,10 +14,10 @@
 
 from typing import List, Optional, Tuple, Union
 from copy import deepcopy
-import itertools
 import logging
 import json
 from operator import add as op_add, sub as op_sub
+import warnings
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
@@ -28,7 +28,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import aqua_globals
 from .base_operator import LegacyBaseOperator
 from .common import (measure_pauli_z, covariance, pauli_measurement,
-                     kernel_F2, suzuki_expansion_slice_pauli_list,
+                     suzuki_expansion_slice_pauli_list,
                      check_commutativity, evolution_instruction)
 from ..exceptions import OpflowError
 
@@ -43,7 +43,7 @@ class WeightedPauliOperator(LegacyBaseOperator):
     def __init__(self,
                  paulis: List[List[Union[complex, Pauli]]],
                  basis: Optional[List[Tuple[object, List[int]]]] = None,
-                 z2_symmetries: 'Z2Symmetries' = None,
+                 z2_symmetries: 'Z2Symmetries' = None,  # type: ignore
                  atol: float = 1e-12,
                  name: Optional[str] = None) -> None:
         """
@@ -59,6 +59,12 @@ class WeightedPauliOperator(LegacyBaseOperator):
             atol: the threshold used in truncating paulis
             name: the name of operator.
         """
+        warnings.warn(
+            "WeightedPauliOperator is deprecated as of 0.17.0, "
+            "and will be removed no earlier than 3 months after that "
+            "release date. You should use the `opflow.PauliSumOp` "
+            "class instead.", DeprecationWarning
+            )
         super().__init__(basis, z2_symmetries, name)
         # plain store the paulis, the group information is store in the basis
         self._paulis_table = None
@@ -958,360 +964,3 @@ class WeightedPauliOperator(LegacyBaseOperator):
                 )
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
         return instruction
-
-
-class Z2Symmetries:
-    """ Z2 Symmetries """
-
-    def __init__(self, symmetries, sq_paulis, sq_list, tapering_values=None):
-        """
-        Args:
-            symmetries (list[Pauli]): the list of Pauli objects representing the Z_2 symmetries
-            sq_paulis (list[Pauli]): the list of single - qubit Pauli objects to construct the
-                                     Clifford operators
-            sq_list (list[int]): the list of support of the single-qubit Pauli objects used to build
-                                 the Clifford operators
-            tapering_values (list[int], optional): values determines the sector.
-
-        Raises:
-            OpflowError: Invalid paulis
-        """
-        if len(symmetries) != len(sq_paulis):
-            raise OpflowError("Number of Z2 symmetries has to be the same as number "
-                              "of single-qubit pauli x.")
-
-        if len(sq_paulis) != len(sq_list):
-            raise OpflowError("Number of single-qubit pauli x has to be the same "
-                              "as length of single-qubit list.")
-
-        if tapering_values is not None:
-            if len(sq_list) != len(tapering_values):
-                raise OpflowError("The length of single-qubit list has "
-                                  "to be the same as length of tapering values.")
-
-        self._symmetries = symmetries
-        self._sq_paulis = sq_paulis
-        self._sq_list = sq_list
-        self._tapering_values = tapering_values
-
-    @property
-    def symmetries(self):
-        """ return symmetries """
-        return self._symmetries
-
-    @property
-    def sq_paulis(self):
-        """ returns sq paulis """
-        return self._sq_paulis
-
-    @property
-    def cliffords(self):
-        """
-        Get clifford operators, build based on symmetries and single-qubit X.
-
-        Returns:
-            list[WeightedPauliOperator]: a list of unitaries used to diagonalize the Hamiltonian.
-        """
-        cliffords = [WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm],
-                                                   [1 / np.sqrt(2), sq_pauli]])
-                     for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)]
-        return cliffords
-
-    @property
-    def sq_list(self):
-        """ returns sq list """
-        return self._sq_list
-
-    @property
-    def tapering_values(self):
-        """ returns tapering values """
-        return self._tapering_values
-
-    @tapering_values.setter
-    def tapering_values(self, new_value):
-        """ set tapering values """
-        self._tapering_values = new_value
-
-    def __str__(self):
-        ret = ["Z2 symmetries:"]
-        ret.append("Symmetries:")
-        for symmetry in self._symmetries:
-            ret.append(symmetry.to_label())
-        ret.append("Single-Qubit Pauli X:")
-        for x in self._sq_paulis:
-            ret.append(x.to_label())
-        ret.append("Cliffords:")
-        for c in self.cliffords:
-            ret.append(c.print_details())
-        ret.append("Qubit index:")
-        ret.append(str(self._sq_list))
-        ret.append("Tapering values:")
-        if self._tapering_values is None:
-            possible_values = \
-                [str(list(coeff)) for coeff in itertools.product([1, -1],
-                                                                 repeat=len(self._sq_list))]
-            possible_values = ', '.join(x for x in possible_values)
-            ret.append("  - Possible values: " + possible_values)
-        else:
-            ret.append(str(self._tapering_values))
-
-        ret = "\n".join(ret)
-        return ret
-
-    def copy(self) -> 'Z2Symmetries':
-        """
-        Get a copy of self.
-
-        Returns:
-            copy
-        """
-        return deepcopy(self)
-
-    def is_empty(self):
-        """
-        Check the z2_symmetries is empty or not.
-
-        Returns:
-            bool: empty
-        """
-        if self._symmetries != [] and self._sq_paulis != [] and self._sq_list != []:
-            return False
-        else:
-            return True
-
-    @classmethod
-    def find_Z2_symmetries(cls, operator) -> 'Z2Symmetries':  # pylint: disable=invalid-name
-        """
-        Finds Z2 Pauli-type symmetries of an Operator.
-
-        Returns:
-            a z2_symmetries object contains symmetries,
-            single-qubit X, single-qubit list.
-        """
-        # pylint: disable=invalid-name
-        pauli_symmetries = []
-        sq_paulis = []
-        sq_list = []
-
-        stacked_paulis = []
-
-        if operator.is_empty():
-            logger.info("Operator is empty.")
-            return cls([], [], [], None)
-
-        for pauli in operator.paulis:
-            stacked_paulis.append(np.concatenate((pauli[1].x, pauli[1].z), axis=0).astype(np.int))
-
-        stacked_matrix = np.array(np.stack(stacked_paulis))
-        symmetries = kernel_F2(stacked_matrix)
-
-        if not symmetries:
-            logger.info("No symmetry is found.")
-            return cls([], [], [], None)
-
-        stacked_symmetries = np.stack(symmetries)
-        symm_shape = stacked_symmetries.shape
-
-        for row in range(symm_shape[0]):
-
-            pauli_symmetries.append(Pauli(stacked_symmetries[row, : symm_shape[1] // 2],
-                                          stacked_symmetries[row, symm_shape[1] // 2:]))
-
-            stacked_symm_del = np.delete(stacked_symmetries, row, axis=0)
-            for col in range(symm_shape[1] // 2):
-                # case symmetries other than one at (row) have Z or I on col qubit
-                Z_or_I = True
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not (stacked_symm_del[symm_idx, col] == 0
-                            and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] in (0, 1)):
-                        Z_or_I = False
-                if Z_or_I:
-                    if ((stacked_symmetries[row, col] == 1
-                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 0)
-                            or (stacked_symmetries[row, col] == 1
-                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
-                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
-                                               np.zeros(symm_shape[1] // 2)))
-                        sq_paulis[row].z[col] = False
-                        sq_paulis[row].x[col] = True
-                        sq_list.append(col)
-                        break
-
-                # case symmetries other than one at (row) have X or I on col qubit
-                X_or_I = True
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not (stacked_symm_del[symm_idx, col] in (0, 1)
-                            and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0):
-                        X_or_I = False
-                if X_or_I:
-                    if ((stacked_symmetries[row, col] == 0
-                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)
-                            or (stacked_symmetries[row, col] == 1
-                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
-                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
-                                               np.zeros(symm_shape[1] // 2)))
-                        sq_paulis[row].z[col] = True
-                        sq_paulis[row].x[col] = False
-                        sq_list.append(col)
-                        break
-
-                # case symmetries other than one at (row)  have Y or I on col qubit
-                Y_or_I = True
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not ((stacked_symm_del[symm_idx, col] == 1
-                             and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 1)
-                            or (stacked_symm_del[symm_idx, col] == 0
-                                and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0)):
-                        Y_or_I = False
-                if Y_or_I:
-                    if ((stacked_symmetries[row, col] == 0
-                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)
-                            or (stacked_symmetries[row, col] == 1
-                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 0)):
-                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
-                                               np.zeros(symm_shape[1] // 2)))
-                        sq_paulis[row].z[col] = True
-                        sq_paulis[row].x[col] = True
-                        sq_list.append(col)
-                        break
-
-        return cls(pauli_symmetries, sq_paulis, sq_list, None)
-
-    def taper(self, operator, tapering_values=None):
-        """
-        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
-        The `tapering_values` will be stored into the resulted operator for a record.
-
-        Args:
-            operator (WeightedPauliOperator): the to-be-tapered operator.
-            tapering_values (list[int], optional): if None, returns operators at each sector;
-                                                   otherwise, returns
-                                                   the operator located in that sector.
-        Returns:
-            list[WeightedPauliOperator] or WeightedPauliOperator: If
-                tapering_values is None: [:class`WeightedPauliOperator`];
-                otherwise, :class:`WeightedPauliOperator`
-
-        Raises:
-            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
-        """
-        if not self._symmetries or not self._sq_paulis or not self._sq_list:
-            raise OpflowError("Z2 symmetries, single qubit pauli and "
-                              "single qubit list cannot be empty.")
-
-        if operator.is_empty():
-            logger.warning("The operator is empty, return the empty operator directly.")
-            return operator
-
-        for clifford in self.cliffords:
-            operator = clifford * operator * clifford
-
-        tapering_values = tapering_values if tapering_values is not None else self._tapering_values
-
-        def _taper(op, curr_tapering_values):
-            z2_symmetries = self.copy()
-            z2_symmetries.tapering_values = curr_tapering_values
-            operator_out = WeightedPauliOperator(paulis=[], z2_symmetries=z2_symmetries,
-                                                 name=operator.name)
-            for pauli_term in op.paulis:
-                coeff_out = pauli_term[0]
-                for idx, qubit_idx in enumerate(self._sq_list):
-                    if not (not pauli_term[1].z[qubit_idx] and not pauli_term[1].x[qubit_idx]):
-                        coeff_out = curr_tapering_values[idx] * coeff_out
-                z_temp = np.delete(pauli_term[1].z.copy(), np.asarray(self._sq_list))
-                x_temp = np.delete(pauli_term[1].x.copy(), np.asarray(self._sq_list))
-                pauli_term_out = WeightedPauliOperator([[coeff_out, Pauli((z_temp, x_temp))]])
-                operator_out += pauli_term_out
-            operator_out.chop(0.0)
-            return operator_out
-
-        if tapering_values is None:
-            tapered_ops = []
-            for coeff in itertools.product([1, -1], repeat=len(self._sq_list)):
-                tapered_ops.append(_taper(operator, list(coeff)))
-        else:
-            tapered_ops = _taper(operator, tapering_values)
-
-        return tapered_ops
-
-    @staticmethod
-    def two_qubit_reduction(operator, num_particles):
-        """
-        Eliminates the central and last qubit in a list of Pauli that has
-        diagonal operators (Z,I) at those positions
-
-        Chemistry specific method:
-        It can be used to taper two qubits in parity and binary-tree mapped
-        fermionic Hamiltonians when the spin orbitals are ordered in two spin
-        sectors, (block spin order) according to the number of particles in the system.
-
-        Args:
-            operator (WeightedPauliOperator): the operator
-            num_particles (Union(list, int)): number of particles, if it is a list,
-                                              the first number is alpha
-                                              and the second number if beta.
-
-        Returns:
-            WeightedPauliOperator: a new operator whose qubit number is reduced by 2.
-
-        """
-        if operator.is_empty():
-            logger.info("Operator is empty, can not do two qubit reduction. "
-                        "Return the empty operator back.")
-            return operator
-
-        if isinstance(num_particles, (tuple, list)):
-            num_alpha = num_particles[0]
-            num_beta = num_particles[1]
-        else:
-            num_alpha = num_particles // 2
-            num_beta = num_particles // 2
-
-        par_1 = 1 if (num_alpha + num_beta) % 2 == 0 else -1
-        par_2 = 1 if num_alpha % 2 == 0 else -1
-        tapering_values = [par_2, par_1]
-
-        num_qubits = operator.num_qubits
-        last_idx = num_qubits - 1
-        mid_idx = num_qubits // 2 - 1
-        sq_list = [mid_idx, last_idx]
-
-        # build symmetries, sq_paulis:
-        symmetries, sq_paulis = [], []
-        for idx in sq_list:
-            pauli_str = ['I'] * num_qubits
-
-            pauli_str[idx] = 'Z'
-            z_sym = Pauli(''.join(pauli_str)[::-1])
-            symmetries.append(z_sym)
-
-            pauli_str[idx] = 'X'
-            sq_pauli = Pauli(''.join(pauli_str)[::-1])
-            sq_paulis.append(sq_pauli)
-
-        z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, tapering_values)
-        return z2_symmetries.taper(operator)
-
-    def consistent_tapering(self, operator):
-        """
-        Tapering the `operator` with the same manner of how this tapered operator
-        is created. i.e., using the same Cliffords and tapering values.
-
-        Args:
-            operator (WeightedPauliOperator): the to-be-tapered operator
-
-        Returns:
-            TaperedWeightedPauliOperator: the tapered operator
-
-        Raises:
-            OpflowError: The given operator does not commute with the symmetry
-        """
-        if operator.is_empty():
-            raise OpflowError("Can not taper an empty operator.")
-
-        for symmetry in self._symmetries:
-            if not operator.commute_with(symmetry):
-                raise OpflowError("The given operator does not commute with "
-                                  "the symmetry, can not taper it.")
-
-        return self.taper(operator)
