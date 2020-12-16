@@ -65,6 +65,7 @@ class Instruction(ABC):
         if duration < 0:
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
+
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
