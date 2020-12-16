@@ -10,23 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-The General Logical Expression-based Quantum Oracle.
-"""
+"""A quantum oracle constructed from a DIMACS format logical expression."""
 
-import logging
-
-from sympy.parsing.sympy_parser import parse_expr
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.classicalfunction import ClassicalFunction
 
 
-logger = logging.getLogger(__name__)
-
-
 class DIMACSOracle(QuantumCircuit):
-    r"""
-    The Logical Expression Quantum Oracle.
+    r"""The Logical Expression Quantum Oracle.
 
     The Logical Expression Oracle, as its name suggests, constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
@@ -96,61 +87,60 @@ class DIMACSOracle(QuantumCircuit):
         """
         Args:
             dimacs: The string in the DIMACS format.
-        Raises:
-            ValueError: Invalid input
         """
+        # convert the dimacs string to a AST source and create a classicalfunction object
+        source = self._dimacs_to_source(dimacs)
+        classicalfunction = ClassicalFunction(source)
 
-        # expression = self._dimacs_to_expression(dimacs)
-        # try parsing as dimacs cnf
-        # try:
-        #     raw_expr = parse_expr(expression)
-        # except Exception as ex:
-        #     raise ValueError(
-        #         'Failed to parse the input expression: {}.'.format(expression)) from ex
+        # store the classically simulated results for the ``evaluate_bitstring`` method
+        self._result_lookup = classicalfunction.simulate()
 
-        # self._expr = expression
-        #self._lit_to_var = [None] + sorted(self._expr.binary_symbols, key=str)
+        # build the circuit
+        oracle = classicalfunction.synth()
 
-        circuit = self._dimacs_to_circuit(dimacs)
-        super().__init__(circuit.num_qubits, name='DIMACS Oracle')
+        # initialize the quantumcircuit
+        qr_state = QuantumRegister(oracle.num_qubits - 1, 'q')
+        qr_flag = QuantumRegister(1, 'state')
+        super().__init__(qr_state, qr_flag, name='DIMACS Oracle')
 
-        self.compose(circuit, inplace=True)
+        # to convert from the bitflip oracle provided from classicalfunction we
+        # additionally apply a hadamard and X gates
+        self.x(qr_flag)
+        self.h(qr_flag)
+        self.compose(oracle, inplace=True)
+        self.h(qr_flag)
+        self.x(qr_flag)
 
-    # def _dimacs_to_expression(self, dimacs):
-    #     lines = [
-    #         ll for ll in [
-    #             l.strip().lower() for l in dimacs.strip().split('\n')
-    #         ] if len(ll) > 0 and not ll[0] == 'c'
-    #     ]
+    def _dimacs_to_source(self, dimacs, name='f'):
+        # sanitize input and convert the dimacs string to a list
+        lines = []
+        for line in dimacs.strip().split('\n'):
+            if line[0] == 'c':
+                continue  # skip comments
+            if len(line) == 0:
+                continue  # skip empty lines
+            lines.append(line.strip().lower())
 
-    #     if not lines[0][:6] == 'p cnf ':
-    #         raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
+        # check the header is actually in DIMACS CNF format
+        if not lines[0][:6] == 'p cnf ':
+            raise ValueError('Unrecognized DIMACS CNF header {}.'.format(lines[0]))
 
-    #     def create_var(cnf_tok):
-    #         return ('~v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
+        # the number of variables is a value in the header
+        num_var = int(lines[0].split()[2])
 
-    #     clauses = []
-    #     for line in lines[1:]:
-    #         toks = line.split()
-    #         if not toks[-1] == '0':
-    #             raise ValueError('Unrecognized dimacs line {}.'.format(line))
-
-    #         clauses.append('({})'.format(' | '.join(
-    #             [create_var(t) for t in toks[:-1]]
-    #         )))
-    #     return ' & '.join(clauses)
-
-    def _dimacs_to_source(self, dimacs, num_var, name='f'):
+        # create the variables and header for the AST
         argnames = [f'x{i+1}' for i in range(num_var)]
         parsed = f'def {name}('
         for arg in argnames[:-1]:
             parsed += f'{arg}: Int1, '
         parsed += f'{argnames[-1]}: Int1) -> Int1:\n'
         indent = 4 * ' '
-        clauses = [f'c{i}' for i, _ in enumerate(dimacs)]
+        clauses = [f'c{i}' for i, _ in enumerate(lines[1:])]
 
-        for i, line in enumerate(dimacs):
+        # add one clause variable for each line
+        for i, line in enumerate(lines[1:]):
             toks = line.split()
+            print(toks)
             if not toks[-1] == '0':
                 raise ValueError('Unrecognized dimacs line {}.'.format(line))
 
@@ -158,46 +148,22 @@ class DIMACSOracle(QuantumCircuit):
             parsed += ' or '.join(['not ' + argnames[int(t[1:])-1]
                                    if t[0] == '-' else argnames[int(t)-1] for t in toks[:-1]])
             parsed += '\n'
+
+        # combine all clauses
         parsed += f'{indent}return ' + ' and '.join(clauses)
 
-        print(parsed)
         return parsed
 
-    def _dimacs_to_circuit(self, dimacs):
-        lines = [
-            ll for ll in [
-                l.strip().lower() for l in dimacs.strip().split('\n')
-            ] if len(ll) > 0 and not ll[0] == 'c']
+    def evaluate_bitstring(self, bitstring: str) -> bool:
+        """Evaluate the oracle on a bitstring.
 
-        if not lines[0][: 6] == 'p cnf ':
-            raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
-        num_var = int(lines[0].split()[2])
-        source = self._dimacs_to_source(lines[1:], num_var)
-        self._classicalfunction = ClassicalFunction(source)
-        return self._classicalfunction.synth()
+        This evaluation is done classically without any quantum circuit.
 
-    # def _dimacs_to_expression(self, dimacs):
-    #     lines = [
-    #         ll for ll in [
-    #             l.strip().lower() for l in dimacs.strip().split('\n')
-    #         ] if len(ll) > 0 and not ll[0] == 'c'
-    #     ]
+        Args:
+            bitstring: The bitstring for which to evaluate.
 
-    #     if not lines[0][:6] == 'p cnf ':
-    #         raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
-
-    #     self._num_var = int(lines[0].split()[2])
-
-    #     clauses = []
-    #     for line in lines[1:]:
-    #         toks = line.split()
-    #         if not toks[-1] == '0':
-    #             raise ValueError('Unrecognized dimacs line {}.'.format(line))
-
-    #         clauses.append([int(t) for t in toks[:-1]])
-    #     return clauses
-
-    def evaluate_bitstring(self, bitstring):
-        """ evaluate classically """
-        index = int(bitstring[::-1], 2)
-        return self._classicalfunction.simulate()[::-1][index] == '1'
+        Returns:
+            True if the bitstring is a good state, False otherwise.
+        """
+        index = int(bitstring, 2)
+        return self._result_lookup[index] == '0'
