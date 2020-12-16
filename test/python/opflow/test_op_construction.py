@@ -45,19 +45,19 @@ class TestOpConstruction(QiskitOpflowTestCase):
     def test_pauli_primitives(self):
         """ from to file test """
         newop = X ^ Y ^ Z ^ I
-        self.assertEqual(newop.primitive, Pauli(label='XYZI'))
+        self.assertEqual(newop.primitive, Pauli('XYZI'))
 
         kpower_op = (Y ^ 5) ^ (I ^ 3)
-        self.assertEqual(kpower_op.primitive, Pauli(label='YYYYYIII'))
+        self.assertEqual(kpower_op.primitive, Pauli('YYYYYIII'))
 
         kpower_op2 = (Y ^ I) ^ 4
-        self.assertEqual(kpower_op2.primitive, Pauli(label='YIYIYIYI'))
+        self.assertEqual(kpower_op2.primitive, Pauli('YIYIYIYI'))
 
         # Check immutability
-        self.assertEqual(X.primitive, Pauli(label='X'))
-        self.assertEqual(Y.primitive, Pauli(label='Y'))
-        self.assertEqual(Z.primitive, Pauli(label='Z'))
-        self.assertEqual(I.primitive, Pauli(label='I'))
+        self.assertEqual(X.primitive, Pauli('X'))
+        self.assertEqual(Y.primitive, Pauli('Y'))
+        self.assertEqual(Z.primitive, Pauli('Z'))
+        self.assertEqual(I.primitive, Pauli('I'))
 
     def test_composed_eval(self):
         """ Test eval of ComposedOp """
@@ -139,7 +139,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(str(new_op.primitive), label)
         np.testing.assert_array_almost_equal(new_op.primitive.to_matrix(),
                                              Operator.from_label(label).data)
-        self.assertEqual(new_op.primitive, Pauli(label=label))
+        self.assertEqual(new_op.primitive, Pauli(label))
 
         x_mat = X.primitive.to_matrix()
         y_mat = Y.primitive.to_matrix()
@@ -208,7 +208,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         np.testing.assert_array_equal(op7.to_matrix(), m * param)
 
         param = Parameter("β")
-        op8 = PauliOp(primitive=Pauli(label="Y"), coeff=param)
+        op8 = PauliOp(primitive=Pauli("Y"), coeff=param)
         np.testing.assert_array_equal(op8.to_matrix(), m * param)
 
         param = Parameter("γ")
