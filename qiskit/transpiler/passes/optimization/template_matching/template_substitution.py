@@ -223,7 +223,6 @@ class TemplateSubstitution:
         remove_list = []
 
         # First remove any scenarios that have parameters in the template.
-        # Check that all parameters have been bound, return None if there are free parameters
         for scenario in self.substitution_list:
             if scenario.has_parameters():
                 remove_list.append(scenario)
