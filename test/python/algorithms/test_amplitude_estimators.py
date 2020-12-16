@@ -110,7 +110,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         problem = EstimationProblem(BernoulliStateIn(prob), BernoulliGrover(prob), [0])
 
         result = qae.estimate(problem)
-        self.assertGreater(self._statevector.time_taken, 0.)
+        self.assertGreaterEqual(self._statevector.time_taken, 0.)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(value, getattr(result, key), places=3,
@@ -308,7 +308,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # result = qae.run(self._statevector)
         result = qae.estimate(estimation_problem)
-        self.assertGreater(self._statevector.time_taken, 0.)
+        self.assertGreaterEqual(self._statevector.time_taken, 0.)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(value, getattr(result, key), places=3,
@@ -380,7 +380,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # statevector simulator
         result = qae.estimate(estimation_problem)
-        self.assertGreater(self._statevector.time_taken, 0.)
+        self.assertGreaterEqual(self._statevector.time_taken, 0.)
         self._statevector.reset_execution_results()
         confint = result.confidence_interval
         # confidence interval based on statevector should be empty, as we are sure of the result
