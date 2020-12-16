@@ -100,44 +100,45 @@ class DIMACSOracle(QuantumCircuit):
             ValueError: Invalid input
         """
 
-        expression = self._dimacs_to_expression(dimacs)
+        # expression = self._dimacs_to_expression(dimacs)
         # try parsing as dimacs cnf
-        try:
-            raw_expr = parse_expr(expression)
-        except Exception as ex:
-            raise ValueError(
-                'Failed to parse the input expression: {}.'.format(expression)) from ex
+        # try:
+        #     raw_expr = parse_expr(expression)
+        # except Exception as ex:
+        #     raise ValueError(
+        #         'Failed to parse the input expression: {}.'.format(expression)) from ex
 
-        self._expr = raw_expr
-        self._lit_to_var = [None] + sorted(self._expr.binary_symbols, key=str)
+        # self._expr = expression
+        #self._lit_to_var = [None] + sorted(self._expr.binary_symbols, key=str)
 
-        super().__init__(len(self._expr.binary_symbols) + 1, name='DIMACS Oracle')
         circuit = self._dimacs_to_circuit(dimacs)
+        super().__init__(circuit.num_qubits, name='DIMACS Oracle')
+
         self.compose(circuit, inplace=True)
 
-    def _dimacs_to_expression(self, dimacs):
-        lines = [
-            ll for ll in [
-                l.strip().lower() for l in dimacs.strip().split('\n')
-            ] if len(ll) > 0 and not ll[0] == 'c'
-        ]
+    # def _dimacs_to_expression(self, dimacs):
+    #     lines = [
+    #         ll for ll in [
+    #             l.strip().lower() for l in dimacs.strip().split('\n')
+    #         ] if len(ll) > 0 and not ll[0] == 'c'
+    #     ]
 
-        if not lines[0][:6] == 'p cnf ':
-            raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
+    #     if not lines[0][:6] == 'p cnf ':
+    #         raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
 
-        def create_var(cnf_tok):
-            return ('~v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
+    #     def create_var(cnf_tok):
+    #         return ('~v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
 
-        clauses = []
-        for line in lines[1:]:
-            toks = line.split()
-            if not toks[-1] == '0':
-                raise ValueError('Unrecognized dimacs line {}.'.format(line))
+    #     clauses = []
+    #     for line in lines[1:]:
+    #         toks = line.split()
+    #         if not toks[-1] == '0':
+    #             raise ValueError('Unrecognized dimacs line {}.'.format(line))
 
-            clauses.append('({})'.format(' | '.join(
-                [create_var(t) for t in toks[:-1]]
-            )))
-        return ' & '.join(clauses)
+    #         clauses.append('({})'.format(' | '.join(
+    #             [create_var(t) for t in toks[:-1]]
+    #         )))
+    #     return ' & '.join(clauses)
 
     def _dimacs_to_source(self, dimacs, num_var, name='f'):
         argnames = [f'x{i+1}' for i in range(num_var)]
@@ -159,6 +160,7 @@ class DIMACSOracle(QuantumCircuit):
             parsed += '\n'
         parsed += f'{indent}return ' + ' and '.join(clauses)
 
+        print(parsed)
         return parsed
 
     def _dimacs_to_circuit(self, dimacs):
@@ -171,14 +173,31 @@ class DIMACSOracle(QuantumCircuit):
             raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
         num_var = int(lines[0].split()[2])
         source = self._dimacs_to_source(lines[1:], num_var)
-        clasical_func = ClassicalFunction(source)
-        return clasical_func.synth()
+        self._classicalfunction = ClassicalFunction(source)
+        return self._classicalfunction.synth()
 
-    def evaluate_classically(self, measurement):
+    # def _dimacs_to_expression(self, dimacs):
+    #     lines = [
+    #         ll for ll in [
+    #             l.strip().lower() for l in dimacs.strip().split('\n')
+    #         ] if len(ll) > 0 and not ll[0] == 'c'
+    #     ]
+
+    #     if not lines[0][:6] == 'p cnf ':
+    #         raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
+
+    #     self._num_var = int(lines[0].split()[2])
+
+    #     clauses = []
+    #     for line in lines[1:]:
+    #         toks = line.split()
+    #         if not toks[-1] == '0':
+    #             raise ValueError('Unrecognized dimacs line {}.'.format(line))
+
+    #         clauses.append([int(t) for t in toks[:-1]])
+    #     return clauses
+
+    def evaluate_bitstring(self, bitstring):
         """ evaluate classically """
-        assignment = [(var + 1) * (int(tf) * 2 - 1) for tf, var in zip(measurement[::-1],
-                                                                       range(len(measurement)))]
-        assignment_dict = dict()
-        for v in assignment:
-            assignment_dict[self._lit_to_var[abs(v)]] = bool(v > 0)
-        return self._expr.subs(assignment_dict), assignment
+        index = int(bitstring[::-1], 2)
+        return self._classicalfunction.simulate()[::-1][index] == '1'
