@@ -21,19 +21,18 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
-import functools
 import warnings
 
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union, Any
-from sympy import srepr
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_parameter_value
 # pylint: disable=missing-return-doc
 
 
@@ -66,7 +65,6 @@ class Instruction(ABC):
         if duration < 0:
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
-
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
@@ -111,8 +109,7 @@ class Instruction(ABC):
     @property
     def operands(self) -> Tuple:
         """Return instruction operands."""
-        return tuple(_format_value(operand) if isinstance(operand, ParameterExpression)
-                     else operand for operand in self._operands)
+        return self._operands
 
     @property
     def channels(self) -> Tuple[Channel]:
@@ -278,7 +275,8 @@ class Instruction(ABC):
             value = value_dict[parameter]
             op_indices = self._parameter_table[parameter]
             for op_idx in op_indices:
-                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+                param_expr = new_operands[op_idx]
+                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
 
             # Update parameter table
             entry = self._parameter_table.pop(parameter)
@@ -377,35 +375,3 @@ class Instruction(ABC):
         operands = ', '.join(str(op) for op in self.operands)
         return "{}({}{})".format(self.__class__.__name__, operands,
                                  ", name='{}'".format(self.name) if self.name else "")
-
-
-@functools.lru_cache(maxsize=None)
-def _format_value(operand: Union[Any, ParameterExpression]) -> Any:
-    """Convert ParameterExpression into the most suitable data type.
-
-    Args:
-        operand: Operand value in arbitrary data type including ParameterExpression.
-
-    Returns:
-        Value casted to non-parameter data type, when possible.
-    """
-    # to evaluate parameter expression object, sympy srepr function is used.
-    # this function converts the parameter object into string with tiny round error.
-    # therefore evaluated value is not completely equal to the assigned value.
-    # however this error can be ignored in practice though we need to be careful for unittests.
-    # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
-    # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
-    math_expr = srepr(operand)
-    try:
-        # value is assigned
-        evaluated = complex(math_expr)
-        if not np.iscomplex(evaluated):
-            evaluated = float(evaluated.real)
-            if evaluated.is_integer():
-                evaluated = int(evaluated)
-        return evaluated
-    except ValueError:
-        # value is not assigned
-        pass
-
-    return operand

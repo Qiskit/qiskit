@@ -230,16 +230,27 @@ class InstructionScheduleMap():
         """
         instruction = _get_instruction_string(instruction)
 
-        if isinstance(schedule, ParameterizedSchedule):
-            warnings.warn('ParameterizedSchedule has been deprecated. '
-                          'Define Schedule with Parameter objects.', DeprecationWarning)
-            bind_dict = {pname: Parameter(pname) for pname in schedule.parameters}
-            schedule = schedule.bind_parameters(**bind_dict)
-
-        # validation of input data
+        # validation of target qubit
         qubits = _to_tuple(qubits)
         if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
+
+        # TODO this block will be removed
+        if isinstance(schedule, ParameterizedSchedule):
+            warnings.warn('ParameterizedSchedule has been deprecated. '
+                          'Define Schedule with Parameter objects.', DeprecationWarning)
+
+            def sched_callback(**kwargs):
+                bind_dict = {pname: kwargs[pname] for pname in schedule.parameters}
+                return schedule.bind_parameters(**bind_dict)
+            arguments = tuple(schedule.parameters)
+
+            self._map[instruction][qubits] = ScheduleArgumentsTuple(sched_callback, arguments)
+            self._qubit_instructions[qubits].add(instruction)
+
+            return
+
+        # validation of input data
         if not (isinstance(schedule, Schedule) or callable(schedule)):
             raise PulseError('Supplied schedule must be either a Schedule, or a '
                              'callable that outputs a schedule.')
