@@ -111,8 +111,8 @@ class Instruction(ABC):
     @property
     def operands(self) -> Tuple:
         """Return instruction operands."""
-        return tuple([_format_value(operand) if isinstance(operand, ParameterExpression)
-                      else operand for operand in self._operands])
+        return tuple(_format_value(operand) if isinstance(operand, ParameterExpression)
+                      else operand for operand in self._operands)
 
     @property
     def channels(self) -> Tuple[Channel]:
