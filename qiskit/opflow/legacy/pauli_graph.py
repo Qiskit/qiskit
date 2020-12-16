@@ -106,8 +106,8 @@ class PauliGraph:
                 for _, p in groupi:
                     for k in range(self._nqbits):
                         if p.z[k] or p.x[k]:
-                            header[1].update_z(p.z[k], k)
-                            header[1].update_x(p.x[k], k)
+                            header[1].z[k] = p.z[k]
+                            header[1].x[k] = p.x[k]
                 gp[i].insert(0, header)
             return gp
         else:
