@@ -12,7 +12,6 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-import warnings
 from typing import Union, List, Callable, Dict, Any
 
 import dill
