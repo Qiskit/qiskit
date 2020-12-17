@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Remove the use of an ancilla register in the polynomial pauli 
+    rotations and set the ancilla register to be None as default in 
+    QuantumCircuit.mcry().
