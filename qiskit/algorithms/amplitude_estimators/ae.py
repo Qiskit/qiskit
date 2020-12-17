@@ -118,10 +118,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    def accumulate_measurements(self, circuit_results: Union[Dict[str, int], np.ndarray],
-                                threshold: float = 1e-6,
-                                ) -> Tuple[Dict[int, float], Dict[float, float]]:
-        """Evaluate the results from statevector simulation.
+    def evaluate_measurements(self, circuit_results: Union[Dict[str, int], np.ndarray],
+                              threshold: float = 1e-6,
+                              ) -> Tuple[Dict[int, float], Dict[float, float]]:
+        """Evaluate the results from the circuit simulation.
 
         Given the probabilities from statevector simulation of the QAE circuit, compute the
         probabilities that the measurements y/gridpoints a are the best estimate.
@@ -283,7 +283,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             # store shots
             result.shots = sum(counts.values())
 
-        samples, measurements = self.accumulate_measurements(result.circuit_results)
+        samples, measurements = self.evaluate_measurements(result.circuit_results)
 
         result.samples = samples
         result.samples_processed = {estimation_problem.post_processing(a): p

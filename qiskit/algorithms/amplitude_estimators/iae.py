@@ -206,11 +206,11 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    def _probability_to_measure_one(self,
-                                    problem: EstimationProblem,
-                                    counts_or_statevector: Union[Dict[str, int], np.ndarray],
-                                    num_state_qubits: int,
-                                    ) -> Union[Tuple[int, float], float]:
+    def _good_state_probability(self,
+                                problem: EstimationProblem,
+                                counts_or_statevector: Union[Dict[str, int], np.ndarray],
+                                num_state_qubits: int,
+                                ) -> Union[Tuple[int, float], float]:
         """Get the probability to measure '1' in the last qubit.
 
         Args:
@@ -277,7 +277,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
             # calculate the probability of measuring '1'
             num_qubits = circuit.num_qubits - circuit.num_ancillas
-            prob = self._probability_to_measure_one(estimation_problem, statevector, num_qubits)
+            prob = self._good_state_probability(estimation_problem, statevector, num_qubits)
             prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
 
             a_confidence_interval = [prob, prob]  # type: List[float]
@@ -315,8 +315,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 # calculate the probability of measuring '1', 'prob' is a_i in the paper
                 num_qubits = circuit.num_qubits - circuit.num_ancillas
                 # type: ignore
-                one_counts, prob = self._probability_to_measure_one(estimation_problem, counts,
-                                                                    num_qubits)
+                one_counts, prob = self._good_state_probability(estimation_problem, counts,
+                                                                num_qubits)
 
                 num_one_shots.append(one_counts)
 
