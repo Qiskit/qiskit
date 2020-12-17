@@ -85,21 +85,6 @@ class Shor:
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
-    def set_backend(self, backend: Union[Backend, BaseBackend], **kwargs) -> None:
-        """ Sets backend with configuration. """
-        self.quantum_instance = QuantumInstance(backend)
-        self.quantum_instance.set_config(**kwargs)
-
-    @property
-    def backend(self) -> Union[Backend, BaseBackend]:
-        """ Returns backend. """
-        return self.quantum_instance.backend
-
-    @backend.setter
-    def backend(self, backend: Union[Backend, BaseBackend]):
-        """ Sets backend without additional configuration. """
-        self.set_backend(backend)
-
     def _get_angles(self, a: int) -> np.ndarray:
         """Calculates the array of angles to be used in the addition in Fourier Space."""
         s = bin(int(a))[2:].zfill(self._n + 1)
@@ -200,7 +185,7 @@ class Shor:
         return circuit.to_instruction()
 
     def construct_circuit(self,
-                          N: int = 15,
+                          N: int,
                           a: int = 2,
                           measurement: bool = False) -> QuantumCircuit:
         """Construct circuit.
@@ -393,7 +378,7 @@ class Shor:
         return frac.denominator
 
     def factor(self,
-               N: int = 15,
+               N: int,
                a: int = 2,
                ) -> 'ShorResult':
         """Execute the algorithm.
@@ -436,7 +421,7 @@ class Shor:
             logger.debug('Running with N=%s and a=%s.', N, a)
 
             if self._quantum_instance.is_statevector:
-                circuit = self.construct_circuit(measurement=False)
+                circuit = self.construct_circuit(N=N, a=a, measurement=False)
                 logger.warning('The statevector_simulator might lead to '
                                'subsequent computation using too much memory.')
                 result = self._quantum_instance.execute(circuit)
@@ -453,7 +438,7 @@ class Shor:
                     if not v == 0:
                         counts[bin(int(i))[2:].zfill(2 * self._n)] = v ** 2
             else:
-                circuit = self.construct_circuit(measurement=True)
+                circuit = self.construct_circuit(N=N, a=a, measurement=True)
                 counts = self._quantum_instance.execute(circuit).get_counts(circuit)
 
             self._ret.total_counts = len(counts)

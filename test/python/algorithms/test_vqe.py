@@ -328,7 +328,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             with self.subTest('Expectation created.'):
                 self.assertIsInstance(vqe.expectation, ExpectationBase)
         try:
-            vqe.set_backend(BasicAer.get_backend('qasm_simulator'))
+            vqe.quantum_instance = BasicAer.get_backend('qasm_simulator')
         except Exception as ex:  # pylint: disable=broad-except
             self.fail("Failed to change backend. Error: '{}'".format(str(ex)))
             return

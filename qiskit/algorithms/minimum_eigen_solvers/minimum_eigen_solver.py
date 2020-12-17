@@ -13,10 +13,10 @@
 """The Minimum Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
-from qiskit.opflow import OperatorBase, LegacyBaseOperator
+from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
 
 
@@ -31,9 +31,8 @@ class MinimumEigensolver(ABC):
     @abstractmethod
     def compute_minimum_eigenvalue(
             self,
-            operator: Union[OperatorBase, LegacyBaseOperator],
-            aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                        LegacyBaseOperator]]]] = None
+            operator: OperatorBase,
+            aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> 'MinimumEigensolverResult':
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and

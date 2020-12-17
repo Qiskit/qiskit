@@ -12,11 +12,11 @@
 
 """The Numpy Minimum Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Dict, Any, Callable
+from typing import List, Optional, Union, Callable
 import logging
 import numpy as np
 
-from qiskit.opflow import OperatorBase, LegacyBaseOperator
+from qiskit.opflow import OperatorBase
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -44,7 +44,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 feasible element, the result can even be empty.
         """
         self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
-        self._ret = {}  # type: Dict[str, Any]
+        self._ret = MinimumEigensolverResult()
 
     @property
     def filter_criterion(self) -> Optional[
@@ -64,26 +64,18 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     def compute_minimum_eigenvalue(
             self,
-            operator: Union[OperatorBase, LegacyBaseOperator],
-            aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                        LegacyBaseOperator]]]] = None
+            operator: OperatorBase,
+            aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
-        self._ret = self._ces._ret  # TODO remove
+        self._ret = MinimumEigensolverResult()
+        if result_ces.eigenvalues:
+            self._ret.eigenvalue = result_ces.eigenvalues[0]
+            self._ret.eigenstate = result_ces.eigenstates[0]
+            if result_ces.aux_operator_eigenvalues:
+                self._ret.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
 
-        result = MinimumEigensolverResult()
-        if len(result_ces.eigenvalues) > 0:
-            result.eigenvalue = result_ces.eigenvalues[0]
-            result.eigenstate = result_ces.eigenstates[0]
-            if result_ces.aux_operator_eigenvalues is not None:
-                if len(result_ces.aux_operator_eigenvalues) > 0:
-                    result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
-        else:
-            result.eigenvalue = None
-            result.eigenstate = None
-            result.aux_operator_eigenvalues = None
+        logger.debug('MinimumEigensolver:\n%s', self._ret)
 
-        logger.debug('NumPyMinimumEigensolver dict:\n%s', result)
-
-        return result
+        return self._ret

@@ -12,7 +12,7 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, Dict, List, Any, Callable
+from typing import Optional, Union, Dict, List, Callable
 import logging
 import warnings
 import operator
@@ -258,7 +258,7 @@ class Grover:
             logger.debug('Incremental mode specified, \
                 ignoring "num_iterations" and "num_solutions".')
 
-        self._ret = {}  # type: Dict[str, Any]
+        self._ret = GroverResult()
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -272,21 +272,6 @@ class Grover:
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
-
-    def set_backend(self, backend: Union[Backend, BaseBackend], **kwargs) -> None:
-        """ Sets backend with configuration. """
-        self.quantum_instance = QuantumInstance(backend)
-        self.quantum_instance.set_config(**kwargs)
-
-    @property
-    def backend(self) -> Union[Backend, BaseBackend]:
-        """ Returns backend. """
-        return self.quantum_instance.backend
-
-    @backend.setter
-    def backend(self, backend: Union[Backend, BaseBackend]):
-        """ Sets backend without additional configuration. """
-        self.set_backend(backend)
 
     @staticmethod
     def optimal_num_iterations(num_solutions: int, num_qubits: int) -> int:
@@ -319,10 +304,10 @@ class Grover:
         else:
             qc = self.construct_circuit(power, measurement=True)
             measurement = self._quantum_instance.execute(qc).get_counts(qc)
-            self._ret['measurement'] = measurement
+            self._ret.measurement = dict(measurement)
             top_measurement = max(measurement.items(), key=operator.itemgetter(1))[0]
 
-        self._ret['top_measurement'] = top_measurement
+        self._ret.top_measurement = top_measurement
 
         # as_list = [int(bit) for bit in top_measurement]
         # return self.post_processing(as_list), self.is_good_state(top_measurement)
@@ -388,7 +373,7 @@ class Grover:
             qc.add_register(measurement_cr)
             qc.measure(self._grover_operator.reflection_qubits, measurement_cr)
 
-        self._ret['circuit'] = qc
+        self._ret.circuit = qc
         return qc
 
     def run(self,
@@ -409,7 +394,8 @@ class Grover:
             raise AlgorithmError("A QuantumInstance or Backend "
                                  "must be supplied to run the quantum algorithm.")
         if isinstance(quantum_instance, (BaseBackend, Backend)):
-            self.set_backend(quantum_instance, **kwargs)
+            self.quantum_instance = QuantumInstance(quantum_instance)
+            self.quantum_instance.set_config(**kwargs)
         else:
             if quantum_instance is not None:
                 self.quantum_instance = quantum_instance
@@ -426,20 +412,9 @@ class Grover:
             if oracle_evaluation:
                 break
 
-        # TODO remove all former dictionary logic
-        self._ret['result'] = assignment
-        self._ret['oracle_evaluation'] = oracle_evaluation
-
-        result = GroverResult()
-        if 'measurement' in self._ret:
-            result.measurement = dict(self._ret['measurement'])
-        if 'top_measurement' in self._ret:
-            result.top_measurement = self._ret['top_measurement']
-        if 'circuit' in self._ret:
-            result.circuit = self._ret['circuit']
-        result.assignment = self._ret['result']
-        result.oracle_evaluation = self._ret['oracle_evaluation']
-        return result
+        self._ret.assignment = assignment
+        self._ret.oracle_evaluation = oracle_evaluation
+        return self._ret
 
     @property
     def grover_operator(self) -> QuantumCircuit:

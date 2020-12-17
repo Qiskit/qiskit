@@ -33,7 +33,7 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
         aux_dict_1 = {
             'paulis': [{'coeff': {'imag': 0.0, 'real': 2.0}, 'label': 'II'}]
@@ -45,8 +45,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
                        {'coeff': {'imag': 0.0, 'real': -0.5}, 'label': 'XX'}
                        ]
         }
-        self.aux_ops = [WeightedPauliOperator.from_dict(aux_dict_1),
-                        WeightedPauliOperator.from_dict(aux_dict_2)]
+        self.aux_ops = [WeightedPauliOperator.from_dict(aux_dict_1).to_opflow(),
+                        WeightedPauliOperator.from_dict(aux_dict_2).to_opflow()]
 
     def test_cme(self):
         """ Basic test """

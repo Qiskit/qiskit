@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.opflow import OperatorBase, ExpectationBase, LegacyBaseOperator
+from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.utils.validation import validate_min
@@ -66,7 +66,7 @@ class QAOA(VQE):
                  optimizer: Optimizer = None,
                  p: int = 1,
                  initial_state: Optional[QuantumCircuit] = None,
-                 mixer: Union[QuantumCircuit, OperatorBase, LegacyBaseOperator] = None,
+                 mixer: Union[QuantumCircuit, OperatorBase] = None,
                  initial_point: Optional[np.ndarray] = None,
                  gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
                                                                  List]]] = None,
@@ -119,7 +119,7 @@ class QAOA(VQE):
         validate_min('p', p, 1)
 
         self._p = p
-        self._mixer = mixer.to_opflow() if isinstance(mixer, LegacyBaseOperator) else mixer
+        self._mixer = mixer
         self._initial_state = initial_state
 
         # VQE will use the operator setter, during its constructor, which is overridden below and
@@ -135,7 +135,7 @@ class QAOA(VQE):
                          quantum_instance=quantum_instance)
 
     def _check_operator(self,
-                        operator: Union[OperatorBase, LegacyBaseOperator]) -> OperatorBase:
+                        operator: OperatorBase) -> OperatorBase:
         # Need to wipe the var_form in case number of qubits differs from operator.
         operator = super()._check_operator(operator)
         self.var_form = QAOAVarForm(self.operator,
@@ -161,7 +161,7 @@ class QAOA(VQE):
         self._initial_state = initial_state
 
     @property
-    def mixer(self) -> Union[QuantumCircuit, OperatorBase, LegacyBaseOperator]:
+    def mixer(self) -> Union[QuantumCircuit, OperatorBase]:
         """
         Returns:
             Returns the mixer.
@@ -169,7 +169,7 @@ class QAOA(VQE):
         return self._mixer
 
     @mixer.setter
-    def mixer(self, mixer: Union[QuantumCircuit, OperatorBase, LegacyBaseOperator]) -> None:
+    def mixer(self, mixer: Union[QuantumCircuit, OperatorBase]) -> None:
         """
         Args:
             mixer: Mixer to set.

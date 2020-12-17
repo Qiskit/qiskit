@@ -23,16 +23,16 @@ import pprint
 class AlgorithmResult(ABC):
     """ Abstract Base Class for algorithm results."""
 
-    def __repr__(self) -> str:
-        value = OrderedDict()
+    def __str__(self) -> str:
+        result = OrderedDict()
         for name, value in inspect.getmembers(self):
             if not name.startswith('_') and \
                     not inspect.ismethod(value) and not inspect.isfunction(value) and \
                     hasattr(self, name):
 
-                value[name] = value
+                result[name] = value
 
-        return pprint.pformat(value, indent=4)
+        return pprint.pformat(result, indent=4)
 
     def combine(self, result: 'AlgorithmResult') -> None:
         """

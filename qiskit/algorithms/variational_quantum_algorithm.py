@@ -97,21 +97,6 @@ class VariationalQuantumAlgorithm:
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
-    def set_backend(self, backend: Union[Backend, BaseBackend], **kwargs) -> None:
-        """ Sets backend with configuration. """
-        self.quantum_instance = QuantumInstance(backend)
-        self.quantum_instance.set_config(**kwargs)
-
-    @property
-    def backend(self) -> Union[Backend, BaseBackend]:
-        """ Returns backend. """
-        return self.quantum_instance.backend
-
-    @backend.setter
-    def backend(self, backend: Union[Backend, BaseBackend]):
-        """ Sets backend without additional configuration. """
-        self.set_backend(backend)
-
     @property
     def var_form(self) -> Optional[Union[QuantumCircuit, VariationalForm]]:
         """ Returns variational form """

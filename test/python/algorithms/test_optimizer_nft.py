@@ -37,7 +37,7 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
     def test_nft(self):
         """ Test NFT optimizer by using it """

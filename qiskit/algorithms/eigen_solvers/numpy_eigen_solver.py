@@ -12,13 +12,12 @@
 
 """The Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Dict, Any, Tuple, Callable
+from typing import List, Optional, Union, Tuple, Callable
 import logging
-import pprint
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import OperatorBase, LegacyBaseOperator, I, StateFn, ListOp
+from qiskit.opflow import OperatorBase, I, StateFn, ListOp
 from qiskit.utils.validation import validate_min
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..exceptions import AlgorithmError
@@ -65,29 +64,7 @@ class NumPyEigensolver(Eigensolver):
 
         self._filter_criterion = filter_criterion
 
-        self._ret = {}  # type: Dict[str, Any]
-
-    @staticmethod
-    def _check_aux_operators(operator: OperatorBase,
-                             aux_operators: Optional[
-                                 Union[OperatorBase,
-                                       LegacyBaseOperator,
-                                       List[Optional[Union[OperatorBase, LegacyBaseOperator]]]]]) \
-            -> List[OperatorBase]:
-        if aux_operators is None:
-            aux_operators = []
-        elif not isinstance(aux_operators, list):
-            aux_operators = [aux_operators]
-
-        if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
-            converted = [op.to_opflow() if isinstance(op, LegacyBaseOperator)
-                         else op for op in aux_operators]
-
-            # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
-            aux_operators = [zero_op if op == 0 else op for op in converted]
-
-        return aux_operators
+        self._ret = EigensolverResult()
 
     @property
     def k(self) -> int:
@@ -148,36 +125,26 @@ class NumPyEigensolver(Eigensolver):
             idx = eigval.argsort()
             eigval = eigval[idx]
             eigvec = eigvec[:, idx]
-        self._ret['eigvals'] = eigval
-        self._ret['eigvecs'] = eigvec.T
+        self._ret.eigenvalues = eigval
+        self._ret.eigenstates = eigvec.T
 
     def _get_ground_state_energy(self,
                                  operator: OperatorBase) -> None:
-        if 'eigvals' not in self._ret or 'eigvecs' not in self._ret:
+        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
-        if len(self._ret['eigvals']) > 0:
-            self._ret['energy'] = self._ret['eigvals'][0].real
-            self._ret['wavefunction'] = self._ret['eigvecs']
-        else:
-            self._ret['energy'] = None
-            self._ret['wavefunction'] = None
 
     def _get_energies(self,
                       operator: OperatorBase,
-                      aux_operators: List[OperatorBase]) -> None:
-        if 'eigvals' not in self._ret or 'eigvecs' not in self._ret:
+                      aux_operators: Optional[List[OperatorBase]]) -> None:
+        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
-        energies = np.empty(self._k)
-        for i in range(self._k):
-            energies[i] = self._ret['eigvals'][i].real
-        self._ret['energies'] = energies
-        if aux_operators:
+        if aux_operators is not None:
             aux_op_vals = []
             for i in range(self._k):
                 aux_op_vals.append(self._eval_aux_operators(aux_operators,
-                                                            self._ret['eigvecs'][i]))
-            self._ret['aux_ops'] = aux_op_vals
+                                                            self._ret.eigenstates[i]))
+            self._ret.aux_operator_eigenvalues = aux_op_vals
 
     @staticmethod
     def _eval_aux_operators(aux_operators: List[OperatorBase],
@@ -202,32 +169,30 @@ class NumPyEigensolver(Eigensolver):
             values.append((value, 0))
         return np.array(values, dtype=object)
 
-    def _check_operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> OperatorBase:
-        if isinstance(operator, LegacyBaseOperator):
-            operator = operator.to_opflow()
-        return operator
-
     def compute_eigenvalues(
             self,
-            operator: Union[OperatorBase, LegacyBaseOperator],
-            aux_operators: Optional[List[Optional[Union[OperatorBase,
-                                                        LegacyBaseOperator]]]] = None
+            operator: OperatorBase,
+            aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
         if operator is None:
             raise AlgorithmError("Operator was never provided")
 
-        operator = self._check_operator(operator)
         self._check_set_k(operator)
-        aux_operators = self._check_aux_operators(operator, aux_operators)
+        if aux_operators:
+            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+            # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
+            aux_operators = [zero_op if op == 0 else op for op in aux_operators]
+        else:
+            aux_operators = None
 
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
             self._k = 2**operator.num_qubits
 
-        self._ret = {}
+        self._ret = EigensolverResult()
         self._solve(operator)
 
         # compute energies before filtering, as this also evaluates the aux operators
@@ -238,47 +203,35 @@ class NumPyEigensolver(Eigensolver):
 
             eigvecs = []
             eigvals = []
-            energies = []
             aux_ops = []
             cnt = 0
-            for i in range(len(self._ret['eigvals'])):
-                eigvec = self._ret['eigvecs'][i]
-                eigval = self._ret['eigvals'][i]
-                energy = self._ret['energies'][i]
-                if 'aux_ops' in self._ret:
-                    aux_op = self._ret['aux_ops'][i]
+            for i in range(len(self._ret.eigenvalues)):
+                eigvec = self._ret.eigenstates[i]
+                eigval = self._ret.eigenvalues[i]
+                if self._ret.aux_operator_eigenvalues is not None:
+                    aux_op = self._ret.aux_operator_eigenvalues[i]
                 else:
                     aux_op = None
                 if self._filter_criterion(eigvec, eigval, aux_op):
                     cnt += 1
                     eigvecs += [eigvec]
                     eigvals += [eigval]
-                    energies += [energy]
-                    if 'aux_ops' in self._ret:
+                    if self._ret.aux_operator_eigenvalues is not None:
                         aux_ops += [aux_op]
                 if cnt == k_orig:
                     break
 
-            self._ret['eigvecs'] = np.array(eigvecs)
-            self._ret['eigvals'] = np.array(eigvals)
-            self._ret['energies'] = np.array(energies)
+            self._ret.eigenstates = np.array(eigvecs)
+            self._ret.eigenvalues = np.array(eigvals)
             # conversion to np.array breaks in case of aux_ops
-            self._ret['aux_ops'] = aux_ops
+            self._ret.aux_operator_eigenvalues = aux_ops
 
             self._k = k_orig
 
         # evaluate ground state after filtering (in case a filter is set)
         self._get_ground_state_energy(operator)
+        if self._ret.eigenstates is not None:
+            self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
 
-        logger.debug('NumPyEigensolver _run result:\n%s',
-                     pprint.pformat(self._ret, indent=4))
-        result = EigensolverResult()
-        if 'eigvals' in self._ret:
-            result.eigenvalues = self._ret['eigvals']
-        if 'eigvecs' in self._ret:
-            result.eigenstates = ListOp([StateFn(vec) for vec in self._ret['eigvecs']])
-        if 'aux_ops' in self._ret:
-            result.aux_operator_eigenvalues = self._ret['aux_ops']
-
-        logger.debug('EigensolverResult dict:\n%s', result)
-        return result
+        logger.debug('EigensolverResult:\n%s', self._ret)
+        return self._ret
