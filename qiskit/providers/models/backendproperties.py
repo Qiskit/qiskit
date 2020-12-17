@@ -442,9 +442,21 @@ class BackendProperties:
             qubit: Qubit for which to return the readout error of.
 
         Return:
-            Readout error of the given qubit,
+            Readout error of the given qubit.
         """
         return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
+
+    def readout_length(self, qubit: int) -> float:
+        """
+        Return the readout length [sec] of the given qubit.
+
+        Args:
+            qubit: Qubit for which to return the readout length of.
+
+        Return:
+            Readout length of the given qubit.
+        """
+        return self.qubit_property(qubit, 'readout_length')[0]  # Throw away datetime at index 1
 
     def is_qubit_operational(self, qubit: int) -> bool:
         """
