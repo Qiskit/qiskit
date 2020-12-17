@@ -319,10 +319,9 @@ def execute(experiments, backend,
             'memory_slot_size': memory_slot_size,
             'rep_time': rep_time,
             'rep_delay': rep_delay,
-            'parameter_binds': parameter_binds,
             'init_qubits': init_qubits,
         }
-        for key in run_kwargs:
+        for key in list(run_kwargs.keys()):
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info("%s backend doesn't support option %s so not "
@@ -339,6 +338,7 @@ def execute(experiments, backend,
             elif key == 'memory_slot_size' and run_kwargs[key] is None:
                 run_kwargs[key] = 100
 
+        run_kwargs['parameter_binds'] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()
