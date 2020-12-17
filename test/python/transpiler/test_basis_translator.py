@@ -608,6 +608,8 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ['cz', 'rx', 'rz']).run(in_dag)
 
+        # TODO: this test should just check if the expected basis
+        # is used, not the actual circuit decomposition
         qr = QuantumRegister(2, 'q')
         expected = QuantumCircuit(qr)
         expected.rz(0, qr)
