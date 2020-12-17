@@ -106,7 +106,7 @@ class CSPLayout(AnalysisPass):
         for gate in dag.two_qubit_ops():
             cxs.add((qubits.index(gate.qargs[0]),
                      qubits.index(gate.qargs[1])))
-        edges = self.coupling_map.get_edges()
+        edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
             solver = RecursiveBacktrackingSolver()
