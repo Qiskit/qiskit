@@ -246,18 +246,11 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name='state')
             qr_target = QuantumRegister(1, name='target')
-            num_ancillas = 0
 
             self.qregs = [qr_state, qr_target]
 
-            if num_ancillas > 0:
-                qr_ancilla = AncillaRegister(num_ancillas)
-                self.qregs.append(qr_ancilla)
-            else:
-                qr_ancilla = []
-
             self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._ancillas = qr_ancilla[:]
+            self._ancillas = []
         else:
             self.qregs = []
             self._qubits = []
