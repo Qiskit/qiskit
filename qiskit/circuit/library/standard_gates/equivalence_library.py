@@ -678,3 +678,38 @@ for inst, qargs, cargs in [
 ]:
     def_cz.append(inst, qargs, cargs)
 _sel.add_equivalence(CZGate(), def_cz)
+
+# RXGate, XGate equivalence
+
+q = QuantumRegister(1, 'q')
+x_to_rx = QuantumCircuit(q)
+x_to_rx.append(RXGate(theta=pi), [q[0]])
+x_to_rx.global_phase = pi/2
+_sel.add_equivalence(XGate(), x_to_rx)
+
+# RYGate, YGate equivalence
+
+q = QuantumRegister(1, 'q')
+y_to_ry = QuantumCircuit(q)
+y_to_ry.append(RYGate(theta=pi), [q[0]])
+y_to_ry.global_phase = pi/2
+_sel.add_equivalence(YGate(), y_to_ry)
+
+
+# HGate, RXGate(pi).RYGate(pi/2) equivalence
+
+q = QuantumRegister(1, 'q')
+h_to_rxry = QuantumCircuit(q)
+h_to_rxry.append(RYGate(theta=pi/2), [q[0]])
+h_to_rxry.append(RXGate(theta=pi), [q[0]])
+h_to_rxry.global_phase = pi/2
+_sel.add_equivalence(HGate(), h_to_rxry)
+
+# HGate, RGate(pi, 0).RGate(pi/2, pi/2) equivalence
+
+q = QuantumRegister(1, 'q')
+h_to_rr = QuantumCircuit(q)
+h_to_rr.append(RGate(theta=pi/2, phi=pi/2), [q[0]])
+h_to_rr.append(RGate(theta=pi, phi=0), [q[0]])
+h_to_rr.global_phase = pi/2
+_sel.add_equivalence(HGate(), h_to_rr)
