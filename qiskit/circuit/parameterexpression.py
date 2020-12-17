@@ -240,10 +240,6 @@ class ParameterExpression:
         from sympy import Le
         return self._apply_operation(Le, other)
 
-    # def __ne__(self, other):
-    #     from sympy import Ne
-    #     return self._apply_operation(Ne, other)
-
     def __ge__(self, other):
         from sympy import Ge
         return self._apply_operation(Ge, other)
@@ -316,17 +312,18 @@ class ParameterExpression:
 
     def __and__(self, other):
         from sympy.logic.boolalg import And
-        return self._apply_operation(And, other, reflected=True)
+        return self._apply_operation(And, other)
 
     def __or__(self, other):
         from sympy.logic.boolalg import Or
-        return self._apply_operation(Or, other, reflected=True)
+        return self._apply_operation(Or, other)
 
     def _call(self, ufunc):
-        return ParameterExpression(
+        expr = ParameterExpression(
             self._parameter_symbols,
             ufunc(self._symbol_expr)
         )
+        return expr
 
     def sin(self):
         """Sine of a ParameterExpression"""
@@ -351,10 +348,11 @@ class ParameterExpression:
     def arccos(self):
         """Arccos of a ParameterExpression"""
         from sympy import acos as _acos
-        if self.parameters:
-            return self._call(_acos)
-        else:
-            return float(self._call(_acos))
+        return self._call(_acos)
+        # if self.parameters:
+        #     return self._call(_acos)
+        # else:
+        #     return float(self._call(_acos))
 
     def arctan(self):
         """Arctan of a ParameterExpression"""

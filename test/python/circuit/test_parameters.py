@@ -1503,6 +1503,18 @@ class TestParameterExpressions(QiskitTestCase):
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), numpy.ceil(a * b))
 
+    def test_ceil_complex(self):
+        """Test ParameterExpression ceil."""
+        a = 1.3
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = numpy.ceil(1j*x*y)
+        bexpr = expr.bind({x: a, y: b})
+        print(complex(bexpr))
+        breakpoint()
+        self.assertEqual(complex(bexpr), numpy.ceil(1j*a * b))
+
     def test_max(self):
         """Test ParameterExpression max."""
         from qiskit.circuit.parameterexpression import Max
@@ -1521,6 +1533,16 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertRaisesRegex(TypeError,
                                'cannot determine truth value of Relational',
                                max, x, y)
+
+    def test_python_max_bound(self):
+        """Test ParameterExpression max."""
+        a = 1
+        b = 2
+        x = Parameter('x')
+        y = Parameter('y')
+        x2 = x.bind({x: a})
+        y2 = y.bind({y: b})
+        self.assertEqual(max(x2, y2), max(a, b))
 
     def test_max_with_number(self):
         """Test ParameterExpression max."""
