@@ -299,6 +299,46 @@ class TestTemplateMatching(QiskitTestCase):
         np.testing.assert_almost_equal(Operator(circuit_in).data,
                                        Operator(circuit_out).data)
 
+    def test_unbound_parameters(self):
+        """
+        Test that partial matches with parameters will not raise errors.
+        This tests that if parameters are still in the temporary template after
+        _attempt_bind then they will not be used.
+        """
+        class PhaseSwap(Gate):
+            """CZ gates used for the test."""
+
+            def __init__(self, num_qubits, params):
+                super().__init__('p', num_qubits, params)
+
+            def inverse(self):
+                inverse = UnitaryGate(
+                    np.diag(
+                        [1.0, 1.0, np.exp(-1.0j * self.params[0]), np.exp(-1.0j * self.params[0])]))
+                inverse.name = 'p'
+                return inverse
+
+        def template():
+            beta = Parameter('β')
+            qc = QuantumCircuit(2)
+            qc.cx(1, 0)
+            qc.cx(1, 0)
+            qc.p(beta, 1)
+            qc.append(PhaseSwap(2, [beta]), [0, 1])
+
+            return qc
+
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cx(1, 0)
+        circuit_in.cx(1, 0)
+
+        pass_ = TemplateOptimization(template_list=[template()])
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        # This template will not fully match as long as gates with parameters do not
+        # commute with any other gates in the DAG dependency.
+        self.assertEqual(circuit_out.count_ops().get('cx', 0), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

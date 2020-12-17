@@ -84,6 +84,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='empty_circut.png')
 
+    def test_no_ops(self):
+        """Test circuit with no ops.
+        See https://github.com/Qiskit/qiskit-terra/issues/5393 """
+        circuit = QuantumCircuit(2, 3)
+        self.circuit_drawer(circuit, filename='no_op_circut.png')
+
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -464,6 +470,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.p(pi/2, 2)
         self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
                             filename='subfont.png')
+
+    def test_meas_condition(self):
+        """Tests measure with a condition"""
+
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+        self.circuit_drawer(circuit, filename='meas_condition.png')
 
 
 if __name__ == '__main__':
