@@ -19,7 +19,7 @@ from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
