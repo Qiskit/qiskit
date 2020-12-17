@@ -379,14 +379,14 @@ class Grover:
     def run(self,
             quantum_instance: Optional[
                 Union[QuantumInstance, Backend, BaseBackend]] = None,
-            **kwargs) -> Dict:
+            **kwargs) -> 'GroverResult':
         """Execute the algorithm with selected backend.
 
         Args:
             quantum_instance: the experimental setting.
             kwargs (dict): kwargs
         Returns:
-            dict: results of an algorithm.
+            results of an algorithm.
         Raises:
             AlgorithmError: If a quantum instance or backend has not been provided
         """
