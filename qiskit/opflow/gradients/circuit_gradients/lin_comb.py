@@ -19,7 +19,6 @@ from itertools import product
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from qiskit.exceptions import AquaError
 from qiskit.circuit import Gate, Instruction, Qubit
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
                             ParameterExpression)
@@ -41,6 +40,7 @@ from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...exceptions import OpflowError
 from ..derivative_base import DerivativeBase
 from .circuit_gradient import CircuitGradient
 
@@ -115,7 +115,7 @@ class LinComb(CircuitGradient):
             ValueError: If ``operator`` does not correspond to an expectation value.
             TypeError: If the ``StateFn`` corresponding to the quantum state could not be extracted
                        from ``operator``.
-            AquaError: If third or higher order gradients are requested.
+            OpflowError: If third or higher order gradients are requested.
         """
 
         if isinstance(operator, ComposedOp):
@@ -144,8 +144,8 @@ class LinComb(CircuitGradient):
                                                     meas_op=(4 * ~StateFn(Z ^ I) ^ operator[0]),
                                                     target_params=params)  # type: ignore
                     else:
-                        raise AquaError('The linear combination gradient does only support the '
-                                        'computation of 1st gradients and 2nd order gradients.')
+                        raise OpflowError('The linear combination gradient does only support the '
+                                          'computation of 1st gradients and 2nd order gradients.')
                 else:
                     state_op = deepcopy(operator)
                     state_op.oplist.pop(0)
@@ -167,7 +167,7 @@ class LinComb(CircuitGradient):
                                     meas_op=(4 * ~StateFn(Z ^ I) ^ operator[0]),
                                     target_params=params))
 
-                    raise AquaError(
+                    raise OpflowError(
                         'The linear combination gradient does only support the computation '
                         'of 1st gradients and 2nd order gradients.')
             else:
@@ -187,7 +187,7 @@ class LinComb(CircuitGradient):
                                                           for param in params)):
                     return self._hessian_states(operator, target_params=params)  # type: ignore
                 else:
-                    raise AquaError(
+                    raise OpflowError(
                         'The linear combination gradient does only support the computation '
                         'of 1st gradients and 2nd order gradients.')
         elif isinstance(operator, PrimitiveOp):
@@ -214,7 +214,7 @@ class LinComb(CircuitGradient):
             parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            OpflowError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
         """
         state_qc = deepcopy(state_op.primitive)
@@ -358,7 +358,7 @@ class LinComb(CircuitGradient):
             created per parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            OpflowError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is of unsupported type.
         """
         state_qc = deepcopy(state_op.primitive)
@@ -671,7 +671,7 @@ class LinComb(CircuitGradient):
 
 
         Raises:
-            AquaError: If the input gate is controlled by another state but '|1>^{\otimes k}'
+            OpflowError: If the input gate is controlled by another state but '|1>^{\otimes k}'
             TypeError: If the input gate is not a supported parametrized gate.
         """
 
@@ -722,7 +722,7 @@ class LinComb(CircuitGradient):
         if isinstance(gate, ControlledGate):
             # TODO support arbitrary control states
             if gate.ctrl_state != 2 ** gate.num_ctrl_qubits - 1:
-                raise AquaError(
+                raise OpflowError(
                     'Function only support controlled gates with control state `1` on all control '
                     'qubits.')
 
@@ -777,7 +777,7 @@ class LinComb(CircuitGradient):
             after: If the gate_to_insert should be inserted after the reference_gate set True.
 
         Raises:
-            AquaError: Gate insertion fail
+            OpflowError: Gate insertion fail
         """
 
         if isinstance(gate_to_insert, IGate):
@@ -794,4 +794,4 @@ class LinComb(CircuitGradient):
                         insertion_index = i
                     circuit.data.insert(insertion_index, (gate_to_insert, qubits, []))
                     return
-            raise AquaError('Could not insert the controlled gate, something went wrong!')
+            raise OpflowError('Could not insert the controlled gate, something went wrong!')

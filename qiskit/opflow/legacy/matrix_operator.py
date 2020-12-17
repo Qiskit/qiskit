@@ -20,7 +20,7 @@ import numpy as np
 from scipy import sparse as scisparse
 from scipy import linalg as scila
 
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 from .base_operator import LegacyBaseOperator
 
 logger = logging.getLogger(__name__)
@@ -245,10 +245,10 @@ class MatrixOperator(LegacyBaseOperator):
             float: the mean value
             float: the standard deviation
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         del use_simulator_snapshot_mode  # unused
         avg, std_dev = 0.0, 0.0
@@ -267,10 +267,10 @@ class MatrixOperator(LegacyBaseOperator):
             float: the mean value
             float: the standard deviation
         Raises:
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg, 0.0
@@ -293,11 +293,17 @@ class MatrixOperator(LegacyBaseOperator):
         if expansion_order == 1:
             left = reduce(
                 lambda x, y: x @ y,
-                [scila.expm(lam / 2 * c * p.to_spmatrix().tocsc()) for c, p in pauli_list]
+                [
+                    scila.expm(lam / 2 * c * p.to_matrix(sparse=True).tocsc())
+                    for c, p in pauli_list
+                ],
             )
             right = reduce(
                 lambda x, y: x @ y,
-                [scila.expm(lam / 2 * c * p.to_spmatrix().tocsc()) for c, p in reversed(pauli_list)]
+                [
+                    scila.expm(lam / 2 * c * p.to_matrix(sparse=True).tocsc())
+                    for c, p in reversed(pauli_list)
+                ],
             )
             return left @ right
         else:
@@ -336,13 +342,13 @@ class MatrixOperator(LegacyBaseOperator):
             numpy.array: Return the matrix vector multiplication result.
         Raises:
             ValueError: Invalid arguments
-            AquaError: if Operator is empty
+            OpflowError: if Operator is empty
         """
         # pylint: disable=import-outside-toplevel
         from .op_converter import to_weighted_pauli_operator
 
         if self.is_empty():
-            raise AquaError("Operator is empty, check the operator.")
+            raise OpflowError("Operator is empty, check the operator.")
 
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
@@ -360,7 +366,7 @@ class MatrixOperator(LegacyBaseOperator):
             if len(pauli_list) == 1:
                 approx_matrix_slice = scila.expm(
                     -1.j * evo_time / num_time_slices * pauli_list[0][0]
-                    * pauli_list[0][1].to_spmatrix().tocsc()
+                    * pauli_list[0][1].to_matrix(sparse=True).tocsc()
                 )
             else:
                 if expansion_mode == 'trotter':
@@ -368,7 +374,7 @@ class MatrixOperator(LegacyBaseOperator):
                         lambda x, y: x @ y,
                         [
                             scila.expm(-1.j * evo_time
-                                       / num_time_slices * c * p.to_spmatrix().tocsc())
+                                       / num_time_slices * c * p.to_matrix(sparse=True).tocsc())
                             for c, p in pauli_list
                         ]
                     )

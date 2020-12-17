@@ -21,8 +21,8 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, Instruction
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.circuit.library import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
-from qiskit.exceptions import AquaError
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
@@ -96,15 +96,14 @@ class PauliOp(PrimitiveOp):
         return self.primitive == other.primitive
 
     def _expand_dim(self, num_qubits: int) -> 'PauliOp':
-        return PauliOp(Pauli(label='I'*num_qubits).kron(self.primitive), coeff=self.coeff)
+        return PauliOp(Pauli('I'*num_qubits).expand(self.primitive), coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Both Paulis
         if isinstance(other, PauliOp):
             # Copying here because Terra's Pauli kron is in-place.
-            op_copy = Pauli(x=other.primitive.x, z=other.primitive.z)  # type: ignore
-            # NOTE!!! REVERSING QISKIT ENDIANNESS HERE
-            return PauliOp(op_copy.kron(self.primitive), coeff=self.coeff * other.coeff)
+            op_copy = Pauli((other.primitive.z, other.primitive.x))  # type: ignore
+            return PauliOp(self.primitive.tensor(op_copy), coeff=self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
@@ -125,16 +124,17 @@ class PauliOp(PrimitiveOp):
               indices=[1,2,4], it returns (X ^ I ^ Y ^ Z ^ I).
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         pauli_string = self.primitive.__str__()
         length = max(permutation) + 1  # size of list must be +1 larger then its max index
         new_pauli_list = ['I'] * length
         if len(permutation) != self.num_qubits:
-            raise AquaError("List of indices to permute must have the same size as Pauli Operator")
+            raise OpflowError("List of indices to permute must "
+                              "have the same size as Pauli Operator")
         for i, index in enumerate(permutation):
             new_pauli_list[-index - 1] = pauli_string[-i - 1]
-        return PauliOp(Pauli(label=''.join(new_pauli_list)), self.coeff)
+        return PauliOp(Pauli(''.join(new_pauli_list)), self.coeff)
 
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
@@ -150,8 +150,8 @@ class PauliOp(PrimitiveOp):
 
         # Both Paulis
         if isinstance(other, PauliOp):
-            product, phase = Pauli.sgn_prod(new_self.primitive, other.primitive)
-            return PrimitiveOp(product, coeff=new_self.coeff * other.coeff * phase)
+            product = new_self.primitive * other.primitive
+            return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp

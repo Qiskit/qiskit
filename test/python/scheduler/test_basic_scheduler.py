@@ -377,6 +377,30 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(macros.measure([0], self.backend, qubit_mem_slots={0: 1}))
         self.assertEqual(sched.instructions, expected.instructions)
 
+    def test_metadata_is_preserved_alap(self):
+        """Test that circuit metadata is preserved in output schedule with alap."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q)
+        qc.append(U2Gate(0, 0), [q[0]])
+        qc.barrier(q[0], q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
+        qc.metadata = {'experiment_type': 'gst', 'execution_number': '1234'}
+        sched = schedule(qc, self.backend, method='alap')
+        self.assertEqual({'experiment_type': 'gst', 'execution_number': '1234'},
+                         sched.metadata)
+
+    def test_metadata_is_preserved_asap(self):
+        """Test that circuit metadata is preserved in output schedule with asap."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q)
+        qc.append(U2Gate(0, 0), [q[0]])
+        qc.barrier(q[0], q[1])
+        qc.append(U2Gate(0, 0), [q[1]])
+        qc.metadata = {'experiment_type': 'gst', 'execution_number': '1234'}
+        sched = schedule(qc, self.backend, method='asap')
+        self.assertEqual({'experiment_type': 'gst', 'execution_number': '1234'},
+                         sched.metadata)
+
     def test_scheduler_with_params_bound(self):
         """Test scheduler with parameters defined and bound"""
         x = Parameter('x')
