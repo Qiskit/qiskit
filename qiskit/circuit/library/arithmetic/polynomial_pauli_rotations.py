@@ -249,7 +249,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
             self.qregs = [qr_state, qr_target]
 
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
+            self._qubits = qr_state[:] + qr_target[:]
             self._ancillas = []
         else:
             self.qregs = []
