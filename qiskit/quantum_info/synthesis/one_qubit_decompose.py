@@ -20,8 +20,8 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import (PhaseGate, U3Gate,
-                                                   U1Gate, RXGate, RYGate,
+from qiskit.circuit.library.standard_gates import (UGate, PhaseGate, U3Gate,
+                                                   U2Gate, U1Gate, RXGate, RYGate,
                                                    RZGate, RGate, SXGate)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -310,9 +310,17 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
-        # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.append(U3Gate(theta, phi, lam), [0])
+        if simplify and (np.isclose(theta, 0.0, atol=atol) and
+                         np.isclose(phi, 0.0, atol=atol)):
+            if not np.isclose(lam, 0.0, atol=atol):
+                circuit.append(U1Gate(lam), [0])
+        elif simplify and (np.isclose(abs(theta), np.pi/2, atol=atol)):
+            if (not np.isclose(phi, 0.0, atol=atol) or
+                    not np.isclose(lam, 0.0, atol=atol)):
+                circuit.append(U2Gate(phi, lam), [0])
+        else:
+            circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -322,9 +330,32 @@ class OneQubitEulerDecomposer:
                    phase,
                    simplify=True,
                    atol=DEFAULT_ATOL):
-        # pylint: disable=unused-argument
+        print(theta, phi, lam)
         circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.u(theta, phi, lam, 0)
+        if simplify and (np.isclose(theta, 0.0, atol=atol) and
+                         np.isclose(phi, 0.0, atol=atol)):
+            if not np.isclose(lam, 0.0, atol=atol):
+                circuit.append(PhaseGate(lam), [0])
+        elif simplify and np.isclose(abs(theta),
+                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
+            if not np.isclose(abs(phi), 3*np.pi/2, atol=atol):
+                if phi < 0:
+                    new_phi = phi + np.pi/2
+                else:
+                    new_phi = phi + np.pi/2
+                print('\nnew_phi', new_phi)
+                circuit.append(PhaseGate(new_phi), [0])#_mod2pi(phi + np.pi/2)), [0])
+            circuit.append(SXGate(), [0])
+            if not np.isclose(abs(lam), 3*np.pi/2, atol=atol):
+                #circuit.append(PhaseGate(_mod2pi(lam + np.pi/2)), [0])
+                if lam < 0:
+                    new_lam = _mod2pi(lam -np.pi/2)
+                else:
+                    new_lam = _mod2pi(lam -np.pi/2)
+                print('\nnew_lam', new_lam)
+                circuit.append(PhaseGate(new_lam), [0])#_mod2pi(phi + np.pi/2)), [0])
+        else:
+            circuit.append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -452,4 +483,5 @@ def _mod2pi(angle):
     if angle >= 0:
         return np.mod(angle, 2*np.pi)
     else:
+        print('MOD**********', angle, np.mod(angle, -2*np.pi))
         return np.mod(angle, -2*np.pi)

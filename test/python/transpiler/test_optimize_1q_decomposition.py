@@ -57,10 +57,14 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.u(np.pi / 2, 0, np.pi, qr)  # U2(0, pi)
 
+        print(circuit)
+        print(expected)
+
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
+        print(result)
         self.assertTrue(Operator(circuit).equiv(Operator(result)))
 
     @ddt.data(
