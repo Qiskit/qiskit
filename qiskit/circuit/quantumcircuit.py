@@ -260,7 +260,10 @@ class QuantumCircuit:
         associate any circuit metadata with the results it returns from
         execution of that circuit.
         """
-        return self._metadata
+        if hasattr(self, '_metadata'):
+            return self._metadata
+        else:
+            return None
 
     @metadata.setter
     def metadata(self, metadata):
