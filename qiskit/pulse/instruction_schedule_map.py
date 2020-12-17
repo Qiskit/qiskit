@@ -28,13 +28,12 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 """
 import inspect
 import warnings
-
 from collections import defaultdict
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
-from qiskit.circuit import ParameterExpression, Parameter
+from qiskit.circuit import ParameterExpression
 from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
