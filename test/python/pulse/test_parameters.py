@@ -262,3 +262,16 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.Play(waveform, DriveChannel(0))
         with self.assertRaises(PulseError):
             waveform.assign_parameters({self.amp: 0.6})
+
+    def test_get_parameter(self):
+        """Test that get parameter by name."""
+        param1 = Parameter('amp')
+        param2 = Parameter('amp')
+
+        schedule = pulse.Schedule()
+        waveform1 = pulse.library.Constant(duration=1280, amp=param1)
+        waveform2 = pulse.library.Constant(duration=1280, amp=param2)
+        schedule += pulse.Play(waveform1, DriveChannel(0))
+        schedule += pulse.Play(waveform2, DriveChannel(1))
+
+        self.assertEqual(len(schedule.get_parameters('amp')), 2)
