@@ -263,8 +263,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self._ancillas = []
 
     def _build(self):
-        # The number of ancilla might have changed, so reset registers
-        super()._build()
+        # do not build the circuit if _data is already populated
+        if self._data is not None:
+            return
+
+        self._data = []
+
+        # check whether the configuration is valid
+        self._check_configuration()
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]

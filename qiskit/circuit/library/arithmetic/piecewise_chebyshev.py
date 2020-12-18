@@ -305,24 +305,23 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self._ancillas = []
 
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is
-        :math:`|1>`."""
-        super()._build()
+        """Build the circuit. The operation is considered successful when q_objective is :math:`|1>`
+        """
+        # do not build the circuit if _data is already populated
+        if self._data is not None:
+            return
 
-        print(self.num_state_qubits)
-        print(self.breakpoints)
-        print(self.polynomials)
+        self._data = []
+
+        # check whether the configuration is valid
+        self._check_configuration()
+
         self._poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
                                                          self.breakpoints, self.polynomials)
-        print(self._poly_r.draw())
-        # self._reset_registers(self.num_state_qubits)
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]
         qr_ancillas = self.qubits[self.num_state_qubits + 1:]
 
-        print(self._qubits)
-
         # Apply polynomial approximation
-        self._poly_r._build()
         self.append(self._poly_r.to_instruction(), qr_state[:] + qr_target + qr_ancillas[:])

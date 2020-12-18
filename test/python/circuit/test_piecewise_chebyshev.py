@@ -56,14 +56,13 @@ class TestPiecewiseChebyshev(QiskitTestCase):
             unrolled_probabilities += [probability]
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]
 
-        assert np.linalg.norm(np.asarray(unrolled_probabilities) -
-                              np.asarray(unrolled_expectations), 2) < \
-               0.1, "Error too large"
+        np.testing.assert_array_almost_equal(unrolled_probabilities, unrolled_expectations,
+                                             decimal=3)
 
-    @data((lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
-          (lambda x: x / 8, 1, [1, 8], 3)
-          )
-    @unpack
+    @ data((lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
+           (lambda x: x / 8, 1, [1, 8], 3)
+           )
+    @ unpack
     def test_piecewise_chebyshev(self, f_x, degree, breakpoints, num_state_qubits):
         """Test the piecewise Chebyshev approximation."""
 
