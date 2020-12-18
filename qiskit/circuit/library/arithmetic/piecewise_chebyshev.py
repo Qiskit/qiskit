@@ -316,7 +316,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         # check whether the configuration is valid
         self._check_configuration()
 
-        self._poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
+        poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
                                                          self.breakpoints, self.polynomials)
 
         qr_state = self.qubits[:self.num_state_qubits]
@@ -324,4 +324,4 @@ class PiecewiseChebyshev(BlueprintCircuit):
         qr_ancillas = self.qubits[self.num_state_qubits + 1:]
 
         # Apply polynomial approximation
-        self.append(self._poly_r.to_instruction(), qr_state[:] + qr_target + qr_ancillas[:])
+        self.append(poly_r.to_instruction(), qr_state[:] + qr_target + qr_ancillas[:])
