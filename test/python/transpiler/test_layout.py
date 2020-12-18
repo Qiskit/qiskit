@@ -151,6 +151,8 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[qr0[0]], 0)
         self.assertEqual(layout[qr0[1]], 1)
         self.assertEqual(layout[qr1[0]], 2)
+        self.assertIn(qr0, layout.get_registers())
+        self.assertIn(qr1, layout.get_registers())
 
     def test_physical_keyerror(self):
         """When asking for an unexistant physical qubit, KeyError"""
@@ -405,6 +407,17 @@ class LayoutTest(QiskitTestCase):
                            })
         self.assertDictEqual(layout._p2v, expected._p2v)
         self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_contains(self):
+        """Verify Layouts support __contains__."""
+        qr = QuantumRegister(2, 'qr')
+        layout = Layout()
+        layout.add(qr[0], 0)
+
+        self.assertIn(qr[0], layout)
+        self.assertIn(0, layout)
+        self.assertNotIn(qr[1], layout)
+        self.assertNotIn(1, layout)
 
 
 if __name__ == '__main__':

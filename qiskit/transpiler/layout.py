@@ -29,6 +29,7 @@ class Layout():
     def __init__(self, input_dict=None):
         """construct a Layout from a bijective dictionary, mapping
         virtual qubits to physical qubits"""
+        self._regs = []
         self._p2v = {}
         self._v2p = {}
         if input_dict is not None:
@@ -101,6 +102,9 @@ class Layout():
             return self._v2p[item]
         raise KeyError('The item %s does not exist in the Layout' % (item,))
 
+    def __contains__(self, item):
+        return item in self._p2v or item in self._v2p
+
     def __setitem__(self, key, value):
         virtual, physical = Layout.order_based_on_type(key, value)
         self._set_type_checked_item(virtual, physical)
@@ -138,6 +142,7 @@ class Layout():
         """Returns a copy of a Layout instance."""
         layout_copy = type(self)()
 
+        layout_copy._regs = self._regs.copy()
         layout_copy._p2v = self._p2v.copy()
         layout_copy._v2p = self._v2p.copy()
 
@@ -166,16 +171,18 @@ class Layout():
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
         """
+        self._regs.append(reg)
         for bit in reg:
-            self.add(bit)
+            if bit not in self:
+                self.add(bit)
 
     def get_registers(self):
         """
         Returns the registers in the layout [QuantumRegister(2, 'qr0'), QuantumRegister(3, 'qr1')]
         Returns:
-            List: A list of Register in the layout
+            Set: A set of Registers in the layout
         """
-        return {bit.register for bit in self.get_virtual_bits()}
+        return set(self._regs)
 
     def get_virtual_bits(self):
         """
