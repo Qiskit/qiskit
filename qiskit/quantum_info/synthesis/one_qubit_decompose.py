@@ -310,17 +310,43 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
+        """theta = _mod2pi(theta + np.pi)
+        phi = _mod2pi(phi + np.pi)
         circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and (np.isclose(theta, 0.0, atol=atol) and
-                         np.isclose(phi, 0.0, atol=atol)):
-            if not np.isclose(lam, 0.0, atol=atol):
-                circuit.append(U1Gate(lam), [0])
-        elif simplify and (np.isclose(abs(theta), np.pi/2, atol=atol)):
-            if (not np.isclose(phi, 0.0, atol=atol) or
+        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
+            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
+                              [0., 2*np.pi], atol=atol).any():
+                circuit.append(U1Gate(_mod2pi(lam + phi + theta)), [0])
+                print('in u1')
+        elif simplify and np.isclose(abs(theta),
+                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
+            if (not np.isclose(_mod2pi(abs(phi)), np.pi, atol=atol) or
                     not np.isclose(lam, 0.0, atol=atol)):
-                circuit.append(U2Gate(phi, lam), [0])
+                circuit.append(U2Gate(phi - np.pi, lam), [0])
+                print('in u2')
+        elif (not np.isclose(_mod2pi(abs(theta)), np.pi, atol=atol) 
+                    and not np.isclose(_mod2pi(abs(phi)), np.pi, atol=atol) and
+                    not np.isclose(lam, 0.0, atol=atol)):
+            circuit.append(U3Gate(theta - np.pi, phi - np.pi, lam), [0])
+            print('u3', theta, phi, lam)"""
+        print(theta, phi, lam)
+        circuit = QuantumCircuit(1, global_phase=phase)
+        if simplify and (np.isclose(theta, 0.0, atol=atol)):
+            #    and np.isclose(phi, 0.0, atol=atol)):
+            #if not np.isclose(phi+lam, 0.0, atol=atol):
+            circuit.append(U1Gate(phi+lam), [0])
+            print('in u1')
+        elif simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
+            #if (not np.isclose(phi, 0.0, atol=atol) or
+            #        not np.isclose(lam, 0.0, atol=atol)):
+            circuit.append(U2Gate(phi, lam), [0])
+            print('in u2')
+        #elif (not np.isclose(theta, 0.0, atol=atol) 
+        #            or not np.isclose(phi, 0.0, atol=atol)
+        #            or not np.isclose(lam, 0.0, atol=atol)):
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
+            print('u3', theta, phi, lam)
         return circuit
 
     @staticmethod
@@ -330,32 +356,46 @@ class OneQubitEulerDecomposer:
                    phase,
                    simplify=True,
                    atol=DEFAULT_ATOL):
-        print(theta, phi, lam)
+        """print(theta, phi, lam)
+        theta = _mod2pi(theta + np.pi)
+        phi = _mod2pi(phi + np.pi)
         circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and (np.isclose(theta, 0.0, atol=atol) and
-                         np.isclose(phi, 0.0, atol=atol)):
-            if not np.isclose(lam, 0.0, atol=atol):
-                circuit.append(PhaseGate(lam), [0])
+        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
+            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
+                              [0., 2*np.pi], atol=atol).any():
+                circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
         elif simplify and np.isclose(abs(theta),
                                      [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if not np.isclose(abs(phi), 3*np.pi/2, atol=atol):
-                if phi < 0:
-                    new_phi = phi + np.pi/2
-                else:
-                    new_phi = phi + np.pi/2
-                print('\nnew_phi', new_phi)
-                circuit.append(PhaseGate(new_phi), [0])#_mod2pi(phi + np.pi/2)), [0])
+            if not np.isclose(_mod2pi(abs(lam + theta)),
+                              [0., 2*np.pi], atol=atol).any():
+                circuit.append(PhaseGate(_mod2pi(lam + theta)), [0])
             circuit.append(SXGate(), [0])
-            if not np.isclose(abs(lam), 3*np.pi/2, atol=atol):
-                #circuit.append(PhaseGate(_mod2pi(lam + np.pi/2)), [0])
-                if lam < 0:
-                    new_lam = _mod2pi(lam -np.pi/2)
-                else:
-                    new_lam = _mod2pi(lam -np.pi/2)
-                print('\nnew_lam', new_lam)
-                circuit.append(PhaseGate(new_lam), [0])#_mod2pi(phi + np.pi/2)), [0])
+            if not np.isclose(_mod2pi(abs(phi + theta)),
+                              [0., 2*np.pi], atol=atol).any():
+                circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
+        else:
+            circuit.append(UGate(theta-np.pi, phi-np.pi, lam), [0])"""
+        print(theta, phi, lam)
+        circuit = QuantumCircuit(1, global_phase=phase)
+        if simplify and (np.isclose(theta, 0.0, atol=atol)
+                and np.isclose(phi, 0.0, atol=atol)):
+            #if not np.isclose(phi+lam, 0.0, atol=atol):
+            circuit.append(PhaseGate(phi+lam), [0])
+            print('in p')
+        elif simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
+            #if (not np.isclose(phi, 0.0, atol=atol) or
+            #        not np.isclose(lam, 0.0, atol=atol)):
+            circuit.append(PhaseGate(phi), [0])
+            circuit.append(SXGate(), [0])
+            circuit.append(PhaseGate(lam), [0])
+            print('in p-sx-p')
+        #elif (not np.isclose(theta, 0.0, atol=atol) 
+        #            or not np.isclose(phi, 0.0, atol=atol)
+        #            or not np.isclose(lam, 0.0, atol=atol)):
         else:
             circuit.append(UGate(theta, phi, lam), [0])
+            print('u', theta, phi, lam)
+        return circuit
         return circuit
 
     @staticmethod
@@ -483,5 +523,4 @@ def _mod2pi(angle):
     if angle >= 0:
         return np.mod(angle, 2*np.pi)
     else:
-        print('MOD**********', angle, np.mod(angle, -2*np.pi))
         return np.mod(angle, -2*np.pi)
