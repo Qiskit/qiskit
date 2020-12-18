@@ -127,6 +127,10 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         Returns:
             The list of breakpoints.
         """
+        if self.num_state_qubits is not None and len(self._breakpoints) == len(self.coeffs) and\
+                self._breakpoints[-1] < 2 ** self.num_state_qubits:
+            return self._breakpoints + [2 ** self.num_state_qubits]
+
         return self._breakpoints
 
     @breakpoints.setter
@@ -246,18 +250,19 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             if self.contains_zero_breakpoint:
                 num_ancillas -= 1
             if num_ancillas > 0:
-                self._ancillas = []
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
+            else:
+                qr_ancilla = []
+
+            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
+            self._ancillas = qr_ancilla[:]
         else:
             self.qregs = []
+            self._qubits = []
+            self._ancillas = []
 
     def _build(self):
-        # Add the last breakpoint if necessary
-        if self.num_state_qubits is not None and len(self._breakpoints) == len(self._coeffs) and\
-                self._breakpoints[-1] < 2 ** self.num_state_qubits:
-            self.breakpoints = self._breakpoints + [2 ** self.num_state_qubits]
-
         # The number of ancilla might have changed, so reset registers
         super()._build()
 
