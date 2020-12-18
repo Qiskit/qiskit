@@ -99,18 +99,23 @@ class AmplitudeEstimation(AmplitudeEstimator):
         Returns:
             The QuantumCircuit object for the constructed circuit.
         """
+        # use custom Phase Estimation circuit if provided
         if self._pec is not None:
             pec = self._pec
+
+        # otherwise use the circuit library -- note that this does not include the A operator
         else:
             from qiskit.circuit.library import PhaseEstimation
             pec = PhaseEstimation(self._m, estimation_problem.grover_operator, iqft=self._iqft)
 
+        # combine the Phase Estimation circuit with the A operator
         circuit = QuantumCircuit(*pec.qregs)
         circuit.compose(estimation_problem.state_preparation,
                         list(range(self._m, circuit.num_qubits)),
                         inplace=True)
         circuit.compose(pec, inplace=True)
 
+    # add measurements if necessary
         if measurement:
             cr = ClassicalRegister(self._m)
             circuit.add_register(cr)

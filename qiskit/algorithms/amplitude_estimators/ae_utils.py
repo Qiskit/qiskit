@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ae utilities """
+"""Utils for the Maximum-Likelihood estimation used in ``AmplitudeEstimation``."""
 
 import logging
 import numpy as np
@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def bisect_max(f, a, b, steps=50, minwidth=1e-12, retval=False):
-    """
-    Find the maximum of the real-valued function f in the interval [a, b]
-    using bisection
+    """Find the maximum of the real-valued function f in the interval [a, b] using bisection.
 
     Args:
         f (callable): the function to find the maximum of
@@ -68,10 +66,14 @@ def bisect_max(f, a, b, steps=50, minwidth=1e-12, retval=False):
     return m
 
 
-def circ_dist(x, p):
-    """
-    Circumferential distance and derivative function,
-            d(x, p) = min_{z in [-1, 0, 1]} (|z + p - x|)
+def _circ_dist(x, p):
+    r"""Circumferential distance function.
+
+    For two angles :math:`x` and :math:`p` on the unit circuit this function is defined as
+
+    .. math::
+
+            d(x, p) = \min_{z \in [-1, 0, 1]} |z + p - x|
 
     Args:
         x (float): first angle
@@ -94,17 +96,15 @@ def circ_dist(x, p):
     return np.min(np.abs(z + t))
 
 
-def derivative_circ_dist(x, p):
-    """
-    Derivative of circumferential distance and derivative function, w.r.t. p
-            d/dp d(x, p) = d/dp min_{z in [-1, 0, 1]} (|z + p - x|)
+def _derivative_circ_dist(x, p):
+    """Derivative of circumferential distance function.
 
     Args:
         x (float): first angle
         p (float): second angle
 
     Returns:
-        float: d/dp d(x, p)
+        float: The derivative.
     """
     # pylint: disable=chained-comparison,misplaced-comparison-constant
     t = p - x
@@ -115,58 +115,62 @@ def derivative_circ_dist(x, p):
     return 0
 
 
-def omega(a):
-    """
-    Transform from the value a to the corresponding angle omega.
+def _amplitude_to_angle(a):
+    r"""Transform from the amplitude :math:`a \in [0, 1]` to the generating angle.
+
+    In QAE, the amplitude can be written from a generating angle :math:`\omega` as
+
+    .. math:
+
+        a = \sin^2(\pi \omega)
+
+    This returns the :math:`\omega` for a given :math:`a`.
 
     Args:
-        a (float): A value in [0,1]
+        a (float): A value in :math:`[0,1]`.
 
     Returns:
-        float: arcsin(sqrt(a)) / pi
+        float: :math:`\sin^{-1}(\sqrt{a}) / \pi`
     """
     return np.arcsin(np.sqrt(a)) / np.pi
 
 
-def derivative_omega(a):
-    """
-    Compute the derivative of omega.
-    """
+def _derivative_amplitude_to_angle(a):
+    """Compute the derivative of ``amplitude_to_angle``."""
     return 1 / (2 * np.pi * np.sqrt((1 - a) * a))
 
 
-def alpha(x, p):
+def _alpha(x, p):
+    """Helper function for `pdf_a`, alpha = pi * d(omega(x), omega(p)).
+
+    Here, omega(x) is `_amplitude_to_angle(x)`.
     """
-    Helper function for `pdf_a`, alpha = pi * d(omega(x), omega(p)),
-    """
-    return np.pi * circ_dist(omega(x), omega(p))
+    omega = _amplitude_to_angle
+    return np.pi * _circ_dist(omega(x), omega(p))
 
 
-def derivative_alpha(x, p):
-    """
-    Compute the derivative of alpha.
-    """
-    return np.pi * derivative_circ_dist(omega(x), omega(p)) * derivative_omega(p)
+def _derivative_alpha(x, p):
+    """Compute the derivative of alpha."""
+    omega = _amplitude_to_angle
+    d_omega = _derivative_amplitude_to_angle
+    return np.pi * _derivative_circ_dist(omega(x), omega(p)) * d_omega(p)
 
 
-def beta(x, p):
-    """
-    Helper function for `pdf_a`, beta = pi * d(1 - omega(x), omega(p)),
-    """
-    return np.pi * circ_dist(1 - omega(x), omega(p))
+def _beta(x, p):
+    """Helper function for `pdf_a`, beta = pi * d(1 - omega(x), omega(p))."""
+    omega = _amplitude_to_angle
+    return np.pi * _circ_dist(1 - omega(x), omega(p))
 
 
-def derivative_beta(x, p):
-    """
-    Compute the derivative of beta.
-    """
-    return np.pi * derivative_circ_dist(1 - omega(x), omega(p)) * derivative_omega(p)
+def _derivative_beta(x, p):
+    """Compute the derivative of beta."""
+    omega = _amplitude_to_angle
+    d_omega = _derivative_amplitude_to_angle
+    return np.pi * _derivative_circ_dist(1 - omega(x), omega(p)) * d_omega(p)
 
 
-def pdf_a_single_angle(x, p, m, pi_delta):
-    """
-    Helper function for `pdf_a`.
-    """
+def _pdf_a_single_angle(x, p, m, pi_delta):
+    """Helper function for `pdf_a`."""
     M = 2**m
 
     d = pi_delta(x, p)
@@ -197,8 +201,8 @@ def pdf_a(x, p, m):
     # Compute the probabilities: Add up both angles that produce the given
     # value, except for the angles 0 and 0.5, which map to the unique a-values,
     # 0 and 1, respectively
-    pr = np.array([pdf_a_single_angle(xi, p, m, alpha) + pdf_a_single_angle(xi, p, m, beta)
-                   if (xi not in [0, 1]) else pdf_a_single_angle(xi, p, m, alpha)
+    pr = np.array([_pdf_a_single_angle(xi, p, m, _alpha) + _pdf_a_single_angle(xi, p, m, _beta)
+                   if (xi not in [0, 1]) else _pdf_a_single_angle(xi, p, m, _alpha)
                    for xi in x
                    ]).flatten()
 
@@ -222,22 +226,24 @@ def derivative_log_pdf_a(x, p, m):
 
     if x not in [0, 1]:
         num_p1 = 0
-        for A, dA, B, dB in zip([alpha, beta],
-                                [derivative_alpha, derivative_beta],
-                                [beta, alpha], [derivative_beta, derivative_alpha]):
+        for A, dA, B, dB in zip([_alpha, _beta],
+                                [_derivative_alpha, _derivative_beta],
+                                [_beta, _alpha], [_derivative_beta, _derivative_alpha]):
             num_p1 += 2 * M * np.sin(M * A(x, p)) * np.cos(M * A(x, p)) \
                 * dA(x, p) * np.sin(B(x, p))**2 \
                 + 2 * np.sin(M * A(x, p))**2 * np.sin(B(x, p)) * np.cos(B(x, p)) * dB(x, p)
 
-        den_p1 = np.sin(M * alpha(x, p))**2 * np.sin(beta(x, p))**2 + \
-            np.sin(M * beta(x, p))**2 * np.sin(alpha(x, p))**2
+        den_p1 = np.sin(M * _alpha(x, p))**2 * np.sin(_beta(x, p))**2 + \
+            np.sin(M * _beta(x, p))**2 * np.sin(_alpha(x, p))**2
 
         num_p2 = 0
-        for A, dA, B in zip([alpha, beta], [derivative_alpha, derivative_beta], [beta, alpha]):
+        for A, dA, B in zip([_alpha, _beta],
+                            [_derivative_alpha, _derivative_beta],
+                            [_beta, _alpha]):
             num_p2 += 2 * np.cos(A(x, p)) * dA(x, p) * np.sin(B(x, p))
 
-        den_p2 = np.sin(alpha(x, p)) * np.sin(beta(x, p))
+        den_p2 = np.sin(_alpha(x, p)) * np.sin(_beta(x, p))
 
         return num_p1 / den_p1 - num_p2 / den_p2
 
-    return 2 * derivative_alpha(x, p) * (M / np.tan(M * alpha(x, p)) - 1 / np.tan(alpha(x, p)))
+    return 2 * _derivative_alpha(x, p) * (M / np.tan(M * _alpha(x, p)) - 1 / np.tan(_alpha(x, p)))

@@ -12,8 +12,9 @@
 
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
-from typing import Optional, List, Union, Tuple, Dict
+from typing import Optional, List, Union, Tuple, Dict, Callable
 import logging
+from functools import partial
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
@@ -28,6 +29,8 @@ from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
+
+MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
 
 
 class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
@@ -50,7 +53,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
     """
 
     def __init__(self, num_oracle_circuits: int,
-                 likelihood_evals: Optional[int] = None,
+                 minimizer: Optional[MINIMIZER] = None,
                  quantum_instance: Optional[
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         r"""
@@ -60,8 +63,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 `[id, Q^2^0, ..., Q^2^{num_oracle_circuits-1}] A |0>`, where A is the problem
                 unitary encoded in the argument `a_factory`.
                 Has a minimum value of 1.
-            likelihood_evals: The number of gridpoints for the maximum search of the likelihood
-                function
+            minimizer: A minimizer used to find the minimum of the likelihood function.
+                Defaults to a brute search where the number of evaluation points is determined
+                according to ``num_oracle_circuits``. The minimizer takes a function as first
+                argument and a list of (float, float) tuples (as bounds) as second argument and
+                returns a single float which is the found minimum.
             quantum_instance: Quantum Instance or Backend
 
         Raises:
@@ -73,14 +79,19 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         super().__init__(quantum_instance)
 
         # get parameters
+        self._num_oracle_circuits = num_oracle_circuits
         self._evaluation_schedule = [0] + [2**j for j in range(num_oracle_circuits)]
 
-        self._likelihood_nevals = likelihood_evals
-        # default number of evaluations is max(10^5, pi/2 * 10^3 * 2^(m))
-        if likelihood_evals is None:
-            default = 10000
-            self._likelihood_nevals = np.maximum(default,
-                                                 int(np.pi / 2 * 1000 * 2 ** num_oracle_circuits))
+        if minimizer is None:
+            # default number of evaluations is max(10^5, pi/2 * 10^3 * 2^(m))
+            nevals = max(10000, int(np.pi / 2 * 1000 * 2 ** num_oracle_circuits))
+
+            def default_minimizer(objective_fn, bounds):
+                return brute(objective_fn, bounds, Ns=nevals)[0]
+
+            self._minimizer = default_minimizer
+        else:
+            self._minimizer = minimizer
 
     def construct_circuits(self, estimation_problem: EstimationProblem,
                            measurement: bool = False) -> List[QuantumCircuit]:
@@ -208,7 +219,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 loglik += np.log(np.cos(angle) ** 2) * (all_counts[i] - good_counts[i])
             return -loglik
 
-        est_theta = brute(loglikelihood, [search_range], Ns=self._likelihood_nevals)[0]
+        est_theta = self._minimizer(loglikelihood, [search_range])
 
         if return_counts:
             return est_theta, good_counts
@@ -221,7 +232,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                  '(deprecated) must be set to run the algorithm.')
 
         result = MaximumLikelihoodAmplitudeEstimationResult()
-        result.likelihood_nevals = self._likelihood_nevals
+        result.num_oracle_circuits = self._num_oracle_circuits
+        result.minimizer = self._minimizer
         result.evaluation_schedule = self._evaluation_schedule
         result.post_processing = estimation_problem.post_processing
 
@@ -274,6 +286,16 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
     """The ``MaximumLikelihoodAmplitudeEstimation`` result object."""
 
     @property
+    def num_oracle_circuits(self) -> int:
+        """Return the maximum number of oracle circuits used."""
+        return self.get('num_oracle_circuits')
+
+    @num_oracle_circuits.setter
+    def num_oracle_circuits(self, value: int) -> None:
+        """Set the maximum number of oracle circuits used."""
+        self.data['num_oracle_circuits'] = value
+
+    @property
     def theta(self) -> float:
         r"""Return the estimate for the angle :math:`\theta`."""
         return self.get('theta')
@@ -284,16 +306,14 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self.data['theta'] = value
 
     @property
-    def likelihood_nevals(self) -> int:
-        """Return the number evaluations used for the brute-force search of the likelihood function.
-        """
-        return self.get('likelihood_nevals')
+    def minimizer(self) -> callable:
+        """Return the minimizer used for the search of the likelihood function."""
+        return self.get('minimizer')
 
-    @likelihood_nevals.setter
-    def likelihood_nevals(self, value: int) -> None:
-        """Set the number evaluations used for the brute-force search of the likelihood function.
-        """
-        self.data['likelihood_nevals'] = value
+    @minimizer.setter
+    def minimizer(self, value: callable) -> None:
+        """Set the number minimizer used for the search of the likelihood function."""
+        self.data['minimizer'] = value
 
     @property
     def good_counts(self) -> List[float]:
@@ -445,7 +465,7 @@ def _likelihood_ratio_confint(result: MaximumLikelihoodAmplitudeEstimationResult
         The alpha-likelihood-ratio confidence interval.
     """
     if nevals is None:
-        nevals = result.likelihood_nevals
+        nevals = max(10000, int(np.pi / 2 * 1000 * 2 ** result.num_oracle_circuits))
 
     def loglikelihood(theta, one_counts, all_counts):
         loglik = 0
