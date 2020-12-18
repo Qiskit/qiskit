@@ -406,7 +406,7 @@ class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
         if self._gradient:
             if isinstance(self._gradient, GradientBase):
                 self._gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(self._operator) @ StateFn(self._var_form),
+                    ~StateFn(operator) @ StateFn(self._var_form),
                     bind_params=self._var_form_params,
                     backend=self._quantum_instance)
         if not self._expect_op:

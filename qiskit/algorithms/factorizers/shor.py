@@ -64,8 +64,6 @@ class Shor:
         self._down_qreg = None  # type: Optional[QuantumRegister]
         self._aux_qreg = None  # type: Optional[QuantumRegister]
 
-        self._ret = ShorResult()
-
         self._qft = QFT(do_swaps=False).to_instruction()
         self._iqft = self._qft.inverse()
 
@@ -409,15 +407,15 @@ class Shor:
         if a >= N or math.gcd(a, N) != 1:
             raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
 
-        self._ret = ShorResult()
+        result = ShorResult()
 
         # check if the input integer is a power
         tf, b, p = is_power(N, return_decomposition=True)
         if tf:
             logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
-            self._ret.factors.append(b)
+            result.factors.append(b)
 
-        if not self._ret.factors:
+        if not result.factors:
             logger.debug('Running with N=%s and a=%s.', N, a)
 
             if self._quantum_instance.is_statevector:
@@ -441,7 +439,7 @@ class Shor:
                 circuit = self.construct_circuit(N=N, a=a, measurement=True)
                 counts = self._quantum_instance.execute(circuit).get_counts(circuit)
 
-            self._ret.total_counts = len(counts)
+            result.total_counts = len(counts)
 
             # For each simulation result, print proper info to user
             # and try to calculate the factors of N
@@ -455,11 +453,11 @@ class Shor:
                         'Found factors %s from measurement %s.',
                         factors, measurement
                     )
-                    self._ret.successful_counts = self._ret.successful_counts + 1
-                    if factors not in self._ret.factors:
-                        self._ret.factors.append(factors)
+                    result.successful_counts = result.successful_counts + 1
+                    if factors not in result.factors:
+                        result.factors.append(factors)
 
-        return self._ret
+        return result
 
 
 class ShorResult(AlgorithmResult):
