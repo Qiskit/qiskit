@@ -1551,7 +1551,7 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaises(ValueError):
             expr.bind({x: a, y: b})
         try:
-            expr.bind({x:a, y: b*1j})
+            expr.bind({x: a, y: b * 1j})
         except ValueError:
             self.fail('Max() raised ValueError unexpectedly')
 
@@ -1608,7 +1608,7 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaises(ValueError):
             expr.bind({x: a, y: b})
         try:
-            expr.bind({x:a, y: b*1j})
+            expr.bind({x: a, y: b * 1j})
         except ValueError:
             self.fail('Min() raised ValueError unexpectedly')
 

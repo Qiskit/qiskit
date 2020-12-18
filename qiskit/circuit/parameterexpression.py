@@ -348,10 +348,6 @@ class ParameterExpression:
         """Arccos of a ParameterExpression"""
         from sympy import acos as _acos
         return self._call(_acos)
-        # if self.parameters:
-        #     return self._call(_acos)
-        # else:
-        #     return float(self._call(_acos))
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
@@ -436,7 +432,7 @@ class ParameterExpression:
         Returns:
             bool: result of the comparison
         """
-                from sympy import srepr, sympify
+        from sympy import srepr, sympify
         if not isinstance(other, ParameterExpression):
             other = ParameterExpression(dict(), sympify(other))
         return (isinstance(other, ParameterExpression)
