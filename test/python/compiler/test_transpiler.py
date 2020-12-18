@@ -980,6 +980,40 @@ class TestTranspile(QiskitTestCase):
         with self.assertRaises(QiskitError):
             transpile(circ, backend=backend)
 
+    def test_transpile_calibrations(self):
+        """Test transpilation for parameterized and regular cases."""
+        custom_180 = Gate("parameterized_custom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        theta = Parameter("theta")
+        qubit = Parameter("qubit")
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, theta, 3.0), pulse.DriveChannel(qubit))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration("parameterized_custom", [qubit], q0_x180, [theta])
+        circ.add_calibration(custom_90, [1], q1_y90)
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(
+            set(transpiled_circuit.count_ops().keys()),
+            {"mycustom", "parameterized_custom", "u2"},
+        )
+        self.assertEqual(set(transpiled_circuit.count_ops().values()), {1, 1, 1})
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
