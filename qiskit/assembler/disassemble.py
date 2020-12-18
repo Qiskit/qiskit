@@ -19,7 +19,6 @@ from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.qobj.converters import QobjToInstructionConverter
 
 # A ``CircuitModule`` is a representation of a circuit execution on the backend.
@@ -227,11 +226,7 @@ def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
     for program in qobj.experiments:
         insts = []
         for inst in program.instructions:
-            pulse_inst = converter(inst)
-            if isinstance(pulse_inst, ParameterizedSchedule):
-                raise pulse.PulseError('Parameterized instructions are not '
-                                       'yet supported in the pulse schedule.')
-            insts.append(pulse_inst)
+            insts.append(converter(inst))
 
         schedule = pulse.Schedule(*insts)
         schedules.append(schedule)
