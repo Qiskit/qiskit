@@ -39,6 +39,7 @@ by following the existing pattern:
 import warnings
 from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional, Union
+
 import math
 import numpy as np
 
@@ -48,6 +49,7 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.pulse.utils import format_parameter_value
 
 
 class ParametricPulse(Pulse):
@@ -122,13 +124,7 @@ class ParametricPulse(Pulse):
         for op, op_value in self.parameters.items():
             for parameter, value in value_dict.items():
                 if _is_parameterized(op_value) and parameter in op_value.parameters:
-                    op_value = op_value.assign(parameter, value)
-                    try:
-                        # TODO: ParameterExpression doesn't support complex values
-                        op_value = float(op_value)
-                    except TypeError:
-                        # It's alright if the value is still parameterized
-                        pass
+                    op_value = format_parameter_value(op_value.assign(parameter, value))
                 new_parameters[op] = op_value
         return type(self)(**new_parameters)
 

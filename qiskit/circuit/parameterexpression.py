@@ -319,11 +319,10 @@ class ParameterExpression:
         return self._apply_operation(Or, other)
 
     def _call(self, ufunc):
-        expr = ParameterExpression(
+        return ParameterExpression(
             self._parameter_symbols,
             ufunc(self._symbol_expr)
         )
-        return expr
 
     def sin(self):
         """Sine of a ParameterExpression"""
@@ -429,7 +428,15 @@ class ParameterExpression:
         return self
 
     def __eq__(self, other):
-        from sympy import srepr, sympify
+        """Check if this parameter expression is equal to another parameter expression
+           or a fixed value (only if this is a bound expression).
+        Args:
+            other (ParameterExpression or a number):
+                Parameter expression or numeric constant used for comparison
+        Returns:
+            bool: result of the comparison
+        """
+                from sympy import srepr, sympify
         if not isinstance(other, ParameterExpression):
             other = ParameterExpression(dict(), sympify(other))
         return (isinstance(other, ParameterExpression)

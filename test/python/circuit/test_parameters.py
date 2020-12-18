@@ -252,6 +252,24 @@ class TestParameters(QiskitTestCase):
                 self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
                 self.assertEqual(float(fbqc.data[0][0].params[0]), 3)
 
+    def test_two_parameter_expression_binding(self):
+        """Verify that for a circuit with parameters theta and phi that
+        we can correctly assign theta to -phi.
+        """
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        qc.ry(phi, 0)
+
+        self.assertEqual(len(qc._parameter_table[theta]), 1)
+        self.assertEqual(len(qc._parameter_table[phi]), 1)
+
+        qc.assign_parameters({theta: -phi}, inplace=True)
+
+        self.assertEqual(len(qc._parameter_table[phi]), 2)
+
     def test_expression_partial_binding_zero(self):
         """Verify that binding remains possible even if a previous partial bind
         would reduce the expression to zero.
@@ -946,6 +964,14 @@ class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
     supported_operations = [add, sub, mul, truediv]
+
+    def test_compare_to_value_when_bound(self):
+        """Verify expression can be compared to a fixed value
+        when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(bound_expr, 2.3)
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""

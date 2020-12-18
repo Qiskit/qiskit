@@ -23,15 +23,14 @@ Operators
    :toctree: ../stubs/
 
    Operator
+   Pauli
    Clifford
    ScalarOp
    SparsePauliOp
-   Pauli
-   pauli_group
-   Quaternion
    PauliTable
    StabilizerTable
    pauli_basis
+   pauli_group
 
 States
 ======
@@ -90,6 +89,7 @@ Random
    random_density_matrix
    random_unitary
    random_hermitian
+   random_pauli
    random_clifford
    random_quantum_channel
    random_pauli_table
@@ -112,19 +112,16 @@ Synthesis
    OneQubitEulerDecomposer
    TwoQubitBasisDecomposer
    two_qubit_cnot_decompose
+   Quaternion
 """
 
-from .operators import Operator, ScalarOp
-from .operators.pauli import Pauli, pauli_group
-from .operators.quaternion import Quaternion
+from .operators import (Operator, ScalarOp, Pauli, Clifford, SparsePauliOp)
+from .operators import (PauliTable, StabilizerTable, pauli_basis, pauli_group)
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import (process_fidelity,
                                  average_gate_fidelity,
                                  gate_error,
                                  diamond_norm)
-from .operators.symplectic import (Clifford, SparsePauliOp,
-                                   PauliTable, StabilizerTable)
-from .operators.symplectic import pauli_basis
 
 from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
@@ -132,12 +129,12 @@ from .states import (partial_trace, state_fidelity, purity, entropy,
                      mutual_information, shannon_entropy)
 
 from .random import (random_quantum_channel, random_unitary,
-                     random_clifford, random_pauli_table,
+                     random_clifford, random_pauli, random_pauli_table,
                      random_stabilizer_table,
                      random_hermitian, random_statevector,
                      random_density_matrix)
 
 from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
-                        two_qubit_cnot_decompose)
+                        two_qubit_cnot_decompose, Quaternion)
 
 from .analysis import hellinger_fidelity
