@@ -208,10 +208,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         self._invalidate()
         self._coeffs = coeffs
 
-        # the number of ancilla's depends on the number of coefficients, so update if necessary
-        if coeffs and self.num_state_qubits:
-            self._reset_registers(self.num_state_qubits)
-
     @property
     def degree(self) -> int:
         """Return the degree of the polynomial, equals to the number of coefficients minus 1.
@@ -250,11 +246,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = [qr_state, qr_target]
 
             self._qubits = qr_state[:] + qr_target[:]
-            self._ancillas = []
         else:
             self.qregs = []
             self._qubits = []
-            self._ancillas = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
