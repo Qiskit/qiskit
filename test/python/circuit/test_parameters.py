@@ -1503,18 +1503,6 @@ class TestParameterExpressions(QiskitTestCase):
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), numpy.ceil(a * b))
 
-    def test_ceil_complex(self):
-        """Test ParameterExpression ceil."""
-        a = 1.3
-        b = 2
-        x = Parameter('x')
-        y = Parameter('y')
-        expr = numpy.ceil(1j*x*y)
-        bexpr = expr.bind({x: a, y: b})
-        print(complex(bexpr))
-        breakpoint()
-        self.assertEqual(complex(bexpr), numpy.ceil(1j*a * b))
-
     def test_max(self):
         """Test ParameterExpression max."""
         from qiskit.circuit.parameterexpression import Max
@@ -1525,6 +1513,21 @@ class TestParameterExpressions(QiskitTestCase):
         expr = Max(x, y)
         bexpr = expr.bind({x: a, y: b})
         self.assertEqual(float(bexpr), max(a, b))
+
+    def test_max_complex(self):
+        """Test ParameterExpression max."""
+        from qiskit.circuit.parameterexpression import Max
+        a = 1
+        b = 2j
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = Max(x, y)
+        with self.assertRaises(ValueError):
+            expr.bind({x: a, y: b})
+        try:
+            expr.bind({x:a, y: b*1j})
+        except ValueError:
+            self.fail('Max() raised ValueError unexpectedly')
 
     def test_python_max_raises(self):
         """Test ParameterExpression max."""
@@ -1567,6 +1570,21 @@ class TestParameterExpressions(QiskitTestCase):
         expr = Min(1, x)
         bexpr = expr.bind({x: 2})
         self.assertEqual(bexpr, 1)
+
+    def test_min_complex(self):
+        """Test ParameterExpression min."""
+        from qiskit.circuit.parameterexpression import Min
+        a = 1
+        b = 2j
+        x = Parameter('x')
+        y = Parameter('y')
+        expr = Min(x, y)
+        with self.assertRaises(ValueError):
+            expr.bind({x: a, y: b})
+        try:
+            expr.bind({x:a, y: b*1j})
+        except ValueError:
+            self.fail('Min() raised ValueError unexpectedly')
 
     def test_max_iterable_raises(self):
         """Test max of iterable of ParameterExpression raises."""
