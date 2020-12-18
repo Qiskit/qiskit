@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Z2 Symmetry Tapering Class """
+""" Z2 Symmetry Tapering Converter Class """
 
 import logging
 from typing import List, Optional, Tuple, Union, cast
@@ -26,7 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 class Z2Taper(ConverterBase):
-    """ Z2 Symmetries """
+    """
+    Z2 taper converter which eliminates the central and last qubit in a list of Pauli that has
+    diagonal operators (Z,I) at those positions.
+    Chemistry specific method:
+    It can be used to taper two qubits in parity and binary-tree mapped
+    fermionic Hamiltonians when the spin orbitals are ordered in two spin
+    sectors, (block spin order) according to the number of particles in the system.
+    """
 
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
         """
@@ -44,15 +51,12 @@ class Z2Taper(ConverterBase):
         par_1 = 1 if (num_alpha + num_beta) % 2 == 0 else -1
         par_2 = 1 if num_alpha % 2 == 0 else -1
         self._tapering_values = [par_2, par_1]
+        self.z2_symmetries = None
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """
-        Eliminates the central and last qubit in a list of Pauli that has
-        diagonal operators (Z,I) at those positions
-        Chemistry specific method:
-        It can be used to taper two qubits in parity and binary-tree mapped
-        fermionic Hamiltonians when the spin orbitals are ordered in two spin
-        sectors, (block spin order) according to the number of particles in the system.
+        Converts the Operator to tapered one by Z2 symmetries.
+
         Args:
             operator: the operator
         Returns:
@@ -88,5 +92,5 @@ class Z2Taper(ConverterBase):
             sq_pauli = Pauli.from_label("".join(pauli_str)[::-1])
             sq_paulis.append(sq_pauli)
 
-        z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, self._tapering_values)
-        return z2_symmetries.taper(operator)
+        self.z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, self._tapering_values)
+        return self.z2_symmetries.taper(operator)

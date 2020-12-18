@@ -20,7 +20,6 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.utils import deprecate_function
 
 from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
@@ -96,6 +95,7 @@ class PauliSumOp(PrimitiveOp):
 
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
@@ -300,32 +300,23 @@ class PauliSumOp(PrimitiveOp):
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         from .pauli_op import PauliOp
 
-        def chop_real_imag(x):
-            # This is workaround until Gate allows complex value with very small imaginary part.
-            threshold = 1e-12
-            temp_real = x.real if np.absolute(x.real) >= threshold else 0.0
-            temp_imag = x.imag if np.absolute(x.imag) >= threshold else 0.0
-            if temp_real == 0.0 and temp_imag == 0.0:
-                return 0.0
-            if temp_imag == 0.0:
-                return temp_real
-            return temp_real + temp_imag * 1j
-
         def to_native(x):
             return x.item() if isinstance(x, np.generic) else x
 
         if len(self.primitive) == 1:
             return PauliOp(
                 Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),  # type: ignore
-                to_native(chop_real_imag(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
+                to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
             )
+        tables = self.primitive.table
+        coeffs = np.real_if_close(self.primitive.coeffs)
         return SummedOp(
             [
                 PauliOp(
-                    Pauli((s.table.Z[0], s.table.X[0])),
-                    to_native(chop_real_imag(s.coeffs[0])),
+                    Pauli((t.Z[0], t.X[0])),
+                    to_native(c),
                 )
-                for s in self.primitive
+                for t, c in zip(tables, coeffs)
             ],
             coeff=self.coeff,
         )
@@ -400,17 +391,3 @@ class PauliSumOp(PrimitiveOp):
         op = self.reduce()
         primitive: SparsePauliOp = op.primitive
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
-
-# pylint: disable=bad-docstring-quotes
-    @deprecate_function('The print_detail method is deprecated as of '
-                        '0.17.0. It will be removed no earlier than 3 months '
-                        'after the release date. You should use the str function instead.')
-    def print_details(self) -> str:
-        """
-        DEPRECATED: Return the description.
-        This method is necessary for compatibility with WeightedPauliOperator.
-
-        Returns:
-            Detail information string
-        """
-        return str(self)
