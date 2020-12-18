@@ -19,6 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.circuit.random import random_circuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -315,6 +316,33 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
+
+    def test_overcomplete_basis(self):
+        """Test optimization with an overcomplete basis."""
+        circuit = random_circuit(3, 3, seed=42)
+        basis = ['rz', 'rxx', 'rx', 'ry', 'p', 'sx', 'u', 'cx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        basis_translated = passmanager.run(circuit)
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result_full = passmanager.run(basis_translated)
+        self.assertTrue(Operator(circuit).equiv(Operator(result_full)))
+        self.assertGreater(basis_translated.depth(), result_full.depth())
+
+    def test_euler_decomposition_worse(self):
+        """Ensure we don't decompose to a deeper circuit."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(-np.pi / 2, 0)
+        circuit.rz(-np.pi / 2, 0)
+        basis = ['rx', 'rz']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        # decomposition of circuit will result in 3 gates instead of 2
+        # assert optimization pass doesn't use it.
+        self.assertEqual(result, circuit)
 
 
 if __name__ == '__main__':
