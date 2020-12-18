@@ -245,7 +245,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             num_ancillas = num_state_qubits + 1
             if self.contains_zero_breakpoint:
                 num_ancillas -= 1
-            num_ancillas += max(1, self._degree - 1)
             if num_ancillas > 0:
                 self._ancillas = []
                 qr_ancilla = AncillaRegister(num_ancillas)
@@ -264,11 +263,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]
-        # Ancilla for the rotation circuit
-        qr_ancilla_rot = self.qubits[self.num_state_qubits + 1:
-                                     self.num_state_qubits + 1 + max(1, self._degree - 1)]
         # Ancilla for the comparator circuit
-        qr_ancilla = self.qubits[self.num_state_qubits + 1 + max(1, self._degree - 1):]
+        qr_ancilla = self.qubits[self.num_state_qubits + 1:]
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints[:-1]):
@@ -277,8 +273,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 poly_r = PolynomialPauliRotations(num_state_qubits=self.num_state_qubits,
                                                   coeffs=self.mapped_coeffs[i],
                                                   basis=self.basis)
-                self.append(poly_r.to_gate(), qr_state[:] + qr_target +
-                            qr_ancilla_rot[:poly_r.num_ancillas])
+                self.append(poly_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 # apply Comparator
@@ -294,8 +289,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                                                   coeffs=self.mapped_coeffs[i],
                                                   basis=self.basis)
                 self.append(poly_r.to_gate().control(),
-                            [qr_ancilla[0]] + qr_state[:] + qr_target +
-                            qr_ancilla_rot[:poly_r.num_ancillas])
+                            [qr_ancilla[0]] + qr_state[:] + qr_target)
 
                 # uncompute comparator
                 self.append(comp.to_gate().inverse(),
