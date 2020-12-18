@@ -20,9 +20,8 @@ from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse import (InstructionScheduleMap, Play, PulseError, Schedule,
-                          Waveform)
+                          Waveform, ShiftPhase)
 from qiskit.pulse.channels import DriveChannel
-from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
@@ -283,17 +282,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         inst_map = InstructionScheduleMap()
 
-        inst_map.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
-                                                          name='inst_seq'))
+        inst_map.add('inst_seq', 0, Schedule(*converted_instruction, name='inst_seq'))
 
         with self.assertRaises(PulseError):
             inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3, P4=4, P5=5)
 
         with self.assertRaises(PulseError):
-            inst_map.get('inst_seq', 0, P1=1)
-
-        with self.assertRaises(PulseError):
-            inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
+            inst_map.get('inst_seq', 0, 1, 2, 3, 4, 5, 6, 7, 8)
 
         p3_expr = Parameter('p3')
         p3_expr = p3_expr.bind({p3_expr: 3})
@@ -353,3 +348,109 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.get('f', (0,), dur=2*t_param, t_val=5), expected_sched)
 
         self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur', 't_val',))
+
+    def test_schedule_with_non_alphanumeric_ordering(self):
+        """Test adding and getting schedule with non obvious parameter ordering."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        lamb = Parameter('lambda')
+
+        target_sched = Schedule()
+        target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(phi, DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('target_sched', (0,), target_sched, arguments=['theta', 'phi', 'lambda'])
+
+        ref_sched = Schedule()
+        ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1, DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(2, DriveChannel(0)), inplace=True)
+
+        # if parameter is alphanumerical ordering this maps to
+        # theta -> 2
+        # phi -> 1
+        # lamb -> 0
+        # however non alphanumerical ordering is specified in add method thus mapping should be
+        # theta -> 0
+        # phi -> 1
+        # lamb -> 2
+        test_sched = inst_map.get('target_sched', (0,), 0, 1, 2)
+
+        for test_inst, ref_inst in zip(test_sched.instructions, ref_sched.instructions):
+            self.assertEqual(test_inst[0], ref_inst[0])
+            self.assertEqual(test_inst[1], ref_inst[1])
+
+    def test_binding_too_many_parameters(self):
+        """Test getting schedule with too many parameter binding."""
+        param = Parameter('param')
+
+        target_sched = Schedule()
+        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('target_sched', (0,), target_sched)
+
+        with self.assertRaises(PulseError):
+            inst_map.get('target_sched', (0,), 0, 1, 2, 3)
+
+    def test_binding_unassigned_parameters(self):
+        """Test getting schedule with unassigned parameter binding."""
+        param = Parameter('param')
+
+        target_sched = Schedule()
+        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('target_sched', (0,), target_sched)
+
+        with self.assertRaises(PulseError):
+            inst_map.get('target_sched', (0,), P0=0)
+
+    def test_schedule_with_multiple_parameters_under_same_name(self):
+        """Test getting schedule with parameters that have the same name."""
+        param1 = Parameter('param')
+        param2 = Parameter('param')
+        param3 = Parameter('param')
+
+        target_sched = Schedule()
+        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(param3, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('target_sched', (0,), target_sched)
+
+        ref_sched = Schedule()
+        ref_sched.insert(0, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+
+        test_sched = inst_map.get('target_sched', (0,), param=1.23)
+
+        for test_inst, ref_inst in zip(test_sched.instructions, ref_sched.instructions):
+            self.assertEqual(test_inst[0], ref_inst[0])
+            self.assertAlmostEqual(test_inst[1], ref_inst[1])
+
+    def test_get_schedule_with_unbound_parameter(self):
+        """Test get schedule with partial binding."""
+        param1 = Parameter('param1')
+        param2 = Parameter('param2')
+
+        target_sched = Schedule()
+        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('target_sched', (0,), target_sched)
+
+        ref_sched = Schedule()
+        ref_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+
+        test_sched = inst_map.get('target_sched', (0,), param2=1.23)
+
+        for test_inst, ref_inst in zip(test_sched.instructions, ref_sched.instructions):
+            self.assertEqual(test_inst[0], ref_inst[0])
+            self.assertAlmostEqual(test_inst[1], ref_inst[1])
