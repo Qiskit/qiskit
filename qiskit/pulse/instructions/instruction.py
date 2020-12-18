@@ -32,6 +32,7 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_parameter_value
 # pylint: disable=missing-return-doc
 
 
@@ -275,7 +276,8 @@ class Instruction(ABC):
             value = value_dict[parameter]
             op_indices = self._parameter_table[parameter]
             for op_idx in op_indices:
-                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+                param_expr = new_operands[op_idx]
+                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
 
             # Update parameter table
             entry = self._parameter_table.pop(parameter)

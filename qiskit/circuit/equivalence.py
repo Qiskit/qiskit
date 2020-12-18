@@ -156,7 +156,8 @@ class EquivalenceLibrary():
                 if specified this method will return None.
 
         Returns:
-            PIL.Image: Drawn equivalence library.
+            PIL.Image or IPython.display.SVG: Drawn equivalence library as an
+                IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
             ImportError: when pydot or pillow are not installed.
@@ -179,6 +180,12 @@ class EquivalenceLibrary():
             raise ImportError('EquivalenceLibrary.draw requires pillow. '
                               "You can use 'pip install pillow' to install")
 
+        try:
+            from IPython.display import SVG
+            has_ipython = True
+        except ImportError:
+            has_ipython = False
+
         dot_str = self._build_basis_graph().to_dot(
             lambda node: {'label': node['label']}, lambda edge: edge)
         dot = pydot.graph_from_dot_data(dot_str)[0]
@@ -186,6 +193,11 @@ class EquivalenceLibrary():
             extension = filename.split('.')[-1]
             dot.write(filename, format=extension)
             return None
+
+        if has_ipython:
+            svg = dot.create_svg(prog='dot')
+            return SVG(svg)
+
         png = dot.create_png(prog='dot')
         return Image.open(io.BytesIO(png))
 

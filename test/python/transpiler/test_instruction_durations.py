@@ -18,7 +18,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.backends import FakeParis, FakeVigo
+from qiskit.test.mock.backends import FakeParis, FakeTokyo
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
@@ -41,7 +41,7 @@ class TestInstructionDurationsClass(QiskitTestCase):
         self.assertGreater(durations.get('u2', 0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
-        durations = InstructionDurations.from_backend(FakeVigo())
+        durations = InstructionDurations.from_backend(FakeTokyo())
         self.assertIsNone(durations.dt)
         self.assertGreater(durations.get('u2', 0, 's'), 0)
         with self.assertRaises(TranspilerError):

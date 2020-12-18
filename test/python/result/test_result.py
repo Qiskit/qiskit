@@ -402,6 +402,15 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(unitary.dtype, np.complex_)
         np.testing.assert_almost_equal(unitary, processed_unitary)
 
+    def test_additional_result_data(self):
+        """Test construction of ExperimentResult with additional data"""
+        target_probs = {"0x0": 0.5, "0x1": 0.5}
+        data = models.ExperimentResultData(probabilities=target_probs)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        result_probs = result.data(0)['probabilities']
+        self.assertEqual(result_probs, target_probs)
+
 
 class TestResultOperationsFailed(QiskitTestCase):
     """Result operations methods."""
