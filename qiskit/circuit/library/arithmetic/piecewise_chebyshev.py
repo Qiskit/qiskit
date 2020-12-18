@@ -81,7 +81,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
         self._breakpoints = breakpoints if breakpoints is not None else [0]
 
         self._polynomials = None
-        self._poly_r = None
 
         self.num_state_qubits = num_state_qubits
 
