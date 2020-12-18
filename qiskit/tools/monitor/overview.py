@@ -135,13 +135,13 @@ def backend_monitor(backend):
     print(multi_header)
     print('-'*len(multi_header))
 
-    for qub, gate in enumerate(multi_qubit_gates):
+    for gate in multi_qubit_gates:
         qubits = gate.qubits
         ttype = gate.gate
         error = "Unknown"
         for gd_param in gate.parameters:
             if gd_param.name == 'gate_error':
-                error = round(gd_param.value, 5)
+                error = format(gd_param.value, '.5f')
         mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
         print(offset+mstr)
 

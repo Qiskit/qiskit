@@ -280,25 +280,23 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
         cali_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
         for nduv in qubit_data:
-            if nduv.name == 'readout_error':
-                cali_data[nduv.name] = str(round(nduv.value*100, 3))
-            elif nduv.name in cali_data.keys():
-                cali_data[nduv.name] = str(round(nduv.value, 3)) + ' ' + nduv.unit
+            if nduv.name in cali_data.keys():
+                cali_data[nduv.name] = str(round(nduv.value, 5)) + ' ' + nduv.unit
 
         gate_names = []
         gate_error = []
         for gd in gate_data:
-            if gd.gate == 'id':
+            if gd.gate in ['id', 'rz']:
                 continue
             for gd_param in gd.parameters:
                 if gd_param.name == 'gate_error':
-                    gate_names.append(gd.gate)
-                    gate_error.append(str(round(gd_param.value*100, 3)))
+                    gate_names.append(gd.gate.upper())
+                    gate_error.append(str(round(gd_param.value, 5)))
 
         if not gate_error_title:
             for gname in gate_names:
                 gate_error_title += f"<th>{gname}</th>"
-            qubit_html += gate_error_title + "<th>Readout error (e-2)</th></tr>"
+            qubit_html += gate_error_title + "<th>Readout error</th></tr>"
 
         qubit_html += f"<tr><td><font style='font-weight:bold'>{name}</font></td>"
         qubit_html += f"<td>{cali_data['frequency']}</td>" \

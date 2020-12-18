@@ -32,7 +32,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.backend = self.provider.get_backend('fake_ourense')
         self.properties = self.backend.properties()
         self.ref_gate = next(g for g in self.backend.configuration().basis_gates
-                             if g not in ['id'])
+                             if g not in ['id', 'rz'])
 
     def test_gate_property(self):
         """Test for getting the gate properties."""
