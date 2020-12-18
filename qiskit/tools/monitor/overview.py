@@ -118,7 +118,8 @@ def backend_monitor(backend):
                     gate_error.append(format(gd_param.value, '.5f'))
 
         if not qubit_header:
-            qubit_header = 'Qubits [Name / Freq / T1 / T2 / ' + sep.join(gate_names) + ' / Readout err]'
+            qubit_header = 'Qubits [Name / Freq / T1 / T2 / ' + sep.join(gate_names) + \
+                           ' / Readout err]'
             print(qubit_header)
             print('-'*len(qubit_header))
 
