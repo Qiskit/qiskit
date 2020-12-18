@@ -44,7 +44,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             pw_approximation._build()
             qc = QuantumCircuit(pw_approximation.num_qubits)
             qc.h(list(range(num_state_qubits)))
-            qc.append(pw_approximation.to_instruction(), list(range(qc.num_qubits)))
+            qc.append(pw_approximation.to_instruction(), qc.qubits)
             print(qc.draw(output='mpl'))
 
     References:
