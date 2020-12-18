@@ -115,7 +115,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                         inplace=True)
         circuit.compose(pec, inplace=True)
 
-    # add measurements if necessary
+        # add measurements if necessary
         if measurement:
             cr = ClassicalRegister(self._m)
             circuit.add_register(cr)

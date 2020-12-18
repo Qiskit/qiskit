@@ -14,7 +14,6 @@
 
 from typing import Optional, List, Union, Tuple, Dict, Callable
 import logging
-from functools import partial
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
