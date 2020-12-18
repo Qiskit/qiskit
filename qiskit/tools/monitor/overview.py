@@ -71,8 +71,6 @@ def backend_monitor(backend):
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
-    if not config['simulator']:
-        props = backend.properties().to_dict()
 
     print(backend.name())
     print('='*len(backend.name()))
@@ -96,55 +94,53 @@ def backend_monitor(backend):
         return
 
     print()
-    qubit_header = 'Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]'
-    print(qubit_header)
-    print('-'*len(qubit_header))
-
+    props = backend.properties()
+    qubit_header = None
     sep = ' / '
-    for qub in range(len(props['qubits'])):
-        name = 'Q%s' % qub
-        qubit_data = props['qubits'][qub]
-        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
-        t1_info = qubit_data[0]
-        t2_info = qubit_data[1]
-        freq_info = qubit_data[2]
-        readout_info = qubit_data[3]
 
-        freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],
-                       5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],
-                       5))+' ' + t2_info['unit']
+    for index, qubit_data in enumerate(props.qubits):
+        name = 'Q%s' % index
+        gate_data = [gate for gate in props.gates if gate.qubits == [index]]
+
+        cali_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
+        for nduv in qubit_data:
+            if nduv.name in cali_data.keys():
+                cali_data[nduv.name] = format(nduv.value, '.5f') + ' ' + nduv.unit
+
+        gate_names = []
+        gate_error = []
         for gd in gate_data:
-            if gd['gate'] == 'u1':
-                U1 = str(round(gd['parameters'][0]['value'], 5))
-                break
+            if gd.gate in ['id', 'rz']:
+                continue
+            for gd_param in gd.parameters:
+                if gd_param.name == 'gate_error':
+                    gate_names.append(gd.gate.upper() + ' err')
+                    gate_error.append(format(gd_param.value, '.5f'))
 
-        for gd in gate_data:
-            if gd['gate'] == 'u2':
-                U2 = str(round(gd['parameters'][0]['value'], 5))
-                break
-        for gd in gate_data:
-            if gd['gate'] == 'u3':
-                U3 = str(round(gd['parameters'][0]['value'], 5))
-                break
+        if not qubit_header:
+            qubit_header = 'Qubits [Name / Freq / T1 / T2 / ' + sep.join(gate_names) + ' / Readout err]'
+            print(qubit_header)
+            print('-'*len(qubit_header))
 
-        readout_error = str(round(readout_info['value'], 5))
+        qstr = sep.join([name, cali_data['frequency'], cali_data['T1'], cali_data['T2']] +
+                        gate_error +
+                        [cali_data['readout_error']])
 
-        qstr = sep.join([name, freq, T1, T2, U1, U2, U3, readout_error])
         print(offset+qstr)
 
     print()
-    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
+    multi_qubit_gates = [g for g in props.gates if len(g.qubits) > 1]
     multi_header = 'Multi-Qubit Gates [Name / Type / Gate Error]'
     print(multi_header)
     print('-'*len(multi_header))
 
     for qub, gate in enumerate(multi_qubit_gates):
-        gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = "Unknown"
+        for gd_param in gate.parameters:
+            if gd_param.name == 'gate_error':
+                error = round(gd_param.value, 5)
         mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
         print(offset+mstr)
 

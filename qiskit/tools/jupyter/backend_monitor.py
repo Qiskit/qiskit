@@ -245,11 +245,13 @@ def qubits_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties().to_dict()
+    props = backend.properties()
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
+    update_date = props.last_update_date.strftime("%a %d %B %Y at %H:%M %Z")
     header_html = header_html.format(key='last_update_date',
-                                     value=props['last_update_date'])
+                                     value=update_date)
+
     update_date_widget = widgets.HTML(value=header_html)
 
     qubit_html = "<table>"
@@ -268,43 +270,43 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
 
     qubit_html += "<tr><th></th><th>Frequency</th><th>T1</th><th>T2</th>"
-    qubit_html += "<th>U1 gate error</th><th>U2 gate error</th><th>U3 gate error</th>"
-    qubit_html += "<th>Readout error</th></tr>"
     qubit_footer = "</table>"
 
-    for qub in range(len(props['qubits'])):
-        name = 'Q%s' % qub
-        qubit_data = props['qubits'][qub]
-        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
-        t1_info = qubit_data[0]
-        t2_info = qubit_data[1]
-        freq_info = qubit_data[2]
-        readout_info = qubit_data[3]
+    gate_error_title = ""
 
-        freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],
-                       5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],
-                       5))+' ' + t2_info['unit']
+    for index, qubit_data in enumerate(props.qubits):
+        name = 'Q%s' % index
+        gate_data = [gate for gate in props.gates if gate.qubits == [index]]
 
+        cali_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
+        for nduv in qubit_data:
+            if nduv.name == 'readout_error':
+                cali_data[nduv.name] = str(round(nduv.value*100, 3))
+            elif nduv.name in cali_data.keys():
+                cali_data[nduv.name] = str(round(nduv.value, 3)) + ' ' + nduv.unit
+
+        gate_names = []
+        gate_error = []
         for gd in gate_data:
-            if gd['gate'] == 'u1':
-                U1 = str(round(gd['parameters'][0]['value'], 5))
-                break
+            if gd.gate == 'id':
+                continue
+            for gd_param in gd.parameters:
+                if gd_param.name == 'gate_error':
+                    gate_names.append(gd.gate)
+                    gate_error.append(str(round(gd_param.value*100, 3)))
 
-        for gd in gate_data:
-            if gd['gate'] == 'u2':
-                U2 = str(round(gd['parameters'][0]['value'], 5))
-                break
-        for gd in gate_data:
-            if gd['gate'] == 'u3':
-                U3 = str(round(gd['parameters'][0]['value'], 5))
-                break
+        if not gate_error_title:
+            for gname in gate_names:
+                gate_error_title += f"<th>{gname}</th>"
+            qubit_html += gate_error_title + "<th>Readout error (e-2)</th></tr>"
 
-        readout_error = round(readout_info['value'], 5)
-        qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"
-        qubit_html += "<td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
-        qubit_html = qubit_html % (name, freq, T1, T2, U1, U2, U3, readout_error)
+        qubit_html += f"<tr><td><font style='font-weight:bold'>{name}</font></td>"
+        qubit_html += f"<td>{cali_data['frequency']}</td>" \
+                      f"<td>{cali_data['T1']}</td><td>{cali_data['T2']}</td>"
+        for gerror in gate_error:
+            qubit_html += f"<td>{gerror}</td>"
+        qubit_html += f"<td>{cali_data['readout_error']}</td>"
+
     qubit_html += qubit_footer
 
     qubit_widget = widgets.HTML(value=qubit_html)

@@ -95,8 +95,8 @@ class TestBackendOverview(QiskitTestCase):
 
         stdout = fake_stdout.getvalue()
         self.assertIn('Configuration', stdout)
-        self.assertIn('Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]',
-                      stdout)
+        self.assertIn('Qubits [Name / Freq / T1 / T2 / ', stdout)
+        self.assertIn('Readout err', stdout)
         self.assertIn('Multi-Qubit Gates [Name / Type / Gate Error]', stdout)
 
 
