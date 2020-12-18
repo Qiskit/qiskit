@@ -90,7 +90,7 @@ class FullAncillaAllocation(AnalysisPass):
             self.property_set['layout_ancilla_register'] = qreg
             for idx, idle_q in enumerate(idle_physical_qubits):
                 self.property_set['layout'][idle_q] = qreg[idx]
-
+            self.property_set['layout'].add_register(qreg)
         return dag
 
     @staticmethod
