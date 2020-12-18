@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug where calling `to_instruction` or `to_gate` on a
-    `BlueprintCircuit` fails if `_build` has not been called yet.
