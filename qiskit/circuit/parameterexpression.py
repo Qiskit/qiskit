@@ -428,7 +428,7 @@ class ParameterExpression:
            or a fixed value (only if this is a bound expression).
         Args:
             other (ParameterExpression or a number):
-                Parameter expression or numeric constant used for comparison
+                Parameter expression or numeric constant used for comparison.
         Returns:
             bool: result of the comparison
         """
