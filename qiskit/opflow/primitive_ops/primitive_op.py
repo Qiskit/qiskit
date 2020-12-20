@@ -286,12 +286,12 @@ class PrimitiveOp(OperatorBase):
         if len(sparse_pauli) == 1:
             label, coeff = sparse_pauli.to_list()[0]
             coeff = coeff.real if np.isreal(coeff) else coeff
-            return PrimitiveOp(Pauli.from_label(label), coeff * self.coeff)
+            return PrimitiveOp(Pauli(label), coeff * self.coeff)
 
         return SummedOp(
             [
                 PrimitiveOp(
-                    Pauli.from_label(label),  # type: ignore
+                    Pauli(label),
                     coeff.real if coeff == coeff.real else coeff,
                 )
                 for (label, coeff) in sparse_pauli.to_list()

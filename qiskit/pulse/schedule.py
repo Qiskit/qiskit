@@ -24,6 +24,7 @@ import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 # pylint: disable=cyclic-import, unused-import
 from qiskit.pulse.instructions import Instruction
@@ -746,6 +747,21 @@ class Schedule(abc.ABC):
 
         return self
 
+    def get_parameters(self,
+                       parameter_name: str) -> List[Parameter]:
+        """Get parameter object bound to this schedule by string name.
+
+        Because different ``Parameter`` objects can have the same name,
+        this method returns a list of ``Parameter`` s for the provided name.
+
+        Args:
+            parameter_name: Name of parameter.
+
+        Returns:
+            Parameter objects that have corresponding name.
+        """
+        return [param for param in self.parameters if param.name == parameter_name]
+
     def _update_parameter_table(self, schedule: 'Schedule'):
         """
 
@@ -881,12 +897,15 @@ class ParameterizedSchedule:
     This should not be returned to users as it is currently only a helper class.
     This class is takes an input command definition that accepts
     a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
-    # TODO: In the near future this will be replaced with proper incorporation of parameters
-            into the ``Schedule`` class.
     """
 
     def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
                  name: Optional[str] = None):
+
+        import warnings
+        warnings.warn('ParameterizedSchedule is deprecated. Use Schedule with '
+                      'circuit.Parameter objects.', DeprecationWarning)
+
         full_schedules = []
         parameterized = []
         parameters = parameters or []
