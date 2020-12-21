@@ -22,7 +22,45 @@ from .two_local import TwoLocal
 
 
 class RandomPauli(TwoLocal):
-    """The Random Pauli ansatz."""
+    r"""The Random Pauli ansatz.
+
+    This is a simple benchmark ansatz used e.g. in investigating Barren plateaus in variational
+    algorithms [1].
+
+    The circuit consists of alternating rotation and entanglement layers with
+    an initial layer of :math:`\sqrt{H} = RY(\pi/4)` gates.
+    The rotation layers contain single qubit Pauli rotations, where the axis is chosen uniformly
+    at random to be X, Y or Z. The entanglement layers is compromised of pairwise CZ gates
+    with a total depth of 2.
+
+    For instance, the circuit could look like this (but note that choosing a different seed
+    yields different Pauli rotations).
+
+    .. code-block::
+
+             ┌─────────┐┌──────────┐       ░ ┌──────────┐       ░  ┌──────────┐
+        q_0: ┤ RY(π/4) ├┤ RZ(θ[0]) ├─■─────░─┤ RY(θ[4]) ├─■─────░──┤ RZ(θ[8]) ├
+             ├─────────┤├──────────┤ │     ░ ├──────────┤ │     ░  ├──────────┤
+        q_1: ┤ RY(π/4) ├┤ RZ(θ[1]) ├─■──■──░─┤ RY(θ[5]) ├─■──■──░──┤ RX(θ[9]) ├
+             ├─────────┤├──────────┤    │  ░ ├──────────┤    │  ░ ┌┴──────────┤
+        q_2: ┤ RY(π/4) ├┤ RX(θ[2]) ├─■──■──░─┤ RY(θ[6]) ├─■──■──░─┤ RX(θ[10]) ├
+             ├─────────┤├──────────┤ │     ░ ├──────────┤ │     ░ ├───────────┤
+        q_3: ┤ RY(π/4) ├┤ RZ(θ[3]) ├─■─────░─┤ RX(θ[7]) ├─■─────░─┤ RY(θ[11]) ├
+             └─────────┘└──────────┘       ░ └──────────┘       ░ └───────────┘
+
+    Examples:
+
+        .. jupyter-execute:
+
+            from qiskit.circuit.library import RandomPauli
+            circuit = RandomPauli(4, reps=2, seed=5, insert_barriers=True)
+            print(circuit.draw())
+
+    References:
+
+        [1]: McClean et al., Barren plateaus in quantum neural network training landscapes.
+             `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
+    """
 
     def __init__(self, num_qubits: Optional[int] = None, reps: int = 3,
                  seed: Optional[int] = None, insert_barriers: bool = False):
