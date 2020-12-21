@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import RandomPauli
 
 
@@ -30,7 +30,10 @@ class TestRandomPauli(QiskitTestCase):
 
         qr = QuantumRegister(4, 'q')
         params = circuit.ordered_parameters
+
+        # expected circuit for the random seed 12
         expected = QuantumCircuit(qr)
+
         # initial RYs
         expected.ry(np.pi / 4, qr)
 
@@ -52,6 +55,20 @@ class TestRandomPauli(QiskitTestCase):
         expected.rx(params[7], 3)
 
         self.assertEqual(circuit, expected)
+
+    def test_resize(self):
+        """Test resizing the Random Pauli circuit preserves the gates."""
+        circuit = RandomPauli(1)
+        top_gates = [op.name for op, _, _ in circuit.data]
+
+        circuit.num_qubits = 3
+        with self.subTest('assert existing gates remain'):
+            new_top_gates = []
+            for op, qargs, _ in circuit:
+                if qargs == [circuit.qubits[0]]:  # if top qubit
+                    new_top_gates.append(op.name)
+
+            self.assertEqual(top_gates, new_top_gates)
 
 
 if __name__ == '__main__':

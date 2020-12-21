@@ -11,7 +11,7 @@ class RandomPauli(TwoLocal):
     """The Random Pauli ansatz."""
 
     def __init__(self, num_qubits: Optional[int] = None, reps: int = 3,
-                 seed: Optional[int] = None):
+                 seed: Optional[int] = None, insert_barriers: bool = False):
         # store a random number generator
         self._seed = seed
         self._rng = np.random.default_rng(seed)
@@ -19,7 +19,8 @@ class RandomPauli(TwoLocal):
         # store a dict to keep track of the random gates
         self._gates = dict()
 
-        super().__init__(num_qubits, reps=reps, entanglement_blocks='cz', entanglement='pairwise')
+        super().__init__(num_qubits, reps=reps, entanglement_blocks='cz', entanglement='pairwise',
+                         insert_barriers=insert_barriers)
 
     def _invalidate(self):
         self._rng = np.random.default_rng(self._seed)  # reset number generator
@@ -39,9 +40,7 @@ class RandomPauli(TwoLocal):
             self._gates[i] += list(self._rng.choice(['rx', 'ry', 'rz'], num_missing))
 
         for j in qubits:
-            pj = next(param_iter)
-            print('using', pj)
-            getattr(layer, self._gates[i][j])(pj, j)
+            getattr(layer, self._gates[i][j])(next(param_iter), j)
 
         # add the layer to the circuit
         self.compose(layer, inplace=True)
