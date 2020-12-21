@@ -19,7 +19,7 @@ from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -208,10 +208,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         self._invalidate()
         self._coeffs = coeffs
 
-        # the number of ancilla's depends on the number of coefficients, so update if necessary
-        if coeffs and self.num_state_qubits:
-            self._reset_registers(self.num_state_qubits)
-
     @property
     def degree(self) -> int:
         """Return the degree of the polynomial, equals to the number of coefficients minus 1.
@@ -246,22 +242,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name='state')
             qr_target = QuantumRegister(1, name='target')
-            num_ancillas = min(self.degree - 1, num_state_qubits - 2)
 
             self.qregs = [qr_state, qr_target]
 
-            if num_ancillas > 0:
-                qr_ancilla = AncillaRegister(num_ancillas)
-                self.qregs.append(qr_ancilla)
-            else:
-                qr_ancilla = []
-
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._ancillas = qr_ancilla[:]
+            self._qubits = qr_state[:] + qr_target[:]
         else:
             self.qregs = []
             self._qubits = []
-            self._ancillas = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
@@ -320,7 +307,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = self.qubits[self.num_state_qubits]
-        qr_ancilla = self.qubits[self.num_state_qubits + 1:]
 
         rotation_coeffs = self._get_rotation_coefficients()
 
@@ -347,7 +333,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
                 if self.basis == 'x':
                     self.mcrx(rotation_coeffs[c], qr_control, qr_target)
                 elif self.basis == 'y':
-                    self.mcry(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
+                    self.mcry(rotation_coeffs[c], qr_control, qr_target)
                 else:
                     self.mcrz(rotation_coeffs[c], qr_control, qr_target)
 
