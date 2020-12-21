@@ -26,9 +26,10 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 
 
-class Operator(BaseOperator):
+class Operator(BaseOperator, TolerancesMixin):
     r"""Matrix operator class
 
     This represents a matrix operator :math:`M` that will
@@ -96,12 +97,17 @@ class Operator(BaseOperator):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            self._array = np.asarray(data.to_matrix(), dtype=complex)
+            self._data = np.asarray(data.to_matrix(), dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
         dout, din = self._data.shape
         super().__init__(*self._automatic_dims(input_dims, din, output_dims, dout))
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
 
     def __repr__(self):
         prefix = 'Operator('

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
+import unittest
 
 import copy
 import pickle
@@ -250,6 +251,24 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(fbqc.parameters, set())
                 self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
                 self.assertEqual(float(fbqc.data[0][0].params[0]), 3)
+
+    def test_two_parameter_expression_binding(self):
+        """Verify that for a circuit with parameters theta and phi that
+        we can correctly assign theta to -phi.
+        """
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        qc.ry(phi, 0)
+
+        self.assertEqual(len(qc._parameter_table[theta]), 1)
+        self.assertEqual(len(qc._parameter_table[phi]), 1)
+
+        qc.assign_parameters({theta: -phi}, inplace=True)
+
+        self.assertEqual(len(qc._parameter_table[phi]), 2)
 
     def test_expression_partial_binding_zero(self):
         """Verify that binding remains possible even if a previous partial bind
@@ -946,6 +965,14 @@ class TestParameterExpressions(QiskitTestCase):
 
     supported_operations = [add, sub, mul, truediv]
 
+    def test_compare_to_value_when_bound(self):
+        """Verify expression can be compared to a fixed value
+        when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(bound_expr, 2.3)
+
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
 
@@ -1448,6 +1475,23 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
+    def test_parameter_expression_grad(self):
+        """Verify correctness of ParameterExpression gradients."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+
+        with self.subTest(msg='first order gradient'):
+            expr = (x + y) * z
+            self.assertEqual(expr.gradient(x), z)
+            self.assertEqual(expr.gradient(z), (x + y))
+
+        with self.subTest(msg='second order gradient'):
+            expr = x * x
+            self.assertEqual(expr.gradient(x), 2 * x)
+            self.assertEqual(expr.gradient(x).gradient(x), 2)
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
@@ -1503,3 +1547,7 @@ class TestParameterEquality(QiskitTestCase):
         phi = Parameter('phi')
         cos_phi = numpy.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
+
+
+if __name__ == '__main__':
+    unittest.main()

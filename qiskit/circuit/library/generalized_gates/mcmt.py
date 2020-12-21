@@ -17,7 +17,7 @@ from typing import Union, Callable, List, Tuple, Optional
 import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.util import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments
 from ..standard_gates import (
     XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 )
