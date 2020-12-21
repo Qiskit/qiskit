@@ -23,7 +23,7 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library import (
     NLocal, TwoLocal, RealAmplitudes, ExcitationPreserving, XGate, CRXGate, CCXGate,
-    SwapGate, RXGate, RYGate, EfficientSU2, RZGate, RXXGate, RYYGate
+    SwapGate, RXGate, RYGate, EfficientSU2, RZGate, RXXGate, RYYGate, CXGate
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -291,6 +291,23 @@ class TestNLocal(QiskitTestCase):
             with self.subTest(rep_num=rep_num):
                 # using a set here since the order does not matter
                 self.assertEqual(set(entangler_map), set(expected))
+
+    def test_pairwise_entanglement(self):
+        """Test pairwise entanglement."""
+        nlocal = NLocal(5, rotation_blocks=XGate(), entanglement_blocks=CXGate(),
+                        entanglement='pairwise', reps=1)
+        entangler_map = nlocal.get_entangler_map(0, 0, 2)
+        pairwise = [(0, 1), (2, 3), (1, 2), (3, 4)]
+
+        self.assertEqual(pairwise, entangler_map)
+
+    def test_pairwise_entanglement_raises(self):
+        """Test choosing pairwise entanglement raises an error for too large blocks."""
+        nlocal = NLocal(3, XGate(), CCXGate(), entanglement='pairwise', reps=1)
+
+        # pairwise entanglement is only defined if the entangling gate has 2 qubits
+        with self.assertRaises(ValueError):
+            print(nlocal.draw())
 
     def test_entanglement_by_list(self):
         """Test setting the entanglement by list.

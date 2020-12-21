@@ -965,6 +965,9 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         raise ValueError('The number of block qubits must be smaller or equal to the number of '
                          'qubits in the circuit.')
 
+    if entanglement == 'pairwise' and num_block_qubits != 2:
+        raise ValueError('Pairwise entanglement is only defined for blocks of 2 qubits.')
+
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
     if entanglement in ['linear', 'circular', 'sca', 'pairwise']:
