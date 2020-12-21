@@ -38,10 +38,19 @@ class SubstitutionConfig:
         self.clbit_config = clbit_config if clbit_config is not None else []
         self.pred_block = pred_block
 
+    def has_parameters(self):
+        """Ensure that the template does not have parameters."""
+        for node in self.template_dag_dep.get_nodes():
+            for param in node.op.params:
+                if isinstance(param, ParameterExpression):
+                    return True
+
+        return False
+
 
 class TemplateSubstitution:
     """
-    Class to run the subsitution algorithm from the list of maximal matches.
+    Class to run the substitution algorithm from the list of maximal matches.
     """
 
     def __init__(self, max_matches, circuit_dag_dep, template_dag_dep):
@@ -212,6 +221,11 @@ class TemplateSubstitution:
         """
         list_predecessors = []
         remove_list = []
+
+        # First remove any scenarios that have parameters in the template.
+        for scenario in self.substitution_list:
+            if scenario.has_parameters():
+                remove_list.append(scenario)
 
         # Initialize predecessors for each group of matches.
         for scenario in self.substitution_list:

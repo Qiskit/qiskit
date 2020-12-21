@@ -471,6 +471,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
                             filename='subfont.png')
 
+    def test_meas_condition(self):
+        """Tests measure with a condition"""
+
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+        self.circuit_drawer(circuit, filename='meas_condition.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
