@@ -20,7 +20,7 @@ from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 
@@ -41,7 +41,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertEqual(out.count_ops(), {'unitary': 1})
 
     @data(
-        ['u3', 'cx'],
+        ['u', 'cx'],
         ['u1', 'u2', 'u3', 'cx'],
         ['rx', 'ry', 'rxx'],
         ['rx', 'rz', 'iswap'],
@@ -59,6 +59,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         out = UnitarySynthesis(basis_gates).run(dag)
+        print(dag_to_circuit(out))
+        print(out.count_ops())
 
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 

@@ -38,6 +38,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
         self.euler_basis_names = {
+            #'U31': ['u1'],
+            #'U32': ['u2'],
             'U3': ['u3'],
             'U': ['u'],
             'PSX': ['p', 'sx'],
@@ -77,9 +79,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
                                                       np.eye(2)):
                     dag.remove_op_node(run[0])
-                    continue
-                if run[0].op.name not in ['u', 'p', 'u3', 'u1', 'u2']:
-                    continue
+                continue
+
             new_circs = []
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
@@ -90,8 +91,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=lambda circ: circ.depth())
-                if qc.depth() > new_circ.depth() or (qc.depth() == new_circ.depth() 
-                        and run[0].op.name in ['u', 'p', 'u3', 'u1', 'u2']):
+                if qc.depth() > new_circ.depth():
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run

@@ -144,6 +144,8 @@ class OneQubitEulerDecomposer:
     def basis(self, basis):
         """Set the decomposition basis."""
         basis_methods = {
+            'U31': (self._params_u3, self._circuit_u31),
+            'U32': (self._params_u3, self._circuit_u32),
             'U3': (self._params_u3, self._circuit_u3),
             'U': (self._params_u3, self._circuit_u),
             'PSX': (self._params_u1x, self._circuit_psx),
@@ -310,43 +312,43 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
-        """theta = _mod2pi(theta + np.pi)
-        phi = _mod2pi(phi + np.pi)
         circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(U1Gate(_mod2pi(lam + phi + theta)), [0])
-                print('in u1')
-        elif simplify and np.isclose(abs(theta),
-                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if (not np.isclose(_mod2pi(abs(phi)), np.pi, atol=atol) or
-                    not np.isclose(lam, 0.0, atol=atol)):
-                circuit.append(U2Gate(phi - np.pi, lam), [0])
-                print('in u2')
-        elif (not np.isclose(_mod2pi(abs(theta)), np.pi, atol=atol) 
-                    and not np.isclose(_mod2pi(abs(phi)), np.pi, atol=atol) and
-                    not np.isclose(lam, 0.0, atol=atol)):
-            circuit.append(U3Gate(theta - np.pi, phi - np.pi, lam), [0])
-            print('u3', theta, phi, lam)"""
-        print(theta, phi, lam)
+        circuit.append(U3Gate(theta, phi, lam), [0])
+        print('in u3', theta, phi, lam)
+        return circuit
+
+    @staticmethod
+    def _circuit_u31(theta,
+                     phi,
+                     lam,
+                     phase,
+                     simplify=True,
+                     atol=DEFAULT_ATOL):
+        print(simplify, theta, phi, lam, phase)
         circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and (np.isclose(theta, 0.0, atol=atol)):
-            #    and np.isclose(phi, 0.0, atol=atol)):
-            #if not np.isclose(phi+lam, 0.0, atol=atol):
             circuit.append(U1Gate(phi+lam), [0])
-            print('in u1')
-        elif simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
-            #if (not np.isclose(phi, 0.0, atol=atol) or
-            #        not np.isclose(lam, 0.0, atol=atol)):
-            circuit.append(U2Gate(phi, lam), [0])
-            print('in u2')
-        #elif (not np.isclose(theta, 0.0, atol=atol) 
-        #            or not np.isclose(phi, 0.0, atol=atol)
-        #            or not np.isclose(lam, 0.0, atol=atol)):
+            print('in u1', circuit)
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
-            print('u3', theta, phi, lam)
+            print('in u31 u3', theta, phi, lam, circuit)
+        return circuit
+
+    @staticmethod
+    def _circuit_u32(theta,
+                     phi,
+                     lam,
+                     phase,
+                     simplify=True,
+                     atol=DEFAULT_ATOL):
+        print(simplify, theta, phi, lam, phase)
+        circuit = QuantumCircuit(1, global_phase=phase)
+        if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
+            circuit.append(U2Gate(phi, lam), [0])
+            print('in u2', circuit)
+        else:
+            circuit.append(U3Gate(theta, phi, lam), [0])
+            print('in u32 u3', theta, phi, lam, circuit)
         return circuit
 
     @staticmethod
@@ -356,46 +358,8 @@ class OneQubitEulerDecomposer:
                    phase,
                    simplify=True,
                    atol=DEFAULT_ATOL):
-        """print(theta, phi, lam)
-        theta = _mod2pi(theta + np.pi)
-        phi = _mod2pi(phi + np.pi)
         circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and np.isclose(abs(theta), np.pi, atol=atol):
-            if not np.isclose(_mod2pi(abs(lam + phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
-        elif simplify and np.isclose(abs(theta),
-                                     [np.pi/2, 3*np.pi/2], atol=atol).any():
-            if not np.isclose(_mod2pi(abs(lam + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(lam + theta)), [0])
-            circuit.append(SXGate(), [0])
-            if not np.isclose(_mod2pi(abs(phi + theta)),
-                              [0., 2*np.pi], atol=atol).any():
-                circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
-        else:
-            circuit.append(UGate(theta-np.pi, phi-np.pi, lam), [0])"""
-        print(theta, phi, lam)
-        circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and (np.isclose(theta, 0.0, atol=atol)
-                and np.isclose(phi, 0.0, atol=atol)):
-            #if not np.isclose(phi+lam, 0.0, atol=atol):
-            circuit.append(PhaseGate(phi+lam), [0])
-            print('in p')
-        elif simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
-            #if (not np.isclose(phi, 0.0, atol=atol) or
-            #        not np.isclose(lam, 0.0, atol=atol)):
-            circuit.append(PhaseGate(phi), [0])
-            circuit.append(SXGate(), [0])
-            circuit.append(PhaseGate(lam), [0])
-            print('in p-sx-p')
-        #elif (not np.isclose(theta, 0.0, atol=atol) 
-        #            or not np.isclose(phi, 0.0, atol=atol)
-        #            or not np.isclose(lam, 0.0, atol=atol)):
-        else:
-            circuit.append(UGate(theta, phi, lam), [0])
-            print('u', theta, phi, lam)
-        return circuit
+        circuit.u(theta, phi, lam, 0)
         return circuit
 
     @staticmethod

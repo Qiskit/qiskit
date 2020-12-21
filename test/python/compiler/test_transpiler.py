@@ -535,7 +535,8 @@ class TestTranspile(QiskitTestCase):
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
                           basis_gates=['u3', 'cx'])
-
+        print(circ)
+        print(after)
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         self.assertEqual(after, expected)
 
