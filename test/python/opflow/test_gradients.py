@@ -560,7 +560,7 @@ class TestGradients(QiskitOpflowTestCase):
     def test_natural_gradient2(self):
         """Test the natural gradient 2"""
         with self.assertRaises(TypeError):
-            _ = NaturalGradient().convert(None)
+            _ = NaturalGradient().convert(None, None)
 
     @idata(zip(['lin_comb_full', 'overlap_block_diag', 'overlap_diag'],
                [LinCombFull, OverlapBlockDiag, OverlapDiag]))

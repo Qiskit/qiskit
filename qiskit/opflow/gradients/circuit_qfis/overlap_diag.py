@@ -12,13 +12,12 @@
 
 """The module for Quantum the Fisher Information."""
 import copy
-from typing import List, Union, Optional
+from typing import List, Union
 
 import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.library import RZGate, RXGate, RYGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -39,8 +38,7 @@ class OverlapDiag(CircuitQFI):
 
     def convert(self,
                 operator: Union[CircuitOp, CircuitStateFn],
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:
@@ -66,8 +64,8 @@ class OverlapDiag(CircuitQFI):
     # This should be fixed.
     def _diagonal_approx(self,
                          operator: Union[CircuitOp, CircuitStateFn],
-                         params: Union[ParameterExpression, ParameterVector, List] = None
-                         ) -> OperatorBase:
+                         params: Union[ParameterExpression, ParameterVector, List]
+                         ) -> ListOp:
         """
         Args:
             operator: The operator corresponding to the quantum state |ψ(ω)〉for which we compute
@@ -87,6 +85,10 @@ class OverlapDiag(CircuitQFI):
 
         if not isinstance(operator, CircuitStateFn):
             raise NotImplementedError('operator must be a CircuitStateFn')
+
+        # If a single parameter is given wrap it into a list.
+        if isinstance(params, ParameterExpression):
+            params = [params]
 
         circuit = operator.primitive
 
