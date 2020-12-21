@@ -312,9 +312,9 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
+        # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
         circuit.append(U3Gate(theta, phi, lam), [0])
-        print('in u3', theta, phi, lam)
         return circuit
 
     @staticmethod
@@ -324,14 +324,12 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        print(simplify, theta, phi, lam, phase)
         circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and (np.isclose(theta, 0.0, atol=atol)):
-            circuit.append(U1Gate(phi+lam), [0])
-            print('in u1', circuit)
+            if not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any():
+                circuit.append(U1Gate(phi+lam), [0])
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
-            print('in u31 u3', theta, phi, lam, circuit)
         return circuit
 
     @staticmethod
@@ -341,14 +339,13 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        print(simplify, theta, phi, lam, phase)
         circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
-            circuit.append(U2Gate(phi, lam), [0])
-            print('in u2', circuit)
+            if (not np.isclose(phi, 0.0, atol=atol) or
+                    not np.isclose(lam, 0.0, atol=atol)):
+                circuit.append(U2Gate(phi, lam), [0])
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
-            print('in u32 u3', theta, phi, lam, circuit)
         return circuit
 
     @staticmethod
@@ -358,8 +355,9 @@ class OneQubitEulerDecomposer:
                    phase,
                    simplify=True,
                    atol=DEFAULT_ATOL):
+        # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.u(theta, phi, lam, 0)
+        circuit.append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
