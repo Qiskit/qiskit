@@ -372,9 +372,10 @@ class QCircuitImage:
         if self.cregbundle and (self.ops and self.ops[0] and
                                 (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             column += 1
-        for ops in self.ops[0]:
-            if ops.cargs and column == 1:
-                column += 1
+        if self.ops:
+            for ops in self.ops[0]:
+                if ops.cargs and column == 1:
+                    column += 1
         for layer in self.ops:
             num_cols_used = 1
 
