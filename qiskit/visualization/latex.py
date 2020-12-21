@@ -20,6 +20,8 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import Qubit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import exceptions
@@ -370,6 +372,9 @@ class QCircuitImage:
         if self.cregbundle and (self.ops and self.ops[0] and
                                 (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             column += 1
+        for ops in self.ops[0]:
+            if ops.cargs and column == 1:
+                column += 1
         for layer in self.ops:
             num_cols_used = 1
 
@@ -381,6 +386,29 @@ class QCircuitImage:
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
+                wire_label = []
+                op_cregs = set()
+                for reg in op.cargs:
+                    op_cregs.add(reg.register)
+                op_cregs = list(op_cregs)
+                for qub in self.qubit_list:
+                    if qub in op.qargs:
+                        wire_label.append(op.qargs.index(qub))
+                    else:
+                        wire_label.append('x')
+
+                if self.cregbundle and op.cargs:
+                    for reg in self.cregs:
+                        if reg in op_cregs:
+                            wire_label.append(op_cregs.index(reg))
+                        else:
+                            wire_label.append('x')
+                else:
+                    for clb in self.clbit_list:
+                        if clb in op.cargs:
+                            wire_label.append(op.cargs.index(clb))
+                        else:
+                            wire_label.append('x')
                 if isinstance(op.op, ControlledGate) and op.name not in [
                         'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
@@ -477,7 +505,16 @@ class QCircuitImage:
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
-
+                    if self.cregbundle and op.cargs:
+                        for carg in op.cargs:
+                            if carg.register[0] not in qarglist:
+                                qarglist += [carg.register[0]]
+                    elif op.cargs:
+                        qarglist += op.cargs
+                    q_end = 0
+                    for reg in self.qregs:
+                        if isinstance(reg, QuantumRegister):
+                            q_end += self.qregs[reg]
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[qarglist[0]]
 
@@ -534,7 +571,12 @@ class QCircuitImage:
                             gap = pos_2 - pos_1
                             creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
                             for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
+                                if (self.cregbundle and int(if_value) > 0):
+                                    self._latex[pos_2 + i][column] = \
+                                        "\\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(
+                                            len(nm)/2.5) + "em =}" + str(int(
+                                                if_value[::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                elif if_value[i] == '1':
                                     self._latex[pos_2 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -596,24 +638,32 @@ class QCircuitImage:
                         if isinstance(op.op, ControlledGate):
                             cond = str(op.op.ctrl_state)
                         pos_1 = self.img_regs[qarglist[0]]
-                        pos_2 = self.img_regs[qarglist[1]]
+                        if isinstance(qarglist[1], Qubit):
+                            pos_2 = self.img_regs[qarglist[1]]
+                        else:
+                            pos_2 = len(self.qubit_list) + list(self.cregs.keys()).index(
+                                qarglist[1].register)
 
                         if op.condition:
                             pos_3 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
                             bottom = temp[1]
-
                             gap = pos_3 - bottom
                             creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
                             for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                    self._latex[pos_3 + i][column] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                if (self.cregbundle and int(if_value) > 0):
+                                    self._latex[pos_3 + i][column] += \
+                                        " & \\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(len(
+                                            nm)/2.5) + "em =}" + str(int(if_value[
+                                                ::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                elif if_value[i] == '1':
+                                    self._latex[pos_3 + i][column] += \
+                                        " & \\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
                                 else:
-                                    self._latex[pos_3 + i][column] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_3 + i][column] += \
+                                        " & \\controlo \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
 
                             if nm == "cx":
@@ -698,6 +748,36 @@ class QCircuitImage:
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
+                            else:
+                                pos_1 = temp[0]
+                                pos_2 = temp[1]
+                                delta = pos_2 - pos_1
+                                self._latex[pos_1][column] = ("\\rstick{^{^" + str(wire_label[
+                                    pos_1]) + "}}\\qw & \\multigate{%s}{%s}" % (delta, nm))
+                                for i_pos in range(pos_1 + 1, pos_2 + 1):
+                                    if i_pos >= q_end:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] = ("\\rstick{^{^" + str(
+                                                wire_label[i_pos]) + "}}\\cw & \\cghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cw & \\cghost{%s}"
+                                                                          % nm)
+                                    else:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] = ("\\rstick{^{^" + str(
+                                                wire_label[i_pos]) + "}}\\qw & \\ghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\qw & \\ghost{%s}"
+                                                                          % nm)
+                                for qub in self.qubit_list:
+                                    if qub.index not in range(pos_1, pos_2+1):
+                                        self._latex[qub.index][column] = "\\qw &" +\
+                                             self._latex[qub.index][column]
+                                for ind in range(pos_3+1, len(self.qubit_list)+len(self.cregs)):
+                                    if ind >= q_end:
+                                        self._latex[ind][column] = "\\cw &" +\
+                                             self._latex[ind][column]
+
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -783,29 +863,52 @@ class QCircuitImage:
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
                             else:
-                                start_pos = min([pos_1, pos_2])
-                                stop_pos = max([pos_1, pos_2])
-                                if stop_pos - start_pos >= 2:
-                                    delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
-                                                                      % (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}"
-                                                                      % nm)
-                                else:
-                                    self._latex[start_pos][column] = ("\\multigate{1}{%s}"
-                                                                      % nm)
-                                    self._latex[stop_pos][column] = ("\\ghost{%s}" %
-                                                                     nm)
-
+                                pos_start = min([pos_1, pos_2])
+                                pos_stop = max([pos_1, pos_2])
+                                delta = pos_stop - pos_start
+                                self._latex[pos_start][column] = ("\\rstick{^{^" + str(wire_label[
+                                    pos_start]) + "}}\\qw & \\multigate{%s}{%s}" % (delta, nm))
+                                for i_pos in range(pos_start + 1, pos_stop + 1):
+                                    if i_pos >= q_end:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] = ("\\rstick{^{^" + str(
+                                                wire_label[i_pos]) + "}}\\cw & \\cghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cw & \\cghost{%s}"
+                                                                          % nm)
+                                    else:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] = ("\\rstick{^{^" + str(
+                                                wire_label[i_pos]) + "}}\\qw & \\ghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\qw & \\ghost{%s}"
+                                                                          % nm)
+                                for qub in self.qubit_list:
+                                    if qub.index not in range(pos_start, pos_stop+1):
+                                        self._latex[qub.index][column] = "\\qw &" +\
+                                             self._latex[qub.index][column]
+                                for ind in range(pos_stop+1, len(self.qubit_list)+len(self.cregs)):
+                                    if ind >= q_end and column == 1:
+                                        self._latex[ind][column] += " & \\cw"
+                                    elif ind >= q_end:
+                                        self._latex[ind][column] = "\\cw &" +\
+                                             self._latex[ind][column]
                     elif len(qarglist) == 3:
                         if isinstance(op.op, ControlledGate):
                             ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]
-                        pos_2 = self.img_regs[qarglist[1]]
-                        pos_3 = self.img_regs[qarglist[2]]
+                        if isinstance(qarglist[1], Qubit):
+                            pos_2 = self.img_regs[qarglist[1]]
+                        else:
+                            pos_2 = len(self.qubit_list) + list(self.cregs.keys()).index(
+                                qarglist[1].register)
+                        if isinstance(qarglist[2], Qubit):
+                            pos_3 = self.img_regs[qarglist[2]]
+                        else:
+                            pos_3 = len(self.qubit_list) + list(self.cregs.keys()).index(
+                                qarglist[2].register)
 
                         if op.condition:
                             pos_4 = self.img_regs[if_reg[0]]
@@ -816,13 +919,18 @@ class QCircuitImage:
                             gap = pos_4 - bottom
                             creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
                             for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                    self._latex[pos_4 + i][column] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                if (self.cregbundle and int(if_value) > 0):
+                                    self._latex[pos_4 + i][column] += \
+                                        " & \\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(
+                                            len(nm)/2.5) + "em =} " + str(int(
+                                                if_value[::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                elif if_value[i] == '1':
+                                    self._latex[pos_4 + i][column] += \
+                                        " & \\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
                                 else:
-                                    self._latex[pos_4 + i][column] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    self._latex[pos_4 + i][column] += \
+                                        " & \\controlo \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
 
                             if nm == "ccx":
@@ -840,7 +948,7 @@ class QCircuitImage:
                                         pos_3 - pos_2) + "}"
                                 self._latex[pos_3][column] = "\\targ"
 
-                            if nm == "cswap":
+                            elif nm == "cswap":
                                 if cond_1 == '0':
                                     self._latex[pos_1][column] = "\\ctrlo{" + str(
                                         pos_2 - pos_1) + "}"
@@ -850,6 +958,50 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = "\\qswap"
                                 self._latex[pos_3][column] = \
                                     "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                            else:
+                                pos_start = min([pos_1, pos_2, pos_3])
+                                pos_stop = max([pos_1, pos_2, pos_3])
+                                if pos_stop - pos_start >= 3:
+                                    delta = pos_stop - pos_start
+                                    self._latex[pos_start][column] =\
+                                        ("\\rstick{^{^" + str(wire_label[pos_start]) +
+                                         "}}\\qw & \\multigate{%s}{%s}" % (delta, nm))
+                                    for i_pos in range(pos_start + 1, pos_stop + 1):
+                                        if i_pos >= q_end:
+                                            if wire_label[i_pos] != 'x':
+                                                self._latex[i_pos][column] =\
+                                                    ("\\rstick{^{^" + str(wire_label[i_pos]) +
+                                                     "}}\\cw & \\cghost{%s}" % nm)
+                                            else:
+                                                self._latex[i_pos][column] = ("\\cw & \\cghost{%s}"
+                                                                              % nm)
+                                        else:
+                                            if wire_label[i_pos] != 'x':
+                                                self._latex[i_pos][column] =\
+                                                    ("\\rstick{^{^" + str(wire_label[i_pos]) +
+                                                     "}}\\qw & \\ghost{%s}" % nm)
+                                            else:
+                                                self._latex[i_pos][column] = ("\\qw & \\ghost{%s}"
+                                                                              % nm)
+                                else:
+                                    self._latex[pos_start][column] =\
+                                        ("\\rstick{^{^" + str(wire_label[pos_start]) +
+                                         "}}\\qw & \\multigate{2}{%s}" % nm)
+                                    self._latex[pos_start+1][column] =\
+                                        ("\\rstick{^{^" + str(wire_label[pos_start+1]) +
+                                         "}}\\qw & \\ghost{%s}" % nm)
+                                    self._latex[pos_stop][column] =\
+                                        ("\\rstick{^{^" + str(wire_label[pos_stop]) +
+                                         "}}\\qw & \\ghost{%s}" % nm)
+                                for qub in self.qubit_list:
+                                    if qub.index not in range(pos_start, pos_stop+1):
+                                        self._latex[qub.index][column] =\
+                                             "\\qw &" + self._latex[qub.index][column]
+                                for ind in range(pos_4+1, len(self.qubit_list)+len(self.cregs)):
+                                    if ind >= q_end:
+                                        self._latex[ind][column] =\
+                                             "\\cw &" + self._latex[ind][column]
+
                         else:
                             if nm == "ccx":
                                 if cond_1 == '0':
@@ -877,34 +1029,132 @@ class QCircuitImage:
                                 self._latex[pos_3][column] = \
                                     "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
                             else:
-                                start_pos = min([pos_1, pos_2, pos_3])
-                                stop_pos = max([pos_1, pos_2, pos_3])
-                                if stop_pos - start_pos >= 3:
-                                    delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
-                                                                      (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}" %
-                                                                      nm)
-                                else:
-                                    self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
-                                                                  nm)
-                                    self._latex[pos_2][column] = ("\\ghost{%s}" %
-                                                                  nm)
-                                    self._latex[pos_3][column] = ("\\ghost{%s}" %
-                                                                  nm)
+                                pos_start = min([pos_1, pos_2, pos_3])
+                                pos_stop = max([pos_1, pos_2, pos_3])
+                                delta = pos_stop - pos_start
+                                self._latex[pos_start][column] =\
+                                    ("\\rstick{^{^" + str(wire_label[pos_start]) +
+                                     "}}\\qw & \\multigate{%s}{%s}" % (delta, nm))
+                                for i_pos in range(pos_start + 1, pos_stop + 1):
+                                    if i_pos >= q_end:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] =\
+                                                 ("\\rstick{^{^" + str(wire_label[i_pos]) +
+                                                  "}}\\cw & \\cghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cw & \\cghost{%s}"
+                                                                          % nm)
+                                    else:
+                                        if wire_label[i_pos] != 'x':
+                                            self._latex[i_pos][column] =\
+                                                 ("\\rstick{^{^" + str(wire_label[i_pos]) +
+                                                  "}}\\qw & \\ghost{%s}" % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\qw & \\ghost{%s}"
+                                                                          % nm)
+                                for qub in self.qubit_list:
+                                    if qub.index not in range(pos_start, pos_stop+1):
+                                        self._latex[qub.index][column] =\
+                                             "\\qw &" + self._latex[qub.index][column]
+                                for ind in range(pos_stop+1, len(self.qubit_list)+len(self.cregs)):
+                                    if ind >= q_end and column == 1:
+                                        self._latex[ind][column] += " & \\cw"
+                                    elif ind >= q_end:
+                                        self._latex[ind][column] = "\\cw &" +\
+                                             self._latex[ind][column]
 
                     elif len(qarglist) > 3:
+                        if op.condition:
+                            c_pos = self.img_regs[if_reg[0]]
+                            temp = []
+                            for reg in qarglist:
+                                temp.append(reg.index)
+                            temp.sort(key=int)
+                            bottom = temp[-1]
+
+                            gap = c_pos - bottom
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (self.cregbundle and int(if_value) > 0):
+                                    self._latex[c_pos + i][column] += \
+                                        (" & \\control \\ar @{=} [0,-1]^{^{\\hspace{" +
+                                         str(len(nm)/2.5) + "em} =" + str(int(if_value[::-1], 2)) +
+                                         "}} \\cwx[-" + str(gap) + "]")
+                                elif if_value[i] == '1':
+                                    self._latex[c_pos + i][column] += \
+                                        " & \\control \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
+                                else:
+                                    self._latex[c_pos + i][column] += \
+                                        " & \\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                    gap = 1
                         nbits = len(qarglist)
                         pos_array = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[qarglist[i]])
+                            if isinstance(qarglist[i], Qubit):
+                                pos_array.append(self.img_regs[qarglist[i]])
+                            else:
+                                pos_array.append(
+                                    len(self.qubit_list) + list(self.cregs.keys()).index(
+                                        qarglist[i].register))
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
-                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
-                                                          (nbits - 1, nm))
-                        for pos in range(pos_start + 1, pos_stop + 1):
-                            self._latex[pos][column] = ("\\ghost{%s}" % nm)
+                        if op.condition:
+                            c_pos = self.img_regs[if_reg[0]]
+                            self._latex[pos_start][column] =\
+                                ("\\rstick{^{^" + str(wire_label[pos_start]) +
+                                 "}}\\qw & \\multigate{%s}{%s}" % (pos_stop - pos_start, nm))
+                            for pos in range(pos_start + 1, pos_stop + 1):
+                                if pos >= q_end:
+                                    if wire_label[pos] != 'x':
+                                        self._latex[pos][column] =\
+                                            ("\\rstick{^{^" + str(wire_label[pos]) +
+                                             "}}\\cw & \\cghost{%s}" % nm)
+                                    else:
+                                        self._latex[pos][column] = ("\\cw & \\cghost{%s}"
+                                                                    % nm)
+                                else:
+                                    if wire_label[pos] != 'x':
+                                        self._latex[pos][column] =\
+                                            ("\\rstick{^{^" + str(wire_label[pos]) +
+                                             "}}\\qw & \\ghost{%s}" % nm)
+                                    else:
+                                        self._latex[pos][column] = ("\\qw & \\ghost{%s}"
+                                                                    % nm)
+                            for ind in range(c_pos+1, len(self.qubit_list)+len(self.cregs)):
+                                if ind >= q_end:
+                                    self._latex[ind][column] = "\\cw &" +\
+                                            self._latex[ind][column]
+                        else:
+                            self._latex[pos_start][column] =\
+                                ("\\rstick{^{^" + str(wire_label[pos_start]) +
+                                 "}}\\qw & \\multigate{%s}{%s}" % (pos_stop - pos_start, nm))
+                            for pos in range(pos_start + 1, pos_stop + 1):
+                                if pos >= q_end:
+                                    if wire_label[pos] != 'x':
+                                        self._latex[pos][column] =\
+                                            ("\\rstick{^{^" + str(wire_label[pos]) +
+                                             "}}\\cw & \\cghost{%s}" % nm)
+                                    else:
+                                        self._latex[pos][column] = ("\\cw & \\cghost{%s}"
+                                                                    % nm)
+                                else:
+                                    if wire_label[pos] != 'x':
+                                        self._latex[pos][column] =\
+                                            ("\\rstick{^{^" + str(wire_label[pos]) +
+                                             "}}\\qw & \\ghost{%s}" % nm)
+                                    else:
+                                        self._latex[pos][column] = ("\\qw & \\ghost{%s}"
+                                                                    % nm)
+                            for ind in range(pos_stop+1, len(self.qubit_list)+len(self.cregs)):
+                                if ind >= q_end and column == 1:
+                                    self._latex[ind][column] += " & \\cw"
+                                elif ind >= q_end:
+                                    self._latex[ind][column] = "\\cw &" + self._latex[ind][column]
+                        for qub in self.qubit_list:
+                            if qub.index not in range(pos_start, pos_stop+1):
+                                self._latex[qub.index][column] = "\\qw &" +\
+                                     self._latex[qub.index][column]
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
