@@ -220,7 +220,7 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list=templates)
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        self.assertEquals(circuit_out.count_ops().get('cx', 0), 0)
+        self.assertEqual(circuit_out.count_ops().get('cx', 0), 0)
 
     def test_parametric_template(self):
         """
