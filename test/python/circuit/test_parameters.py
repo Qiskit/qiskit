@@ -865,6 +865,14 @@ class TestParameters(QiskitTestCase):
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
 
+    def test_sort_parameters(self):
+        """Test sorting parameters"""
+        # This comes up if using PrettyPrinter on VQEResult.
+        x = Parameter('x')
+        y = x + 1
+        z = x + 2
+        self.assertEqual(sorted([y, x, z]), [x, y, z])
+
     def test_to_instruction_after_inverse(self):
         """Verify converting an inverse generates a valid ParameterTable"""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/4235

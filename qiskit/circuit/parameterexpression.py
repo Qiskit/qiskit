@@ -394,7 +394,12 @@ class ParameterExpression:
         return self._symbol_expr
 
     def __bool__(self):
-        return bool(self._symbol_expr)
+        from sympy.core.relational import Relational
+        if isinstance(self._symbol_expr, Relational):
+            from sympy import simplify
+            return bool(simplify(self._symbol_expr))
+        else:
+            return bool(self._symbol_expr)
 
     def __float__(self):
         if self.parameters:
