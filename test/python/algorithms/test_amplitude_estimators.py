@@ -303,6 +303,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         [2, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.270290}],
         [4, MaximumLikelihoodAmplitudeEstimation(4), {'estimation': 0.272675}],
         [3, IterativeAmplitudeEstimation(0.1, 0.1), {'estimation': 0.272082}],
+        [3, FasterAmplitudeEstimation(0.01, 1), {'estimation': 0.272082}],
     ])
     @unpack
     def test_statevector(self, n, qae, expect):
@@ -317,6 +318,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         self.assertGreaterEqual(self._statevector.time_taken, 0.)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
+            print(result['estimation'])
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))
 
@@ -324,6 +326,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         [4, 10, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.333333}],
         [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.256878}],
         [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {'estimation': 0.271790}],
+        [3, 1000, FasterAmplitudeEstimation(0.1, 4), {'estimation': 0.274168}],
     ])
     @unpack
     def test_qasm(self, n, shots, qae, expect):
@@ -333,6 +336,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         result = qae.estimate(estimation_problem)
+        print(result)
         for key, value in expect.items():
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))

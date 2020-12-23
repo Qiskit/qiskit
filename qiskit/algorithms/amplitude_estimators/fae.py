@@ -154,12 +154,16 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             # the oracle is a multi-controlled Z gate
             oracle = QuantumCircuit(*a_op.qregs)
             oracle.h(oracle.qubits[-1])
-            oracle.mcx(oracle.qubits[:-1], oracle.qubits[-1])
+            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
             oracle.h(oracle.qubits[-1])
 
             estimation_problem.state_preparation = a_op
             estimation_problem.grover_operator = GroverOperator(oracle, state_preparation=a_op)
             estimation_problem.objective_qubits += [a_op.num_qubits - 1]
+
+        print(estimation_problem.objective_qubits)
+        print(estimation_problem.state_preparation)
+        print(estimation_problem.grover_operator)
 
         if self._quantum_instance.is_statevector:
             cos = self._cos_estimate(estimation_problem, k=0, shots=1)
@@ -173,7 +177,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             first_stage = True
             j_0 = self._maxiter
 
-            theta_cis = []
+            theta_cis = [theta_ci]
             num_first_stage_steps = 0
             num_steps = 0
 
@@ -252,42 +256,42 @@ def rescale_state_preparation(state_preparation: QuantumCircuit, scaling_factor:
 class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
     """The result object for the Faster Amplitude Estimation algorithm."""
 
-    @property
+    @ property
     def success_probability(self) -> int:
         """Return the success probability of the algorithm."""
         return self.get('success_probability')
 
-    @success_probability.setter
+    @ success_probability.setter
     def success_probability(self, probability: int) -> None:
         """Set the success probability of the algorithm."""
         self.data['success_probability'] = probability
 
-    @property
+    @ property
     def num_steps(self) -> int:
         """Return the total number of steps taken in the algorithm."""
         return self.get('num_steps')
 
-    @num_steps.setter
+    @ num_steps.setter
     def num_steps(self, num_steps: int) -> None:
         """Set the total number of steps taken in the algorithm."""
         self.data['num_steps'] = num_steps
 
-    @property
+    @ property
     def num_first_state_steps(self) -> int:
         """Return the number of steps taken in the first step of algorithm."""
         return self.get('num_first_state_steps')
 
-    @num_first_state_steps.setter
+    @ num_first_state_steps.setter
     def num_first_state_steps(self, num_steps: int) -> None:
         """Set the number of steps taken in the first step of algorithm."""
         self.data['num_first_state_steps'] = num_steps
 
-    @property
+    @ property
     def theta_intervals(self) -> List[List[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self.get('theta_intervals')
 
-    @theta_intervals.setter
+    @ theta_intervals.setter
     def theta_intervals(self, value: List[List[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self.data['theta_intervals'] = value
