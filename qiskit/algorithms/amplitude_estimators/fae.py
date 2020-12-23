@@ -78,9 +78,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             # sum over all amplitudes where the objective qubits are 1
             prob = 0
             for i, amplitude in enumerate(statevector):
-                state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
-                if all(state[i] == '1' for i in estimation_problem.objective_qubits):
-                    prob = prob + np.abs(amplitude)**2
+                # get bitstring of objective qubits
+                full_state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
+                state = ''.join([full_state[i] for i in estimation_problem.objective_qubits])
+
+                # check if it is a good state
+                if estimation_problem.is_good_state(state):
+                    prob = prob + np.abs(amplitude) ** 2
 
             cos_estimate = 1 - 2 * prob
         else:
@@ -92,9 +96,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
             # TODO add good state handling
             good_counts = 0
-            for state, counts in counts.items():
+            for state, count in counts.items():
                 if estimation_problem.is_good_state(state):
-                    good_counts += counts
+                    good_counts += count
 
             cos_estimate = 1 - 2 * good_counts / shots
 
@@ -151,23 +155,39 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._num_oracle_calls = 0
 
         if self._rescale:
+            a_op = estimation_problem.state_preparation
+            q_op = estimation_problem.grover_operator
+
             # rescale the estimation problem
             # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
-            a_op = estimation_problem.state_preparation
-            a_op = rescale_state_preparation(a_op, 0.25)
+            a_op = rescale_amplitudes(a_op, 0.25)
 
-            # the oracle is a multi-controlled Z gate
+            # additionally control the oracle on the scaling qubit
             oracle = QuantumCircuit(*a_op.qregs)
-            oracle.h(oracle.qubits[-1])
-            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
-            oracle.h(oracle.qubits[-1])
+            oracle.compose(q_op.oracle.control(), [oracle.qubits[-1]] + oracle.qubits[:-1],
+                           inplace=True)
 
-            estimation_problem.state_preparation = a_op
-            estimation_problem.grover_operator = GroverOperator(oracle, state_preparation=a_op)
-            estimation_problem.objective_qubits += [a_op.num_qubits - 1]
+            # add the scaling qubit to the reflection qubits
+            reflection_qubits = q_op.reflection_qubits + [a_op.num_qubits - 1]
+            q_op = GroverOperator(oracle, a_op, reflection_qubits=reflection_qubits)
+
+            # add the scaling qubit to the good state qualifier
+            def is_good_state(bitstr):
+                return estimation_problem.is_good_state(bitstr[:-1]) and bitstr[-1] == '1'
+
+            # create the rescaled estimation problem
+            problem = EstimationProblem(
+                a_op,
+                q_op,
+                estimation_problem.objective_qubits + [a_op.num_qubits - 1],
+                estimation_problem.post_processing,  # post processing remains the same
+                is_good_state
+            )
+        else:
+            problem = estimation_problem
 
         if self._quantum_instance.is_statevector:
-            cos = self._cos_estimate(estimation_problem, k=0, shots=1)
+            cos = self._cos_estimate(problem, k=0, shots=1)
             theta = np.arccos(cos) / 2
             theta_ci = [theta, theta]
             theta_cis = [theta_ci]
@@ -183,7 +203,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             num_steps = 0
 
             def cos_estimate(power, shots):
-                return self._cos_estimate(estimation_problem, power, shots)
+                return self._cos_estimate(problem, power, shots)
 
             for j in range(1, self._maxiter + 1):
                 num_steps += 1
@@ -223,16 +243,16 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
 
         result.estimation = value
-        result.estimation_processed = estimation_problem.post_processing(value)
+        result.estimation_processed = problem.post_processing(value)
         result.confidence_interval = value_ci
-        result.confidence_interval_processed = tuple(estimation_problem.post_processing(x)
+        result.confidence_interval_processed = tuple(problem.post_processing(x)
                                                      for x in value_ci)
         result.theta_intervals = theta_cis
 
         return result
 
 
-def rescale_state_preparation(circuit: QuantumCircuit, scaling_factor: float) -> QuantumCircuit:
+def rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> QuantumCircuit:
     r"""Uses an auxiliary qubit to scale the amplitude of :math:`|1\rangle` by ``scaling_factor``.
 
     Explained in Section 2.1. of [1].
@@ -281,42 +301,42 @@ def rescale_state_preparation(circuit: QuantumCircuit, scaling_factor: float) ->
 class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
     """The result object for the Faster Amplitude Estimation algorithm."""
 
-    @ property
+    @property
     def success_probability(self) -> int:
         """Return the success probability of the algorithm."""
         return self.get('success_probability')
 
-    @ success_probability.setter
+    @success_probability.setter
     def success_probability(self, probability: int) -> None:
         """Set the success probability of the algorithm."""
         self.data['success_probability'] = probability
 
-    @ property
+    @property
     def num_steps(self) -> int:
         """Return the total number of steps taken in the algorithm."""
         return self.get('num_steps')
 
-    @ num_steps.setter
+    @num_steps.setter
     def num_steps(self, num_steps: int) -> None:
         """Set the total number of steps taken in the algorithm."""
         self.data['num_steps'] = num_steps
 
-    @ property
+    @property
     def num_first_state_steps(self) -> int:
         """Return the number of steps taken in the first step of algorithm."""
         return self.get('num_first_state_steps')
 
-    @ num_first_state_steps.setter
+    @num_first_state_steps.setter
     def num_first_state_steps(self, num_steps: int) -> None:
         """Set the number of steps taken in the first step of algorithm."""
         self.data['num_first_state_steps'] = num_steps
 
-    @ property
+    @property
     def theta_intervals(self) -> List[List[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self.get('theta_intervals')
 
-    @ theta_intervals.setter
+    @theta_intervals.setter
     def theta_intervals(self, value: List[List[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self.data['theta_intervals'] = value

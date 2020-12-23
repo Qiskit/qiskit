@@ -23,8 +23,8 @@ from qiskit.algorithms import (
     AmplitudeEstimation, MaximumLikelihoodAmplitudeEstimation, IterativeAmplitudeEstimation,
     FasterAmplitudeEstimation, EstimationProblem
 )
-
-from qiskit.quantum_info import Operator
+from qiskit.algorithms.amplitude_estimators.fae import rescale_amplitudes
+from qiskit.quantum_info import Operator, Statevector
 
 
 class BernoulliStateIn(QuantumCircuit):
@@ -103,7 +103,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         [0.2, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.2}],
         [0.49, MaximumLikelihoodAmplitudeEstimation(3), {'estimation': 0.49}],
         [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {'estimation': 0.2}],
-        [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {'estimation': 0.49}]
+        [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {'estimation': 0.49}],
         [0.2, FasterAmplitudeEstimation(0.1, 3), {'estimation': 0.2}],
         [0.49, FasterAmplitudeEstimation(0.1, 2), {'estimation': 0.49}]
     ])
@@ -124,7 +124,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         [0.2, 100, AmplitudeEstimation(4), {'estimation': 0.14644, 'mle': 0.193888}],
         [0.0, 1000, AmplitudeEstimation(2), {'estimation': 0.0, 'mle': 0.0}],
         [0.2, 100, MaximumLikelihoodAmplitudeEstimation(4), {'estimation': 0.199606}],
-        [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {'estimation': 0.811711}]
+        [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {'estimation': 0.811711}],
         [0.49, 1000, FasterAmplitudeEstimation(0.1, 3), {'estimation': 0.502432}],
         [0.8, 100, FasterAmplitudeEstimation(0.01, 3), {'estimation': 0.802226}],
     ])
@@ -318,7 +318,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         self.assertGreaterEqual(self._statevector.time_taken, 0.)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
-            print(result['estimation'])
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))
 
@@ -403,6 +402,82 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         confint = result.confidence_interval
         np.testing.assert_array_almost_equal(confint, expected_confint)
         self.assertTrue(confint[0] <= result.estimation <= confint[1])
+
+
+@ddt
+class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
+    """Specific tests for Faster AE."""
+
+    def test_rescaling(self):
+        """Test the rescaling."""
+        amplitude = 0.5
+        scaling = 0.25
+        circuit = QuantumCircuit(1)
+        circuit.ry(2 * np.arcsin(amplitude), 0)
+
+        rescaled = rescale_amplitudes(circuit, scaling_factor=scaling)
+        rescaled_amplitude = Statevector.from_instruction(rescaled).data[3]
+
+        self.assertAlmostEqual(scaling * amplitude, rescaled_amplitude)
+
+    def test_run_without_rescaling(self):
+        """Run Faster AE without rescaling if the amplitude is in [0, 1/4]."""
+        # construct estimation problem
+        prob = 0.11
+        a_op = QuantumCircuit(1)
+        a_op.ry(2 * np.arcsin(np.sqrt(prob)), 0)
+        problem = EstimationProblem(a_op, objective_qubits=[0])
+
+        # construct algo without rescaling
+        backend = BasicAer.get_backend('statevector_simulator')
+        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
+
+        # run the algo
+        result = fae.estimate(problem)
+
+        # assert the result is correct
+        self.assertAlmostEqual(result.estimation, prob)
+
+        # assert no rescaling was used
+        theta = np.mean(result.theta_intervals[-1])
+        value_without_scaling = np.sin(theta) ** 2
+        self.assertAlmostEqual(result.estimation, value_without_scaling)
+
+    @data(
+        ('statevector_simulator', 0.7),
+        ('qasm_simulator', 0.6978903)
+    )
+    @unpack
+    def test_good_state(self, backend_str, expect):
+        """Test with a good state function."""
+        def is_good_state(bitstr):
+            return bitstr[0] == '1'
+
+        # construct the estimation problem where the second qubit is ignored
+        a_op = QuantumCircuit(2)
+        a_op.ry(2 * np.arcsin(np.sqrt(0.7)), 0)
+
+        # oracle only affects first qubit
+        oracle = QuantumCircuit(2)
+        oracle.z(0)
+
+        # reflect only on first qubit
+        q_op = GroverOperator(oracle, a_op, reflection_qubits=[0])
+
+        # but we measure both qubits (hence both are objective qubits)
+        problem = EstimationProblem(a_op, q_op, objective_qubits=[0, 1],
+                                    is_good_state=is_good_state)
+
+        # construct algo
+        backend = QuantumInstance(BasicAer.get_backend(backend_str),
+                                  seed_simulator=2, seed_transpiler=2)
+        fae = FasterAmplitudeEstimation(0.1, 3, quantum_instance=backend)
+
+        # run the algo
+        result = fae.estimate(problem)
+
+        # assert the result is correct
+        self.assertAlmostEqual(result.estimation, expect)
 
 
 if __name__ == '__main__':
