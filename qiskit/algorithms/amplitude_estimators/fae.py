@@ -34,8 +34,8 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     Estimation (QAE), where the Quantum Phase Estimation (QPE) by an iterative Grover search,
     similar to [2].
 
-    Due to the iterative version of the QPE, this algorithm does not require extra ancilla
-    qubits, as the originally proposed QAE [3] and the resulting circuits are less complex.
+    Due to the iterative version of the QPE, this algorithm does not require any additional
+    qubits, as the originally proposed QAE [3] and thus the resulting circuits are less complex.
 
     References:
 
@@ -89,9 +89,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             self._quantum_instance.run_config.shots = shots
             counts = self._quantum_instance.execute(circuit).get_counts()
             self._num_oracle_calls += (2 * k + 1) * shots
+
             # TODO add good state handling
-            cos_estimate = 1 - 2 * \
-                counts.get('1' * len(estimation_problem.objective_qubits), 0) / shots
+            good_counts = 0
+            for state, counts in counts.items():
+                if estimation_problem.is_good_state(state):
+                    good_counts += counts
+
+            cos_estimate = 1 - 2 * good_counts / shots
 
         return cos_estimate
 
@@ -161,10 +166,6 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             estimation_problem.grover_operator = GroverOperator(oracle, state_preparation=a_op)
             estimation_problem.objective_qubits += [a_op.num_qubits - 1]
 
-        print(estimation_problem.objective_qubits)
-        print(estimation_problem.state_preparation)
-        print(estimation_problem.grover_operator)
-
         if self._quantum_instance.is_statevector:
             cos = self._cos_estimate(estimation_problem, k=0, shots=1)
             theta = np.arccos(cos) / 2
@@ -227,28 +228,52 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.confidence_interval_processed = tuple(estimation_problem.post_processing(x)
                                                      for x in value_ci)
         result.theta_intervals = theta_cis
-        # results = {
-        #     'theta': theta,
-        #     'theta_ci': theta_ci,
-        #     'value': value,
-        #     'value_ci': value_ci,
-        #     'estimation': value_to_estimation(value),
-        #     'confidence_interval': [value_to_estimation(x) for x in value_ci],
-        #     'num_oracle_calls': self._num_oracle_calls,
-        #     'theta_cis': theta_cis,
-        #     'num_steps': num_steps,
-        #     'num_first_stage_steps': num_first_stage_steps,
-        #     'success_probability': 1 - (2 * self._maxiter - j_0) * self._delta
-        # }
 
         return result
 
 
-def rescale_state_preparation(state_preparation: QuantumCircuit, scaling_factor: float):
-    """TODO"""
+def rescale_state_preparation(circuit: QuantumCircuit, scaling_factor: float) -> QuantumCircuit:
+    r"""Uses an auxiliary qubit to scale the amplitude of :math:`|1\rangle` by ``scaling_factor``.
+
+    Explained in Section 2.1. of [1].
+
+    For example, for a scaling factor of 0.25 this turns this circuit
+
+    .. code-block::
+
+                      ┌───┐
+        state_0: ─────┤ H ├─────────■────
+                  ┌───┴───┴───┐ ┌───┴───┐
+          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
+                  └───────────┘ └───────┘
+
+    into
+
+    .. code-block::
+
+                      ┌───┐
+        state_0: ─────┤ H ├─────────■────
+                  ┌───┴───┴───┐ ┌───┴───┐
+          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
+                 ┌┴───────────┴┐└───────┘
+      scaling_0: ┤ RY(0.50536) ├─────────
+                 └─────────────┘
+
+    References:
+
+        [1]: K. Nakaji. Faster Amplitude Estimation, 2020;
+            `arXiv:2002.02417 <https://arxiv.org/pdf/2003.02417.pdf>`_
+
+    Args:
+        circuit: The circuit whose amplitudes to rescale.
+        scaling_factor: The rescaling factor.
+
+    Returns:
+        A copy of the circuit with an additional qubit and RY gate for the rescaling.
+    """
     qr = QuantumRegister(1, 'scaling')
-    rescaled = QuantumCircuit(*state_preparation.qregs, qr)
-    rescaled.compose(state_preparation, state_preparation.qubits, inplace=True)
+    rescaled = QuantumCircuit(*circuit.qregs, qr)
+    rescaled.compose(circuit, circuit.qubits, inplace=True)
     rescaled.ry(2 * np.arcsin(scaling_factor), qr)
     return rescaled
 
