@@ -574,9 +574,8 @@ class QCircuitImage:
                             for i in range(creg_rng):
                                 if (self.cregbundle and int(if_value) > 0):
                                     self._latex[pos_2 + i][column] = \
-                                        "\\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(
-                                            len(nm)/2.5) + "em =}" + str(int(
-                                                if_value[::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                        "\\control \\cw^<{~=" + str(int(if_value[::-1], 2)) + \
+                                        "} \\cwx[-" + str(gap) + "]"
                                 elif if_value[i] == '1':
                                     self._latex[pos_2 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
@@ -655,9 +654,8 @@ class QCircuitImage:
                             for i in range(creg_rng):
                                 if (self.cregbundle and int(if_value) > 0):
                                     self._latex[pos_3 + i][column] += \
-                                        " & \\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(len(
-                                            nm)/2.5) + "em =}" + str(int(if_value[
-                                                ::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                        " & \\control \\cw^<{~=" + str(int(if_value[::-1], 2)) + \
+                                        "} \\cwx[-" + str(gap) + "]"
                                 elif if_value[i] == '1':
                                     self._latex[pos_3 + i][column] += \
                                         " & \\control \\cw \\cwx[-" + str(gap) + "]"
@@ -922,9 +920,8 @@ class QCircuitImage:
                             for i in range(creg_rng):
                                 if (self.cregbundle and int(if_value) > 0):
                                     self._latex[pos_4 + i][column] += \
-                                        " & \\control \\ar @{=} [0,-1]^{^{\\hspace{" + str(
-                                            len(nm)/2.5) + "em =} " + str(int(
-                                                if_value[::-1], 2)) + "}} \\cwx[-" + str(gap) + "]"
+                                        " & \\control \\cw^<{~=" + str(int(if_value[::-1], 2)) + \
+                                        "} \\cwx[-" + str(gap) + "]"
                                 elif if_value[i] == '1':
                                     self._latex[pos_4 + i][column] += \
                                         " & \\control \\cw \\cwx[-" + str(gap) + "]"
@@ -1078,9 +1075,8 @@ class QCircuitImage:
                             for i in range(creg_rng):
                                 if (self.cregbundle and int(if_value) > 0):
                                     self._latex[c_pos + i][column] += \
-                                        (" & \\control \\ar @{=} [0,-1]^{^{\\hspace{" +
-                                         str(len(nm)/2.5) + "em} =" + str(int(if_value[::-1], 2)) +
-                                         "}} \\cwx[-" + str(gap) + "]")
+                                        (" & \\control \\cw^<{~=" + str(int(if_value[::-1], 2)) +
+                                         "} \\cwx[-" + str(gap) + "]")
                                 elif if_value[i] == '1':
                                     self._latex[c_pos + i][column] += \
                                         " & \\control \\cw \\cwx[-" + str(gap) + "]"
