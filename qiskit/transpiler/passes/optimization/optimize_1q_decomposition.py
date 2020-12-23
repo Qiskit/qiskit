@@ -16,7 +16,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info import OneQubitEulerDecomposer
@@ -76,15 +76,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
-                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      np.eye(2)):
-                    dag.remove_op_node(run[0])
+                if (len(params) > 0 and hasattr(run[0].op, 'to_matrix')
+                        and hasattr(run[0].op, '__array__')):
+                    if np.array_equal(run[0].op.to_matrix(), np.eye(2)):
+                        dag.remove_op_node(run[0])
                 continue
 
             new_circs = []
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
+                #if (gate.op.name in ['measure', 'delay', 'reset', 'snapshot', 'barrier']
+                #        or type(gate.op) is Gate):
+                #    return dag
                 qc._append(gate.op, [q[0]], [])
             operator = Operator(qc)
             for decomposer in self.basis:
