@@ -121,6 +121,7 @@ from .amplitude_amplifiers import Grover, GroverResult
 from .amplitude_estimators import (
     AmplitudeEstimator, AmplitudeEstimatorResult,
     AmplitudeEstimation, AmplitudeEstimationResult,
+    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
     IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
     MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem
@@ -143,6 +144,8 @@ __all__ = [
     'AmplitudeEstimatorResult',
     'AmplitudeEstimation',
     'AmplitudeEstimationResult',
+    'FasterAmplitudeEstimation',
+    'FasterAmplitudeEstimationResult',
     'IterativeAmplitudeEstimation',
     'IterativeAmplitudeEstimationResult',
     'MaximumLikelihoodAmplitudeEstimation',

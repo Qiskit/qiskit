@@ -14,6 +14,7 @@
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae import AmplitudeEstimation, AmplitudeEstimationResult
+from .fae import FasterAmplitudeEstimation, FasterAmplitudeEstimationResult
 from .iae import IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult
 from .mlae import MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult
 from .estimation_problem import EstimationProblem
@@ -23,6 +24,8 @@ __all__ = [
     'AmplitudeEstimatorResult',
     'AmplitudeEstimation',
     'AmplitudeEstimationResult',
+    'FasterAmplitudeEstimation',
+    'FasterAmplitudeEstimationResult',
     'IterativeAmplitudeEstimation',
     'IterativeAmplitudeEstimationResult',
     'MaximumLikelihoodAmplitudeEstimation',
