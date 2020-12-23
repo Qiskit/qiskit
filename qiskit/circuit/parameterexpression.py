@@ -395,11 +395,18 @@ class ParameterExpression:
 
     def __bool__(self):
         from sympy.core.relational import Relational
-        if isinstance(self._symbol_expr, Relational):
+        expr = self._symbol_expr
+        if isinstance(expr, Relational):
             from sympy import simplify
-            return bool(simplify(self._symbol_expr))
+            sexpr = simplify(expr)
+            try:
+                return bool(sexpr)
+            except TypeError:
+                # This may be a gotcha; will return false if expression not
+                # strict. Comes up when using PrettyPrinter on ParameterVector
+                return False
         else:
-            return bool(self._symbol_expr)
+            return bool(expr)
 
     def __float__(self):
         if self.parameters:
