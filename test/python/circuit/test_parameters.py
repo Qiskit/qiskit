@@ -1636,7 +1636,7 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter('x')
         y = Parameter('y')
         self.assertRaises(TypeError, Max, [x, y])
-        #self.assertRaises(TypeError, numpy.max, [x, y])
+        # self.assertRaises(TypeError, numpy.max, [x, y])
 
     def test_min_iterable_raises(self):
         """Test min of iterable of ParameterExpression raises."""
@@ -1644,7 +1644,7 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter('x')
         y = Parameter('y')
         self.assertRaises(TypeError, Min, [x, y])
-        #self.assertRaises(TypeError, numpy.min, [x, y])
+        # self.assertRaises(TypeError, numpy.min, [x, y])
 
     def test_min(self):
         """Test ParameterExpression min."""
