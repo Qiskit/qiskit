@@ -12,7 +12,6 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-import warnings
 from typing import Union, List, Callable, Dict, Any
 
 import dill
@@ -31,9 +30,7 @@ class PassManager:
     def __init__(
             self,
             passes: Union[BasePass, List[BasePass]] = None,
-            max_iteration: int = 1000,
-            callback: Callable = None
-    ):
+            max_iteration: int = 1000):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
@@ -41,19 +38,7 @@ class PassManager:
                 to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
-            callback: DEPRECATED - A callback function that will be called after each pass
-                execution.
-
-        .. deprecated:: 0.13.0
-            The ``callback`` parameter is deprecated in favor of
-            ``PassManager.run(..., callback=callback, ...)``.
         """
-        self.callback = None
-
-        if callback:
-            warnings.warn("Setting a callback at construction time is being deprecated in favor of"
-                          "PassManager.run(..., callback=callback,...)", DeprecationWarning, 2)
-            self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
 
@@ -148,7 +133,7 @@ class PassManager:
         return len(self._pass_sets)
 
     def __getitem__(self, index):
-        new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
+        new_passmanager = PassManager(max_iteration=self.max_iteration)
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]
@@ -157,13 +142,12 @@ class PassManager:
 
     def __add__(self, other):
         if isinstance(other, PassManager):
-            new_passmanager = PassManager(max_iteration=self.max_iteration, callback=self.callback)
+            new_passmanager = PassManager(max_iteration=self.max_iteration)
             new_passmanager._pass_sets = self._pass_sets + other._pass_sets
             return new_passmanager
         else:
             try:
-                new_passmanager = PassManager(max_iteration=self.max_iteration,
-                                              callback=self.callback)
+                new_passmanager = PassManager(max_iteration=self.max_iteration)
                 new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
@@ -283,8 +267,6 @@ class PassManager:
             The transformed circuit.
         """
         running_passmanager = self._create_running_passmanager()
-        if callback is None and self.callback:  # TODO to remove with __init__(callback)
-            callback = self.callback
         result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
         self.property_set = running_passmanager.property_set
         return result
