@@ -585,13 +585,9 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(1.5708, 0, 0), [qr[0]])
-        expected.reset(qr[0])
         expected.append(U3Gate(1.5708, 3.1416, 0), [qr[0]])
 
         after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
-        print(after)
-        print(expected)
         self.assertEqual(after, expected)
 
     def test_initialize_FakeMelbourne(self):

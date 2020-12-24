@@ -367,7 +367,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """U(pi/2, 0, pi/4) ->  p(-pi/4)-sx-p(p/2). Basis [p, sx, cx]."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.append(UGate(np.pi/2, 0, np.pi / 4), [qr[0]])
+        circuit.append(UGate(np.pi / 2, 0, np.pi / 4), [qr[0]])
         circuit.cx(0, 1)
 
         expected = QuantumCircuit(qr)
