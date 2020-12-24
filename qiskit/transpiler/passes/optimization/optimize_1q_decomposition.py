@@ -87,7 +87,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
-                """# If 'delay', 'snapshot', or custom gate, don't optimize this run
+                # If 'delay', 'snapshot', or custom gate, don't optimize this run
                 # to avoid Operator call raising
                 op_type = type(gate.op)
                 if gate.op.name in ['delay', 'snapshot'] or op_type is Gate:
@@ -97,8 +97,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 elif gate.op.name == 'reset':
                     del qc
                     qc = QuantumCircuit(1)
-                else:"""
-                qc._append(gate.op, [q[0]], [])
+                else:
+                    qc._append(gate.op, [q[0]], [])
             operator = Operator(qc)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))

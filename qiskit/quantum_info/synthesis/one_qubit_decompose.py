@@ -314,9 +314,9 @@ class OneQubitEulerDecomposer:
                     atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        #if (not np.isclose(theta, 0.0, atol=atol)
-        #        or not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any()):
-        circuit.append(U3Gate(theta, phi, lam), [0])
+        if (not np.isclose(theta, 0.0, atol=atol)
+                or not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any()):
+            circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -343,9 +343,7 @@ class OneQubitEulerDecomposer:
                      atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
-            if (not np.isclose(phi, 0.0, atol=atol) or
-                    not np.isclose(lam, 0.0, atol=atol)):
-                circuit.append(U2Gate(phi, lam), [0])
+            circuit.append(U2Gate(phi, lam), [0])
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
         return circuit
@@ -359,9 +357,9 @@ class OneQubitEulerDecomposer:
                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        #if (not np.isclose(theta, 0.0, atol=atol)
-        #        or not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any()):
-        circuit.append(UGate(theta, phi, lam), [0])
+        if (not np.isclose(theta, 0.0, atol=atol)
+                or not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any()):
+            circuit.append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
