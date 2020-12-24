@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The base interface for Aqua's gradient."""
+"""The base interface for Opflow's gradient."""
 
 from typing import Union, List
 
