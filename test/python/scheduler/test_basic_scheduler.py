@@ -55,11 +55,11 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend)
         # X pulse on q0 should end at the start of the CNOT
         expected = Schedule(
-            (28, self.inst_map.get('u2', [0], 3.14, 1.57)),
+            (2, self.inst_map.get('u2', [0], 3.14, 1.57)),
             self.inst_map.get('u2', [1], 0.5, 0.25),
-            (28, self.inst_map.get('u2', [1], 0.5, 0.25)),
-            (56, self.inst_map.get('cx', [0, 1])),
-            (78, self.inst_map.get('measure', [0, 1])))
+            (2, self.inst_map.get('u2', [1], 0.5, 0.25)),
+            (4, self.inst_map.get('cx', [0, 1])),
+            (26, self.inst_map.get('measure', [0, 1])))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -75,7 +75,7 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, method='alap')
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
-            (28, self.inst_map.get('u2', [1], 0, 0)))
+            (2, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -98,8 +98,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc.append(U2Gate(0, 0), [q[1]])
         sched = schedule(qc, self.backend, method='alap')
         expected_sched = Schedule(
-            self.inst_map.get('u2', [1], 0, 0),
-            (26, self.inst_map.get('u3', [0], 0, 0, 0)))
+            (2, self.inst_map.get('u2', [1], 0, 0)),
+            self.inst_map.get('u3', [0], 0, 0, 0))
         for actual, expected in zip(sched.instructions, expected_sched.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -123,9 +123,9 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
             self.inst_map.get('u2', [1], 0.5, 0.25),
-            (28, self.inst_map.get('u2', [1], 0.5, 0.25)),
-            (56, self.inst_map.get('cx', [0, 1])),
-            (78, self.inst_map.get('measure', [0, 1])))
+            (2, self.inst_map.get('u2', [1], 0.5, 0.25)),
+            (4, self.inst_map.get('cx', [0, 1])),
+            (26, self.inst_map.get('measure', [0, 1])))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -142,14 +142,14 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, method="as_late_as_possible")
         insts = sched.instructions
         self.assertEqual(insts[0][0], 0)
-        self.assertEqual(insts[4][0], 22)
+        self.assertEqual(insts[6][0], 22)
 
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
         qc.append(U2Gate(0.5, 0.25), [q[1]])
         qc.measure(q, c)
         sched = schedule(qc, self.backend, method="as_late_as_possible")
-        self.assertEqual(sched.instructions[-1][0], 50)
+        self.assertEqual(sched.instructions[-1][0], 24)
 
     def test_inst_map_schedules_unaltered(self):
         """Test that forward scheduling doesn't change relative timing with a command."""
@@ -163,10 +163,12 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(asap[0], alap[0])
             self.assertEqual(asap[1], alap[1])
         insts = sched1.instructions
-        self.assertEqual(insts[0][0], 0)
-        self.assertEqual(insts[1][0], 10)
-        self.assertEqual(insts[2][0], 20)
-        self.assertEqual(insts[3][0], 20)
+        self.assertEqual(insts[0][0], 0)   # shift phase
+        self.assertEqual(insts[1][0], 0)   # ym_d0
+        self.assertEqual(insts[2][0], 0)   # x90p_d1
+        self.assertEqual(insts[3][0], 2)   # cr90p_u0
+        self.assertEqual(insts[4][0], 11)  # xp_d0
+        self.assertEqual(insts[5][0], 13)  # cr90m_u0
 
     def test_measure_combined(self):
         """
@@ -186,11 +188,11 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
-            (28, self.inst_map.get('cx', [0, 1])),
-            (50, self.inst_map.get('measure', [0, 1])),
-            (60, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (60, Acquire(10, AcquireChannel(0), MemorySlot(0))),
-            (60, Acquire(10, AcquireChannel(1), MemorySlot(1))))
+            (2, self.inst_map.get('cx', [0, 1])),
+            (24, self.inst_map.get('measure', [0, 1])),
+            (34, self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(1)])),
+            (34, Acquire(10, AcquireChannel(0), MemorySlot(0))),
+            (34, Acquire(10, AcquireChannel(1), MemorySlot(1))))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
@@ -210,10 +212,10 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(
             inst_map.get('cx', [0, 1]),
             (22, inst_map.get('u2', [1], 3.14, 1.57)),
-            (46, inst_map.get('u2', [2], 0.778, 0.122)),
-            (50, inst_map.get('cx', [1, 2])),
-            (72, inst_map.get('u2', [2], 0.778, 0.122)),
-            (74, inst_map.get('u3', [0], 3.14, 1.57)))
+            (22, inst_map.get('u2', [2], 0.778, 0.122)),
+            (24, inst_map.get('cx', [1, 2])),
+            (44, inst_map.get('u3', [0], 3.14, 1.57, 0)),
+            (46, inst_map.get('u2', [2], 0.778, 0.122)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -264,10 +266,10 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             self.inst_map.get('u2', [1], 0, 0),
-            (28, self.inst_map.get('u1', [0], 3.14)),
-            (28, self.inst_map.get('u1', [1], 3.14)),
-            (28, self.inst_map.get('u2', [0], 0, 0)),
-            (28, self.inst_map.get('u2', [1], 0, 0)))
+            (2, self.inst_map.get('u1', [0], 3.14)),
+            (2, self.inst_map.get('u1', [1], 3.14)),
+            (2, self.inst_map.get('u2', [0], 0, 0)),
+            (2, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -288,10 +290,10 @@ class TestBasicSchedule(QiskitTestCase):
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             self.inst_map.get('u2', [1], 0, 0),
-            (28, self.inst_map.get('u1', [0], 3.14)),
-            (28, self.inst_map.get('u1', [1], 3.14)),
-            (28, self.inst_map.get('u2', [0], 0, 0)),
-            (28, self.inst_map.get('u2', [1], 0, 0)))
+            (2, self.inst_map.get('u1', [0], 3.14)),
+            (2, self.inst_map.get('u1', [1], 3.14)),
+            (2, self.inst_map.get('u2', [0], 0, 0)),
+            (2, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
@@ -338,7 +340,7 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend)
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
-            (28, meas_sched))
+            (2, meas_sched))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_subset_calibrated_measurements(self):
