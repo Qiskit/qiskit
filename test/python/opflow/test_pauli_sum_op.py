@@ -33,7 +33,24 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
+
+
+def pauli_mat(label):
+    """Return Pauli matrix from a Pauli label"""
+    mat = np.eye(1, dtype=complex)
+    for i in label:
+        if i == 'I':
+            mat = np.kron(mat, np.eye(2, dtype=complex))
+        elif i == 'X':
+            mat = np.kron(mat, np.array([[0, 1], [1, 0]], dtype=complex))
+        elif i == 'Y':
+            mat = np.kron(mat, np.array([[0, -1j], [1j, 0]], dtype=complex))
+        elif i == 'Z':
+            mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
+        else:
+            raise QiskitError('Invalid Pauli string {}'.format(i))
+    return mat
 
 
 class TestPauliSumOp(QiskitOpflowTestCase):
@@ -228,6 +245,28 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             + 0.18093119978423156 * (X ^ X)
         )
         self.assertEqual(target, expected)
+
+    def test_matrix_iter(self):
+        """Test PauliSumOp dense matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        table = PauliTable.from_labels(labels)
+        coeff = 10
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter()):
+            self.assertTrue(
+                np.array_equal(i, coeff * coeffs[idx] * pauli_mat(labels[idx])))
+
+    def test_matrix_iter_sparse(self):
+        """Test PauliSumOp sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        coeff = 10
+        table = PauliTable.from_labels(labels)
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter(sparse=True)):
+            self.assertTrue(
+                np.array_equal(i.toarray(), coeff * coeffs[idx] * pauli_mat(labels[idx])))
 
 
 if __name__ == "__main__":
