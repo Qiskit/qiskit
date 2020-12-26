@@ -18,7 +18,6 @@ import logging
 import math
 import numpy as np
 
-from sklearn.utils import shuffle
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import ParameterVector, ParameterExpression
 
@@ -275,18 +274,21 @@ class VQC(VQAlgorithm):
     # Breaks data into minibatches. Labels are optional,
     # but will be broken into batches if included.
     def batch_data(self, data, labels=None, minibatch_size=-1):
-        """ batch data """
+        """Batch data
+
+        Args:
+            data (numpy.ndarray): NxD array, N is number of data and D is dimension.
+            labels (numpy.ndarray): Nx1 array, N is number of data.
+            minibatch_size (int): the size of each minibatch.
+        """
         label_batches = None
 
         if 0 < minibatch_size < len(data):
             batch_size = min(minibatch_size, len(data))
             if labels is not None:
-                shuffled_samples, shuffled_labels = shuffle(data, labels,
-                                                            random_state=aqua_globals.random_seed)
-                label_batches = np.array_split(shuffled_labels, batch_size)
-            else:
-                shuffled_samples = shuffle(data, random_state=aqua_globals.random_seed)
-            batches = np.array_split(shuffled_samples, batch_size)
+                label_batches = np.array_split(np.random.shuffle(labels), batch_size)
+
+            batches = np.array_split(np.random.shuffle(data), batch_size)
         else:
             batches = np.asarray([data])
             label_batches = np.asarray([labels])
@@ -309,6 +311,7 @@ class VQC(VQAlgorithm):
             self._quantum_instance if quantum_instance is None else quantum_instance
         minibatch_size = minibatch_size if minibatch_size > 0 else self._minibatch_size
         self._batches, self._label_batches = self.batch_data(data, labels, minibatch_size)
+        print(self._batches, self._label_batches)
         self._batch_index = 0
 
         if self.initial_point is None:
