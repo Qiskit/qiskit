@@ -57,6 +57,16 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+Classifiers
++++++++++++
+Algorithms for data classification.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   VQC
+
 Eigensolvers
 ++++++++++++
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
@@ -123,6 +133,7 @@ from .factorizers import Shor
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
+from .classifiers import VQC
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -138,6 +149,7 @@ __all__ = [
     'EigensolverResult',
     'Shor',
     'VQE',
+    'VQC',
     'VQEResult',
     'QAOA',
     'NumPyMinimumEigensolver',
