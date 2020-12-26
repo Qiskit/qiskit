@@ -62,8 +62,10 @@ class Hessian(HessianBase):
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
             if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.convert(operator, (p0, p1)) for p1 in params]) for p0 in params])
+                return ListOp([self.convert(operator, (param_i, param_j))
+                               for i, param_i in enumerate(params)
+                               for j, param_j in enumerate(params)
+                               if i <= j])
             # Case: a list was given containing tuples of parameter pairs.
             # Compute the Hessian entries corresponding to these pairs of parameters.
             elif all(isinstance(param, tuple) for param in params):

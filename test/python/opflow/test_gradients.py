@@ -370,21 +370,20 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [(a, a), (a, b), (b, b)]
+        params = ParameterVector('a', 2)
 
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
-        qc.rz(a, q[0])
-        qc.rx(b, q[0])
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
 
         op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
         state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
 
-        values_dict = [{a: np.pi / 4, b: np.pi}, {a: np.pi / 4, b: np.pi / 4},
-                       {a: np.pi / 2, b: np.pi / 4}]
+        values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
+                       {params[0]: np.pi / 4, params[1]: np.pi / 4},
+                       {params[0]: np.pi / 2, params[1]: np.pi / 4}]
         correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2), 0],
                           [-0.5 / np.sqrt(2) + 0.5, -1 / 2., 0.5],
                           [1 / np.sqrt(2), 0, 1 / np.sqrt(2)]]
@@ -506,25 +505,23 @@ class TestGradients(QiskitOpflowTestCase):
 
         QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
         """
+        for params in (ParameterVector('a', 2),
+                       [Parameter('a'), Parameter('b')]):
+            q = QuantumRegister(1)
+            qc = QuantumCircuit(q)
+            qc.h(q)
+            qc.rz(params[0], q[0])
+            qc.rx(params[1], q[0])
 
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [a, b]
-
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-        qc.h(q)
-        qc.rz(params[0], q[0])
-        qc.rx(params[1], q[0])
-
-        op = CircuitStateFn(primitive=qc, coeff=1.)
-        qfi = QFI(qfi_method=method).convert(operator=op, params=params)
-        values_dict = [{params[0]: np.pi / 4, params[1]: 0.1}, {params[0]: np.pi, params[1]: 0.1},
-                       {params[0]: np.pi / 2, params[1]: 0.1}]
-        correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
-        for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(qfi.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            op = CircuitStateFn(primitive=qc, coeff=1.)
+            qfi = QFI(qfi_method=method).convert(operator=op, params=params)
+            values_dict = [{params[0]: np.pi / 4, params[1]: 0.1},
+                           {params[0]: np.pi, params[1]: 0.1},
+                           {params[0]: np.pi / 2, params[1]: 0.1}]
+            correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
+            for i, value_dict in enumerate(values_dict):
+                np.testing.assert_array_almost_equal(qfi.assign_parameters(value_dict).eval(),
+                                                     correct_values[i], decimal=1)
 
     @idata(product(['lin_comb', 'param_shift', 'fin_diff'],
                    [None, 'lasso', 'ridge', 'perturb_diag', 'perturb_diag_elements']))
@@ -532,28 +529,27 @@ class TestGradients(QiskitOpflowTestCase):
     def test_natural_gradient(self, method, regularization):
         """Test the natural gradient"""
         try:
-            ham = 0.5 * X - 1 * Z
-            a = Parameter('a')
-            b = Parameter('b')
-            params = [a, b]
+            for params in (ParameterVector('a', 2),
+                           [Parameter('a'), Parameter('b')]):
+                ham = 0.5 * X - 1 * Z
 
-            q = QuantumRegister(1)
-            qc = QuantumCircuit(q)
-            qc.h(q)
-            qc.rz(params[0], q[0])
-            qc.rx(params[1], q[0])
+                q = QuantumRegister(1)
+                qc = QuantumCircuit(q)
+                qc.h(q)
+                qc.rz(params[0], q[0])
+                qc.rx(params[1], q[0])
 
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-            nat_grad = NaturalGradient(grad_method=method,
-                                       regularization=regularization).convert(operator=op,
-                                                                              params=params)
-            values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-            correct_values = [[-2.36003979, 2.06503481]] \
-                if regularization == 'ridge' else [[-4.2, 0]]
-            for i, value_dict in enumerate(values_dict):
-                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                     correct_values[i],
-                                                     decimal=0)
+                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+                nat_grad = NaturalGradient(grad_method=method, regularization=regularization)\
+                    .convert(operator=op, params=params)
+                values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
+                correct_values = [[-2.36003979, 2.06503481]] \
+                    if regularization == 'ridge' else [[-4.2, 0]]
+                for i, value_dict in enumerate(values_dict):
+                    np.testing.assert_array_almost_equal(
+                        nat_grad.assign_parameters(value_dict).eval(),
+                        correct_values[i],
+                        decimal=0)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
