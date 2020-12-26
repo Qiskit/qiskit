@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Change the name of the cost function used in the VQC algorithm from 
+    `_cost_function_wrapper` to `loss` for more convenient access.

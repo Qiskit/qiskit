@@ -370,6 +370,14 @@ class VQC(VQAlgorithm):
         return grad
 
     def loss(self, theta):
+        """Compute the loss over the current batch of data samples.
+
+        Args:
+            theta (numpy.ndarray): the current point in the parameter space.
+
+        Returns:
+            Union(float, list): the cost for the current batch of samples.
+        """
         batch_index = self._batch_index % len(self._batches)
         predicted_probs, _ = self._get_prediction(self._batches[batch_index], theta)
         total_cost = []
@@ -387,6 +395,7 @@ class VQC(VQAlgorithm):
                     self._batch_index
                 )
             self._eval_count += 1
+
         if not self.is_gradient_really_supported():
             self._batch_index += 1  # increment the batch after eval callback
 
