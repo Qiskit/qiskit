@@ -240,10 +240,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
-    if backend and not dt:
-        dt = getattr(backend.configuration(), 'dt', None)
-    if dt:
-        circuits = parallel_map(convert_durations_to_dt, circuits, (dt,), {'inplace': False})
+    if not scheduling_method:
+        if backend and not dt:
+            dt = getattr(backend.configuration(), 'dt', None)
+        if dt:
+            circuits = parallel_map(convert_durations_to_dt, circuits, (dt,), {'inplace': False})
 
     end_time = time()
     _log_transpile_time(start_time, end_time)
