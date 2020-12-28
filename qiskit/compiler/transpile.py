@@ -17,6 +17,7 @@ from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 
 from qiskit import user_config
+from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
@@ -239,6 +240,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
+    if backend and not dt:
+        dt = getattr(backend.configuration(), 'dt', None)
+    if dt:
+        circuits = parallel_map(convert_durations_to_dt, circuits, (dt,), {'inplace': False})
 
     end_time = time()
     _log_transpile_time(start_time, end_time)
