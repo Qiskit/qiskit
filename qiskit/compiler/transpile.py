@@ -639,7 +639,7 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits, num_circ
             cal_durations = []
             for gate, gate_cals in circuits[i].calibrations.items():
                 for (qubits, params), schedule in gate_cals.items():
-                   cal_durations.append((gate, qubits, schedule.duration))
+                    cal_durations.append((gate, qubits, schedule.duration))
             circ_durations.update(cal_durations)
 
         circ_durations.update(inst_durations, dt or getattr(inst_durations, 'dt', None))
