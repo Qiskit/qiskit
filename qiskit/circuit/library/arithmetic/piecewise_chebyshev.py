@@ -316,7 +316,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         self._check_configuration()
 
         poly_r = PiecewisePolynomialPauliRotations(self.num_state_qubits,
-                                                         self.breakpoints, self.polynomials)
+                                                   self.breakpoints, self.polynomials)
 
         qr_state = self.qubits[:self.num_state_qubits]
         qr_target = [self.qubits[self.num_state_qubits]]
