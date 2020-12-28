@@ -382,11 +382,9 @@ class TestGradients(QiskitOpflowTestCase):
         state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
 
         values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
-                       {params[0]: np.pi / 4, params[1]: np.pi / 4},
-                       {params[0]: np.pi / 2, params[1]: np.pi / 4}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                          [-0.5 / np.sqrt(2) + 0.5, -1 / 2., 0.5],
-                          [1 / np.sqrt(2), 0, 1 / np.sqrt(2)]]
+                       {params[0]: np.pi / 4, params[1]: np.pi / 4}]
+        correct_values = [[[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 0]],
+                          [[-0.5 / np.sqrt(2) + 0.5, -1 / 2.], [-1 / 2., 0.5]]]
 
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(state_hess.assign_parameters(value_dict).eval(),
