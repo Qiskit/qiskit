@@ -2529,12 +2529,22 @@ class QuantumCircuit:
             params (Optional[List[Union[float, Parameter]]]): A list of parameters.
 
         Raises:
-            Exception: if the gate is of type string and params is None.
+            Exception: if the gate is of type string, params is None and instruction is None.
         """
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+            self._update_parameter_table(schedule.parameters)
         else:
+            self._update_parameter_table(schedule.parameters)
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+
+        for instruction, qargs, cargs in self._data:
+            if instruction is not None:
+                if instruction.name == _name:
+                    instruction.params = params
+                    self._update_parameter_table(instruction)
+            else:
+                raise CirctuitError("No instructions provided, but instructions are needed!")
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
