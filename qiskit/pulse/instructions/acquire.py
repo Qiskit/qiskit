@@ -13,8 +13,6 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-import warnings
-
 from typing import List, Optional
 
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel

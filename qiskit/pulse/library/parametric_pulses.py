@@ -36,7 +36,6 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
-import warnings
 from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional, Union
 
