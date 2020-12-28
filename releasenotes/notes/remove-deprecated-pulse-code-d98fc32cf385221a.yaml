@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Remove from Qiskit Pulse:
+
+      - ``SamplePulse``
+      - ``ConstantPulse``
+      - ``get_sample_pulse``
+      - ``pulse.pulse_lib``
+      - ``Instruction.command``
+      - ``Acquire.acquires``, ``mem_slots``, ``reg_slots``
+    
+    which have been deprecated since 0.15.0.
