@@ -419,7 +419,7 @@ def _parse_transpile_args(circuits, backend,
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt,
-                                             num_circuits)
+                                             circuits, num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
@@ -623,20 +623,28 @@ def _parse_scheduling_method(scheduling_method, num_circuits):
     return scheduling_method
 
 
-def _parse_instruction_durations(backend, inst_durations, dt, num_circuits):
-    durations = None
-    if inst_durations is None and backend:
-        try:
-            backend_durations = InstructionDurations.from_backend(backend)
-        except AttributeError:
-            backend_durations = InstructionDurations()
-        durations = backend_durations.update(None, dt)
-    else:
-        durations = InstructionDurations(inst_durations,
-                                         dt or getattr(inst_durations, 'dt', None))
+def _parse_instruction_durations(backend, inst_durations, dt, circuits, num_circuits):
+    backend_durations = InstructionDurations()
+    try:
+        backend_durations = InstructionDurations.from_backend(backend)
+    except AttributeError:
+        pass
 
-    if not isinstance(durations, list):
-        durations = [durations] * num_circuits
+    durations = []
+    for i in range(num_circuits):
+        circ_durations = InstructionDurations()
+        circ_durations.update(backend_durations, dt)
+
+        if circuits[i].calibrations:
+            cal_durations = []
+            for gate, gate_cals in circuits[i].calibrations.items():
+                for (qubits, params), schedule in gate_cals.items():
+                   cal_durations.append((gate, qubits, schedule.duration))
+            circ_durations.update(cal_durations)
+
+        circ_durations.update(inst_durations, dt or getattr(inst_durations, 'dt', None))
+
+        durations.append(circ_durations)
     return durations
 
 
