@@ -964,7 +964,6 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, dt=1e-9)
         self.assertEqual(out.data[0][0].unit, 'dt')
 
-
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
