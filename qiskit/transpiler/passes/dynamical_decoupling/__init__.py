@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing passes of dynamical decoupling, an error mitigation
-technique that attempts to cancel out system-environment interations by
-sending a sequence of pulses."""
+"""Passes which insert dynamical decoupling sequences into circuits. This
+error mitigation technique cancels out system-environment interations with
+decoupling pulses."""
 
-from .xy4 import XY4Pass
+from .xy4 import XY4

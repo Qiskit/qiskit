@@ -14,7 +14,7 @@
 
 import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, List, Tuple, Union
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
@@ -272,6 +272,10 @@ class BackendProperties:
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+    def gate_names(self) -> List[str]:
+        """Return a list of all defined gates. May not be defined on every qubit."""
+        return list(self._gates.keys())
 
     def gate_property(self,
                       gate: str,

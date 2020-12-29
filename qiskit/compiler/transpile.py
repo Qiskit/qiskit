@@ -143,9 +143,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.configuration().dt`` is used.
-        dynamical_decoupling: The name of the dynamical decoupling sequence to insert. Requires
-            scheduling the circuit; if ``scheduling_method`` is not provided, it will default to
-           ``'as_late_as_possible'``.
+        dynamical_decoupling: The name of the dynamical decoupling sequence to insert ('xy4').
+            Requires ``scheduling_method``; inserts 'as_late_as_possible' by default.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
