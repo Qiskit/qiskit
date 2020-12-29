@@ -98,6 +98,14 @@ Circuit Analysis
    NumTensorFactors
    DAGLongestPath
 
+Dynamical Decoupling
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   XY4
+
 Synthesis
 =============
 
@@ -180,6 +188,9 @@ from .synthesis import UnitarySynthesis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import TimeUnitAnalysis
+
+# dynamical decoupling
+from .dynamical_decoupling import XY4
 
 # additional utility passes
 from .utils import CheckMap

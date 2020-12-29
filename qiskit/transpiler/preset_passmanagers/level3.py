@@ -55,6 +55,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import XY4
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -208,6 +209,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
+    # Add dynamical decoupling passes if requested
+    if dynamical_decoupling is not None:
+        if scheduling_method is None:
+            _scheduling = ALAPSchedule(instruction_durations)
+        if dynamical_decoupling.lower() == 'xy4':
+            _dd = XY4(backend_properties)
+        else:
+            raise TranspilerError("Invalid dynamical decoupling sequence {}."
+                                  "".format(dynamical_decoupling))
+
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
@@ -225,7 +236,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
-    if scheduling_method:
+    if scheduling_method or dynamical_decoupling:
         pm3.append(_scheduling)
+    if dynamical_decoupling:
+        pm3.append(_dd)
 
     return pm3
