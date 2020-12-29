@@ -459,8 +459,8 @@ def _expand_parameters(circuits, run_config):
             run_config.parameter_binds = []
         else:
             raise QiskitError(
-                    ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
-                     'Parameter binds: {} ' +
-                     'Circuit parameters: {}').format(all_bind_parameters, all_circuit_parameters))
+                ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
+                 'Parameter binds: {} ' +
+                 'Circuit parameters: {}').format(all_bind_parameters, all_circuit_parameters))
 
     return circuits, run_config
