@@ -7,7 +7,7 @@ feature:
     :class:`~qiskit.pulse.Schedule` instance's ``name`` property.
     The fontsize is controllable with the pulse drawer style sheet. For example:
 
-    .. jupyter-execute::
+    .. parsed-literal::
 
       from qiskit.pulse import pulse_lib
       from qiskit.pulse.schedule import Schedule
