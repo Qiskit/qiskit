@@ -449,7 +449,7 @@ def _expand_parameters(circuits, run_config):
             else:
                 param_mismatch = True
 
-        if (len(check_param_list) == 0 and not(param_mismatch)):
+        if (len(check_param_list) == 0 and not param_mismatch):
             circuits = [circuit.bind_parameters(binds)
                         for circuit in circuits
                         for binds in parameter_binds]
