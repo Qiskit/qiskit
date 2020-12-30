@@ -469,9 +469,9 @@ def _expand_parameters(circuits, run_config):
             if (len(check_param_list) > 0 or param_mismatch):
                 print('KO - 1')
                 raise QiskitError(
-                       ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
-                        'Parameter binds: {} ' +
-                        'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
+                    ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
+                     'Parameter binds: {} ' +
+                     'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
         if not param_mismatch:
             print('OK')
             circuits = [circuit.bind_parameters(binds)
@@ -484,8 +484,8 @@ def _expand_parameters(circuits, run_config):
             print('KO - 2')
             all_circuit_parameters = [circuit.parameters for circuit in circuits]
             raise QiskitError(
-                   ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
-                    'Parameter binds: {} ' +
-                    'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
+                ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
+                 'Parameter binds: {} ' +
+                 'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
 
     return circuits, run_config
