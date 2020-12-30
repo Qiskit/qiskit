@@ -2562,7 +2562,6 @@ class QuantumCircuit:
 
         Raises:
             Exception: if the gate is of type string and params is None.
-            CircuitError: if passed instruction is not found.
         """
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
@@ -2573,15 +2572,11 @@ class QuantumCircuit:
 
         # add parameters to the _parameter_table
         if params is not None:
-            found = False
             for instruction, qargs, cargs in self._data:
                 if instruction.name == _name:
                     found = True
                     instruction.params.extend(params)
                     self._update_parameter_table(instruction)
-
-            if not found:
-                raise CircuitError("Error assigning calibration parameters, instruction not found")
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
