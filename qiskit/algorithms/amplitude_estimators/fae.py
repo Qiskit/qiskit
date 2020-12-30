@@ -158,22 +158,34 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             a_op = estimation_problem.state_preparation
             q_op = estimation_problem.grover_operator
 
+            if not all(hasattr(q_op, attr) for attr in ['oracle', 'reflection_qubits']):
+                raise ValueError('Can only automatically rescale the Grover operator if it '
+                                 'provides the ``oracle`` and ``reflection_qubits`` attributes, '
+                                 'like the qiskit.circuit.library.GroverOperator object. '
+                                 'Ensure the amplitude is in [0, 0.25] and run the algorithm with '
+                                 '``rescale=False`` if you want to use a custom grover operator.')
+
             # rescale the estimation problem
             # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
             a_op = rescale_amplitudes(a_op, 0.25)
 
             # additionally control the oracle on the scaling qubit
             oracle = QuantumCircuit(*a_op.qregs)
-            oracle.compose(q_op.oracle.control(), [oracle.qubits[-1]] + oracle.qubits[:-1],
+            oracle.compose(q_op.oracle.control(ctrl_state='0'),
+                           [oracle.qubits[-1]] + oracle.qubits[:-1],
                            inplace=True)
 
             # add the scaling qubit to the reflection qubits
             reflection_qubits = q_op.reflection_qubits + [a_op.num_qubits - 1]
-            q_op = GroverOperator(oracle, a_op, reflection_qubits=reflection_qubits)
+            q_op = GroverOperator(oracle, a_op, reflection_qubits=reflection_qubits,
+                                  insert_barriers=True)
 
             # add the scaling qubit to the good state qualifier
             def is_good_state(bitstr):
                 return estimation_problem.is_good_state(bitstr[:-1]) and bitstr[-1] == '1'
+
+            print(q_op.draw())
+            print(q_op.decompose().draw())
 
             # create the rescaled estimation problem
             problem = EstimationProblem(

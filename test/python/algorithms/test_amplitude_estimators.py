@@ -104,8 +104,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         [0.49, MaximumLikelihoodAmplitudeEstimation(3), {'estimation': 0.49}],
         [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {'estimation': 0.2}],
         [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {'estimation': 0.49}],
-        [0.2, FasterAmplitudeEstimation(0.1, 3), {'estimation': 0.2}],
-        [0.49, FasterAmplitudeEstimation(0.1, 2), {'estimation': 0.49}]
+        [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {'estimation': 0.2}],
+        [0.12, FasterAmplitudeEstimation(0.1, 2, rescale=False), {'estimation': 0.12}]
     ])
     @unpack
     def test_statevector(self, prob, qae, expect):
@@ -125,8 +125,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         [0.0, 1000, AmplitudeEstimation(2), {'estimation': 0.0, 'mle': 0.0}],
         [0.2, 100, MaximumLikelihoodAmplitudeEstimation(4), {'estimation': 0.199606}],
         [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {'estimation': 0.811711}],
-        [0.49, 1000, FasterAmplitudeEstimation(0.1, 3), {'estimation': 0.502432}],
-        [0.8, 100, FasterAmplitudeEstimation(0.01, 3), {'estimation': 0.802226}],
+        [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {'estimation': 0.198640}],
+        [0.12, 100, FasterAmplitudeEstimation(0.01, 3, rescale=False), {'estimation': 0.119037}],
     ])
     @unpack
     def test_qasm(self, prob, shots, qae, expect):
@@ -442,6 +442,21 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         theta = np.mean(result.theta_intervals[-1])
         value_without_scaling = np.sin(theta) ** 2
         self.assertAlmostEqual(result.estimation, value_without_scaling)
+
+    def test_rescaling_with_custom_grover_raises(self):
+        """Test that the rescaling option fails if a custom Grover operator is used."""
+        prob = 0.8
+        a_op = BernoulliStateIn(prob)
+        q_op = BernoulliGrover(prob)
+        problem = EstimationProblem(a_op, q_op, objective_qubits=[0])
+
+        # construct algo without rescaling
+        backend = BasicAer.get_backend('statevector_simulator')
+        fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
+
+        # run the algo
+        with self.assertRaises(ValueError):
+            _ = fae.estimate(problem)
 
     @data(
         ('statevector_simulator', 0.7),
