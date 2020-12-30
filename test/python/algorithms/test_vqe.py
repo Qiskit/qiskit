@@ -152,6 +152,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.run(self.qasm_simulator)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
+    def test_qasm_aux_operators_normalized(self):
+        """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(self.h2_op, wavefunction, quantum_instance=self.qasm_simulator)
+
+        opt_params = [3.50437328, 3.87415376, 0.93684363, 5.92219622, -1.53527887, 1.87941418,
+                      -4.5708326, 0.70187027]
+
+        vqe._ret = {}
+        vqe._ret['opt_params'] = opt_params
+        vqe._ret['opt_params_dict'] = \
+            dict(zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params))
+
+        optimal_vector = vqe.get_optimal_vector()
+        self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
+
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
         try:
