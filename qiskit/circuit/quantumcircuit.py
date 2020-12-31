@@ -2572,11 +2572,12 @@ class QuantumCircuit:
 
         # add parameters to the _parameter_table
         if params is not None:
-            for instruction, qargs, cargs in self._data:
-                if instruction.name == _name:
-                    found = True
-                    instruction.params.extend(params)
-                    self._update_parameter_table(instruction)
+            for instruction, qargs, _ in self._data:
+                for qarg in qargs:
+                    for qbit in qubits:
+                        if instruction.name == _name and qarg.index == qbit:
+                            instruction.params = params
+                            self._update_parameter_table(instruction)
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
