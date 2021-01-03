@@ -16,7 +16,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info import OneQubitEulerDecomposer
@@ -75,30 +75,17 @@ class Optimize1qGatesDecomposition(TransformationPass):
             # Don't try to optimize a single 1q gate
             if len(run) <= 1:
                 params = run[0].op.params
-                # Remove single identity gates. Have to check to_matrix and
-                # __array__ because Gate has to_matrix but raises if no __array__
-                if (len(params) > 0 and hasattr(run[0].op, 'to_matrix')
-                        and hasattr(run[0].op, '__array__')):
-                    if np.array_equal(run[0].op.to_matrix(), np.eye(2)):
-                        dag.remove_op_node(run[0])
+                # Remove single identity gates
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
+                                                      np.eye(2)):
+                    dag.remove_op_node(run[0])
                 continue
 
             new_circs = []
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
-                # If 'delay', 'snapshot', or custom gate, don't optimize this run
-                # to avoid Operator call raising
-                op_type = type(gate.op)
-                if gate.op.name in ['delay', 'snapshot'] or op_type is Gate:
-                    return dag
-                # If 'reset', remove everything in qc up to reset and start new qc
-                # since for 1q, everything previous to reset is irrelevant
-                elif gate.op.name == 'reset':
-                    del qc
-                    qc = QuantumCircuit(1)
-                else:
-                    qc._append(gate.op, [q[0]], [])
+                qc._append(gate.op, [q[0]], [])
             operator = Operator(qc)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))

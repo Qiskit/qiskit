@@ -355,9 +355,7 @@ class OneQubitEulerDecomposer:
                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        if (not np.isclose(theta, 0.0, atol=atol)
-                or not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any()):
-            circuit.append(UGate(theta, phi, lam), [0])
+        circuit.append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
