@@ -519,7 +519,10 @@ class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
             qc.barrier(q)
             qc.measure(q, c)
             ret = self._quantum_instance.execute(qc)
-            min_vector = ret.get_counts(qc)
+            counts = ret.get_counts(qc)
+            # normalize, just as done in CircuitSampler.sample_circuits
+            shots = self._quantum_instance._run_config.shots
+            min_vector = {b: (v / shots) ** 0.5 for (b, v) in counts.items()}
         return min_vector
 
     @property
