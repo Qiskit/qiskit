@@ -30,7 +30,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
@@ -423,8 +422,11 @@ class TestTranspile(QiskitTestCase):
                               QuantumRegister(3, 'q')[1],
                               QuantumRegister(3, 'q')[2]]
 
-        self.assertRaises(DAGCircuitError, transpile,
-                          qc, backend, initial_layout=bad_initial_layout)
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(qc, backend, initial_layout=bad_initial_layout)
+
+        self.assertEqual("FullAncillaAllocation: The layout refers to a quantum register that does "
+                         "not exist in circuit.", cm.exception.message)
 
     def test_parameterized_circuit_for_simulator(self):
         """Verify that a parameterized circuit can be transpiled for a simulator backend."""
