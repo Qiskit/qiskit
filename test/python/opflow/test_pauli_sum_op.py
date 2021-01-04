@@ -17,7 +17,6 @@ from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from qiskit.exceptions import QiskitError
 from qiskit import QuantumCircuit, transpile
 from qiskit.opflow import (
     CX,
