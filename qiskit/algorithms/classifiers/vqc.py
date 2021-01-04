@@ -21,15 +21,16 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import ParameterVector, ParameterExpression
 
+from qiskit.components.feature_maps import FeatureMap
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
-from qiskit.aqua import QuantumInstance, AquaError, aqua_globals
-from qiskit.aqua.utils import map_label_to_class_name
-from qiskit.aqua.utils import split_dataset_to_data_and_labels
-from qiskit.aqua.algorithms import VQAlgorithm
-from qiskit.aqua.components.optimizers import Optimizer
-from qiskit.aqua.components.feature_maps import FeatureMap
-from qiskit.aqua.components.variational_forms import VariationalForm
+from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.dataset_helper import (map_label_to_class_name,
+                                         split_dataset_to_data_and_labels)
+from ..variational_quantum_algorithm import VQAlgorithm
+from ..optimizers import Optimizer
+from ..variational_forms import VariationalForm
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class VQC(VQAlgorithm):
             We use `label` to denotes numeric results and `class` the class names (str).
 
         Raises:
-            AquaError: Missing feature map or missing training dataset.
+            AlgorithmError: Missing feature map or missing training dataset.
         """
         # VariationalForm is not deprecated on level of the VQAlgorithm yet as UCCSD still
         # derives from there, therefore we're adding a warning here
@@ -115,9 +116,9 @@ class VQC(VQAlgorithm):
         self._callback = callback
 
         if feature_map is None:
-            raise AquaError('Missing feature map.')
+            raise AlgorithmError('Missing feature map.')
         if training_dataset is None:
-            raise AquaError('Missing training dataset.')
+            raise AlgorithmError('Missing training dataset.')
         self._training_dataset, self._class_to_label = split_dataset_to_data_and_labels(
             training_dataset)
         self._label_to_class = {label: class_name for class_name, label
@@ -155,13 +156,13 @@ class VQC(VQAlgorithm):
             QuantumCircuit: the circuit
 
         Raises:
-            AquaError: If ``x`` and ``theta`` share parameters with the same name.
+            AlgorithmError: If ``x`` and ``theta`` share parameters with the same name.
         """
         # check x and theta do not have parameters of the same name
         x_names = [param.name for param in x if isinstance(param, ParameterExpression)]
         theta_names = [param.name for param in theta if isinstance(param, ParameterExpression)]
         if any(x_name in theta_names for x_name in x_names):
-            raise AquaError('Variational form and feature map are not allowed to share parameters '
+            raise AlgorithmError('Variational form and feature map are not allowed to share parameters '
                             'with the same name!')
 
         qr = QuantumRegister(self._num_qubits, name='q')
@@ -500,14 +501,14 @@ class VQC(VQAlgorithm):
     def get_optimal_cost(self):
         """ get optimal cost """
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot return optimal cost before running the "
+            raise AlgorithmError("Cannot return optimal cost before running the "
                             "algorithm to find optimal params.")
         return self._ret['min_val']
 
     def get_optimal_circuit(self):
         """ get optimal circuit """
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal circuit before running "
+            raise AlgorithmError("Cannot find optimal circuit before running "
                             "the algorithm to find optimal params.")
         if isinstance(self._var_form, QuantumCircuit):
             param_dict = dict(zip(self._var_form_params, self._ret['opt_params']))
@@ -520,7 +521,7 @@ class VQC(VQAlgorithm):
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
 
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal vector before running "
+            raise AlgorithmError("Cannot find optimal vector before running "
                             "the algorithm to find optimal params.")
         qc = self.get_optimal_circuit()
         if self._quantum_instance.is_statevector:
@@ -577,7 +578,7 @@ class VQC(VQAlgorithm):
     def optimal_params(self):
         """ returns optimal parameters """
         if 'opt_params' not in self._ret:
-            raise AquaError("Cannot find optimal params before running the algorithm.")
+            raise AlgorithmError("Cannot find optimal params before running the algorithm.")
         return self._ret['opt_params']
 
     @property
