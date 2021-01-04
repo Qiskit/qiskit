@@ -13,8 +13,12 @@
 """Synthesize UnitaryGates."""
 
 from math import pi
-from typing import List
+from typing import List, Optional
 
+from bqskit import synthesize_for_qiskit
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -68,14 +72,17 @@ def _choose_euler_basis(basis_gates):
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
-    def __init__(self, basis_gates: List[str]):
+    def __init__(self, basis_gates: List[str], coupling_map: Optional[CouplingMap] = None):
         """SynthesizeUnitaries initializer.
 
         Args:
             basis_gates: List of gate names to target.
+
+           coupling_map: Coupling map to target.
         """
         super().__init__()
         self._basis_gates = basis_gates
+        self._coupling_map = coupling_map
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -106,6 +113,15 @@ class UnitarySynthesis(TransformationPass):
                 if decomposer2q is None:
                     continue
                 synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix()))
+            elif len(node.qargs) <= 5:
+                cg = None
+                if self._coupling_map is not None:
+                    qubits = [q.index for q in node.qargs]
+                    cg = list(self._coupling_map.subgraph(qubits).get_edges())
+                synth_out = synthesize_for_qiskit(node.op.to_matrix(),
+                                                  basis_gates=self._basis_gates,
+                                                  coupling_graph=cg)
+                synth_dag = circuit_to_dag(QuantumCircuit.from_qasm_str(synth_out))
             else:
                 synth_dag = circuit_to_dag(
                     isometry.Isometry(node.op.to_matrix(), 0, 0).definition)

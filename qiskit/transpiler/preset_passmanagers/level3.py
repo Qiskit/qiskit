@@ -156,7 +156,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, coupling_map),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
@@ -185,7 +185,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _opt = [
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, coupling_map),
             Optimize1qGates(basis_gates),
             CommutativeCancellation(),
         ]
@@ -193,7 +193,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _opt = [
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, coupling_map),
             Optimize1qGatesDecomposition(basis_gates),
             CommutativeCancellation(),
         ]

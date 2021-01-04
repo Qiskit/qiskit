@@ -157,7 +157,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, coupling_map),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)

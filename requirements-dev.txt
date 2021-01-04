@@ -24,3 +24,4 @@ sphinx-panels
 pygments>=2.4
 tweedledum
 networkx>=2.2
+bqskit>=0.1.0
