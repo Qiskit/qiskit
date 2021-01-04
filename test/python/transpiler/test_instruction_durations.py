@@ -56,8 +56,8 @@ class TestInstructionDurationsClass(QiskitTestCase):
         props = backend.properties()
         for gate in props.gates:
             try:
-                if props.gate_length(gate.gate,0):
+                if props.gate_length(gate.gate, 0):
                     return gate.gate
-            except:
+            except Exception:  # pylint: disable=broad-except
                 pass
         raise ValueError("Unable to find a gate with gate length.")
