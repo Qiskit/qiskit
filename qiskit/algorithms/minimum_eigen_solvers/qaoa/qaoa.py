@@ -122,8 +122,6 @@ class QAOA(VQE):
         self._mixer = mixer
         self._initial_state = initial_state
 
-        # VQE will use the operator setter, during its constructor, which is overridden below and
-        # will cause the var form to be built
         super().__init__(var_form=None,
                          optimizer=optimizer,
                          initial_point=initial_point,
@@ -136,9 +134,9 @@ class QAOA(VQE):
 
     def _check_operator(self,
                         operator: OperatorBase) -> OperatorBase:
-        # Need to wipe the var_form in case number of qubits differs from operator.
+        # Recreates var_form based on operator parameter.
         operator = super()._check_operator(operator)
-        self.var_form = QAOAVarForm(self.operator,
+        self.var_form = QAOAVarForm(operator,
                                     self._p,
                                     initial_state=self._initial_state,
                                     mixer_operator=self._mixer)

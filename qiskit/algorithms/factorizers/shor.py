@@ -30,6 +30,7 @@ from qiskit.utils.arithmetic import is_power
 from qiskit.utils.validation import validate_min
 from qiskit.utils.quantum_instance import QuantumInstance
 from ..algorithm_result import AlgorithmResult
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -395,6 +396,7 @@ class Shor:
 
         Raises:
             ValueError: Invalid input
+            AlgorithmError: If a quantum instance or backend has not been provided
 
         """
         validate_min('N', N, 3)
@@ -406,6 +408,10 @@ class Shor:
 
         if a >= N or math.gcd(a, N) != 1:
             raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
+
+        if self.quantum_instance is None:
+            raise AlgorithmError("A QuantumInstance or Backend "
+                                 "must be supplied to run the quantum algorithm.")
 
         result = ShorResult()
 
