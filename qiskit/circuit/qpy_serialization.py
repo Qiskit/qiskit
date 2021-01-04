@@ -216,9 +216,9 @@ def _read_instruction(file_obj, circuit, registers):
         type_str = param[0].decode('utf8')
         param = None
         if type_str == 'i':
-            param = struct.unpack('<q', data)
+            param = struct.unpack('<q', data)[0]
         elif type_str == 'f':
-            param = struct.unpack('<d', param)
+            param = struct.unpack('<d', data)[0]
         elif type_str == 'n':
             container = io.BytesIO()
             container.write(data)
