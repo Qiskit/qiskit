@@ -162,8 +162,8 @@ class VQC(VQAlgorithm):
         x_names = [param.name for param in x if isinstance(param, ParameterExpression)]
         theta_names = [param.name for param in theta if isinstance(param, ParameterExpression)]
         if any(x_name in theta_names for x_name in x_names):
-            raise AlgorithmError('Variational form and feature map are not allowed to share parameters '
-                            'with the same name!')
+            raise AlgorithmError('Variational form and feature map are not allowed to share '
+                                 'parameters with the same name!')
 
         qr = QuantumRegister(self._num_qubits, name='q')
         cr = ClassicalRegister(self._num_qubits, name='c')
@@ -502,14 +502,14 @@ class VQC(VQAlgorithm):
         """ get optimal cost """
         if 'opt_params' not in self._ret:
             raise AlgorithmError("Cannot return optimal cost before running the "
-                            "algorithm to find optimal params.")
+                                 "algorithm to find optimal params.")
         return self._ret['min_val']
 
     def get_optimal_circuit(self):
         """ get optimal circuit """
         if 'opt_params' not in self._ret:
             raise AlgorithmError("Cannot find optimal circuit before running "
-                            "the algorithm to find optimal params.")
+                                 "the algorithm to find optimal params.")
         if isinstance(self._var_form, QuantumCircuit):
             param_dict = dict(zip(self._var_form_params, self._ret['opt_params']))
             return self._var_form.assign_parameters(param_dict)
@@ -522,7 +522,7 @@ class VQC(VQAlgorithm):
 
         if 'opt_params' not in self._ret:
             raise AlgorithmError("Cannot find optimal vector before running "
-                            "the algorithm to find optimal params.")
+                                 "the algorithm to find optimal params.")
         qc = self.get_optimal_circuit()
         if self._quantum_instance.is_statevector:
             ret = self._quantum_instance.execute(qc)

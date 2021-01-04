@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Feature Maps (:mod:`qiskit.aqua.components.feature_maps`)
+Feature Maps (:mod:`qiskit.components.feature_maps`)
 =========================================================
 In machine learning, pattern recognition and image processing, a **feature map**
 starts from an initial set of measured data and builds derived values (also known as
@@ -45,15 +45,6 @@ Feature Map Base Class
    :nosignatures:
 
    FeatureMap
-
-Feature Maps
-============
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   RawFeatureVector
 
 """
 

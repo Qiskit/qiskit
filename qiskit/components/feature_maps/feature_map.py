@@ -17,7 +17,7 @@ feature map. Several types of commonly used approaches.
 
 import warnings
 from abc import ABC, abstractmethod
-from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
+from qiskit.utils import get_entangler_map, validate_entangler_map
 
 
 class FeatureMap(ABC):
