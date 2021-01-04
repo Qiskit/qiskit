@@ -107,7 +107,7 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
-from .variational_quantum_algorithm import VariationalQuantumAlgorithm, VariationalQuantumResult
+from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
@@ -118,8 +118,8 @@ from .exceptions import AlgorithmError
 
 __all__ = [
     'AlgorithmResult',
-    'VariationalQuantumAlgorithm',
-    'VariationalQuantumResult',
+    'VariationalAlgorithm',
+    'VariationalResult',
     'Grover',
     'GroverResult',
     'NumPyEigensolver',

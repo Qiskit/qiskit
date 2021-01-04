@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Variational Quantum Algorithm Base Class.
+"""The Variational Algorithm Base Class.
 
-This class can be used an interface for working with Variation Quantum Algorithms, such as VQE,
+This class can be used an interface for working with Variation Algorithms, such as VQE,
 QAOA, or QSVM, and also provides helper utilities for implementing new variational algorithms.
 Writing a new variational algorithm is a simple as extending this class, implementing a cost
 function for the new algorithm to pass to the optimizer, and running :meth:`find_minimum` method
@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
-class VariationalQuantumAlgorithm:
-    """The Variational Quantum Algorithm Base Class."""
+class VariationalAlgorithm:
+    """The Variational Algorithm Base Class."""
 
     def __init__(self,
                  var_form: Union[QuantumCircuit, VariationalForm],
@@ -143,7 +143,7 @@ class VariationalQuantumAlgorithm:
                      var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
                      cost_fn: Optional[Callable] = None,
                      optimizer: Optional[Optimizer] = None,
-                     gradient_fn: Optional[Callable] = None) -> 'VariationalQuantumResult':
+                     gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
         """Optimize to find the minimum cost value.
 
         Args:
@@ -227,7 +227,7 @@ class VariationalQuantumAlgorithm:
                                                                       gradient_function=gradient_fn)
         eval_time = time.time() - start
 
-        result = VariationalQuantumResult()
+        result = VariationalResult()
         result.optimizer_evals = num_optimizer_evals
         result.optimizer_time = eval_time
         result.optimal_value = opt_val
@@ -291,8 +291,8 @@ class VariationalQuantumAlgorithm:
         self._parameterized_circuits = None
 
 
-class VariationalQuantumResult(AlgorithmResult):
-    """ Variation Quantum Algorithm Result."""
+class VariationalResult(AlgorithmResult):
+    """ Variation Algorithm Result."""
 
     def __init__(self) -> None:
         super().__init__()

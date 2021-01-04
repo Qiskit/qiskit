@@ -33,7 +33,7 @@ from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.quantum_instance import QuantumInstance
 from ..optimizers import Optimizer, SLSQP
 from ..variational_forms import VariationalForm
-from ..variational_quantum_algorithm import VariationalQuantumAlgorithm, VariationalQuantumResult
+from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
 
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # pylint: disable=no-member
 
 
-class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
+class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
     `VQE <https://arxiv.org/abs/1304.3061>`__ is a hybrid algorithm that uses a
@@ -176,7 +176,7 @@ class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
         self._user_valid_expectation = False
         self._expect_op = None
 
-    @VariationalQuantumAlgorithm.quantum_instance.setter
+    @VariationalAlgorithm.quantum_instance.setter
     def quantum_instance(self, quantum_instance: Union[QuantumInstance,
                                                        BaseBackend, Backend]) -> None:
         """ set quantum_instance """
@@ -212,7 +212,7 @@ class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
                                          "form does not allow setting the number of qubits "
                                          " using `num_qubits`.") from ex
 
-    @VariationalQuantumAlgorithm.optimizer.setter  # type: ignore
+    @VariationalAlgorithm.optimizer.setter  # type: ignore
     def optimizer(self, optimizer: Optimizer):
         """ Sets optimizer """
         super(VQE, self.__class__).optimizer.__set__(self, optimizer)  # type: ignore
@@ -533,7 +533,7 @@ class VQE(VariationalQuantumAlgorithm, MinimumEigensolver):
         return self._ret.optimal_point
 
 
-class VQEResult(VariationalQuantumResult, MinimumEigensolverResult):
+class VQEResult(VariationalResult, MinimumEigensolverResult):
     """ VQE Result."""
 
     def __init__(self) -> None:
