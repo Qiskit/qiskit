@@ -77,8 +77,7 @@ class UnitarySynthesis(TransformationPass):
 
         Args:
             basis_gates: List of gate names to target.
-
-           coupling_map: Coupling map to target.
+            coupling_map: Coupling map to target.
         """
         super().__init__()
         self._basis_gates = basis_gates
