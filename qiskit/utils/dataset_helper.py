@@ -15,7 +15,6 @@
 import operator
 from copy import deepcopy
 import numpy as np
-from sklearn.decomposition import PCA
 
 
 def get_num_classes(dataset):
@@ -124,21 +123,6 @@ def map_label_to_class_name(predicted_labels, label_to_class):
     for predicted_label in predicted_labels:
         predicted_class_names.append(label_to_class[predicted_label])
     return predicted_class_names
-
-
-def reduce_dim_to_via_pca(x, dim):
-    """
-    Reduce the data dimension via pca
-
-    Args:
-        x (numpy.ndarray): NxD array
-        dim (int): the targeted dimension D'
-
-    Returns:
-        numpy.ndarray: NxD' array
-    """
-    x_reduced = PCA(n_components=dim).fit_transform(x)
-    return x_reduced
 
 
 def discretize_and_truncate(data, bounds, num_qubits, return_data_grid_elements=False,
