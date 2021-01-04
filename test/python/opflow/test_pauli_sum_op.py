@@ -37,23 +37,6 @@ from qiskit.circuit import Parameter, ParameterVector
 from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
 
 
-def pauli_mat(label):
-    """Return Pauli matrix from a Pauli label"""
-    mat = np.eye(1, dtype=complex)
-    for i in label:
-        if i == 'I':
-            mat = np.kron(mat, np.eye(2, dtype=complex))
-        elif i == 'X':
-            mat = np.kron(mat, np.array([[0, 1], [1, 0]], dtype=complex))
-        elif i == 'Y':
-            mat = np.kron(mat, np.array([[0, -1j], [1j, 0]], dtype=complex))
-        elif i == 'Z':
-            mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
-        else:
-            raise QiskitError('Invalid Pauli string {}'.format(i))
-    return mat
-
-
 class TestPauliSumOp(QiskitOpflowTestCase):
     """PauliSumOp tests."""
 
@@ -256,7 +239,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter()):
             self.assertTrue(
-                np.array_equal(i, coeff * coeffs[idx] * pauli_mat(labels[idx])))
+                np.array_equal(i, coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
 
     def test_matrix_iter_sparse(self):
         """Test PauliSumOp sparse matrix_iter method."""
@@ -267,7 +251,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
             self.assertTrue(
-                np.array_equal(i.toarray(), coeff * coeffs[idx] * pauli_mat(labels[idx])))
+                np.array_equal(i.toarray(), coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
 
 
 if __name__ == "__main__":
