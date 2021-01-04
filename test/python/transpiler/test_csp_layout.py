@@ -105,7 +105,7 @@ class TestCSPLayout(QiskitTestCase):
 
     def test_2q_circuit_5q_coupling_noise(self):
         """ 2 qubits in Bogota, with noise
-            0 - qr1 - qr2 - 3 - 4
+            0 - 1 - 2 - qr1 - qr2
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
@@ -124,13 +124,13 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 2)
-        self.assertEqual(layout[qr[1]], 1)
+        self.assertEqual(layout[qr[0]], 4)
+        self.assertEqual(layout[qr[1]], 3)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_5q_coupling_noise(self):
         """ 3 qubits in Bogota, with noise
-            0 - qr1 - qr2 - qr3 - 4
+            0 - 1 - qr1 - qr2 - qr3
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -150,9 +150,9 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 3)
-        self.assertEqual(layout[qr[1]], 2)
-        self.assertEqual(layout[qr[2]], 1)
+        self.assertEqual(layout[qr[0]], 4)
+        self.assertEqual(layout[qr[1]], 3)
+        self.assertEqual(layout[qr[2]], 2)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_3q_circuit_16_coupling_noise(self):
@@ -187,9 +187,9 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr[0]], 11)
-        self.assertEqual(layout[qr[1]], 12)
-        self.assertEqual(layout[qr[2]], 2)
+        self.assertEqual(layout[qr[0]], 1)
+        self.assertEqual(layout[qr[1]], 2)
+        self.assertEqual(layout[qr[2]], 3)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
     def test_2q_circuit_2q_coupling_sd(self):

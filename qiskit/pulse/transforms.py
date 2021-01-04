@@ -117,6 +117,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
 
     def get_max_calibration_duration(inst_map, cal_gate):
         """Return the time needed to allow for readout discrimination calibration pulses."""
+        # TODO (qiskit-terra #5472): fix behavior of this.
         max_calibration_duration = 0
         for qubits in inst_map.qubits_with_instruction(cal_gate):
             cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)

@@ -293,11 +293,17 @@ class MatrixOperator(LegacyBaseOperator):
         if expansion_order == 1:
             left = reduce(
                 lambda x, y: x @ y,
-                [scila.expm(lam / 2 * c * p.to_spmatrix().tocsc()) for c, p in pauli_list]
+                [
+                    scila.expm(lam / 2 * c * p.to_matrix(sparse=True).tocsc())
+                    for c, p in pauli_list
+                ],
             )
             right = reduce(
                 lambda x, y: x @ y,
-                [scila.expm(lam / 2 * c * p.to_spmatrix().tocsc()) for c, p in reversed(pauli_list)]
+                [
+                    scila.expm(lam / 2 * c * p.to_matrix(sparse=True).tocsc())
+                    for c, p in reversed(pauli_list)
+                ],
             )
             return left @ right
         else:
@@ -360,7 +366,7 @@ class MatrixOperator(LegacyBaseOperator):
             if len(pauli_list) == 1:
                 approx_matrix_slice = scila.expm(
                     -1.j * evo_time / num_time_slices * pauli_list[0][0]
-                    * pauli_list[0][1].to_spmatrix().tocsc()
+                    * pauli_list[0][1].to_matrix(sparse=True).tocsc()
                 )
             else:
                 if expansion_mode == 'trotter':
@@ -368,7 +374,7 @@ class MatrixOperator(LegacyBaseOperator):
                         lambda x, y: x @ y,
                         [
                             scila.expm(-1.j * evo_time
-                                       / num_time_slices * c * p.to_spmatrix().tocsc())
+                                       / num_time_slices * c * p.to_matrix(sparse=True).tocsc())
                             for c, p in pauli_list
                         ]
                     )
