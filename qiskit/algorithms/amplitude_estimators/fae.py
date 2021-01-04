@@ -168,15 +168,36 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             # rescale the estimation problem
             # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
             a_op = rescale_amplitudes(a_op, 0.25)
+            reflection_qubits = q_op.reflection_qubits + [a_op.num_qubits - 1]
 
             # additionally control the oracle on the scaling qubit
             oracle = QuantumCircuit(*a_op.qregs)
-            oracle.compose(q_op.oracle.control(ctrl_state='0'),
+            # TODO figure out if this phase fix is really needed
+            oracle.h(a_op.num_qubits - 1)
+            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
+            oracle.h(a_op.num_qubits - 1)
+            oracle.x(estimation_problem.objective_qubits + [a_op.num_qubits - 1])
+            oracle.h(a_op.num_qubits - 1)
+            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
+            oracle.h(a_op.num_qubits - 1)
+            oracle.x(estimation_problem.objective_qubits + [a_op.num_qubits - 1])
+
+            # oracle.h(a_op.num_qubits - 1)
+            # oracle.mcx(reflection_qubits[:-1], reflection_qubits[-1])
+            # oracle.h(a_op.num_qubits - 1)
+            # oracle.x(reflection_qubits)
+            # oracle.h(a_op.num_qubits - 1)
+            # oracle.mcx(reflection_qubits[:-1], reflection_qubits[-1])
+            # oracle.h(a_op.num_qubits - 1)
+            # oracle.x(reflection_qubits)
+
+            oracle.x(oracle.qubits[-1])
+            oracle.compose(q_op.oracle.control(),
                            [oracle.qubits[-1]] + oracle.qubits[:-1],
                            inplace=True)
+            oracle.x(oracle.qubits[-1])
 
             # add the scaling qubit to the reflection qubits
-            reflection_qubits = q_op.reflection_qubits + [a_op.num_qubits - 1]
             q_op = GroverOperator(oracle, a_op, reflection_qubits=reflection_qubits,
                                   insert_barriers=True)
 
@@ -184,8 +205,8 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             def is_good_state(bitstr):
                 return estimation_problem.is_good_state(bitstr[:-1]) and bitstr[-1] == '1'
 
-            print(q_op.draw())
-            print(q_op.decompose().draw())
+            # print(q_op.draw())
+            # print(q_op.decompose().draw())
 
             # create the rescaled estimation problem
             problem = EstimationProblem(

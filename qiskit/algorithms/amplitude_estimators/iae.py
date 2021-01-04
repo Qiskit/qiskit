@@ -202,7 +202,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             # real hardware can currently not handle operations after measurements, which might
             # happen if the circuit gets transpiled, hence we're adding a safeguard-barrier
             circuit.barrier()
-            circuit.measure(estimation_problem.objective_qubits, *c)
+            circuit.measure(estimation_problem.objective_qubits, c[:])
 
         return circuit
 

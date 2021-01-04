@@ -42,15 +42,31 @@ class BernoulliGrover(QuantumCircuit):
     def __init__(self, probability):
         super().__init__(1)
         self.angle = 2 * np.arcsin(np.sqrt(probability))
-        self.ry(2 * self.angle, 0)
+        # self.ry(2 * self.angle, 0)
 
-    def power(self, power, matrix_power=False):
-        if matrix_power:
-            return super().power(power, True)
+        # oracle
+        self.x(0)
+        self.z(0)
+        self.x(0)
 
-        powered = QuantumCircuit(1)
-        powered.ry(power * 2 * self.angle, 0)
-        return powered
+        # A dagger
+        self.ry(-self.angle, 0)
+
+        # zero reflection
+        self.x(0)
+        self.z(0)
+        self.x(0)
+
+        # A
+        self.ry(self.angle, 0)
+
+    # def power(self, power, matrix_power=False):
+    #     if matrix_power:
+    #         return super().power(power, True)
+
+    #     powered = QuantumCircuit(1)
+    #     powered.ry(power * 2 * self.angle, 0)
+    #     return powered
 
 
 class SineIntegral(QuantumCircuit):
@@ -64,15 +80,16 @@ class SineIntegral(QuantumCircuit):
     def __init__(self, num_qubits):
         qr_state = QuantumRegister(num_qubits, 'state')
         qr_objective = QuantumRegister(1, 'obj')
+        factor = 0.2
         super().__init__(qr_state, qr_objective)
 
         # prepare 1/sqrt{2^n} sum_x |x>_n
         self.h(qr_state)
 
         # apply the sine/cosine term
-        self.ry(2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
+        self.ry(factor * 2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
         for i, qubit in enumerate(qr_state):
-            self.cry(2 * 2**i / 2 ** num_qubits, qubit, qr_objective[0])
+            self.cry(factor * 2 * 2**i / 2 ** num_qubits, qubit, qr_objective[0])
 
 
 @ddt
@@ -325,7 +342,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         [4, 10, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.333333}],
         [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.256878}],
         [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {'estimation': 0.271790}],
-        [3, 1000, FasterAmplitudeEstimation(0.1, 4), {'estimation': 0.274168}],
+        [3, 1000, FasterAmplitudeEstimation(0.1, 4, rescale=False), {'estimation': 0.274168}],
     ])
     @unpack
     def test_qasm(self, n, shots, qae, expect):
@@ -410,7 +427,7 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
     def test_rescaling(self):
         """Test the rescaling."""
-        amplitude = 0.5
+        amplitude = 0.8
         scaling = 0.25
         circuit = QuantumCircuit(1)
         circuit.ry(2 * np.arcsin(amplitude), 0)
@@ -457,6 +474,28 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         # run the algo
         with self.assertRaises(ValueError):
             _ = fae.estimate(problem)
+
+    def test_rescaling_with_standard_grover(self):
+        """Test that the rescaling works for a circuit library GroverOperator."""
+        prob = 0.2
+        a_op = BernoulliStateIn(prob)
+        # a_op = rescale_amplitudes(a_op, 0.25)
+
+        problem = EstimationProblem(a_op, objective_qubits=[0])
+        print(problem.grover_operator)
+
+        # construct algo without rescaling
+        backend = BasicAer.get_backend('qasm_simulator')
+        # backend = BasicAer.get_backend('qasm_simulator')
+        fae = FasterAmplitudeEstimation(0.1, 4, rescale=True, quantum_instance=backend)
+
+        # run the algo
+        result = fae.estimate(problem)
+        print(result.estimation)
+
+        iae = IterativeAmplitudeEstimation(0.01, 0.05, quantum_instance=backend)
+        result = iae.estimate(problem)
+        print(result.estimation)
 
     @data(
         ('statevector_simulator', 0.7),
