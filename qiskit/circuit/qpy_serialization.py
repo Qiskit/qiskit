@@ -66,7 +66,7 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
 .. code-block:: c
     struct {
-        char name[256];
+        char name[32];
         unsigned short num_parameters;
         unsigned int num_qargs;
         unsigned int num_cargs;
@@ -108,7 +108,7 @@ The contents of each INSTRUCTION_PARAM is:
 After each INSTRUCTIOn_PARAM the next ``size`` bytes are the parameter's data.
 The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, or ``'n'`` which dictate
 the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
-a paramter expression which is represented by a 256 character utf8 string, and
+a paramter expression which is represented by a 32 character utf8 string, and
 ``'n'`` represents an object from numpy (either an ``ndarray`` or a numpy type)
 which means the data is .npy format [1] data.
 
@@ -150,7 +150,7 @@ REGISTER_SIZE = struct.calcsize(REGISTER_PACK)
 # INSTRUCTION binary format
 INSTRUCTION = namedtuple('INSTRUCTION', ['name', 'num_parameters', 'num_qargs',
                                          'num_cargs'])
-INSTRUCTION_PACK = '!256sHII'
+INSTRUCTION_PACK = '!32sHII'
 INSTRUCTION_SIZE = struct.calcsize(INSTRUCTION_PACK)
 # Instruction argument format
 INSTRUCTION_ARG = namedtuple('INSTRUCTION_ARG', ['type', 'size', 'name'])
