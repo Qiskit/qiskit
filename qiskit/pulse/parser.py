@@ -21,6 +21,7 @@ import operator
 import cmath
 
 from qiskit.pulse.exceptions import PulseError
+from qiskit.circuit import ParameterExpression
 
 
 class PulseExpression(ast.NodeTransformer):
@@ -110,7 +111,7 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             PulseError: When parameters are not bound.
         """
-        if isinstance(self._tree.body, ast.Num):
+        if isinstance(self._tree.body, (ast.Constant, ast.Num)):
             return self._tree.body.n
 
         self._locals_dict.clear()
@@ -131,7 +132,7 @@ class PulseExpression(ast.NodeTransformer):
 
         expr = self.visit(self._tree)
 
-        if not isinstance(expr.body, ast.Num):
+        if not isinstance(expr.body, (ast.Constant, ast.Num)):
             if self._partial_binding:
                 return PulseExpression(expr, self._partial_binding)
             else:
@@ -181,10 +182,23 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             Input node.
         """
+        # node that Num node is deprecated in Python 3.8.
+        # Constant node is recommended.
         return node
 
-    def visit_Name(self, node: ast.Name) -> Union[ast.Name, ast.Num]:
-        """Evaluate name and return ast.Num if it is bound.
+    def visit_Constant(self, node: ast.Constant) -> ast.Constant:
+        """Return constant value as it is.
+
+        Args:
+            node: Constant.
+
+        Returns:
+            Input node.
+        """
+        return node
+
+    def visit_Name(self, node: ast.Name) -> Union[ast.Name, ast.Constant]:
+        """Evaluate name and return ast.Constant if it is bound.
 
         Args:
             node: Name to evaluate.
@@ -196,24 +210,26 @@ class PulseExpression(ast.NodeTransformer):
             PulseError: When parameter value is not a number.
         """
         if node.id in self._math_ops.keys():
-            val = ast.Num(n=self._math_ops[node.id])
+            val = ast.Constant(n=self._math_ops[node.id])
             return ast.copy_location(val, node)
         elif node.id in self._locals_dict.keys():
             _val = self._locals_dict[node.id]
-            try:
-                _val = complex(_val)
-                if not _val.imag:
-                    _val = _val.real
-            except ValueError:
-                raise PulseError('Invalid parameter value %s = %s is specified.'
-                                 % (node.id, self._locals_dict[node.id]))
-            val = ast.Num(n=_val)
+            if not isinstance(_val, ParameterExpression):
+                # check value type
+                try:
+                    _val = complex(_val)
+                    if not _val.imag:
+                        _val = _val.real
+                except ValueError:
+                    raise PulseError('Invalid parameter value %s = %s is specified.'
+                                     % (node.id, self._locals_dict[node.id]))
+            val = ast.Constant(n=_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)
         return node
 
-    def visit_UnaryOp(self, node: ast.UnaryOp) -> Union[ast.UnaryOp, ast.Num]:
-        """Evaluate unary operation and return ast.Num if operand is bound.
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> Union[ast.UnaryOp, ast.Constant]:
+        """Evaluate unary operation and return ast.Constant if operand is bound.
 
         Args:
             node: Unary operation to evaluate.
@@ -222,14 +238,13 @@ class PulseExpression(ast.NodeTransformer):
             Evaluated value.
         """
         node.operand = self.visit(node.operand)
-        if isinstance(node.operand, ast.Num):
-            val = ast.Num(n=self._match_ops(node.op, self._unary_ops,
-                                            node.operand.n))
+        if isinstance(node.operand, (ast.Constant, ast.Num)):
+            val = ast.Constant(n=self._match_ops(node.op, self._unary_ops, node.operand.n))
             return ast.copy_location(val, node)
         return node
 
-    def visit_BinOp(self, node: ast.BinOp) -> Union[ast.BinOp, ast.Num]:
-        """Evaluate binary operation and return ast.Num if operands are bound.
+    def visit_BinOp(self, node: ast.BinOp) -> Union[ast.BinOp, ast.Constant]:
+        """Evaluate binary operation and return ast.Constant if operands are bound.
 
         Args:
             node: Binary operation to evaluate.
@@ -239,14 +254,15 @@ class PulseExpression(ast.NodeTransformer):
         """
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
-        if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
-            val = ast.Num(n=self._match_ops(node.op, self._binary_ops,
-                                            node.left.n, node.right.n))
+        if isinstance(node.left, (ast.Constant, ast.Num)) \
+                and isinstance(node.right, (ast.Constant, ast.Num)):
+            val = ast.Constant(n=self._match_ops(node.op, self._binary_ops,
+                                                 node.left.n, node.right.n))
             return ast.copy_location(val, node)
         return node
 
-    def visit_Call(self, node: ast.Call) -> Union[ast.Call, ast.Num]:
-        """Evaluate function and return ast.Num if all arguments are bound.
+    def visit_Call(self, node: ast.Call) -> Union[ast.Call, ast.Constant]:
+        """Evaluate function and return ast.Constant if all arguments are bound.
 
         Args:
             node: Function to evaluate.
@@ -260,14 +276,14 @@ class PulseExpression(ast.NodeTransformer):
         if not isinstance(node.func, ast.Name):
             raise PulseError('Unsafe expression is detected.')
         node.args = [self.visit(arg) for arg in node.args]
-        if all(isinstance(arg, ast.Num) for arg in node.args):
+        if all(isinstance(arg, (ast.Constant, ast.Num)) for arg in node.args):
             if node.func.id not in self._math_ops.keys():
                 raise PulseError('Function %s is not supported.' % node.func.id)
             _args = [arg.n for arg in node.args]
             _val = self._math_ops[node.func.id](*_args)
             if not _val.imag:
                 _val = _val.real
-            val = ast.Num(n=_val)
+            val = ast.Constant(n=_val)
             return ast.copy_location(val, node)
         return node
 

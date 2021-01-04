@@ -65,10 +65,18 @@ class FullAncillaAllocation(AnalysisPass):
         if layout is None:
             raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
 
-        layout_physical_qubits = layout.get_physical_bits().keys()
-        coupling_physical_qubits = self.coupling_map.physical_qubits
-        idle_physical_qubits = [q for q in coupling_physical_qubits
-                                if q not in layout_physical_qubits]
+        if layout:
+            FullAncillaAllocation.validate_layout(layout.get_registers(), set(dag.qregs.values()))
+            layout_physical_qubits = list(range(max(layout.get_physical_bits()) + 1))
+        else:
+            layout_physical_qubits = []
+
+        idle_physical_qubits = [q for q in layout_physical_qubits
+                                if q not in layout.get_physical_bits()]
+
+        if self.coupling_map:
+            idle_physical_qubits = [q for q in self.coupling_map.physical_qubits
+                                    if q not in layout.get_physical_bits()]
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
@@ -83,3 +91,13 @@ class FullAncillaAllocation(AnalysisPass):
             self.property_set['layout'][idle_q] = qreg[idx]
 
         return dag
+
+    @staticmethod
+    def validate_layout(layout_qregs, dag_qregs):
+        """
+        Checks if all the qregs in layout_qregs already exist in dag_qregs. Otherwise, raise.
+        """
+        for qreg in layout_qregs:
+            if qreg not in dag_qregs:
+                raise TranspilerError('FullAncillaAllocation: The layout refers to a quantum '
+                                      'register that does not exist in circuit.')

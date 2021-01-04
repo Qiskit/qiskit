@@ -12,7 +12,6 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-from itertools import groupby
 import logging
 
 import numpy as np
@@ -51,11 +50,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         }
         self.basis = None
         if basis:
+            self.basis = []
             basis_set = set(basis)
             for basis_name, gates in self.euler_basis_names.items():
                 if set(gates).issubset(basis_set):
-                    self.basis = basis_name
-                    break
+                    self.basis.append(OneQubitEulerDecomposer(basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -69,45 +68,31 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if not self.basis:
             LOG.info("Skipping pass because no basis is set")
             return dag
-        decomposer = OneQubitEulerDecomposer(self.basis)
-        runs = dag.collect_runs(self.euler_basis_names[self.basis])
-        runs = _split_runs_on_parameters(runs)
+        runs = dag.collect_1q_runs()
         for run in runs:
+            # Don't try to optimize a single 1q gate
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
-                if run[0].op.name in self.euler_basis_names[self.basis] and len(
-                        params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                       np.eye(2)):
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
+                                                      np.eye(2)):
                     dag.remove_op_node(run[0])
-                # Don't try to optimize a single 1q gate
                 continue
+
+            new_circs = []
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(1)
             for gate in run:
-                qc.append(gate.op, [q[0]], [])
-
+                qc._append(gate.op, [q[0]], [])
             operator = Operator(qc)
-            new_circ = decomposer(operator)
-            new_dag = circuit_to_dag(new_circ)
-            dag.substitute_node_with_dag(run[0], new_dag)
-            # Delete the other nodes in the run
-            for current_node in run[1:]:
-                dag.remove_op_node(current_node)
+            for decomposer in self.basis:
+                new_circs.append(decomposer(operator))
+            if new_circs:
+                new_circ = min(new_circs, key=lambda circ: circ.depth())
+                if qc.depth() > new_circ.depth():
+                    new_dag = circuit_to_dag(new_circ)
+                    dag.substitute_node_with_dag(run[0], new_dag)
+                    # Delete the other nodes in the run
+                    for current_node in run[1:]:
+                        dag.remove_op_node(current_node)
         return dag
-
-
-def _split_runs_on_parameters(runs):
-    """Finds runs containing parameterized gates and splits them into sequential
-    runs excluding the parameterized gates.
-    """
-
-    out = []
-    for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized())
-
-        for group_is_parameterized, gates in groups:
-            if not group_is_parameterized:
-                out.append(list(gates))
-
-    return out

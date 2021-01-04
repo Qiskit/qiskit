@@ -24,13 +24,13 @@ from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.util import is_main_process
+from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -83,6 +83,10 @@ class QuantumCircuit:
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
         global_phase (float): The global phase of the circuit in radians.
+        metadata (dict): Arbitrary key value metadata to associate with the
+            circuit. This gets stored as free-form data in a dict in the
+            :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
+            not be directly used in the circuit.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -140,7 +144,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None, global_phase=0):
+    def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
@@ -189,6 +193,9 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = 'dt'
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     @property
     def data(self):
@@ -220,7 +227,7 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -241,6 +248,26 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
+
+    @property
+    def metadata(self):
+        """The user provided metadata associated with the circuit
+
+        The metadata for the circuit is a user provided ``dict`` of metadata
+        for the circuit. It will not be used to influence the execution or
+        operation of the circuit, but it is expected to be passed betweeen
+        all transforms of the circuit (ie transpilation) and that providers will
+        associate any circuit metadata with the results it returns from
+        execution of that circuit.
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Update the circuit metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -681,7 +708,9 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
-        dest._calibrations.update(other.calibrations)
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
 
         dest.global_phase += other.global_phase
 
@@ -2031,13 +2060,22 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         for instr, param_index in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].assign(parameter, value)
+            new_param = instr.params[param_index].assign(parameter, value)
+            # if fully bound, validate
+            if len(new_param.parameters) == 0:
+                instr.params[param_index] = instr.validate_parameter(new_param)
+            else:
+                instr.params[param_index] = new_param
+
             self._rebind_definition(instr, parameter, value)
 
         if isinstance(value, ParameterExpression):
             entry = self._parameter_table.pop(parameter)
             for new_parameter in value.parameters:
-                self._parameter_table[new_parameter] = entry
+                if new_parameter in self._parameter_table:
+                    self._parameter_table[new_parameter].extend(entry)
+                else:
+                    self._parameter_table[new_parameter] = entry
         else:
             del self._parameter_table[parameter]  # clear evaluated expressions
 

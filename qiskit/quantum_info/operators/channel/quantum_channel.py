@@ -21,6 +21,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
@@ -30,7 +31,7 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
-class QuantumChannel(BaseOperator):
+class QuantumChannel(BaseOperator, TolerancesMixin):
     """Quantum channel representation base class."""
 
     def __init__(self, data, input_dims=None, output_dims=None,
