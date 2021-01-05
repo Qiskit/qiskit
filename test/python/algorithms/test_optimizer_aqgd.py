@@ -37,7 +37,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
     def test_simple(self):
         """ test AQGD optimizer with the parameters as single values."""
@@ -46,7 +46,10 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=aqua_globals.random_seed)
 
         aqgd = AQGD(momentum=0.0)
-        result = VQE(self.qubit_op, RealAmplitudes(), aqgd).run(q_instance)
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=aqgd,
+                  quantum_instance=q_instance)
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     def test_list(self):
@@ -56,7 +59,10 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=aqua_globals.random_seed)
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        result = VQE(self.qubit_op, RealAmplitudes(), aqgd).run(q_instance)
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=aqgd,
+                  quantum_instance=q_instance)
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     def test_raises_exception(self):
@@ -70,7 +76,10 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
                                      seed_transpiler=aqua_globals.random_seed)
 
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
-        result = VQE(self.qubit_op, RealAmplitudes(), aqgd).run(q_instance)
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=aqgd,
+                  quantum_instance=q_instance)
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
 
