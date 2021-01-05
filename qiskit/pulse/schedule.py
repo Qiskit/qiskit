@@ -16,20 +16,20 @@ instruction occuring in parallel over multiple signal *channels*.
 """
 
 import abc
-
 import copy
-from collections import defaultdict
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
+import warnings
+from collections import defaultdict
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-# pylint: disable=cyclic-import, unused-import
-from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+# pylint: disable=cyclic-import, unused-import
+from qiskit.pulse.instructions import Instruction
 from qiskit.utils.multiprocessing import is_main_process
 
 # pylint: disable=missing-return-doc
@@ -773,63 +773,122 @@ class Schedule(abc.ABC):
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
 
-    def draw(self, dt: float = 1, style=None,
-             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: Optional[float] = None,
-             channel_scales: Optional[Dict[Channel, float]] = None,
-             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
-             interactive: bool = False, table: bool = False, label: bool = False,
-             framechange: bool = True,
-             channels: Optional[List[Channel]] = None,
-             show_framechange_channels: bool = True,
-             draw_title: bool = False):
+    def draw(self,
+             style: Optional[Dict[str, Any]] = None,
+             backend: Optional['BaseBackend'] = None,
+             time_range: Optional[Tuple[int, int]] = None,
+             time_unit: str = 'dt',
+             disable_channels: Optional[List[Channel]] = None,
+             show_snapshot: bool = True,
+             show_framechange: bool = True,
+             show_waveform_info: bool = True,
+             show_barrier: bool = True,
+             plotter: str = 'mpl2d',
+             axis: Optional[Any] = None,
+             # deprecated arguments, those args were used by legacy drawer.
+             dt: Any = None,
+             filename: Any = None,
+             interp_method: Any = None,
+             scale: Any = None,
+             channel_scales: Any = None,
+             plot_all: Any = None,
+             plot_range: Any = None,
+             interactive: Any = None,
+             table: Any = None,
+             label: Any = None,
+             framechange: Any = None,
+             channels: Any = None,
+             show_framechange_channels: Any = None,
+             draw_title: Any = None):
         r"""Plot the schedule.
-
         Args:
-            dt: Time interval of samples.
-            style (Optional[SchedStyle]): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scale: Relative visual scaling of waveform amplitudes, see Additional Information.
-            channel_scales: Channel independent scaling as a dictionary of ``Channel`` object.
-            plot_all: Plot empty channels.
-            plot_range: A tuple of time range to plot.
-            interactive: When set true show the circuit in a new window
-                         (this depends on the matplotlib backend being used supporting this).
-            table: Draw event table for supported commands.
-            label: Label individual instructions.
-            framechange: Add framechange indicators.
-            channels: A list of Channels to plot.
-            show_framechange_channels: Plot channels with only framechanges.
-            draw_title: Add a title to the plot when set to ``True``.
+            style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
+                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
+                preset stylesheets. See also the stylesheet section for details of configuration keys.
+            backend: Backend object to play the input pulse program. If this object is provided,
+                the input program is visualized with the details of hardware information.
+            time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
+            time_unit: The unit of specified time range either `dt` or `ns`.
+                The unit of `ns` is available only when `backend` object is provided.
+            disable_channels: A control property to show specific pulse channel.
+                Pulse channel instances provided as a list is not shown in the output image.
+            show_snapshot: A control property to show snapshot symbols.
+                Set `True` to show snapshot instructions.
+            show_framechange: A control property to show frame change symbols.
+                Set `True` to show frame change instructions. The frame change represents
+                instructions that modulate phase or frequency of pulse channels.
+            show_waveform_info: A control property to show annotations, i.e. name, of waveforms.
+                Set `True` to show additional information about waveforms.
+            show_barrier: A control property to show barriers.
+                Set `True` to show barrier lines.
+            plotter: Name of plotter API to generate an output image.
+                One of following APIs should be specified::
 
-        Additional Information:
-            If you want to manually rescale the waveform amplitude of channels one by one,
-            you can set ``channel_scales`` argument instead of ``scale``.
-            The ``channel_scales`` should be given as a python dictionary::
+                    mpl2d: Matplotlib API for 2D image generation.
+                        Matplotlib API to generate 2D image. Charts are placed along y axis with
+                        vertical offset. This API takes matplotlib.axes.Axes as `axis` input.
 
-                channel_scales = {pulse.DriveChannels(0): 10.0,
-                                  pulse.MeasureChannels(0): 5.0}
-
-            When the channel to plot is not included in the ``channel_scales`` dictionary,
-            scaling factor of that channel is overwritten by the value of ``scale`` argument.
-            In default, waveform amplitude is normalized by the maximum amplitude of the channel.
-            The scaling factor is displayed under the channel name alias.
+                `axis` and `style` kwargs may depend on the plotter.
+            axis: Arbitrary object passed to the plotter. If this object is provided,
+                the plotters uses given `axis` instead of internally initializing a figure object.
+                This object format depends on the plotter. See plotters section for details.
+            dt: Deprecated. This argument is used by the legacy pulse drawer.
+            filename: Deprecated. This argument is used by the legacy pulse drawer.
+                To save output image, you can call `.savefig` method with
+                returned Matplotlib Figure object.
+            interp_method: Deprecated. This argument is used by the legacy pulse drawer.
+            scale: Deprecated. This argument is used by the legacy pulse drawer.
+            channel_scales: Deprecated. This argument is used by the legacy pulse drawer.
+            plot_all: Deprecated. This argument is used by the legacy pulse drawer.
+            plot_range: Deprecated. This argument is used by the legacy pulse drawer.
+            interactive: Deprecated. This argument is used by the legacy pulse drawer.
+            table: Deprecated. This argument is used by the legacy pulse drawer.
+            label: Deprecated. This argument is used by the legacy pulse drawer.
+            framechange: Deprecated. This argument is used by the legacy pulse drawer.
+            channels: Deprecated. This argument is used by the legacy pulse drawer.
+            show_framechange_channels: Deprecated. This argument is used by the legacy pulse drawer.
+            draw_title: Deprecated. This argument is used by the legacy pulse drawer.
 
         Returns:
-            matplotlib.Figure: A matplotlib figure object of the pulse schedule.
+            Visualization output data.
+
+            The returned data type depends on the `plotter`.
+            If matplotlib family is specified, this will be a `matplotlib.pyplot.Figure` data.
+            The returned data is generated by the `.get_image` method of the specified plotter API.
         """
         # pylint: disable=invalid-name, cyclic-import
-        from qiskit import visualization
+        from qiskit.visualization import pulse_drawer_v2
 
-        return visualization.pulse_drawer(self, dt=dt, style=style,
-                                          filename=filename, interp_method=interp_method,
-                                          scale=scale, channel_scales=channel_scales,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table, label=label,
-                                          framechange=framechange, channels=channels,
-                                          show_framechange_channels=show_framechange_channels,
-                                          draw_title=draw_title)
+        legacy_args = (dt, filename, interp_method, scale, channel_scales, plot_all,
+                       plot_range, interactive, table, label, framechange, channels,
+                       show_framechange_channels, draw_title)
+
+        if any(arg is not None for arg in legacy_args):
+            warnings.warn('Legacy pulse drawer is deprecated with some arguments. '
+                          'Please check the API document of new pulse drawer '
+                          '`qiskit.visualization.pulse_drawer_v2`.',
+                          DeprecationWarning)
+
+        if filename:
+            warnings.warn('File saving is delegated to the plotter software in new drawer. '
+                          'If you specify matplotlib plotter family to `plotter` argument, '
+                          'you can call `savefig` method with the returned Figure object.',
+                          DeprecationWarning)
+
+        return pulse_drawer_v2(program=self,
+                               style=style,
+                               backend=backend,
+                               time_range=time_range,
+                               time_unit=time_unit,
+                               disable_channels=disable_channels,
+                               show_snapshot=show_snapshot,
+                               show_framechange=show_framechange,
+                               show_waveform_info=show_waveform_info,
+                               show_barrier=show_barrier,
+                               plotter=plotter,
+                               axis=axis)
 
     def __eq__(self, other: Union['Schedule', Instruction]) -> bool:
         """Test if two ScheduleComponents are equal.

@@ -248,7 +248,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
         'formatter.margin.right_percent': 0.05,
-        'formatter.margin.between_channel': 0.2,
+        'formatter.margin.between_channel': 0.5,
         'formatter.label_offset.pulse_name': 0.3,
         'formatter.label_offset.chart_info': 0.3,
         'formatter.label_offset.frame_change': 0.3,

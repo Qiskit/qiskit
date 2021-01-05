@@ -25,7 +25,7 @@ from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import BaseBackend
 from qiskit.pulse import Waveform, ParametricPulse, Schedule
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 
@@ -35,7 +35,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
          backend: Optional[BaseBackend] = None,
          time_range: Optional[Tuple[int, int]] = None,
          time_unit: str = types.TimeUnits.CYCLES.value,
-         disable_channels: Optional[List[PulseChannel]] = None,
+         disable_channels: Optional[List[Channel]] = None,
          show_snapshot: bool = True,
          show_framechange: bool = True,
          show_waveform_info: bool = True,
