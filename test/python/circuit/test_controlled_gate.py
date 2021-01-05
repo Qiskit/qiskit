@@ -218,14 +218,14 @@ class TestControlledGate(QiskitTestCase):
 
         ref_circ = QuantumCircuit(3)
         ref_circ.h(2)
-        ref_circ.ccx(0,1,2)
+        ref_circ.ccx(0, 1, 2)
         ref_circ.h(2)
 
         ctr_circ_mat = Operator(ctr_circ).data
         ref_circ_mat = Operator(ref_circ).data
 
         self.assertTrue(matrix_equal(ctr_circ_mat, ref_circ_mat, ignore_phase=True))
-        
+
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
         import qiskit.circuit.library.standard_gates.u3 as u3
