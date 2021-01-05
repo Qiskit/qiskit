@@ -144,9 +144,6 @@ def backend_monitor(backend):
             error = format(props.gate_error(gate.gate, qubits), '.5f')
         except QiskitError:
             pass
-        # for gd_param in gate.parameters:
-        #     if gd_param.name == 'gate_error':
-        #         error = format(gd_param.value, '.5f')
         mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
         print(offset+mstr)
 

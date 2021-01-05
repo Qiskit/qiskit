@@ -365,7 +365,6 @@ tr:nth-child(even) {background-color: #f6f6f6;};
         qubits = gate.qubits
         ttype = gate.gate
         error = round(props.gate_error(gate.gate, qubits), 5)
-        # error = round(gate['parameters'][0]['value'], 5)
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -380,7 +379,6 @@ tr:nth-child(even) {background-color: #f6f6f6;};
         qubits = gate.qubits
         ttype = gate.gate
         error = round(props.gate_error(gate.gate, qubits), 5)
-        # error = round(gate['parameters'][0]['value'], 5)
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -395,7 +393,6 @@ tr:nth-child(even) {background-color: #f6f6f6;};
         qubits = gate.qubits
         ttype = gate.gate
         error = round(props.gate_error(gate.gate, qubits), 5)
-        # error = round(gate['parameters'][0]['value'], 5)
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"
