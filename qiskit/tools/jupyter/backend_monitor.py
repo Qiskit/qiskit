@@ -278,7 +278,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
         name = 'Q%s' % index
         gate_data = [gate for gate in props.gates if gate.qubits == [index]]
 
-        cali_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
+        cal_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
         for nduv in qubit_data:
             if nduv.name in cali_data.keys():
                 cali_data[nduv.name] = str(round(nduv.value, 5)) + ' ' + nduv.unit
