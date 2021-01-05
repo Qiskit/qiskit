@@ -151,7 +151,7 @@ class TestGroverFunctionality(QiskitAlgorithmsTestCase):
         """Test the iterations argument"""
         grover = Grover(oracle=self._oracle, good_state=['111'], iterations=2)
         ret = grover.run(self._sv)
-        self.assertTrue(Operator(ret['circuit']).equiv(Operator(self._expected)))
+        self.assertTrue(Operator(ret.circuit).equiv(Operator(self._expected)))
 
         grover = Grover(oracle=self._oracle, good_state=['111'], iterations=[1, 2, 3])
         ret = grover.run(self._sv)
@@ -174,14 +174,14 @@ class TestGroverExecution(QiskitAlgorithmsTestCase):
         list_good_state = ["11"]
         grover = Grover(oracle=oracle, good_state=list_good_state)
         ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], list_good_state)
+        self.assertIn(ret.top_measurement, list_good_state)
 
     def test_run_state_vector_oracle(self):
         """Test execution with a state vector oracle"""
         mark_state = Statevector.from_label('11')
         grover = Grover(oracle=mark_state, good_state=['11'])
         ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], ['11'])
+        self.assertIn(ret.top_measurement, ['11'])
 
     def test_run_grover_operator_oracle(self):
         """Test execution with a grover operator oracle"""
@@ -191,7 +191,7 @@ class TestGroverExecution(QiskitAlgorithmsTestCase):
         grover = Grover(oracle=grover_op.oracle,
                         grover_operator=grover_op, good_state=["11"])
         ret = grover.run(self._qasm)
-        self.assertIn(ret['top_measurement'], ['11'])
+        self.assertIn(ret.top_measurement, ['11'])
 
 
 if __name__ == '__main__':

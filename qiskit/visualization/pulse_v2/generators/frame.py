@@ -255,9 +255,10 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
     if data.frame.freq == 0:
         freq_sci_notation = '0.0'
     else:
+        abs_freq = np.abs(data.frame.freq)
         freq_sci_notation = '{base:.1f}e{exp:d}'.format(
-            base=data.frame.freq / (10**int(np.floor(np.log10(data.frame.freq)))),
-            exp=int(np.floor(np.log10(data.frame.freq)))
+            base=data.frame.freq / (10**int(np.floor(np.log10(abs_freq)))),
+            exp=int(np.floor(np.log10(abs_freq)))
         )
     frame_info = '{phase:.2f}\n{freq}'.format(phase=data.frame.phase,
                                               freq=freq_sci_notation)

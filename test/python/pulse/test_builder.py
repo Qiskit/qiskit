@@ -884,9 +884,9 @@ class TestBuilderComposition(TestBuilder):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
-        delay_dur = 19
-        short_dur = 31
-        long_dur = 101
+        delay_dur = 30
+        short_dur = 20
+        long_dur = 49
 
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
