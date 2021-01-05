@@ -5,6 +5,7 @@ upgrade:
     This drawer supports multiple new features:
 
     * Truncation of long pulse instructions
+    * Visualization of parametric pulses.
     * New stylesheets ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``
     * Visualization of system info (channel frequency, etc...) by specifying ``backend`` object.
     * Specifying ``axis`` object to create complex image data, i.e. for publication.
