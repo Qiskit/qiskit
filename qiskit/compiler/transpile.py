@@ -17,7 +17,7 @@ from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 
 from qiskit import user_config
-from qiskit.circuit.duration import convert_durations_to_dt
+from qiskit.circuit import Delay
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
@@ -240,11 +240,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
-    if not scheduling_method:
-        if backend and not dt:
-            dt = getattr(backend.configuration(), 'dt', None)
-        if dt:
-            circuits = parallel_map(convert_durations_to_dt, circuits, (dt,), {'inplace': False})
 
     end_time = time()
     _log_transpile_time(start_time, end_time)
@@ -426,7 +421,7 @@ def _parse_transpile_args(circuits, backend,
     translation_method = _parse_translation_method(translation_method, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt,
                                              num_circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    scheduling_method = _parse_scheduling_method(scheduling_method, circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -623,9 +618,17 @@ def _parse_translation_method(translation_method, num_circuits):
     return translation_method
 
 
-def _parse_scheduling_method(scheduling_method, num_circuits):
+def _parse_scheduling_method(scheduling_method, circuits):
+    """If there is a delay in any circuit, implicitly add a default scheduling method."""
+    if scheduling_method is None:
+        for circ in circuits:
+            for inst, _, _ in circ:
+                if isinstance(inst, Delay):
+                    scheduling_method = 'alap'
+                    break
+
     if not isinstance(scheduling_method, list):
-        scheduling_method = [scheduling_method] * num_circuits
+        scheduling_method = [scheduling_method] * len(circuits)
     return scheduling_method
 
 
