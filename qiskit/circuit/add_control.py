@@ -167,7 +167,7 @@ def control(operation: Union[Gate, ControlledGate],
                                              use_basis_gates=True)
             elif gate.name == 'z':
                 controlled_circ.h(q_target[qreg[0].index])
-                controlled_circ.mct(q_control, q_target[qreg[0].index],
+                controlled_circ.mcx(q_control, q_target[qreg[0].index],
                                     q_ancillae)
                 controlled_circ.h(q_target[qreg[0].index])
             else:
