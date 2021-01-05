@@ -23,6 +23,7 @@ Qiskit Terra API Reference
    scheduler
    qasm
    qobj
+   qpy
    quantum_info
    result
    tools

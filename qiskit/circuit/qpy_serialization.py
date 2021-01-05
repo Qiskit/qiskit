@@ -12,18 +12,25 @@
 
 # pylint: disable=invalid-name,too-many-boolean-expressions
 
-"""QPY serialization module
+"""
+===========================================================
+QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
+===========================================================
 
+.. currentmodule:: qiskit.circuit.qpy_serialization
 
 The QPY serialization format is a a portable cross-platform binary
 serialization format for QuantumCircuit objects in Qiskit. The basic
 format for the file format is as follows:
 
-HEADER | METADATA | REGISTERS | INSTRUCTIONS
+``HEADER | METADATA | REGISTERS | INSTRUCTIONS``
 
-All values use network byte order [1] (big endian) for cross platform
+All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility. All strings will be padded with ``0x00`` after the string
 if the string is shorter than the max size.
+
+HEADER
+------
 
 The contents of HEADER as defined as a C struct are:
 
@@ -43,10 +50,17 @@ The contents of HEADER as defined as a C struct are:
         unsigned long long num_instructions;
     }
 
+METADATA
+--------
+
 The METADATA field is a utf8 encoded json string. After reading the HEADER
 (which is a fixed size at the start of the QPY file you then read the
 ``metadata_size`` number of bytes and parse the JSON to get the metadata for
 the circuit.
+
+
+REGISTERS
+---------
 
 The contents of REGISTERS is a number of REGISTER object. If num_registers is
 > 0 then after reading METADATA you read that number of REGISTER structs defined
@@ -62,9 +76,13 @@ as:
 
 ``type`` can be ``'q'`` or ``'c'``.
 
+INSTRUCTIONS
+------------
+
 The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
 .. code-block:: c
+
     struct {
         char name[32];
         unsigned short num_parameters;
@@ -74,7 +92,6 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
 ``name`` here is the Qiskit class name for the Instruction class if it's
 defined in Qiskit. Otherwise it falls back to the custom instruction name.
-
 
 which is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
@@ -105,14 +122,15 @@ The contents of each INSTRUCTION_PARAM is:
         unsigned long long size;
     }
 
-After each INSTRUCTIOn_PARAM the next ``size`` bytes are the parameter's data.
+After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
 The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, or ``'n'`` which dictate
 the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
 a paramter expression which is represented by a 32 character utf8 string, and
 ``'n'`` represents an object from numpy (either an ``ndarray`` or a numpy type)
-which means the data is .npy format [1] data.
+which means the data is .npy format [#f2]_ data.
 
-[1] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
+.. [#f1] https://tools.ietf.org/html/rfc1700
+.. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
 """
 from collections import namedtuple
 import io
