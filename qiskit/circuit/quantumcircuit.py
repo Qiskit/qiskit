@@ -2579,7 +2579,6 @@ class QuantumCircuit:
             name (str): Instruction name.
             qubits (Union[int, Tuple[int]]): List of qubits to be measured.
             params (Optional[List[Union[float, Parameter]]]): A list of parameters.
-
         """
         for instruction, qargs, _ in self._data:
             for qarg in qargs:
