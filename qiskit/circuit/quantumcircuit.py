@@ -2565,19 +2565,28 @@ class QuantumCircuit:
         """
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
-            _name = gate.name
+            if params is not None:
+                self.add_calibration_params(gate.name, qubits, params)
         else:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
-            _name = gate
+            if params is not None:
+                self.add_calibration_params(gate, qubits, params)
 
-        # add parameters to the _parameter_table
-        if params is not None:
-            for instruction, qargs, _ in self._data:
-                for qarg in qargs:
-                    for qbit in qubits:
-                        if instruction.name == _name and qarg.index == qbit:
-                            instruction.params = params
-                            self._update_parameter_table(instruction)
+    def add_calibration_params(self, name, qubits, params):
+        """Update parameters table with calivration parameters
+
+        Args:
+            name (str): Instruction name.
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
+
+        """
+        for instruction, qargs, _ in self._data:
+            for qarg in qargs:
+                for qbit in qubits:
+                    if instruction.name == name and qarg.index == qbit:
+                        instruction.params = params
+                        self._update_parameter_table(instruction)
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
