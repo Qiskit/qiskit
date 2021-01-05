@@ -13,3 +13,4 @@
 """Module containing transpiler synthesis passes."""
 
 from .unitary_synthesis import UnitarySynthesis
+from .solovay_kitaev import SolovayKitaevDecomposition

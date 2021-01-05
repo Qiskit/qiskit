@@ -63,7 +63,7 @@ class SolovayKitaev():
         pass
 
 
-class SolovayKitaevSynthesis(TransformationPass):
+class SolovayKitaevDecomposition(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
     def __init__(self, recursion_degree: int, basis_gates: List[Union[str, Gate]]) -> None:
@@ -87,11 +87,11 @@ class SolovayKitaevSynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
         """
         for node in dag.nodes():
-            if not node.type == 'op':
-                pass  # skip all nodes that do not represent operations
+            if node.type != 'op':
+                continue  # skip all nodes that do not represent operations
 
             if not node.op.num_qubits == 1:
-                pass  # ignore all non-single qubit gates, possible raise error here?
+                continue  # ignore all non-single qubit gates, possible raise error here?
 
             matrix = node.op.to_matrix()
 
