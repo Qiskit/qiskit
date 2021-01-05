@@ -12,10 +12,9 @@
 
 """ Eigen Solvers Package """
 
-from .numpy_eigen_solver import NumPyEigensolver, ExactEigensolver
+from .numpy_eigen_solver import NumPyEigensolver
 from .eigen_solver import Eigensolver, EigensolverResult
 
 __all__ = ['NumPyEigensolver',
-           'ExactEigensolver',
            'Eigensolver',
            'EigensolverResult']
