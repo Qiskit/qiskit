@@ -15,7 +15,6 @@ import functools
 from typing import List, Dict, Union
 
 import numpy as np
-from sympy import srepr
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 
@@ -56,6 +55,8 @@ def format_parameter_value(operand: Union[ParameterExpression]
     # however this error can be ignored in practice though we need to be careful for unittests.
     # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
     # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
+    from sympy import srepr
+
     math_expr = srepr(operand)
     try:
         # value is assigned

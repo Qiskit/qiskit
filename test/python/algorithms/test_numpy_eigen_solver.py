@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms import NumPyEigensolver, AlgorithmError
+from qiskit.algorithms import NumPyEigensolver
 from qiskit.opflow import WeightedPauliOperator
 
 
@@ -33,30 +33,24 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
     def test_ce(self):
         """ Test basics """
-        algo = NumPyEigensolver(self.qubit_op, aux_operators=[])
-        result = algo.run()
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503 + 0j)
 
     def test_ce_k4(self):
         """ Test for k=4 eigenvalues """
-        algo = NumPyEigensolver(self.qubit_op, k=4, aux_operators=[])
-        result = algo.run()
+        algo = NumPyEigensolver(k=4)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
         np.testing.assert_array_almost_equal(result.eigenvalues.real,
                                              [-1.85727503, -1.24458455, -0.88272215, -0.22491125])
-
-    def test_ce_fail(self):
-        """ Test no operator """
-        algo = NumPyEigensolver()
-        with self.assertRaises(AlgorithmError):
-            _ = algo.run()
 
     def test_ce_k4_filtered(self):
         """ Test for k=4 eigenvalues with filter """
@@ -66,8 +60,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return v >= -1
 
-        algo = NumPyEigensolver(self.qubit_op, k=4, aux_operators=[], filter_criterion=criterion)
-        result = algo.run()
+        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         np.testing.assert_array_almost_equal(result.eigenvalues.real, [-0.88272215, -0.22491125])
@@ -80,8 +74,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return False
 
-        algo = NumPyEigensolver(self.qubit_op, k=4, aux_operators=[], filter_criterion=criterion)
-        result = algo.run()
+        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 0)
         self.assertEqual(len(result.eigenstates), 0)
 
