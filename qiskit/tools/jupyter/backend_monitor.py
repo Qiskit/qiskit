@@ -288,10 +288,11 @@ tr:nth-child(even) {background-color: #f6f6f6;}
         for gd in gate_data:
             if gd.gate in ['id']:
                 continue
-            for gd_param in gd.parameters:
-                if gd_param.name == 'gate_error':
-                    gate_names.append(gd.gate.upper())
-                    gate_error.append(str(round(gd_param.value, 5)))
+            try:
+                gate_error.append(str(round(props.gate_error(gd.gate, index), 5)))
+                gate_names.append(gd.gate.upper())
+            except QiskitError:
+                pass
 
         if not gate_error_title:
             for gname in gate_names:
@@ -324,13 +325,13 @@ def gates_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    props = backend.properties().to_dict()
+    props = backend.properties()
 
-    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
+    multi_qubit_gates = [g for g in props.gates if len(g.qubits) > 1]
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
     header_html = header_html.format(key='last_update_date',
-                                     value=props['last_update_date'])
+                                     value=props.last_update_date)
 
     update_date_widget = widgets.HTML(value=header_html,
                                       layout=widgets.Layout(grid_area='top'))
@@ -361,9 +362,10 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
+        # error = round(gate['parameters'][0]['value'], 5)
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -375,9 +377,10 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num, left_num+mid_num):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
+        # error = round(gate['parameters'][0]['value'], 5)
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
@@ -389,9 +392,10 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num+mid_num, len(multi_qubit_gates)):
         gate = multi_qubit_gates[qub]
-        qubits = gate['qubits']
-        ttype = gate['gate']
-        error = round(gate['parameters'][0]['value'], 5)
+        qubits = gate.qubits
+        ttype = gate.gate
+        error = round(props.gate_error(gate.gate, qubits), 5)
+        # error = round(gate['parameters'][0]['value'], 5)
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"

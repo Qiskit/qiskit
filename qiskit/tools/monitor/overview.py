@@ -112,10 +112,11 @@ def backend_monitor(backend):
         for gd in gate_data:
             if gd.gate in ['id']:
                 continue
-            for gd_param in gd.parameters:
-                if gd_param.name == 'gate_error':
-                    gate_names.append(gd.gate.upper() + ' err')
-                    gate_error.append(format(gd_param.value, '.5f'))
+            try:
+                gate_error.append(format(props.gate_error(gd.gate, index), '.5f'))
+                gate_names.append(gd.gate.upper() + ' err')
+            except QiskitError:
+                pass
 
         if not qubit_header:
             qubit_header = 'Qubits [Name / Freq / T1 / T2' + sep.join(['']+gate_names) + \
@@ -139,9 +140,13 @@ def backend_monitor(backend):
         qubits = gate.qubits
         ttype = gate.gate
         error = "Unknown"
-        for gd_param in gate.parameters:
-            if gd_param.name == 'gate_error':
-                error = format(gd_param.value, '.5f')
+        try:
+            error = format(props.gate_error(gate.gate, qubits), '.5f')
+        except QiskitError:
+            pass
+        # for gd_param in gate.parameters:
+        #     if gd_param.name == 'gate_error':
+        #         error = format(gd_param.value, '.5f')
         mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
         print(offset+mstr)
 
