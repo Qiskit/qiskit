@@ -27,6 +27,7 @@ except ImportError:
     _HAS_JAX = False
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
+from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import aqua_globals
@@ -904,7 +905,7 @@ class TestGradients(QiskitOpflowTestCase):
             result = prob_grad(value)
             np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
 
-    @unittest.skip(reason="Logging too much info and crashing stestr.")
+    @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
 
@@ -937,10 +938,13 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(h2_hamiltonian, wavefunction, optimizer=optimizer, gradient=grad)
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
 
-        result = vqe.run(q_instance)
-        np.testing.assert_almost_equal(result['optimal_value'], h2_energy, decimal=0)
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
 
 @ddt
