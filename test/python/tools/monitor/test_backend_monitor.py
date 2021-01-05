@@ -97,7 +97,7 @@ class TestBackendOverview(QiskitTestCase):
         self.assertIn('Configuration', stdout)
         self.assertIn('Qubits [Name / Freq / T1 / T2 / ', stdout)
         for gate in backend.properties().gates:
-            if gate.gate not in ['id', 'rz'] and len(gate.qubits) == 1:
+            if gate.gate not in ['id'] and len(gate.qubits) == 1:
                 self.assertIn(gate.gate.upper() + ' err', stdout)
         self.assertIn('Readout err', stdout)
         self.assertIn('Multi-Qubit Gates [Name / Type / Gate Error]', stdout)

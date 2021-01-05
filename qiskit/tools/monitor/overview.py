@@ -104,13 +104,13 @@ def backend_monitor(backend):
 
         cal_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
         for nduv in qubit_data:
-            if nduv.name in cali_data.keys():
-                cali_data[nduv.name] = format(nduv.value, '.5f') + ' ' + nduv.unit
+            if nduv.name in cal_data.keys():
+                cal_data[nduv.name] = format(nduv.value, '.5f') + ' ' + nduv.unit
 
         gate_names = []
         gate_error = []
         for gd in gate_data:
-            if gd.gate in ['id', 'rz']:
+            if gd.gate in ['id']:
                 continue
             for gd_param in gd.parameters:
                 if gd_param.name == 'gate_error':
@@ -118,14 +118,14 @@ def backend_monitor(backend):
                     gate_error.append(format(gd_param.value, '.5f'))
 
         if not qubit_header:
-            qubit_header = 'Qubits [Name / Freq / T1 / T2 / ' + sep.join(gate_names) + \
+            qubit_header = 'Qubits [Name / Freq / T1 / T2' + sep.join(['']+gate_names) + \
                            ' / Readout err]'
             print(qubit_header)
             print('-'*len(qubit_header))
 
-        qstr = sep.join([name, cali_data['frequency'], cali_data['T1'], cali_data['T2']] +
+        qstr = sep.join([name, cal_data['frequency'], cal_data['T1'], cal_data['T2']] +
                         gate_error +
-                        [cali_data['readout_error']])
+                        [cal_data['readout_error']])
 
         print(offset+qstr)
 

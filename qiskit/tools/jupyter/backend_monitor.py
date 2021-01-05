@@ -280,13 +280,13 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
         cal_data = dict.fromkeys(['T1', 'T2', 'frequency', 'readout_error'], 'Unknown')
         for nduv in qubit_data:
-            if nduv.name in cali_data.keys():
-                cali_data[nduv.name] = str(round(nduv.value, 5)) + ' ' + nduv.unit
+            if nduv.name in cal_data.keys():
+                cal_data[nduv.name] = str(round(nduv.value, 5)) + ' ' + nduv.unit
 
         gate_names = []
         gate_error = []
         for gd in gate_data:
-            if gd.gate in ['id', 'rz']:
+            if gd.gate in ['id']:
                 continue
             for gd_param in gd.parameters:
                 if gd_param.name == 'gate_error':
@@ -299,11 +299,11 @@ tr:nth-child(even) {background-color: #f6f6f6;}
             qubit_html += gate_error_title + "<th>Readout error</th></tr>"
 
         qubit_html += f"<tr><td><font style='font-weight:bold'>{name}</font></td>"
-        qubit_html += f"<td>{cali_data['frequency']}</td>" \
-                      f"<td>{cali_data['T1']}</td><td>{cali_data['T2']}</td>"
+        qubit_html += f"<td>{cal_data['frequency']}</td>" \
+                      f"<td>{cal_data['T1']}</td><td>{cal_data['T2']}</td>"
         for gerror in gate_error:
             qubit_html += f"<td>{gerror}</td>"
-        qubit_html += f"<td>{cali_data['readout_error']}</td>"
+        qubit_html += f"<td>{cal_data['readout_error']}</td>"
 
     qubit_html += qubit_footer
 
