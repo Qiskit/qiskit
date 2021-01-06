@@ -140,7 +140,6 @@ class DIMACSOracle(QuantumCircuit):
         # add one clause variable for each line
         for i, line in enumerate(lines[1:]):
             toks = line.split()
-            print(toks)
             if not toks[-1] == '0':
                 raise ValueError('Unrecognized dimacs line {}.'.format(line))
 
@@ -165,5 +164,5 @@ class DIMACSOracle(QuantumCircuit):
         Returns:
             True if the bitstring is a good state, False otherwise.
         """
-        index = int(bitstring, 2)
-        return self._result_lookup[index] == '0'
+        index = int(bitstring[::-1], 2)
+        return self._result_lookup[::-1][index] == '1'
