@@ -1,13 +1,42 @@
 ---
 upgrade:
   - |
-    Remove from Qiskit Pulse (:mod:`qiskit.pulse`):
+    Features of Qiskit Pulse (:mod:`qiskit.pulse`) which were deprecated
+    in the 0.15.0 release (August, 2020) have been removed. The full set
+    of changes are:
 
-      - ``SamplePulse``
-      - ``ConstantPulse``
-      - ``get_sample_pulse``
-      - ``pulse.pulse_lib``
-      - ``Instruction.command``
-      - ``Acquire.acquires``, ``mem_slots``, ``reg_slots``
-    
-    which have been deprecated since 0.15.0.
+    .. list-table::
+      :header-rows: 1
+      * - Module
+        - Old
+        - New
+      * - ``qiskit.pulse.library``
+        - ``SamplePulse``
+        - :class:`~qiskit.pulse.library.Waveform`
+      * - ``qiskit.pulse.library``
+        - ``ConstantPulse``
+        - :class:`~qiskit.pulse.library.Constant`
+      * - (module rename)
+        - ``pulse.pulse_lib`` Module
+        - :mod:`qiskit.pulse.library`
+
+    .. list-table::
+      :header-rows: 1
+      * - Class
+        - Old method
+        - New method
+      * - :class:`~qiskit.pulse.library.ParametricPulse`
+        - ``get_sample_pulse``
+        - :class:`~qiskit.pulse.library.ParametricPulse.get_waveform`
+      * - :class:`~qiskit.pulse.instructions.Instruction`
+        - ``command``
+        - N/A. Commands and Instructions have been unified.
+          Use :method:`~qiskit.pulse.instructions.Instruction.operands`
+          to get information about the instruction data.
+      * - :class:`~qiskit.pulse.instructions.Acquire`
+        - ``acquires``, ``mem_slots``, ``reg_slots``
+        - :method:`~qiskit.pulse.instructions.Acquire.acquire`,
+          :method:`~qiskit.pulse.instructions.Acquire.mem_slot`,
+          :method:`~qiskit.pulse.instructions.Acquire.reg_slot`. (The
+          :class:`~qiskit.pulse.instructions.Acquire` instruction no
+          longer broadcasts across multiple qubits.)
