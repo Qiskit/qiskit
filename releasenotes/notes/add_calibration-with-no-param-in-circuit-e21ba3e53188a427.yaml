@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Modified add calibration so that If a schedule is added as a calibration, 
+    and has a parameter which is not in the gate, it can be assigned 
+    via circ.assign_parameter. See issue #5524  

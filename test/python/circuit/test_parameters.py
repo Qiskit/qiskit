@@ -347,6 +347,22 @@ class TestParameters(QiskitTestCase):
         sched = circ.calibrations['rxt'][((0,), (3.14,))]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
 
+    def test_calibration_assignment_w_param_not_in_gate(self):
+        """That that calibration mapping is assigned when param not in gate."""
+        circ = QuantumCircuit(1)
+        circ.x(0)
+
+        alpha = Parameter('alpha')
+        with pulse.build() as sched:
+            pulse.shift_phase(alpha, pulse.DriveChannel(0))
+        self.assertFalse(alpha in circ.parameters)
+
+        circ.add_calibration('x', [0], sched, [alpha])
+        self.assertTrue(alpha in circ.parameters)
+
+        assigned_circ = circ.assign_parameters({alpha: 0.5})
+        self.assertTrue(((0,), (0.5, )) in assigned_circ.calibrations['x'])
+
     def test_calibration_assignment_doesnt_mutate(self):
         """That that assignment doesn't mutate the original circuit."""
         theta = Parameter('theta')
