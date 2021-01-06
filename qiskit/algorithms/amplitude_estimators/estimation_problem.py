@@ -140,14 +140,12 @@ class EstimationProblem:
                 - self.state_preparation.num_ancillas
 
             oracle = QuantumCircuit(num_state_qubits)
-            oracle.x(self.objective_qubits)
             oracle.h(self.objective_qubits[-1])
             if len(self.objective_qubits) == 1:
                 oracle.x(self.objective_qubits[0])
             else:
                 oracle.mcx(self.objective_qubits[:-1], self.objective_qubits[-1])
             oracle.h(self.objective_qubits[-1])
-            oracle.x(self.objective_qubits)
 
             # construct the grover operator
             return GroverOperator(oracle, self.state_preparation)
