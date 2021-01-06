@@ -115,7 +115,7 @@ class Pulse(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
-        # pylint: disable=invalid-name, cyclic-import
+        # pylint: disable=invalid-name, cyclic-import, missing-return-type-doc
         from qiskit.visualization import pulse_drawer_v2
 
         legacy_args = (dt, filename, interp_method, scale, interactive, draw_title)
