@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Variational Quantum Algorithm Base Class.
+"""The Variational Algorithm Base Class.
 
-This class can be used an interface for working with Variation Quantum Algorithms, such as VQE,
+This class can be used an interface for working with Variation Algorithms, such as VQE,
 QAOA, or QSVM, and also provides helper utilities for implementing new variational algorithms.
 Writing a new variational algorithm is a simple as extending this class, implementing a cost
 function for the new algorithm to pass to the optimizer, and running :meth:`find_minimum` method
@@ -20,10 +20,9 @@ of this class to carry out the optimization. Alternatively, all of the functions
 overridden to opt-out of this infrastructure but still meet the interface requirements.
 """
 
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, Dict
 import time
 import logging
-import warnings
 from abc import abstractmethod
 import numpy as np
 
@@ -31,9 +30,8 @@ from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils import QuantumInstance, aqua_globals
 from .algorithm_result import AlgorithmResult
-from .quantum_algorithm import QuantumAlgorithm
 from .optimizers import Optimizer, SLSQP
 from .variational_forms import VariationalForm
 
@@ -42,8 +40,8 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
-class VQAlgorithm(QuantumAlgorithm):
-    """The Variational Quantum Algorithm Base Class."""
+class VariationalAlgorithm:
+    """The Variational Algorithm Base Class."""
 
     def __init__(self,
                  var_form: Union[QuantumCircuit, VariationalForm],
@@ -67,7 +65,9 @@ class VQAlgorithm(QuantumAlgorithm):
         Raises:
              ValueError: for invalid input
         """
-        super().__init__(quantum_instance)
+        self._quantum_instance = None
+        if quantum_instance:
+            self.quantum_instance = quantum_instance
 
         if optimizer is None:
             logger.info('No optimizer provided, setting it to SLSPQ.')
@@ -83,6 +83,19 @@ class VQAlgorithm(QuantumAlgorithm):
             self.var_form = var_form
 
         self._parameterized_circuits = None
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """ Returns quantum instance. """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """ Sets quantum instance. """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     @property
     def var_form(self) -> Optional[Union[QuantumCircuit, VariationalForm]]:
@@ -130,7 +143,7 @@ class VQAlgorithm(QuantumAlgorithm):
                      var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
                      cost_fn: Optional[Callable] = None,
                      optimizer: Optional[Optimizer] = None,
-                     gradient_fn: Optional[Callable] = None) -> 'VQResult':
+                     gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
         """Optimize to find the minimum cost value.
 
         Args:
@@ -197,7 +210,7 @@ class VQAlgorithm(QuantumAlgorithm):
                 if initial_point is None:  # If still None use a random generated point
                     low = [(l if l is not None else -2 * np.pi) for (l, u) in bounds]
                     high = [(u if u is not None else 2 * np.pi) for (l, u) in bounds]
-                    initial_point = self.random.uniform(low, high)
+                    initial_point = aqua_globals.random.uniform(low, high)
 
         start = time.time()
         if not optimizer.is_gradient_supported:  # ignore the passed gradient function
@@ -214,7 +227,7 @@ class VQAlgorithm(QuantumAlgorithm):
                                                                       gradient_function=gradient_fn)
         eval_time = time.time() - start
 
-        result = VQResult()
+        result = VariationalResult()
         result.optimizer_evals = num_optimizer_evals
         result.optimizer_time = eval_time
         result.optimal_value = opt_val
@@ -278,75 +291,63 @@ class VQAlgorithm(QuantumAlgorithm):
         self._parameterized_circuits = None
 
 
-class VQResult(AlgorithmResult):
-    """ Variation Quantum Algorithm Result."""
+class VariationalResult(AlgorithmResult):
+    """ Variation Algorithm Result."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._optimizer_evals = None
+        self._optimizer_time = None
+        self._optimal_value = None
+        self._optimal_point = None
+        self._optimal_parameters = None
 
     @property
-    def optimizer_evals(self) -> int:
+    def optimizer_evals(self) -> Optional[int]:
         """ Returns number of optimizer evaluations """
-        return self.get('optimizer_evals')
+        return self._optimizer_evals
 
     @optimizer_evals.setter
     def optimizer_evals(self, value: int) -> None:
         """ Sets number of optimizer evaluations """
-        self.data['optimizer_evals'] = value
+        self._optimizer_evals = value
 
     @property
-    def optimizer_time(self) -> float:
+    def optimizer_time(self) -> Optional[float]:
         """ Returns time taken for optimization """
-        return self.get('optimizer_time')
+        return self._optimizer_time
 
     @optimizer_time.setter
     def optimizer_time(self, value: float) -> None:
         """ Sets time taken for optimization  """
-        self.data['optimizer_time'] = value
+        self._optimizer_time = value
 
     @property
-    def optimal_value(self) -> float:
+    def optimal_value(self) -> Optional[float]:
         """ Returns optimal value """
-        return self.get('optimal_value')
+        return self._optimal_value
 
     @optimal_value.setter
     def optimal_value(self, value: int) -> None:
         """ Sets optimal value """
-        self.data['optimal_value'] = value
+        self._optimal_value = value
 
     @property
-    def optimal_point(self) -> np.ndarray:
+    def optimal_point(self) -> Optional[np.ndarray]:
         """ Returns optimal point """
-        return self.get('optimal_point')
+        return self._optimal_point
 
     @optimal_point.setter
     def optimal_point(self, value: np.ndarray) -> None:
         """ Sets optimal point """
-        self.data['optimal_point'] = value
+        self._optimal_point = value
 
     @property
-    def optimal_parameters(self) -> dict:
+    def optimal_parameters(self) -> Optional[Dict]:
         """ Returns the optimal parameters in a dictionary """
-        return self.get('optimal_parameters')
+        return self._optimal_parameters
 
     @optimal_parameters.setter
-    def optimal_parameters(self, value: dict) -> None:
+    def optimal_parameters(self, value: Dict) -> None:
         """ Sets optimal parameters """
-        self.data['optimal_parameters'] = value
-
-    def __getitem__(self, key: object) -> object:
-        if key == 'num_optimizer_evals':
-            warnings.warn('num_optimizer_evals deprecated, use optimizer_evals property.',
-                          DeprecationWarning)
-            return super().__getitem__('optimizer_evals')
-        elif key == 'min_val':
-            warnings.warn('min_val deprecated, use optimal_value property.',
-                          DeprecationWarning)
-            return super().__getitem__('optimal_value')
-        elif key == 'opt_params':
-            warnings.warn('opt_params deprecated, use optimal_point property.',
-                          DeprecationWarning)
-            return super().__getitem__('optimal_point')
-        elif key == 'eval_time':
-            warnings.warn('eval_time deprecated, use optimizer_time property.',
-                          DeprecationWarning)
-            return super().__getitem__('optimizer_time')
-
-        return super().__getitem__(key)
+        self._optimal_parameters = value

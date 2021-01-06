@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms import NumPyMinimumEigensolver, AlgorithmError
+from qiskit.algorithms import NumPyMinimumEigensolver
 from qiskit.opflow import WeightedPauliOperator
 
 
@@ -33,7 +33,7 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
         aux_dict_1 = {
             'paulis': [{'coeff': {'imag': 0.0, 'real': 2.0}, 'label': 'II'}]
@@ -45,66 +45,52 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
                        {'coeff': {'imag': 0.0, 'real': -0.5}, 'label': 'XX'}
                        ]
         }
-        self.aux_ops = [WeightedPauliOperator.from_dict(aux_dict_1),
-                        WeightedPauliOperator.from_dict(aux_dict_2)]
+        self.aux_ops = [WeightedPauliOperator.from_dict(aux_dict_1).to_opflow(),
+                        WeightedPauliOperator.from_dict(aux_dict_2).to_opflow()]
 
     def test_cme(self):
         """ Basic test """
-        algo = NumPyMinimumEigensolver(self.qubit_op, aux_operators=self.aux_ops)
-        result = algo.run()
+        algo = NumPyMinimumEigensolver()
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=self.aux_ops)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 
-    def test_cme_fail(self):
-        """ Test no operator """
-        algo = NumPyMinimumEigensolver()
-        with self.assertRaises(AlgorithmError):
-            _ = algo.run()
-
     def test_cme_reuse(self):
         """ Test reuse """
         # Start with no operator or aux_operators, give via compute method
         algo = NumPyMinimumEigensolver()
-        result = algo.compute_minimum_eigenvalue(self.qubit_op)
-        self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
-        self.assertEqual(self.qubit_op.to_opflow(), algo.operator)
-        self.assertIsNone(result.aux_operator_eigenvalues)
-
-        # Set operator to None and go again
-        algo.operator = None
-        with self.assertRaises(AlgorithmError):
-            _ = algo.run()
-
-        # Set operator back as it was and go again
-        algo.operator = self.qubit_op
-        result = algo.compute_minimum_eigenvalue()
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Add aux_operators and go again
-        result = algo.compute_minimum_eigenvalue(aux_operators=self.aux_ops)
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=self.aux_ops)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 
         # "Remove" aux_operators and go again
-        result = algo.compute_minimum_eigenvalue(aux_operators=[])
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=[])
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Set aux_operators and go again
-        algo.aux_operators = self.aux_ops
-        result = algo.compute_minimum_eigenvalue()
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=self.aux_ops)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 
         # Finally just set one of aux_operators and main operator, remove aux_operators
-        result = algo.compute_minimum_eigenvalue(self.aux_ops[0], [])
+        result = algo.compute_minimum_eigenvalue(operator=self.aux_ops[0],
+                                                 aux_operators=[])
         self.assertAlmostEqual(result.eigenvalue, 2 + 0j)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
@@ -116,10 +102,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return v >= -0.5
 
-        algo = NumPyMinimumEigensolver(
-            self.qubit_op, aux_operators=self.aux_ops, filter_criterion=criterion)
-
-        result = algo.run()
+        algo = NumPyMinimumEigensolver(filter_criterion=criterion)
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=self.aux_ops)
         self.assertAlmostEqual(result.eigenvalue, -0.22491125 + 0j)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
@@ -133,9 +118,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return False
 
-        algo = NumPyMinimumEigensolver(
-            self.qubit_op, aux_operators=self.aux_ops, filter_criterion=criterion)
-        result = algo.run()
+        algo = NumPyMinimumEigensolver(filter_criterion=criterion)
+        result = algo.compute_minimum_eigenvalue(operator=self.qubit_op,
+                                                 aux_operators=self.aux_ops)
         self.assertEqual(result.eigenvalue, None)
         self.assertEqual(result.eigenstate, None)
         self.assertEqual(result.aux_operator_eigenvalues, None)
