@@ -411,7 +411,7 @@ class TestCircuitOperations(QiskitTestCase):
         phase = 0.123
         qc = QuantumCircuit(1, global_phase=phase)
         expected = np.exp(1j * phase * num) * np.identity(2)
-        np.testing.assert_array_almost_equal(Operator(qc).data, expected)
+        np.testing.assert_array_almost_equal(Operator(qc.repeat(num)).data, expected)
 
     def test_power(self):
         """Test taking the circuit to a power works."""
