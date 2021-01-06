@@ -15,10 +15,10 @@
 """Faster Amplitude Estimation."""
 
 from typing import Optional, Union, List, Tuple
+import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.library import GroverOperator
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
@@ -83,7 +83,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
                 state = ''.join([full_state[i] for i in estimation_problem.objective_qubits])
 
                 # check if it is a good state
-                if estimation_problem.is_good_state(state):
+                if estimation_problem.is_good_state(state[::-1]):
                     prob = prob + np.abs(amplitude) ** 2
 
             cos_estimate = 1 - 2 * prob
@@ -151,71 +151,43 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
+    @staticmethod
+    def rescale_estimation_problem(estimation_problem: EstimationProblem, scaling_factor: float
+                                   ) -> EstimationProblem:
+        """Rescale the good state amplitude in the estimation problem.
+
+        Args:
+            estimation_problem: The input estimation problem.
+            scaling_factor: The scaling factor in [0, 1].
+
+        Returns:
+            A rescaled estimation problem.
+        """
+        if estimation_problem._grover_operator is not None:
+            warnings.warn('Rescaling automatic rescaling discards the Grover operator.')
+
+        a_op = estimation_problem.state_preparation
+
+        # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
+        a_op = rescale_amplitudes(a_op, scaling_factor)
+        objective_qubits = estimation_problem.objective_qubits + [a_op.num_qubits - 1]
+
+        # add the scaling qubit to the good state qualifier
+        def is_good_state(bitstr):
+            return estimation_problem.is_good_state(bitstr[1:]) and bitstr[0] == '1'
+
+        # rescaled estimation problem
+        problem = EstimationProblem(a_op, objective_qubits=objective_qubits,
+                                    post_processing=estimation_problem.post_processing,
+                                    is_good_state=is_good_state)
+
+        return problem
+
     def estimate(self, estimation_problem: EstimationProblem) -> 'FasterAmplitudeEstimationResult':
         self._num_oracle_calls = 0
 
         if self._rescale:
-            a_op = estimation_problem.state_preparation
-            q_op = estimation_problem.grover_operator
-
-            if not all(hasattr(q_op, attr) for attr in ['oracle', 'reflection_qubits']):
-                raise ValueError('Can only automatically rescale the Grover operator if it '
-                                 'provides the ``oracle`` and ``reflection_qubits`` attributes, '
-                                 'like the qiskit.circuit.library.GroverOperator object. '
-                                 'Ensure the amplitude is in [0, 0.25] and run the algorithm with '
-                                 '``rescale=False`` if you want to use a custom grover operator.')
-
-            # rescale the estimation problem
-            # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
-            a_op = rescale_amplitudes(a_op, 0.25)
-            reflection_qubits = q_op.reflection_qubits + [a_op.num_qubits - 1]
-
-            # additionally control the oracle on the scaling qubit
-            oracle = QuantumCircuit(*a_op.qregs)
-            # TODO figure out if this phase fix is really needed
-            oracle.h(a_op.num_qubits - 1)
-            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
-            oracle.h(a_op.num_qubits - 1)
-            oracle.x(estimation_problem.objective_qubits + [a_op.num_qubits - 1])
-            oracle.h(a_op.num_qubits - 1)
-            oracle.mcx(estimation_problem.objective_qubits, a_op.num_qubits - 1)
-            oracle.h(a_op.num_qubits - 1)
-            oracle.x(estimation_problem.objective_qubits + [a_op.num_qubits - 1])
-
-            # oracle.h(a_op.num_qubits - 1)
-            # oracle.mcx(reflection_qubits[:-1], reflection_qubits[-1])
-            # oracle.h(a_op.num_qubits - 1)
-            # oracle.x(reflection_qubits)
-            # oracle.h(a_op.num_qubits - 1)
-            # oracle.mcx(reflection_qubits[:-1], reflection_qubits[-1])
-            # oracle.h(a_op.num_qubits - 1)
-            # oracle.x(reflection_qubits)
-
-            oracle.x(oracle.qubits[-1])
-            oracle.compose(q_op.oracle.control(),
-                           [oracle.qubits[-1]] + oracle.qubits[:-1],
-                           inplace=True)
-            oracle.x(oracle.qubits[-1])
-
-            # add the scaling qubit to the reflection qubits
-            q_op = GroverOperator(oracle, a_op, reflection_qubits=reflection_qubits,
-                                  insert_barriers=True)
-
-            # add the scaling qubit to the good state qualifier
-            def is_good_state(bitstr):
-                return estimation_problem.is_good_state(bitstr[:-1]) and bitstr[-1] == '1'
-
-            # print(q_op.draw())
-            # print(q_op.decompose().draw())
-
-            # create the rescaled estimation problem
-            problem = EstimationProblem(
-                a_op,
-                q_op,
-                estimation_problem.objective_qubits + [a_op.num_qubits - 1],
-                estimation_problem.post_processing,  # post processing remains the same
-                is_good_state
-            )
+            problem = self.rescale_estimation_problem(estimation_problem, 0.25)
         else:
             problem = estimation_problem
 
