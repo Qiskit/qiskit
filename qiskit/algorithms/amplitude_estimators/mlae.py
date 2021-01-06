@@ -284,70 +284,74 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
     """The ``MaximumLikelihoodAmplitudeEstimation`` result object."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._num_oracle_circuits = None
+        self._theta = None
+        self._minimizer = None
+        self._good_counts = None
+        self._evaluation_schedule = None
+        self._fisher_information = None
+
     @property
     def num_oracle_circuits(self) -> int:
         """Return the maximum number of oracle circuits used."""
-        return self.get('num_oracle_circuits')
+        return self._num_oracle_circuits
 
     @num_oracle_circuits.setter
     def num_oracle_circuits(self, value: int) -> None:
         """Set the maximum number of oracle circuits used."""
-        self.data['num_oracle_circuits'] = value
+        self._num_oracle_circuits = value
 
     @property
     def theta(self) -> float:
         r"""Return the estimate for the angle :math:`\theta`."""
-        return self.get('theta')
+        return self._theta
 
     @theta.setter
     def theta(self, value: float) -> None:
         r"""Set the estimate for the angle :math:`\theta`."""
-        self.data['theta'] = value
+        self._theta = value
 
     @property
     def minimizer(self) -> callable:
         """Return the minimizer used for the search of the likelihood function."""
-        return self.get('minimizer')
+        return self._minimizer
 
     @minimizer.setter
     def minimizer(self, value: callable) -> None:
         """Set the number minimizer used for the search of the likelihood function."""
-        self.data['minimizer'] = value
+        self._minimizer = value
 
     @property
     def good_counts(self) -> List[float]:
         """Return the percentage of good counts per circuit power."""
-        return self.get('good_counts')
+        return self._good_counts
 
     @good_counts.setter
     def good_counts(self, counts: List[float]) -> None:
         """Set the percentage of good counts per circuit power."""
-        self.data['good_counts'] = counts
+        self._good_counts = counts
 
     @property
     def evaluation_schedule(self) -> List[int]:
         """Return the evaluation schedule for the powers of the Grover operator."""
-        return self.get('evaluation_schedule')
+        return self._evaluation_schedule
 
     @evaluation_schedule.setter
     def evaluation_schedule(self, evaluation_schedule: List[int]) -> None:
         """Set the evaluation schedule for the powers of the Grover operator."""
-        self.data['evaluation_schedule'] = evaluation_schedule
+        self._evaluation_schedule = evaluation_schedule
 
     @property
     def fisher_information(self) -> float:
         """Return the Fisher information for the estimated amplitude."""
-        return self.get('fisher_information')
+        return self._fisher_information
 
     @fisher_information.setter
     def fisher_information(self, value: float) -> None:
         """Set the Fisher information for the estimated amplitude."""
-        self.data['fisher_information'] = value
-
-    @staticmethod
-    def from_dict(a_dict: Dict) -> 'MaximumLikelihoodAmplitudeEstimationResult':
-        """Create a new result object from a dictionary."""
-        return MaximumLikelihoodAmplitudeEstimationResult(a_dict)
+        self._fisher_information = value
 
 
 def _safe_min(array, default=0):
