@@ -620,12 +620,17 @@ def _parse_translation_method(translation_method, num_circuits):
 
 def _parse_scheduling_method(scheduling_method, circuits):
     """If there is a delay in any circuit, implicitly add a default scheduling method."""
+    def has_delay(circuit):
+        for inst, _, _ in circuit:
+            if isinstance(inst, Delay):
+                return True
+        return False
+
     if scheduling_method is None:
         for circ in circuits:
-            for inst, _, _ in circ:
-                if isinstance(inst, Delay):
-                    scheduling_method = 'alap'
-                    break
+            if has_delay(circ):
+                scheduling_method = 'alap'
+                break
 
     if not isinstance(scheduling_method, list):
         scheduling_method = [scheduling_method] * len(circuits)

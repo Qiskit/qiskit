@@ -958,8 +958,9 @@ class TestTranspile(QiskitTestCase):
 
         backend = FakeRueschlikon()
         backend.configuration().dt = 0.5e-6
-        out = transpile(qc, backend)
-        self.assertEqual(out.data[0][0].unit, 'dt')
+        out = transpile([qc, qc], backend)
+        self.assertEqual(out[0].data[0][0].unit, 'dt')
+        self.assertEqual(out[1].data[0][0].unit, 'dt')
 
         out = transpile(qc, dt=1e-9)
         self.assertEqual(out.data[0][0].unit, 'dt')
