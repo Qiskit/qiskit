@@ -54,6 +54,7 @@ def _choose_euler_basis(basis_gates):
         'ZYZ': ['rz', 'ry'],
         'ZXZ': ['rz', 'rx'],
         'XYX': ['rx', 'ry'],
+        'ZSX': ['rz', 'sx'],
     }
 
     basis_set = set(basis_gates or [])
