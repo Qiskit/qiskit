@@ -31,6 +31,8 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_ourense')
         self.properties = self.backend.properties()
+        self.ref_gate = next(g for g in self.backend.configuration().basis_gates
+                             if g not in ['id', 'rz'])
 
     def test_gate_property(self):
         """Test for getting the gate properties."""
@@ -40,14 +42,14 @@ class BackendpropertiesTestCase(QiskitTestCase):
                          self.properties._gates['cx'])
 
         with self.assertRaises(BackendPropertyError):
-            self.properties.gate_property('u1', None, 'gate_error')
+            self.properties.gate_property(self.ref_gate, None, 'gate_error')
 
     def test_gate_error(self):
         """Test for getting the gate errors."""
-        self.assertEqual(self.properties.gate_error('u1', 1),
-                         self.properties._gates['u1'][(1,)]['gate_error'][0])
-        self.assertEqual(self.properties.gate_error('u1', [2, ]),
-                         self.properties._gates['u1'][(2,)]['gate_error'][0])
+        self.assertEqual(self.properties.gate_error(self.ref_gate, 1),
+                         self.properties._gates[self.ref_gate][(1,)]['gate_error'][0])
+        self.assertEqual(self.properties.gate_error(self.ref_gate, [2, ]),
+                         self.properties._gates[self.ref_gate][(2,)]['gate_error'][0])
         self.assertEqual(self.properties.gate_error('cx', [0, 1]),
                          self.properties._gates['cx'][(0, 1)]['gate_error'][0])
 
@@ -56,8 +58,8 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
     def test_gate_length(self):
         """Test for getting the gate duration."""
-        self.assertEqual(self.properties.gate_length('u1', 1),
-                         self.properties._gates['u1'][(1,)]['gate_length'][0])
+        self.assertEqual(self.properties.gate_length(self.ref_gate, 1),
+                         self.properties._gates[self.ref_gate][(1,)]['gate_length'][0])
         self.assertEqual(self.properties.gate_length('cx', [4, 3]),
                          self.properties._gates['cx'][(4, 3)]['gate_length'][0])
 
