@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    Remove from Qiskit Pulse:
+    Remove from Qiskit Pulse (:mod:`qiskit.pulse`):
 
       - ``SamplePulse``
       - ``ConstantPulse``
