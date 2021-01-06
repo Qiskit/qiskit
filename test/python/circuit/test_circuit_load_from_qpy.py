@@ -15,7 +15,10 @@
 
 import io
 
+import numpy as np
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 
@@ -47,3 +50,52 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)
         self.assertEqual(q_circuit, new_circ)
+        self.assertEqual(q_circuit.global_phase, new_circ.global_phase)
+        self.assertEqual(q_circuit.metadata, new_circ.metadata)
+        self.assertEqual(q_circuit.name, new_circ.name)
+
+    def test_int_parameter(self):
+        qc = QuantumCircuit(1)
+        qc.rx(3, 0)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_float_parameter(self):
+        qc = QuantumCircuit(1)
+        qc.rx(3.14, 0)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_numpy_float_parameter(self):
+        qc = QuantumCircuit(1)
+        qc.rx(np.float32(3.14), 0)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_numpy_int_parameter(self):
+        qc = QuantumCircuit(1)
+        qc.rx(np.int16(3), 0)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_unitary_gate(self):
+        qc = QuantumCircuit(1)
+        unitary = np.array([[0, 1], [1, 0]])
+        qc.unitary(unitary, 0)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)

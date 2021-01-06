@@ -273,12 +273,16 @@ def _write_instruction(file_obj, instruction_tuple):
     file_obj.write(instruction_raw)
     # Encode instruciton args
     for qbit in instruction_tuple[1]:
-        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK, 'q'.encode('utf8'),
-                                          qbit.index, qbit.register.name.encode('utf8'))
+        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
+                                          'q'.encode('utf8'),
+                                          qbit.index,
+                                          qbit.register.name.encode('utf8'))
         file_obj.write(instruction_arg_raw)
     for clbit in instruction_tuple[2]:
-        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK, 'c'.encode('utf8'),
-                                          clbit.index, clbit.register.name.encode('utf8'))
+        instruction_arg_raw = struct.pack(INSTRUCTION_ARG_PACK,
+                                          'c'.encode('utf8'),
+                                          clbit.index,
+                                          clbit.register.name.encode('utf8'))
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_tuple[0].params:
@@ -294,9 +298,9 @@ def _write_instruction(file_obj, instruction_tuple):
         elif isinstance(param, ParameterExpression):
             # TODO handle this
             pass
-        elif isinstance(np.integer, np.floating, np.ndarray):
+        elif isinstance(param, (np.integer, np.floating, np.ndarray)):
             type_key = 'n'
-            np.savez(container, param)
+            np.save(container, param)
             container.seek(0)
             data = container.read()
             size = len(data)
@@ -361,8 +365,9 @@ def load(file_obj):
         warnings.warn('The qiskit version used to generate the provided QPY '
                       'file, %s, is newer than the current qiskit version %s. '
                       'This may result in an error if the QPY file uses '
-                      'instructions not present in this current qiskit version' % (
-                          '.'.join(header_version_parts), __version__))
+                      'instructions not present in this current qiskit '
+                      'version' % ('.'.join(header_version_parts),
+                                   __version__))
     registers = {}
     if header[8] > 0:
         circ = QuantumCircuit(name=header[4].decode('utf8').rstrip('\x00'),
