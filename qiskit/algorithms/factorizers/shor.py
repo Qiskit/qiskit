@@ -30,23 +30,18 @@ from qiskit.utils.arithmetic import is_power
 from qiskit.utils.validation import validate_min
 from qiskit.utils.quantum_instance import QuantumInstance
 from ..algorithm_result import AlgorithmResult
-from ..quantum_algorithm import QuantumAlgorithm
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 
 
-class Shor(QuantumAlgorithm):
+class Shor:
     """Shor's factoring algorithm.
 
     Shor's Factoring algorithm is one of the most well-known quantum algorithms and finds the
     prime factors for input integer :math:`N` in polynomial time.
-
-    The input integer :math:`N` to be factored is expected to be odd and greater than 2.
-    Even though this implementation is general, its capability will be limited by the
-    capacity of the simulator/hardware. Another input integer :math:`a`  can also be supplied,
-    which needs to be a co-prime smaller than :math:`N` .
 
     Adapted from https://github.com/ttlion/ShorAlgQiskit
 
@@ -54,51 +49,40 @@ class Shor(QuantumAlgorithm):
     """
 
     def __init__(self,
-                 N: int = 15,
-                 a: int = 2,
                  quantum_instance: Optional[
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         """
         Args:
-            N: The integer to be factored, has a min. value of 3.
-            a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
             quantum_instance: Quantum Instance or Backend
 
-         Raises:
-            ValueError: Invalid input
         """
-        validate_min('N', N, 3)
-        validate_min('a', a, 2)
-        super().__init__(quantum_instance)
+        self._quantum_instance = None
+        if quantum_instance:
+            self.quantum_instance = quantum_instance
+
         self._n = None  # type: Optional[int]
         self._up_qreg = None
         self._down_qreg = None  # type: Optional[QuantumRegister]
         self._aux_qreg = None  # type: Optional[QuantumRegister]
-
-        # check the input integer
-        if N < 1 or N % 2 == 0:
-            raise ValueError('The input needs to be an odd integer greater than 1.')
-
-        self._N = N
-
-        if a >= N or math.gcd(a, self._N) != 1:
-            raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
-
-        self._a = a
-
-        self._ret = AlgorithmResult({"factors": [], "total_counts": 0, "successful_counts": 0})
-
-        # check if the input integer is a power
-        tf, b, p = is_power(N, return_decomposition=True)
-        if tf:
-            logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
-            self._ret['factors'].append(b)
 
         self._qft = QFT(do_swaps=False).to_instruction()
         self._iqft = self._qft.inverse()
 
         self._phi_add_N = None  # type: Optional[Gate]
         self._iphi_add_N = None
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """ Returns quantum instance. """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """ Sets quantum instance. """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     def _get_angles(self, a: int) -> np.ndarray:
         """Calculates the array of angles to be used in the addition in Fourier Space."""
@@ -156,10 +140,10 @@ class Shor(QuantumAlgorithm):
         circuit.append(phi_add_a.control(2), [ctl_up, ctl_down, *qubits])
         return circuit
 
-    def _controlled_multiple_mod_N(self, num_qubits: int, a: int) -> Instruction:
+    def _controlled_multiple_mod_N(self, num_qubits: int, N: int, a: int) -> Instruction:
         """Implements modular multiplication by a as an instruction."""
         circuit = QuantumCircuit(
-            num_qubits, name="multiply_by_{}_mod_{}".format(a % self._N, self._N)
+            num_qubits, name="multiply_by_{}_mod_{}".format(a % N, N)
         )
         down = circuit.qubits[1: self._n + 1]
         aux = circuit.qubits[self._n + 1:]
@@ -177,7 +161,7 @@ class Shor(QuantumAlgorithm):
 
         # perform controlled addition by a on the aux register in Fourier space
         for i, ctl_down in enumerate(down):
-            a_exp = (2 ** i) * a % self._N
+            a_exp = (2 ** i) * a % N
             angles = self._get_angles(a_exp)
             bound = double_controlled_phi_add.assign_parameters({angle_params: angles})
             circuit.append(bound, [ctl_up, ctl_down, ctl_aux, *qubits])
@@ -189,9 +173,9 @@ class Shor(QuantumAlgorithm):
             circuit.cswap(ctl_up, down[j], aux[j])
         circuit.append(self._qft, qubits)
 
-        a_inv = self.modinv(a, self._N)
+        a_inv = self.modinv(a, N)
         for i in reversed(range(len(down))):
-            a_exp = (2 ** i) * a_inv % self._N
+            a_exp = (2 ** i) * a_inv % N
             angles = self._get_angles(a_exp)
             bound = idouble_controlled_phi_add.assign_parameters({angle_params: angles})
             circuit.append(bound, [ctl_up, down[i], ctl_aux, *qubits])
@@ -199,18 +183,35 @@ class Shor(QuantumAlgorithm):
         circuit.append(self._iqft, qubits)
         return circuit.to_instruction()
 
-    def construct_circuit(self, measurement: bool = False) -> QuantumCircuit:
+    def construct_circuit(self,
+                          N: int,
+                          a: int = 2,
+                          measurement: bool = False) -> QuantumCircuit:
         """Construct circuit.
 
         Args:
+            N: The integer to be factored, has a min. value of 3.
+            a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
             measurement: Boolean flag to indicate if measurement should be included in the circuit.
 
         Returns:
             Quantum circuit.
+
+        Raises:
+            ValueError: Invalid N
         """
+        validate_min('N', N, 3)
+        validate_min('a', a, 2)
+
+        # check the input integer
+        if N < 1 or N % 2 == 0:
+            raise ValueError('The input needs to be an odd integer greater than 1.')
+
+        if a >= N or math.gcd(a, N) != 1:
+            raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
 
         # Get n value used in Shor's algorithm, to know how many qubits are used
-        self._n = math.ceil(math.log(self._N, 2))
+        self._n = math.ceil(math.log(N, 2))
         self._qft.num_qubits = self._n + 1
         self._iqft.num_qubits = self._n + 1
 
@@ -225,10 +226,10 @@ class Shor(QuantumAlgorithm):
         circuit = QuantumCircuit(self._up_qreg,
                                  self._down_qreg,
                                  self._aux_qreg,
-                                 name="Shor(N={}, a={})".format(self._N, self._a))
+                                 name="Shor(N={}, a={})".format(N, a))
 
         # Create gates to perform addition/subtraction by N in Fourier Space
-        self._phi_add_N = self._phi_add_gate(self._aux_qreg.size - 1, self._get_angles(self._N))
+        self._phi_add_N = self._phi_add_gate(self._aux_qreg.size - 1, self._get_angles(N))
         self._iphi_add_N = self._phi_add_N.inverse()
 
         # Create maximal superposition in top register
@@ -240,9 +241,9 @@ class Shor(QuantumAlgorithm):
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
         for i, ctl_up in enumerate(self._up_qreg):  # type: ignore
-            a = int(pow(self._a, pow(2, i)))
+            a = int(pow(a, pow(2, i)))
             controlled_multiple_mod_N = self._controlled_multiple_mod_N(
-                len(self._down_qreg) + len(self._aux_qreg) + 1, a,
+                len(self._down_qreg) + len(self._aux_qreg) + 1, N, a,
             )
             circuit.append(
                 controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg]
@@ -277,7 +278,7 @@ class Shor(QuantumAlgorithm):
                              "modular inverse does not exist.".format(a, m, g))
         return x % m
 
-    def _get_factors(self, measurement: str) -> Optional[List[int]]:
+    def _get_factors(self, N: int, a: int, measurement: str) -> Optional[List[int]]:
         """Apply the continued fractions to find r and the gcd to find the desired factors."""
         x_final = int(measurement, 2)
         logger.info('In decimal, x_final value for this result is: %s.', x_final)
@@ -305,7 +306,7 @@ class Shor(QuantumAlgorithm):
         t.append(x_over_T - b[i])
 
         exponential = 0.0
-        while i < self._N and fail_reason is None:
+        while i < N and fail_reason is None:
             # From the 2nd iteration onwards, calculate the new terms of the CF based
             # on the previous terms as the rule suggests
             if i > 0:
@@ -326,7 +327,7 @@ class Shor(QuantumAlgorithm):
             # Get the exponential a^(r/2)
 
             if denominator < 1000:
-                exponential = pow(self._a, denominator / 2)
+                exponential = pow(a, denominator / 2)
 
             # Check if the value is too big or not
             if exponential > 1000000000:
@@ -336,11 +337,11 @@ class Shor(QuantumAlgorithm):
                 # get the right values and do the proper gcd()
                 putting_plus = int(exponential + 1)
                 putting_minus = int(exponential - 1)
-                one_factor = math.gcd(putting_plus, self._N)
-                other_factor = math.gcd(putting_minus, self._N)
+                one_factor = math.gcd(putting_plus, N)
+                other_factor = math.gcd(putting_minus, N)
 
                 # Check if the factors found are trivial factors or are the desired factors
-                if any([factor in {1, self._N} for factor in (one_factor, other_factor)]):
+                if any([factor in {1, N} for factor in (one_factor, other_factor)]):
                     logger.debug('Found just trivial factors, not good enough.')
                     # Check if the number has already been found,
                     # (use i - 1 because i was already incremented)
@@ -375,12 +376,56 @@ class Shor(QuantumAlgorithm):
         logger.debug("Numerator:%s \t\t Denominator: %s.", frac.numerator, frac.denominator)
         return frac.denominator
 
-    def _run(self) -> AlgorithmResult:
-        if not self._ret['factors']:
-            logger.debug('Running with N=%s and a=%s.', self._N, self._a)
+    def factor(self,
+               N: int,
+               a: int = 2,
+               ) -> 'ShorResult':
+        """Execute the algorithm.
+
+        The input integer :math:`N` to be factored is expected to be odd and greater than 2.
+        Even though this implementation is general, its capability will be limited by the
+        capacity of the simulator/hardware. Another input integer :math:`a`  can also be supplied,
+        which needs to be a co-prime smaller than :math:`N` .
+
+        Args:
+            N: The integer to be factored, has a min. value of 3.
+            a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
+
+        Returns:
+            ShorResult: results of the algorithm.
+
+        Raises:
+            ValueError: Invalid input
+            AlgorithmError: If a quantum instance or backend has not been provided
+
+        """
+        validate_min('N', N, 3)
+        validate_min('a', a, 2)
+
+        # check the input integer
+        if N < 1 or N % 2 == 0:
+            raise ValueError('The input needs to be an odd integer greater than 1.')
+
+        if a >= N or math.gcd(a, N) != 1:
+            raise ValueError('The integer a needs to satisfy a < N and gcd(a, N) = 1.')
+
+        if self.quantum_instance is None:
+            raise AlgorithmError("A QuantumInstance or Backend "
+                                 "must be supplied to run the quantum algorithm.")
+
+        result = ShorResult()
+
+        # check if the input integer is a power
+        tf, b, p = is_power(N, return_decomposition=True)
+        if tf:
+            logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
+            result.factors.append(b)
+
+        if not result.factors:
+            logger.debug('Running with N=%s and a=%s.', N, a)
 
             if self._quantum_instance.is_statevector:
-                circuit = self.construct_circuit(measurement=False)
+                circuit = self.construct_circuit(N=N, a=a, measurement=False)
                 logger.warning('The statevector_simulator might lead to '
                                'subsequent computation using too much memory.')
                 result = self._quantum_instance.execute(circuit)
@@ -397,25 +442,65 @@ class Shor(QuantumAlgorithm):
                     if not v == 0:
                         counts[bin(int(i))[2:].zfill(2 * self._n)] = v ** 2
             else:
-                circuit = self.construct_circuit(measurement=True)
+                circuit = self.construct_circuit(N=N, a=a, measurement=True)
                 counts = self._quantum_instance.execute(circuit).get_counts(circuit)
 
-            self._ret.data["total_counts"] = len(counts)
+            result.total_counts = len(counts)
 
             # For each simulation result, print proper info to user
             # and try to calculate the factors of N
             for measurement in list(counts.keys()):
                 # Get the x_final value from the final state qubits
                 logger.info("------> Analyzing result %s.", measurement)
-                factors = self._get_factors(measurement)
+                factors = self._get_factors(N, a, measurement)
 
                 if factors:
                     logger.info(
                         'Found factors %s from measurement %s.',
                         factors, measurement
                     )
-                    self._ret.data["successful_counts"] += 1
-                    if factors not in self._ret['factors']:
-                        self._ret['factors'].append(factors)
+                    result.successful_counts = result.successful_counts + 1
+                    if factors not in result.factors:
+                        result.factors.append(factors)
 
-        return self._ret
+        return result
+
+
+class ShorResult(AlgorithmResult):
+    """ Shor Result."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._factors = []
+        self._total_counts = 0
+        self._successful_counts = 0
+
+    @property
+    def factors(self) -> List[List[int]]:
+        """ returns factors """
+        return self._factors
+
+    @factors.setter
+    def factors(self, value: List[List[int]]) -> None:
+        """ set factors """
+        self._factors = value
+
+    @property
+    def total_counts(self) -> int:
+        """ returns total counts """
+        return self._total_counts
+
+    @total_counts.setter
+    def total_counts(self, value: int) -> None:
+        """ set total counts """
+        self._total_counts = value
+
+    @property
+    def successful_counts(self) -> int:
+        """ returns successful counts """
+        return self._successful_counts
+
+    @successful_counts.setter
+    def successful_counts(self, value: int) -> None:
+        """ set successful counts """
+        self._successful_counts = value

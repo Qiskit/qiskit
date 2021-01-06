@@ -32,15 +32,6 @@ circuits created by the algorithm and its components.
 
 .. currentmodule:: qiskit.algorithms
 
-Algorithms Base Class
-=====================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   QuantumAlgorithm
-
 Algorithms
 ==========
 
@@ -85,6 +76,7 @@ Algorithms to find factors of a number.
    :nosignatures:
 
    Shor
+   ShorResult
 
 Minimum Eigensolvers
 ++++++++++++++++++++
@@ -115,8 +107,7 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
-from .quantum_algorithm import QuantumAlgorithm
-from .variational_quantum_algorithm import VQAlgorithm, VQResult
+from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult
 from .amplitude_estimators import (
     AmplitudeEstimator, AmplitudeEstimatorResult,
@@ -126,8 +117,8 @@ from .amplitude_estimators import (
     MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem
 )
-from .eigen_solvers import NumPyEigensolver, ExactEigensolver, Eigensolver, EigensolverResult
-from .factorizers import Shor
+from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
+from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
@@ -135,9 +126,8 @@ from .exceptions import AlgorithmError
 
 __all__ = [
     'AlgorithmResult',
-    'QuantumAlgorithm',
-    'VQAlgorithm',
-    'VQResult',
+    'VariationalAlgorithm',
+    'VariationalResult',
     'Grover',
     'GroverResult',
     'AmplitudeEstimator',
@@ -152,10 +142,10 @@ __all__ = [
     'MaximumLikelihoodAmplitudeEstimationResult',
     'EstimationProblem',
     'NumPyEigensolver',
-    'ExactEigensolver',
     'Eigensolver',
     'EigensolverResult',
     'Shor',
+    'ShorResult',
     'VQE',
     'VQEResult',
     'QAOA',
