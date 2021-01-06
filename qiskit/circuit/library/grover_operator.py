@@ -257,11 +257,8 @@ class GroverOperator(QuantumCircuit):
         self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
                      inplace=True)
 
-        # minus sign TODO use global phase once the repeat bug is fixed
-        self.z(0)
-        self.x(0)
-        self.z(0)
-        self.x(0)
+        # minus sign
+        self.global_phase = numpy.pi
 
 
 # TODO use the oracle compiler or the bit string oracle

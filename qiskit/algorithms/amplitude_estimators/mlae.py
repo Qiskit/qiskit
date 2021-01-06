@@ -268,7 +268,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result.theta = theta
         result.good_counts = good_counts
         result.estimation = np.sin(result.theta)**2
+
+        # not sure why pylint complains, this is a callable and the tests pass
+        # pylint: disable=not-callable
         result.estimation_processed = result.post_processing(result.estimation)
+
         result.fisher_information = _compute_fisher_information(result)
         result.num_oracle_queries = result.shots * sum(k for k in result.evaluation_schedule)
 
