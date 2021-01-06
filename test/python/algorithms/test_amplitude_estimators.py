@@ -80,16 +80,15 @@ class SineIntegral(QuantumCircuit):
     def __init__(self, num_qubits):
         qr_state = QuantumRegister(num_qubits, 'state')
         qr_objective = QuantumRegister(1, 'obj')
-        factor = 0.2
         super().__init__(qr_state, qr_objective)
 
         # prepare 1/sqrt{2^n} sum_x |x>_n
         self.h(qr_state)
 
         # apply the sine/cosine term
-        self.ry(factor * 2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
+        self.ry(2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
         for i, qubit in enumerate(qr_state):
-            self.cry(factor * 2 * 2**i / 2 ** num_qubits, qubit, qr_objective[0])
+            self.cry(2 * 2 ** i / 2 ** num_qubits, qubit, qr_objective[0])
 
 
 @ddt
@@ -342,7 +341,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         [4, 10, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.333333}],
         [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.256878}],
         [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {'estimation': 0.271790}],
-        [3, 1000, FasterAmplitudeEstimation(0.1, 4, rescale=False), {'estimation': 0.274168}],
+        [3, 1000, FasterAmplitudeEstimation(0.1, 4), {'estimation': 0.274168}],
     ])
     @unpack
     def test_qasm(self, n, shots, qae, expect):
@@ -472,44 +471,23 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
 
         # run the algo
-        with self.assertRaises(ValueError):
+        with self.assertWarns(Warning):
             _ = fae.estimate(problem)
 
-    def test_rescaling_with_standard_grover(self):
-        """Test that the rescaling works for a circuit library GroverOperator."""
-        prob = 0.2
-        a_op = BernoulliStateIn(prob)
-        # a_op = rescale_amplitudes(a_op, 0.25)
-
-        problem = EstimationProblem(a_op, objective_qubits=[0])
-        print(problem.grover_operator)
-
-        # construct algo without rescaling
-        backend = BasicAer.get_backend('qasm_simulator')
-        # backend = BasicAer.get_backend('qasm_simulator')
-        fae = FasterAmplitudeEstimation(0.1, 4, rescale=True, quantum_instance=backend)
-
-        # run the algo
-        result = fae.estimate(problem)
-        print(result.estimation)
-
-        iae = IterativeAmplitudeEstimation(0.01, 0.05, quantum_instance=backend)
-        result = iae.estimate(problem)
-        print(result.estimation)
-
     @data(
-        ('statevector_simulator', 0.7),
-        ('qasm_simulator', 0.6978903)
+        ('statevector_simulator', 0.2),
+        ('qasm_simulator', 0.199440)
     )
     @unpack
     def test_good_state(self, backend_str, expect):
         """Test with a good state function."""
         def is_good_state(bitstr):
-            return bitstr[0] == '1'
+            return bitstr[1] == '1'
+            return res
 
         # construct the estimation problem where the second qubit is ignored
         a_op = QuantumCircuit(2)
-        a_op.ry(2 * np.arcsin(np.sqrt(0.7)), 0)
+        a_op.ry(2 * np.arcsin(np.sqrt(0.2)), 0)
 
         # oracle only affects first qubit
         oracle = QuantumCircuit(2)
@@ -525,13 +503,14 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         # construct algo
         backend = QuantumInstance(BasicAer.get_backend(backend_str),
                                   seed_simulator=2, seed_transpiler=2)
-        fae = FasterAmplitudeEstimation(0.1, 3, quantum_instance=backend)
+        # cannot use rescaling with a custom grover operator
+        fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
 
         # run the algo
         result = fae.estimate(problem)
 
         # assert the result is correct
-        self.assertAlmostEqual(result.estimation, expect)
+        self.assertAlmostEqual(result.estimation, expect, places=5)
 
 
 if __name__ == '__main__':
