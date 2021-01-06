@@ -129,7 +129,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 # which might happen if the circuit gets transpiled, hence we're adding
                 # a safeguard-barrier
                 qc_k.barrier()
-                qc_k.measure(estimation_problem.objective_qubits, *c)
+                qc_k.measure(estimation_problem.objective_qubits, c[:])
 
             circuits += [qc_k]
 
@@ -531,8 +531,8 @@ def _get_counts(circuit_results: List[Union[np.ndarray, List[float], Dict[str, i
         all_hits = np.ones_like(one_hits)
     else:
         for counts in circuit_results:
-            all_hits += [sum(counts.values())]
-            one_hits += [count for bitstr, count in counts.items()
-                         if estimation_problem.is_good_state(bitstr)]
+            all_hits.append(sum(counts.values()))
+            one_hits.append(sum(count for bitstr, count in counts.items()
+                                if estimation_problem.is_good_state(bitstr)))
 
     return one_hits, all_hits
