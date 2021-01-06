@@ -33,12 +33,12 @@ upgrade:
       * - :class:`~qiskit.pulse.instructions.Instruction`
         - ``command``
         - N/A. Commands and Instructions have been unified.
-          Use :method:`~qiskit.pulse.instructions.Instruction.operands`
+          Use :meth:`~qiskit.pulse.instructions.Instruction.operands`
           to get information about the instruction data.
       * - :class:`~qiskit.pulse.instructions.Acquire`
         - ``acquires``, ``mem_slots``, ``reg_slots``
-        - :method:`~qiskit.pulse.instructions.Acquire.acquire`,
-          :method:`~qiskit.pulse.instructions.Acquire.mem_slot`,
-          :method:`~qiskit.pulse.instructions.Acquire.reg_slot`. (The
+        - :meth:`~qiskit.pulse.instructions.Acquire.acquire`,
+          :meth:`~qiskit.pulse.instructions.Acquire.mem_slot`,
+          :meth:`~qiskit.pulse.instructions.Acquire.reg_slot`. (The
           :class:`~qiskit.pulse.instructions.Acquire` instruction no
           longer broadcasts across multiple qubits.)
