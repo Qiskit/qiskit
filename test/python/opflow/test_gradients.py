@@ -946,6 +946,24 @@ class TestGradients(QiskitOpflowTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
+    def test_qfi_overlap_works_with_bound_parameters(self):
+        """Test all QFI methods work if the circuit contains a gate with bound parameters."""
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(np.pi / 4, 0)
+        circuit.rx(x, 0)
+        state = StateFn(circuit)
+
+        methods = ['lin_comb_full', 'overlap_diag', 'overlap_block_diag']
+        reference = 0.5
+
+        for method in methods:
+            with self.subTest(method):
+                qfi = QFI(method)
+                value = np.real(qfi.convert(state, [x]).bind_parameters({x: 0.12}).eval())
+                self.assertAlmostEqual(value[0][0], reference)
+
 
 @ddt
 class TestParameterGradients(QiskitOpflowTestCase):
