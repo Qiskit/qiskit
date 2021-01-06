@@ -45,6 +45,7 @@ Amplitude Amplifiers
    :toctree: ../stubs/
    :nosignatures:
 
+   AmplificationProblem
    Grover
    GroverResult
 
@@ -108,7 +109,7 @@ Exceptions
 
 from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
@@ -120,6 +121,7 @@ __all__ = [
     'AlgorithmResult',
     'VariationalAlgorithm',
     'VariationalResult',
+    'AmplificationProblem',
     'Grover',
     'GroverResult',
     'NumPyEigensolver',

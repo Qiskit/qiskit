@@ -1,0 +1,164 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""The Amplification problem class."""
+
+from typing import Optional, Callable, Any
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import GroverOperator
+
+
+class AmplificationProblem:
+    """The amplification problem is the input to amplitude amplification algorithms, like Grover.
+
+    This class contains all problem-specific information required to run an amplitude amplification
+    algorithm. It minimally contains the Grover operator. It can further hold some post processing
+    on the optimal bitstring.
+    """
+
+    def __init__(self,
+                 oracle: QuantumCircuit,
+                 state_preparation: Optional[QuantumCircuit] = None,
+                 grover_operator: Optional[QuantumCircuit] = None,
+                 post_processing: Optional[Callable[[str], Any]] = None,
+                 is_good_state: Optional[Callable[[str], bool]] = None,
+                 ) -> None:
+        r"""
+        Args:
+            oracle: The oracle reflecting about the bad states.
+            state_preparation: A circuit preparing the input state, referred to as
+                :math:`\mathcal{A}`.
+            grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
+                phase estimation circuit.
+            post_processing: A mapping applied to the most likely bitstring.
+            is_good_state: A function to check whether a string represents a good state.
+        """
+        self._oracle = oracle
+        self._state_preparation = state_preparation
+        self._grover_operator = grover_operator
+        self._post_processing = post_processing
+        self._is_good_state = is_good_state
+
+    @property
+    def oracle(self) -> QuantumCircuit:
+        """Return the oracle.
+
+        Returns:
+            The oracle.
+        """
+        return self._oracle
+
+    @oracle.setter
+    def oracle(self, oracle: QuantumCircuit) -> None:
+        """Set the oracle.
+
+        Args:
+            oracle: The oracle.
+        """
+        self._oracle = oracle
+
+    @property
+    def state_preparation(self) -> QuantumCircuit:
+        r"""Get the state preperation operator :math:`\mathcal{A}`.
+
+        Returns:
+            The :math:`\mathcal{A}` operator as `QuantumCircuit`.
+        """
+        if self._state_preparation is None:
+            state_preparation = QuantumCircuit(self.oracle.num_qubits)
+            state_preparation.h(state_preparation.qubits)
+            return state_preparation
+
+        return self._state_preparation
+
+    @state_preparation.setter
+    def state_preparation(self, state_preparation: QuantumCircuit) -> None:
+        r"""Set the :math:`\mathcal{A}` operator.
+
+        Args:
+            state_preparation: The new :math:`\mathcal{A}` operator.
+        """
+        self._state_preparation = state_preparation
+
+    @property
+    def post_processing(self) -> Callable[[float], float]:
+        """Apply post processing to the input value.
+
+        Returns:
+            A handle to the post processing function. Acts as identity by default.
+        """
+        if self._post_processing is None:
+            return lambda x: x
+
+        return self._post_processing
+
+    @post_processing.setter
+    def post_processing(self, post_processing: Callable[[float], float]) -> None:
+        """Set the post processing function.
+
+        Args:
+            post_processing: A handle to the post processing function.
+        """
+        self._post_processing = post_processing
+
+    @property
+    def is_good_state(self) -> Callable[[str], float]:
+        """Check whether a provided bitstring is a good state or not.
+
+        Returns:
+            A callable that takes in a bitstring and returns True if the measurement is a good
+            state, False otherwise.
+        """
+        if callable(self._is_good_state):
+            return self._is_good_state
+        elif isinstance(self._is_good_state, list):
+            if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
+                return lambda bitstr: bitstr in self._is_good_state
+            else:
+                return lambda bitstr: all(bitstr[good_index] == '1'  # type:ignore
+                                          for good_index in self._is_good_state)
+
+        return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
+
+    @is_good_state.setter
+    def is_good_state(self, is_good_state: Callable[[str], float]) -> None:
+        """Set the ``is_good_state`` function.
+
+        Args:
+            is_good_state: A function to determine whether a bitstring represents a good state.
+        """
+        self._is_good_state = is_good_state
+
+    @property
+    def grover_operator(self) -> Optional[QuantumCircuit]:
+        r"""Get the :math:`\mathcal{Q}` operator, or Grover operator.
+
+        If the Grover operator is not set, we try to build it from the :math:`\mathcal{A}` operator
+        and `objective_qubits`. This only works if `objective_qubits` is a list of integers.
+
+        Returns:
+            The Grover operator, or None if neither the Grover operator nor the
+            :math:`\mathcal{A}` operator is  set.
+        """
+        if self._grover_operator is None:
+            return GroverOperator(self.oracle, self.state_preparation)
+        return self._grover_operator
+
+    @grover_operator.setter
+    def grover_operator(self, grover_operator: QuantumCircuit) -> None:
+        r"""Set the :math:`\mathcal{Q}` operator.
+
+        Args:
+            grover_operator: The new :math:`\mathcal{Q}` operator.
+        """
+        self._grover_operator = grover_operator
