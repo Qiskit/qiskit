@@ -936,6 +936,20 @@ class TestTranspile(QiskitTestCase):
         transpiled_circ = transpile(circ, FakeAlmaden())
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
 
+    def test_inst_durations_from_calibrations(self):
+        """Test that circuit calibrations can be used instead of explicitly
+        supplying inst_durations.
+        """
+        qc = QuantumCircuit(2)
+        qc.append(Gate('custom', 1, []), [0])
+
+        with pulse.build() as cal:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        qc.add_calibration('custom', [0], cal)
+
+        out = transpile(qc, scheduling_method='alap')
+        self.assertEqual(out.duration, cal.duration)
+
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
