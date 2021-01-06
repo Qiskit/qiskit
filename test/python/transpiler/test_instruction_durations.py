@@ -36,13 +36,32 @@ class TestInstructionDurationsClass(QiskitTestCase):
             InstructionDurations(invalid_dic)
 
     def test_from_backend_for_backend_with_dt(self):
-        durations = InstructionDurations.from_backend(FakeParis())
+        backend = FakeParis()
+        gate = self._find_gate_length_gate(backend)
+        durations = InstructionDurations.from_backend(backend)
         self.assertGreater(durations.dt, 0)
-        self.assertGreater(durations.get('u2', 0), 0)
+        self.assertGreater(durations.get(gate, 0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
+<<<<<<< HEAD
         durations = InstructionDurations.from_backend(FakeVigo())
+=======
+        backend = FakeTokyo()
+        gate = self._find_gate_length_gate(backend)
+        durations = InstructionDurations.from_backend(backend)
+>>>>>>> cf7433a62... Use actual gate name in backend monitor (#5546)
         self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get('u2', 0, 's'), 0)
+        self.assertGreater(durations.get(gate, 0, 's'), 0)
         with self.assertRaises(TranspilerError):
-            durations.get('u2', 0)
+            durations.get(gate, 0)
+
+    def _find_gate_length_gate(self, backend):
+        """Find a gate that has gate length."""
+        props = backend.properties()
+        for gate in props.gates:
+            try:
+                if props.gate_length(gate.gate, 0):
+                    return gate.gate
+            except Exception:  # pylint: disable=broad-except
+                pass
+        raise ValueError("Unable to find a gate with gate length.")
