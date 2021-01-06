@@ -806,7 +806,7 @@ class Schedule(abc.ABC):
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
-                preset stylesheets. See also the stylesheet section for details of configuration keys.
+                preset stylesheets.
             backend: Backend object to play the input pulse program. If this object is provided,
                 the input program is visualized with the details of hardware information.
             time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.

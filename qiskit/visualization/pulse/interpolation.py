@@ -80,7 +80,7 @@ def step_wise(time: np.ndarray,
 
 
 linear = partial(interp1d, kind='linear')
-linear.__doc__ = """Deprecated. 
+linear.__doc__ = """Deprecated.
 
 Apply linear interpolation between sampling points.
 
@@ -93,7 +93,7 @@ Returns:
 """
 
 cubic_spline = partial(interp1d, kind='cubic')
-cubic_spline.__doc__ = """Deprecated. 
+cubic_spline.__doc__ = """Deprecated.
 
 Apply cubic interpolation between sampling points.
 
