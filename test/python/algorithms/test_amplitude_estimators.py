@@ -40,33 +40,33 @@ class BernoulliGrover(QuantumCircuit):
     """The Grover operator corresponding to the Bernoulli A operator."""
 
     def __init__(self, probability):
-        super().__init__(1)
+        super().__init__(1, global_phase=np.pi)
         self.angle = 2 * np.arcsin(np.sqrt(probability))
-        # self.ry(2 * self.angle, 0)
+        self.ry(2 * self.angle, 0)
 
-        # oracle
-        self.x(0)
-        self.z(0)
-        self.x(0)
+        # # oracle
+        # self.x(0)
+        # self.z(0)
+        # self.x(0)
 
-        # A dagger
-        self.ry(-self.angle, 0)
+        # # A dagger
+        # self.ry(-self.angle, 0)
 
-        # zero reflection
-        self.x(0)
-        self.z(0)
-        self.x(0)
+        # # zero reflection
+        # self.x(0)
+        # self.z(0)
+        # self.x(0)
 
-        # A
-        self.ry(self.angle, 0)
+        # # A
+        # self.ry(self.angle, 0)
 
-    # def power(self, power, matrix_power=False):
-    #     if matrix_power:
-    #         return super().power(power, True)
+    def power(self, power, matrix_power=False):
+        if matrix_power:
+            return super().power(power, True)
 
-    #     powered = QuantumCircuit(1)
-    #     powered.ry(power * 2 * self.angle, 0)
-    #     return powered
+        powered = QuantumCircuit(1)
+        powered.ry(power * 2 * self.angle, 0)
+        return powered
 
 
 class SineIntegral(QuantumCircuit):
@@ -186,13 +186,12 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     circuit.cry(2 * 2 ** power * angle, qr_eval[power], qr_objective[0])
             else:
                 oracle = QuantumCircuit(1)
-                oracle.x(0)
                 oracle.z(0)
-                oracle.x(0)
 
                 state_preparation = QuantumCircuit(1)
                 state_preparation.ry(angle, 0)
                 grover_op = GroverOperator(oracle, state_preparation)
+                grover_op.global_phase = np.pi
                 for power in range(m):
                     circuit.compose(grover_op.power(2 ** power).control(),
                                     qubits=[qr_eval[power], qr_objective[0]],
@@ -232,12 +231,11 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
             else:
                 oracle = QuantumCircuit(1)
-                oracle.x(0)
                 oracle.z(0)
-                oracle.x(0)
                 state_preparation = QuantumCircuit(1)
                 state_preparation.ry(angle, 0)
                 grover_op = GroverOperator(oracle, state_preparation)
+                grover_op.global_phase = np.pi
                 for _ in range(k):
                     circuit.compose(grover_op, inplace=True)
 
@@ -278,12 +276,11 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
                 else:
                     oracle = QuantumCircuit(1)
-                    oracle.x(0)
                     oracle.z(0)
-                    oracle.x(0)
                     state_preparation = QuantumCircuit(1)
                     state_preparation.ry(angle, 0)
                     grover_op = GroverOperator(oracle, state_preparation)
+                    grover_op.global_phase = np.pi
                     for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
 
