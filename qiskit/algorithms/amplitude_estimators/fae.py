@@ -305,7 +305,7 @@ def rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quantu
 
 class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
     """The result object for the Faster Amplitude Estimation algorithm."""
-      
+
     def __init__(self) -> None:
         super().__init__()
         self._success_probability = None
