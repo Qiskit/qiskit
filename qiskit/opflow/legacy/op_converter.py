@@ -21,7 +21,6 @@ import logging
 import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit.tools.parallel import parallel_map
-from qiskit.utils import deprecate_function
 
 from qiskit.utils import aqua_globals
 from ..exceptions import OpflowError
@@ -38,7 +37,6 @@ def _conversion(basis, matrix):
     return trace_value, pauli
 
 
-@deprecate_function('The to_weighted_pauli_operator function is deprecated as of 0.17.0.')
 def to_weighted_pauli_operator(
         operator: Union[WeightedPauliOperator, TPBGroupedWeightedPauliOperator, MatrixOperator]) \
         -> WeightedPauliOperator:
@@ -101,7 +99,6 @@ def to_weighted_pauli_operator(
                           "{}".format(operator.__class__))
 
 
-@deprecate_function('The to_matrix_operator function is deprecated as of 0.17.0.')
 def to_matrix_operator(
         operator: Union[WeightedPauliOperator, TPBGroupedWeightedPauliOperator, MatrixOperator])\
         -> MatrixOperator:
@@ -136,8 +133,6 @@ def to_matrix_operator(
                           "{}".format(operator.__class__))
 
 
-@deprecate_function('The to_tpb_grouped_weighted_pauli_operator function '
-                    'is deprecated as of 0.17.0.')
 # pylint: disable=invalid-name
 def to_tpb_grouped_weighted_pauli_operator(
         operator: Union[WeightedPauliOperator, TPBGroupedWeightedPauliOperator, MatrixOperator],
