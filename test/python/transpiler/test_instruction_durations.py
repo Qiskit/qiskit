@@ -43,13 +43,9 @@ class TestInstructionDurationsClass(QiskitTestCase):
         self.assertGreater(durations.get(gate, 0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
-<<<<<<< HEAD
-        durations = InstructionDurations.from_backend(FakeVigo())
-=======
-        backend = FakeTokyo()
+        backend = FakeVigo()
         gate = self._find_gate_length_gate(backend)
         durations = InstructionDurations.from_backend(backend)
->>>>>>> cf7433a62... Use actual gate name in backend monitor (#5546)
         self.assertIsNone(durations.dt)
         self.assertGreater(durations.get(gate, 0, 's'), 0)
         with self.assertRaises(TranspilerError):
