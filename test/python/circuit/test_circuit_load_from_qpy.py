@@ -18,6 +18,8 @@ import io
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 
@@ -103,3 +105,60 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)
         self.assertEqual(qc, new_circ)
+
+    def test_opaque_gate(self):
+        """Test that custom opaque gate is correctly serialized"""
+        custom_gate = Gate('black_box', 1, [])
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_opaque_instruction(self):
+        """Test that custom opaque instruction is correctly serialized"""
+        custom_gate = Instruction('black_box', 1, 0, [])
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_custom_gate(self):
+        """Test that custom  gate is correctly serialized"""
+        custom_gate = Gate('black_box', 1, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_custom_instruction(self):
+        """Test that custom instruction is correctly serialized"""
+        custom_gate = Instruction('black_box', 1, 0, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())

@@ -23,7 +23,7 @@ The QPY serialization format is a a portable cross-platform binary
 serialization format for QuantumCircuit objects in Qiskit. The basic
 format for the file format is as follows:
 
-``HEADER | METADATA | REGISTERS | INSTRUCTIONS``
+``HEADER | METADATA | REGISTERS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
 
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility. All strings will be padded with ``0x00`` after the string
@@ -48,6 +48,7 @@ The contents of HEADER as defined as a C struct are:
         unsigned long long metadata_size;
         unsigned int num_registers;
         unsigned long long num_instructions;
+        unsigned long long num_custom_gates;
     }
 
 METADATA
@@ -57,7 +58,6 @@ The METADATA field is a utf8 encoded json string. After reading the HEADER
 (which is a fixed size at the start of the QPY file you then read the
 ``metadata_size`` number of bytes and parse the JSON to get the metadata for
 the circuit.
-
 
 REGISTERS
 ---------
@@ -75,6 +75,37 @@ as:
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
+
+CUSTOM_DEFINITIONS
+------------------
+
+If the circuit contains custom defitions for any of the instruction in the circuit.
+this section
+
+CUSTOM_DEFINITION_HEADER contents are defined as:
+
+.. code-block:: c
+
+    struct {
+        unsigned long long size;
+    }
+
+If size is greater than 0 that means the circuit contains a custom instruction.
+Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
+
+.. code-block:: c
+
+    struct {
+        char name[32];
+        char type;
+        _Bool custom_definition;
+        unsigned long long size
+    }
+
+If ``custom_definition`` is ``True`` that means that the immediately following
+` size`` bytes contains a QPY circuit data which can be used for the custom
+definition of that gate name. If ``custom_definition`` is ``False`` than the
+instruction can be considered opaque (ie no definition).
 
 INSTRUCTIONS
 ------------
@@ -144,6 +175,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
@@ -159,6 +192,20 @@ HEADER = namedtuple('HEADER', ['qpy_version', 'major_version', 'minor_version',
                                'num_registers', 'num_instructions'])
 HEADER_PACK = '!BBBB64sdIIQIQ'
 HEADER_SIZE = struct.calcsize(HEADER_PACK)
+
+# CUSTOM_DEFINITIONS
+# CUSTOM DEFINITION HEADER
+CUSTOM_DEFINITION_HEADER = namedtuple('CUSTOM_DEFINITION_HEADER', ['size'])
+CUSTOM_DEFINITION_HEADER_PACK = '!Q'
+CUSTOM_DEFINITION_HEADER_SIZE = struct.calcsize(CUSTOM_DEFINITION_HEADER_PACK)
+
+# CUSTOM_DEFINITION
+CUSTOM_DEFINITION = namedtuple('CUSTOM_DEFINITON',
+                               ['gate_name', 'type', 'num_qubits'
+                                'num_clbits', 'custom_definition', 'size'])
+CUSTOM_DEFINITION_PACK = '!32s1cII?Q'
+CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
+
 
 # REGISTER binary format
 REGISTER = namedtuple('REGISTER', ['type', 'size', 'name'])
@@ -201,7 +248,7 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _read_instruction(file_obj, circuit, registers):
+def _read_instruction(file_obj, circuit, registers, custom_instructions):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
     qargs = []
@@ -247,7 +294,12 @@ def _read_instruction(file_obj, circuit, registers):
         params.append(param)
     # Load Gate object
     gate_class = None
-    if hasattr(library, gate_name):
+    if gate_name in ('Gate', 'Instruction'):
+        inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
+                                             params)
+        circuit.append(inst_obj, qargs, cargs)
+        return
+    elif hasattr(library, gate_name):
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
         gate_class = getattr(circuit_mod, gate_name)
@@ -255,17 +307,70 @@ def _read_instruction(file_obj, circuit, registers):
         gate_class = getattr(extensions, gate_name)
     elif hasattr(quantum_initializer, gate_name):
         gate_class = getattr(quantum_initializer, gate_name)
-    # TODO: Handle custom gates and custom instructions
+    elif gate_name in custom_instructions:
+        inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
+                                             params)
+        circuit.append(inst_obj, qargs, cargs)
+        return
     else:
-        raise AttributeError("Invalid gate type: %s" % gate_name)
+        raise AttributeError("Invalid instruction type: %s" % gate_name)
     if gate_name == 'Barrier':
         params = [len(qargs)]
     gate = gate_class(*params)
     circuit.append(gate, qargs, cargs)
 
 
-def _write_instruction(file_obj, instruction_tuple):
-    gate_class_name = instruction_tuple[0].__class__.__name__.encode('utf8')
+def _parse_custom_instruction(custom_instructions, gate_name, params):
+    (type_str, num_qubits, num_clbits,
+     definition) = custom_instructions[gate_name]
+    if type_str == 'i':
+        inst_obj = Instruction(gate_name, num_qubits, num_clbits, params)
+        if definition:
+            inst_obj.definition = definition
+    elif type_str == 'g':
+        inst_obj = Gate(gate_name, num_qubits, params)
+        inst_obj.definition = definition
+    else:
+        raise ValueError("Invalid custom instruction type '%s'" % type_str)
+    return inst_obj
+
+
+def _read_custom_instructions(file_obj):
+    custom_instructions = {}
+    custom_definition_header_raw = file_obj.read(CUSTOM_DEFINITION_HEADER_SIZE)
+    custom_definition_header = struct.unpack(CUSTOM_DEFINITION_HEADER_PACK,
+                                             custom_definition_header_raw)
+    if custom_definition_header[0] > 0:
+        for _ in range(custom_definition_header[0]):
+            custom_definition_raw = file_obj.read(CUSTOM_DEFINITION_SIZE)
+            custom_definition = struct.unpack(CUSTOM_DEFINITION_PACK,
+                                              custom_definition_raw)
+            (name, type_str, num_qubits,
+             num_clbits, has_custom_definition, size) = custom_definition
+            name = name.decode('utf8').rstrip('\x00')
+            type_str = type_str.decode('utf8')
+            definition_circuit = None
+            if has_custom_definition:
+                definition_buffer = io.BytesIO(file_obj.read(size))
+                definition_circuit = load(definition_buffer)
+            custom_instructions[name] = (type_str, num_qubits, num_clbits,
+                                         definition_circuit)
+    return custom_instructions
+
+
+def _write_instruction(file_obj, instruction_tuple, custom_instructions):
+    gate_class_name = instruction_tuple[0].__class__.__name__
+    if ((not hasattr(library, gate_class_name) and
+         not hasattr(circuit_mod, gate_class_name) and
+         not hasattr(extensions, gate_class_name) and
+         not hasattr(quantum_initializer, gate_class_name)) or
+            gate_class_name == 'Gate' or gate_class_name == 'Instruction'):
+        if instruction_tuple[0].name not in custom_instructions:
+            custom_instructions[
+                instruction_tuple[0].name] = instruction_tuple[0]
+        gate_class_name = instruction_tuple[0].name
+
+    gate_class_name = gate_class_name.encode('utf8')
     instruction_raw = struct.pack(INSTRUCTION_PACK, gate_class_name,
                                   len(instruction_tuple[0].params),
                                   instruction_tuple[0].num_qubits,
@@ -314,6 +419,33 @@ def _write_instruction(file_obj, instruction_tuple):
         container.close()
 
 
+def _write_custom_instruction(file_obj, name, instruction):
+    if isinstance(instruction, Gate):
+        type_str = 'g'.encode('utf8')
+    else:
+        type_str = 'i'.encode('utf8')
+    has_definition = False
+    size = 0
+    data = None
+    num_qubits = instruction.num_qubits
+    num_clbits = instruction.num_clbits
+    if instruction.definition:
+        has_definition = True
+        definition_buffer = io.BytesIO()
+        dump(definition_buffer, instruction.definition)
+        definition_buffer.seek(0)
+        data = definition_buffer.read()
+        definition_buffer.close()
+        size = len(data)
+    custom_instruction_raw = struct.pack(CUSTOM_DEFINITION_PACK,
+                                         name.encode('utf8'), type_str,
+                                         num_qubits, num_clbits,
+                                         has_definition, size)
+    file_obj.write(custom_instruction_raw)
+    if data:
+        file_obj.write(data)
+
+
 def dump(file_obj, circuit):
     """Write QPY binary data to a file
 
@@ -340,8 +472,20 @@ def dump(file_obj, circuit):
         for reg in circuit.cregs:
             file_obj.write(struct.pack(REGISTER_PACK, 'c'.encode('utf8'),
                                        reg.size, reg.name.encode('utf8')))
+    instruction_buffer = io.BytesIO()
+    custom_instructions = {}
     for instruction in circuit.data:
-        _write_instruction(file_obj, instruction)
+        _write_instruction(instruction_buffer, instruction,
+                           custom_instructions)
+    file_obj.write(struct.pack(CUSTOM_DEFINITION_HEADER_PACK,
+                               len(custom_instructions)))
+
+    for name, instruction in custom_instructions.items():
+        _write_custom_instruction(file_obj, name, instruction)
+
+    instruction_buffer.seek(0)
+    file_obj.write(instruction_buffer.read())
+    instruction_buffer.close()
 
 
 def load(file_obj):
@@ -353,6 +497,7 @@ def load(file_obj):
     Returns:
         QuantumCircuit: The QuantumCircuit from the QPY data
     """
+    file_obj.seek(0)
     header, metadata = _read_header(file_obj)
     version_parts = [int(x) for x in __version__.split('.')[0:3]]
     header_version_parts = [header[1], header[2], header[3]]
@@ -383,7 +528,8 @@ def load(file_obj):
                               name=header[4].decode('utf8').rstrip('\x00'),
                               global_phase=header[5],
                               metadata=metadata)
+    custom_instructions = _read_custom_instructions(file_obj)
     for _instruction in range(header[10]):
-        _read_instruction(file_obj, circ, registers)
+        _read_instruction(file_obj, circ, registers, custom_instructions)
 
     return circ
