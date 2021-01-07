@@ -480,7 +480,6 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         """Test with a good state function."""
         def is_good_state(bitstr):
             return bitstr[1] == '1'
-            return res
 
         # construct the estimation problem where the second qubit is ignored
         a_op = QuantumCircuit(2)
