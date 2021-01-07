@@ -18,6 +18,7 @@ import io
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
@@ -46,7 +47,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, q_circuit)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(q_circuit, new_circ)
         self.assertEqual(q_circuit.global_phase, new_circ.global_phase)
         self.assertEqual(q_circuit.metadata, new_circ.metadata)
@@ -59,7 +60,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_int_parameter(self):
@@ -69,7 +70,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_float_parameter(self):
@@ -79,7 +80,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_numpy_float_parameter(self):
@@ -89,7 +90,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_numpy_int_parameter(self):
@@ -99,7 +100,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_unitary_gate(self):
@@ -110,7 +111,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_opaque_gate(self):
@@ -121,7 +122,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_opaque_instruction(self):
@@ -132,7 +133,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_custom_gate(self):
@@ -149,7 +150,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
 
@@ -166,7 +167,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
 
@@ -189,7 +190,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.bind_parameters({theta: 3.14}),
                          new_circ.bind_parameters({theta: 3.14}))
@@ -214,7 +215,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qpy_file, qc)
         qpy_file.seek(0)
-        new_circ = load(qpy_file)
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
 
     def test_parameter_expression(self):
@@ -239,3 +240,16 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qpy_file = io.BytesIO()
         self.assertRaises(TypeError, dump, qpy_file, qc)
+
+    def test_multiple_circuits(self):
+        """Test multiple circuits can be serialized together."""
+        circuits = []
+        for i in range(10):
+            circuits.append(random_circuit(10, 10, measure=True,
+                                           conditional=True, reset=True,
+                                           seed=42 + i))
+        qpy_file = io.BytesIO()
+        dump(qpy_file, circuits)
+        qpy_file.seek(0)
+        new_circs = load(qpy_file)
+        self.assertEqual(circuits, new_circs)

@@ -23,11 +23,32 @@ The QPY serialization format is a a portable cross-platform binary
 serialization format for QuantumCircuit objects in Qiskit. The basic
 format for the file format is as follows:
 
-``HEADER | METADATA | REGISTERS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+A QPY file (or memory object) always starts with the following 7
+byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
+file header. The contents of thie file header as defined as a C struct are:
+
+.. code-block: c
+
+    struct {
+        unsigned char qpy_version;
+        unsigned char qiskit_major_version;
+        unsigned char qiskit_minor_version;
+        unsigned char qiskit_patch_version;
+        unsigned long long num_circuits;
+    }
 
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility. All strings will be padded with ``0x00`` after the string
 if the string is shorter than the max size.
+
+The file header is immediately followed by the circuit payloads.
+Each individual circuit is composed of the following parts:
+
+``HEADER | METADATA | REGISTERS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+
+There is a circuit payload for each circuit (where the total number is dictated
+by ``num_circuits`` in the file header). There is no padding between the
+circuits in the data.
 
 HEADER
 ------
@@ -37,11 +58,7 @@ The contents of HEADER as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unsigned char qpy_version;
-        unsigned char qiskit_major_version;
-        unsigned char qiskit_minor_version;
-        unsigned char qiskit_patch_version;
-        char name[64];
+        char name[32];
         double global_phase;
         unsigned int num_qubits;
         unsigned int num_clbits;
@@ -201,15 +218,22 @@ from qiskit import circuit as circuit_mod
 from qiskit import extensions
 from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
+from qiskit.exceptions import QiskitError
 
 # v1 Binary Format
 # ----------------
+# FILE_HEADER
+FILE_HEADER = namedtuple('FILE_HEADER', ['preface', 'qpy_version', 'major_version',
+                                         'minor_version', 'patch_version',
+                                         'num_circuits'])
+FILE_HEADER_PACK = '!6sBBBBQ'
+FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
+
 # HEADER binary format
-HEADER = namedtuple('HEADER', ['qpy_version', 'major_version', 'minor_version',
-                               'patch_version', 'name', 'global_phase',
+HEADER = namedtuple('HEADER', ['name', 'global_phase',
                                'num_qubits', 'num_clbits', 'metadata_size',
                                'num_registers', 'num_instructions'])
-HEADER_PACK = '!BBBB64sdIIQIQ'
+HEADER_PACK = '!32sdIIQIQ'
 HEADER_SIZE = struct.calcsize(HEADER_PACK)
 
 # CUSTOM_DEFINITIONS
@@ -254,7 +278,7 @@ PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 def _read_header(file_obj):
     header_raw = struct.unpack(HEADER_PACK, file_obj.read(HEADER_SIZE))
     header = HEADER._make(header_raw)
-    metadata_raw = file_obj.read(header[8])
+    metadata_raw = file_obj.read(header[4])
     metadata = json.loads(metadata_raw)
     return header, metadata
 
@@ -391,7 +415,7 @@ def _read_custom_instructions(file_obj):
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
-                definition_circuit = load(definition_buffer)
+                definition_circuit = _read_circuit(definition_buffer)
             custom_instructions[name] = (type_str, num_qubits, num_clbits,
                                          definition_circuit)
     return custom_instructions
@@ -484,7 +508,7 @@ def _write_custom_instruction(file_obj, name, instruction):
     if instruction.definition:
         has_definition = True
         definition_buffer = io.BytesIO()
-        dump(definition_buffer, instruction.definition)
+        _write_circuit(definition_buffer, instruction.definition)
         definition_buffer.seek(0)
         data = definition_buffer.read()
         definition_buffer.close()
@@ -498,23 +522,39 @@ def _write_custom_instruction(file_obj, name, instruction):
         file_obj.write(data)
 
 
-def dump(file_obj, circuit):
+def dump(file_obj, circuits):
     """Write QPY binary data to a file
 
     Args:
         file_obj (file): The file like object to write the QPY data too
-        circuit (QuantumCircuit): The quantum circuit object to store
+        circuits (list or QuantumCircuit): The quantum circuit object(s) to
+            store in the specified file like object. This can either be a
+            single QuantumCircuit object or a list of QuantumCircuits.
     """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
     version_parts = [int(x) for x in __version__.split('.')[0:3]]
+    header = struct.pack(FILE_HEADER_PACK, 'QISKIT'.encode('utf8'), 1,
+                         version_parts[0], version_parts[1], version_parts[2],
+                         len(circuits))
+    file_obj.write(header)
+    for circuit in circuits:
+        _write_circuit(file_obj, circuit)
+
+
+def _write_circuit(file_obj, circuit):
     metadata_raw = json.dumps(circuit.metadata).encode('utf8')
     metadata_size = len(metadata_raw)
     num_registers = len(circuit.qregs) + len(circuit.cregs)
     num_instructions = len(circuit)
-    header = struct.pack(HEADER_PACK, 1, version_parts[0], version_parts[1],
-                         version_parts[2], circuit.name.encode('utf8'),
-                         circuit.global_phase, circuit.num_qubits,
-                         circuit.num_clbits, metadata_size, num_registers,
-                         num_instructions)
+    header_raw = HEADER(name=circuit.name.encode('utf8'),
+                        global_phase=circuit.global_phase,
+                        num_qubits=circuit.num_qubits,
+                        num_clbits=circuit.num_clbits,
+                        metadata_size=metadata_size,
+                        num_registers=num_registers,
+                        num_instructions=num_instructions)
+    header = struct.pack(HEADER_PACK, *header_raw)
     file_obj.write(header)
     file_obj.write(metadata_raw)
     if num_registers > 0:
@@ -547,12 +587,18 @@ def load(file_obj):
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
     Returns:
-        QuantumCircuit: The QuantumCircuit from the QPY data
+        list: A list of the QuantumCircuit objects from the QPY data. A list
+            is always returned, even if there is only 1 circuit in the QPY
+            data.
+    Raises:
+        QiskitError: if ``file_obj`` is not a valid QPY file
     """
-    file_obj.seek(0)
-    header, metadata = _read_header(file_obj)
+    file_header_raw = file_obj.read(FILE_HEADER_SIZE)
+    file_header = struct.unpack(FILE_HEADER_PACK, file_header_raw)
+    if file_header[0].decode('utf8') != 'QISKIT':
+        raise QiskitError('Input file is not a valid QPY file')
     version_parts = [int(x) for x in __version__.split('.')[0:3]]
-    header_version_parts = [header[1], header[2], header[3]]
+    header_version_parts = [file_header[2], file_header[3], file_header[4]]
     if version_parts[0] < header_version_parts[0] or (
             version_parts[0] == header_version_parts[0] and
             header_version_parts[1] > version_parts[1]) or (
@@ -565,23 +611,31 @@ def load(file_obj):
                       'instructions not present in this current qiskit '
                       'version' % ('.'.join(header_version_parts),
                                    __version__))
+    circuits = []
+    for _ in range(file_header[5]):
+        circuits.append(_read_circuit(file_obj))
+    return circuits
+
+
+def _read_circuit(file_obj):
+    header, metadata = _read_header(file_obj)
     registers = {}
-    if header[8] > 0:
-        circ = QuantumCircuit(name=header[4].decode('utf8').rstrip('\x00'),
-                              global_phase=header[5],
+    if header[5] > 0:
+        circ = QuantumCircuit(name=header[0].decode('utf8').rstrip('\x00'),
+                              global_phase=header[1],
                               metadata=metadata)
-        registers = _read_registers(file_obj, header[9])
+        registers = _read_registers(file_obj, header[5])
         for qreg in registers['q'].values():
             circ.add_register(qreg)
         for creg in registers['c'].values():
             circ.add_register(creg)
     else:
-        circ = QuantumCircuit(header[5], header[6],
-                              name=header[4].decode('utf8').rstrip('\x00'),
-                              global_phase=header[5],
+        circ = QuantumCircuit(header[2], header[3],
+                              name=header[0].decode('utf8').rstrip('\x00'),
+                              global_phase=header[1],
                               metadata=metadata)
     custom_instructions = _read_custom_instructions(file_obj)
-    for _instruction in range(header[10]):
+    for _instruction in range(header[6]):
         _read_instruction(file_obj, circ, registers, custom_instructions)
 
     return circ
