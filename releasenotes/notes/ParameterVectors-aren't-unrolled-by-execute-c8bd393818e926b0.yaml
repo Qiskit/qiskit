@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed issue 5647 where circuit.execute would raise exception when 
+    ParameterVectors were passed in the parameter_bind parameter
+    It is now possible to call:
+    execute(circuit, backend, parameter_binds=[{pv1: [...], pv2: [...]}])

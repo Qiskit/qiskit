@@ -17,7 +17,7 @@ import logging
 import warnings
 from time import time
 from typing import Union, List, Dict, Optional
-from qiskit.circuit import QuantumCircuit, Qubit, Parameter
+from qiskit.circuit import QuantumCircuit, Qubit, Parameter, ParameterVector
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.assembler.run_config import RunConfig
@@ -422,32 +422,67 @@ def _expand_parameters(circuits, run_config):
     parameter_binds = run_config.parameter_binds
     if parameter_binds or \
        any(circuit.parameters for circuit in circuits):
-
-        all_bind_parameters = [bind.keys()
-                               for bind in parameter_binds]
-        all_circuit_parameters = [circuit.parameters for circuit in circuits]
-
-        # Collect set of all unique parameters across all circuits and binds
-        unique_parameters = {param
-                             for param_list in all_bind_parameters + all_circuit_parameters
-                             for param in param_list}
-
-        # Check that all parameters are common to all circuits and binds
-        if not all_bind_parameters \
-           or not all_circuit_parameters \
-           or any(unique_parameters != bind_params for bind_params in all_bind_parameters) \
-           or any(unique_parameters != parameters for parameters in all_circuit_parameters):
+        param_mismatch = False
+        if ((len(parameter_binds) == 0) and any(circuit.parameters for circuit in circuits)):
+            param_mismatch = True
+        for bind in parameter_binds:
+            all_bind_parameters = [bind.keys()]
+            all_circuit_parameters = [circuit.parameters for circuit in circuits]
+            unique_bind_parameters = {param
+                                      for param_list in all_bind_parameters
+                                      for param in param_list}
+            unique_circ_parameters = {param
+                                      for param_list in all_circuit_parameters
+                                      for param in param_list}
+            check_param_list = []
+            for paramvectlist in unique_bind_parameters:
+                try:
+                    for paramvect in paramvectlist:
+                        if isinstance(paramvect, ParameterVector):
+                            for param in paramvect:
+                                check_param_list.append(param)
+                        else:
+                            check_param_list.append(paramvect)
+                except TypeError:
+                    if isinstance(paramvectlist, Parameter):
+                        check_param_list.append(paramvectlist)
+            for circparamvectlist in unique_circ_parameters:
+                try:
+                    for circparamvect in circparamvectlist:
+                        if isinstance(circparamvect, ParameterVector):
+                            for circparam in circparamvect:
+                                if circparam in check_param_list:
+                                    check_param_list.remove(circparam)
+                                else:
+                                    param_mismatch = True
+                        else:
+                            if circparamvect in check_param_list:
+                                check_param_list.remove(circparamvect)
+                            else:
+                                param_mismatch = True
+                except TypeError:
+                    if isinstance(circparamvectlist, Parameter):
+                        if circparamvectlist in check_param_list:
+                            check_param_list.remove(circparamvectlist)
+                        else:
+                            param_mismatch = True
+            if (len(check_param_list) > 0 or param_mismatch):
+                raise QiskitError(
+                    ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
+                     'Parameter binds: {} ' +
+                     'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
+        if not param_mismatch:
+            circuits = [circuit.bind_parameters(binds)
+                        for circuit in circuits
+                        for binds in parameter_binds]
+            # All parameters have been expanded and bound, so remove from run_config
+            run_config = copy.deepcopy(run_config)
+            run_config.parameter_binds = []
+        else:
+            all_circuit_parameters = [circuit.parameters for circuit in circuits]
             raise QiskitError(
                 ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
                  'Parameter binds: {} ' +
-                 'Circuit parameters: {}').format(all_bind_parameters, all_circuit_parameters))
-
-        circuits = [circuit.bind_parameters(binds)
-                    for circuit in circuits
-                    for binds in parameter_binds]
-
-        # All parameters have been expanded and bound, so remove from run_config
-        run_config = copy.deepcopy(run_config)
-        run_config.parameter_binds = []
+                 'Circuit parameters: {}').format(parameter_binds, all_circuit_parameters))
 
     return circuits, run_config
