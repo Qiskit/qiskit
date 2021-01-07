@@ -122,7 +122,7 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
                             target_qubit, use_basis_gates=use_basis_gates)
 
 
-def mcry(self, theta, q_controls, q_target, q_ancillae, mode=None,
+def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None,
          use_basis_gates=False):
     """
     Apply Multiple-Controlled Y rotation gate
