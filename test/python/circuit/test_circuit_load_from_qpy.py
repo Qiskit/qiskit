@@ -18,7 +18,6 @@ import io
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 
@@ -55,6 +54,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(q_circuit.name, new_circ.name)
 
     def test_int_parameter(self):
+        """Test that integer parameters are correctly serialized."""
         qc = QuantumCircuit(1)
         qc.rx(3, 0)
         qpy_file = io.BytesIO()
@@ -64,6 +64,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
 
     def test_float_parameter(self):
+        """Test that float parameters are correctly serialized."""
         qc = QuantumCircuit(1)
         qc.rx(3.14, 0)
         qpy_file = io.BytesIO()
@@ -73,6 +74,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
 
     def test_numpy_float_parameter(self):
+        """Test that numpy float parameters are correctly serialized."""
         qc = QuantumCircuit(1)
         qc.rx(np.float32(3.14), 0)
         qpy_file = io.BytesIO()
@@ -82,6 +84,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
 
     def test_numpy_int_parameter(self):
+        """Test that numpy integer parameters are correctly serialized."""
         qc = QuantumCircuit(1)
         qc.rx(np.int16(3), 0)
         qpy_file = io.BytesIO()
@@ -91,6 +94,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
 
     def test_unitary_gate(self):
+        """Test that numpy array parameters are correctly serialized"""
         qc = QuantumCircuit(1)
         unitary = np.array([[0, 1], [1, 0]])
         qc.unitary(unitary, 0)
