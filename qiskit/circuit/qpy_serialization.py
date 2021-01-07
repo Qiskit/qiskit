@@ -334,7 +334,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
                                              params)
         inst_obj.condition = condition_tuple
-        circuit.append(inst_obj, qargs, cargs)
+        circuit._append(inst_obj, qargs, cargs)
         return
     elif hasattr(library, gate_name):
         gate_class = getattr(library, gate_name)
@@ -348,7 +348,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         inst_obj = _parse_custom_instruction(custom_instructions, gate_name,
                                              params)
         inst_obj.condition = condition_tuple
-        circuit.append(inst_obj, qargs, cargs)
+        circuit._append(inst_obj, qargs, cargs)
         return
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
@@ -356,7 +356,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         params = [len(qargs)]
     gate = gate_class(*params)
     gate.condition = condition_tuple
-    circuit.append(gate, qargs, cargs)
+    circuit._append(gate, qargs, cargs)
 
 
 def _parse_custom_instruction(custom_instructions, gate_name, params):
