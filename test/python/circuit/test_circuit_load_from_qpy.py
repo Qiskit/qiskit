@@ -20,6 +20,7 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameter import Parameter
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 
@@ -162,3 +163,73 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_parameter(self):
+        """Test that a circuit with a parameter is correctly serialized."""
+        theta = Parameter('theta')
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+
+        qc.barrier()
+        qc.rz(theta, range(5))
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.bind_parameters({theta: 3.14}),
+                         new_circ.bind_parameters({theta: 3.14}))
+
+    def test_bound_parameter(self):
+        """Test a circuit with a bound parameter is correctly serialized."""
+        theta = Parameter('theta')
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+
+        qc.barrier()
+        qc.rz(theta, range(5))
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.assign_parameters({theta: 3.14})
+
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
+
+    def test_parameter_expression(self):
+        """Test a circuit with parameter expression raises."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        sum_param = theta + phi
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+
+        qc.barrier()
+        qc.rz(sum_param, range(3))
+        qc.rz(phi, 3)
+        qc.rz(theta, 4)
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        qpy_file = io.BytesIO()
+        self.assertRaises(TypeError, dump, qpy_file, qc)

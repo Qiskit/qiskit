@@ -156,9 +156,24 @@ The contents of each INSTRUCTION_PARAM is:
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
 The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, or ``'n'`` which dictate
 the format. For ``'i'`` it's an integer, ``'f'`` it's a double, ``'p'`` defines
-a paramter expression which is represented by a 32 character utf8 string, and
-``'n'`` represents an object from numpy (either an ``ndarray`` or a numpy type)
-which means the data is .npy format [#f2]_ data.
+a :class:`~qiskit.circuit.Paramter` object  which is represented by a PARAM
+struct (see below), and ``'n'`` represents an object from numpy (either an
+``ndarray`` or a numpy type) which means the data is .npy format [#f2]_
+data.
+
+
+PARAMETER
+---------
+
+A PARAMETER represents a :class:`~qiskit.circuit.Parameter` object the data for
+a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
+
+.. code-block:: c
+
+    struct {
+        char name[32];
+        char uuid[16];
+    }
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
@@ -167,6 +182,7 @@ from collections import namedtuple
 import io
 import json
 import struct
+import uuid
 import warnings
 
 import numpy as np
@@ -175,6 +191,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
@@ -225,6 +242,10 @@ INSTRUCTION_ARG_SIZE = struct.calcsize(INSTRUCTION_ARG_PACK)
 INSTRUCTION_PARAM = namedtuple('INSTRUCTION_PARAM', ['type', 'size'])
 INSTRUCTION_PARAM_PACK = '!1cQ'
 INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
+# PARAMETER
+PARAMETER = namedtuple('PARAMETER', ['name', 'uuid'])
+PARAMETER_PACK = '!32s16s'
+PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 
 
 def _read_header(file_obj):
@@ -289,6 +310,12 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
             container.write(data)
             container.seek(0)
             param = np.load(container)
+        elif type_str == 'p':
+            param_raw = struct.unpack(PARAMETER_PACK, data)
+            name = param_raw[0].decode('utf8').rstrip('\x00')
+            param_uuid = uuid.UUID(bytes=param_raw[1])
+            param = Parameter.__new__(Parameter, name, uuid=param_uuid)
+            param.__init__(name)
         else:
             raise TypeError("Invalid parameter type: %s" % type_str)
         params.append(param)
@@ -400,9 +427,11 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions):
             type_key = 'f'
             data = struct.pack('<d', param)
             size = struct.calcsize('<d')
-        elif isinstance(param, ParameterExpression):
-            # TODO handle this
-            pass
+        elif isinstance(param, Parameter):
+            type_key = 'p'
+            data = struct.pack(PARAMETER_PACK, param._name.encode('utf8'),
+                               param._uuid.bytes)
+            size = PARAMETER_SIZE
         elif isinstance(param, (np.integer, np.floating, np.ndarray)):
             type_key = 'n'
             np.save(container, param)
