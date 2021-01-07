@@ -437,8 +437,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps),
-                                       global_phase=reps * self.global_phase)
+                                       name=self.name + '**{}'.format(reps))
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
