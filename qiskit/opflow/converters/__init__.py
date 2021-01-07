@@ -59,8 +59,7 @@ frequently around the Operator flow.
    DictToCircuitSum
    PauliBasisChange
    Z2Symmetries
-   Z2Taper
-
+   TwoQubitReduction
 """
 
 from .converter_base import ConverterBase
@@ -69,7 +68,7 @@ from .pauli_basis_change import PauliBasisChange
 from .dict_to_circuit_sum import DictToCircuitSum
 from .abelian_grouper import AbelianGrouper
 from .z2_symmetries import Z2Symmetries
-from .z2_taper import Z2Taper
+from .two_qubit_reduction import TwoQubitReduction
 
 __all__ = ['ConverterBase',
            'CircuitSampler',
@@ -77,5 +76,5 @@ __all__ = ['ConverterBase',
            'DictToCircuitSum',
            'AbelianGrouper',
            'Z2Symmetries',
-           'Z2Taper',
+           'TwoQubitReduction',
            ]

@@ -25,10 +25,11 @@ from .z2_symmetries import Z2Symmetries
 logger = logging.getLogger(__name__)
 
 
-class Z2Taper(ConverterBase):
+class TwoQubitReduction(ConverterBase):
     """
-    Z2 taper converter which eliminates the central and last qubit in a list of Pauli that has
-    diagonal operators (Z,I) at those positions.
+    Two qubit reduction converter which eliminates the central and last qubit in a list of Pauli
+    that has diagonal operators (Z,I) at those positions.
+
     Chemistry specific method:
     It can be used to taper two qubits in parity and binary-tree mapped
     fermionic Hamiltonians when the spin orbitals are ordered in two spin
@@ -51,7 +52,6 @@ class Z2Taper(ConverterBase):
         par_1 = 1 if (num_alpha + num_beta) % 2 == 0 else -1
         par_2 = 1 if num_alpha % 2 == 0 else -1
         self._tapering_values = [par_2, par_1]
-        self.z2_symmetries = None
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """
@@ -92,5 +92,5 @@ class Z2Taper(ConverterBase):
             sq_pauli = Pauli.from_label("".join(pauli_str)[::-1])
             sq_paulis.append(sq_pauli)
 
-        self.z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, self._tapering_values)
-        return self.z2_symmetries.taper(operator)
+        z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, self._tapering_values)
+        return z2_symmetries.taper(operator)
