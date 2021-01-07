@@ -111,7 +111,7 @@ def control(operation: Union[Gate, ControlledGate],
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
-        basis = ['p', 'u', 'x', 'rx', 'ry', 'rz', 'cx']
+        basis = ['p', 'u', 'x', 'z', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         if unrolled_gate.definition.global_phase:
             global_phase += unrolled_gate.definition.global_phase
@@ -165,6 +165,11 @@ def control(operation: Union[Gate, ControlledGate],
                                              q_ancillae, use_basis_gates=True)
                         controlled_circ.mcrz(phi, q_control, q_target[qreg[0].index],
                                              use_basis_gates=True)
+            elif gate.name == 'z':
+                controlled_circ.h(q_target[qreg[0].index])
+                controlled_circ.mcx(q_control, q_target[qreg[0].index],
+                                    q_ancillae)
+                controlled_circ.h(q_target[qreg[0].index])
             else:
                 raise CircuitError('gate contains non-controllable instructions: {}'.format(
                     gate.name))
