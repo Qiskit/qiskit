@@ -29,11 +29,7 @@ class TestLoadFromQPY(QiskitTestCase):
     """Test circuit.from_qasm_* set of methods."""
 
     def test_qpy_full_path(self):
-        """
-        Test qasm_file and get_circuit.
-
-        If all is correct we should get the qasm file loaded in _qasm_file_path
-        """
+        """Test full path qpy serialization for basic circuit."""
         qr_a = QuantumRegister(4, 'a')
         qr_b = QuantumRegister(4, 'b')
         cr_c = ClassicalRegister(4, 'c')
@@ -55,6 +51,16 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(q_circuit.global_phase, new_circ.global_phase)
         self.assertEqual(q_circuit.metadata, new_circ.metadata)
         self.assertEqual(q_circuit.name, new_circ.name)
+
+    def test_circuit_with_conditional(self):
+        """Test that instructions with conditions are correctly serialized."""
+        qc = QuantumCircuit(1, 1)
+        qc.x(0).c_if(qc.cregs[0], 1)
+        qpy_file = io.BytesIO()
+        dump(qpy_file, qc)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)
+        self.assertEqual(qc, new_circ)
 
     def test_int_parameter(self):
         """Test that integer parameters are correctly serialized."""
