@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,too-many-boolean-expressions
+# pylint: disable=invalid-name,too-many-boolean-expressions,redundant-keyword-arg
 
 """
 ===========================================================
@@ -193,7 +193,6 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
