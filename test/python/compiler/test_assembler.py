@@ -174,6 +174,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'default_rep_delay', default_rep_delay)
 
         # dynamic rep rates off
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -192,6 +193,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'rep_delay_range', rep_delay_range)
 
         # dynamic rep rates off (no default so shouldn't be in qobj config)
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend, rep_delay=rep_delay)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -621,7 +623,7 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
         schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),

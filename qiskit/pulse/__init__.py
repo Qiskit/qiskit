@@ -466,13 +466,11 @@ from qiskit.pulse.instructions import (
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.library import (
     Constant,
-    ConstantPulse,
     Drag,
     Gaussian,
     GaussianSquare,
     ParametricPulse,
     Waveform,
-    SamplePulse,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule
