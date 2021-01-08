@@ -84,8 +84,8 @@ class Pulse(ABC):
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
                 preset stylesheets.
-            backend: Backend object to play the input pulse program. If this object is provided,
-                the input program is visualized with the details of hardware information.
+            backend: Backend object to play the input pulse program. If provided, the plotter
+                may use to make the visualization hardware aware.
             time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
             time_unit: The unit of specified time range either `dt` or `ns`.
                 The unit of `ns` is available only when `backend` object is provided.
