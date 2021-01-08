@@ -18,7 +18,7 @@ def hellinger_fidelity(dist_p, dist_q):
     """Computes the Hellinger fidelity between
     two counts distributions.
 
-    The fidelity is defined as 1-H where H is the
+    The fidelity is defined as (1-H**2)**2 where H is the
     Hellinger distance.  This value is bounded
     in the range [0, 1].
 
@@ -72,4 +72,4 @@ def hellinger_fidelity(dist_p, dist_q):
 
     dist = np.sqrt(total)/np.sqrt(2)
 
-    return 1-dist
+    return (1-dist**2)**2

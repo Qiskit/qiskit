@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Updates the definition of the Hellinger fidelity from
+    `1-H(P,Q)` to `[1-H(P,Q)**2]**2` to better match the
+    quantum fidelity definition.
