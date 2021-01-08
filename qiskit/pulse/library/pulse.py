@@ -127,9 +127,9 @@ class Pulse(ABC):
                           DeprecationWarning)
 
         if filename:
-            warnings.warn('File saving is delegated to the plotter software in new drawer. '
-                          'If you specify matplotlib plotter family to `plotter` argument, '
-                          'you can call `savefig` method with the returned Figure object.',
+            warnings.warn('File saving is delegated to the plotter software in the new drawer. '
+                          'If a matplotlib plotter family is passed to the "plotter" argument, '
+                          'the "savefig" method may be called with the returned Figure object.',
                           DeprecationWarning)
 
         return pulse_drawer_v2(program=self,
