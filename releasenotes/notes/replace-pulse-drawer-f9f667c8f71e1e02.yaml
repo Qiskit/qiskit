@@ -4,7 +4,7 @@ upgrade:
     The new pulse drawer :func:`qiskit.visualization.pulse_drawer_v2` is now released.
     This drawer supports multiple new features:
 
-    * Truncation of long pulse instructions
+    * Truncation of long pulse instructions.
     * Visualization of parametric pulses.
     * New stylesheets ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``
     * Visualization of system info (channel frequency, etc...) by specifying ``backend`` object.
