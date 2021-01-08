@@ -280,9 +280,10 @@ class Z2Symmetries:
             operator = cast(PauliSumOp, clifford @ operator @ clifford)
 
         if self._tapering_values is None:
-            tapered_ops_list = []
-            for coeff in itertools.product([1, -1], repeat=len(self._sq_list)):
-                tapered_ops_list.append(self._taper(operator, list(coeff)))
+            tapered_ops_list = [
+                self._taper(operator, list(coeff))
+                for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
+            ]
             tapered_ops = ListOp(tapered_ops_list)
         else:
             tapered_ops = self._taper(operator, self._tapering_values)
@@ -306,14 +307,13 @@ class Z2Symmetries:
                 pauli_term.primitive.table.X[0].copy(), np.asarray(self._sq_list)
             )
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
-        spo = SparsePauliOp.from_list(pauli_list)
+        spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
         z2_symmetries = self.copy()
         z2_symmetries.tapering_values = curr_tapering_values
 
         # pylint: disable=cyclic-import
         from ..primitive_ops.tapered_pauli_sum_op import TaperedPauliSumOp
-        operator_out = TaperedPauliSumOp(spo, z2_symmetries).reduce(atol=0.0)
-        return operator_out
+        return TaperedPauliSumOp(spo, z2_symmetries)
 
     def consistent_tapering(self, operator: PauliSumOp) -> OperatorBase:
         """

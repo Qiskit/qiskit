@@ -43,6 +43,7 @@ Primitive Operators
    MatrixOp
    PauliOp
    PauliSumOp
+   TaperedPauliSumOp
 
 """
 
@@ -51,9 +52,11 @@ from .pauli_op import PauliOp
 from .matrix_op import MatrixOp
 from .circuit_op import CircuitOp
 from .pauli_sum_op import PauliSumOp
+from .tapered_pauli_sum_op import TaperedPauliSumOp
 
 __all__ = ['PrimitiveOp',
            'PauliOp',
            'MatrixOp',
            'CircuitOp',
-           'PauliSumOp']
+           'PauliSumOp',
+           'TaperedPauliSumOp']
