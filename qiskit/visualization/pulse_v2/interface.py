@@ -353,17 +353,17 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
         You can partially customize a preset stylesheet when initializing it.
 
-        ```python
-            my_style = {
-                'formatter.channel_scaling.drive': 5,
-                'formatter.channel_scaling.control': 1,
-                'formatter.channel_scaling.measure': 5
-            }
-            style = IQXStandard(**my_style)
+            ```python
+                my_style = {
+                    'formatter.channel_scaling.drive': 5,
+                    'formatter.channel_scaling.control': 1,
+                    'formatter.channel_scaling.measure': 5
+                }
+                style = IQXStandard(**my_style)
 
-            # draw
-            draw(sched, style=style, backend=FakeAlmaden())
-        ```
+                # draw
+                draw(sched, style=style, backend=FakeAlmaden())
+            ```
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.
@@ -372,8 +372,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
     Raises:
         ImportError: When required visualization package is not installed.
-        VisualizationError: When invalid plotter API is specified or invalid tiem range is
-            specified.
+        VisualizationError: When invalid plotter API or invalid time range is specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()
     temp_style.update(style or stylesheet.IQXStandard())
