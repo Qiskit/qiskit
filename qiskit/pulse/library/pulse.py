@@ -62,20 +62,19 @@ class Pulse(ABC):
         raise NotImplementedError
 
     def draw(self,
+             dt: Any = None,  # deprecated
              style: Optional[Dict[str, Any]] = None,
+             filename: Any = None,  # deprecated
+             interp_method: Any = None,  # deprecated
+             scale: Any = None,  # deprecated
+             interactive: Any = None,  # deprecated
+             draw_title: Any = None,  # deprecated
              backend: Optional['BaseBackend'] = None,
              time_range: Optional[Tuple[int, int]] = None,
              time_unit: str = 'dt',
              show_waveform_info: bool = True,
              plotter: str = 'mpl2d',
-             axis: Optional[Any] = None,
-             # deprecated arguments, those args were used by legacy drawer.
-             dt: Any = None,
-             filename: Any = None,
-             interp_method: Any = None,
-             scale: Any = None,
-             interactive: Any = None,
-             draw_title: Any = None):
+             axis: Optional[Any] = None):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -113,24 +112,44 @@ class Pulse(ABC):
             draw_title: Deprecated. This argument is used by the legacy pulse drawer.
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
+            Visualization output data.
+
+            The returned data type depends on the ``plotter``.
+            If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
         # pylint: disable=invalid-name, cyclic-import, missing-return-type-doc
-        from qiskit.visualization import pulse_drawer_v2
+        from qiskit.visualization import pulse_drawer_v2, PulseStyle
 
-        legacy_args = (dt, filename, interp_method, scale, interactive, draw_title)
+        legacy_args = {'dt': dt,
+                       'filename': filename,
+                       'interp_method': interp_method,
+                       'scale': scale,
+                       'interactive': interactive,
+                       'draw_title': draw_title}
 
-        if any(arg is not None for arg in legacy_args):
-            warnings.warn('Legacy pulse drawer is deprecated with some arguments. '
+        active_legacy_args = []
+        for name, legacy_arg in legacy_args.items():
+            if legacy_arg is not None:
+                active_legacy_args.append(name)
+
+        if active_legacy_args:
+            warnings.warn('Legacy pulse drawer is deprecated. '
+                          'Specified arguments {} are all deprecated too. '
                           'Please check the API document of new pulse drawer '
                           '`qiskit.visualization.pulse_drawer_v2`.',
+                          ''.format(', '.join(active_legacy_args)),
                           DeprecationWarning)
 
         if filename:
-            warnings.warn('File saving is delegated to the plotter software in the new drawer. '
-                          'If a matplotlib plotter family is passed to the "plotter" argument, '
-                          'the "savefig" method may be called with the returned Figure object.',
+            warnings.warn('File saving is delegated to the plotter software in new drawer. '
+                          'If you specify matplotlib plotter family to `plotter` argument, '
+                          'you can call `savefig` method with the returned Figure object.',
                           DeprecationWarning)
+
+        if isinstance(style, PulseStyle):
+            style = None
+            warnings.warn('Legacy stylesheet is specified. This is just ignored in new drawer. '
+                          'Please check API document of this method.')
 
         return pulse_drawer_v2(program=self,
                                style=style,

@@ -53,22 +53,19 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
             :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
             preset stylesheets. See also the stylesheet section for details of configuration keys.
-        backend: Backend object to play the input pulse program. If this object is provided,
-            the input program is visualized with the details of hardware information.
-        time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
-        time_unit: The unit of specified time range either `dt` or `ns`.
-            The unit of `ns` is available only when `backend` object is provided.
+        backend: Backend object to play the input pulse program. If provided, the plotter
+            may use to make the visualization hardware aware.
+        time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+        time_unit: The unit of specified time range either ``dt`` or ``ns``.
+            The unit of ``ns`` is available only when ``backend`` object is provided.
         disable_channels: A control property to show specific pulse channel.
             Pulse channel instances provided as a list is not shown in the output image.
-        show_snapshot: A control property to show snapshot symbols.
-            Set `True` to show snapshot instructions.
-        show_framechange: A control property to show frame change symbols.
-            Set `True` to show frame change instructions. The frame change represents
+        show_snapshot: Show snapshot instructions.
+        show_framechange: Show frame change instructions. The frame change represents
             instructions that modulate phase or frequency of pulse channels.
-        show_waveform_info: A control property to show annotations, i.e. name, of waveforms.
-            Set `True` to show additional information about waveforms.
-        show_barrier: A control property to show barriers.
-            Set `True` to show barrier lines.
+        show_waveform_info: Show waveform annotations, i.e. name, of waveforms.
+            Set ``True`` to show additional information about waveforms.
+        show_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
