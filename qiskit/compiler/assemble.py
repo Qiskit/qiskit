@@ -18,7 +18,6 @@ import warnings
 from time import time
 from typing import Union, List, Dict, Optional
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
-from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.assembler.run_config import RunConfig
