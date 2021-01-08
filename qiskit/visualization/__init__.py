@@ -71,9 +71,6 @@ Pulse Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   pulse_drawer
-   ~qiskit.visualization.pulse.qcstyle
-   ~qiskit.visualization.pulse.interpolation
    ~qiskit.visualization.pulse_v2.draw
    ~qiskit.visualization.pulse_v2.IQXStandard
    ~qiskit.visualization.pulse_v2.IQXSimple
