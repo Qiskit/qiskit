@@ -17,7 +17,7 @@ matplotlib pulse visualization.
 """
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform
+from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
@@ -145,7 +145,7 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if isinstance(data, (SamplePulse, Waveform)):
+    if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):

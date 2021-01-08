@@ -30,7 +30,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
@@ -423,8 +422,11 @@ class TestTranspile(QiskitTestCase):
                               QuantumRegister(3, 'q')[1],
                               QuantumRegister(3, 'q')[2]]
 
-        self.assertRaises(DAGCircuitError, transpile,
-                          qc, backend, initial_layout=bad_initial_layout)
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(qc, backend, initial_layout=bad_initial_layout)
+
+        self.assertEqual("FullAncillaAllocation: The layout refers to a quantum register that does "
+                         "not exist in circuit.", cm.exception.message)
 
     def test_parameterized_circuit_for_simulator(self):
         """Verify that a parameterized circuit can be transpiled for a simulator backend."""
@@ -933,6 +935,20 @@ class TestTranspile(QiskitTestCase):
         circ = circ.assign_parameters({tau: 1})
         transpiled_circ = transpile(circ, FakeAlmaden())
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {'rxt'})
+
+    def test_inst_durations_from_calibrations(self):
+        """Test that circuit calibrations can be used instead of explicitly
+        supplying inst_durations.
+        """
+        qc = QuantumCircuit(2)
+        qc.append(Gate('custom', 1, []), [0])
+
+        with pulse.build() as cal:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        qc.add_calibration('custom', [0], cal)
+
+        out = transpile(qc, scheduling_method='alap')
+        self.assertEqual(out.duration, cal.duration)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
