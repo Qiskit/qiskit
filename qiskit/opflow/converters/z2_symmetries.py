@@ -339,6 +339,26 @@ class Z2Symmetries:
 
         return self.taper(operator)
 
+    def __eq__(self, other: "Z2Symmetries") -> bool:
+        """
+        Overload `==` operation to evaluate equality between Z2Symmetries.
+
+        Args:
+            other: The `Z2Symmetries` to compare to self.
+
+        Returns:
+            A bool equal to the equality of self and other.
+        """
+        if not isinstance(other, Z2Symmetries):
+            return False
+
+        return (
+            self.symmetries == other.symmetries
+            and self.sq_paulis == other.sq_paulis
+            and self.sq_list == other.sq_list
+            and self.tapering_values == other.tapering_values
+        )
+
 
 def _kernel_F2(matrix_in) -> List[np.ndarray]:  # pylint: disable=invalid-name
     """

@@ -12,7 +12,7 @@
 
 """ TaperedPauliSumOp Class """
 
-from typing import Union
+from typing import List, Tuple, Union
 
 from qiskit.circuit import ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
@@ -58,13 +58,7 @@ class TaperedPauliSumOp(PauliSumOp):
         if not isinstance(other, TaperedPauliSumOp):
             return False
 
-        if self.z2_symmetries.symmetries != other.z2_symmetries.symmetries:
-            return False
-        if self.z2_symmetries.sq_paulis != other.z2_symmetries.sq_paulis:
-            return False
-        if self.z2_symmetries.sq_list != other.z2_symmetries.sq_list:
-            return False
-        if self.z2_symmetries.tapering_values != other.z2_symmetries.tapering_values:
+        if self.z2_symmetries != other.z2_symmetries:
             return False
 
         return super().equals(other)
