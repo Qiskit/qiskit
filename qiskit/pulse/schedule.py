@@ -824,7 +824,7 @@ class Schedule(abc.ABC):
 
                     mpl2d: Matplotlib API for 2D image generation.
                         Matplotlib API to generate 2D image. Charts are placed along y axis with
-                        vertical offset. This API takes matplotlib.axes.Axes as `axis` input.
+                        vertical offset. This API takes matplotlib.axes.Axes as ``axis`` input.
 
                 `axis` and `style` kwargs may depend on the plotter.
             axis: Arbitrary object passed to the plotter. If this object is provided,
