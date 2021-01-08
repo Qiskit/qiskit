@@ -832,7 +832,7 @@ class Schedule(abc.ABC):
                 This object format depends on the plotter. See plotters section for details.
             dt: Deprecated. This argument is used by the legacy pulse drawer.
             filename: Deprecated. This argument is used by the legacy pulse drawer.
-                To save output image, you can call `.savefig` method with
+                To save output image, you can call ``.savefig`` method with
                 returned Matplotlib Figure object.
             interp_method: Deprecated. This argument is used by the legacy pulse drawer.
             scale: Deprecated. This argument is used by the legacy pulse drawer.
