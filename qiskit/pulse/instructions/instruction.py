@@ -92,17 +92,6 @@ class Instruction(ABC):
         return self._name
 
     @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
-
-    @property
     def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this instruction."""
         return id(self)

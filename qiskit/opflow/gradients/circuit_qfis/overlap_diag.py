@@ -223,6 +223,9 @@ def _get_generators(params, circuit):
             continue
         assert len(instr.params) == 1, "Circuit was not properly decomposed"
         param_value = instr.params[0]
+        if not isinstance(param_value, ParameterExpression):
+            continue
+
         for param in params:
             if param in param_value.parameters:
 
