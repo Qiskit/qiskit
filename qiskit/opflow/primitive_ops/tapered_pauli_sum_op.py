@@ -26,7 +26,7 @@ class TaperedPauliSumOp(PauliSumOp):
     def __init__(
             self,
             primitive: SparsePauliOp,
-            z2_symmetries: Optional[Z2Symmetries],
+            z2_symmetries: Z2Symmetries,
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
     ) -> None:
         """
