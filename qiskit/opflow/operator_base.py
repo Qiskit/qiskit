@@ -16,8 +16,7 @@ from typing import Set, Union, Dict, Optional, List, cast, Tuple
 from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
-from scipy.sparse import spmatrix
-
+from scipy.sparse import spmatrix, csr_matrix
 
 from qiskit.utils import aqua_globals
 from qiskit.circuit import ParameterExpression, ParameterVector
@@ -120,7 +119,6 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def to_spmatrix(self) -> spmatrix:
         r""" Return SciPy sparse matrix representation of the Operator. Represents the evaluation of
         the Operator's underlying function on every combination of basis binary strings.
@@ -128,7 +126,7 @@ class OperatorBase(ABC):
         Returns:
               The SciPy ``spmatrix`` equivalent to this Operator.
         """
-        raise NotImplementedError
+        return csr_matrix(self.to_matrix())
 
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
