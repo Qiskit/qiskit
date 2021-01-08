@@ -87,8 +87,8 @@ class Pulse(ABC):
             backend: Backend object to play the input pulse program. If provided, the plotter
                 may use to make the visualization hardware aware.
             time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
-            time_unit: The unit of specified time range either `dt` or `ns`.
-                The unit of `ns` is available only when `backend` object is provided.
+            time_unit: The unit of specified time range either ``dt`` or ``ns``.
+                The unit of ``ns`` is available only when ``backend`` object is provided.
             show_waveform_info: A control property to show annotations, i.e. name, of waveforms.
                 Set `True` to show additional information about waveforms.
             plotter: Name of plotter API to generate an output image.
