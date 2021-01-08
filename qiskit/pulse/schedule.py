@@ -878,10 +878,10 @@ class Schedule(abc.ABC):
 
         if active_legacy_args:
             warnings.warn('Legacy pulse drawer is deprecated. '
-                          'Specified arguments {} are all deprecated too. '
+                          'Specified arguments {dep_args} are all deprecated too. '
                           'Please check the API document of new pulse drawer '
-                          '`qiskit.visualization.pulse_drawer_v2`.',
-                          ''.format(', '.join(active_legacy_args)),
+                          '`qiskit.visualization.pulse_drawer_v2`.'
+                          ''.format(dep_args=', '.join(active_legacy_args)),
                           DeprecationWarning)
 
         if filename:
