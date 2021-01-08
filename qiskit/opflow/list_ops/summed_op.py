@@ -13,7 +13,6 @@
 """ SummedOp Class """
 
 from typing import List, Union, cast
-import warnings
 
 import numpy as np
 
