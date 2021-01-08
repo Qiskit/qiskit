@@ -815,8 +815,7 @@ class Schedule(abc.ABC):
             disable_channels: A control property to show specific pulse channel.
                 Pulse channel instances provided as a list are not shown in the output image.
             show_snapshot: Show snapshot instructions.
-            show_framechange: A control property to show frame change symbols.
-                Set `True` to show frame change instructions. The frame change represents
+            show_framechange: Show frame change instructions. The frame change represents
                 instructions that modulate phase or frequency of pulse channels.
             show_waveform_info: A control property to show annotations, i.e. name, of waveforms.
                 Set `True` to show additional information about waveforms.
