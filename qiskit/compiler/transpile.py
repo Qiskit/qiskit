@@ -402,6 +402,9 @@ def _parse_transpile_args(circuits, backend,
 
     Returns:
         list[dicts]: a list of transpile parameters.
+
+    Raises:
+        TranspilerError: If instruction_durations are required but not supplied or found.
     """
     if initial_layout is not None and layout_method is not None:
         warnings.warn("initial_layout provided; layout_method is ignored.",
