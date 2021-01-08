@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Remove legacy operator in :mod:`qiskit.opflow.legacy`.
+  - |
+    Add a missing :meth:`qiskit.opflow.operator_base.OperatorBase.to_spmatrix`.
