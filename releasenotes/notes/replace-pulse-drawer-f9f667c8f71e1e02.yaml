@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    New pulse drawer :func:`qiskit.visualization.pulse_drawer_v2` is released.
+    The new pulse drawer :func:`qiskit.visualization.pulse_drawer_v2` is now released.
     This drawer supports multiple new features:
 
     * Truncation of long pulse instructions
