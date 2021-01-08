@@ -148,10 +148,7 @@ class Z2Symmetries:
         Returns:
             Empty or not
         """
-        if self._symmetries != [] and self._sq_paulis != [] and self._sq_list != []:
-            return False
-        else:
-            return True
+        return self._symmetries == [] or self._sq_paulis == [] or self._sq_list == []
 
     @classmethod
     def find_Z2_symmetries(  # pylint: disable=invalid-name
