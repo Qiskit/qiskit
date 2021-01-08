@@ -818,8 +818,7 @@ class Schedule(abc.ABC):
             show_framechange: Show frame change instructions. The frame change represents
                 instructions that modulate phase or frequency of pulse channels.
             show_waveform_info: Show additional information about waveforms such as their name.
-            show_barrier: A control property to show barriers.
-                Set `True` to show barrier lines.
+            show_barrier: Show barrier lines.
             plotter: Name of plotter API to generate an output image.
                 One of following APIs should be specified::
 
