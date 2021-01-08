@@ -7,7 +7,7 @@ upgrade:
     * Truncation of long pulse instructions.
     * Visualization of parametric pulses.
     * New stylesheets ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``.
-    * Visualization of system info (channel frequency, etc...) by specifying ``backend`` object.
+    * Visualization of system info (channel frequency, etc...) by specifying ``backend`` objects for visualization.
     * Specifying ``axis`` object to create complex image data, i.e. for publication.
 
     New stylesheets can take callback functions that dynamically modify the apperance of
