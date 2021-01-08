@@ -13,7 +13,7 @@
 """ Z2 Symmetry Tapering Converter Class """
 
 import logging
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Tuple, Union, cast
 
 from qiskit.quantum_info import Pauli
 
@@ -85,11 +85,11 @@ class TwoQubitReduction(ConverterBase):
             pauli_str = ["I"] * num_qubits
 
             pauli_str[idx] = "Z"
-            z_sym = Pauli.from_label("".join(pauli_str)[::-1])
+            z_sym = Pauli("".join(pauli_str)[::-1])
             symmetries.append(z_sym)
 
             pauli_str[idx] = "X"
-            sq_pauli = Pauli.from_label("".join(pauli_str)[::-1])
+            sq_pauli = Pauli("".join(pauli_str)[::-1])
             sq_paulis.append(sq_pauli)
 
         z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, self._tapering_values)
