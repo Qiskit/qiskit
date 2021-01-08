@@ -828,7 +828,7 @@ class Schedule(abc.ABC):
 
                 ``axis`` and ``style`` kwargs may depend on the plotter.
             axis: Arbitrary object passed to the plotter. If this object is provided,
-                the plotters uses given `axis` instead of internally initializing a figure object.
+                the plotters use a given ``axis`` instead of internally initializing a figure object.
                 This object format depends on the plotter. See plotters section for details.
             dt: Deprecated. This argument is used by the legacy pulse drawer.
             filename: Deprecated. This argument is used by the legacy pulse drawer.
