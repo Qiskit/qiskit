@@ -826,7 +826,7 @@ class Schedule(abc.ABC):
                         Matplotlib API to generate 2D image. Charts are placed along y axis with
                         vertical offset. This API takes matplotlib.axes.Axes as ``axis`` input.
 
-                `axis` and `style` kwargs may depend on the plotter.
+                ``axis`` and ``style`` kwargs may depend on the plotter.
             axis: Arbitrary object passed to the plotter. If this object is provided,
                 the plotters uses given `axis` instead of internally initializing a figure object.
                 This object format depends on the plotter. See plotters section for details.
