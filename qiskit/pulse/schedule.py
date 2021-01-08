@@ -814,8 +814,7 @@ class Schedule(abc.ABC):
                 The unit of `ns` is available only when `backend` object is provided.
             disable_channels: A control property to show specific pulse channel.
                 Pulse channel instances provided as a list are not shown in the output image.
-            show_snapshot: A control property to show snapshot symbols.
-                Set `True` to show snapshot instructions.
+            show_snapshot: Show snapshot instructions.
             show_framechange: A control property to show frame change symbols.
                 Set `True` to show frame change instructions. The frame change represents
                 instructions that modulate phase or frequency of pulse channels.
