@@ -26,14 +26,14 @@ class TaperedPauliSumOp(PauliSumOp):
     def __init__(
             self,
             primitive: SparsePauliOp,
+            z2_symmetries: Optional[Z2Symmetries],
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-            z2_symmetries: Optional[Z2Symmetries] = None
     ) -> None:
         """
         Args:
             primitive: The SparsePauliOp which defines the behavior of the underlying function.
-            coeff: A coefficient multiplying the primitive.
             z2_symmetries: Z2 symmetries which the Operator has.
+            coeff: A coefficient multiplying the primitive.
 
         Raises:
             TypeError: invalid parameters.

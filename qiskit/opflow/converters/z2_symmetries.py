@@ -315,7 +315,7 @@ class Z2Symmetries:
 
         # pylint: disable=cyclic-import
         from ..primitive_ops.tapered_pauli_sum_op import TaperedPauliSumOp
-        operator_out = TaperedPauliSumOp(spo, coeff=1, z2_symmetries=z2_symmetries).reduce(atol=0.0)
+        operator_out = TaperedPauliSumOp(spo, z2_symmetries).reduce(atol=0.0)
         return operator_out
 
     def consistent_tapering(self, operator: PauliSumOp) -> OperatorBase:
