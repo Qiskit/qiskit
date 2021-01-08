@@ -75,8 +75,9 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
             `axis` and `style` kwargs may depend on the plotter.
         axis: Arbitrary object passed to the plotter. If this object is provided,
-            the plotters uses given `axis` instead of internally initializing a figure object.
-            This object format depends on the plotter. See plotters section for details.
+            the plotters use a given ``axis`` instead of internally initializing
+            a figure object. This object format depends on the plotter.
+            See plotter argument for details.
 
     Returns:
         Visualization output data.
