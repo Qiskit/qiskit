@@ -353,7 +353,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
 
         You can partially customize a preset stylesheet when initializing it.
         .. code-block:: python
-            :emphasize-lines: 6
 
             my_style = {
                 'formatter.channel_scaling.drive': 5,
