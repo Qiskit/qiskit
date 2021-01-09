@@ -139,7 +139,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(100, 1, unit='ns')  # 450 [dt]
         qc.cx(0, 1)  # 1760 [dt]
         scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 2210)
+        self.assertEqual(scheduled.duration, 2082)
 
     def test_transpile_delay_circuit_without_backend(self):
         qc = QuantumCircuit(2)
@@ -225,7 +225,7 @@ class TestScheduledCircuit(QiskitTestCase):
                               backend=self.backend_with_dt,
                               scheduling_method='alap'
                               )
-        self.assertEqual(scheduled.duration, 2260)
+        self.assertEqual(scheduled.duration, 2132)
 
         # update durations
         durations = InstructionDurations.from_backend(self.backend_with_dt)
