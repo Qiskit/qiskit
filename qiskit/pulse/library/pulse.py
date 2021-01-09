@@ -134,7 +134,7 @@ class Pulse(ABC):
 
         if active_legacy_args:
             warnings.warn('Legacy pulse drawer is deprecated. '
-                          'Specified arguments {dep_args} are all deprecated too. '
+                          'Specified arguments {dep_args} are deprecated. '
                           'Please check the API document of new pulse drawer '
                           '`qiskit.visualization.pulse_drawer_v2`.'
                           ''.format(dep_args=', '.join(active_legacy_args)),
@@ -148,8 +148,8 @@ class Pulse(ABC):
 
         if isinstance(style, PulseStyle):
             style = None
-            warnings.warn('Legacy stylesheet is specified. This is just ignored in new drawer. '
-                          'Please check API document of this method.')
+            warnings.warn('Legacy stylesheet is specified. This is ignored in the new drawer. '
+                          'Please check the API documentation for this method.')
 
         return pulse_drawer_v2(program=self,
                                style=style,
