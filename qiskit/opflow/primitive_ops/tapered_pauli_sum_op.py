@@ -12,7 +12,7 @@
 
 """ TaperedPauliSumOp Class """
 
-from typing import List, Tuple, Union
+from typing import Union
 
 from qiskit.circuit import ParameterExpression
 from qiskit.quantum_info import SparsePauliOp
