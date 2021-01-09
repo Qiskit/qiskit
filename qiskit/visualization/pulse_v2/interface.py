@@ -360,7 +360,6 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
                 'formatter.channel_scaling.measure': 5
             }
             style = IQXStandard(**my_style)
-
             # draw
             draw(sched, style=style, backend=FakeAlmaden())
 
