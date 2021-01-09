@@ -734,7 +734,7 @@ class MCXGate(ControlledGate):
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
-        # The CXGate and CCXGate will be implemented for all modes of the MCX, and 
+        # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented if an MCXGrayCode, if the number of
         # control qubits matches this
         explicit = {
