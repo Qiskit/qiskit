@@ -18,9 +18,13 @@ from string import ascii_uppercase, ascii_lowercase
 import numpy as np
 from qiskit.exceptions import QiskitError
 
+# Single qubit gates supported by ``single_gate_params``.
+SINGLE_QUBIT_GATES = ('U', 'u1', 'u2', 'u3', 'rz', 'sx', 'x')
 
 def single_gate_params(gate, params=None):
     """Apply a single qubit gate to the qubit.
+
+    Supported gates are defined in ``SINGLE_QUBIT_GATES``.
 
     Args:
         gate(str): the single qubit gate name
@@ -31,13 +35,19 @@ def single_gate_params(gate, params=None):
         QiskitError: if the gate name is not valid
     """
     if gate in ('U', 'u3'):
-        return params[0], params[1], params[2]
+        return params[0], params[1], params[2], 0
     elif gate == 'u2':
-        return np.pi / 2, params[0], params[1]
+        return np.pi / 2, params[0], params[1], 0
     elif gate == 'u1':
-        return 0, 0, params[0]
+        return 0, 0, params[0], 0
+    elif gate == 'rz':
+        return 0, 0, params[0], - params[0] / 2
     elif gate == 'id':
-        return 0, 0, 0
+        return 0, 0, 0, 0
+    elif gate == 'sx':
+        return np.pi / 2, 7 * np.pi / 2, np.pi / 2, np.pi / 4
+    elif gate == 'x':
+        return np.pi, 7 * np.pi / 2, np.pi / 2, np.pi / 2
     raise QiskitError('Gate is not among the valid types: %s' % gate)
 
 
@@ -53,9 +63,9 @@ def single_gate_matrix(gate, params=None):
 
     # Converting sym to floats improves the performance of the simulator 10x.
     # This a is a probable a FIXME since it might show bugs in the simulator.
-    (theta, phi, lam) = map(float, single_gate_params(gate, params))
+    (theta, phi, lam, gphase) = map(float, single_gate_params(gate, params))
 
-    return np.array([[np.cos(theta / 2),
+    return np.exp(1j * gphase) * np.array([[np.cos(theta / 2),
                       -np.exp(1j * lam) * np.sin(theta / 2)],
                      [np.exp(1j * phi) * np.sin(theta / 2),
                       np.exp(1j * phi + 1j * lam) * np.cos(theta / 2)]])
