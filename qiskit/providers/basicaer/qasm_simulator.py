@@ -68,7 +68,7 @@ class QasmSimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'rz', 'sx', 'cx', 'id', 'unitary'],
+        'basis_gates': ['u1', 'u2', 'u3', 'rz', 'sx', 'x', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',

@@ -584,8 +584,6 @@ class TestControlledGate(QiskitTestCase):
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
 
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
-                if not matrix_equal(simulated, expected):
-                    import pdb;pdb.set_trace()
                 self.assertTrue(matrix_equal(simulated, expected))
 
     def test_mcry_defaults_to_vchain(self):
