@@ -325,9 +325,14 @@ class Instruction:
                                        params=self.params.copy())
 
         else:
+            if getattr(self, 'label', None) is None:
+                label = None
+            else:
+                label = self.label + '_dg'  # pylint: disable=no-member
             inverse_gate = Gate(name=self.name + '_dg',
                                 num_qubits=self.num_qubits,
-                                params=self.params.copy())
+                                params=self.params.copy(),
+                                label=label)
 
         inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
