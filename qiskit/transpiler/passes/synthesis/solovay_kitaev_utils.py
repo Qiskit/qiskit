@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing transpiler synthesis passes."""
+"""Algebra utilities and the ``GateSequence`` class."""
 
-from .unitary_synthesis import UnitarySynthesis
-from .solovay_kitaev import SolovayKitaevDecomposition
+class GateSequence():
+    pass
+
+# algebra function

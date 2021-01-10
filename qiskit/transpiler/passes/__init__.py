@@ -175,6 +175,7 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+from .synthesis import SolovayKitaevDecomposition
 
 # circuit scheduling
 from .scheduling import ALAPSchedule
