@@ -55,6 +55,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -106,7 +107,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout_1 = CSPLayout(coupling_map, call_limit=10000, time_limit=60)
+    _choose_layout_1 = [] if pass_manager_config.layout_method \
+        else CSPLayout(coupling_map, call_limit=10000, time_limit=60)
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -136,6 +138,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=6)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='decay', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for methods which sample continuous functions."""
-import warnings
+""" QAOA packages """
 
-from qiskit.pulse.library.samplers.decorators import left, right, midpoint
-warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
-              DeprecationWarning, stacklevel=2)
+from .qaoa import QAOA
+
+
+__all__ = ['QAOA']

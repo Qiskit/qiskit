@@ -16,7 +16,6 @@ from copy import deepcopy
 from typing import List, Union, Optional, Tuple
 
 import numpy as np
-from qiskit.exceptions import AquaError
 from qiskit.circuit import Gate, Qubit
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
                             ParameterExpression)
@@ -28,6 +27,7 @@ from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb
 from ..derivative_base import DerivativeBase
+from ...exceptions import OpflowError
 from .circuit_qfi import CircuitQFI
 
 
@@ -55,7 +55,7 @@ class LinCombFull(CircuitQFI):
             element :math:`k, l` of the QFI.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            OpflowError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is an unsupported type.
         """
 
@@ -388,7 +388,7 @@ class LinCombFull(CircuitQFI):
             The trimmed circuit.
 
         Raises:
-            AquaError: If the reference gate is not part of the given circuit.
+            OpflowError: If the reference gate is not part of the given circuit.
         """
         parameterized_gates = []
         for _, elements in circuit._parameter_table.items():
@@ -401,4 +401,4 @@ class LinCombFull(CircuitQFI):
                 trimmed_circuit.data = circuit.data[:i]
                 return trimmed_circuit
 
-        raise AquaError('The reference gate is not in the given quantum circuit.')
+        raise OpflowError('The reference gate is not in the given quantum circuit.')
