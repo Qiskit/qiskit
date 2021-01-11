@@ -28,7 +28,6 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel import Choi, SuperOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.measures import state_fidelity
-from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 try:
     import cvxpy
@@ -107,7 +106,7 @@ def process_fidelity(channel,
     for label, chan in [('Input', channel), ('Target', target)]:
         if chan is not None and require_cp:
             cp_cond = _cp_condition(chan)
-            neg = cp_cond < -ATOL_DEFAULT
+            neg = cp_cond < -1 * chan.atol
             if np.any(neg):
                 logger.warning(
                     '%s channel is not CP. Choi-matrix has negative eigenvalues: %s',
@@ -115,7 +114,7 @@ def process_fidelity(channel,
         if chan is not None and require_tp:
             tp_cond = _tp_condition(chan)
             non_zero = np.logical_not(np.isclose(
-                tp_cond, 0, atol=ATOL_DEFAULT, rtol=RTOL_DEFAULT))
+                tp_cond, 0, atol=chan.atol, rtol=chan.rtol))
             if np.any(non_zero):
                 logger.warning(
                     '%s channel is not TP. Tr_2[Choi] - I has non-zero eigenvalues: %s',
