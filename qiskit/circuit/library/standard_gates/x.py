@@ -728,23 +728,19 @@ class C4XGate(ControlledGate):
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
-    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None, _name=None):
+    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
         """Create a new MCX instance.
 
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
-        # the C3XGate and C4XGate will be implemented if an MCXGrayCode, if the number of
-        # control qubits matches this
+        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {
             1: CXGate,
-            2: CCXGate,
-            3: C3XGate,
-            4: C4XGate
+            2: CCXGate
         }
-        if num_ctrl_qubits in explicit.keys() and (num_ctrl_qubits < 3 or
-                                                   _name == 'mcx_gray'):
+        if num_ctrl_qubits in explicit.keys():
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
             # if __new__ does not return the same type as cls, init is not called
@@ -818,11 +814,23 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
-
-    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None, _name='mcx_gray'):
-        """Create a new MCXGrayCode instance."""
-        return super().__new__(cls, num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state, _name=_name)
+    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
+        """Create a new MCXGrayCode instance
+        """
+        # if 1 to 4 control qubits, create explicit gates
+        explicit = {
+            1: CXGate,
+            2: CCXGate,
+            3: C3XGate,
+            4: C4XGate
+        }
+        if num_ctrl_qubits in explicit.keys():
+            gate_class = explicit[num_ctrl_qubits]
+            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
+            # if __new__ does not return the same type as cls, init is not called
+            gate.__init__(label=label, ctrl_state=ctrl_state)
+            return gate
+        return super().__new__(cls)
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')
