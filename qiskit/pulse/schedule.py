@@ -789,7 +789,7 @@ class Schedule(abc.ABC):
              channels: Any = None,  # deprecated
              show_framechange_channels: Any = None,  # deprecated
              draw_title: Any = None,  # deprecated
-             backend = None,
+             backend=None,
              time_range: Optional[Tuple[int, int]] = None,
              time_unit: str = 'dt',
              disable_channels: Optional[List[Channel]] = None,

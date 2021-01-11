@@ -69,7 +69,7 @@ class Pulse(ABC):
              scale: Any = None,  # deprecated
              interactive: Any = None,  # deprecated
              draw_title: Any = None,  # deprecated
-             backend = None,
+             backend=None,
              time_range: Optional[Tuple[int, int]] = None,
              time_unit: str = 'dt',
              show_waveform_info: bool = True,
