@@ -34,3 +34,5 @@ Qiskit Terra API Reference
    utils
    validation
    visualization
+   opflow
+   algorithms
