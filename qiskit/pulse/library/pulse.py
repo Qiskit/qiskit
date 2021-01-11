@@ -69,7 +69,7 @@ class Pulse(ABC):
              scale: Any = None,  # deprecated
              interactive: Any = None,  # deprecated
              draw_title: Any = None,  # deprecated
-             backend: Optional['BaseBackend'] = None,
+             backend = None,
              time_range: Optional[Tuple[int, int]] = None,
              time_unit: str = 'dt',
              show_waveform_info: bool = True,
@@ -83,8 +83,8 @@ class Pulse(ABC):
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
                 preset stylesheets.
-            backend: Backend object to play the input pulse program. If provided, the plotter
-                may use to make the visualization hardware aware.
+            backend (Optional[BaseBackend]): Backend object to play the input pulse program.
+                If provided, the plotter may use to make the visualization hardware aware.
             time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
             time_unit: The unit of specified time range either ``dt`` or ``ns``.
                 The unit of ``ns`` is available only when ``backend`` object is provided.
