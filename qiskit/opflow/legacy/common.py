@@ -248,7 +248,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
         barrier (bool, optional): whether or not add barrier for every slice
 
     Returns:
-        Instruction: The Instruction corresponding to specified evolution.
+        qiskit.circuit.Instruction: The Instruction corresponding to specified evolution.
 
     Raises:
         OpflowError: power must be an integer and greater or equal to 1
