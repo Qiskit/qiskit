@@ -228,7 +228,8 @@ class PauliOp(PrimitiveOp):
                     y_factor = np.product(np.sqrt(1 - 2 * np.logical_and(corrected_x_bits,
                                                                          corrected_z_bits) + 0j))
                     new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)
-                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff)
+                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff *
+                                        (-1j) ** self.primitive.phase)
 
             elif isinstance(front, StateFn) and front.is_measurement:
                 raise ValueError('Operator composed with a measurement is undefined.')
