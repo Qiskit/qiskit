@@ -5,9 +5,8 @@ feature:
     :meth:`qiskit.pulse.Schedule.draw` have been updated to show a plot title.
     The title is automatically generated from the
     :class:`~qiskit.pulse.Schedule` instance's ``name`` property.
-    The fontsize is controllable with the pulse drawer style sheet. For example:
-
-    .. jupyter-execute::
+    The fontsize is controllable with the pulse drawer style sheet. For
+    example::
 
       from qiskit.pulse import pulse_lib
       from qiskit.pulse.schedule import Schedule
