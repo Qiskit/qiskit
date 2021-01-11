@@ -63,6 +63,8 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """ Test eval of ComposedOp """
         self.assertAlmostEqual(Minus.eval('1'), -.5 ** .5)
 
+    def test_xz_compose_phase(self):
+        """ Test phase composition """
         self.assertEqual((-1j * Y).eval('0').eval('0'), 0)
         self.assertEqual((-1j * Y).eval('0').eval('1'), 1)
         self.assertEqual((-1j * Y).eval('1').eval('0'), -1)
