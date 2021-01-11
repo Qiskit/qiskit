@@ -133,6 +133,9 @@ class ChannelEvents:
         # parse instructions
         for t0, inst in program.filter(channels=[channel]).instructions:
             if isinstance(inst, cls._waveform_group):
+                if inst.duration == 0:
+                    # special case, duration of delay can be zero
+                    continue
                 waveforms[t0] = inst
             elif isinstance(inst, cls._frame_group):
                 frames[t0].append(inst)
