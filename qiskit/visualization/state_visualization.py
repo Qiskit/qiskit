@@ -643,7 +643,8 @@ def phase_to_rgb(complex_number):
 
 @deprecate_arguments({'rho': 'state'})
 def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=False, use_degrees=False, *, rho=None):
+                       show_state_phases=False, use_degrees=False, *, rho=None,
+                       show_all_state_labels=False):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -662,6 +663,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
+        show_all_state_labels (bool): An optional boolean indicating whether to
+            show labels for all basis states.
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
@@ -791,6 +794,22 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                     alfa = 1.0 - yvalue
 
                 if not np.isclose(prob, 0) and show_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = '$\\vert' + element + '\\rangle$'
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        if use_degrees:
+                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
+                            element_text += '\n$%s$' % (element_angle)
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                            ha='center', va='center', size=12)
+                elif show_all_state_labels:
                     rprime = 1.3
                     angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
