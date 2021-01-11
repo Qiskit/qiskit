@@ -104,29 +104,6 @@ class CircuitSampler(ConverterBase):
                              'backend, not {}.'.format(self.quantum_instance.backend))
 
     @property
-    def backend(self) -> Union[Backend, BaseBackend]:
-        """ Returns the backend.
-
-        Returns:
-             The backend used by the CircuitSampler
-        """
-        return self.quantum_instance.backend
-
-    @backend.setter
-    def backend(self, backend: Union[Backend, BaseBackend]):
-        """ Sets backend without additional configuration. """
-        self.set_backend(backend)
-
-    def set_backend(self, backend: Union[Backend, BaseBackend], **kwargs) -> None:
-        """ Sets backend with configuration.
-
-        Raises:
-            ValueError: statevector or param_qobj are True when not supported by backend.
-        """
-        self.quantum_instance = QuantumInstance(backend)
-        self.quantum_instance.set_config(**kwargs)
-
-    @property
     def quantum_instance(self) -> QuantumInstance:
         """ Returns the quantum instance.
 
