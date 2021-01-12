@@ -50,8 +50,6 @@ from the multiprocessing library.
 
 import os
 from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
-import time
 import sys
 
 from qiskit.exceptions import QiskitError
