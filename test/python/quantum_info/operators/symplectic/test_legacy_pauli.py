@@ -18,7 +18,8 @@ import unittest
 from copy import deepcopy
 import numpy as np
 
-from qiskit.quantum_info import Pauli, pauli_group
+from qiskit.quantum_info.operators import Pauli
+from qiskit.quantum_info import pauli_group
 from qiskit.test import QiskitTestCase
 
 
@@ -150,11 +151,6 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(self.ref_p.to_label(), 'IZXY')
         self.assertEqual(len(self.ref_p), 4)
 
-    def test_repr(self):
-        """Test __repr__."""
-        p = repr(self.ref_p)
-        self.assertEqual(p, "Pauli(z=[True, False, True, False], x=[True, True, False, False])")
-
     def test_random_pauli(self):
         """Test random pauli creation."""
         length = 4
@@ -172,7 +168,7 @@ class TestPauli(QiskitTestCase):
         p2 = Pauli.from_label('ZXXI')
         p3 = p1 * p2
         self.assertEqual(len(p3), 4)
-        self.assertEqual(p3.to_label(), 'ZYIY')
+        self.assertEqual(p3[:].to_label(), 'ZYIY')
 
     def test_imul(self):
         """Test in-place multiplication."""
@@ -181,7 +177,7 @@ class TestPauli(QiskitTestCase):
         p3 = deepcopy(p2)
         p2 *= p1
         self.assertTrue(p2 != p3)
-        self.assertEqual(p2.to_label(), 'ZYIY')
+        self.assertEqual(p2[:].to_label(), 'ZYIY')
 
     def test_equality_equal(self):
         """Test equality operator: equal Paulis."""
@@ -321,7 +317,7 @@ class TestPauli(QiskitTestCase):
     def test_kron(self):
         """Test kron production."""
         p1 = deepcopy(self.ref_p)
-        p2 = self.ref_p
+        p2 = deepcopy(self.ref_p)
         p2.kron(p1)
         self.assertTrue(p1 != p2)
         self.assertEqual(len(p2), 8)

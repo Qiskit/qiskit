@@ -20,8 +20,8 @@ from scipy import sparse
 from qiskit.result import Result
 from qiskit.circuit import ParameterExpression
 from qiskit.utils import aqua_globals
-from qiskit.exceptions import AquaError
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from .state_fn import StateFn
 from ..list_ops.list_op import ListOp
@@ -112,7 +112,7 @@ class DictStateFn(StateFn):
     def permute(self, permutation: List[int]) -> 'DictStateFn':
         new_num_qubits = max(permutation) + 1
         if self.num_qubits != len(permutation):
-            raise AquaError("New index must be defined for each qubit of the operator.")
+            raise OpflowError("New index must be defined for each qubit of the operator.")
 
         # helper function to permute the key
         def perm(key):

@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
 from qiskit.circuit import Parameter, ParameterExpression
 
-from qiskit.exceptions import AquaError
+from ..exceptions import OpflowError
 
 logger = logging.getLogger(__name__)
 
@@ -248,15 +248,15 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
         barrier (bool, optional): whether or not add barrier for every slice
 
     Returns:
-        Instruction: The Instruction corresponding to specified evolution.
+        qiskit.circuit.Instruction: The Instruction corresponding to specified evolution.
 
     Raises:
-        AquaError: power must be an integer and greater or equal to 1
+        OpflowError: power must be an integer and greater or equal to 1
         ValueError: Unrecognized pauli
     """
 
     if not isinstance(power, (int, np.int)) or power < 1:
-        raise AquaError("power must be an integer and greater or equal to 1.")
+        raise OpflowError("power must be an integer and greater or equal to 1.")
 
     state_registers = QuantumRegister(pauli_list[0][1].num_qubits)
     if controlled:
