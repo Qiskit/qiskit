@@ -20,6 +20,7 @@ from qiskit.transpiler.passes import XY4
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
 
+
 class TestXY4(QiskitTestCase):
     """Test the XY4 DD pass."""
 
@@ -82,7 +83,7 @@ class TestXY4(QiskitTestCase):
         expected.h(0)
         expected.delay(leftover_delay / 2, 0, unit='s')
 
-        for _ in range(2):
+        for i in range(2):
             expected.u3(np.pi, 0, np.pi, 0)
             expected.delay(inter_gate_delay, 0, unit='s')
             expected.u3(np.pi, np.pi / 2, np.pi / 2, 0)
@@ -90,7 +91,8 @@ class TestXY4(QiskitTestCase):
             expected.u3(np.pi, 0, np.pi, 0)
             expected.delay(inter_gate_delay, 0, unit='s')
             expected.u3(np.pi, np.pi / 2, np.pi / 2, 0)
-            expected.delay(inter_gate_delay, 0, unit='s')
+            if i < 1:
+                expected.delay(inter_gate_delay, 0, unit='s')
 
         expected.delay(leftover_delay / 2, 0, unit='s')
         expected.h(0)
@@ -98,8 +100,8 @@ class TestXY4(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_xy4_not_first(self):
-        """Test that the pass replaces large enough delay blocks with XY4 DD sequences except 
-        for the first delay block.
+        """Test that the pass replaces large enough delay blocks with XY4 DD
+        sequences except for the first delay block.
         """
         delay_len = 400e-9
         inter_gate_delay = 10e-9
