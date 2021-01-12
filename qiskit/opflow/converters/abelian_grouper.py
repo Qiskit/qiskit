@@ -19,6 +19,7 @@ import numpy as np
 import retworkx as rx
 
 from .converter_base import ConverterBase
+from ..evolutions.evolved_op import EvolvedOp
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..operator_base import OperatorBase
@@ -59,9 +60,6 @@ class AbelianGrouper(ConverterBase):
         Returns:
             The converted Operator.
         """
-        # pylint: disable=cyclic-import,import-outside-toplevel
-        from ..evolutions.evolved_op import EvolvedOp
-
         # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
             operator = operator.to_pauli_op()
@@ -81,18 +79,14 @@ class AbelianGrouper(ConverterBase):
                                    coeff=operator.coeff)
         elif isinstance(operator, EvolvedOp) and self._traverse:
             return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)  # type: ignore
-        else:
-            return operator
+        return operator
 
     @classmethod
-    def group_subops(cls, list_op: ListOp, fast: Optional[bool] = None,
-                     use_nx: Optional[bool] = None) -> ListOp:
+    def group_subops(cls, list_op: ListOp) -> ListOp:
         """Given a ListOp, attempt to group into Abelian ListOps of the same type.
 
         Args:
             list_op: The Operator to group into Abelian groups
-            fast: Ignored - parameter will be removed in future release
-            use_nx: Ignored - parameter will be removed in future release
 
         Returns:
             The grouped Operator.
@@ -100,11 +94,6 @@ class AbelianGrouper(ConverterBase):
         Raises:
             OpflowError: If any of list_op's sub-ops is not ``PauliOp``.
         """
-        if fast is not None or use_nx is not None:
-            warnings.warn('Options `fast` and `use_nx` of `AbelianGrouper.group_subops` are '
-                          'no longer used and are now deprecated and will be removed no '
-                          'sooner than 3 months following the 0.8.0 release.')
-
         # TODO: implement direct way
         if isinstance(list_op, PauliSumOp):
             list_op = list_op.to_pauli_op()
