@@ -12,8 +12,7 @@
 
 """AbelianGrouper Class"""
 
-import warnings
-from typing import List, Tuple, Dict, cast, Optional
+from typing import cast, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import retworkx as rx
@@ -60,9 +59,8 @@ class AbelianGrouper(ConverterBase):
         Returns:
             The converted Operator.
         """
-        # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
+            return self.group_subops(operator)
 
         if isinstance(operator, ListOp):
             if isinstance(operator, SummedOp) and all(isinstance(op, PauliOp)
@@ -71,8 +69,6 @@ class AbelianGrouper(ConverterBase):
                 return self.group_subops(operator)
             elif self._traverse:
                 return operator.traverse(self.convert)
-            else:
-                return operator
         elif isinstance(operator, OperatorStateFn) and self._traverse:
             return OperatorStateFn(self.convert(operator.primitive),
                                    is_measurement=operator.is_measurement,
@@ -82,7 +78,7 @@ class AbelianGrouper(ConverterBase):
         return operator
 
     @classmethod
-    def group_subops(cls, list_op: ListOp) -> ListOp:
+    def group_subops(cls, list_op: Union[ListOp, PauliSumOp]) -> ListOp:
         """Given a ListOp, attempt to group into Abelian ListOps of the same type.
 
         Args:
@@ -94,17 +90,14 @@ class AbelianGrouper(ConverterBase):
         Raises:
             OpflowError: If any of list_op's sub-ops is not ``PauliOp``.
         """
-        # TODO: implement direct way
-        if isinstance(list_op, PauliSumOp):
-            list_op = list_op.to_pauli_op()
+        if isinstance(list_op, ListOp):
+            for op in list_op.oplist:
+                if not isinstance(op, PauliOp):
+                    raise OpflowError(
+                        'Cannot determine Abelian groups if any Operator in list_op is not '
+                        f'`PauliOp`. E.g., {op} ({type(op)})')
 
-        for op in list_op.oplist:
-            if not isinstance(op, PauliOp):
-                raise OpflowError(
-                    'Cannot determine Abelian groups if any Operator in list_op is not '
-                    '`PauliOp`. E.g., {} ({})'.format(op, type(op)))
-
-        edges = cls._commutation_graph(list_op)
+        edges = cls._anti_commutation_graph(list_op)
         nodes = range(len(list_op))
 
         graph = rx.PyGraph()
@@ -118,26 +111,36 @@ class AbelianGrouper(ConverterBase):
         for idx, color in sorted(coloring_dict.items()):
             groups.setdefault(color, []).append(list_op[idx])
 
+        if isinstance(list_op, PauliSumOp):
+            return SummedOp([sum(group) for group in groups.values()])
+
         group_ops = [list_op.__class__(group, abelian=True) for group in groups.values()]
         if len(group_ops) == 1:
             return group_ops[0] * list_op.coeff  # type: ignore
         return list_op.__class__(group_ops, coeff=list_op.coeff)  # type: ignore
 
     @staticmethod
-    def _commutation_graph(list_op: ListOp) -> List[Tuple[int, int]]:
+    def _anti_commutation_graph(ops: Union[ListOp, PauliSumOp]) -> List[Tuple[int, int]]:
         """Create edges (i, j) if i and j are not commutable.
 
         Note:
             This method is applicable to only PauliOps.
 
         Args:
-            list_op: list_op
+            operators
 
         Returns:
             A list of pairs of indices of the operators that are not commutable
         """
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
-        mat1 = np.array([op.primitive.z + 2 * op.primitive.x for op in list_op], dtype=np.int8)
+        if isinstance(ops, PauliSumOp):
+            mat1 = np.array(
+                [op.primitive.table.Z[0] + 2 * op.primitive.table.X[0] for op in ops],
+                dtype=np.int8,
+            )
+        else:
+            mat1 = np.array([op.primitive.z + 2 * op.primitive.x for op in ops], dtype=np.int8)
+
         mat2 = mat1[:, None]
         # mat3[i, j] is True if i and j are commutable with TPB
         mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)

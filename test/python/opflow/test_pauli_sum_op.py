@@ -164,7 +164,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ eval test """
         target0 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval("000")
         target1 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval(Zero ^ 3)
-        expected = DictStateFn({"011": (2 + 3j)})
+        expected = DictStateFn({"011": (3 + 2j)})
         self.assertEqual(target0, expected)
         self.assertEqual(target1, expected)
 

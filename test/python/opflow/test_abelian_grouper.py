@@ -47,7 +47,9 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         self.assertEqual(len(grouped_sum.oplist), num_groups)
         for group in grouped_sum:
             for op_1, op_2 in combinations(group, 2):
-                self.assertTrue(op_1.commutes(op_2))
+                self.assertTrue((op_1 @ op_2 - op_1 @ op_2).reduce().primitive.coeffs[0] == 0)
+                # uncomment after #5537
+                # self.assertTrue(commutator(op_1, op_2).is_zero())
 
     def test_ablian_grouper_no_commute(self):
         """Abelian grouper test when non-PauliOp is given"""
@@ -61,17 +63,20 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         grouped_sum = AbelianGrouper.group_subops(paulis)
         with self.subTest('test group subops 1'):
             self.assertEqual(len(grouped_sum), 2)
-            self.assertListEqual([str(op.primitive) for op in grouped_sum[0]], ['IX', 'XX'])
-            self.assertListEqual([op.coeff for op in grouped_sum[0]], [1, 2])
-            self.assertListEqual([str(op.primitive) for op in grouped_sum[1]], ['ZY'])
-            self.assertListEqual([op.coeff for op in grouped_sum[1]], [3])
+            self.assertListEqual([op[0] for op in grouped_sum[0].primitive.to_list()], ['IX', 'XX'])
+            self.assertListEqual([op[1] for op in grouped_sum[0].primitive.to_list()], [1, 2])
+            self.assertListEqual([op[0] for op in grouped_sum[1].primitive.to_list()], ['ZY'])
+            self.assertListEqual([op[1] for op in grouped_sum[1].primitive.to_list()], [3])
 
         paulis = X + (2 * Y) + (3 * Z)
         grouped_sum = AbelianGrouper.group_subops(paulis)
         with self.subTest('test group subops 2'):
             self.assertEqual(len(grouped_sum), 3)
-            self.assertListEqual([str(op[0].primitive) for op in grouped_sum], ['X', 'Y', 'Z'])
-            self.assertListEqual([op[0].coeff for op in grouped_sum], [1, 2, 3])
+            self.assertListEqual(
+                [op.primitive.to_list()[0][0] for op in grouped_sum],
+                ['X', 'Y', 'Z']
+            )
+            self.assertListEqual([op.primitive.coeffs[0] for op in grouped_sum], [1, 2, 3])
 
     def test_abelian_grouper_random(self):
         """Abelian grouper test with random paulis"""
@@ -89,7 +94,9 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
             grouped_sum = AbelianGrouper().convert(sum(paulis))
             for group in grouped_sum:
                 for op_1, op_2 in combinations(group, 2):
-                    self.assertTrue(op_1.commutes(op_2))
+                    self.assertTrue((op_1 @ op_2 - op_1 @ op_2).reduce().primitive.coeffs[0] == 0)
+                    # uncomment after #5537
+                    # self.assertTrue(commutator(op_1, op_2).is_zero())
 
 
 if __name__ == '__main__':
