@@ -60,7 +60,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             evaluation_schedule: If a list, the powers applied to the Grover operator. The list
                 element must be non-negative. If a non-negative integer, an exponential schedule is
                 used where the highest power is 2 to the integer minus 1:
-                `[id, Q^2^0, ..., Q^2^(evaluation_schedule-1)].
+                `[id, Q^2^0, ..., Q^2^(evaluation_schedule-1)]`.
             minimizer: A minimizer used to find the minimum of the likelihood function.
                 Defaults to a brute search where the number of evaluation points is determined
                 according to ``evaluation_schedule``. The minimizer takes a function as first
