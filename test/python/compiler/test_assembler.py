@@ -19,7 +19,7 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Gate, Parameter
+from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
@@ -229,6 +229,30 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])
         self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
+
+    def test_assemble_unroll_parametervector(self):
+        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        pv1 = ParameterVector('pv1', 3)
+        pv2 = ParameterVector('pv2', 3)
+        qc = QuantumCircuit(2, 2)
+        for i in range(3):
+            qc.rx(pv1[i], 0)
+            qc.ry(pv2[i], 1)
+        qc.barrier()
+        qc.measure([0, 1], [0, 1])
+
+        qc.bind_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
+
+        qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 0.100000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 0.400000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[2].params[0], 0.200000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[3].params[0], 0.500000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 0.300000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[5].params[0], 0.600000000000000)
 
     def test_measure_to_registers_when_conditionals(self):
         """Verify assemble_circuits maps all measure ops on to a register slot
