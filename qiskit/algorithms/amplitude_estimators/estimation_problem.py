@@ -111,7 +111,8 @@ class EstimationProblem:
         """Set the post processing function.
 
         Args:
-            post_processing: A handle to the post processing function.
+            post_processing: A handle to the post processing function. If set to ``None``, the
+                identity will be used as post processing.
         """
         self._post_processing = post_processing
 
@@ -133,6 +134,7 @@ class EstimationProblem:
 
         Args:
             is_good_state: A function to determine whether a bitstring represents a good state.
+                If set to ``None``, the good state will be defined as all bits being one.
         """
         self._is_good_state = is_good_state
 
@@ -150,32 +152,30 @@ class EstimationProblem:
         if self._grover_operator is not None:
             return self._grover_operator
 
-        if self.state_preparation is not None and isinstance(self.objective_qubits, list):
-            # build the reflection about the bad state: a MCZ with open controls (thus X gates
-            # around the controls) and X gates around the target to change from a phaseflip on
-            # |1> to a phaseflip on |0>
-            num_state_qubits = self.state_preparation.num_qubits \
-                - self.state_preparation.num_ancillas
+        # build the reflection about the bad state: a MCZ with open controls (thus X gates
+        # around the controls) and X gates around the target to change from a phaseflip on
+        # |1> to a phaseflip on |0>
+        num_state_qubits = self.state_preparation.num_qubits \
+            - self.state_preparation.num_ancillas
 
-            oracle = QuantumCircuit(num_state_qubits)
-            oracle.h(self.objective_qubits[-1])
-            if len(self.objective_qubits) == 1:
-                oracle.x(self.objective_qubits[0])
-            else:
-                oracle.mcx(self.objective_qubits[:-1], self.objective_qubits[-1])
-            oracle.h(self.objective_qubits[-1])
+        oracle = QuantumCircuit(num_state_qubits)
+        oracle.h(self.objective_qubits[-1])
+        if len(self.objective_qubits) == 1:
+            oracle.x(self.objective_qubits[0])
+        else:
+            oracle.mcx(self.objective_qubits[:-1], self.objective_qubits[-1])
+        oracle.h(self.objective_qubits[-1])
 
-            # construct the grover operator
-            return GroverOperator(oracle, self.state_preparation)
-
-        return None
+        # construct the grover operator
+        return GroverOperator(oracle, self.state_preparation)
 
     @grover_operator.setter
-    def grover_operator(self, grover_operator: QuantumCircuit) -> None:
+    def grover_operator(self, grover_operator: Optional[QuantumCircuit]) -> None:
         r"""Set the :math:`\mathcal{Q}` operator.
 
         Args:
-            grover_operator: The new :math:`\mathcal{Q}` operator.
+            grover_operator: The new :math:`\mathcal{Q}` operator. If set to ``None``,
+                the default construction via ``qiskit.circuit.library.GroverOperator`` is used.
         """
         self._grover_operator = grover_operator
 
