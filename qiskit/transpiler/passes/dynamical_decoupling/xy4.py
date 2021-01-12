@@ -52,6 +52,20 @@ class XY4(TransformationPass):
             self._initialize_cycle_time(qubit)
         return self._cycle_times[qubit]
 
+    def unrolled_sequence(self, qubit, gate):
+        """The X or Y gate unrolled into the basis.
+
+        Args:
+            qubit (int): The qubit unrolling for.
+            gate (str): Must be either 'X' or 'Y'.
+        """
+        if qubit not in self._unrolled_sequence:
+            self._initialize_cycle_time(qubit)
+        if gate == 'X':
+            return self._unrolled_sequence[qubit][0]
+        elif gate == 'Y':
+            return self._unrolled_sequence[qubit][1]
+
     def _initialize_cycle_time(self, qubit):
         """Update the time, in seconds, of one XY4 sequence::
 
@@ -127,12 +141,12 @@ class XY4(TransformationPass):
 
             for i in range(2*num_sequences):
                 # X
-                for basis_node in self._unrolled_sequence[qubit][0].topological_op_nodes():
+                for basis_node in self.unrolled_sequence(qubit, 'X').topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 # tau step
                 new_dag.apply_operation_back(Delay(self.tau_step, unit='s'), qargs=node.qargs)
                 # Y
-                for basis_node in self._unrolled_sequence[qubit][1].topological_op_nodes():
+                for basis_node in self.unrolled_sequence(qubit, 'Y').topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 # tau step
                 if i != 2*num_sequences - 1:
