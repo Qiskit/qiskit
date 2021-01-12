@@ -15,6 +15,8 @@
 """
 matplotlib pulse visualization.
 """
+import warnings
+
 from typing import Union, Callable, List, Dict, Tuple
 
 from qiskit.pulse import Schedule, Instruction, Waveform
@@ -46,7 +48,9 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
                  channels: List[Channel] = None,
                  show_framechange_channels: bool = True,
                  draw_title: bool = False):
-    """Plot the interpolated envelope of pulse and schedule.
+    """Deprecated.
+
+    Plot the interpolated envelope of pulse and schedule.
 
     Args:
         data: Pulse or schedule object to plot.
@@ -143,6 +147,13 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
         VisualizationError: when invalid data is given
         ImportError: when matplotlib is not installed
     """
+    warnings.warn('This legacy pulse drawer is deprecated and will be removed no earlier than '
+                  '3 months after the release date. Use `qiskit.visualization.pulse_drawer_v2` '
+                  'instead. After the legacy drawer is removed, the import path of this module '
+                  'will be dedicated to the v2 drawer. '
+                  'New drawer will provide much more flexibility with richer stylesheets '
+                  'and cleaner visualization.', DeprecationWarning)
+
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, Waveform):
