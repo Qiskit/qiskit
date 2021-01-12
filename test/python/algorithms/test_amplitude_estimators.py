@@ -43,22 +43,6 @@ class BernoulliGrover(QuantumCircuit):
         self.angle = 2 * np.arcsin(np.sqrt(probability))
         self.ry(2 * self.angle, 0)
 
-        # # oracle
-        # self.x(0)
-        # self.z(0)
-        # self.x(0)
-
-        # # A dagger
-        # self.ry(-self.angle, 0)
-
-        # # zero reflection
-        # self.x(0)
-        # self.z(0)
-        # self.x(0)
-
-        # # A
-        # self.ry(self.angle, 0)
-
     def power(self, power, matrix_power=False):
         if matrix_power:
             return super().power(power, True)
@@ -126,7 +110,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     def test_statevector(self, prob, qae, expect):
         """ statevector test """
         qae.quantum_instance = self._statevector
-        problem = EstimationProblem(BernoulliStateIn(prob), BernoulliGrover(prob), [0])
+        problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
         self.assertGreaterEqual(self._statevector.time_taken, 0.)
@@ -147,7 +131,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     def test_qasm(self, prob, shots, qae, expect):
         """ qasm test """
         qae.quantum_instance = self._qasm(shots)
-        problem = EstimationProblem(BernoulliStateIn(prob), BernoulliGrover(prob), [0])
+        problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
         for key, value in expect.items():
@@ -461,7 +445,7 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         prob = 0.8
         a_op = BernoulliStateIn(prob)
         q_op = BernoulliGrover(prob)
-        problem = EstimationProblem(a_op, q_op, objective_qubits=[0])
+        problem = EstimationProblem(a_op, objective_qubits=[0], grover_operator=q_op)
 
         # construct algo without rescaling
         backend = BasicAer.get_backend('statevector_simulator')
@@ -493,7 +477,8 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         q_op = GroverOperator(oracle, a_op, reflection_qubits=[0])
 
         # but we measure both qubits (hence both are objective qubits)
-        problem = EstimationProblem(a_op, q_op, objective_qubits=[0, 1],
+        problem = EstimationProblem(a_op, objective_qubits=[0, 1],
+                                    grover_operator=q_op,
                                     is_good_state=is_good_state)
 
         # construct algo

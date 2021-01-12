@@ -72,7 +72,10 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             ValueError: If the number of oracle circuits is smaller than 1.
         """
 
-        super().__init__(quantum_instance)
+        super().__init__()
+
+        # set quantum instance
+        self.quantum_instance = quantum_instance
 
         # get parameters
         if isinstance(evaluation_schedule, int):
@@ -96,6 +99,27 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             self._minimizer = default_minimizer
         else:
             self._minimizer = minimizer
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Get the quantum instance.
+
+        Returns:
+            The quantum instance used to run this algorithm.
+        """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """Set quantum instance.
+
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     def construct_circuits(self, estimation_problem: EstimationProblem,
                            measurement: bool = False) -> List[QuantumCircuit]:

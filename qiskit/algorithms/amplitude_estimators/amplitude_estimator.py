@@ -15,8 +15,6 @@
 from abc import abstractmethod
 from typing import Union, Optional, Dict, Callable, Tuple
 import numpy as np
-from qiskit.providers import BaseBackend, Backend
-from qiskit.utils import QuantumInstance
 
 from .estimation_problem import EstimationProblem
 from ..algorithm_result import AlgorithmResult
@@ -25,42 +23,13 @@ from ..algorithm_result import AlgorithmResult
 class AmplitudeEstimator:
     """The Amplitude Estimation interface."""
 
-    def __init__(self,
-                 quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None
-                 ) -> None:
-        """
-        Args:
-            quantum_instance: The quantum instance used to run this algorithm.
-        """
-        self.quantum_instance = quantum_instance
-
-    @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
-
-        Returns:
-            The quantum instance used to run this algorithm.
-        """
-        return self._quantum_instance
-
-    @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
-        """Set quantum instance.
-
-        Args:
-            quantum_instance: The quantum instance used to run this algorithm.
-        """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
-            quantum_instance = QuantumInstance(quantum_instance)
-        self._quantum_instance = quantum_instance
-
     @abstractmethod
     def estimate(self, estimation_problem: EstimationProblem) -> 'AmplitudeEstimatorResult':
         """Run the amplitude estimation algorithm.
 
         Args:
-            estimation_problem: An ``EstimationProblem`` describing
+            estimation_problem: An ``EstimationProblem`` containing all problem-relevant information
+                such as the state preparation and the objective qubits.
         """
         raise NotImplementedError
 

@@ -14,7 +14,6 @@
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
 from typing import Optional, Union, List, Tuple, Dict, cast
-import logging
 import numpy as np
 from scipy.stats import beta
 
@@ -25,8 +24,6 @@ from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
-
-logger = logging.getLogger(__name__)
 
 
 class IterativeAmplitudeEstimation(AmplitudeEstimator):
@@ -88,13 +85,37 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             raise ValueError('The confidence interval method must be chernoff or beta, but '
                              f'is {confint_method}.')
 
-        super().__init__(quantum_instance)
+        super().__init__()
+
+        # set quantum instance
+        self.quantum_instance = quantum_instance
 
         # store parameters
         self._epsilon = epsilon_target
         self._alpha = alpha
         self._min_ratio = min_ratio
         self._confint_method = confint_method
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Get the quantum instance.
+
+        Returns:
+            The quantum instance used to run this algorithm.
+        """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """Set quantum instance.
+
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     @property
     def epsilon_target(self) -> float:
@@ -238,10 +259,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             # sum over all amplitudes where the objective qubit is 1
             prob = 0
             for i, amplitude in enumerate(statevector):
-                # bitstr = ('{:0%db}' % num_qubits).format(i)[::-1]
-                # if problem.is_good_state(bitstr):
-
-                # probability = np.abs(amplitude) ** 2
                 # consider only state qubits and revert bit order
                 bitstr = bin(i)[2:].zfill(num_qubits)[-num_state_qubits:][::-1]
                 objectives = [bitstr[index] for index in problem.objective_qubits]

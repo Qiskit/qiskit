@@ -13,7 +13,6 @@
 """The Quantum Phase Estimation-based Amplitude Estimation algorithm."""
 
 from typing import Optional, Union, List, Tuple, Dict
-import logging
 from collections import OrderedDict
 import numpy as np
 from scipy.stats import chi2, norm
@@ -25,8 +24,6 @@ from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
-
-logger = logging.getLogger(__name__)
 
 
 class AmplitudeEstimation(AmplitudeEstimator):
@@ -67,7 +64,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             num_eval_qubits: The number of evaluation qubits.
             phase_estimation_circuit: The phase estimation circuit used to run the algorithm.
                 Defaults to the standard phase estimation circuit from the circuit library,
-                `qiskit.circuit.library.PhaseEstimation`.
+                `qiskit.circuit.library.PhaseEstimation` when None.
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
             quantum_instance: The backend (or `QuantumInstance`) to execute the circuits on.
@@ -78,7 +75,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
         if num_eval_qubits < 1:
             raise ValueError('The number of evaluation qubits must at least be 1.')
 
-        super().__init__(quantum_instance)
+        super().__init__()
+
+        # set quantum instance
+        self.quantum_instance = quantum_instance
 
         # get parameters
         self._m = num_eval_qubits  # pylint: disable=invalid-name
@@ -86,6 +86,27 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         self._iqft = iqft
         self._pec = phase_estimation_circuit
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Get the quantum instance.
+
+        Returns:
+            The quantum instance used to run this algorithm.
+        """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """Set quantum instance.
+
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     def construct_circuit(self,
                           estimation_problem: EstimationProblem,

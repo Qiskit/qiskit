@@ -30,9 +30,9 @@ class EstimationProblem:
     """
 
     def __init__(self,
-                 state_preparation: Optional[QuantumCircuit] = None,
+                 state_preparation: QuantumCircuit,
+                 objective_qubits: List[int],
                  grover_operator: Optional[QuantumCircuit] = None,
-                 objective_qubits: Optional[List[int]] = None,
                  post_processing: Optional[Callable[[float], float]] = None,
                  is_good_state: Optional[Callable[[str], bool]] = None,
                  ) -> None:
@@ -40,24 +40,26 @@ class EstimationProblem:
         Args:
             state_preparation: A circuit preparing the input state, referred to as
                 :math:`\mathcal{A}`.
-            grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
-                phase estimation circuit.
             objective_qubits: A list of qubit indices to specify the oracle in the Grover operator,
                 if the Grover operator is not supplied. A measurement outcome is classified as
                 'good' state if all objective qubits are in state :math:`|1\rangle`, otherwise it
                 is classified as 'bad'.
+            grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
+                phase estimation circuit.
             post_processing: A mapping applied to the result of the algorithm
                 :math:`0 \leq a \leq 1`, usually used to map the estimate to a target interval.
-            is_good_state: A function to check whether a string represents a good state.
+                Defaults to the identity.
+            is_good_state: A function to check whether a string represents a good state. Defaults
+                to all objective qubits being in state 1.
         """
         self._state_preparation = state_preparation
-        self._grover_operator = grover_operator
         self._objective_qubits = objective_qubits
+        self._grover_operator = grover_operator
         self._post_processing = post_processing
         self._is_good_state = is_good_state
 
     @property
-    def state_preparation(self) -> QuantumCircuit:
+    def state_preparation(self) -> Optional[QuantumCircuit]:
         r"""Get the :math:`\mathcal{A}` operator encoding the amplitude :math:`a`.
 
         Returns:
@@ -75,6 +77,24 @@ class EstimationProblem:
         self._state_preparation = state_preparation
 
     @property
+    def objective_qubits(self) -> List[int]:
+        """Get the criterion for a measurement outcome to be in a 'good' state.
+
+        Returns:
+            The criterion as list of qubit indices.
+        """
+        return self._objective_qubits
+
+    @objective_qubits.setter
+    def objective_qubits(self, objective_qubits: List[int]) -> None:
+        """Set the criterion for a measurement outcome to be in a 'good' state.
+
+        Args:
+            objective_qubits: The criterion as callable of list of qubit indices.
+        """
+        self._objective_qubits = objective_qubits
+
+    @property
     def post_processing(self) -> Callable[[float], float]:
         """Apply post processing to the input value.
 
@@ -87,7 +107,7 @@ class EstimationProblem:
         return self._post_processing
 
     @post_processing.setter
-    def post_processing(self, post_processing: Callable[[float], float]) -> None:
+    def post_processing(self, post_processing: Optional[Callable[[float], float]]) -> None:
         """Set the post processing function.
 
         Args:
@@ -96,7 +116,7 @@ class EstimationProblem:
         self._post_processing = post_processing
 
     @property
-    def is_good_state(self) -> Callable[[str], float]:
+    def is_good_state(self) -> Callable[[str], bool]:
         """Checks whether a bitstring represents a good state.
 
         Returns:
@@ -104,15 +124,11 @@ class EstimationProblem:
         """
         if self._is_good_state is None:
             return lambda x: all(bit == '1' for bit in x)
-            # if self.objective_qubits is None:
-            #     raise ValueError('is_good_state can only be called if objective_qubits is set.')
-
-            # return lambda x: all(x[objective] == '1' for objective in self.objective_qubits)
 
         return self._is_good_state
 
     @is_good_state.setter
-    def is_good_state(self, is_good_state: Callable[[str], float]) -> None:
+    def is_good_state(self, is_good_state: Optional[Callable[[str], bool]]) -> None:
         """Set the ``is_good_state`` function.
 
         Args:
@@ -162,24 +178,6 @@ class EstimationProblem:
             grover_operator: The new :math:`\mathcal{Q}` operator.
         """
         self._grover_operator = grover_operator
-
-    @property
-    def objective_qubits(self) -> Optional[List[int]]:
-        """Get the criterion for a measurement outcome to be in a 'good' state.
-
-        Returns:
-            The criterion as list of qubit indices.
-        """
-        return self._objective_qubits
-
-    @objective_qubits.setter
-    def objective_qubits(self, objective_qubits: List[int]) -> None:
-        """Set the criterion for a measurement outcome to be in a 'good' state.
-
-        Args:
-            objective_qubits: The criterion as callable of list of qubit indices.
-        """
-        self._objective_qubits = objective_qubits
 
     def rescale(self, scaling_factor: float) -> 'EstimationProblem':
         """Rescale the good state amplitude in the estimation problem.

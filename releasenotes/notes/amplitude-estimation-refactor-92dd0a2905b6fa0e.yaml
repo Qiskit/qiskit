@@ -6,6 +6,7 @@ features:
     * ``AmplitudeEstimation`` (Brassard et al.)
     * ``MaximumLikelihoodAmplitudeEstimation`` (Suzuki et al.)
     * ``IterativeAmplitudeEstimation`` (Grinko et al.)
+    * ``FasterAmplitudeEstimation`` (Nakaji)
     are separated from the problem-specific information, such as the :math:`\mathcal{A}`
     and :math:`\mathcal{Q}` operators. This information is encapsulated in an
     ``EstimationProblem``. Each of the algorithms is thus re-usable for different problems and

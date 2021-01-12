@@ -48,6 +48,20 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+Amplitude Estimators
+++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   AmplitudeEstimator
+   AmplitudeEstimation
+   EstimationProblem
+   FasterAmplitudeEstimation
+   IterativeAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimation
+
 Eigensolvers
 ++++++++++++
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited

@@ -16,7 +16,7 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import BaseBackend
+from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
 
@@ -47,22 +47,51 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     def __init__(self,
                  delta: float,
-                 maxiter: Optional[int] = None,
+                 maxiter: int,
                  rescale: bool = True,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
+                 ) -> None:
         r"""
         Args:
             delta: The probability that the true value is outside of the final confidence interval.
             maxiter: The number of iterations, the maximal power of Q is `2 ** (maxiter - 1)`.
             rescale: Whether to rescale the problem passed to `estimate`.
             quantum_instance: The quantum instance or backend to run the circuits.
+
+        .. note::
+
+            This algorithm overwrites the number of shots set in the ``quantum_instance``
+            argument, but will reset them to the initial number after running.
+
         """
-        super().__init__(quantum_instance)
+        super().__init__()
+        self.quantum_instance = quantum_instance
         self._shots = (int(1944 * np.log(2 / delta)), int(972 * np.log(2 / delta)))
         self._rescale = rescale
         self._delta = delta
         self._maxiter = maxiter
         self._num_oracle_calls = 0
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Get the quantum instance.
+
+        Returns:
+            The quantum instance used to run this algorithm.
+        """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """Set quantum instance.
+
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     def _cos_estimate(self, estimation_problem, k, shots):
         if self._quantum_instance is None:
@@ -91,7 +120,6 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             counts = self._quantum_instance.execute(circuit).get_counts()
             self._num_oracle_calls += (2 * k + 1) * shots
 
-            # TODO add good state handling
             good_counts = 0
             for state, count in counts.items():
                 if estimation_problem.is_good_state(state):
@@ -150,6 +178,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     def estimate(self, estimation_problem: EstimationProblem) -> 'FasterAmplitudeEstimationResult':
         self._num_oracle_calls = 0
+        user_defined_shots = self.quantum_instance._run_config.shots
 
         if self._rescale:
             problem = estimation_problem.rescale(0.25)
@@ -219,6 +248,8 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
                                                      for x in value_ci)
         result.theta_intervals = theta_cis
 
+        # reset shots to what the user had defined
+        self.quantum_instance._run_config.shots = user_defined_shots
         return result
 
 
