@@ -192,14 +192,14 @@ For example, a minimum working example would be something like::
     from qiskit.providers import Options
 
 
-    class MVbackend(Backend):
+    class Mybackend(Backend):
 
         configuration = {
             'backend_name': 'my_backend',
             'backend_version': '1.0.0',
             'n_qubits': 5,
             'basis_gates': ['p', 'sx', 'u', 'cx', 'id'],
-            'coupling_map': [[0, 1], [1, 2], [2, 3], [3. 4]],
+            'coupling_map': [[0, 1], [1, 2], [2, 3], [3, 4]],
             'simulator': False,
             'local': False,
             'conditional': True,
@@ -226,7 +226,7 @@ For example, a minimum working example would be something like::
                         "Option %s is not used by this backend" % kwarg,
                         UserWarning, stacklevel=2)
             options = {
-                'shots': kwargs.get('shots', self.options.shots)
+                'shots': kwargs.get('shots', self.options.shots),
                 'memory': kwargs.get('memory', self.options.shots),
             }
             job_json = convert_to_wire_format(circuit, options)
