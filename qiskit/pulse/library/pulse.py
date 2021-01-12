@@ -113,7 +113,6 @@ class Pulse(ABC):
 
         Returns:
             Visualization output data.
-
             The returned data type depends on the ``plotter``.
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """

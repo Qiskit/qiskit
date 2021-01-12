@@ -800,6 +800,7 @@ class Schedule(abc.ABC):
              plotter: str = 'mpl2d',
              axis: Optional[Any] = None):
         """Plot the schedule.
+
         Args:
             style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
                 :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
@@ -849,7 +850,6 @@ class Schedule(abc.ABC):
 
         Returns:
             Visualization output data.
-
             The returned data type depends on the ``plotter``.
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
