@@ -13,8 +13,6 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-import warnings
-
 from typing import List, Optional
 
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
@@ -114,27 +112,6 @@ class Acquire(Instruction):
         fast-feedback computation.
         """
         return self.operands[3]
-
-    @property
-    def acquires(self) -> List[AcquireChannel]:
-        """Acquire channels to be acquired on."""
-        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
-                      DeprecationWarning)
-        return [self.channel]
-
-    @property
-    def mem_slots(self) -> List[MemorySlot]:
-        """MemorySlots."""
-        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.mem_slot]
-
-    @property
-    def reg_slots(self) -> List[RegisterSlot]:
-        """RegisterSlots."""
-        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
-                      DeprecationWarning)
-        return [self.reg_slot]
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(

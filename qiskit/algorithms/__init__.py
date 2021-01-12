@@ -103,7 +103,7 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   AlgorithmnError
+   AlgorithmError
 """
 
 from .algorithm_result import AlgorithmResult
