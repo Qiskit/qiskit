@@ -19,6 +19,14 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
+.. autosummary::
+
+    load
+    dump
+
+QPY Format
+==========
+
 The QPY serialization format is a a portable cross-platform binary
 serialization format for QuantumCircuit objects in Qiskit. The basic
 format for the file format is as follows:
@@ -525,6 +533,38 @@ def _write_custom_instruction(file_obj, name, instruction):
 def dump(file_obj, circuits):
     """Write QPY binary data to a file
 
+    This function is used to save a circuit to a file for later use or transfer
+    between machines. The output QPY file is forward compatible and can be loaded
+    with future versions of Qiskit. For example:
+
+    .. code-block:: python
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit import qpy_serialization
+
+        qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+    from this you can write the qpy data to a file:
+
+    .. code-block:: python
+
+        with open('bell.qpy', 'wb') as fd:
+            qpy_serialization.dump(fd, qc)
+
+    or a gzip compressed filed:
+
+    .. code-block:: python
+
+        import gzip
+
+        with gzip.open('bell.qpy.gz', 'wb') as fd:
+            qpy_serialization.dump(fd, qc)
+
+    Which will save the qpy serialized circuit to the provided file.
+
     Args:
         file_obj (file): The file like object to write the QPY data too
         circuits (list or QuantumCircuit): The quantum circuit object(s) to
@@ -583,6 +623,30 @@ def _write_circuit(file_obj, circuit):
 
 def load(file_obj):
     """Load a QPY binary file
+
+    This function is used to load a serialized QPY circuit file and create
+    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.circuit import qpy_serialization
+
+        with open('bell.qpy', 'rb') as fd:
+            circuits = qpy_serialization.load(fd)
+
+    or with a gzip compressed file:
+
+    .. code-block:: python
+
+        import gzip
+        from qiskit.circuit import qpy_serialization
+
+        with gzip.open('bell.qpy.gz', 'rb') as fd:
+            circuits = qpy_serialization.load(fd)
+
+    which will read the contents of the qpy and return a list of
+    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary
