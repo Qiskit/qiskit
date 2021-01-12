@@ -54,12 +54,12 @@ class Suzuki(TrotterizationBase):
         self._order = order
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
+        if not isinstance(operator, (SummedOp, PauliSumOp)):
+            raise TypeError('Trotterization converters can only convert SummedOps or PauliSumOp.')
+
         # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
             operator = operator.to_pauli_op()
-
-        if not isinstance(operator, (SummedOp, PauliSumOp)):
-            raise TypeError('Trotterization converters can only convert SummedOps or PauliSumOp.')
 
         composition_list = Suzuki._suzuki_recursive_expansion(
             cast(List[List[Union[complex, Pauli]]], operator.oplist),
