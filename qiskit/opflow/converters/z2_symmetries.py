@@ -156,9 +156,9 @@ class Z2Symmetries:
     ) -> 'Z2Symmetries':
         """
         Finds Z2 Pauli-type symmetries of an Operator.
+
         Returns:
-            a z2_symmetries object contains symmetries,
-            single-qubit X, single-qubit list.
+            a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
         """
         # pylint: disable=invalid-name
         pauli_symmetries = []
