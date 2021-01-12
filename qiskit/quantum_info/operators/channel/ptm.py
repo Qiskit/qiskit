@@ -16,6 +16,7 @@
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 """
 
+import copy
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -135,45 +136,26 @@ class PTM(QuantumChannel):
         return (self._output_dim, self._output_dim, self._input_dim,
                 self._input_dim)
 
+    def _evolve(self, state, qargs=None):
+        return SuperOp(self)._evolve(state, qargs)
+
+    # ---------------------------------------------------------------------
+    # BaseOperator methods
+    # ---------------------------------------------------------------------
+
     def conjugate(self):
-        """Return the conjugate of the QuantumChannel."""
         # Since conjugation is basis dependent we transform
         # to the SuperOp representation to compute the
         # conjugate channel
         return PTM(SuperOp(self).conjugate())
 
     def transpose(self):
-        """Return the transpose of the QuantumChannel."""
-        # Since conjugation is basis dependent we transform
-        # to the SuperOp representation to compute the
-        # conjugate channel
         return PTM(SuperOp(self).transpose())
 
-    def compose(self, other, qargs=None, front=False):
-        """Return the composed quantum channel self @ other.
+    def adjoint(self):
+        return PTM(SuperOp(self).adjoint())
 
-        Args:
-            other (QuantumChannel): a quantum channel.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            PTM: The quantum channel self @ other.
-
-        Raises:
-            QiskitError: if other has incompatible dimensions.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            :class:`SuperOp` matrices. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+    def _compose(self, other, qargs=None, front=False):
         if qargs is not None:
             return PTM(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -192,75 +174,13 @@ class PTM(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n):
-        """The matrix power of the channel.
-
-        Args:
-            n (int): compute the matrix power of the superoperator matrix.
-
-        Returns:
-            PTM: the matrix power of the SuperOp converted to a PTM channel.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-                         QuantumChannel are not equal, or the power is not
-                         an integer.
-        """
-        if n > 0:
-            return super().power(n)
-        return PTM(SuperOp(self).power(n))
-
-    def tensor(self, other):
-        """Return the tensor product channel self ⊗ other.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            PTM: the tensor product channel self ⊗ other as a PTM object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel.
-        """
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        input_dims = other.input_dims() + self.input_dims()
-        output_dims = other.output_dims() + self.output_dims()
-        data = np.kron(self._data, other.data)
-        return PTM(data, input_dims, output_dims)
-
-    def expand(self, other):
-        """Return the tensor product channel other ⊗ self.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-
-        Returns:
-            PTM: the tensor product channel other ⊗ self as a PTM object.
-
-        Raises:
-            QiskitError: if other cannot be converted to a channel.
-        """
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        input_dims = self.input_dims() + other.input_dims()
-        output_dims = self.output_dims() + other.output_dims()
-        data = np.kron(other.data, self._data)
-        return PTM(data, input_dims, output_dims)
-
-    def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the quantum channel.
-
-        Args:
-            state (DensityMatrix or Statevector): The input state.
-            qargs (list): a list of quantum state subsystem positions to apply
-                           the quantum channel on.
-
-        Returns:
-            DensityMatrix: the output quantum state as a density matrix.
-
-        Raises:
-            QiskitError: if the quantum channel dimension does not match the
-                         specified quantum state subsystem dimensions.
-        """
-        return SuperOp(self)._evolve(state, qargs)
+    @classmethod
+    def _tensor(cls, a, b):
+        if not isinstance(a, PTM):
+            a = PTM(a)
+        if not isinstance(b, PTM):
+            b = PTM(b)
+        ret = copy.copy(a)
+        ret._op_shape = a._op_shape.tensor(b._op_shape)
+        ret._data = np.kron(a._data, b.data)
+        return ret
