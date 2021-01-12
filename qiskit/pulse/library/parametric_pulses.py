@@ -37,7 +37,7 @@ by following the existing pattern:
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import math
 import numpy as np
@@ -120,31 +120,6 @@ class ParametricPulse(Pulse):
                     op_value = format_parameter_value(op_value.assign(parameter, value))
                 new_parameters[op] = op_value
         return type(self)(**new_parameters)
-
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             draw_title: bool = False):
-        """Plot the pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-            draw_title: Add a title to the plot when set to ``True``.
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        return self.get_waveform().draw(dt=dt, style=style, filename=filename,
-                                        interp_method=interp_method, scale=scale,
-                                        interactive=interactive, draw_title=draw_title)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
