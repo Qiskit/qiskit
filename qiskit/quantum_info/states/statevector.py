@@ -614,7 +614,7 @@ class Statevector(QuantumState, TolerancesMixin):
             return statevec
 
         # Get transpose axes
-        num_qargs = statevec._op_shape.num_qargs_l
+        num_qargs = statevec._op_shape.num_qargs[0]
         indices = [num_qargs - 1 - i for i in reversed(qargs)]
         axes = indices + [i for i in range(num_qargs) if i not in indices]
         axes_inv = np.argsort(axes).tolist()

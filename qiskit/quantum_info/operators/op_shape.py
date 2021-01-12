@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -102,16 +102,6 @@ class OpShape:
             if self._num_qargs_r and self._num_qargs_l != self._num_qargs_r:
                 return None
             return self._num_qargs_l
-        return self._num_qargs_r
-
-    @property
-    def num_qargs_l(self):
-        """Return the number of left qargs"""
-        return self._num_qargs_l
-
-    @property
-    def num_qargs_r(self):
-        """Return the number of right qargs"""
         return self._num_qargs_r
 
     @property
@@ -293,9 +283,9 @@ class OpShape:
             # Convert qargs to left and right qargs
             if qargs_l or qargs_r:
                 raise QiskitError("qargs cannot be specified with qargs_l or qargs_r")
-            if self.num_qargs_l:
+            if self._num_qargs_l:
                 qargs_l = qargs
-            if self.num_qargs_r:
+            if self._num_qargs_r:
                 qargs_r = qargs
 
         # Format integer qargs
@@ -305,10 +295,10 @@ class OpShape:
             qargs_r = (qargs_r, )
 
         # Validate qargs
-        if qargs_l and max(qargs_l) >= self.num_qargs_l:
+        if qargs_l and max(qargs_l) >= self._num_qargs_l:
             raise QiskitError("Max qargs_l is larger than number of left qargs")
 
-        if qargs_r and max(qargs_r) >= self.num_qargs_r:
+        if qargs_r and max(qargs_r) >= self._num_qargs_r:
             raise QiskitError("Max qargs_r is larger than number of right qargs")
 
         num_qargs_l = 0
@@ -335,9 +325,9 @@ class OpShape:
             # Convert qargs to left and right qargs
             if qargs_l or qargs_r:
                 raise QiskitError("qargs cannot be specified with qargs_l or qargs_r")
-            if self.num_qargs_l:
+            if self._num_qargs_l:
                 qargs_l = qargs
-            if self.num_qargs_r:
+            if self._num_qargs_r:
                 qargs_r = qargs
         if qargs_l is None and qargs_r is None:
             return self
@@ -349,142 +339,52 @@ class OpShape:
             qargs_r = (qargs_r, )
 
         # Validate qargs
-        if qargs_l and max(qargs_l) >= self.num_qargs_l:
+        if qargs_l and max(qargs_l) >= self._num_qargs_l:
             raise QiskitError("Max qargs_l is larger than number of left qargs")
 
-        if qargs_r and max(qargs_r) >= self.num_qargs_r:
+        if qargs_r and max(qargs_r) >= self._num_qargs_r:
             raise QiskitError("Max qargs_r is larger than number of right qargs")
 
         num_qargs_l = 0
         dims_l = None
         if qargs_l:
-            num_qargs_l = self.num_qargs_l - len(qargs_l)
+            num_qargs_l = self._num_qargs_l - len(qargs_l)
             if self._dims_l:
-                dims_l = self.dims_l(tuple(i for i in range(self.num_qargs_l)
+                dims_l = self.dims_l(tuple(i for i in range(self._num_qargs_l)
                                            if i not in qargs_l))
 
         num_qargs_r = 0
         dims_r = None
         if qargs_r:
-            num_qargs_r = self.num_qargs_r - len(qargs_r)
+            num_qargs_r = self._num_qargs_r - len(qargs_r)
             if self._dims_r:
-                dims_l = self.dims_r(tuple(i for i in range(self.num_qargs_r)
+                dims_l = self.dims_r(tuple(i for i in range(self._num_qargs_r)
                                            if i not in qargs_r))
 
         return OpShape(dims_l=dims_l, dims_r=dims_r,
                        num_qargs_l=num_qargs_l,
                        num_qargs_r=num_qargs_r)
 
-    def transpose(self, dims_l=None, dims_r=None):
-        """Return the transposed OpShape.
-
-        Subsystems are specified by their number for left subsystems
-        or their number plus num_qargs_l for right subsystems.
-
-        Args:
-            dims_l (tuple): Optional, the subsystem indices for the
-                            returned left dims.
-            dims_r (tuple): Optional, the subsystem indices for the
-                            returned right dims.
-
-        Returns:
-            OpShape: the transposed OpShape. If both dims_l and dims_r
-                     are None, this is the matrix transpose.
-
-        Raises:
-            QiskitError: If the number of subsystems is not preserved.
-        """
-        # Matrix transpose left and right qargs
-        if dims_l is None and dims_r is None:
-            ret = copy.copy(self)
-            ret._dims_l = self._dims_r
-            ret._dims_r = self._dims_l
-            ret._num_qargs_l = self._num_qargs_r
-            ret._num_qargs_r = self._num_qargs_l
-            return ret
-
-        # Tensor transpose
-        num_l = len(dims_l) if dims_l else 0
-        num_r = len(dims_r) if dims_r else 0
-
-        if num_l + num_r != self.num_qargs_l + self.num_qargs_r:
-            raise QiskitError('Total number of left and right dimensions must be constant.')
-
-        # Check if qubit shape
-        if not self._dims_l and not self._dims_r:
-            return OpShape(num_qargs_l=num_l, num_qargs_r=num_r)
-
-        # Get concatenated list of dimensions
-        dims = self.dims_l() + self.dims_r()
-
-        new_dims_l = tuple(dims(i) for i in dims_l)
-        if set(new_dims_l) == {2}:
-            new_dims_l = None
-
-        new_dims_r = tuple(dims(i) for i in dims_r)
-        if set(new_dims_r) == {2}:
-            new_dims_r = None
-
-        return OpShape(num_qargs_l=num_l, num_qargs_r=num_r,
-                       dims_l=new_dims_l, dims_r=new_dims_r)
-
-    def transpose_axes(self, dims_l=None, dims_r=None):
-        """Return the axes to transpose an array using numpy.transpose.
-
-        This handles conversion from subsystem number to array axes
-        for use with a numpy array transpose `axes` kwarg.
-
-        Args:
-            dims_l (tuple): Optional, the subsystem indices for the
-                            returned left dims.
-            dims_r (tuple): Optional, the subsystem indices for the
-                            returned right dims.
-
-        Returns:
-            tuple: the value for axes for numpy.transpose to transpose an
-                   array of shape OpShape.tensor_shape.
-
-        Raises:
-            QiskitError: If the number of subsystems is not preserved.
-        """
-        # Matrix transpose of tensor shape
-        if dims_l is None and dims_r is None:
-            axes_l = tuple(self.num_qargs_l + i for i in range(self.num_qargs_r))
-            axes_r = tuple(range(self.num_qargs_l))
-            return axes_l + axes_r
-
-        # Tensor transpose
-        dims = (dims_l if dims_l else tuple()) + (dims_r if dims_r else tuple())
-        num_total = self.num_qargs_l + self.num_qargs_r
-        if len(dims) != num_total:
-            raise QiskitError(
-                'Total number of left and right dimensions must be constant.')
-        if len(set(dims)) != num_total:
-            raise QiskitError('Duplicate dimension indices. Tranpose dimension'
-                              ' indices must be unique.')
-
-        # Remap subsystem index to tensor axes index
-        axes = tuple()
-        for i in dims:
-            if i < self.num_qargs_l:
-                idx = self.num_qargs_l - i
-            else:
-                idx = num_total + self.num_qargs_l - i
-            axes += (idx, )
-
-        return axes
+    def transpose(self):
+        """Return the transposed OpShape."""
+        ret = copy.copy(self)
+        ret._dims_l = self._dims_r
+        ret._dims_r = self._dims_l
+        ret._num_qargs_l = self._num_qargs_r
+        ret._num_qargs_r = self._num_qargs_l
+        return ret
 
     def tensor(self, other):
-        """Return the tensor product shape"""
+        """Return the tensor product OpShape"""
         return self._tensor(self, other)
 
     def expand(self, other):
-        """Return the expand product shape"""
+        """Return the expand product OpShape"""
         return self._tensor(other, self)
 
     @classmethod
     def _tensor(cls, a, b):
-        """Return the tensor product shape"""
+        """Return the tensor product OpShape"""
         if a._dims_l or b._dims_l:
             dims_l = b.dims_l() + a.dims_l()
             num_qargs_l = None
@@ -564,7 +464,7 @@ class OpShape:
         return ret
 
     def dot(self, other, qargs=None):
-        """Return the dot product operator shape"""
+        """Return the dot product operator OpShape"""
         return self.compose(other, qargs, front=True)
 
     def _validate_add(self, other, qargs=None):

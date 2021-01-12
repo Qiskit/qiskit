@@ -60,11 +60,10 @@ class BaseOperator:
         if len(qargs) == 1 and isinstance(qargs[0], (tuple, list)):
             qargs = qargs[0]
         n_qargs = len(qargs)
-        if n_qargs not in [self._op_shape.num_qargs_l, self._op_shape.num_qargs_r]:
+        if n_qargs not in self._op_shape.num_qargs:
             raise QiskitError(
-                "qargs does not match the number of operator qargs "
-                "({} not in [{}, {}])".format(
-                    n_qargs, self._op_shape.num_qargs_l, self._op_shape.num_qargs_r))
+                f"qargs does not match the number of operator qargs "
+                "({n_qargs} not in {self._op_shape.num_qargs})")
         ret = copy.copy(self)
         ret._qargs = tuple(qargs)
         return ret

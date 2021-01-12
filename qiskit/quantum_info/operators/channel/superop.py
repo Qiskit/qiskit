@@ -185,12 +185,13 @@ class SuperOp(QuantumChannel):
             return ret
 
         # Compute tensor contraction indices from qargs
+        num_qargs_l, num_qargs_r = self._op_shape.num_qargs
         if front:
-            num_indices = self._op_shape.num_qargs_r
-            shift = 2 * self._op_shape.num_qargs_l
+            num_indices = num_qargs_r
+            shift = 2 * num_qargs_l
             right_mul = True
         else:
-            num_indices = self._op_shape.num_qargs_l
+            num_indices = num_qargs_l
             shift = 0
             right_mul = False
 

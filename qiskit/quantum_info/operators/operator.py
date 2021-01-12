@@ -267,12 +267,13 @@ class Operator(BaseOperator, TolerancesMixin):
             return ret
 
         # Compose with other on subsystem
+        num_qargs_l, num_qargs_r = self._op_shape.num_qargs
         if front:
-            num_indices = self._op_shape.num_qargs_r
-            shift = self._op_shape.num_qargs_l
+            num_indices = num_qargs_r
+            shift = num_qargs_l
             right_mul = True
         else:
-            num_indices = self._op_shape.num_qargs_l
+            num_indices = num_qargs_l
             shift = 0
             right_mul = False
 
