@@ -12,9 +12,11 @@
 
 """The Estimation problem class."""
 
+import warnings
 from typing import Optional, List, Callable
+import numpy
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import GroverOperator
 
 
@@ -178,3 +180,79 @@ class EstimationProblem:
             objective_qubits: The criterion as callable of list of qubit indices.
         """
         self._objective_qubits = objective_qubits
+
+    def rescale(self, scaling_factor: float) -> 'EstimationProblem':
+        """Rescale the good state amplitude in the estimation problem.
+
+        Args:
+            scaling_factor: The scaling factor in [0, 1].
+
+        Returns:
+            A rescaled estimation problem.
+        """
+        if self._grover_operator is not None:
+            warnings.warn('Rescaling discards the Grover operator.')
+
+        # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
+        rescaled_stateprep = _rescale_amplitudes(self.state_preparation, scaling_factor)
+        num_qubits = self.state_preparation.num_qubits
+        objective_qubits = self.objective_qubits + [num_qubits]
+
+        # add the scaling qubit to the good state qualifier
+        def is_good_state(bitstr):
+            # pylint:disable=not-callable
+            return self.is_good_state(bitstr[1:]) and bitstr[0] == '1'
+
+        # rescaled estimation problem
+        problem = EstimationProblem(rescaled_stateprep,
+                                    objective_qubits=objective_qubits,
+                                    post_processing=self.post_processing,
+                                    is_good_state=is_good_state)
+
+        return problem
+
+
+def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> QuantumCircuit:
+    r"""Uses an auxiliary qubit to scale the amplitude of :math:`|1\rangle` by ``scaling_factor``.
+
+    Explained in Section 2.1. of [1].
+
+    For example, for a scaling factor of 0.25 this turns this circuit
+
+    .. code-block::
+
+                      ┌───┐
+        state_0: ─────┤ H ├─────────■────
+                  ┌───┴───┴───┐ ┌───┴───┐
+          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
+                  └───────────┘ └───────┘
+
+    into
+
+    .. code-block::
+
+                      ┌───┐
+        state_0: ─────┤ H ├─────────■────
+                  ┌───┴───┴───┐ ┌───┴───┐
+          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
+                 ┌┴───────────┴┐└───────┘
+      scaling_0: ┤ RY(0.50536) ├─────────
+                 └─────────────┘
+
+    References:
+
+        [1]: K. Nakaji. Faster Amplitude Estimation, 2020;
+            `arXiv:2002.02417 <https://arxiv.org/pdf/2003.02417.pdf>`_
+
+    Args:
+        circuit: The circuit whose amplitudes to rescale.
+        scaling_factor: The rescaling factor.
+
+    Returns:
+        A copy of the circuit with an additional qubit and RY gate for the rescaling.
+    """
+    qr = QuantumRegister(1, 'scaling')
+    rescaled = QuantumCircuit(*circuit.qregs, qr)
+    rescaled.compose(circuit, circuit.qubits, inplace=True)
+    rescaled.ry(2 * numpy.arcsin(scaling_factor), qr)
+    return rescaled

@@ -23,7 +23,6 @@ from qiskit.algorithms import (
     AmplitudeEstimation, MaximumLikelihoodAmplitudeEstimation, IterativeAmplitudeEstimation,
     FasterAmplitudeEstimation, EstimationProblem
 )
-from qiskit.algorithms.amplitude_estimators.fae import rescale_amplitudes
 from qiskit.quantum_info import Operator, Statevector
 
 
@@ -116,7 +115,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @idata([
         [0.2, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.2}],
         [0.49, AmplitudeEstimation(3), {'estimation': 0.5, 'mle': 0.49}],
-        [0.2, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.2}],
+        [0.2, MaximumLikelihoodAmplitudeEstimation([0, 1, 2]), {'estimation': 0.2}],
         [0.49, MaximumLikelihoodAmplitudeEstimation(3), {'estimation': 0.49}],
         [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {'estimation': 0.2}],
         [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {'estimation': 0.49}],
@@ -139,12 +138,12 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @idata([
         [0.2, 100, AmplitudeEstimation(4), {'estimation': 0.14644, 'mle': 0.193888}],
         [0.0, 1000, AmplitudeEstimation(2), {'estimation': 0.0, 'mle': 0.0}],
-        [0.2, 100, MaximumLikelihoodAmplitudeEstimation(4), {'estimation': 0.199606}],
+        [0.2, 100, MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]), {'estimation': 0.199606}],
         [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {'estimation': 0.811711}],
         [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {'estimation': 0.198640}],
         [0.12, 100, FasterAmplitudeEstimation(0.01, 3, rescale=False), {'estimation': 0.119037}],
     ])
-    @unpack
+    @ unpack
     def test_qasm(self, prob, shots, qae, expect):
         """ qasm test """
         qae.quantum_instance = self._qasm(shots)
@@ -155,7 +154,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))
 
-    @data(True, False)
+    @ data(True, False)
     def test_qae_circuit(self, efficient_circuit):
         """Test circuits resulting from canonical amplitude estimation.
 
@@ -205,7 +204,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
             self.assertEqual(Operator(circuit), Operator(actual_circuit))
 
-    @data(True, False)
+    @ data(True, False)
     def test_iqae_circuits(self, efficient_circuit):
         """Test circuits resulting from iterative amplitude estimation.
 
@@ -242,7 +241,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             actual_circuit = qae.construct_circuit(problem, k, measurement=False)
             self.assertEqual(Operator(circuit), Operator(actual_circuit))
 
-    @data(True, False)
+    @ data(True, False)
     def test_mlae_circuits(self, efficient_circuit):
         """ Test the circuits constructed for MLAE """
         prob = 0.5
@@ -290,7 +289,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 self.assertEqual(Operator(actual), Operator(expected))
 
 
-@ddt
+@ ddt
 class TestSineIntegral(QiskitAlgorithmsTestCase):
     """Tests based on the A operator to integrate sin^2(x).
 
@@ -312,13 +311,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         self._qasm = qasm
 
-    @idata([
+    @ idata([
         [2, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.270290}],
         [4, MaximumLikelihoodAmplitudeEstimation(4), {'estimation': 0.272675}],
         [3, IterativeAmplitudeEstimation(0.1, 0.1), {'estimation': 0.272082}],
         [3, FasterAmplitudeEstimation(0.01, 1), {'estimation': 0.272082}],
     ])
-    @unpack
+    @ unpack
     def test_statevector(self, n, qae, expect):
         """ Statevector end-to-end test """
         # construct factories for A and Q
@@ -334,13 +333,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))
 
-    @idata([
+    @ idata([
         [4, 10, AmplitudeEstimation(2), {'estimation': 0.5, 'mle': 0.333333}],
         [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {'estimation': 0.256878}],
         [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {'estimation': 0.271790}],
         [3, 1000, FasterAmplitudeEstimation(0.1, 4), {'estimation': 0.274168}],
     ])
-    @unpack
+    @ unpack
     def test_qasm(self, n, shots, qae, expect):
         """QASM simulator end-to-end test."""
         # construct factories for A and Q
@@ -352,7 +351,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(value, getattr(result, key), places=3,
                                    msg="estimate `{}` failed".format(key))
 
-    @idata([
+    @ idata([
         [AmplitudeEstimation(3), 'mle',
          {'likelihood_ratio': (0.2494734, 0.3003771),
           'fisher': (0.2486176, 0.2999286),
@@ -363,7 +362,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
           'fisher': (0.2584889, 0.2797018),
           'observed_fisher': (0.2659279, 0.2722627)}],
     ])
-    @unpack
+    @ unpack
     def test_confidence_intervals(self, qae, key, expect):
         """End-to-end test for all confidence intervals."""
         n = 3
@@ -417,7 +416,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         self.assertTrue(confint[0] <= result.estimation <= confint[1])
 
 
-@ddt
+@ ddt
 class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
     """Specific tests for Faster AE."""
 
@@ -427,9 +426,10 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         scaling = 0.25
         circuit = QuantumCircuit(1)
         circuit.ry(2 * np.arcsin(amplitude), 0)
+        problem = EstimationProblem(circuit, objective_qubits=[0])
 
-        rescaled = rescale_amplitudes(circuit, scaling_factor=scaling)
-        rescaled_amplitude = Statevector.from_instruction(rescaled).data[3]
+        rescaled = problem.rescale(scaling)
+        rescaled_amplitude = Statevector.from_instruction(rescaled.state_preparation).data[3]
 
         self.assertAlmostEqual(scaling * amplitude, rescaled_amplitude)
 
@@ -471,11 +471,11 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         with self.assertWarns(Warning):
             _ = fae.estimate(problem)
 
-    @data(
+    @ data(
         ('statevector_simulator', 0.2),
         ('qasm_simulator', 0.199440)
     )
-    @unpack
+    @ unpack
     def test_good_state(self, backend_str, expect):
         """Test with a good state function."""
         def is_good_state(bitstr):

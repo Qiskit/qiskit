@@ -13,10 +13,9 @@
 """Faster Amplitude Estimation."""
 
 from typing import Optional, Union, List, Tuple
-import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
@@ -149,43 +148,11 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    @staticmethod
-    def rescale_estimation_problem(estimation_problem: EstimationProblem, scaling_factor: float
-                                   ) -> EstimationProblem:
-        """Rescale the good state amplitude in the estimation problem.
-
-        Args:
-            estimation_problem: The input estimation problem.
-            scaling_factor: The scaling factor in [0, 1].
-
-        Returns:
-            A rescaled estimation problem.
-        """
-        if estimation_problem._grover_operator is not None:
-            warnings.warn('Rescaling automatic rescaling discards the Grover operator.')
-
-        a_op = estimation_problem.state_preparation
-
-        # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
-        a_op = rescale_amplitudes(a_op, scaling_factor)
-        objective_qubits = estimation_problem.objective_qubits + [a_op.num_qubits - 1]
-
-        # add the scaling qubit to the good state qualifier
-        def is_good_state(bitstr):
-            return estimation_problem.is_good_state(bitstr[1:]) and bitstr[0] == '1'
-
-        # rescaled estimation problem
-        problem = EstimationProblem(a_op, objective_qubits=objective_qubits,
-                                    post_processing=estimation_problem.post_processing,
-                                    is_good_state=is_good_state)
-
-        return problem
-
     def estimate(self, estimation_problem: EstimationProblem) -> 'FasterAmplitudeEstimationResult':
         self._num_oracle_calls = 0
 
         if self._rescale:
-            problem = self.rescale_estimation_problem(estimation_problem, 0.25)
+            problem = estimation_problem.rescale(0.25)
         else:
             problem = estimation_problem
 
@@ -253,52 +220,6 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.theta_intervals = theta_cis
 
         return result
-
-
-def rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> QuantumCircuit:
-    r"""Uses an auxiliary qubit to scale the amplitude of :math:`|1\rangle` by ``scaling_factor``.
-
-    Explained in Section 2.1. of [1].
-
-    For example, for a scaling factor of 0.25 this turns this circuit
-
-    .. code-block::
-
-                      ┌───┐
-        state_0: ─────┤ H ├─────────■────
-                  ┌───┴───┴───┐ ┌───┴───┐
-          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
-                  └───────────┘ └───────┘
-
-    into
-
-    .. code-block::
-
-                      ┌───┐
-        state_0: ─────┤ H ├─────────■────
-                  ┌───┴───┴───┐ ┌───┴───┐
-          obj_0: ─┤ RY(0.125) ├─┤ RY(1) ├
-                 ┌┴───────────┴┐└───────┘
-      scaling_0: ┤ RY(0.50536) ├─────────
-                 └─────────────┘
-
-    References:
-
-        [1]: K. Nakaji. Faster Amplitude Estimation, 2020;
-            `arXiv:2002.02417 <https://arxiv.org/pdf/2003.02417.pdf>`_
-
-    Args:
-        circuit: The circuit whose amplitudes to rescale.
-        scaling_factor: The rescaling factor.
-
-    Returns:
-        A copy of the circuit with an additional qubit and RY gate for the rescaling.
-    """
-    qr = QuantumRegister(1, 'scaling')
-    rescaled = QuantumCircuit(*circuit.qregs, qr)
-    rescaled.compose(circuit, circuit.qubits, inplace=True)
-    rescaled.ry(2 * np.arcsin(scaling_factor), qr)
-    return rescaled
 
 
 class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):

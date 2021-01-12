@@ -51,20 +51,19 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
              `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    def __init__(self, num_oracle_circuits: int,
+    def __init__(self, evaluation_schedule: Union[List[int], int],
                  minimizer: Optional[MINIMIZER] = None,
                  quantum_instance: Optional[
                      Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
         r"""
         Args:
-            num_oracle_circuits: The number of circuits applying different powers of the Grover
-                oracle Q. The (`num_oracle_circuits` + 1) executed circuits will be
-                `[id, Q^2^0, ..., Q^2^{num_oracle_circuits-1}] A |0>`, where A is the problem
-                unitary encoded in the argument `a_factory`.
-                Has a minimum value of 1.
+            evaluation_schedule: If a list, the powers applied to the Grover operator. The list
+                element must be non-negative. If a non-negative integer, an exponential schedule is
+                used where the highest power is 2 to the integer minus 1:
+                `[id, Q^2^0, ..., Q^2^(evaluation_schedule-1)].
             minimizer: A minimizer used to find the minimum of the likelihood function.
                 Defaults to a brute search where the number of evaluation points is determined
-                according to ``num_oracle_circuits``. The minimizer takes a function as first
+                according to ``evaluation_schedule``. The minimizer takes a function as first
                 argument and a list of (float, float) tuples (as bounds) as second argument and
                 returns a single float which is the found minimum.
             quantum_instance: Quantum Instance or Backend
@@ -72,18 +71,24 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         Raises:
             ValueError: If the number of oracle circuits is smaller than 1.
         """
-        if num_oracle_circuits < 1:
-            raise ValueError('The number of oracle circuits must at least be 1.')
 
         super().__init__(quantum_instance)
 
         # get parameters
-        self._num_oracle_circuits = num_oracle_circuits
-        self._evaluation_schedule = [0] + [2**j for j in range(num_oracle_circuits)]
+        if isinstance(evaluation_schedule, int):
+            if evaluation_schedule < 0:
+                raise ValueError('The evaluation schedule cannot be < 0.')
+
+            self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
+        else:
+            if any([value < 0 for value in evaluation_schedule]):
+                raise ValueError('The elements of the evaluation schedule cannot be < 0.')
+
+            self._evaluation_schedule = evaluation_schedule
 
         if minimizer is None:
             # default number of evaluations is max(10^5, pi/2 * 10^3 * 2^(m))
-            nevals = max(10000, int(np.pi / 2 * 1000 * 2 ** num_oracle_circuits))
+            nevals = max(10000, int(np.pi / 2 * 1000 * 2 * self._evaluation_schedule[-1]))
 
             def default_minimizer(objective_fn, bounds):
                 return brute(objective_fn, bounds, Ns=nevals)[0]
@@ -231,7 +236,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                  '(deprecated) must be set to run the algorithm.')
 
         result = MaximumLikelihoodAmplitudeEstimationResult()
-        result.num_oracle_circuits = self._num_oracle_circuits
+        result.evaluation_schedule = self._evaluation_schedule
         result.minimizer = self._minimizer
         result.evaluation_schedule = self._evaluation_schedule
         result.post_processing = estimation_problem.post_processing
@@ -290,22 +295,11 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_oracle_circuits = None
         self._theta = None
         self._minimizer = None
         self._good_counts = None
         self._evaluation_schedule = None
         self._fisher_information = None
-
-    @property
-    def num_oracle_circuits(self) -> int:
-        """Return the maximum number of oracle circuits used."""
-        return self._num_oracle_circuits
-
-    @num_oracle_circuits.setter
-    def num_oracle_circuits(self, value: int) -> None:
-        """Set the maximum number of oracle circuits used."""
-        self._num_oracle_circuits = value
 
     @property
     def theta(self) -> float:
@@ -472,7 +466,7 @@ def _likelihood_ratio_confint(result: MaximumLikelihoodAmplitudeEstimationResult
         The alpha-likelihood-ratio confidence interval.
     """
     if nevals is None:
-        nevals = max(10000, int(np.pi / 2 * 1000 * 2 ** result.num_oracle_circuits))
+        nevals = max(10000, int(np.pi / 2 * 1000 * 2 * result.evaluation_schedule[-1]))
 
     def loglikelihood(theta, one_counts, all_counts):
         loglik = 0
