@@ -33,7 +33,7 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
 
 
 class TestPauliSumOp(QiskitOpflowTestCase):
@@ -228,6 +228,30 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             + 0.18093119978423156 * (X ^ X)
         )
         self.assertEqual(target, expected)
+
+    def test_matrix_iter(self):
+        """Test PauliSumOp dense matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        table = PauliTable.from_labels(labels)
+        coeff = 10
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter()):
+            self.assertTrue(
+                np.array_equal(i, coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
+
+    def test_matrix_iter_sparse(self):
+        """Test PauliSumOp sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        coeff = 10
+        table = PauliTable.from_labels(labels)
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter(sparse=True)):
+            self.assertTrue(
+                np.array_equal(i.toarray(), coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
 
 
 if __name__ == "__main__":
