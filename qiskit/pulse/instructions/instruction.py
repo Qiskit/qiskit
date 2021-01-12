@@ -32,6 +32,7 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_parameter_value
 # pylint: disable=missing-return-doc
 
 
@@ -89,17 +90,6 @@ class Instruction(ABC):
     def name(self) -> str:
         """Name of this instruction."""
         return self._name
-
-    @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -275,7 +265,8 @@ class Instruction(ABC):
             value = value_dict[parameter]
             op_indices = self._parameter_table[parameter]
             for op_idx in op_indices:
-                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
+                param_expr = new_operands[op_idx]
+                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
 
             # Update parameter table
             entry = self._parameter_table.pop(parameter)

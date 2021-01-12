@@ -108,10 +108,14 @@ def _assemble_experiments(
             run_config,
             user_pulselib)
 
+        metadata = schedule.metadata
+        if metadata is None:
+            metadata = {}
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=schedule.name or 'Experiment-%d' % idx)
+            name=schedule.name or 'Experiment-%d' % idx,
+            metadata=metadata)
 
         experiment = qobj.PulseQobjExperiment(
             header=qobj_experiment_header,
@@ -196,10 +200,6 @@ def _assemble_instructions(
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
             # together into the Qobj as one instruction with many channels
             acquire_instruction_map[(time, instruction.duration)].append(instruction)
-            continue
-
-        if isinstance(instruction, (instructions.Delay, instructions.Directive)):
-            # delay instructions are ignored as timing is explicit within qobj
             continue
 
         qobj_instructions.append(instruction_converter(time, instruction))
