@@ -425,14 +425,11 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
-    durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     synthesis_fidelity = _parse_synthesis_fidelity(synthesis_fidelity, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
-
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, circuits)
     if scheduling_method and not durations:
@@ -682,20 +679,24 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
         durations.append(circ_durations)
     return durations
 
+
 def _parse_synthesis_fidelity(synthesis_fidelity, num_circuits):
     if not isinstance(synthesis_fidelity, list):
         synthesis_fidelity = [synthesis_fidelity] * num_circuits
     return synthesis_fidelity
+
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
     if not isinstance(seed_transpiler, list):
         seed_transpiler = [seed_transpiler] * num_circuits
     return seed_transpiler
 
+
 def _parse_optimization_level(optimization_level, num_circuits):
     if not isinstance(optimization_level, list):
         optimization_level = [optimization_level] * num_circuits
     return optimization_level
+
 
 def _parse_pass_manager(pass_manager, num_circuits):
     if not isinstance(pass_manager, list):

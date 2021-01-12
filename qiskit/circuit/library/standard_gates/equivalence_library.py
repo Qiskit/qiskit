@@ -61,7 +61,6 @@ from . import (
     YGate,
     CYGate,
     RYYGate,
-    RZXGate,
     ECRGate,
     ZGate,
     CZGate,

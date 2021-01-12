@@ -99,10 +99,9 @@ class ECRGate(Gate):
         self.definition = qc
 
     def to_matrix(self):
-       """Return a numpy.array for the ECR gate."""
-       return 1/np.sqrt(2) * \
-               np.array([[0   , 1   , 0    , 1.j],
-                         [1   , 0   , -1.j , 0  ],
-                         [0   , 1.j , 0    , 1  ],
-                         [-1.j, 0   , 1    , 0  ]],
-                        dtype=complex)
+        """Return a numpy.array for the ECR gate."""
+        return 1/np.sqrt(2) * \
+            np.array([[0, 1, 0, 1.j],
+                      [1, 0, -1.j, 0],
+                      [0, 1.j, 0, 1],
+                      [-1.j, 0, 1, 0]], dtype=complex)

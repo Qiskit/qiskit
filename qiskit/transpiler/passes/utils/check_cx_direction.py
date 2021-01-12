@@ -14,7 +14,6 @@
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.circuit.library.standard_gates.x import CXGate
 
 
 class CheckCXDirection(AnalysisPass):
