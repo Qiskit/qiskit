@@ -139,7 +139,7 @@ The code above applies the following gates:
 - ``QuantumCircuit.h(0)``: A Hadamard gate :math:`H` on qubit 0,
   which puts it into a **superposition state**.
 - ``QuantumCircuit.cx(0, 1)``: A controlled-Not operation
-  (:math:`C_{X}`) on control qubit 0 and target qubit 1, putting the qubits in
+  (:math:`CNOT`) on control qubit 0 and target qubit 1, putting the qubits in
   an **entangled state**.
 - ``QuantumCircuit.measure([0,1], [0,1])``: if you pass
   the entire quantum and classical registers to ``measure``, the ith qubit’s
