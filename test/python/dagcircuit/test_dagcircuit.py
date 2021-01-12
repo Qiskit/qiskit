@@ -24,6 +24,7 @@ from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
+from qiskit.circuit import Delay
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates.i import IGate
@@ -712,6 +713,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_1q_runs(self):
         """Test the collect_1q_runs method with 3 different gates."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0])
+        self.dag.apply_operation_back(Delay(100), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
@@ -736,6 +739,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_1q_runs_start_with_conditional(self):
         """Test collect 1q runs with a conditional at the start of the run."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0])
+        self.dag.apply_operation_back(Delay(100), [self.qubit0])
         h_gate = HGate()
         h_gate.condition = self.condition
         self.dag.apply_operation_back(
@@ -752,6 +757,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_1q_runs_conditional_in_middle(self):
         """Test collect_1q_runs with a conditional in the middle of a run."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0])
+        self.dag.apply_operation_back(Delay(100), [self.qubit0])
         h_gate = HGate()
         h_gate.condition = self.condition
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -769,6 +776,8 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_dag_collect_1q_runs_with_parameterized_gate(self):
         """Test collect 1q splits on parameterized gates."""
         theta = Parameter('theta')
+        self.dag.apply_operation_back(Reset(), [self.qubit0])
+        self.dag.apply_operation_back(Delay(100), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(theta), [self.qubit0])
@@ -783,6 +792,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_1q_runs_with_cx_in_middle(self):
         """Test collect_1q_runs_with a cx in the middle of the run."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0])
+        self.dag.apply_operation_back(Delay(100), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
