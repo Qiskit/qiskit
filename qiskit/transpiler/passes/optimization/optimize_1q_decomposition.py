@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.converters import circuit_to_dag
 
 LOG = logging.getLogger(__name__)
@@ -37,24 +37,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 and the Euler basis.
         """
         super().__init__()
-        self.euler_basis_names = {
-            'U3': ['u3'],
-            'U': ['u'],
-            'PSX': ['p', 'sx'],
-            'U1X': ['u1', 'rx'],
-            'RR': ['r'],
-            'ZYZ': ['rz', 'ry'],
-            'ZXZ': ['rz', 'rx'],
-            'XYX': ['rx', 'ry'],
-            'ZSX': ['rz', 'sx'],
-        }
         self.basis = None
         if basis:
             self.basis = []
             basis_set = set(basis)
-            for basis_name, gates in self.euler_basis_names.items():
+            for basis_name, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
                 if set(gates).issubset(basis_set):
-                    self.basis.append(OneQubitEulerDecomposer(basis_name))
+                    self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
