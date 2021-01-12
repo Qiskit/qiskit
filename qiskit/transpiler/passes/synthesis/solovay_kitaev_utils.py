@@ -12,7 +12,579 @@
 
 """Algebra utilities and the ``GateSequence`` class."""
 
+from typing import List, Optional, Tuple
+
+import numpy as np
+import math
+import scipy
+
+from qiskit.circuit import Gate
+from qiskit.circuit.library import IGate
+
+
 class GateSequence():
-    pass
+    """A class implementing a sequence of gates.
+
+    This class stores the sequence of gates along with the unitary they implement.
+    """
+
+    def __init__(self, gates: Optional[List[Gate]] = None) -> None:
+        """Create a new sequence of gates.
+
+        Args:
+            gates: The gates in the sequence. The default is [].
+        """
+        if gates is None:
+            gates = []
+
+        self.gates = gates
+        self.product = convert_su2_to_so3(self._compute_product(self.gates))
+
+    def __eq__(self, other: 'GateSequence') -> bool:
+        """
+        Check if this GateSequence is equivalent to the other GateSequence.
+
+        Args:
+            other: The GateSequence that will be compared to ''self''.
+
+        Returns:
+            True if ''other'' is equivalent to ''self'', false otherwise.
+
+        """
+        if not len(self.gates) == len(other.gates):
+            return False
+
+        for gate1, gate2 in zip(self.gates, other.gates):
+            if gate1 != gate2:
+                return False
+
+        return True
+
+    def __mul__(self, other: 'GateSequence') -> 'GateSequence':
+        """Concatenate another GateSequence to current one by appending every gate from ``other`` to ``self``.
+
+        Args:
+            other: The GateSequence that will be concatenated to ``self``.
+
+        Returns:
+            GateSequence ``self`` concatenated to ``other``.
+        """
+        summed = GateSequence(self.gates + other.gates)
+        return summed
+
+    def represents_same_gate(self, other: 'GateSequence', precision: float = 0.0) -> bool:
+        """Returns whether to ''self'' represents the same gate as ''other'' up to ''precision''.
+
+        Args:
+            other: The GateSequence compared to ''self''.
+            precision: The error tolerated when comparing the fields of the matrices of the gates.
+
+        Returns: 
+            True when ''self'' represents the same gate as ''other'' up to ''precision'', False otherwise.
+        """
+        for i in range(3):
+            for j in range(3):
+                if abs(self.get_product_so3()[i][j]-other.get_product_so3()[i][j]) > precision:
+                    return False
+        return True
+
+    def get_product_so3(self) -> np.ndarray:
+        """Returns the SO(3)-matrix that is the product of all gates in the GateSequence.
+
+        Returns:
+            SO(3)-matrix that is the product of all gates in ''self''.
+
+        """
+        self._compute_product(self.gates)
+        return convert_su2_to_so3(self._compute_product(self.gates))
+
+    def get_product_su2(self) -> np.ndarray:
+        """Returns the SU(2)-matrix that is the product of all gates in the GateSequence.
+
+        Returns:
+            SU(2)-matrix that is the product of all gates in ''self''.
+
+        """
+        self._compute_product(self.gates)
+        return self._compute_product(self.gates)
+
+    def invert(self) -> 'GateSequence':
+        inv = GateSequence(list(reversed(self.gates)))
+        return inv
+
+    def _compute_product(self, gates: List[Gate]) -> np.ndarray:
+        """Returns gate that is the product of all gates in the sequence.
+
+        Args:
+            gates: The gates in the sequence.
+
+        Returns:
+            The product gate of the gates in the sequence.
+
+        """
+        product = IGate().to_matrix()
+        for gate in gates:
+            product = np.dot(product, gate.to_matrix())
+        return product
+
+    def append(self, gate: Gate) -> 'GateSequence':
+        """Append gate to the sequence of gates.
+
+        Args:
+            gate: The gate to be appended.
+
+        Returns:
+            GateSequence with ''gate'' appended.
+        """
+        self.gates.append(gate)
+        # TODO: this recomputes the product whenever we append something, which could be more
+        # efficient by storing the current matrix and just multiplying the input gate to it
+        self.product = convert_su2_to_so3(self._compute_product(self.gates))
+        return self
+
+    def adjoint(self) -> 'GateSequence':
+        """Get the complex conjugate."""
+
+        adjoint = GateSequence([gate.inverse()
+                                for gate in reversed(self.gates)])
+        return adjoint
+
+    def count(self, gate: Gate) -> int:
+        """Count the number of times the argument ``gate`` occurs in the sequence.
+
+        Args:
+            gate: The gate to be counted in the sequence.
+
+        Returns:
+            The number of times the argument ``gate`` occurs in the sequence.
+        """
+        return self.gates.count(gate)
+
+    def simplify(self, precision: float = 0.0) -> 'GateSequence':
+        """Returns GateSequence with less gates that represents the same gate up to ''precision''.
+
+        Args:
+            precision: The required precision for letting two sequences represent the same gate.
+
+        Returns:
+            The simplified GateSequence.        
+        """
+        gslist = [GateSequence([])]
+        for gate in self.gates:
+            new_sequence = gslist[len(gslist)-1].copy()
+            new_sequence.append(gate)
+            same_as_new_sequences = [
+                s for s in gslist if s.represents_same_gate(new_sequence, precision)]
+            if len(same_as_new_sequences) > 1 or gate == IGate():
+                index = gslist.index(same_as_new_sequences[0])
+                gslist = gslist[:index+1]
+            else:
+                gslist.append(new_sequence)
+        self.gates = gslist[len(gslist)-1].gates
+        return self
+
+    def copy(self) -> 'GateSequence':
+        """Create copy of the sequence of gates.
+
+        Returns:
+            A new ``GateSequence`` containing copy of list of gates.
+
+        """
+        return GateSequence(self.gates.copy())
+
+    def __len__(self) -> int:
+        """Return length of sequence of gates.
+
+        Returns:
+            Length of list containing gates.
+        """
+        return len(self.gates)
+
+    def __getitem__(self, index: int) -> Gate:
+        """Returns the gate at ``index`` from the list of gates.
+
+        Args
+            index: Index of gate in list that will be returned.
+
+        Returns:
+            The gate at ``index`` in the list of gates.
+        """
+        return self.gates[index]
+
+    def __repr__(self) -> str:
+        """Return string representation of this object.
+
+        Returns:
+            Representation of this sequence of gates.
+        """
+        out = '['
+        for gate in self.gates:
+            out += gate.name
+            out += ', '
+        out += ']'
+        out += ', product: '
+        out += str(self.product)
+        return out
+
+    def __str__(self) -> str:
+        """Return string representation of this object.
+
+        Returns:
+            Representation of this sequence of gates.
+        """
+        out = '['
+        for gate in self.gates:
+            out += gate.name
+            out += ', '
+        out += ']'
+        out += ', product: \n'
+        out += str(self.product)
+        return out
+
+    @classmethod
+    def from_matrix(cls, matrix):
+        instance = cls()
+        if matrix.shape == (2, 2):
+            instance.product = convert_su2_to_so3(matrix)
+        elif matrix.shape == (3, 3):
+            instance.product = matrix
+        else:
+            raise ValueError('matrix is invalid')
+
+        instance.gates = []
+        return instance
+
+    def dot(self, other: 'GateSequence') -> 'GateSequence':
+        # if len(other.gates) == 0 or len(self.gates) == 0:
+        #raise ValueError('one sequence has no gates')
+        return GateSequence(self.gates + other.gates)
 
 # algebra function
+
+
+def compute_frobenius_norm(u: np.ndarray) -> float:
+    """Computes the Frobenius-norm of the matrix ``u``.
+
+    Args:
+        u: SO(3)-matrix.
+
+    Returns:
+        The Frobenius-norm of the matrix u.
+    """
+    return np.linalg.norm(u)
+
+
+def compute_euler_angles_from_s03(u: np.ndarray) -> Tuple[float, float, float]:
+    """Computes the Euler angles from the SO(3)-matrix u.
+
+    Uses the algorithm from Gregory Slabaugh,
+    see `here <https://www.gregslabaugh.net/publications/euler.pdf>`_.
+
+    Args:
+        u: The SO(3)-matrix for which the Euler angles need to be computed.
+
+    Returns:
+        Tuple phi, theta, psi\n
+        where phi is rotation about z-axis, theta rotation about y-axis\n
+        and psi rotation about x-axis.
+    """
+    if (u[2][0] != 1 and u[2][1] != -1):
+        theta = -math.asin(u[2][0])
+        psi = math.atan2(u[2][1]/math.cos(theta), u[2][2]/math.cos(theta))
+        phi = math.atan2(u[1][0]/math.cos(theta), u[0][0]/math.cos(theta))
+        return phi, theta, psi
+    else:
+        phi = 0
+        if u[2][0] == 1:
+            theta = math.pi/2
+            psi = phi + math.atan2(u[0][1], u[0][2])
+        else:
+            theta = -math.pi/2
+            psi = -phi + math.atan2(-u[0][1], -u[0][2])
+        return phi, theta, psi
+
+
+def compute_su2_from_euler_angles(angles: Tuple[float, float, float]) -> np.ndarray:
+    """Computes SU(2)-matrix from Euler angles.
+
+    Args:
+        angles: The tuple containing the Euler angles for which the corresponding SU(2)-matrix
+            needs to be computed.
+
+    Returns:
+        The SU(2)-matrix corresponding to the Euler angles in angles.
+    """
+    phi, theta, psi = angles
+    uz_phi = np.array([[np.exp(-(1/2)*phi*1j), 0],
+                       [0, np.exp((1/2)*phi*1j)]], dtype=complex)
+    uy_theta = np.array([[math.cos(theta/2), math.sin(theta/2)],
+                         [-math.sin(theta/2), math.cos(theta/2)]], dtype=complex)
+    ux_psi = np.array([[math.cos(psi/2), math.sin(psi/2)*1j],
+                       [math.sin(psi/2)*1j, math.cos(psi/2)]], dtype=complex)
+    return np.dot(uz_phi, np.dot(uy_theta, ux_psi))
+
+
+def convert_su2_to_so3(u: np.ndarray) -> np.ndarray:
+    """Computes SO(3)-matrix from input SU(2)-matrix.
+
+    Args:
+        u: The SU(2)-matrix for which a corresponding SO(3)-matrix needs to be computed.
+
+    Returns:
+        The SO(3)-matrix corresponding to ''u''.
+
+    Raises:
+        ValueError: if ''u'' is not an SU(2)-matrix.
+    """
+    if u.shape != (2, 2):
+        raise ValueError(
+            'Conversion from SU2 called on matrix of shape', u.shape)
+
+    if abs(np.linalg.det(u) - 1) > 1e-4:
+        raise ValueError(
+            'Conversion from SU2 called on determinant of', np.linalg.det(u))
+
+    u_matrix = np.array(u, dtype=np.complex)
+    a = np.real(u_matrix[0][0])
+    b = np.imag(u_matrix[0][0])
+    c = -np.real(u_matrix[0][1])
+    d = -np.imag(u_matrix[0][1])
+    u_rotation = np.array([[a**2-b**2-c**2+d**2, 2*a*b+2*c*d, -2*a*c+2*b*d],
+                           [-2*a*b+2*c*d, a**2-b**2+c**2-d**2, 2*a*d+2*b*c],
+                           [2*a*c+2*b*d, 2*b*c-2*a*d, a**2+b**2-c**2-d**2]], dtype=float)
+    return u_rotation
+
+
+def solve_decomposition_angle(u: np.ndarray) -> float:
+    """Computes angle for balanced commutator of SO(3)-matrix ''u''.
+
+    Computes angle a so that the SO(3)-matrix ''u'' can be decomposed\n 
+    as commutator [v,w] where v and w are both rotations of a about some axis. 
+    The computation is done by solving a trigonometric equation using scipy.optimize.fsolve.
+
+    Args:
+        u: The SO(3)-matrix for which the decomposition angle needs to be computed.
+
+    Returns:
+        Angle a so that u = [v,w] with v and w rotations of a about some axis. 
+
+    Raises:
+        ValueError: if ''u'' is not an SO(3)-matrix.
+    """
+    descr_method = 'Computation of decomposition angle'
+    if u.shape != (3, 3):
+        raise ValueError(descr_method + 'called on matrix of shape', u.shape)
+
+    if abs(np.linalg.det(u) - 1) > 1e-4:
+        raise ValueError(
+            descr_method + 'called on determinant of', np.linalg.det(u))
+
+    trace = _compute_trace_so3(u)
+    angle = math.acos((1/2)*(trace-1))
+
+    def f(phi):
+        rhs = 2 * math.sin(phi / 2) ** 2
+        rhs *= math.sqrt(1 - math.sin(phi / 2) ** 4)
+        lhs = math.sin(angle / 2)
+        return rhs - lhs
+
+    decomposition_angle = scipy.optimize.fsolve(f, angle)[0]
+    return decomposition_angle
+
+
+def _compute_trace_so3(u: np.ndarray) -> float:
+    """Computes trace of an SO(3)-matrix.
+
+    Args: 
+        u: an SO(3)-matrix
+
+    Returns:
+        Trace of ''u''.
+
+    Raises:
+        ValueError: if ''u'' is not an SO(3)-matrix.
+    """
+    if u.shape != (3, 3):
+        raise ValueError(
+            'Computation of trace SO(3) called on matrix of shape', u.shape)
+
+    if abs(np.linalg.det(u) - 1) > 1e-4:
+        raise ValueError(
+            'Computation of trace SO(3) called on determinant of', np.linalg.det(u))
+
+    trace = np.matrix.trace(u)
+    trace_rounded = trace if trace <= 3.0 else 3.0
+    return trace_rounded
+
+
+def compute_rotation_between(from_vector: np.ndarray, to_vector: np.ndarray) -> np.ndarray:
+    """Computes the SO(3)-matrix for rotating ''from_vector'' to ''to_vector''.
+
+    Args: 
+        from_vector: unit vector of size 3
+        to_vector: unit vector of size 3
+
+    Returns:
+        SO(3)-matrix that brings ''from_vector'' to ''to_vector''.
+
+    Raises:
+        ValueError: if at least one of ''from_vector'' of ''to_vector'' is not a 3-dim unit vector.
+    """
+    descr_method = 'Computation rotation between vectors'
+    if from_vector.shape != (3,):
+        raise ValueError(
+            descr_method + 'called on matrix of shape', from_vector.shape)
+
+    if to_vector.shape != (3,):
+        raise ValueError(
+            descr_method + 'called on matrix of shape', to_vector.shape)
+
+    if abs(np.linalg.norm(from_vector)-1.0) > 1e-4:
+        raise ValueError(
+            descr_method + 'called on vector with norm', np.linalg.norm(from_vector))
+
+    if abs(np.linalg.norm(to_vector)-1.0) > 1e-4:
+        raise ValueError(
+            descr_method + 'called on vector with norm', np.linalg.norm(to_vector))
+
+    v = np.cross(from_vector, to_vector)
+    c = np.dot(from_vector, to_vector)
+    cross_product_matrix = _cross_product_matrix(v)
+    rotation_matrix = np.identity(3) + cross_product_matrix + 1 / \
+        (1+c)*np.dot(cross_product_matrix, cross_product_matrix)
+    return rotation_matrix
+
+
+def _cross_product_matrix(v: np.ndarray) -> np.ndarray:
+    """Computes cross product matrix from vector.
+
+    Args:
+        v: Vector for which cross product matrix needs to be computed.
+
+    Returns:
+        The cross product matrix corresponding to vector ''v''.
+    """
+    return np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+
+
+def _compute_commutator_so3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Computes the commutator of the SO(3)-matrices ''a'' and ''b''.
+
+    The computation uses the fact that the inverse of an SO(3)-matrix is equal to its transpose. 
+
+    Args:
+        a: SO(3)-matrix
+        b: SO(3)-matrix
+
+    Returns:
+        The commutator [a,b] of ''a'' and ''b'' w
+
+    Raises:
+        ValueError: if at least one of ''a'' or ''b'' is not an SO(3)-matrix.
+    """
+    if a.shape != (3, 3):
+        raise ValueError(
+            'Computation of trace SO(3) called on matrix of shape', a.shape)
+
+    if abs(np.linalg.det(a) - 1) > 1e-4:
+        raise ValueError(
+            'Computation of trace SO(3) called on determinant of', np.linalg.det(a))
+
+    if b.shape != (3, 3):
+        raise ValueError(
+            'Computation of trace SO(3) called on matrix of shape', b.shape)
+
+    if abs(np.linalg.det(b) - 1) > 1e-4:
+        raise ValueError(
+            'Computation of trace SO(3) called on determinant of', np.linalg.det(b))
+
+    # pylint:disable=assignment-from-no-return
+    a_dagger = np.matrix.getH(a)
+    b_dagger = np.matrix.getH(b)
+
+    return np.dot(np.dot(np.dot(a, b), a_dagger), b_dagger)
+
+
+def compute_rotation_from_angle_and_axis(angle: float, axis: np.ndarray) -> np.ndarray:
+    """ Computes the SO(3)-matrix corresponding to the rotation of ''angle'' about ''axis''.
+
+    Args:
+        angle: The angle of the rotation.
+        axis: The axis of the rotation.
+
+    Returns:
+        SO(3)-matrix that represents a rotation of ''angle'' about ''axis''.
+
+    Raises:
+        ValueError: if ''axis'' is not a 3-dim unit vector.
+    """
+    descr_method = 'Computation rotation from angle and axis'
+    if axis.shape != (3,):
+        raise ValueError(
+            descr_method + 'called on matrix of shape', axis.shape)
+
+    if abs(np.linalg.norm(axis)-1.0) > 1e-4:
+        raise ValueError(
+            descr_method + 'called on vector with norm', np.linalg.norm(axis))
+
+    res = math.cos(angle) * np.identity(3) + \
+        math.sin(angle) * _cross_product_matrix(axis)
+    res += (1 - math.cos(angle)) * np.outer(axis, axis)
+    return res
+
+
+def compute_rotation_axis(u: np.ndarray) -> np.ndarray:
+    """Computes rotation axis of SO(3)-matrix.
+
+    Args:
+        u: The SO(3)-matrix for which rotation angle needs to be computed.
+
+    Returns:
+        The rotation axis of the SO(3)-matrix ''u''.
+
+    Raises:
+        ValueError: if ''u'' is not an SO(3)-matrix.
+    """
+    if u.shape != (3, 3):
+        raise ValueError(
+            'Computation of trace SO(3) called on matrix of shape', u.shape)
+
+    if abs(np.linalg.det(u) - 1) > 1e-4:
+        raise ValueError(
+            'Computation of trace SO(3) called on determinant of', np.linalg.det(u))
+
+    trace = _compute_trace_so3(u)
+    theta = math.acos((1/2)*(trace-1))
+    if math.sin(theta) > 1e-10:
+        x = (1/(2*math.sin(theta)))*(u[2][1]-u[1][2])
+        y = (1/(2*math.sin(theta)))*(u[0][2]-u[2][0])
+        z = (1/(2*math.sin(theta)))*(u[1][0]-u[0][1])
+    else:
+        x = 1.0
+        y = 0.0
+        z = 0.0
+    return np.array([x, y, z])
+
+# TODO: unittesten
+
+
+def convert_so3_to_su2(u: np.ndarray) -> np.ndarray:
+    """Converts an SO(3)-matrix to a corresponding SU(2)-matrix.
+
+    Args:
+        u: SO(3)-matrix to convert.
+
+    Returns:
+        SU(2)-matrix corresponding to SO(3)-matrix ''u''.
+
+    Raises:
+        ValueError: if ''u'' is not an SO(3)-matrix.
+    """
+    if u.shape != (3, 3):
+        raise ValueError(
+            'Computation of trace SO(3) called on matrix of shape', u.shape)
+
+    if abs(np.linalg.det(u) - 1) > 1e-4:
+        raise ValueError(
+            'Computation of trace SO(3) called on determinant of', np.linalg.det(u))
+    return compute_su2_from_euler_angles(compute_euler_angles_from_s03(u))
