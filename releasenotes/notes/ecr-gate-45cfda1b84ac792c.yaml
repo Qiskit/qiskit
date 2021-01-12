@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Adds a new 2-qubit gate, the echo cross-resonance (ECR), which is two
+    CR(π/4) pulses with an X gate between them for the echo. This gate is
+    locally equivalent to a CNOT (can convert to a CNOT with local
+    pre- or post-rotation). It is the native gate on current IBM hardware
+    and compiling to it allows the pre-/post-rotations to be merged into
+    the rest of the circuit.
+  - |
+    A new option `synthesis_fidelity` is added to the transpiler for
+    approximate synthesis of unitaries. The synthesis fidelity can be
+    given to the transpiler. This capability was already there in the
+    synthesizer, it is just now exposed to the transpiler.
