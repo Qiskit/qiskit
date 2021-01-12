@@ -19,10 +19,11 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 
 
-class ScalarOp(BaseOperator):
+class ScalarOp(BaseOperator, TolerancesMixin):
     """Scalar identity operator class.
 
     This is a symbolic representation of an scalar identity operator on
@@ -31,7 +32,6 @@ class ScalarOp(BaseOperator):
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
     :meth:`tensor`, :meth:`expand` methods.
     """
-
     def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.
 
@@ -47,6 +47,11 @@ class ScalarOp(BaseOperator):
             QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
         super().__init__(*self._automatic_dims(dims, np.product(dims)))
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     def __repr__(self):
         return 'ScalarOp({}, coeff={})'.format(

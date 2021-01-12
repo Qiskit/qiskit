@@ -24,13 +24,13 @@ from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.util import is_main_process
+from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -83,6 +83,10 @@ class QuantumCircuit:
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
         global_phase (float): The global phase of the circuit in radians.
+        metadata (dict): Arbitrary key value metadata to associate with the
+            circuit. This gets stored as free-form data in a dict in the
+            :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
+            not be directly used in the circuit.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -140,7 +144,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None, global_phase=0):
+    def __init__(self, *regs, name=None, global_phase=0, metadata=None):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
@@ -189,6 +193,9 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = 'dt'
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     @property
     def data(self):
@@ -220,7 +227,7 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -241,6 +248,26 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
+
+    @property
+    def metadata(self):
+        """The user provided metadata associated with the circuit
+
+        The metadata for the circuit is a user provided ``dict`` of metadata
+        for the circuit. It will not be used to influence the execution or
+        operation of the circuit, but it is expected to be passed betweeen
+        all transforms of the circuit (ie transpilation) and that providers will
+        associate any circuit metadata with the results it returns from
+        execution of that circuit.
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Update the circuit metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -410,8 +437,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps),
-                                       global_phase=reps * self.global_phase)
+                                       name=self.name + '**{}'.format(reps))
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
@@ -681,13 +707,81 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
-        dest._calibrations.update(other.calibrations)
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
 
         dest.global_phase += other.global_phase
 
         if inplace:
             return None
 
+        return dest
+
+    def tensor(self, other):
+        """Tensor ``self`` with ``other``.
+
+        Remember that in the little-endian convention the leftmost operation will be at the bottom
+        of the circuit. See also
+        [the docs](qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html)
+        for more information.
+
+        .. parsed-literal::
+
+                 ┌────────┐        ┌─────┐          ┌─────┐
+            q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
+                 └────────┘        └─────┘         ┌┴─────┴─┐
+                                              q_1: ┤ bottom ├
+                                                   └────────┘
+
+        Args:
+            other (QuantumCircuit): The other circuit to tensor this circuit with.
+
+        Examples:
+
+            .. jupyter-execute::
+
+                from qiskit import QuantumCircuit
+                top = QuantumCircuit(1)
+                top.x(0);
+                bottom = QuantumCircuit(2)
+                bottom.cry(0.2, 0, 1);
+                tensored = bottom.tensor(top)
+                print(tensored.draw())
+
+        Returns:
+            QuantumCircuit: The tensored circuit (returns None if inplace==True).
+        """
+        num_qubits = self.num_qubits + other.num_qubits
+        num_clbits = self.num_clbits + other.num_clbits
+
+        # If a user defined both circuits with via register sizes and not with named registers
+        # (e.g. QuantumCircuit(2, 2)) then we have a naming collision, as the registers are by
+        # default called "q" resp. "c". To still allow tensoring we define new registers of the
+        # correct sizes.
+        if len(self.qregs) == len(other.qregs) == 1 and \
+                self.qregs[0].name == other.qregs[0].name == 'q':
+            # check if classical registers are in the circuit
+            if num_clbits > 0:
+                dest = QuantumCircuit(num_qubits, num_clbits)
+            else:
+                dest = QuantumCircuit(num_qubits)
+
+        # handle case if ``measure_all`` was called on both circuits, in which case the
+        # registers are both named "meas"
+        elif len(self.cregs) == len(other.cregs) == 1 and \
+                self.cregs[0].name == other.cregs[0].name == 'meas':
+            cr = ClassicalRegister(self.num_clbits + other.num_clbits, 'meas')
+            dest = QuantumCircuit(*other.qregs, *self.qregs, cr)
+
+        # Now we don't have to handle any more cases arising from special implicit naming
+        else:
+            dest = QuantumCircuit(*other.qregs, *self.qregs, *other.cregs, *self.cregs)
+
+        # compose self onto the output, and then other
+        dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
+        dest.compose(self, range(other.num_qubits, num_qubits),
+                     range(other.num_clbits, num_clbits), inplace=True)
         return dest
 
     @property
@@ -1965,13 +2059,22 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         for instr, param_index in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].assign(parameter, value)
+            new_param = instr.params[param_index].assign(parameter, value)
+            # if fully bound, validate
+            if len(new_param.parameters) == 0:
+                instr.params[param_index] = instr.validate_parameter(new_param)
+            else:
+                instr.params[param_index] = new_param
+
             self._rebind_definition(instr, parameter, value)
 
         if isinstance(value, ParameterExpression):
             entry = self._parameter_table.pop(parameter)
             for new_parameter in value.parameters:
-                self._parameter_table[new_parameter] = entry
+                if new_parameter in self._parameter_table:
+                    self._parameter_table[new_parameter].extend(entry)
+                else:
+                    self._parameter_table[new_parameter] = entry
         else:
             del self._parameter_table[parameter]  # clear evaluated expressions
 
@@ -2125,6 +2228,11 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
         return self.append(RGate(theta, phi), [qubit], [])
+
+    def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
+        """Apply :class:`~qiskit.circuit.library.RVGate`."""
+        from .library.generalized_gates.rv import RVGate
+        return self.append(RVGate(vx, vy, vz), [qubit], [])
 
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
         """Apply :class:`~qiskit.circuit.library.RCCXGate`."""

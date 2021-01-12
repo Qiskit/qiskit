@@ -17,7 +17,7 @@ import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import apply_prefix
+from qiskit.utils.units import apply_prefix
 
 
 def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:

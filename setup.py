@@ -25,8 +25,7 @@ except ImportError:
 REQUIREMENTS = [
     "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
-    "networkx>=2.2",
-    "retworkx>=0.5.0",
+    "retworkx>=0.7.0",
     "numpy>=1.17",
     "ply>=3.10",
     "psutil>=5",
@@ -97,6 +96,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
