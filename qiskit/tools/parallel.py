@@ -50,12 +50,62 @@ from the multiprocessing library.
 
 import os
 from concurrent.futures import ProcessPoolExecutor
+import time
+import sys
+
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
+from qiskit.utils import multiprocessing as mp_utils
 
 CONFIG = user_config.get_config()
+
+
+def _test_macos_parallel():
+    cpu_count = mp_utils.local_hardware_info()['cpus']
+    test_list = list(range(20 * cpu_count))
+
+    def task(x):
+        return x * 2 + 1
+
+    try:
+        start_time = time.time()
+        with ProcessPoolExecutor(max_workers=cpu_count) as executor:
+            future = executor.map(task, test_list)
+        results = list(future)
+        stop_time = time.time()
+        parallel_runtime = stop_time - start_time
+    except Exception:  # pylint: disable=broad-except
+        return False
+    start_time = time.time()
+    results = []
+    for value in test_list:
+        results.append(task(value))
+    stop_time = time.time()
+    serial_runtime = stop_time - start_time
+    if serial_runtime >= parallel_runtime:
+        return False
+    else:
+        return True
+
+
+if os.getenv('QISKIT_PARALLEL', None) is not None:
+    PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
+else:
+    # Default False on Windows
+    if sys.platform == 'win32':
+        PARALLEL_DEFAULT = False
+    # On macOS default false on 3.8 for other versions check run time and use
+    # parallel only if it is faster than serial (and works)
+    elif sys.platform == 'darwin':
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+            PARALLEL_DEFAULT = False
+        else:
+            PARALLEL_DEFAULT = _test_macos_parallel()
+    # On linux (and other OSes) default to True
+    else:
+        PARALLEL_DEFAULT = True
 
 # Set parallel flag
 if os.getenv('QISKIT_IN_PARALLEL') is None:
@@ -63,10 +113,8 @@ if os.getenv('QISKIT_IN_PARALLEL') is None:
 
 if os.getenv("QISKIT_NUM_PROCS") is not None:
     CPU_COUNT = int(os.getenv('QISKIT_NUM_PROCS'))
-elif 'num_processes' in CONFIG:
-    CPU_COUNT = CONFIG['num_processes']
 else:
-    CPU_COUNT = local_hardware_info()['cpus']
+    CPU_COUNT = CONFIG.get('num_process', local_hardware_info()['cpus'])
 
 
 def _task_wrapper(param):
@@ -120,7 +168,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
     # Run in parallel if not Win and not in parallel already
     if num_processes > 1 and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE' \
-            and CONFIG.get('parallel_enabled', user_config.PARALLEL_DEFAULT):
+            and CONFIG.get('parallel_enabled', PARALLEL_DEFAULT):
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
             results = []
