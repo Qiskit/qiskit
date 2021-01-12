@@ -543,7 +543,8 @@ def dump(file_obj, circuits):
 
 
 def _write_circuit(file_obj, circuit):
-    metadata_raw = json.dumps(circuit.metadata).encode('utf8')
+    metadata_raw = json.dumps(circuit.metadata,
+                              separators=(',', ':')).encode('utf8')
     metadata_size = len(metadata_raw)
     num_registers = len(circuit.qregs) + len(circuit.cregs)
     num_instructions = len(circuit)
