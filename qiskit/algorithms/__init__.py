@@ -56,11 +56,16 @@ Amplitude Estimators
    :nosignatures:
 
    AmplitudeEstimator
+   AmplitudeEstimatorResult
    AmplitudeEstimation
+   AmplitudeEstimationResult
    EstimationProblem
    FasterAmplitudeEstimation
+   FasterAmplitudeEstimationResult
    IterativeAmplitudeEstimation
+   IterativeAmplitudeEstimationResult
    MaximumLikelihoodAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimationResult
 
 Eigensolvers
 ++++++++++++
