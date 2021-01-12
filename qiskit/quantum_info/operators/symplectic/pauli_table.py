@@ -12,7 +12,7 @@
 """
 Symplectic Pauli Table Class
 """
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, useless-super-delegation
 
 import numpy as np
 
@@ -509,9 +509,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x2, x1, z2, z1]))
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -542,9 +540,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x1, x2, z1, z2]))
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -576,30 +572,7 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        # pylint: disable=unused-argument
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
-        if not isinstance(other, PauliTable):
-            other = PauliTable(other)
-        if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError("other PauliTable must be on the same number of qubits.")
-        if qargs and other.num_qubits != len(qargs):
-            raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
-
-        # Stack X and Z blocks for output size
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-
-        if qargs is not None:
-            ret_x, ret_z = x1.copy(), z1.copy()
-            x1 = x1[:, qargs]
-            z1 = z1[:, qargs]
-            ret_x[:, qargs] = x1 ^ x2
-            ret_z[:, qargs] = z1 ^ z2
-            pauli = np.hstack([ret_x, ret_z])
-        else:
-            pauli = np.hstack((x1 ^ x2, z1 ^ z2))
-        return PauliTable(pauli)
+        return super().compose(other, qargs=qargs, front=front)
 
     def dot(self, other, qargs=None):
         """Return the dot output product of two tables.
@@ -629,7 +602,41 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        return self.compose(other, qargs=qargs, front=True)
+        return super().dot(other, qargs=qargs)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        if not isinstance(a, PauliTable):
+            a = PauliTable(a)
+        if not isinstance(b, PauliTable):
+            b = PauliTable(b)
+        x1, x2 = a._block_stack(a.X, b.X)
+        z1, z2 = a._block_stack(a.Z, b.Z)
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
+
+    def _compose(self, other, qargs=None, front=True):
+        # pylint: disable=unused-argument
+        if not isinstance(other, PauliTable):
+            other = PauliTable(other)
+        if qargs is None and other.num_qubits != self.num_qubits:
+            raise QiskitError("other PauliTable must be on the same number of qubits.")
+        if qargs and other.num_qubits != len(qargs):
+            raise QiskitError("Number of qubits in the other PauliTable does not match qargs.")
+
+        # Stack X and Z blocks for output size
+        x1, x2 = self._block_stack(self.X, other.X)
+        z1, z2 = self._block_stack(self.Z, other.Z)
+
+        if qargs is not None:
+            ret_x, ret_z = x1.copy(), z1.copy()
+            x1 = x1[:, qargs]
+            z1 = z1[:, qargs]
+            ret_x[:, qargs] = x1 ^ x2
+            ret_z[:, qargs] = z1 ^ z2
+            pauli = np.hstack([ret_x, ret_z])
+        else:
+            pauli = np.hstack((x1 ^ x2, z1 ^ z2))
+        return PauliTable(pauli)
 
     def _add(self, other, qargs=None):
         """Append with another PauliTable.
@@ -662,6 +669,10 @@ class PauliTable(BaseOperator):
             np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
         return PauliTable(np.vstack((self._array, padded._array)))
+
+    def __add__(self, other):
+        qargs = getattr(other, 'qargs', None)
+        return self._add(other, qargs=qargs)
 
     def conjugate(self):
         """Not implemented."""

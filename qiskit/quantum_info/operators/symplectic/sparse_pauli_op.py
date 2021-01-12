@@ -18,14 +18,14 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.mixins import LinearMixin, TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
-class SparsePauliOp(BaseOperator, TolerancesMixin):
+class SparsePauliOp(BaseOperator, LinearMixin, TolerancesMixin):
     """Sparse N-qubit operator in a Pauli basis representation.
 
     This is a sparse representation of an N-qubit matrix
@@ -144,32 +144,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
     # BaseOperator Methods
     # ---------------------------------------------------------------------
 
-    def is_unitary(self, atol=None, rtol=None):
-        """Return True if operator is a unitary matrix.
-
-        Args:
-            atol (float): Optional. Absolute tolerance for checking if
-                          coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
-                          coefficients are zero (Default: 1e-5).
-
-        Returns:
-            bool: True if the operator is unitary, False otherwise.
-        """
-        # Get default atol and rtol
-        if atol is None:
-            atol = self.atol
-        if rtol is None:
-            rtol = self.rtol
-
-        # Compose with adjoint
-        val = self.compose(self.adjoint()).simplify()
-        # See if the result is an identity
-        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
-                and not np.any(val.table.X) and not np.any(val.table.Z))
-
     def conjugate(self):
-        """Return the conjugate of the operator."""
         # Conjugation conjugates phases and also Y.conj() = -Y
         # Hence we need to multiply conjugated coeffs by -1
         # for rows with an odd number of Y terms.
@@ -179,7 +154,6 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         return ret
 
     def transpose(self):
-        """Return the transpose of the operator."""
         # The only effect transposition has is Y.T = -Y
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
@@ -189,34 +163,14 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         return ret
 
     def adjoint(self):
-        """Return the adjoint of the operator."""
         # Pauli's are self adjoint, so we only need to
         # conjugate the phases
         ret = self.copy()
         ret._coeffs = ret._coeffs.conj()
         return ret
 
-    def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (list or None): a list of subsystem positions to compose other on.
-            front (bool or None): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
-
-        Returns:
-            SparsePauliOp: The composed operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
-        """
+    def _compose(self, other, qargs=None, front=False):
         # pylint: disable=invalid-name
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
-
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
 
@@ -253,78 +207,17 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         coeffs *= (-1j) ** np.array(np.sum(minus_i, axis=1), dtype=int)
         return SparsePauliOp(table, coeffs)
 
-    def dot(self, other, qargs=None):
-        """Return the composition channel self∘other.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (list or None): a list of subsystem positions to compose other on.
-
-        Returns:
-            SparsePauliOp: The composed operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
-        """
-        return self.compose(other, qargs=qargs, front=True)
-
-    def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
-
-        Args:
-            other (SparsePauliOp): a operator subclass object.
-
-        Returns:
-            SparsePauliOp: the tensor product operator self ⊗ other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         operator.
-        """
-        if not isinstance(other, SparsePauliOp):
-            other = SparsePauliOp(other)
-        table = self.table.tensor(other.table)
-        coeffs = np.kron(self.coeffs, other.coeffs)
-        return SparsePauliOp(table, coeffs)
-
-    def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-
-        Returns:
-            SparsePauliOp: the tensor product operator other ⊗ self.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         operator.
-        """
-        if not isinstance(other, SparsePauliOp):
-            other = SparsePauliOp(other)
-        table = self.table.expand(other.table)
-        coeffs = np.kron(self.coeffs, other.coeffs)
+    @classmethod
+    def _tensor(cls, a, b):
+        if not isinstance(a, SparsePauliOp):
+            a = SparsePauliOp(a)
+        if not isinstance(b, SparsePauliOp):
+            b = SparsePauliOp(b)
+        table = a.table.tensor(b.table)
+        coeffs = np.kron(a.coeffs, b.coeffs)
         return SparsePauliOp(table, coeffs)
 
     def _add(self, other, qargs=None):
-        """Return the operator self + other.
-
-        If ``qargs`` are specified the other operator will be added
-        assuming it is identity on all other subsystems.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (None or list): optional subsystems to add on
-                                  (Default: None)
-
-        Returns:
-            SparsePauliOp: the operator self + other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         or has incompatible dimensions.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
@@ -339,17 +232,6 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         return ret
 
     def _multiply(self, other):
-        """Return the operator other * self.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            SparsePauliOp: the operator other * self.
-
-        Raises:
-            QiskitError: if other is not a valid complex number.
-        """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
         if other == 0:
@@ -364,6 +246,30 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
     # ---------------------------------------------------------------------
     # Utility Methods
     # ---------------------------------------------------------------------
+
+    def is_unitary(self, atol=None, rtol=None):
+        """Return True if operator is a unitary matrix.
+
+        Args:
+            atol (float): Optional. Absolute tolerance for checking if
+                          coefficients are zero (Default: 1e-8).
+            rtol (float): Optinoal. relative tolerance for checking if
+                          coefficients are zero (Default: 1e-5).
+
+        Returns:
+            bool: True if the operator is unitary, False otherwise.
+        """
+        # Get default atol and rtol
+        if atol is None:
+            atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
+
+        # Compose with adjoint
+        val = self.compose(self.adjoint()).simplify()
+        # See if the result is an identity
+        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
+                and not np.any(val.table.X) and not np.any(val.table.Z))
 
     def simplify(self, atol=None, rtol=None):
         """Simplify PauliTable by combining duplicaties and removing zeros.
@@ -427,9 +333,9 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         """
         # Get default atol and rtol
         if atol is None:
-            atol = SparsePauliOp._ATOL_DEFAULT
+            atol = SparsePauliOp.atol
         if rtol is None:
-            rtol = SparsePauliOp._RTOL_DEFAULT
+            rtol = SparsePauliOp.rtol
 
         if not isinstance(obj, Operator):
             obj = Operator(obj)
