@@ -12,7 +12,7 @@
 
 """The module to compute Hessians."""
 
-from typing import Optional, Union, List, Tuple
+from typing import Union, List, Tuple
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -40,11 +40,12 @@ except ImportError:
 class Hessian(HessianBase):
     """Compute the Hessian of an expected value."""
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]],
-                                       List[ParameterExpression], ParameterVector]] = None
+                params: Union[Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]],
+                              List[ParameterExpression], ParameterVector]
                 ) -> OperatorBase:
         """
         Args:
@@ -56,14 +57,8 @@ class Hessian(HessianBase):
 
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
-
-        Raises:
-            ValueError: If `params` is not set.
         """
         # if input is a tuple instead of a list, wrap it into a list
-        if params is None:
-            raise ValueError("No parameters were provided to differentiate")
-
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
             if all(isinstance(param, ParameterExpression) for param in params):
@@ -81,9 +76,8 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                           List[Tuple[ParameterExpression, ParameterExpression]]]]
-                    = None
+                    params: Union[Tuple[ParameterExpression, ParameterExpression],
+                                  List[Tuple[ParameterExpression, ParameterExpression]]]
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
