@@ -68,6 +68,7 @@ if sys.version_info[0] == 3 and sys.version_info[1] == 6:
 
 
 class AerWrapper:
+    """Lazy loading wrapper for Aer provider."""
 
     def __init__(self):
         self.aer = None
@@ -75,8 +76,8 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             try:
-                from qiskit.providers.aer import Aer
-                self.aer = Aer
+                from qiskit.providers import aer
+                self.aer = aer.Aer
             except ImportError:
                 return False
         return True
@@ -84,17 +85,17 @@ class AerWrapper:
     def __getattr__(self, attr):
         if not self.aer:
             try:
-                from qiskit.providers.aer import Aer
-                self.aer = Aer
-            except ImportError:
+                from qiskit.providers import aer
+                self.aer = aer.Aer
+            except ImportError as exc:
                 raise ImportError('Could not import the Aer provider from the '
                                   'qiskit-aer package. Install qiskit-aer or '
-                                  'check your installation.')
+                                  'check your installation.') from exc
         return getattr(self.aer, attr)
 
 
-
 class IBMQWrapper:
+    """Lazy loading wraooer for IBMQ provider."""
 
     def __init__(self):
         self.ibmq = None
@@ -102,8 +103,8 @@ class IBMQWrapper:
     def __bool__(self):
         if self.ibmq is None:
             try:
-                from qiskit.providers.ibmq import IBMQ
-                self.ibmq = IBMQ
+                from qiskit.providers import ibmq
+                self.ibmq = ibmq.IBMQ
             except ImportError:
                 return False
         return True
@@ -111,13 +112,13 @@ class IBMQWrapper:
     def __getattr__(self, attr):
         if not self.ibmq:
             try:
-                from qiskit.providers.ibmq import IBMQ
-                self.ibmq = IBMQ
-            except ImportError:
+                from qiskit.providers import ibmq
+                self.ibmq = ibmq.IBMQ
+            except ImportError as exc:
                 raise ImportError('Could not import the IBMQ provider from the '
                                   'qiskit-ibmq-provider package. Install '
                                   'qiskit-ibmq-provider or check your  '
-                                  'installation.')
+                                  'installation.') from exc
         return getattr(self.ibmq, attr)
 
 
