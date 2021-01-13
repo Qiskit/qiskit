@@ -46,7 +46,7 @@ class SolovayKitaev():
         """
         return _version1(basis_gates, 3)
 
-    def _synth_circuit(self, global_phase: float, gate_sequence: 'GateSequence') -> QuantumCircuit:
+    def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
         """Synthesizes Qiskit QuantumCircuit with global phase from GateSequence.
 
         Args:
@@ -54,7 +54,7 @@ class SolovayKitaev():
             gate_sequence: GateSequence from which to construct a QuantumCircuit.
 
         Returns:
-            QuantumCircuit from ''gate_sequence'' with global phase ''global_phase''.
+            QuantumCircuit from ``gate_sequence`` with global phase ``global_phase``.
 
         """
         qr = QuantumRegister(1, 'q')
@@ -71,16 +71,16 @@ class SolovayKitaev():
             gate_matrix: The 2x2 matrix representing the gate. Does not need to be SU(2).
             recursion_degree: The recursion degree, called :math:`n` in the paper.
         """
-        """Initializes list of basic approximations from gates in ''basic_gates''\n 
-        and starts the Solovay-Kitaev algorithm for gate ''u'' with ''n'' iterations.
+        """Initializes list of basic approximations from gates in ``basic_gates``
+        and starts the Solovay-Kitaev algorithm for gate ``u`` with ``n`` iterations.
 
         Args:
             u: Gate that needs to be approximated.
             n: Recursion depth for the Solovay_Kitaev algorithm.
-            basic_gates: List of gates for approximating ''u''.
+            basic_gates: List of gates for approximating ``u``.
 
         Returns:
-            GateSequence with gates in ''basic_gates'' that approximates ''u''.
+            GateSequence with gates in ``basic_gates`` that approximates ``u``.
 
         """
         det = np.linalg.det(gate_matrix)
@@ -88,30 +88,27 @@ class SolovayKitaev():
         special_u_gs = GateSequence.from_matrix(special_u_m)
         global_phase = np.arcsin(np.imag(np.linalg.det(gate_matrix)))
 
-        self.basic_approximations = self.generate_basic_approximations(
-            self._basis_gates)
         special_result = self._recurse(special_u_gs, recursion_degree)
         return self._synth_circuit(global_phase, simplify(simplify(special_result)))
 
-    def _recurse(self, u: 'GateSequence', n: int) -> 'GateSequence':
-        """Performs ''n'' iterations of the Solovay-Kitaev algorithm with GateSequence ''u''.
+    def _recurse(self, u: GateSequence, n: int) -> GateSequence:
+        """Performs ``n`` iterations of the Solovay-Kitaev algorithm with GateSequence ``u``.
 
         Args:
             u: GateSequence to which the Solovay-Kitaev algorithm is applied.
             n: number of iterations that the algorithm needs to run.
 
-        Returns: 
-            GateSequence that approximates ''u''. 
+        Returns:
+            GateSequence that approximates ``u``.
 
         Raises:
-            ValueError: if ''u'' does not represent an SO(3)-matrix.
+            ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
         if u.product.shape != (3, 3):
             raise ValueError('Shape of U must be (3, 3) but is', u.shape)
 
         if n == 0:
-            ba = self.basic_approximation(u, self.basic_approximations)
-            return ba
+            return self.find_basic_approximation(u)
         else:
             u_n1 = self._recurse(u, n - 1)
             tuple_v_w = self.commutator_decompose(
@@ -121,23 +118,23 @@ class SolovayKitaev():
             w_n1 = self._recurse(tuple_v_w[1], n - 1)
             return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def commutator_decompose(self, u_so3: np.ndarray) -> Tuple['GateSequence', 'GateSequence']:
+    def commutator_decompose(self, u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
         """Decompose an SO(3)-matrix as a balanced commutator.
 
-        Find SO(3)-matrices v and w such that ''u_so3'' equals the commutator [v,w] and such that\n 
-        the Frobenius norm of both v and w is smaller than\n
-        the square root of half the Frobenius norm of ''u_so3''.\n
+        Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
+        the Frobenius norm of both v and w is smaller than
+        the square root of half the Frobenius norm of ``u_so3``.
         Then return each matrix as GateSequence.
 
         Args:
             u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
 
-        Returns: 
-            Tuple of GateSequences from SO(3)-matrices v and w such that\n
-            ''u_so3'' = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
+        Returns:
+            Tuple of GateSequences from SO(3)-matrices v and w such that
+            ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
 
         Raises:
-            ValueError: if ''u_so3'' is not an SO(3)-matrix.
+            ValueError: if ``u_so3`` is not an SO(3)-matrix.
         """
         descr_method = 'Computation commutator decompose'
         if u_so3.shape != (3, 3):
@@ -169,20 +166,20 @@ class SolovayKitaev():
 
         return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
-    def basic_approximation(self, u: 'GateSequence', basic_approximations: List['GateSequence']) -> Gate:
-        """Finds gate in ''basic_approximations'' that is closest to ''u'' in the Frobenius norm.
+    def find_basic_approximation(self, u: GateSequence) -> Gate:
+        """Finds gate in ``basic_approximations`` that is closest to ``u`` in the Frobenius norm.
 
         Args:
-            u: Gate for which approximation needs to be found.
-            basic_approximations: The list of basic approximations from which\n
-            a closest one to ''u'' is selected.
+            basic_approximations: The list of basic approximations from which
+                a closest one to ``u`` is selected.
 
         Returns:
-            Gate in basic approximations that is closest to ''u''.
+            Gate in basic approximations that is closest to ``u``.
         """
-        def key(x): return compute_frobenius_norm(
-            np.subtract(x.product, u.product))
-        return min(basic_approximations, key=key)
+        def key(x):
+            return compute_frobenius_norm(np.subtract(x.product, u.product))
+
+        return min(self._basic_approximations, key=key)
 
 
 def _version1(basic_gates, depth):
@@ -234,16 +231,16 @@ def _approximates_identity(gate: Gate) -> bool:
     return compute_frobenius_norm(np.subtract(gate.to_matrix(), IGate().to_matrix())) < 1e-4
 
 
-def _is_left_to_inverse(id_removed: List['GateSequence'], index: int) -> bool:
+def _is_left_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
     product = np.dot(id_removed[index].to_matrix(),
                      id_removed[index+1].to_matrix())
-    return compute_frobenius_norm(np.subtract(product, IGate()).to_matrix()) < 1e-4
+    return compute_frobenius_norm(np.subtract(product, IGate())) < 1e-4
 
 
-def _is_right_to_inverse(id_removed: List['GateSequence'], index: int) -> bool:
+def _is_right_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
     product = np.dot(id_removed[index-1].to_matrix(),
                      id_removed[index].to_matrix())
-    return compute_frobenius_norm(np.subtract(product, IGate()).to_matrix()) < 1e-4
+    return compute_frobenius_norm(np.subtract(product, IGate())) < 1e-4
 
 
 class SolovayKitaevDecomposition(TransformationPass):
