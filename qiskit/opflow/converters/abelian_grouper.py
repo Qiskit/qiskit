@@ -113,10 +113,9 @@ class AbelianGrouper(ConverterBase):
 
         if isinstance(list_op, PauliSumOp):
             primitive = list_op.primitive
-            coeff = list_op.coeff
             return SummedOp(
-                [GroupedPauliSumOp(primitive[[group]]) for group in groups.values()],
-                coeff
+                [GroupedPauliSumOp(primitive[group]) for group in groups.values()],
+                coeff=list_op.coeff
             )
 
         group_ops = [
