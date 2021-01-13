@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The ``qiskit.__qiskit_version__`` module attribute was previously a ``dict``
+    will now return a custom read-only ``Mapping`` object that checks the
+    version of qiskit elements at runtime instead of at import time. This was
+    done to speed up the import path of qiskit and eliminate a possible import
+    cycle by only importing the element packages at runtime if the version
+    is needed from the package. This should be fully compatible with the
+    ``dict`` previously return and for most normal use cases there will be no
+    difference. However, if some applications were relying on either mutating
+    the contents or explicitly type checking it may require updates to adapt to
+    this change.

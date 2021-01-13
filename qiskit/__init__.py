@@ -77,10 +77,10 @@ from qiskit.execute import execute  # noqa
 from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
 
 from .version import __version__  # noqa
-from .version import _get_qiskit_versions  # noqa
+from .version import QiskitVersion  # noqa
 
 
-__qiskit_version__ = _get_qiskit_versions()
+__qiskit_version__ = QiskitVersion()
 
 
 if sys.version_info[0] == 3 and sys.version_info[1] == 6:
