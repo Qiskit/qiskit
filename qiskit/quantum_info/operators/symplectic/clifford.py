@@ -238,7 +238,6 @@ class Clifford(BaseOperator):
         # Add the padded table
         return Clifford(destab + stab, validate=False)
 
-
     def _compose(self, other, qargs=None, front=False):
         # If other is a QuantumCircuit we can more efficiently compose
         # using the _append_circuit method to update each gate recursively

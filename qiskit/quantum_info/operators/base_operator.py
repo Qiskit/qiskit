@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 
 from .mixins import GateOpMixin
 
+
 # pylint: disable = abstract-method
 class BaseOperator(GateOpMixin, ABC):
     """Abstract linear operator base class."""

@@ -426,7 +426,7 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-     # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the operator composition with another Pauli.
 

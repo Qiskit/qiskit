@@ -23,6 +23,7 @@ from qiskit.circuit.barrier import Barrier
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import MultiplyMixin
 
+
 class BasePauli(BaseOperator, MultiplyMixin):
     r"""Symplectic representation of a list of N-qubit Paulis.
 

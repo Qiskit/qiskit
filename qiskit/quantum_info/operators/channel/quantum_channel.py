@@ -157,17 +157,13 @@ class QuantumChannel(BaseOperator, LinearMixin, TolerancesMixin):
         return self._add(-other, qargs=qargs)
 
     def _add(self, other, qargs=None):
-        if not isinstance(other, type(self)):
-            other = type(self)(other)
-
         # NOTE: this method must be overridden for subclasses
         # that don't have a linear matrix representation
         # ie Kraus and Stinespring
-
-
+        if not isinstance(other, type(self)):
+            other = type(self)(other)
         self._op_shape._validate_add(other._op_shape, qargs)
         other = ScalarOp._pad_with_identity(self, other, qargs)
-
         ret = copy.copy(self)
         ret._data = self._data + other._data
         return ret
