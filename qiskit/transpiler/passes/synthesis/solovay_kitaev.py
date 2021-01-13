@@ -14,15 +14,22 @@
 
 from typing import List, Union, Tuple
 import numpy as np
-import math
 
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
+from qiskit.circuit.library import IGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
-from .solovay_kitaev_utils import *
-from .solovay_kitaev_utils import _compute_commutator_so3
+from .solovay_kitaev_utils import (
+    GateSequence,
+    compute_frobenius_norm,
+    compute_rotation_axis,
+    compute_rotation_between,
+    compute_rotation_from_angle_and_axis,
+    solve_decomposition_angle,
+    _compute_commutator_so3,
+)
 
 
 class SolovayKitaev():
@@ -38,8 +45,7 @@ class SolovayKitaev():
         """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
         Args:
-            basic_gates: The gates from which to create the sequences of gates.
-            depth: The maximal length of the generated sequences.
+            basis_gates: The gates from which to create the sequences of gates.
 
         Returns:
             List of GateSequences using the gates in basic_gates.
@@ -70,18 +76,9 @@ class SolovayKitaev():
         Args:
             gate_matrix: The 2x2 matrix representing the gate. Does not need to be SU(2).
             recursion_degree: The recursion degree, called :math:`n` in the paper.
-        """
-        """Initializes list of basic approximations from gates in ``basic_gates``
-        and starts the Solovay-Kitaev algorithm for gate ``u`` with ``n`` iterations.
-
-        Args:
-            u: Gate that needs to be approximated.
-            n: Recursion depth for the Solovay_Kitaev algorithm.
-            basic_gates: List of gates for approximating ``u``.
 
         Returns:
-            GateSequence with gates in ``basic_gates`` that approximates ``u``.
-
+            A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
         """
         det = np.linalg.det(gate_matrix)
         special_u_m = np.dot(1/det, gate_matrix)
@@ -89,13 +86,13 @@ class SolovayKitaev():
         global_phase = np.arcsin(np.imag(np.linalg.det(gate_matrix)))
 
         special_result = self._recurse(special_u_gs, recursion_degree)
-        return self._synth_circuit(global_phase, simplify(simplify(special_result)))
+        return self._synth_circuit(global_phase, _simplify(_simplify(special_result)))
 
-    def _recurse(self, u: GateSequence, n: int) -> GateSequence:
+    def _recurse(self, sequence: GateSequence, n: int) -> GateSequence:
         """Performs ``n`` iterations of the Solovay-Kitaev algorithm with GateSequence ``u``.
 
         Args:
-            u: GateSequence to which the Solovay-Kitaev algorithm is applied.
+            sequence: GateSequence to which the Solovay-Kitaev algorithm is applied.
             n: number of iterations that the algorithm needs to run.
 
         Returns:
@@ -104,15 +101,15 @@ class SolovayKitaev():
         Raises:
             ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
-        if u.product.shape != (3, 3):
-            raise ValueError('Shape of U must be (3, 3) but is', u.shape)
+        if sequence.product.shape != (3, 3):
+            raise ValueError('Shape of U must be (3, 3) but is', sequence.shape)
 
         if n == 0:
-            return self.find_basic_approximation(u)
+            return self.find_basic_approximation(sequence)
         else:
-            u_n1 = self._recurse(u, n - 1)
+            u_n1 = self._recurse(sequence, n - 1)
             tuple_v_w = self.commutator_decompose(
-                np.dot(u.product, np.matrix.getH(u_n1.product)))
+                np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
             v_n1 = self._recurse(tuple_v_w[0], n - 1)
             w_n1 = self._recurse(tuple_v_w[1], n - 1)
@@ -153,12 +150,12 @@ class SolovayKitaev():
         # Compute rotation about y-axis with angle 'angle'
         wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
 
-        commutatorVxWy = _compute_commutator_so3(vx, wy)
+        commutator = _compute_commutator_so3(vx, wy)
 
         u_so3_axis = compute_rotation_axis(u_so3)
-        commutatorVxWy_axis = compute_rotation_axis(commutatorVxWy)
+        commutator_axis = compute_rotation_axis(commutator)
 
-        sim_matrix = compute_rotation_between(commutatorVxWy_axis, u_so3_axis)
+        sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
         sim_matrix_dagger = np.matrix.getH(sim_matrix)
 
         v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
@@ -166,18 +163,17 @@ class SolovayKitaev():
 
         return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
-    def find_basic_approximation(self, u: GateSequence) -> Gate:
-        """Finds gate in ``basic_approximations`` that is closest to ``u`` in the Frobenius norm.
+    def find_basic_approximation(self, sequence: GateSequence) -> Gate:
+        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
 
         Args:
-            basic_approximations: The list of basic approximations from which
-                a closest one to ``u`` is selected.
+            sequence: The gate to find the approximation to.
 
         Returns:
             Gate in basic approximations that is closest to ``u``.
         """
         def key(x):
-            return compute_frobenius_norm(np.subtract(x.product, u.product))
+            return compute_frobenius_norm(np.subtract(x.product, sequence.product))
 
         return min(self._basic_approximations, key=key)
 
@@ -213,17 +209,15 @@ def _check_candidate(candidate, sequences):
     return True
 
 
-def simplify(sequence: GateSequence) -> GateSequence:
-    id_removed = [
-        gate for gate in sequence.gates if not _approximates_identity(gate)]
+def _simplify(sequence: GateSequence) -> GateSequence:
+    id_removed = [gate for gate in sequence.gates if not _approximates_identity(gate)]
     no_inverses_together = []
-    for index in range(len(id_removed)):
+    for index, _ in enumerate(id_removed):
         if index < len(id_removed)-1 and _is_left_to_inverse(id_removed, index):
             continue
-        elif index > 0 and _is_right_to_inverse(id_removed, index):
+        if index > 0 and _is_right_to_inverse(id_removed, index):
             continue
-        else:
-            no_inverses_together.append(id_removed[index])
+        no_inverses_together.append(id_removed[index])
     return GateSequence(no_inverses_together)
 
 
