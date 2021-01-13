@@ -11,3 +11,15 @@ upgrade:
     difference. However, if some applications were relying on either mutating
     the contents or explicitly type checking it may require updates to adapt to
     this change.
+  - |
+    The ``qiskit.execute`` module has been renamed to
+    :mod:`qiskit.execute_function`. This was necessary to avoid a potentical
+    name conflict between the :func:`~qiskit.execute_function.execute` function
+    which is re-exported as ``qiskit.execute``. ``qiskit.execute`` the function
+    in some situations could conflict with ``qiskit.execute`` the module which
+    would lead to cryptic error because Python was treating ``qiskit.execute``
+    as the module when the intent was to the function or vice versa. The module
+    rename was necessary to avoid this conflict. If you're importing
+    ``qiskit.execute`` to get the module (typical usage was
+    ``from qiskit.execute import execute``) you will need to update this to
+    use ``qiskit.execute_function`` instead.
