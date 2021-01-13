@@ -22,4 +22,24 @@ upgrade:
     rename was necessary to avoid this conflict. If you're importing
     ``qiskit.execute`` to get the module (typical usage was
     ``from qiskit.execute import execute``) you will need to update this to
-    use ``qiskit.execute_function`` instead.
+    use ``qiskit.execute_function`` instead. ``qiskit.execute`` will now always
+    resolve to the function.
+  - |
+    The ``qiskit.compiler.transpile``, ``qiskit.compiler.assemble``,
+    ``qiskit.compiler.schedule``, and ``qiskit.compiler.sequence`` modules have
+    been renamed to ``qiskit.compiler.transpiler``,
+    ``qiskit.compiler.assembler``, ``qiskit.compiler.scheduler``, and
+    ``qiskit.compiler.sequence`` respectively. This was necessary to avoid a
+    potentical name conflict between the modules and the re-exported function
+    paths :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
+    :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`.
+    Insome situations this name conflict between the module path and
+    re-exported function path would lead to cryptic error because Python was
+    treating an import as the module when the intent was to use the function or
+    vice versa. The module rename was necessary to avoid this conflict. If
+    you were using the imports to get the modules before (typical usage would
+    be like``from qiskit.compiler.transpile import transpile``) you will need
+    to update this to use the new module paths.
+    :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
+    :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`
+    will now always resolve to the function.
