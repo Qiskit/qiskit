@@ -1939,7 +1939,7 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def assign_parameters(self, param_dict, inplace=False):
+    def assign_parameters(self, params, inplace=False):
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -1947,7 +1947,7 @@ class QuantumCircuit:
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            param_dict (dict): A dictionary specifying the mapping from ``current_parameter``
+            params (dict or list): A dictionary specifying the mapping from ``current_parameter``
                 to ``new_parameter``, where ``new_parameter`` can be a new parameter object
                 or a numeric value.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
@@ -2003,18 +2003,21 @@ class QuantumCircuit:
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
 
-        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-        unrolled_param_dict = self._unroll_param_dict(param_dict)
+        if isinstance(params, dict):
+            # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+            unrolled_param_dict = self._unroll_param_dict(params)
 
-        # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self._parameter_table.keys():
-            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self._parameter_table]))
+            # check that only existing parameters are in the parameter dictionary
+            if unrolled_param_dict.keys() > self._parameter_table.keys():
+                raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                    [str(p) for p in params.keys() - self._parameter_table]))
 
-        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-        for parameter, value in unrolled_param_dict.items():
-            bound_circuit._assign_parameter(parameter, value)
-
+            # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+            for parameter, value in unrolled_param_dict.items():
+                bound_circuit._assign_parameter(parameter, value)
+        elif isinstance(params, list):
+            for i, value in enumerate(params):
+                bound_circuit._assign_parameter(self._parameter_table[i], value)
         return None if inplace else bound_circuit
 
     def bind_parameters(self, value_dict):

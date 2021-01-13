@@ -139,6 +139,23 @@ class TestParameters(QiskitTestCase):
         self.assertIs(theta, next(iter(vparams)))
         self.assertEqual(rxg, vparams[theta][0][0])
 
+    def test_get_parameters_by_index(self):
+        """Test getting parameters by index"""
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        v = ParameterVector('v', 3)
+        qc = QuantumCircuit(1)
+        qc.rx(x, 0)
+        qc.rz(z, 0)
+        qc.ry(y, 0)
+        qc.u(*v, 0)
+        self.assertEqual(x, qc._parameter_table[0])
+        self.assertEqual(y, qc._parameter_table[2])
+        self.assertEqual(z, qc._parameter_table[1])
+        for i, vi in enumerate(v):
+            self.assertEqual(vi, qc._parameter_table[3+i])
+
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
         from qiskit.circuit.library.standard_gates.h import HGate
@@ -169,6 +186,17 @@ class TestParameters(QiskitTestCase):
                 bqc = getattr(qc, assign_fun)({theta: 0.6})
                 self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
                 self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
+
+    def test_assign_anonymous_parameters(self):
+        """Test assigning parameters anonymously with list of values"""
+        from qiskit.circuit.library import EfficientSU2
+
+        num_qubits = 4
+        qc = EfficientSU2(num_qubits, reps=1, parameter_prefix='th')
+        value_list = [0.1 * i for i in range(len(qc.parameters))]
+        qc2 = qc.assign_parameters(value_list)
+        #breakpoint()
+        
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
