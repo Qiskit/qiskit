@@ -24,6 +24,7 @@ from qiskit.circuit.library import TGate, IGate, RXGate, RYGate, HGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Operator
 
 
 class H(Gate):
@@ -153,6 +154,24 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
 
         print(decomposed_circuit.draw())
+
+    def test_example_2(self):
+        """@Lisa Example to show how to call the pass."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.8, 0)
+
+        basic_gates = [H(), T(), S(), H_dg(), T_dg(), S_dg()]
+        synth = SolovayKitaevDecomposition(2, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        print(decomposed_circuit.draw())
+        print('Original')
+        print(Operator(circuit))
+        print('Synthesized')
+        print(Operator(decomposed_circuit))
 
 
 if __name__ == '__main__':

@@ -83,7 +83,7 @@ class SolovayKitaev():
         det = np.linalg.det(gate_matrix)
         special_u_m = np.dot(1/det, gate_matrix)
         special_u_gs = GateSequence.from_matrix(special_u_m)
-        global_phase = np.arcsin(np.imag(np.linalg.det(gate_matrix)))
+        global_phase = np.arcsin(np.imag(np.linalg.det(gate_matrix))) + np.pi  # TODO check this
 
         special_result = self._recurse(special_u_gs, recursion_degree)
         return self._synth_circuit(global_phase, _simplify(_simplify(special_result)))
