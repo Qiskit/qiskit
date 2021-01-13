@@ -1947,9 +1947,9 @@ class QuantumCircuit:
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            params (dict or list): A dictionary specifying the mapping from ``current_parameter``
+            params (dict or iterable): A dictionary specifying the mapping from ``current_parameter``
                 to ``new_parameter``, where ``new_parameter`` can be a new parameter object
-                or a numeric value.
+                or a numeric value. Also, can be an iterablie list of 
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
 
@@ -2015,30 +2015,35 @@ class QuantumCircuit:
             # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
             for parameter, value in unrolled_param_dict.items():
                 bound_circuit._assign_parameter(parameter, value)
-        elif isinstance(params, list):
+        else:
             for i, value in enumerate(params):
                 bound_circuit._assign_parameter(self._parameter_table[i], value)
         return None if inplace else bound_circuit
 
-    def bind_parameters(self, value_dict):
+    def bind_parameters(self, params):
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
         circuit, use the :meth:`assign_parameters` method.
 
         Args:
-            value_dict (dict): {parameter: value, ...}
+            params (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
 
         Raises:
-            CircuitError: If value_dict contains parameters not present in the circuit
-            TypeError: If value_dict contains a ParameterExpression in the values.
+            CircuitError: If params contains parameters not present in the circuit.
+            TypeError: If params contains a ParameterExpression in the values.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
-            raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
-        return self.assign_parameters(value_dict)
+        if isinstance(params, dict):
+            if any(isinstance(value, ParameterExpression) for value in params.values()):
+                raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
+            return self.assign_parameters(params)
+        else:
+            if any(isinstance(value, ParameterExpression) for value in params):
+                raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
+            return self.assign_parameters(params)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
