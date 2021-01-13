@@ -12,6 +12,7 @@
 
 """AbelianGrouper Class"""
 
+from collections import defaultdict
 from typing import cast, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -24,6 +25,7 @@ from ..list_ops.summed_op import SummedOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.pauli_sum_op import PauliSumOp
+from ..primitive_ops.grouped_pauli_sum_op import GroupedPauliSumOp
 from ..state_fns.operator_state_fn import OperatorStateFn
 from ..exceptions import OpflowError
 
@@ -105,16 +107,22 @@ class AbelianGrouper(ConverterBase):
         graph.add_edges_from_no_data(edges)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
-
-        groups = {}  # type: Dict
-        # sort items so that the output is consistent with all options (fast and use_nx)
-        for idx, color in sorted(coloring_dict.items()):
-            groups.setdefault(color, []).append(list_op[idx])
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
 
         if isinstance(list_op, PauliSumOp):
-            return SummedOp([sum(group) for group in groups.values()])
+            primitive = list_op.primitive
+            coeff = list_op.coeff
+            return SummedOp(
+                [GroupedPauliSumOp(primitive[[group]]) for group in groups.values()],
+                coeff
+            )
 
-        group_ops = [list_op.__class__(group, abelian=True) for group in groups.values()]
+        group_ops = [
+            list_op.__class__([list_op[idx] for idx in group], abelian=True)
+            for group in groups.values()
+        ]
         if len(group_ops) == 1:
             return group_ops[0] * list_op.coeff  # type: ignore
         return list_op.__class__(group_ops, coeff=list_op.coeff)  # type: ignore
