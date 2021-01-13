@@ -23,7 +23,6 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 from .solovay_kitaev_utils import (
     GateSequence,
-    compute_frobenius_norm,
     compute_rotation_axis,
     compute_rotation_between,
     compute_rotation_from_angle_and_axis,
@@ -67,7 +66,7 @@ class SolovayKitaev():
         qc = QuantumCircuit(qr)
         for gate in gate_sequence.gates:
             qc.append(gate, [qr[0]])
-        qc.global_phase = global_phase
+        qc.global_phase = global_phase + gate_sequence.global_phase
         return qc
 
     def run(self, gate_matrix: np.ndarray, recursion_degree: int) -> QuantumCircuit:
@@ -80,13 +79,18 @@ class SolovayKitaev():
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
         """
-        det = np.linalg.det(gate_matrix)
-        special_u_m = np.dot(1/det, gate_matrix)
-        special_u_gs = GateSequence.from_matrix(special_u_m)
-        global_phase = np.arcsin(np.imag(np.linalg.det(gate_matrix))) + np.pi  # TODO check this
+        # make input matrix SU(2) and get the according global phase
+        z = 1 / np.sqrt(np.linalg.det(gate_matrix))
+        gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
+        global_phase = np.arctan2(np.imag(z), np.real(z))
 
-        special_result = self._recurse(special_u_gs, recursion_degree)
-        return self._synth_circuit(global_phase, _simplify(_simplify(special_result)))
+        # get the decompositon as GateSequence type
+        decomposition = self._recurse(gate_matrix_su2, recursion_degree)
+
+        # convert to a circuit and attach the right phases
+        circuit = self._synth_circuit(global_phase, decomposition)
+
+        return circuit
 
     def _recurse(self, sequence: GateSequence, n: int) -> GateSequence:
         """Performs ``n`` iterations of the Solovay-Kitaev algorithm with GateSequence ``u``.
@@ -106,14 +110,14 @@ class SolovayKitaev():
 
         if n == 0:
             return self.find_basic_approximation(sequence)
-        else:
-            u_n1 = self._recurse(sequence, n - 1)
-            tuple_v_w = self.commutator_decompose(
-                np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
-            v_n1 = self._recurse(tuple_v_w[0], n - 1)
-            w_n1 = self._recurse(tuple_v_w[1], n - 1)
-            return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
+        u_n1 = self._recurse(sequence, n - 1)
+        tuple_v_w = self.commutator_decompose(
+            np.dot(sequence.product, np.matrix.getH(u_n1.product)))
+
+        v_n1 = self._recurse(tuple_v_w[0], n - 1)
+        w_n1 = self._recurse(tuple_v_w[1], n - 1)
+        return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def commutator_decompose(self, u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
         """Decompose an SO(3)-matrix as a balanced commutator.
@@ -173,7 +177,7 @@ class SolovayKitaev():
             Gate in basic approximations that is closest to ``u``.
         """
         def key(x):
-            return compute_frobenius_norm(np.subtract(x.product, sequence.product))
+            return np.linalg.norm(np.subtract(x.product, sequence.product))
 
         return min(self._basic_approximations, key=key)
 
@@ -222,19 +226,19 @@ def _simplify(sequence: GateSequence) -> GateSequence:
 
 
 def _approximates_identity(gate: Gate) -> bool:
-    return compute_frobenius_norm(np.subtract(gate.to_matrix(), IGate().to_matrix())) < 1e-4
+    return np.linalg.norm(np.subtract(gate.to_matrix(), IGate().to_matrix())) < 1e-4
 
 
 def _is_left_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
     product = np.dot(id_removed[index].to_matrix(),
                      id_removed[index+1].to_matrix())
-    return compute_frobenius_norm(np.subtract(product, IGate())) < 1e-4
+    return np.linalg.norm(np.subtract(product, IGate())) < 1e-4
 
 
 def _is_right_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
     product = np.dot(id_removed[index-1].to_matrix(),
                      id_removed[index].to_matrix())
-    return compute_frobenius_norm(np.subtract(product, IGate())) < 1e-4
+    return np.linalg.norm(np.subtract(product, IGate())) < 1e-4
 
 
 class SolovayKitaevDecomposition(TransformationPass):

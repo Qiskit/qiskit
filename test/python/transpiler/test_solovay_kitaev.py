@@ -11,21 +11,23 @@
 # that they have been altered from the originals.
 
 """Test the Solovay Kitaev transpilation pass."""
-import numpy as np
+
+import unittest
 import math
+import numpy as np
 
 from scipy.optimize import minimize
 import qiskit.circuit.library as gates
-import unittest
 
-from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit.library import TGate, IGate, RXGate, RYGate, HGate
+from qiskit.circuit.library import TGate, RXGate, RYGate, HGate, SGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
 
+
+# pylint: disable=invalid-name, missing-class-docstring
 
 class H(Gate):
     def __init__(self):
@@ -37,7 +39,7 @@ class H(Gate):
         definition.global_phase = np.pi / 2
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return 1j * gates.HGate().to_matrix()
 
     def inverse(self):
@@ -54,7 +56,7 @@ class H_dg(Gate):
         definition.global_phase = -np.pi / 2
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return -1j * gates.HGate().to_matrix()
 
     def inverse(self):
@@ -71,7 +73,7 @@ class T(Gate):
         definition.global_phase = -np.pi / 8
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return np.exp(-1j * np.pi / 8) * gates.TGate().to_matrix()
 
     def inverse(self):
@@ -88,7 +90,7 @@ class T_dg(Gate):
         definition.global_phase = np.pi / 8
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return np.exp(1j * np.pi / 8) * gates.TdgGate().to_matrix()
 
     def inverse(self):
@@ -105,7 +107,7 @@ class S(Gate):
         definition.global_phase = -np.pi / 4
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return np.exp(-1j * np.pi / 4) * gates.SGate().to_matrix()
 
     def inverse(self):
@@ -122,7 +124,7 @@ class S_dg(Gate):
         definition.global_phase = np.pi / 4
         self.definition = definition
 
-    def to_matrix(self, dtype=None):
+    def to_matrix(self):
         return np.exp(1j * np.pi / 4) * gates.SdgGate().to_matrix()
 
     def inverse(self):
@@ -130,6 +132,8 @@ class S_dg(Gate):
 
 
 def distance(A, B):
+    """Find the distance in norm of A and B, ignoring global phase."""
+
     def objective(global_phase):
         return np.linalg.norm(A - np.exp(1j * global_phase) * B)
     result1 = minimize(objective, [1], bounds=[(-np.pi, np.pi)])
@@ -160,7 +164,25 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basic_gates = [H(), T(), S(), H_dg(), T_dg(), S_dg()]
+        basic_gates = [H(), T(), S(), T_dg(), S_dg()]
+        synth = SolovayKitaevDecomposition(2, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        print(decomposed_circuit.draw())
+        print('Original')
+        print(Operator(circuit))
+        print('Synthesized')
+        print(Operator(decomposed_circuit))
+
+    def test_example_non_su2(self):
+        """@Lisa Example to show how to call the pass."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.8, 0)
+
+        basic_gates = [HGate(), TGate(), SGate(), TGate().inverse(), SGate().inverse()]
         synth = SolovayKitaevDecomposition(2, basic_gates)
 
         dag = circuit_to_dag(circuit)
@@ -180,3 +202,4 @@ if __name__ == '__main__':
 
 class TestSolovayKitaevUtils(QiskitTestCase):
     """Test the algebra utils."""
+    pass
