@@ -53,13 +53,13 @@ class LinComb(CircuitGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression],
-                                       Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]]]]
-                = None,
+                params: Union[ParameterExpression, ParameterVector,
+                              List[ParameterExpression],
+                              Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]]]
                 ) -> OperatorBase:
         """ Convert the given operator into an operator object that represents the gradient w.r.t.
             params
@@ -83,11 +83,10 @@ class LinComb(CircuitGradient):
     # pylint: disable=too-many-return-statements
     def _prepare_operator(self,
                           operator: OperatorBase,
-                          params: Optional[Union[ParameterExpression, ParameterVector,
-                                                 List[ParameterExpression],
-                                                 Tuple[ParameterExpression, ParameterExpression],
-                                                 List[Tuple[ParameterExpression,
-                                                            ParameterExpression]]]] = None
+                          params: Union[ParameterExpression, ParameterVector,
+                                        List[ParameterExpression],
+                                        Tuple[ParameterExpression, ParameterExpression],
+                                        List[Tuple[ParameterExpression, ParameterExpression]]]
                           ) -> OperatorBase:
         """ Traverse through the given operator to get back the adapted operator representing the
             gradient
