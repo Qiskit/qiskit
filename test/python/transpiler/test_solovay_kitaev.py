@@ -182,7 +182,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basic_gates = [HGate(), TGate(), SGate(), TGate().inverse(), SGate().inverse()]
+        basic_gates = [HGate(), TGate(), SGate()]
         synth = SolovayKitaevDecomposition(2, basic_gates)
 
         dag = circuit_to_dag(circuit)
@@ -194,6 +194,7 @@ class TestSolovayKitaev(QiskitTestCase):
         print(Operator(circuit))
         print('Synthesized')
         print(Operator(decomposed_circuit))
+        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data), 0.1)
 
 
 if __name__ == '__main__':

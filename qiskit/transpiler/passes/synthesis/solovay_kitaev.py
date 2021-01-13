@@ -88,6 +88,7 @@ class SolovayKitaev():
         decomposition = self._recurse(gate_matrix_su2, recursion_degree)
 
         # convert to a circuit and attach the right phases
+        # TODO insert simplify again, but it seems to break the accuracy test
         circuit = self._synth_circuit(global_phase, decomposition)
 
         return circuit
