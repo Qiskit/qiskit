@@ -300,6 +300,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         observable_meas = self.expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
+        self._var_form_params = sorted(ansatz_circuit_op.parameters, key=lambda p: p.name)
         return observable_meas.compose(ansatz_circuit_op).reduce()
 
     def construct_circuit(self,
