@@ -385,8 +385,12 @@ class QCircuitImage:
                         'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
-                    name = generate_latex_label(
-                        op.op.base_gate.name.upper()).replace(" ", "\\,")
+                    if op.op.label:
+                        name = generate_latex_label(
+                            op.op.base_gate.label.upper()).replace(" ", "\\,")
+                    else:
+                        name = generate_latex_label(
+                            op.op.base_gate.name.upper()).replace(" ", "\\,")
                     pos_array = []
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(qarglist) - num_ctrl_qubits
@@ -475,7 +479,10 @@ class QCircuitImage:
 
                 elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                      'save', 'noise']:
-                    nm = generate_latex_label(op.name).replace(" ", "\\,")
+                    if op.name != 'reset' and op.op.label:
+                        nm = generate_latex_label(op.op.label).replace(" ", "\\,")
+                    else:
+                        nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
                     if len(qarglist) == 1:
@@ -587,8 +594,8 @@ class QCircuitImage:
                                     self.parse_params(op.op.params[0]))
                             elif nm == "reset":
                                 self._latex[pos_1][column] = (
-                                    "\\push{\\rule{.6em}{0em}\\ket{0}\\"
-                                    "rule{.2em}{0em}} \\qw")
+                                    "\\push{\\ket{0}}"
+                                    "\\qw")
                             else:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
