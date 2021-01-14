@@ -38,7 +38,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
         self.basis = None
-        u3_only = True if basis == ['u3'] else False
+        u3_only = (basis == ['u3'])
         if basis:
             self.basis = []
             basis_set = set(basis)

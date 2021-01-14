@@ -86,8 +86,7 @@ class CheckDecompositions(QiskitTestCase):
             angles = OneQubitEulerDecomposer().angles(target_unitary)
             decomp_unitary = U3Gate(*angles).to_matrix()
         else:
-            u3_only = True if basis == 'U3' else False
-            decomposer = OneQubitEulerDecomposer(basis, u3_only=u3_only)
+            decomposer = OneQubitEulerDecomposer(basis, u3_only=(basis == 'U3'))
             decomp_unitary = Operator(decomposer(target_unitary)).data
         # Add global phase to make special unitary
         target_unitary *= la.det(target_unitary) ** (-0.5)
@@ -166,7 +165,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                                      phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
         u3_only = True if basis == 'U3' else False
-        decomposer = OneQubitEulerDecomposer(basis, u3_only=u3_only)
+        decomposer = OneQubitEulerDecomposer(basis, u3_only=(basis == 'U3'))
         with self.subTest(operator=operator):
             target_unitary = operator.data
             decomp_unitary = Operator(decomposer(target_unitary)).data

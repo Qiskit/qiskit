@@ -248,8 +248,8 @@ class TwoQubitBasisDecomposer():
 
         basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
         if euler_basis is not None:
-            u3_only = True if euler_basis == 'U3' else False
-            self._decomposer1q = OneQubitEulerDecomposer(euler_basis, u3_only=u3_only)
+            self._decomposer1q = OneQubitEulerDecomposer(euler_basis,
+                                                         u3_only=(euler_basis == 'U3'))
         else:
             self._decomposer1q = OneQubitEulerDecomposer('U3', u3_only=True)
 

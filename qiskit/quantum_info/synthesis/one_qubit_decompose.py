@@ -91,19 +91,20 @@ class OneQubitEulerDecomposer:
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
     """
 
-    def __init__(self, basis='U3', u3_only=False):
+    def __init__(self, basis='U3', u3_only=True):
         """Initialize decomposer
 
         Supported bases are: 'U', 'PSX', 'ZSX', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
+            u3_only (bool): True if 'u3' is only basis gate
 
         Raises:
             QiskitError: If input basis is not recognized.
         """
         self.basis = basis  # sets: self._basis, self._params, self._circuit
-        self.simplify = False if u3_only else True
+        self.simplify = not u3_only
 
     def __call__(self,
                  unitary,
