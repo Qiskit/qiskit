@@ -389,11 +389,12 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.append(U3Gate(0, 0, np.pi / 4), [qr[0]])
+        circuit.append(U3Gate(0, 0, np.pi / 2), [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(np.pi / 4), [qr[0]])
+        expected.append(U1Gate(3 * np.pi / 4), [qr[0]])
 
-        basis = ['u1', 'u2']
+        basis = ['u1', 'u3']
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
@@ -406,11 +407,13 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.append(U3Gate(np.pi / 2, 0, np.pi / 4), [qr[0]])
+        circuit.append(U3Gate(0, 0, np.pi / 4), [qr[0]])
+        #circuit.append(XGate(), [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U2Gate(0, np.pi / 4), [qr[0]])
+        expected.append(U2Gate(np.pi / 4, np.pi / 4), [qr[0]])
 
-        basis = ['p', 'u2']
+        basis = ['u2', 'u3']
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
