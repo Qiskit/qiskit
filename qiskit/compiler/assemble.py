@@ -420,11 +420,14 @@ def _expand_parameters(circuits, run_config):
     """
 
     parameter_binds = run_config.parameter_binds
+
     if parameter_binds or \
        any(circuit.parameters for circuit in circuits):
 
-        all_bind_parameters = [bind.keys()
+        # Unroll params here in order to handle ParamVects
+        all_bind_parameters = [QuantumCircuit()._unroll_param_dict(bind).keys()
                                for bind in parameter_binds]
+
         all_circuit_parameters = [circuit.parameters for circuit in circuits]
 
         # Collect set of all unique parameters across all circuits and binds
