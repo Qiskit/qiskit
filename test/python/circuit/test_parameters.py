@@ -26,6 +26,7 @@ import qiskit.circuit.library as circlib
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
@@ -1320,7 +1321,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction()
 
-        self.assertEqual(gate.params, [phi, theta])
+        self.assertEqual(gate.params, [theta, phi])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -1367,7 +1368,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [phi_p, theta_p])
+        self.assertEqual(gate.params, [theta_p, phi_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -1582,6 +1583,66 @@ class TestParameterEquality(QiskitTestCase):
         phi = Parameter('phi')
         cos_phi = numpy.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
+
+
+class TestParameterView(QiskitTestCase):
+    """TODO Test the ParameterView object."""
+
+    def setUp(self):
+        super().setUp()
+        x, y, z = Parameter('x'), Parameter('y'), Parameter('z')
+        self.params = [x, y, z]
+        self.view1 = ParameterView([x, y])
+        self.view2 = ParameterView([y, z])
+        self.view3 = ParameterView([x])
+
+    def test_deprecated_methods(self):
+        """TODO"""
+        pass
+
+    def test_and(self):
+        """Test __and__."""
+        self.assertEqual(self.view1 & self.view, set(self.params[1]))
+
+    def test_or(self):
+        """Test __or__."""
+        self.assertEqual(self.view1 | self.view, set(self.params))
+
+    def test_xor(self):
+        """Test __xor__."""
+        self.assertEqual(self.view1 ^ self.view, set([self.params[0], self.params[2]]))
+
+    def test_len(self):
+        """Test __len__."""
+        self.assertEqual(len(self.view1), 2)
+
+    def test_le(self):
+        """Test __le__."""
+        self.assertTrue(self.view1 <= self.view1)
+        self.assertFalse(self.view1 <= self.view3)
+
+    def test_lt(self):
+        """Test __lt__."""
+        self.assertTrue(self.view3 < self.view1)
+
+    def test_ge(self):
+        """Test __ge__."""
+        self.assertTrue(self.view1 >= self.view1)
+        self.assertFalse(self.view3 >= self.view1)
+
+    def test_gt(self):
+        """Test __lt__."""
+        self.assertTrue(self.view1 > self.view3)
+
+    def test_eq(self):
+        """Test __eq__."""
+        self.assertTrue(self.view1 == self.view1)
+        self.assertFalse(self.view3 == self.view1)
+
+    def test_ne(self):
+        """Test __eq__."""
+        self.assertTrue(self.view1 != self.view2)
+        self.assertFalse(self.view3 != self.view3)
 
 
 if __name__ == '__main__':
