@@ -14,9 +14,9 @@
 
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, List, Any, Union, Tuple
-import json
 
-from .experiment_data import ExperimentData, AnalysisResult
+from .experiment_data import ExperimentDataV1 as ExperimentData
+from .analysis_result import AnalysisResultV1 as AnalysisResult
 from .constants import ResultQuality
 
 
@@ -48,7 +48,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             self,
             experiment_type: str,
             backend_name: str,
-            data: Any,
+            data: Dict,
             experiment_id: Optional[str] = None,
             job_ids: Optional[List[str]] = None,
             tags: Optional[List[str]] = None,
@@ -60,7 +60,8 @@ class ExperimentServiceV1(ExperimentService, ABC):
             experiment_type: Experiment type.
             backend_name: Name of the backend the experiment ran on.
             data: Data to be saved in the database.
-            experiment_id: Experiment ID.
+            experiment_id: Experiment ID. It must be in the ``uuid4`` format.
+                One will be generated if not supplied.
             job_ids: IDs of experiment jobs.
             tags: Tags to be associated with the experiment.
             kwargs: Additional keywords supported by the service provider.
@@ -77,7 +78,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
     def update_experiment(
             self,
             experiment_id: str,
-            data: Any,
+            data: Dict,
             job_ids: List[str],
             tags: List[str],
             **kwargs: Any
@@ -97,7 +98,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def experiment(self, experiment_id: str) -> Dict:
+    def experiment(self, experiment_id: str) -> ExperimentData:
         """Retrieve a previously stored experiment.
 
         Args:
@@ -112,11 +113,30 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def experiments(self, limit: Optional[int] = 10, **filters: Any) -> List[ExperimentData]:
+    def experiments(
+            self,
+            limit: Optional[int] = 10,
+            experiment_type: Optional[str] = None,
+            backend_name: Optional[str] = None,
+            tags: Optional[List[str]] = None,
+            tags_operator: Optional[str] = "OR",
+            **filters: Any) -> List[ExperimentData]:
         """Retrieve all experiments, with optional filtering.
 
         Args:
             limit: Number of experiments to retrieve. ``None`` means no limit.
+            backend_name: Backend name used for filtering.
+            experiment_type: Experiment type used for filtering.
+            tags: Filter by tags assigned to experiments. This can be used
+                with `tags_operator` for granular filtering.
+            tags_operator: Logical operator to use when filtering by tags. Valid
+                values are "AND" and "OR":
+
+                    * If "AND" is specified, then an experiment must have all of the tags
+                      specified in `tags` to be included.
+                    * If "OR" is specified, then an experiment only needs to have any
+                      of the tags specified in `tags` to be included.
+
             **filters: Additional filtering keywords supported by the service provider.
 
         Returns:
@@ -140,7 +160,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             data: Dict,
             result_type: str,
             tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.NO_INFORMATION,
+            quality: Union[ResultQuality, int] = ResultQuality.AVERAGE,
             result_id: Optional[str] = None,
             **kwargs: Any
     ) -> str:
@@ -151,10 +171,12 @@ class ExperimentServiceV1(ExperimentService, ABC):
             data: Result data to be stored.
             result_type: Analysis result type.
             tags: Tags to be associated with the analysis result.
-            quality: Quality of the analysis results. One of
-                ``Human Bad``, ``Computer Bad``, ``No Information``,
-                ``Human Good``, and ``Computer Good``.
-            result_id: Analysis result ID.
+            quality: Quality of this analysis. It can be a
+                :class:`qiskit.providers.experiment.ResultQuality` or
+                an integer ranging from 1-5, with 1 being the lowest
+                quality.
+            result_id: Analysis result ID. It must be in the ``uuid4`` format.
+                One will be generated if not supplied.
             kwargs: Additional keywords supported by the service provider.
 
         Returns:
@@ -171,7 +193,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
             result_id: str,
             data: Optional[Dict] = None,
             tags: Optional[List[str]] = None,
-            quality: Union[ResultQuality, str] = ResultQuality.NO_INFORMATION,
+            quality: Union[ResultQuality, str] = ResultQuality.AVERAGE,
             **kwargs: Any
     ) -> None:
         """Update an existing analysis result.
@@ -179,9 +201,10 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             result_id: Analysis result ID.
             data: Result data to be stored.
-            quality: Quality of the analysis results. One of
-                ``Human Bad``, ``Computer Bad``, ``No Information``,
-                ``Human Good``, and ``Computer Good``.
+            quality: Quality of this analysis. It can be a
+                :class:`qiskit.providers.experiment.ResultQuality` or
+                an integer ranging from 1-5, with 1 being the lowest
+                quality.
             tags: Tags to be associated with the analysis result.
             kwargs: Additional keywords supported by the service provider.
 
@@ -210,6 +233,11 @@ class ExperimentServiceV1(ExperimentService, ABC):
             self,
             limit: Optional[int] = 10,
             experiment_id: Optional[str] = None,
+            result_type: Optional[str] = None,
+            backend_name: Optional[str] = None,
+            quality: Optional[List[Tuple[str, Union[int, ResultQuality]]]] = None,
+            tags: Optional[List[str]] = None,
+            tags_operator: Optional[str] = "OR",
             **filters: Any
     ) -> List[AnalysisResult]:
         """Retrieve all analysis results, with optional filtering.
@@ -217,6 +245,26 @@ class ExperimentServiceV1(ExperimentService, ABC):
         Args:
             limit: Number of analysis results to retrieve. ``None`` means no limit.
             experiment_id: Experiment ID used for filtering.
+            result_type: Analysis result type used for filtering.
+            backend_name: Backend name used for filtering. If specified, analysis
+                results associated with experiments on that backend are returned.
+            quality: Quality value used for filtering. Each element in this list is a tuple
+                of an operator and a value. The operator is one of
+                ``lt``, ``le``, ``gt``, ``ge``, and ``eq``. The value is one of the
+                :class:`ResultQuality` values or an integer. For example,
+                ``analysis_results(quality=[('gt', 3), ('lt', 5)])``
+                will return all analysis results with a quality value in between 3
+                and 5 (i.e. 4).
+            tags: Filter by tags assigned to analysis results. This can be used
+                with `tags_operator` for granular filtering.
+            tags_operator: Logical operator to use when filtering by tags. Valid
+                values are "AND" and "OR":
+
+                    * If "AND" is specified, then an analysis result must have all of the tags
+                      specified in `tags` to be included.
+                    * If "OR" is specified, then an analysis result only needs to have any
+                      of the tags specified in `tags` to be included.
+
             **filters: Additional filtering keywords supported by the service provider.
 
         Returns:
