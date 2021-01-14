@@ -17,7 +17,6 @@ from typing import Union
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import ParameterExpression
 
-from ..operator_base import OperatorBase
 from .pauli_sum_op import PauliSumOp
 
 
