@@ -82,8 +82,9 @@ class UnitaryGate(Gate):
         # up to global phase?
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return matrix for the unitary."""
+        # pylint: disable=unused-argument
         return self.params[0]
 
     def inverse(self):

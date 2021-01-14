@@ -26,7 +26,6 @@ import itertools
 import warnings
 import math
 
-import networkx as nx
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -54,6 +53,9 @@ class DAGCircuit:
         # Circuit name.  Generally, this corresponds to the name
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
+
+        # Circuit metadata
+        self.metadata = None
 
         # Set of wires (Register,idx) in the dag
         self._wires = set()
@@ -89,6 +91,11 @@ class DAGCircuit:
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError("Networkx is needed to use to_networkx(). It "
+                              "can be installed with 'pip install networkx'")
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
             G.add_node(node)
@@ -111,8 +118,14 @@ class DAGCircuit:
         Returns:
             DAGCircuit: The dagcircuit object created from the networkx
                 MultiDiGraph.
+        Raises:
+            ImportError: If networkx is not installed
         """
-
+        try:
+            import networkx as nx
+        except ImportError:
+            raise ImportError("Networkx is needed to use from_networkx(). It "
+                              "can be installed with 'pip install networkx'")
         dag = DAGCircuit()
         for node in nx.topological_sort(graph):
             if node.type == 'out':
@@ -319,6 +332,7 @@ class DAGCircuit:
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
+        target_dag.metadata = self.metadata
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)
@@ -696,10 +710,10 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if not a directed acyclic graph
         """
-        if not rx.is_directed_acyclic_graph(self._multi_graph):
+        try:
+            depth = rx.dag_longest_path_length(self._multi_graph) - 1
+        except rx.DAGHasCycle:
             raise DAGCircuitError("not a DAG")
-
-        depth = rx.dag_longest_path_length(self._multi_graph) - 1
         return depth if depth >= 0 else 0
 
     def width(self):
@@ -1359,6 +1373,19 @@ class DAGCircuit:
 
         def filter_fn(node):
             return node.type == "op" and node.name in namelist and node.condition is None
+
+        group_list = rx.collect_runs(self._multi_graph, filter_fn)
+        return set(tuple(x) for x in group_list)
+
+    def collect_1q_runs(self):
+        """Return a set of non-conditional runs of 1q "op" nodes."""
+
+        def filter_fn(node):
+            return node.type == 'op' and len(node.qargs) == 1 \
+                and len(node.cargs) == 0 and node.condition is None \
+                and not node.op.is_parameterized() \
+                and isinstance(node.op, Gate) \
+                and hasattr(node.op, '__array__')
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return set(tuple(x) for x in group_list)

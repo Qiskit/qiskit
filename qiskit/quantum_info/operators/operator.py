@@ -97,12 +97,17 @@ class Operator(BaseOperator, TolerancesMixin):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            self._array = np.asarray(data.to_matrix(), dtype=complex)
+            self._data = np.asarray(data.to_matrix(), dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
         dout, din = self._data.shape
         super().__init__(*self._automatic_dims(input_dims, din, output_dims, dout))
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.data, dtype=dtype)
+        return self.data
 
     def __repr__(self):
         prefix = 'Operator('

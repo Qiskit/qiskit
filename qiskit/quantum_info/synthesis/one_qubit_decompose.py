@@ -28,6 +28,18 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 DEFAULT_ATOL = 1e-12
 
+ONE_QUBIT_EULER_BASIS_GATES = {
+    'U3': ['u3'],
+    'U': ['u'],
+    'PSX': ['p', 'sx'],
+    'U1X': ['u1', 'rx'],
+    'RR': ['r'],
+    'ZYZ': ['rz', 'ry'],
+    'ZXZ': ['rz', 'rx'],
+    'XYX': ['rx', 'ry'],
+    'ZSX': ['rz', 'sx'],
+}
+
 
 class OneQubitEulerDecomposer:
     r"""A class for decomposing 1-qubit unitaries into Euler angle rotations.
