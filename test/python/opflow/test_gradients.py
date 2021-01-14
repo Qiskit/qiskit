@@ -27,6 +27,7 @@ except ImportError:
     _HAS_JAX = False
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
+from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import aqua_globals
@@ -370,24 +371,21 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
-        params = [(a, a), (a, b), (b, b)]
+        params = ParameterVector('a', 2)
 
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
-        qc.rz(a, q[0])
-        qc.rx(b, q[0])
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
 
         op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
         state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
 
-        values_dict = [{a: np.pi / 4, b: np.pi}, {a: np.pi / 4, b: np.pi / 4},
-                       {a: np.pi / 2, b: np.pi / 4}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                          [-0.5 / np.sqrt(2) + 0.5, -1 / 2., 0.5],
-                          [1 / np.sqrt(2), 0, 1 / np.sqrt(2)]]
+        values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
+                       {params[0]: np.pi / 4, params[1]: np.pi / 4}]
+        correct_values = [[[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 0]],
+                          [[-0.5 / np.sqrt(2) + 0.5, -1 / 2.], [-1 / 2., 0.5]]]
 
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(state_hess.assign_parameters(value_dict).eval(),
@@ -506,35 +504,34 @@ class TestGradients(QiskitOpflowTestCase):
     def test_natural_gradient(self, method, regularization):
         """Test the natural gradient"""
         try:
-            ham = 0.5 * X - 1 * Z
-            a = Parameter('a')
-            b = Parameter('b')
-            params = [a, b]
+            for params in (ParameterVector('a', 2),
+                           [Parameter('a'), Parameter('b')]):
+                ham = 0.5 * X - 1 * Z
 
-            q = QuantumRegister(1)
-            qc = QuantumCircuit(q)
-            qc.h(q)
-            qc.rz(params[0], q[0])
-            qc.rx(params[1], q[0])
+                q = QuantumRegister(1)
+                qc = QuantumCircuit(q)
+                qc.h(q)
+                qc.rz(params[0], q[0])
+                qc.rx(params[1], q[0])
 
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-            nat_grad = NaturalGradient(grad_method=method,
-                                       regularization=regularization).convert(operator=op,
-                                                                              params=params)
-            values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-            correct_values = [[-2.36003979, 2.06503481]] \
-                if regularization == 'ridge' else [[-4.2, 0]]
-            for i, value_dict in enumerate(values_dict):
-                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                     correct_values[i],
-                                                     decimal=0)
+                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+                nat_grad = NaturalGradient(grad_method=method, regularization=regularization)\
+                    .convert(operator=op, params=params)
+                values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
+                correct_values = [[-2.36003979, 2.06503481]] \
+                    if regularization == 'ridge' else [[-4.2, 0]]
+                for i, value_dict in enumerate(values_dict):
+                    np.testing.assert_array_almost_equal(
+                        nat_grad.assign_parameters(value_dict).eval(),
+                        correct_values[i],
+                        decimal=0)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
     def test_natural_gradient2(self):
         """Test the natural gradient 2"""
         with self.assertRaises(TypeError):
-            _ = NaturalGradient().convert(None)
+            _ = NaturalGradient().convert(None, None)
 
     @idata(zip(['lin_comb_full', 'overlap_block_diag', 'overlap_diag'],
                [LinCombFull, OverlapBlockDiag, OverlapDiag]))
@@ -872,7 +869,7 @@ class TestGradients(QiskitOpflowTestCase):
             result = prob_grad(value)
             np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
 
-    @unittest.skip(reason="Logging too much info and crashing stestr.")
+    @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
 
@@ -905,10 +902,31 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(h2_hamiltonian, wavefunction, optimizer=optimizer, gradient=grad)
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
 
-        result = vqe.run(q_instance)
-        np.testing.assert_almost_equal(result['optimal_value'], h2_energy, decimal=0)
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
+
+    def test_qfi_overlap_works_with_bound_parameters(self):
+        """Test all QFI methods work if the circuit contains a gate with bound parameters."""
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(np.pi / 4, 0)
+        circuit.rx(x, 0)
+        state = StateFn(circuit)
+
+        methods = ['lin_comb_full', 'overlap_diag', 'overlap_block_diag']
+        reference = 0.5
+
+        for method in methods:
+            with self.subTest(method):
+                qfi = QFI(method)
+                value = np.real(qfi.convert(state, [x]).bind_parameters({x: 0.12}).eval())
+                self.assertAlmostEqual(value[0][0], reference)
 
 
 @ddt

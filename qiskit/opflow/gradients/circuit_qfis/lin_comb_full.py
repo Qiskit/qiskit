@@ -12,7 +12,7 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union, Optional
+from typing import List, Union
 import warnings
 
 import numpy as np
@@ -40,8 +40,7 @@ class LinCombFull(CircuitQFI):
 
     def convert(self,
                 operator: CircuitStateFn,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None,
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:
@@ -67,8 +66,10 @@ class LinCombFull(CircuitQFI):
                             f'CircuitStateFn, not {type(operator)}')
 
         # If a single parameter is given wrap it into a list.
-        if not isinstance(params, (list, np.ndarray)):
+        if isinstance(params, ParameterExpression):
             params = [params]
+        elif isinstance(params, ParameterVector):
+            params = params[:]  # unroll to list
 
         # First, the operators are computed which can compensate for a potential phase-mismatch
         # between target and trained state, i.e.〈ψ|∂lψ〉

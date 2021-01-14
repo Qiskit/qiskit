@@ -37,17 +37,17 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
+        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
 
     def test_nft(self):
         """ Test NFT optimizer by using it """
 
-        result = VQE(self.qubit_op,
-                     RealAmplitudes(),
-                     NFT()).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                         seed_simulator=aqua_globals.random_seed,
-                                         seed_transpiler=aqua_globals.random_seed))
+        vqe = VQE(var_form=RealAmplitudes(),
+                  optimizer=NFT(),
+                  quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                                   seed_simulator=aqua_globals.random_seed,
+                                                   seed_transpiler=aqua_globals.random_seed))
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
 
 
