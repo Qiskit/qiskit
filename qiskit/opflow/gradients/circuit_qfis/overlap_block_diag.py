@@ -12,7 +12,7 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union, Optional
+from typing import List, Union
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -39,8 +39,7 @@ class OverlapBlockDiag(CircuitQFI):
 
     def convert(self,
                 operator: Union[CircuitOp, CircuitStateFn],
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:
@@ -61,8 +60,9 @@ class OverlapBlockDiag(CircuitQFI):
 
     def _block_diag_approx(self,
                            operator: Union[CircuitOp, CircuitStateFn],
-                           params: Optional[Union[ParameterExpression, ParameterVector,
-                                                  List[ParameterExpression]]] = None
+                           params: Union[ParameterExpression,
+                                         ParameterVector,
+                                         List[ParameterExpression]]
                            ) -> ListOp:
         r"""
         Args:
@@ -80,6 +80,10 @@ class OverlapBlockDiag(CircuitQFI):
             OpflowError: If there are more than one parameter.
 
         """
+
+        # If a single parameter is given wrap it into a list.
+        if isinstance(params, ParameterExpression):
+            params = [params]
 
         circuit = operator.primitive
         # Partition the circuit into layers, and build the circuits to prepare $\psi_i$
