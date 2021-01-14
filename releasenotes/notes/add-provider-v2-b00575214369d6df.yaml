@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new version of the :class:`~qiskit.providers.Provider` abstract interface,
+    :class:`~qiskit.providers.ProviderV2`. This new version is fully compatible
+    with v1 except that :attr:`~qiskit.providers.ProviderV2.backends` is an
+    attribute that contains a :class:`~qiskit.providers.BackendsList` object
+    which is callable to retain the behavior of the
+    :class:`~qiskit.providers.ProviderV1` method
+    :meth:`~qiskit.providers.ProviderV1.backends` but also enables attribute
+    access by name for all the backends provided by the ``Provider``.
+    Implementers of :class:`~qiskit.providers.Provider` should upgrade to
+    this new version to add the extra functionality.

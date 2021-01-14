@@ -82,7 +82,9 @@ Provider
    :toctree: ../stubs/
 
    Provider
+   ProviderV2
    ProviderV1
+   BackendList
 
 Backend
 -------
@@ -152,6 +154,8 @@ import pkgutil
 # Providers interface
 from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1
+from qiskit.providers.provider import ProviderV2
+from qiskit.providers.provider import BackendList
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
