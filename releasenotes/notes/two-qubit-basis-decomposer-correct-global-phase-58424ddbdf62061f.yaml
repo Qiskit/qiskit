@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The ``TwoQubitBasisDecomposer`` had in some cases, not been preserving
+    the global phase of the input circuit. This has been corrected.

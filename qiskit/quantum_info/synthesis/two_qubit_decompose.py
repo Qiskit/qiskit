@@ -442,6 +442,14 @@ class TwoQubitBasisDecomposer():
         return_circuit.compose(decomposition_euler[2*best_nbasis], [q[0]], inplace=True)
         return_circuit.compose(decomposition_euler[2*best_nbasis+1], [q[1]], inplace=True)
 
+        return_operator = Operator(return_circuit).data
+        for idx, elt in np.ndenumerate(return_operator):
+            if abs(elt) > 1e-8:
+                global_phase = np.angle(target[idx]) - np.angle(return_operator[idx])
+                break
+
+        return_circuit.global_phase += global_phase
+
         return return_circuit
 
     def num_basis_gates(self, unitary):
