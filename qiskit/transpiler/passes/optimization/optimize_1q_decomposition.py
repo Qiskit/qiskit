@@ -44,7 +44,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
             basis_set = set(basis)
             for basis_name, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
                 if set(gates).issubset(basis_set):
-                    self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name, u3_only=u3_only))
+                    self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name,
+                                                                                  u3_only=u3_only))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.

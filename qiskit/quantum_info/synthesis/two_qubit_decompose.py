@@ -248,9 +248,10 @@ class TwoQubitBasisDecomposer():
 
         basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
         if euler_basis is not None:
-            self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
+            u3_only = True if euler_basis == 'U3' else False
+            self._decomposer1q = OneQubitEulerDecomposer(euler_basis, u3_only=u3_only)
         else:
-            self._decomposer1q = OneQubitEulerDecomposer('U3')
+            self._decomposer1q = OneQubitEulerDecomposer('U3', u3_only=True)
 
         # FIXME: find good tolerances
         self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)

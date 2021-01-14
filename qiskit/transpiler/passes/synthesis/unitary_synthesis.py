@@ -79,7 +79,9 @@ class UnitarySynthesis(TransformationPass):
 
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
-            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
+            u3_only = True if euler_basis == 'U3' else False
+            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis,
+                                                                       u3_only=u3_only)
         if kak_gate is not None:
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
 
