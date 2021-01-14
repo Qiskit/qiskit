@@ -37,15 +37,26 @@ class GateSequence():
         if gates is None:
             gates = []
 
+        # store the gates
         self.gates = gates
-        self.product = None
-        self._set_so3_product_from_gates(self.gates)
-        # self.product = convert_su2_to_so3(self._compute_product(self.gates))
-        # self.product = convert_su2_to_so3(self._compute_product(self.gates))
+
+        # get U(2) representation of the gate sequence
+        u2_matrix = np.identity(2)
+        for gate in gates:
+            u2_matrix = u2_matrix.dot(gate.to_matrix())
+
+        # convert to SU(2)
+        su2_matrix, global_phase = _convert_u2_to_su2(u2_matrix)
+
+        # convert to SO(3), that's what the Solovay Kitaev algorithm uses
+        so3_matrix = convert_su2_to_so3(su2_matrix)
+
+        # store the matrix and the global phase
+        self.global_phase = global_phase
+        self.product = so3_matrix
 
     def __eq__(self, other: 'GateSequence') -> bool:
-        """
-        Check if this GateSequence is equivalent to the other GateSequence.
+        """Check if this GateSequence is the same as the other GateSequence.
 
         Args:
             other: The GateSequence that will be compared to ``self``.
@@ -60,6 +71,9 @@ class GateSequence():
         for gate1, gate2 in zip(self.gates, other.gates):
             if gate1 != gate2:
                 return False
+
+        if self.global_phase != other.global_phase:
+            return False
 
         return True
 
@@ -86,63 +100,7 @@ class GateSequence():
             True when ``self`` represents the same gate as ``other`` up to ``precision``,
             False otherwise.
         """
-        for i in range(3):
-            for j in range(3):
-                if abs(self.get_product_so3()[i][j]-other.get_product_so3()[i][j]) > precision:
-                    return False
-        return True
-
-    def _set_so3_product_from_gates(self, gates):
-        # multiply all gate matrices into one, U(2) at this stage
-        u2_matrix = self._compute_product(gates)
-
-        # make su(2)
-        z = 1 / np.sqrt(np.linalg.det(u2_matrix))
-        self.global_phase = np.arctan2(np.imag(z), np.real(z))
-        # self.global_phase = np.arcsin(np.imag(det))  # TODO check
-        su2_matrix = u2_matrix * z
-
-        self.product = convert_su2_to_so3(su2_matrix)
-
-    def get_product_so3(self) -> np.ndarray:
-        """Returns the SO(3)-matrix that is the product of all gates in the GateSequence.
-
-        Returns:
-            SO(3)-matrix that is the product of all gates in ``self``.
-
-        """
-        self._compute_product(self.gates)
-        return convert_su2_to_so3(self._compute_product(self.gates))
-
-    def get_product_su2(self) -> np.ndarray:
-        """Returns the SU(2)-matrix that is the product of all gates in the GateSequence.
-
-        Returns:
-            SU(2)-matrix that is the product of all gates in ``self``.
-
-        """
-        self._compute_product(self.gates)
-        return self._compute_product(self.gates)
-
-    def invert(self) -> 'GateSequence':
-        """TODO needed? Should be covered by adjoint."""
-        inv = GateSequence(list(reversed(self.gates)))
-        return inv
-
-    def _compute_product(self, gates: List[Gate]) -> np.ndarray:
-        """Returns gate that is the product of all gates in the sequence.
-
-        Args:
-            gates: The gates in the sequence.
-
-        Returns:
-            The product gate of the gates in the sequence.
-
-        """
-        product = IGate().to_matrix()
-        for gate in gates:
-            product = np.dot(product, gate.to_matrix())
-        return product
+        return np.allclose(self.product, other.product, atol=precision)
 
     def append(self, gate: Gate) -> 'GateSequence':
         """Append gate to the sequence of gates.
@@ -153,11 +111,16 @@ class GateSequence():
         Returns:
             GateSequence with ``gate`` appended.
         """
-        self.gates.append(gate)
         # TODO: this recomputes the product whenever we append something, which could be more
         # efficient by storing the current matrix and just multiplying the input gate to it
         # self.product = convert_su2_to_so3(self._compute_product(self.gates))
-        self._set_so3_product_from_gates(self.gates)
+        su2, phase = _convert_u2_to_su2(gate.to_matrix())
+        so3 = convert_su2_to_so3(su2)
+
+        self.product = self.product.dot(so3)
+        self.global_phase = self.global_phase + phase
+        self.gates.append(gate)
+
         return self
 
     def adjoint(self) -> 'GateSequence':
@@ -296,6 +259,14 @@ class GateSequence():
         # if len(other.gates) == 0 or len(self.gates) == 0:
         #     raise ValueError('one sequence has no gates')
         return GateSequence(self.gates + other.gates)
+
+
+def _convert_u2_to_su2(u2_matrix: np.ndarray) -> Tuple[np.ndarray, float]:
+    z = 1 / np.sqrt(np.linalg.det(u2_matrix))
+    su2_matrix = z * u2_matrix
+    phase = np.arctan2(np.imag(z), np.real(z))
+
+    return su2_matrix, phase
 
 
 def compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, float]:

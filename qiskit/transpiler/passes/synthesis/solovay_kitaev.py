@@ -13,6 +13,7 @@
 """Synthesize a single qubit gate to a discrete basis set."""
 
 from typing import List, Union, Tuple
+import itertools
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
@@ -140,12 +141,10 @@ class SolovayKitaev():
         """
         descr_method = 'Computation commutator decompose'
         if u_so3.shape != (3, 3):
-            raise ValueError(
-                descr_method + 'called on matrix of shape', u_so3.shape)
+            raise ValueError(descr_method + 'called on matrix of shape', u_so3.shape)
 
         if abs(np.linalg.det(u_so3) - 1) > 1e-4:
-            raise ValueError(
-                descr_method + 'called on determinant of', np.linalg.det(u_so3))
+            raise ValueError(descr_method + 'called on determinant of', np.linalg.det(u_so3))
 
         angle = solve_decomposition_angle(u_so3)
 
@@ -184,12 +183,10 @@ class SolovayKitaev():
 
 
 def _version1(basic_gates, depth):
-    import itertools
     # get all products from all depths
     products = []
     for reps in range(1, depth + 1):
-        products += list(list(comb)
-                         for comb in itertools.product(*[basic_gates] * reps))
+        products += list(list(comb) for comb in itertools.product(*[basic_gates] * reps))
 
     sequences = []
     for item in products:
