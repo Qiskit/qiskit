@@ -285,7 +285,8 @@ class WeightedPauliOperator(LegacyBaseOperator):
         for existed_weight, existed_pauli in self.paulis:
             for weight, pauli in other.paulis:
                 new_pauli = existed_pauli * pauli
-                new_weight = existed_weight * weight
+                new_weight = existed_weight * weight * (1j ** new_pauli.phase)
+                new_pauli = new_pauli[:]
                 pauli_term = [new_weight, new_pauli]
                 ret_op += WeightedPauliOperator(paulis=[pauli_term])
         return ret_op

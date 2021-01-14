@@ -107,14 +107,14 @@ class TestWeightedPauliOperator(QiskitOpflowTestCase):
         new_op = op_a * op_b
 
         self.assertEqual(1, len(new_op.paulis))
-        self.assertEqual(0.25, new_op.paulis[0][0])
-        self.assertEqual('-ZZYY', new_op.paulis[0][1].to_label())
+        self.assertEqual(-0.25, new_op.paulis[0][0])
+        self.assertEqual('ZZYY', new_op.paulis[0][1].to_label())
 
         new_op = -2j * new_op
-        self.assertEqual(-0.5j, new_op.paulis[0][0])
+        self.assertEqual(0.5j, new_op.paulis[0][0])
 
         new_op = new_op * 0.3j
-        self.assertEqual(0.15, new_op.paulis[0][0])
+        self.assertEqual(-0.15, new_op.paulis[0][0])
 
     def test_iadd(self):
         """ iadd test """
