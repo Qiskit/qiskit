@@ -164,7 +164,6 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                                      tolerance=1e-12,
                                      phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
-        u3_only = True if basis == 'U3' else False
         decomposer = OneQubitEulerDecomposer(basis, u3_only=(basis == 'U3'))
         with self.subTest(operator=operator):
             target_unitary = operator.data
