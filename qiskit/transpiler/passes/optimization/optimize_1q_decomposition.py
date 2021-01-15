@@ -38,8 +38,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
         self.basis = None
-        u3_only = (basis == ['u3'])
         if basis:
+            u3_only = 'u3' in basis and 'u1' not in basis and 'u2' not in basis
             self.basis = []
             basis_set = set(basis)
             for basis_name, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
