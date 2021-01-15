@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The base interface for Aqua's gradient."""
+"""The base interface for Opflow's gradient."""
 
-from typing import Union, List, Optional
+from typing import Union, List
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -38,10 +38,10 @@ except ImportError:
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterVector, ParameterExpression,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
                 ) -> OperatorBase:
         r"""
         Args:
@@ -54,9 +54,6 @@ class Gradient(GradientBase):
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
-
-        if params is None:
-            raise ValueError("No parameters were provided to differentiate")
 
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.convert(operator, param) for param in params]
