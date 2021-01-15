@@ -663,8 +663,10 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
-        show_all_state_labels (bool): An optional boolean indicating whether to
-            show labels for all basis states.
+        show_all_state_labels (bool): An optional boolean indicating whether
+            to show labels for all possible basis states. This defaults false, as with
+            larger qubit counts (eg. >3) the number of state labels can clutter
+            the output.
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
