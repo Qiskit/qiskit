@@ -216,7 +216,7 @@ class PulseDefaults:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError('Attribute {name} is not defined') from ex
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the PulseDefaults.
