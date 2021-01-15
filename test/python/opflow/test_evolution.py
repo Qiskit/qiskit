@@ -268,6 +268,19 @@ class TestEvolution(QiskitOpflowTestCase):
         qdrift = QDrift(reps=reps)
         self.assertEqual(qdrift.reps, reps)
 
+    def test_suzuki_directly(self):
+        """ Test for Suzuki converter """
+        operator = X + Z
+
+        evo = Suzuki()
+        evolution = evo.convert(operator)
+
+        matrix = np.array([
+            [0.29192658 - 0.45464871j, -0.84147098j],
+            [-0.84147098j, 0.29192658 + 0.45464871j]
+        ])
+        np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
+
 
 if __name__ == '__main__':
     unittest.main()
