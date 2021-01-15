@@ -15,21 +15,21 @@ QDrift Class
 
 """
 
-from typing import cast
 import numpy as np
 
 from qiskit.utils import aqua_globals
-from .trotterization_base import TrotterizationBase
-from ...operator_base import OperatorBase
-from ...list_ops.summed_op import SummedOp
-from ...list_ops.composed_op import ComposedOp
-from ...primitive_ops.pauli_sum_op import PauliSumOp
 
+from ...list_ops.composed_op import ComposedOp
+from ...list_ops.summed_op import SummedOp
+from ...operator_base import OperatorBase
+from ...primitive_ops.pauli_sum_op import PauliSumOp
+from .trotterization_base import TrotterizationBase
 
 # pylint: disable=invalid-name
 
+
 class QDrift(TrotterizationBase):
-    """ The QDrift Trotterization method, which selects each each term in the
+    """The QDrift Trotterization method, which selects each each term in the
     Trotterization randomly, with a probability proportional to its weight. Based on the work
     of Earl Campbell in https://arxiv.org/abs/1811.08017.
     """
@@ -43,32 +43,32 @@ class QDrift(TrotterizationBase):
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         if not isinstance(operator, (SummedOp, PauliSumOp)):
-            raise TypeError('Trotterization converters can only convert SummedOps or PauliSumOp.')
+            raise TypeError("Trotterization converters can only convert SummedOpor PauliSumOp.")
 
         if isinstance(operator, PauliSumOp):
+            # We artificially make the weights positive, TODO check approximation performance
             weights = np.abs(operator.primitive.coeffs)
             lambd = np.sum(weights)
+
             N = 2 * (lambd ** 2) * (operator.coeff ** 2)
             factor = lambd * operator.coeff / (N * self.reps)
+            # The protocol calls for the removal of the individual coefficients,
+            # and multiplication by a constant factor.
             scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator]
-            sampled_ops = aqua_globals.random.choice(scaled_ops,
-                                                     size=(int(N * self.reps),),
-                                                     p=weights / lambd)
-            return ComposedOp(sampled_ops).reduce()
 
-        summed_op = cast(SummedOp, operator)
-        # We artificially make the weights positive, TODO check approximation performance
-        weights = np.abs([op.coeff for op in summed_op.oplist])  # type: ignore
-        lambd = sum(weights)
-        N = 2 * (lambd ** 2) * (summed_op.coeff ** 2)
+        if isinstance(operator, SummedOp):
+            # We artificially make the weights positive, TODO check approximation performance
+            weights = np.abs([op.coeff for op in operator.oplist])
+            lambd = sum(weights)
+            N = 2 * (lambd ** 2) * (operator.coeff ** 2)
 
-        factor = lambd * summed_op.coeff / (N * self.reps)
-        # The protocol calls for the removal of the individual coefficients,
-        # and multiplication by a constant factor.
-        scaled_ops = \
-            [(op * (factor / op.coeff)).exp_i() for op in summed_op.oplist]  # type: ignore
-        sampled_ops = aqua_globals.random.choice(scaled_ops,
-                                                 size=(int(N * self.reps),),  # type: ignore
-                                                 p=weights / lambd)
+            factor = lambd * operator.coeff / (N * self.reps)
+            # The protocol calls for the removal of the individual coefficients,
+            # and multiplication by a constant factor.
+            scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator.oplist]
+
+        sampled_ops = aqua_globals.random.choice(
+            scaled_ops, size=(int(N * self.reps),), p=weights / lambd
+        )
 
         return ComposedOp(sampled_ops).reduce()

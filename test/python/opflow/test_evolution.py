@@ -71,6 +71,21 @@ class TestEvolution(QiskitOpflowTestCase):
         mean = evolution.convert(wf)
         self.assertIsNotNone(mean)
 
+    def test_summedop_pauli_evolution(self):
+        """ SummedOp[PauliOp] evolution test """
+        op = SummedOp([
+            (-1.052373245772859 * I ^ I),
+            (0.39793742484318045 * I ^ Z),
+            (0.18093119978423156 * X ^ X),
+            (-0.39793742484318045 * Z ^ I),
+            (-0.01128010425623538 * Z ^ Z),
+        ])
+        evolution = EvolutionFactory.build(operator=op)
+        # wf = (Pl^Pl) + (Ze^Ze)
+        wf = ((np.pi / 2) * op).exp_i() @ CX @ (H ^ I) @ Zero
+        mean = evolution.convert(wf)
+        self.assertIsNotNone(mean)
+
     def test_parameterized_evolution(self):
         """ parameterized evolution test """
         thetas = ParameterVector('θ', length=7)
