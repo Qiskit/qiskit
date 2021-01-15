@@ -135,11 +135,12 @@ class QAOA(VQE):
     def _check_operator(self,
                         operator: OperatorBase) -> OperatorBase:
         # Recreates var_form based on operator parameter.
+        if operator.num_qubits != self.var_form.num_qubits:
+            self.var_form = QAOAVarForm(operator,
+                                        self._p,
+                                        initial_state=self._initial_state,
+                                        mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
-        self.var_form = QAOAVarForm(operator,
-                                    self._p,
-                                    initial_state=self._initial_state,
-                                    mixer_operator=self._mixer)
         return operator
 
     @property
