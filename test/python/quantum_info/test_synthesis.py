@@ -22,7 +22,7 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
+from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate, UGate,
                                     XGate, YGate, ZGate, CXGate, CZGate,
                                     iSwapGate, RXXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
@@ -208,6 +208,34 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
 
+    def test_psx_zsx_special_cases(self):
+        oqed_psx = OneQubitEulerDecomposer(basis='PSX')
+        oqed_zsx = OneQubitEulerDecomposer(basis='ZSX')
+        theta = np.pi / 3
+        phi = np.pi / 5
+        lam = np.pi / 7
+        test_gates = [UGate(np.pi, phi, lam), UGate(-np.pi, phi, lam),
+                      # test abs(lam + phi + theta) near 0
+                      UGate(np.pi, np.pi / 3, 2 * np.pi / 3),
+                      # test theta=pi/2
+                      UGate(np.pi / 2, phi, lam),
+                      # test theta=pi/2 and theta+lam=0
+                      UGate(np.pi / 2, phi, -np.pi / 2),
+                      # test theta close to 3*pi/2 and theta+phi=2*pi
+                      UGate(3*np.pi / 2, np.pi / 2, lam),
+                      # test theta 0
+                      UGate(0, phi, lam),
+                      # test phi 0
+                      UGate(theta, 0, lam),
+                      # test lam 0
+                      UGate(theta, phi, 0)]
+
+        for gate in test_gates:
+            unitary = gate.to_matrix()
+            qc_psx = oqed_psx(unitary)
+            qc_zsx = oqed_zsx(unitary)
+            self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
+            self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
