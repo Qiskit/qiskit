@@ -544,13 +544,13 @@ class Schedule(abc.ABC):
                     interval = (interval[0] + time, interval[1] + time)
                     index = _find_insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
-                except PulseError:
+                except PulseError as ex:
                     raise PulseError(
                         "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
                         "time {time} because its instruction on channel {ch} scheduled from time "
                         "{t0} to {tf} overlaps with an existing instruction."
                         "".format(new=schedule.name or '', old=self.name or '', time=time,
-                                  ch=channel, t0=interval[0], tf=interval[1]))
+                                  ch=channel, t0=interval[0], tf=interval[1])) from ex
 
         _check_nonnegative_timeslot(self._timeslots)
 

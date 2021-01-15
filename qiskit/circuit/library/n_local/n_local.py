@@ -157,10 +157,11 @@ class NLocal(BlueprintCircuit):
                 if not isinstance(initial_state, InitialState):
                     raise TypeError('initial_state must be of type InitialState, but is '
                                     '{}.'.format(type(initial_state)))
-            except ImportError:
-                raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
-                                  'InitialState. To use this feature Qiskit Aqua must be installed.'
-                                  )
+            except ImportError as ex:
+                raise ImportError(
+                    'Could not import the qiskit.aqua.components.initial_states.'
+                    'InitialState. To use this feature Qiskit Aqua must be installed.'
+                ) from ex
             self.initial_state = initial_state
 
     @property
@@ -854,7 +855,7 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for i, (block, ent) in enumerate(zip(blocks, entanglements)):
+        for block, ent in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)

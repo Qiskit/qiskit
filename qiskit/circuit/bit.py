@@ -26,9 +26,10 @@ class Bit:
         """
         try:
             index = int(index)
-        except Exception:
-            raise CircuitError("index needs to be castable to an int: type %s was provided" %
-                               type(index))
+        except Exception as ex:
+            raise CircuitError(
+                f"index needs to be castable to an int: type {type(index)} was provided"
+            ) from ex
 
         if index < 0:
             index += register.size

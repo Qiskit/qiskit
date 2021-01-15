@@ -481,10 +481,10 @@ class QuantumCircuit:
 
         try:
             gate = self.to_gate()
-        except QiskitError:
+        except QiskitError as ex:
             raise CircuitError('The circuit contains non-unitary operations and cannot be '
                                'controlled. Note that no qiskit.circuit.Instruction objects may '
-                               'be in the circuit for this operation.')
+                               'be in the circuit for this operation.') from ex
 
         power_circuit = QuantumCircuit(*self.qregs, *self.cregs)
         power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
@@ -507,10 +507,10 @@ class QuantumCircuit:
         """
         try:
             gate = self.to_gate()
-        except QiskitError:
+        except QiskitError as ex:
             raise CircuitError('The circuit contains non-unitary operations and cannot be '
                                'controlled. Note that no qiskit.circuit.Instruction objects may '
-                               'be in the circuit for this operation.')
+                               'be in the circuit for this operation.') from ex
 
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
         control_qreg = QuantumRegister(num_ctrl_qubits)
@@ -858,11 +858,12 @@ class QuantumCircuit:
             else:
                 raise CircuitError('Not able to expand a %s (%s)' % (bit_representation,
                                                                      type(bit_representation)))
-        except IndexError:
-            raise CircuitError('Index out of range.')
-        except TypeError:
-            raise CircuitError('Type error handling %s (%s)' % (bit_representation,
-                                                                type(bit_representation)))
+        except IndexError as ex:
+            raise CircuitError('Index out of range.') from ex
+        except TypeError as ex:
+            raise CircuitError(
+                f'Type error handling {bit_representation} ({type(bit_representation)})'
+            ) from ex
         return ret
 
     def qbit_argument_conversion(self, qubit_representation):
@@ -2492,10 +2493,11 @@ class QuantumCircuit:
 
         try:
             gate = available_implementations[mode]
-        except KeyError:
+        except KeyError as ex:
             all_modes = list(available_implementations.keys())
-            raise ValueError('Unsupported mode ({}) selected, choose one of {}'.format(mode,
-                                                                                       all_modes))
+            raise ValueError(
+                f'Unsupported mode ({mode}) selected, choose one of {all_modes}'
+            ) from ex
 
         if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
             required = gate.num_ancilla_qubits

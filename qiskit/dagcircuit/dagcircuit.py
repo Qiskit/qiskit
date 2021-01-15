@@ -93,9 +93,9 @@ class DAGCircuit:
         """Returns a copy of the DAGCircuit in networkx format."""
         try:
             import networkx as nx
-        except ImportError:
+        except ImportError as ex:
             raise ImportError("Networkx is needed to use to_networkx(). It "
-                              "can be installed with 'pip install networkx'")
+                              "can be installed with 'pip install networkx'") from ex
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
             G.add_node(node)
@@ -123,9 +123,9 @@ class DAGCircuit:
         """
         try:
             import networkx as nx
-        except ImportError:
+        except ImportError as ex:
             raise ImportError("Networkx is needed to use from_networkx(). It "
-                              "can be installed with 'pip install networkx'")
+                              "can be installed with 'pip install networkx'") from ex
         dag = DAGCircuit()
         for node in nx.topological_sort(graph):
             if node.type == 'out':
@@ -712,8 +712,8 @@ class DAGCircuit:
         """
         try:
             depth = rx.dag_longest_path_length(self._multi_graph) - 1
-        except rx.DAGHasCycle:
-            raise DAGCircuitError("not a DAG")
+        except rx.DAGHasCycle as ex:
+            raise DAGCircuitError("not a DAG") from ex
         return depth if depth >= 0 else 0
 
     def width(self):

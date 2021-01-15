@@ -62,9 +62,9 @@ class Register:
         else:
             try:
                 name = str(name)
-            except Exception:
+            except Exception as ex:
                 raise CircuitError("The circuit name should be castable to a string "
-                                   "(or None for autogenerate a name).")
+                                   "(or None for autogenerate a name).") from ex
             if self.name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
                                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name)

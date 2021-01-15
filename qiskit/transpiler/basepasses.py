@@ -55,6 +55,7 @@ class BasePass(metaclass=MetaPass):
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
         self._hash = None
 
+    # pylint: disable=invalid-hash-returned
     def __hash__(self):
         return self._hash
 

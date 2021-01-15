@@ -84,7 +84,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
                                              parameter))
 
     # Assert circuit has no other parameter locations other than those in table.
-    for instr, qargs, cargs in circuit._data:
+    for instr, _, _ in circuit._data:
         for param_index, param in enumerate(instr.params):
             if isinstance(param, ParameterExpression):
                 parameters = param.parameters

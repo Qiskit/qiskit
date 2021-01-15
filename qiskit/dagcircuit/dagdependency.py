@@ -141,9 +141,9 @@ class DAGDependency:
         # where DAGNodes instances are used as indexes on the networkx graph.
         try:
             import networkx as nx
-        except ImportError:
+        except ImportError as ex:
             raise ImportError("Networkx is needed to use to_networkx(). It "
-                              "can be installed with 'pip install networkx'")
+                              "can be installed with 'pip install networkx'") from ex
         dag_networkx = nx.MultiDiGraph()
 
         for node in self.get_nodes():

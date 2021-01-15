@@ -51,9 +51,9 @@ class DiagonalGate(Gate):
         for z in diag:
             try:
                 complex(z)
-            except TypeError:
+            except TypeError as ex:
                 raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.")
+                                  "complex numbers.") from ex
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
