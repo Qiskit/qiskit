@@ -19,7 +19,7 @@ from functools import reduce
 import numpy as np
 
 from qiskit.quantum_info import Pauli
-from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp, GroupedPauliSumOp
+from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp, PauliSumOp
 from qiskit.opflow.converters import PauliBasisChange
 
 
@@ -98,7 +98,7 @@ class TestPauliCoB(QiskitOpflowTestCase):
     def test_grouped_pauli(self):
         """ grouped pauli test """
         pauli = 2 * (I ^ I) + (X ^ I) + 3 * (X ^ Y)
-        grouped_pauli = GroupedPauliSumOp(pauli.primitive)
+        grouped_pauli = PauliSumOp(pauli.primitive, grouping_type="TPB")
 
         converter = PauliBasisChange()
         cob = converter.convert(grouped_pauli)

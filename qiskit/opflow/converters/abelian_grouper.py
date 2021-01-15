@@ -25,7 +25,6 @@ from ..list_ops.summed_op import SummedOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..primitive_ops.grouped_pauli_sum_op import GroupedPauliSumOp
 from ..state_fns.operator_state_fn import OperatorStateFn
 from ..exceptions import OpflowError
 
@@ -114,7 +113,10 @@ class AbelianGrouper(ConverterBase):
         if isinstance(list_op, PauliSumOp):
             primitive = list_op.primitive
             return SummedOp(
-                [GroupedPauliSumOp(primitive[group]) for group in groups.values()],
+                [
+                    PauliSumOp(primitive[group], grouping_type="TPB")
+                    for group in groups.values()
+                ],
                 coeff=list_op.coeff
             )
 

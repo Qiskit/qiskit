@@ -13,8 +13,8 @@
 """ PauliSumOp Class """
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
 from collections import defaultdict
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
 from scipy.sparse import spmatrix
@@ -33,15 +33,21 @@ logger = logging.getLogger(__name__)
 class PauliSumOp(PrimitiveOp):
     """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
 
+    # pylint: disable=unused-argument, arguments-differ
+    def __new__(cls, *args, **kwargs):
+        return object.__new__(cls)
+
     def __init__(
             self,
             primitive: SparsePauliOp,
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+            grouping_type: Optional[str] = None,
     ) -> None:
         """
         Args:
             primitive: The SparsePauliOp which defines the behavior of the underlying function.
             coeff: A coefficient multiplying the primitive.
+            grouping_type: The type of grouping. If None, the operator is not grouped.
 
         Raises:
             TypeError: invalid parameters.
@@ -52,9 +58,17 @@ class PauliSumOp(PrimitiveOp):
             )
 
         super().__init__(primitive, coeff=coeff)
+        self._grouping_type = grouping_type
 
     def primitive_strings(self) -> Set[str]:
         return {"SparsePauliOp"}
+
+    @property
+    def grouping_type(self) -> Optional[str]:
+        """
+        Returns: Type of Grouping
+        """
+        return self._grouping_type
 
     @property
     def num_qubits(self) -> int:
