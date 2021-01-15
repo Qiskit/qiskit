@@ -18,10 +18,10 @@ import numpy as np
 import scipy.linalg
 
 import qiskit
-from qiskit.circuit import ParameterVector, Parameter
-
-from qiskit.opflow import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, EvolutionFactory,
-                           EvolvedOp, PauliTrotterEvolution, QDrift, Trotter, Suzuki)
+from qiskit.circuit import Parameter, ParameterVector
+from qiskit.opflow import (CX, CircuitOp, EvolutionFactory, EvolvedOp, H, I,
+                           ListOp, PauliTrotterEvolution, QDrift, SummedOp,
+                           Suzuki, Trotter, X, Y, Z, Zero)
 
 # pylint: disable=invalid-name
 
@@ -159,6 +159,26 @@ class TestEvolution(QiskitOpflowTestCase):
     def test_qdrift(self):
         """ QDrift test """
         op = (2 * Z ^ Z) + (3 * X ^ X) - (4 * Y ^ Y) + (.5 * Z ^ I)
+        trotterization = QDrift().convert(op)
+        self.assertGreater(len(trotterization.oplist), 150)
+        last_coeff = None
+        # Check that all types are correct and all coefficients are equals
+        for op in trotterization.oplist:
+            self.assertIsInstance(op, (EvolvedOp, CircuitOp))
+            if isinstance(op, EvolvedOp):
+                if last_coeff:
+                    self.assertEqual(op.primitive.coeff, last_coeff)
+                else:
+                    last_coeff = op.primitive.coeff
+
+    def test_qdrift_summed_op(self):
+        """ QDrift test for SummedOp"""
+        op = SummedOp([
+            (2 * Z ^ Z),
+            (3 * X ^ X),
+            (-4 * Y ^ Y),
+            (.5 * Z ^ I),
+        ])
         trotterization = QDrift().convert(op)
         self.assertGreater(len(trotterization.oplist), 150)
         last_coeff = None

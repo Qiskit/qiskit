@@ -42,12 +42,19 @@ class QDrift(TrotterizationBase):
         super().__init__(reps=reps)
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        # TODO: implement direct way
-        if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
+        if not isinstance(operator, (SummedOp, PauliSumOp)):
+            raise TypeError('Trotterization converters can only convert SummedOps or PauliSumOp.')
 
-        if not isinstance(operator, SummedOp):
-            raise TypeError('Trotterization converters can only convert SummedOps.')
+        if isinstance(operator, PauliSumOp):
+            weights = np.abs(operator.primitive.coeffs)
+            lambd = np.sum(weights)
+            N = 2 * (lambd ** 2) * (operator.coeff ** 2)
+            factor = lambd * operator.coeff / (N * self.reps)
+            scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator]
+            sampled_ops = aqua_globals.random.choice(scaled_ops,
+                                                     size=(int(N * self.reps),),
+                                                     p=weights / lambd)
+            return ComposedOp(sampled_ops).reduce()
 
         summed_op = cast(SummedOp, operator)
         # We artificially make the weights positive, TODO check approximation performance
