@@ -209,6 +209,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary, basis)
 
     def test_psx_zsx_special_cases(self):
+        """Test decompositions of psx and zsx at special values of parameters"""
         oqed_psx = OneQubitEulerDecomposer(basis='PSX')
         oqed_zsx = OneQubitEulerDecomposer(basis='ZSX')
         theta = np.pi / 3
@@ -236,6 +237,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             qc_zsx = oqed_zsx(unitary)
             self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
