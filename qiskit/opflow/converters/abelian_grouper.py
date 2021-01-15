@@ -13,7 +13,7 @@
 """AbelianGrouper Class"""
 
 from collections import defaultdict
-from typing import cast, Dict, List, Optional, Tuple, Union
+from typing import cast, List, Optional, Tuple, Union
 
 import numpy as np
 import retworkx as rx

@@ -263,9 +263,9 @@ class PauliSumOp(PrimitiveOp):
 
             if isinstance(front, DictStateFn):
                 new_dict = defaultdict(int)
-                corrected_x_bits = self.primitive.table.X[::-1]
-                corrected_z_bits = self.primitive.table.Z[::-1]
-                coeffs = self.primitive.coeffs[::-1]
+                corrected_x_bits = self.primitive.table.X
+                corrected_z_bits = self.primitive.table.Z
+                coeffs = self.primitive.coeffs
                 for bstr, v in front.primitive.items():
                     bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
