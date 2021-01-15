@@ -18,15 +18,15 @@ import numpy as np
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import RandomPauli
+from qiskit.circuit.library import PauliTwoDesign
 
 
-class TestRandomPauli(QiskitTestCase):
+class TestPauliTwoDesign(QiskitTestCase):
     """Test the Random Pauli circuit."""
 
     def test_random_pauli(self):
         """Test the Random Pauli circuit."""
-        circuit = RandomPauli(4, seed=12, reps=1)
+        circuit = PauliTwoDesign(4, seed=12, reps=1)
 
         qr = QuantumRegister(4, 'q')
         params = circuit.ordered_parameters
@@ -58,7 +58,7 @@ class TestRandomPauli(QiskitTestCase):
 
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
-        circuit = RandomPauli(1)
+        circuit = PauliTwoDesign(1)
         top_gates = [op.name for op, _, _ in circuit.data]
 
         circuit.num_qubits = 3

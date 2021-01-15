@@ -21,11 +21,12 @@ from qiskit.circuit import QuantumCircuit
 from .two_local import TwoLocal
 
 
-class RandomPauli(TwoLocal):
-    r"""The Random Pauli ansatz.
+class PauliTwoDesign(TwoLocal):
+    r"""The Pauli Two-Design ansatz.
 
-    This is a simple benchmark ansatz used e.g. in investigating Barren plateaus in variational
-    algorithms [1].
+    This class implements a particular form of a 2-design circuit [1], which is frequently studied
+    in quantum machine learning literature, such as e.g. the investigating of Barren plateaus in
+    variational algorithms [2].
 
     The circuit consists of alternating rotation and entanglement layers with
     an initial layer of :math:`\sqrt{H} = RY(\pi/4)` gates.
@@ -52,13 +53,16 @@ class RandomPauli(TwoLocal):
 
         .. jupyter-execute:
 
-            from qiskit.circuit.library import RandomPauli
-            circuit = RandomPauli(4, reps=2, seed=5, insert_barriers=True)
+            from qiskit.circuit.library import PauliTwoDesign
+            circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
             print(circuit.draw())
 
     References:
 
-        [1]: McClean et al., Barren plateaus in quantum neural network training landscapes.
+        [1]: Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
+            `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
+
+        [2]: McClean et al., Barren plateaus in quantum neural network training landscapes.
              `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
     """
 

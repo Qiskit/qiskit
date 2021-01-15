@@ -14,7 +14,7 @@
 
 from .n_local import NLocal
 from .two_local import TwoLocal
-from .random_pauli import RandomPauli
+from .pauli_two_design import PauliTwoDesign
 from .real_amplitudes import RealAmplitudes
 from .efficient_su2 import EfficientSU2
 from .excitation_preserving import ExcitationPreserving
@@ -23,7 +23,7 @@ __all__ = [
     'NLocal',
     'TwoLocal',
     'RealAmplitudes',
-    'RandomPauli',
+    'PauliTwoDesign',
     'EfficientSU2',
     'ExcitationPreserving'
 ]
