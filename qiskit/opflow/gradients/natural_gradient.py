@@ -68,11 +68,10 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get('epsilon', 1e-6)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterVector, ParameterExpression,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
                 ) -> OperatorBase:
         r"""
         Args:
