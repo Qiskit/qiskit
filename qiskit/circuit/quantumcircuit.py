@@ -2047,8 +2047,8 @@ class QuantumCircuit:
                                        'differs from value list {} of '
                                        'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
-            else:
-                # pass anything else through. error checking is done in assign_parameter
+            # pass anything else except number through. error checking is done in assign_parameter
+            elif isinstance(param, (ParameterExpression, str)) or param is None:
                 unrolled_value_dict[param] = value
         return unrolled_value_dict
 
