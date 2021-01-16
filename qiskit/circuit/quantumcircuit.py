@@ -2035,7 +2035,28 @@ class QuantumCircuit:
         """
         if any(isinstance(value, ParameterExpression) for value in value_dict.values()):
             raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
-        return self.assign_parameters(value_dict)
+        parsed_value_dict = {}
+        # allow for key,value pair types other than Parameter(),value in the value_dict
+        # so that parameter vectors can be assigned easily
+        for the_param_key in value_dict.keys():
+            param_name = ''
+            # handle 'str,array()' pair type where str is the name of the vector
+            if isinstance(the_param_key, str):
+                param_name = the_param_key
+            # handle 'ParameterVector(),array()' pair type
+            elif isinstance(the_param_key, ParameterVector):
+                param_name = the_param_key.name
+            the_values = value_dict[the_param_key]
+            # if param_name is set then parse value dict
+            if param_name and isinstance(the_values, np.ndarray):
+                for i in range(len(the_values)):
+                    for key in self.parameters:
+                        if key.name == '{}[{}]'.format(param_name, i):
+                            parsed_value_dict[key] = the_values[i]
+            # otherwise just copy the item
+            else:
+                parsed_value_dict[the_param_key] = the_values
+        return self.assign_parameters(parsed_value_dict)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}

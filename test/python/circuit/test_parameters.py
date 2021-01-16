@@ -534,6 +534,30 @@ class TestParameters(QiskitTestCase):
                     if hasattr(gate_tuple[0], 'params') and gate_tuple[0].params:
                         self.assertIn(float(gate_tuple[0].params[0]), theta_vals)
 
+    def test_bind_paramvect_w_paramvect_array_keyvalue(self):
+        """Test binding a parameter vector passing a ParamVector and an array"""
+        num_qubits = 4
+        paramvalues = numpy.random.random(16)
+        qc = circlib.EfficientSU2(num_qubits, reps=1, parameter_prefix='th')
+        qc_bind = qc.bind_parameters({ParameterVector('th', 16): paramvalues})
+        p_idx = 0
+        for inst, _, _ in qc_bind.data:
+            if inst.name != 'cx':
+                self.assertEqual(inst.params[0],  paramvalues[p_idx])
+                p_idx += 1
+
+    def test_bind_paramvect_w_str_array_keyvalue(self):
+        """Test binding a parameter vector passing a string and an array"""
+        num_qubits = 4
+        paramvalues = numpy.random.random(16)
+        qc = circlib.EfficientSU2(num_qubits, reps=1, parameter_prefix='th')
+        qc_bind = qc.bind_parameters({'th': paramvalues})
+        p_idx = 0
+        for inst, _, _ in qc_bind.data:
+            if inst.name != 'cx':
+                self.assertEqual(inst.params[0],  paramvalues[p_idx])
+                p_idx += 1
+
     def test_compile_vector(self):
         """Test compiling a circuit with an unbound ParameterVector"""
         qc = QuantumCircuit(4)

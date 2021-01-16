@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    It is now easier to assign parameters using ParameterVectors.
+    There is no need to enumerate all paramenters in the value dict
+    Values can be assigned to the Parameter vector either using the
+    key value pairs: ``ParameterVector, numpyarray`` in the value dict or
+    ``'paramenter vector name', numparray``. Refer to 
+    `#5557 <https://github.com/Qiskit/qiskit-terra/issues/5557>` for more
+    details.
