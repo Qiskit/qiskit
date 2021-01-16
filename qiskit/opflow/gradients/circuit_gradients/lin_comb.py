@@ -458,8 +458,8 @@ class LinComb(CircuitGradient):
 
             # update parametertable if necessary
             if isinstance(theta, ParameterExpression):
-                out._update_parameter_table(rz_plus)
-                out._update_parameter_table(rz_minus)
+                out._parameter_table.update(rz_plus)
+                out._parameter_table.update(rz_minus)
 
             if open_ctrl:
                 replacement += [(XGate(), qr_superpos[:], [])]

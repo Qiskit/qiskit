@@ -16,7 +16,6 @@
 
 import copy
 import itertools
-import functools
 import warnings
 import numbers
 import multiprocessing as mp
@@ -35,8 +34,8 @@ from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable, ParameterView
-from .parametervector import ParameterVector, ParameterVectorElement
+from .parametertable import ParameterTable
+from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
@@ -192,9 +191,6 @@ class QuantumCircuit:
 
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
-
-        # Cache to avoid re-sorting parameters
-        self._parameters = None
 
         self._layout = None
         self._global_phase = 0
@@ -751,11 +747,11 @@ class QuantumCircuit:
         if front:
             dest._parameter_table.clear()
             for instr, _, _ in dest._data:
-                dest._update_parameter_table(instr)
+                dest._parameter_table.update(instr)
         else:
             # just append new parameters
             for instr, _, _ in mapped_instrs:
-                dest._update_parameter_table(instr)
+                dest._parameter_table.update(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -1017,41 +1013,13 @@ class QuantumCircuit:
         instruction_context = instruction, qargs, cargs
         self._data.append(instruction_context)
 
-        self._update_parameter_table(instruction)
+        self._parameter_table.update(instruction)
 
         # mark as normal circuit if a new instruction is added
         self.duration = None
         self.unit = 'dt'
 
         return instruction
-
-    def _update_parameter_table(self, instruction):
-
-        for param_index, param in enumerate(instruction.params):
-            if isinstance(param, ParameterExpression):
-                current_parameters = self._parameter_table
-
-                for parameter in param.parameters:
-                    if parameter in current_parameters:
-                        if not self._check_dup_param_spec(self._parameter_table[parameter],
-                                                          instruction, param_index):
-                            self._parameter_table[parameter].append((instruction, param_index))
-                    else:
-                        if parameter.name in self._parameter_table.get_names():
-                            raise CircuitError(
-                                'Name conflict on adding parameter: {}'.format(parameter.name))
-                        self._parameter_table[parameter] = [(instruction, param_index)]
-
-                        # clear cache if new parameter is added
-                        self._parameters = None
-
-        return instruction
-
-    def _check_dup_param_spec(self, parameter_spec_list, instruction, param_index):
-        for spec in parameter_spec_list:
-            if spec[0] is instruction and spec[1] == param_index:
-                return True
-        return False
 
     def add_register(self, *regs):
         """Add registers."""
@@ -1723,10 +1691,11 @@ class QuantumCircuit:
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
 
+        # todo simplify
         cpy._parameter_table = ParameterTable({
-            param: [(instr_copies[id(instr)], param_index)
-                    for instr, param_index in self._parameter_table[param]]
-            for param in self._parameter_table
+            param: [(instr_copies[id(instr)], i)
+                    for instr, i in instr_i]
+            for param, instr_i in self._parameter_table.items()
         })
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
@@ -1914,25 +1883,18 @@ class QuantumCircuit:
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
         # parameters from gates
-        if self._parameters is None:
-            unsorted = self._unsorted_parameters()
-            self._parameters = sorted(unsorted, key=functools.cmp_to_key(_compare_parameters))
+        params = self._parameter_table.parameters()
 
-        # return as parameter view, which implements the set and list interface
-        return ParameterView(self._parameters)
+        # parameters in global phase
+        if isinstance(self.global_phase, ParameterExpression):
+            return params.union(self.global_phase.parameters)
+
+        return params
 
     @property
     def num_parameters(self):
         """Convenience function to get the number of parameter objects in the circuit."""
-        return len(self._unsorted_parameters())
-
-    def _unsorted_parameters(self):
-        """Efficiently get all parameters in the circuit, without any sorting overhead."""
-        parameters = set(self._parameter_table)
-        if isinstance(self.global_phase, ParameterExpression):
-            parameters.update(self.global_phase.parameters)
-
-        return parameters
+        return len(self.parameters)
 
     @deprecate_arguments({'param_dict': 'parameters'})
     def assign_parameters(self, parameters, inplace=False,
@@ -2017,9 +1979,8 @@ class QuantumCircuit:
             unrolled_param_dict = self._unroll_param_dict(parameters)
 
             # check that all param_dict items are in the _parameter_table for this circuit
-            params_not_in_circuit = [param_key for param_key in unrolled_param_dict
-                                     if param_key not in self._unsorted_parameters()]
-            if len(params_not_in_circuit) > 0:
+            params_not_in_circuit = unrolled_param_dict.keys() - self.parameters
+            if params_not_in_circuit:
                 raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                     ', '.join(map(str, params_not_in_circuit))))
 
@@ -2030,8 +1991,8 @@ class QuantumCircuit:
             if len(parameters) != self.num_parameters:
                 raise ValueError('Mismatching number of values and parameters. For partial binding '
                                  'please pass a dictionary of {parameter: value} pairs.')
-            for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self.parameters[i], value)
+            for parameter, value in zip(self.parameters, parameters):
+                bound_circuit._assign_parameter(parameter, value)
         return None if inplace else bound_circuit
 
     @deprecate_arguments({'value_dict': 'values'})
@@ -2087,7 +2048,7 @@ class QuantumCircuit:
                 replace instances of ``parameter``.
         """
         # parameter might be in global phase only
-        if parameter in self._parameter_table.keys():
+        if parameter in self._parameter_table.parameters():
             for instr, param_index in self._parameter_table[parameter]:
                 new_param = instr.params[param_index].assign(parameter, value)
                 # if fully bound, validate
@@ -2112,8 +2073,6 @@ class QuantumCircuit:
                 parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.assign(parameter, value)
 
-        # clear parameter cache
-        self._parameters = None
         self._assign_calibration_parameters(parameter, value)
 
     def _assign_calibration_parameters(self, parameter, value):
@@ -2702,21 +2661,3 @@ def _circuit_from_qasm(qasm):
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
-
-
-def _standard_compare(value1, value2):
-    if value1 < value2:
-        return -1
-    if value1 > value2:
-        return 1
-    return 0
-
-
-def _compare_parameters(param1, param2):
-    if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
-        # if they belong to a vector with the same name, sort by index
-        if param1.vector.name == param2.vector.name:
-            return _standard_compare(param1.index, param2.index)
-
-    # else sort by name
-    return _standard_compare(param1.name, param2.name)

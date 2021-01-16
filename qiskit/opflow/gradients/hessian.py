@@ -13,10 +13,8 @@
 """The module to compute Hessians."""
 
 from typing import Union, List, Tuple, Optional
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
@@ -97,10 +95,10 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
-        if len(operator.parameters) == 0:
+        if not operator.parameters:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = list(operator.parameters)
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs

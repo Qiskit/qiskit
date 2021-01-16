@@ -14,10 +14,8 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.exceptions import MissingOptionalLibraryError
 from ..operator_base import OperatorBase
@@ -102,10 +100,10 @@ class NaturalGradient(GradientBase):
                             'Quantum Fisher Information represents an expectation value or a '
                             'loss function and that the quantum state is given as '
                             'CircuitStateFn.')
-        if len(operator.parameters) == 0:
+        if not operator.parameters:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = list(operator.parameters)
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

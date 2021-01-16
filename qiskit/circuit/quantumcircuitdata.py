@@ -59,7 +59,7 @@ class QuantumCircuitData(MutableSequence):
 
         self._circuit._data[key] = (instruction, qargs, cargs)
 
-        self._circuit._update_parameter_table(instruction)
+        self._circuit._parameter_table.update(instruction)
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)

@@ -13,9 +13,7 @@
 """The module for Quantum the Fisher Information."""
 
 from typing import List, Union, Optional
-import functools
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import (ParameterExpression, ParameterVector)
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
@@ -26,7 +24,7 @@ from .qfi_base import QFIBase
 class QFI(QFIBase):
     r"""Compute the Quantum Fisher Information (QFI).
 
-    Computes the QFI given a pure, parameterized quantum state, where QFI is:
+    Computes the QFI given a pure, parametrized quantum state, where QFI is:
 
     .. math::
 
@@ -54,12 +52,12 @@ class QFI(QFIBase):
         Raises:
             ValueError: If operator is not parameterized.
         """
-        if len(operator.parameters) == 0:
+        if not operator.parameters:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
 
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = list(operator.parameters)
         return self.qfi_method.convert(cleaned_op, params)

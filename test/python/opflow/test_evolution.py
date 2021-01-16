@@ -103,7 +103,7 @@ class TestEvolution(QiskitOpflowTestCase):
         for p in thetas:
             self.assertIn(p, circuit.parameters)
         # Check that the identity-parameters only exist as global phase
-        self.assertNotIn(thetas[0], circuit._parameter_table.get_keys())
+        self.assertNotIn(thetas[0], circuit._parameter_table.keys())
 
     def test_bind_parameters(self):
         """ bind parameters test """

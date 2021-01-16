@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit.parametertable import Parameters
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
@@ -317,7 +318,7 @@ class StateFn(OperatorBase):
 
     @property
     def parameters(self):
-        params = set()
+        params = Parameters()
         if isinstance(self.primitive, (OperatorBase, QuantumCircuit)):
             params.update(self.primitive.parameters)
         if isinstance(self.coeff, ParameterExpression):

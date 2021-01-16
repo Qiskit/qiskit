@@ -26,7 +26,7 @@ import qiskit.circuit.library as circlib
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
-from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.parametertable import Parameters
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute_function import execute
@@ -53,7 +53,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
                           for param in instr.params
                           for parameter in param.parameters
                           if isinstance(param, ParameterExpression)}
-    table_parameters = set(table._table.keys())
+    table_parameters = set(table.keys())
 
     if circuit_parameters != table_parameters:
         raise CircuitError('Circuit/ParameterTable Parameter mismatch. '
@@ -1728,15 +1728,21 @@ class TestParameterEquality(QiskitTestCase):
 
 
 class TestParameterView(QiskitTestCase):
-    """Test the ParameterView object."""
+    """Test the Parameters object."""
 
     def setUp(self):
         super().setUp()
         x, y, z = Parameter('x'), Parameter('y'), Parameter('z')
         self.params = [x, y, z]
-        self.view1 = ParameterView([x, y])
-        self.view2 = ParameterView([y, z])
-        self.view3 = ParameterView([x])
+        self.view = Parameters(self.params)
+        self.view1 = Parameters([x, y])
+        self.view2 = Parameters([y, z])
+        self.view3 = Parameters([x])
+
+    def test_update(self):
+        """Test update."""
+        self.view1.update(self.view2)
+        self.assertEqual(self.view1, self.view)
 
     def test_and(self):
         """Test __and__."""
@@ -1744,7 +1750,7 @@ class TestParameterView(QiskitTestCase):
 
     def test_or(self):
         """Test __or__."""
-        self.assertEqual(self.view1 | self.view2, set(self.params))
+        self.assertEqual(self.view1 | self.view2, self.view)
 
     def test_xor(self):
         """Test __xor__."""
