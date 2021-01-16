@@ -2005,10 +2005,12 @@ class QuantumCircuit:
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
-        # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self._parameter_table.keys():
+        # check that all param_dict items are in the _parameter_table for this circuit
+        missing_params = [param_key for param_key in unrolled_param_dict
+                          if param_key not in self._parameter_table]
+        if missing_params:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self._parameter_table]))
+                ', '.join(map(str, missing_params))))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -2039,14 +2041,15 @@ class QuantumCircuit:
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
-            if isinstance(param, ParameterExpression):
-                unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError('ParameterVector {} has length {}, which '
                                        'differs from value list {} of '
                                        'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
+            else:
+                # pass anything else through. error checking is done in assign_parameter
+                unrolled_value_dict[param] = value
         return unrolled_value_dict
 
     def _assign_parameter(self, parameter, value):
