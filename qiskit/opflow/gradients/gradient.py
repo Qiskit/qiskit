@@ -12,7 +12,7 @@
 
 """The base interface for Opflow's gradient."""
 
-from typing import Union, List
+from typing import Union, List, Optional
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -41,7 +41,8 @@ class Gradient(GradientBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
         r"""
         Args:
@@ -54,7 +55,8 @@ class Gradient(GradientBase):
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
-
+        if params is None:
+            params = sorted(operator.parameters, key=lambda p: p.name)
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.convert(operator, param) for param in params]
             absent_params = [params[i]

@@ -72,7 +72,8 @@ class NaturalGradient(GradientBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterVector, ParameterExpression, List[ParameterExpression]]] = None
                 ) -> OperatorBase:
         r"""
         Args:
@@ -97,6 +98,8 @@ class NaturalGradient(GradientBase):
                             'Quantum Fisher Information represents an expectation value or a '
                             'loss function and that the quantum state is given as '
                             'CircuitStateFn.')
+        if params is None:
+            params = sorted(operator.parameters, key=lambda p: p.name)
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

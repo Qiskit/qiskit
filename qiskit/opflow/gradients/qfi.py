@@ -12,7 +12,7 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 from qiskit.circuit import (ParameterExpression, ParameterVector)
 from ..list_ops.list_op import ListOp
@@ -36,7 +36,8 @@ class QFI(QFIBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: CircuitStateFn,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
+                params: Optional[
+                    Union[ParameterExpression, ParameterVector, List[ParameterExpression]]] = None
                 ) -> ListOp:
         r"""
         Args:
@@ -50,4 +51,6 @@ class QFI(QFIBase):
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
 
+        if params is None:
+            params = sorted(operator.parameters, key=lambda p: p.name)
         return self.qfi_method.convert(cleaned_op, params)

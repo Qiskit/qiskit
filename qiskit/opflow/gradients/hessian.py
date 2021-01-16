@@ -12,7 +12,7 @@
 
 """The module to compute Hessians."""
 
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -43,9 +43,9 @@ class Hessian(HessianBase):
     # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Union[Tuple[ParameterExpression, ParameterExpression],
-                              List[Tuple[ParameterExpression, ParameterExpression]],
-                              List[ParameterExpression], ParameterVector]
+                params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
+                                       List[Tuple[ParameterExpression, ParameterExpression]],
+                                       List[ParameterExpression], ParameterVector]] = None
                 ) -> OperatorBase:
         """
         Args:
@@ -59,6 +59,8 @@ class Hessian(HessianBase):
             OperatorBase: An operator whose evaluation yields the Hessian
         """
         # if input is a tuple instead of a list, wrap it into a list
+        if params is None:
+            params = sorted(operator.parameters, key=lambda p: p.name)
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
             if all(isinstance(param, ParameterExpression) for param in params):
