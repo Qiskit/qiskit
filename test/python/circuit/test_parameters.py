@@ -543,7 +543,7 @@ class TestParameters(QiskitTestCase):
         p_idx = 0
         for inst, _, _ in qc_bind.data:
             if inst.name != 'cx':
-                self.assertEqual(inst.params[0],  paramvalues[p_idx])
+                self.assertEqual(inst.params[0], paramvalues[p_idx])
                 p_idx += 1
 
     def test_bind_paramvect_w_str_array_keyvalue(self):
@@ -555,7 +555,7 @@ class TestParameters(QiskitTestCase):
         p_idx = 0
         for inst, _, _ in qc_bind.data:
             if inst.name != 'cx':
-                self.assertEqual(inst.params[0],  paramvalues[p_idx])
+                self.assertEqual(inst.params[0], paramvalues[p_idx])
                 p_idx += 1
 
     def test_compile_vector(self):
