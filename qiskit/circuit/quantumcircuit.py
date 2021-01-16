@@ -2049,10 +2049,10 @@ class QuantumCircuit:
             the_values = value_dict[the_param_key]
             # if param_name is set then parse value dict
             if param_name and isinstance(the_values, np.ndarray):
-                for i, _ in enumerate(the_values):
+                for i, the_value in enumerate(the_values):
                     for key in self.parameters:
                         if key.name == '{}[{}]'.format(param_name, i):
-                            parsed_value_dict[key] = the_values[i]
+                            parsed_value_dict[key] = the_value
             # otherwise just copy the item
             else:
                 parsed_value_dict[the_param_key] = the_values
