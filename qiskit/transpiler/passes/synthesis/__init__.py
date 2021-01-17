@@ -13,7 +13,7 @@
 """Module containing transpiler synthesis passes."""
 
 from .unitary_synthesis import UnitarySynthesis
-from .solovay_kitaev import SolovayKitaevDecomposition
+from .solovay_kitaev import SolovayKitaevDecomposition, commutator_decompose
 from .solovay_kitaev_utils import (
     GateSequence, compute_frobenius_norm,
     compute_euler_angles_from_s03, 

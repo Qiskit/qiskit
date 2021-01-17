@@ -108,20 +108,36 @@ class SolovayKitaev():
             ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
         if sequence.product.shape != (3, 3):
-            raise ValueError('Shape of U must be (3, 3) but is', sequence.shape)
+            raise ValueError(
+                'Shape of U must be (3, 3) but is', sequence.shape)
 
         if n == 0:
             return self.find_basic_approximation(sequence)
 
         u_n1 = self._recurse(sequence, n - 1)
-        tuple_v_w = self.commutator_decompose(
+        tuple_v_w = commutator_decompose(
             np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
         v_n1 = self._recurse(tuple_v_w[0], n - 1)
         w_n1 = self._recurse(tuple_v_w[1], n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def commutator_decompose(self, u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
+
+    def find_basic_approximation(self, sequence: GateSequence) -> Gate:
+        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
+
+        Args:
+            sequence: The gate to find the approximation to.
+
+        Returns:
+            Gate in basic approximations that is closest to ``u``.
+        """
+        def key(x):
+            return np.linalg.norm(np.subtract(x.product, sequence.product))
+
+        return min(self._basic_approximations, key=key)
+
+def commutator_decompose(u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
         """Decompose an SO(3)-matrix as a balanced commutator.
 
         Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
@@ -141,10 +157,12 @@ class SolovayKitaev():
         """
         descr_method = 'Computation commutator decompose'
         if u_so3.shape != (3, 3):
-            raise ValueError(descr_method + 'called on matrix of shape', u_so3.shape)
+            raise ValueError(
+                descr_method + 'called on matrix of shape', u_so3.shape)
 
         if abs(np.linalg.det(u_so3) - 1) > 1e-4:
-            raise ValueError(descr_method + 'called on determinant of', np.linalg.det(u_so3))
+            raise ValueError(
+                descr_method + 'called on determinant of', np.linalg.det(u_so3))
 
         angle = solve_decomposition_angle(u_so3)
 
@@ -167,26 +185,12 @@ class SolovayKitaev():
 
         return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
-    def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
-
-        Args:
-            sequence: The gate to find the approximation to.
-
-        Returns:
-            Gate in basic approximations that is closest to ``u``.
-        """
-        def key(x):
-            return np.linalg.norm(np.subtract(x.product, sequence.product))
-
-        return min(self._basic_approximations, key=key)
-
-
 def _version1(basic_gates, depth):
     # get all products from all depths
     products = []
     for reps in range(1, depth + 1):
-        products += list(list(comb) for comb in itertools.product(*[basic_gates] * reps))
+        products += list(list(comb)
+                         for comb in itertools.product(*[basic_gates] * reps))
 
     sequences = []
     for item in products:
@@ -212,7 +216,8 @@ def _check_candidate(candidate, sequences):
 
 
 def _simplify(sequence: GateSequence) -> GateSequence:
-    id_removed = [gate for gate in sequence.gates if not _approximates_identity(gate)]
+    id_removed = [
+        gate for gate in sequence.gates if not _approximates_identity(gate)]
     no_inverses_together = []
     for index, _ in enumerate(id_removed):
         if index < len(id_removed)-1 and _is_left_to_inverse(id_removed, index):

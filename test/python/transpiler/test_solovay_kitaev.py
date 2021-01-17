@@ -29,6 +29,7 @@ from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.library import TGate, RXGate, RYGate, HGate, SGate, IGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
+from qiskit.transpiler.passes.synthesis import commutator_decompose
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
 
@@ -158,9 +159,112 @@ def distance(A, B):
     result2 = minimize(objective, [0.5], bounds=[(-np.pi, np.pi)])
     return min(result1.fun, result2.fun)
 
+def _generate_x_rotation(angle:float) -> np.ndarray:
+    return np.array([[1,0,0],[0,math.cos(angle),-math.sin(angle)],[0,math.sin(angle),math.cos(angle)]])
 
+def _generate_y_rotation(angle:float) -> np.ndarray:
+    return np.array([[math.cos(angle),0,math.sin(angle)],[0,1,0],[-math.sin(angle),0,math.cos(angle)]])
+
+def _generate_z_rotation(angle:float) -> np.ndarray:
+    return np.array([[math.cos(angle),-math.sin(angle),0],[math.sin(angle),math.cos(angle),0],[0,0,1]])
+
+def _generate_random_rotation() -> np.ndarray:
+    return np.array(scipy.stats.special_ortho_group.rvs(3))
+
+def _build_rotation(angle: float, axis: int) -> np.ndarray:
+    if axis == 0:
+        return _generate_x_rotation(angle)
+    elif axis == 1:
+        return _generate_y_rotation(angle)
+    elif axis == 2:
+        return _generate_z_rotation(angle)
+    else:
+         return _generate_random_rotation()
+
+def _build_axis(axis: int) -> np.ndarray:
+    if axis == 0:
+        return np.array([1.0,0.0,0.0])
+    elif axis == 1:
+        return np.array([0.0,1.0,0.0])
+    elif axis == 2:
+        return np.array([0.0,0.0,1.0])
+    else:
+        return np.array([1/math.sqrt(3),1/math.sqrt(3),1/math.sqrt(3)])
+
+def _generate_x_su2(angle:float) -> np.ndarray:
+    return np.array([[math.cos(angle/2), math.sin(angle/2)*1j],
+                       [math.sin(angle/2)*1j, math.cos(angle/2)]], dtype=complex)
+
+def _generate_y_su2(angle:float) -> np.ndarray:
+    return np.array([[math.cos(angle/2), math.sin(angle/2)],
+                         [-math.sin(angle/2), math.cos(angle/2)]], dtype=complex)
+
+def _generate_z_su2(angle:float) -> np.ndarray:
+    return np.array([[np.exp(-(1/2)*angle*1j), 0], [0, np.exp((1/2)*angle*1j)]], dtype=complex)
+
+def _generate_su2(alpha: complex, beta: complex) -> np.ndarray:
+    base = np.array([[alpha,beta],[-np.conj(beta),np.conj(alpha)]])
+    det = np.linalg.det(base)
+    if abs(det)<1e10:
+        return np.array([[1,0],[0,1]])
+    else:
+        return np.linalg.det(base)*base
+
+def _build_unit_vector(a: float, b: float, c: float) -> np.ndarray:
+    vector = np.array([a,b,c])
+    if a != 0.0 or b != 0.0 or c!= 0.0:
+        unit_vector = vector/np.linalg.norm(vector)
+        return unit_vector
+    else:
+        return np.array([1,0,0])
+
+def is_so3_matrix(array: np.ndarray) -> bool:
+    return array.shape == (3,3) and abs(np.linalg.det(array)-1.0)< 1e-10 and not False in np.isreal(array) 
+
+def are_almost_equal_so3_matrices(a: np.ndarray, b: np.ndarray) -> bool:
+    for t in itertools.product(range(2),range(2)):
+        if abs(a[t[0]][t[1]]-b[t[0]][t[1]])> 1e-10:
+            return False
+    return True
+
+@ddt
 class TestSolovayKitaev(QiskitTestCase):
     """Test the Solovay Kitaev algorithm and transformation pass."""
+
+    @given(st.builds(_build_rotation,st.floats(max_value=2*math.pi,min_value=0),st.integers(min_value=0,max_value=4)))
+    def test_commutator_decompose_returns_tuple_of_two_so3_gatesequences(self, u_so3: np.ndarray):        
+        actual_result = commutator_decompose(u_so3)
+        self.assertTrue(is_so3_matrix(actual_result[0].product))
+        self.assertTrue(is_so3_matrix(actual_result[1].product))
+
+    @given(st.builds(_build_rotation,st.floats(max_value=2*math.pi,min_value=0),st.integers(min_value=0,max_value=4)))
+    def test_commutator_decompose_returns_tuple_whose_commutator_equals_input(self, u_so3: np.ndarray):        
+        actual_result = commutator_decompose(u_so3)
+        first_so3 = actual_result[0]
+        second_so3 = actual_result[1]
+        actual_commutator = np.dot(first_so3,np.dot(second_so3,np.dot(np.matrix.getH(first_so3),np.matrix.getH(second_so3))))
+        self.assertAlmostEqual(actual_commutator,u_so3)
+
+    @given(st.builds(_build_rotation,st.floats(max_value=2*math.pi,min_value=0),st.integers(min_value=0,max_value=4)))
+    def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3: np.ndarray):
+        actual_result = commutator_decompose(u_so3)
+        actual = actual_result[0]
+        self.assertAlmostEqual(actual[0][0],1)
+        self.assertAlmostEqual(actual[0][1],0)
+        self.assertAlmostEqual(actual[0][2],0)
+        self.assertAlmostEqual(actual[1][0],0)
+        self.assertAlmostEqual(actual[2][0],0)
+
+    @given(st.builds(_build_rotation,st.floats(max_value=2*math.pi,min_value=0),st.integers(min_value=0,max_value=4)))
+    def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3: np.ndarray):
+        actual_result = commutator_decompose(u_so3)
+        actual = actual_result[1]
+        self.assertAlmostEqual(actual[1][1],1)
+        self.assertAlmostEqual(actual[0][1],0)
+        self.assertAlmostEqual(actual[1][0],0)
+        self.assertAlmostEqual(actual[1][2],0)
+        self.assertAlmostEqual(actual[2][1],0)
+    
 
     def test_example(self):
         """@Lisa Example to show how to call the pass."""
@@ -269,73 +373,6 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         self.assertTrue(actual_sequence == expected_sequence)
 
 
-def _generate_x_rotation(angle:float) -> np.ndarray:
-    return np.array([[1,0,0],[0,math.cos(angle),-math.sin(angle)],[0,math.sin(angle),math.cos(angle)]])
-
-def _generate_y_rotation(angle:float) -> np.ndarray:
-    return np.array([[math.cos(angle),0,math.sin(angle)],[0,1,0],[-math.sin(angle),0,math.cos(angle)]])
-
-def _generate_z_rotation(angle:float) -> np.ndarray:
-    return np.array([[math.cos(angle),-math.sin(angle),0],[math.sin(angle),math.cos(angle),0],[0,0,1]])
-
-def _generate_random_rotation() -> np.ndarray:
-    return np.array(scipy.stats.special_ortho_group.rvs(3))
-
-def _build_rotation(angle: float, axis: int) -> np.ndarray:
-    if axis == 0:
-        return _generate_x_rotation(angle)
-    elif axis == 1:
-        return _generate_y_rotation(angle)
-    elif axis == 2:
-        return _generate_z_rotation(angle)
-    else:
-         return _generate_random_rotation()
-
-def _build_axis(axis: int) -> np.ndarray:
-    if axis == 0:
-        return np.array([1.0,0.0,0.0])
-    elif axis == 1:
-        return np.array([0.0,1.0,0.0])
-    elif axis == 2:
-        return np.array([0.0,0.0,1.0])
-    else:
-        return np.array([1/math.sqrt(3),1/math.sqrt(3),1/math.sqrt(3)])
-
-def _generate_x_su2(angle:float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)*1j],
-                       [math.sin(angle/2)*1j, math.cos(angle/2)]], dtype=complex)
-
-def _generate_y_su2(angle:float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)],
-                         [-math.sin(angle/2), math.cos(angle/2)]], dtype=complex)
-
-def _generate_z_su2(angle:float) -> np.ndarray:
-    return np.array([[np.exp(-(1/2)*angle*1j), 0], [0, np.exp((1/2)*angle*1j)]], dtype=complex)
-
-def _generate_su2(alpha: complex, beta: complex) -> np.ndarray:
-    base = np.array([[alpha,beta],[-np.conj(beta),np.conj(alpha)]])
-    det = np.linalg.det(base)
-    if abs(det)<1e10:
-        return np.array([[1,0],[0,1]])
-    else:
-        return np.linalg.det(base)*base
-
-def _build_unit_vector(a: float, b: float, c: float) -> np.ndarray:
-    vector = np.array([a,b,c])
-    if a != 0.0 or b != 0.0 or c!= 0.0:
-        unit_vector = vector/np.linalg.norm(vector)
-        return unit_vector
-    else:
-        return np.array([1,0,0])
-
-def is_so3_matrix(array: np.ndarray) -> bool:
-    return array.shape == (3,3) and abs(np.linalg.det(array)-1.0)< 1e-10 and not False in np.isreal(array) 
-
-def are_almost_equal_so3_matrices(a: np.ndarray, b: np.ndarray) -> bool:
-    for t in itertools.product(range(2),range(2)):
-        if abs(a[t[0]][t[1]]-b[t[0]][t[1]])> 1e-10:
-            return False
-    return True
    
 @ddt
 class AlgebraTest(unittest.TestCase):
