@@ -82,14 +82,14 @@ def _experiments_to_circuits(qobj):
     """
     if qobj.experiments:
         circuits = []
-        for x in qobj.experiments:
+        for exp in qobj.experiments:
             quantum_registers = [QuantumRegister(i[1], name=i[0])
-                                 for i in x.header.qreg_sizes]
+                                 for i in exp.header.qreg_sizes]
             classical_registers = [ClassicalRegister(i[1], name=i[0])
-                                   for i in x.header.creg_sizes]
+                                   for i in exp.header.creg_sizes]
             circuit = QuantumCircuit(*quantum_registers,
                                      *classical_registers,
-                                     name=x.header.name)
+                                     name=exp.header.name)
             qreg_dict = collections.OrderedDict()
             creg_dict = collections.OrderedDict()
             for reg in quantum_registers:
@@ -97,13 +97,13 @@ def _experiments_to_circuits(qobj):
             for reg in classical_registers:
                 creg_dict[reg.name] = reg
             conditional = {}
-            for i in x.instructions:
+            for i in exp.instructions:
                 name = i.name
                 qubits = []
                 params = getattr(i, 'params', [])
                 try:
                     for qubit in i.qubits:
-                        qubit_label = x.header.qubit_labels[qubit]
+                        qubit_label = exp.header.qubit_labels[qubit]
                         qubits.append(
                             qreg_dict[qubit_label[0]][qubit_label[1]])
                 except Exception:  # pylint: disable=broad-except
@@ -111,7 +111,7 @@ def _experiments_to_circuits(qobj):
                 clbits = []
                 try:
                     for clbit in i.memory:
-                        clbit_label = x.header.clbit_labels[clbit]
+                        clbit_label = exp.header.clbit_labels[clbit]
                         clbits.append(
                             creg_dict[clbit_label[0]][clbit_label[1]])
                 except Exception:  # pylint: disable=broad-except
