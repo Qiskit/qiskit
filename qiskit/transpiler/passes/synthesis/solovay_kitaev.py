@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
-from .solovay_kitaev_utils import (
+from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
     compute_rotation_axis,
     compute_rotation_between,
@@ -49,7 +49,21 @@ class SolovayKitaev():
         Returns:
             List of GateSequences using the gates in basic_gates.
         """
-        return _all_combinations_up_to_depth(basis_gates, depth=3)
+        depth = 3
+        # get all products from all depths
+        products = []
+        for reps in range(1, depth + 1):
+            products += list(list(comb)
+                             for comb in itertools.product(*[basis_gates] * reps))
+
+        sequences = []
+        for item in products:
+            candidate = GateSequence(item)
+            accept = _check_candidate(candidate, sequences)
+            if accept:
+                sequences.append(candidate)
+
+        return sequences
 
     def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
         """Synthesizes Qiskit QuantumCircuit with global phase from GateSequence.
@@ -111,83 +125,28 @@ class SolovayKitaev():
             ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
         if sequence.product.shape != (3, 3):
-            raise ValueError('Shape of U must be (3, 3) but is', sequence.shape)
+            raise ValueError(
+                'Shape of U must be (3, 3) but is', sequence.shape)
 
         if n == 0:
             return self.find_basic_approximation(sequence)
 
         u_n1 = self._recurse(sequence, n - 1)
-        tuple_v_w = self.commutator_decompose(
+        tuple_v_w = commutator_decompose(
             np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
         v_n1 = self._recurse(tuple_v_w[0], n - 1)
         w_n1 = self._recurse(tuple_v_w[1], n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def commutator_decompose(self, u_so3: np.ndarray, check_input: bool = True
-                             ) -> Tuple[GateSequence, GateSequence]:
-        """Decompose an SO(3)-matrix as a balanced commutator.
-
-        Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
-        the Frobenius norm of both v and w is smaller than
-        the square root of half the Frobenius norm of ``u_so3``.
-        Then return each matrix as GateSequence.
-
-        Args:
-            u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
-            check_input: Whether to check if the input matrix is SO(3). Can be disabled for
-                perfomance.
-
-        Returns:
-            Tuple of GateSequences from SO(3)-matrices v and w such that
-            ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
-
-        Raises:
-            ValueError: if ``u_so3`` is not an SO(3)-matrix.
-        """
-        if check_input:
-            # assert that the input matrix is really SO(3)
-            if u_so3.shape != (3, 3):
-                raise ValueError('Input matrix has wrong shape', u_so3.shape)
-
-            if abs(np.linalg.det(u_so3) - 1) > 1e-6:
-                raise ValueError('Determinant of input is not 1 (up to tolerance of 1e-6), but',
-                                 np.linalg.det(u_so3))
-
-            identity = np.identity(3)
-            if not (np.allclose(u_so3.dot(u_so3.T), identity) and
-                    np.allclose(u_so3.T.dot(u_so3), identity)):
-                raise ValueError('Input matrix is not orthogonal.')
-
-        angle = solve_decomposition_angle(u_so3)
-
-        # Compute rotation about x-axis with angle 'angle'
-        vx = compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
-
-        # Compute rotation about y-axis with angle 'angle'
-        wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
-
-        commutator = _compute_commutator_so3(vx, wy)
-
-        u_so3_axis = compute_rotation_axis(u_so3)
-        commutator_axis = compute_rotation_axis(commutator)
-
-        sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
-        sim_matrix_dagger = np.matrix.getH(sim_matrix)
-
-        v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
-        w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
-
-        return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
-
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``sequence``.
+        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
 
         Args:
             sequence: The gate to find the approximation to.
 
         Returns:
-            Gate in basic approximations that is closest to ``sequence``.
+            Gate in basic approximations that is closest to ``u``.
         """
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
@@ -195,23 +154,63 @@ class SolovayKitaev():
         return min(self._basic_approximations, key=key)
 
 
-def _all_combinations_up_to_depth(basic_gates, depth):
-    # get all products from all depths
-    products = []
-    for reps in range(1, depth + 1):
-        products += list(list(comb) for comb in itertools.product(*[basic_gates] * reps))
+def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
+                         ) -> Tuple[GateSequence, GateSequence]:
+    """Decompose an SO(3)-matrix as a balanced commutator.
 
-    sequences = []
-    for item in products:
-        candidate = GateSequence(item)
-        accept = _check_candidate(candidate, sequences)
-        if accept:
-            sequences.append(candidate)
+    Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
+    the Frobenius norm of both v and w is smaller than
+    the square root of half the Frobenius norm of ``u_so3``.
+    Then return each matrix as GateSequence.
 
-    return sequences
+    Args:
+        u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
+        check_input: If True, checks whether the input matrix is actually SO(3).
+
+    Returns:
+        Tuple of GateSequences from SO(3)-matrices v and w such that
+        ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
+
+    Raises:
+        ValueError: if ``u_so3`` is not an SO(3)-matrix.
+    """
+    if check_input:
+        # assert that the input matrix is really SO(3)
+        if u_so3.shape != (3, 3):
+            raise ValueError('Input matrix has wrong shape', u_so3.shape)
+
+        if abs(np.linalg.det(u_so3) - 1) > 1e-6:
+            raise ValueError('Determinant of input is not 1 (up to tolerance of 1e-6), but',
+                             np.linalg.det(u_so3))
+
+        identity = np.identity(3)
+        if not (np.allclose(u_so3.dot(u_so3.T), identity) and
+                np.allclose(u_so3.T.dot(u_so3), identity)):
+            raise ValueError('Input matrix is not orthogonal.')
+
+    angle = solve_decomposition_angle(u_so3)
+
+    # Compute rotation about x-axis with angle 'angle'
+    vx = compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
+
+    # Compute rotation about y-axis with angle 'angle'
+    wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
+
+    commutator = _compute_commutator_so3(vx, wy)
+
+    u_so3_axis = compute_rotation_axis(u_so3)
+    commutator_axis = compute_rotation_axis(commutator)
+
+    sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
+    sim_matrix_dagger = np.matrix.getH(sim_matrix)
+
+    v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
+    w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
+
+    return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
 
-def _check_candidate(candidate, sequences):
+def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal
     # check if a matrix representation already exists
     for existing in sequences:
@@ -228,6 +227,8 @@ def _remove_inverse_follows_gate(sequence):
     index = 0
     while index < len(sequence.gates) - 1:
         if sequence.gates[index + 1] == sequence.gates[index].inverse():
+            # remove gates at index and index + 1 (pop shifts the whole sequence, so we apply it
+            # twice for the value `index`)
             sequence.gates.pop(index)
             sequence.gates.pop(index)
             # take a step back to see if we have uncovered a new pair, e.g.
