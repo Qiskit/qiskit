@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
-from .solovay_kitaev_utils import (
+from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
     compute_rotation_axis,
     compute_rotation_between,
@@ -50,7 +50,21 @@ class SolovayKitaev():
         Returns:
             List of GateSequences using the gates in basic_gates.
         """
-        return _version1(basis_gates, 3)
+        depth = 3
+        # get all products from all depths
+        products = []
+        for reps in range(1, depth + 1):
+            products += list(list(comb)
+                            for comb in itertools.product(*[basis_gates] * reps))
+
+        sequences = []
+        for item in products:
+            candidate = GateSequence(item)
+            accept = _check_candidate(candidate, sequences)
+            if accept:
+                sequences.append(candidate)
+
+        return sequences
 
     def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
         """Synthesizes Qiskit QuantumCircuit with global phase from GateSequence.
@@ -185,24 +199,7 @@ def commutator_decompose(u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]
 
         return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
-def _version1(basic_gates, depth):
-    # get all products from all depths
-    products = []
-    for reps in range(1, depth + 1):
-        products += list(list(comb)
-                         for comb in itertools.product(*[basic_gates] * reps))
-
-    sequences = []
-    for item in products:
-        candidate = GateSequence(item)
-        accept = _check_candidate(candidate, sequences)
-        if accept:
-            sequences.append(candidate)
-
-    return sequences
-
-
-def _check_candidate(candidate, sequences):
+def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal
     # check if a matrix representation already exists
     for existing in sequences:

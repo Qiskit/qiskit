@@ -15,11 +15,5 @@
 from .unitary_synthesis import UnitarySynthesis
 from .solovay_kitaev import SolovayKitaevDecomposition, commutator_decompose
 from .solovay_kitaev_utils import (
-    GateSequence, compute_frobenius_norm,
-    compute_euler_angles_from_s03, 
-    compute_su2_from_euler_angles, convert_su2_to_so3, 
-    _compute_trace_so3, solve_decomposition_angle, 
-    compute_rotation_between, _compute_commutator_so3,
-    compute_rotation_from_angle_and_axis,
-    compute_rotation_axis, convert_so3_to_su2
+    GateSequence
 ) 
