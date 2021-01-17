@@ -36,9 +36,8 @@ class SolovayKitaev():
     """The Solovay Kitaev discrete decomposition algorithm."""
 
     def __init__(self, basis_gates: List[Union[str, Gate]]) -> None:
-        self._basis_gates = basis_gates
-        self._basic_approximations = self.generate_basic_approximations(
-            basis_gates)
+        # generate the basic approximations once for this basis gates set
+        self._basic_approximations = self.generate_basic_approximations(basis_gates)
 
     def generate_basic_approximations(self, basis_gates: List[Union[str, Gate]]
                                       ) -> List[GateSequence]:
@@ -50,7 +49,7 @@ class SolovayKitaev():
         Returns:
             List of GateSequences using the gates in basic_gates.
         """
-        return _version1(basis_gates, 3)
+        return _all_combinations_up_to_depth(basis_gates, depth=3)
 
     def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
         """Synthesizes Qiskit QuantumCircuit with global phase from GateSequence.
@@ -88,6 +87,10 @@ class SolovayKitaev():
         # get the decompositon as GateSequence type
         decomposition = self._recurse(gate_matrix_su2, recursion_degree)
 
+        # simplify
+        _remove_inverse_follows_gate(decomposition)
+        _remove_identities(decomposition)
+
         # convert to a circuit and attach the right phases
         # TODO insert simplify again, but it seems to break the accuracy test
         circuit = self._synth_circuit(global_phase, decomposition)
@@ -121,7 +124,8 @@ class SolovayKitaev():
         w_n1 = self._recurse(tuple_v_w[1], n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def commutator_decompose(self, u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
+    def commutator_decompose(self, u_so3: np.ndarray, check_input: bool = True
+                             ) -> Tuple[GateSequence, GateSequence]:
         """Decompose an SO(3)-matrix as a balanced commutator.
 
         Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
@@ -131,6 +135,8 @@ class SolovayKitaev():
 
         Args:
             u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
+            check_input: Whether to check if the input matrix is SO(3). Can be disabled for
+                perfomance.
 
         Returns:
             Tuple of GateSequences from SO(3)-matrices v and w such that
@@ -139,12 +145,19 @@ class SolovayKitaev():
         Raises:
             ValueError: if ``u_so3`` is not an SO(3)-matrix.
         """
-        descr_method = 'Computation commutator decompose'
-        if u_so3.shape != (3, 3):
-            raise ValueError(descr_method + 'called on matrix of shape', u_so3.shape)
+        if check_input:
+            # assert that the input matrix is really SO(3)
+            if u_so3.shape != (3, 3):
+                raise ValueError('Input matrix has wrong shape', u_so3.shape)
 
-        if abs(np.linalg.det(u_so3) - 1) > 1e-4:
-            raise ValueError(descr_method + 'called on determinant of', np.linalg.det(u_so3))
+            if abs(np.linalg.det(u_so3) - 1) > 1e-6:
+                raise ValueError('Determinant of input is not 1 (up to tolerance of 1e-6), but',
+                                 np.linalg.det(u_so3))
+
+            identity = np.identity(3)
+            if not (np.allclose(u_so3.dot(u_so3.T), identity) and
+                    np.allclose(u_so3.T.dot(u_so3), identity)):
+                raise ValueError('Input matrix is not orthogonal.')
 
         angle = solve_decomposition_angle(u_so3)
 
@@ -168,13 +181,13 @@ class SolovayKitaev():
         return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
+        """Finds gate in ``self._basic_approximations`` that best represents ``sequence``.
 
         Args:
             sequence: The gate to find the approximation to.
 
         Returns:
-            Gate in basic approximations that is closest to ``u``.
+            Gate in basic approximations that is closest to ``sequence``.
         """
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
@@ -182,7 +195,7 @@ class SolovayKitaev():
         return min(self._basic_approximations, key=key)
 
 
-def _version1(basic_gates, depth):
+def _all_combinations_up_to_depth(basic_gates, depth):
     # get all products from all depths
     products = []
     for reps in range(1, depth + 1):
@@ -211,32 +224,29 @@ def _check_candidate(candidate, sequences):
     return True
 
 
-def _simplify(sequence: GateSequence) -> GateSequence:
-    id_removed = [gate for gate in sequence.gates if not _approximates_identity(gate)]
-    no_inverses_together = []
-    for index, _ in enumerate(id_removed):
-        if index < len(id_removed)-1 and _is_left_to_inverse(id_removed, index):
-            continue
-        if index > 0 and _is_right_to_inverse(id_removed, index):
-            continue
-        no_inverses_together.append(id_removed[index])
-    return GateSequence(no_inverses_together)
+def _remove_inverse_follows_gate(sequence):
+    index = 0
+    while index < len(sequence.gates) - 1:
+        if sequence.gates[index + 1] == sequence.gates[index].inverse():
+            sequence.gates.pop(index)
+            sequence.gates.pop(index)
+            # take a step back to see if we have uncovered a new pair, e.g.
+            # [h, s, sdg, h] at index = 1 removes s, sdg but if we continue at index 1
+            # we miss the uncovered [h, h] pair at indices 0 and 1
+            if index > 0:
+                index -= 1
+        else:
+            # next index
+            index += 1
 
 
-def _approximates_identity(gate: Gate) -> bool:
-    return np.linalg.norm(np.subtract(gate.to_matrix(), IGate().to_matrix())) < 1e-4
-
-
-def _is_left_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
-    product = np.dot(id_removed[index].to_matrix(),
-                     id_removed[index+1].to_matrix())
-    return np.linalg.norm(np.subtract(product, IGate())) < 1e-4
-
-
-def _is_right_to_inverse(id_removed: List[GateSequence], index: int) -> bool:
-    product = np.dot(id_removed[index-1].to_matrix(),
-                     id_removed[index].to_matrix())
-    return np.linalg.norm(np.subtract(product, IGate())) < 1e-4
+def _remove_identities(sequence):
+    index = 0
+    while index < len(sequence.gates):
+        if isinstance(sequence.gates[index], IGate):
+            sequence.gates.pop(index)
+        else:
+            index += 1
 
 
 class SolovayKitaevDecomposition(TransformationPass):
