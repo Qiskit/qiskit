@@ -80,16 +80,14 @@ def _experiments_to_circuits(qobj):
     Returns:
         list: A list of QuantumCircuit objects from the qobj
     """
-    if not qobj.experiments: return None
+    if not qobj.experiments:
+        return None
+
     circuits = []
     for exp in qobj.experiments:
-        quantum_registers = [QuantumRegister(i[1], name=i[0])
-                                for i in exp.header.qreg_sizes]
-        classical_registers = [ClassicalRegister(i[1], name=i[0])
-                                for i in exp.header.creg_sizes]
-        circuit = QuantumCircuit(*quantum_registers,
-                                    *classical_registers,
-                                    name=exp.header.name)
+        quantum_registers = [QuantumRegister(i[1], name=i[0]) for i in exp.header.qreg_sizes]
+        classical_registers = [ClassicalRegister(i[1], name=i[0]) for i in exp.header.creg_sizes]
+        circuit = QuantumCircuit(*quantum_registers, *classical_registers, name=exp.header.name)
         qreg_dict = collections.OrderedDict()
         creg_dict = collections.OrderedDict()
         for reg in quantum_registers:
