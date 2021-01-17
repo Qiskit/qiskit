@@ -12,6 +12,7 @@
 
 """Test the Solovay Kitaev transpilation pass."""
 
+import itertools
 import unittest
 import math
 import numpy as np
@@ -23,7 +24,6 @@ from scipy.optimize import minimize
 from scipy.stats import special_ortho_group
 from ddt import ddt, data, unpack
 import qiskit.circuit.library as gates
-import itertools
 
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.library import TGate, RXGate, RYGate, HGate, SGate, IGate
@@ -32,12 +32,7 @@ from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.transpiler.passes.synthesis import commutator_decompose
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
-
 from qiskit.transpiler.passes.synthesis import GateSequence 
-
-from ddt import ddt, data, unpack
-
-
 
 # pylint: disable=invalid-name, missing-class-docstring
 
@@ -172,7 +167,7 @@ def _build_rotation(angle: float, axis: int) -> np.ndarray:
     elif axis == 2:
         return _generate_z_rotation(angle)
     else:
-         return _generate_random_rotation()
+        return _generate_random_rotation()
 
 def _build_axis(axis: int) -> np.ndarray:
     if axis == 0:

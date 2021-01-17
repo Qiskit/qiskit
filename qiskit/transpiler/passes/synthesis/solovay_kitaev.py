@@ -152,52 +152,52 @@ class SolovayKitaev():
         return min(self._basic_approximations, key=key)
 
 def commutator_decompose(u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
-        """Decompose an SO(3)-matrix as a balanced commutator.
+    """Decompose an SO(3)-matrix as a balanced commutator.
 
-        Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
-        the Frobenius norm of both v and w is smaller than
-        the square root of half the Frobenius norm of ``u_so3``.
-        Then return each matrix as GateSequence.
+    Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
+    the Frobenius norm of both v and w is smaller than
+    the square root of half the Frobenius norm of ``u_so3``.
+    Then return each matrix as GateSequence.
 
-        Args:
-            u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
+    Args:
+        u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
 
-        Returns:
-            Tuple of GateSequences from SO(3)-matrices v and w such that
-            ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
+    Returns:
+        Tuple of GateSequences from SO(3)-matrices v and w such that
+        ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
 
-        Raises:
-            ValueError: if ``u_so3`` is not an SO(3)-matrix.
-        """
-        descr_method = 'Computation commutator decompose'
-        if u_so3.shape != (3, 3):
-            raise ValueError(
-                descr_method + 'called on matrix of shape', u_so3.shape)
+    Raises:
+        ValueError: if ``u_so3`` is not an SO(3)-matrix.
+    """
+    descr_method = 'Computation commutator decompose'
+    if u_so3.shape != (3, 3):
+        raise ValueError(
+            descr_method + 'called on matrix of shape', u_so3.shape)
 
-        if abs(np.linalg.det(u_so3) - 1) > 1e-4:
-            raise ValueError(
-                descr_method + 'called on determinant of', np.linalg.det(u_so3))
+    if abs(np.linalg.det(u_so3) - 1) > 1e-4:
+        raise ValueError(
+            descr_method + 'called on determinant of', np.linalg.det(u_so3))
 
-        angle = solve_decomposition_angle(u_so3)
+    angle = solve_decomposition_angle(u_so3)
 
-        # Compute rotation about x-axis with angle 'angle'
-        vx = compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
+    # Compute rotation about x-axis with angle 'angle'
+    vx = compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
 
-        # Compute rotation about y-axis with angle 'angle'
-        wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
+    # Compute rotation about y-axis with angle 'angle'
+    wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
 
-        commutator = _compute_commutator_so3(vx, wy)
+    commutator = _compute_commutator_so3(vx, wy)
 
-        u_so3_axis = compute_rotation_axis(u_so3)
-        commutator_axis = compute_rotation_axis(commutator)
+    u_so3_axis = compute_rotation_axis(u_so3)
+    commutator_axis = compute_rotation_axis(commutator)
 
-        sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
-        sim_matrix_dagger = np.matrix.getH(sim_matrix)
+    sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
+    sim_matrix_dagger = np.matrix.getH(sim_matrix)
 
-        v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
-        w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
+    v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
+    w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
 
-        return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
+    return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
 
 def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal
