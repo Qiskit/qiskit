@@ -23,16 +23,16 @@ import hypothesis.strategies as st
 from scipy.optimize import minimize
 from scipy.stats import special_ortho_group
 from ddt import ddt, data, unpack
-import qiskit.circuit.library as gates
 
 from qiskit.circuit import Gate, QuantumCircuit
+import qiskit.circuit.library as gates
 from qiskit.circuit.library import TGate, RXGate, RYGate, HGate, SGate, IGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
-from qiskit.transpiler.passes.synthesis import commutator_decompose
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
-from qiskit.transpiler.passes.synthesis import GateSequence 
+from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
+from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence 
 
 # pylint: disable=invalid-name, missing-class-docstring
 
