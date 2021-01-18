@@ -19,6 +19,7 @@ from .trotterization_base import TrotterizationBase
 from ...operator_base import OperatorBase
 from ...list_ops.composed_op import ComposedOp
 from ...list_ops.summed_op import SummedOp
+from ...primitive_ops.pauli_sum_op import PauliSumOp
 from ...primitive_ops.primitive_op import PrimitiveOp
 from ...primitive_ops.pauli_sum_op import PauliSumOp
 
