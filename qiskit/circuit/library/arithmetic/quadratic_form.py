@@ -132,7 +132,7 @@ class QuadraticForm(QuantumCircuit):
         # constant coefficient
         if offset != 0:
             for i, q_i in enumerate(qr_result):
-                self.u1(scaling * 2 ** i * offset, q_i)
+                self.p(scaling * 2 ** i * offset, q_i)
 
         # the linear part consists of the vector and the diagonal of the
         # matrix, since x_i * x_i = x_i, as x_i is a binary variable
@@ -141,7 +141,7 @@ class QuadraticForm(QuantumCircuit):
             value += quadratic[j][j] if quadratic is not None else 0
             if value != 0:
                 for i, q_i in enumerate(qr_result):
-                    self.cu1(scaling * 2 ** i * value, qr_input[j], q_i)
+                    self.cp(scaling * 2 ** i * value, qr_input[j], q_i)
 
         # the quadratic part adds A_ij and A_ji as x_i x_j == x_j x_i
         if quadratic is not None:
@@ -150,7 +150,7 @@ class QuadraticForm(QuantumCircuit):
                     value = quadratic[j][k] + quadratic[k][j]
                     if value != 0:
                         for i, q_i in enumerate(qr_result):
-                            self.mcu1(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
+                            self.mcp(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
 
         # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse()

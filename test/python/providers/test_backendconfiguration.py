@@ -36,6 +36,12 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
         self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
+    def test_simple_config_qasm(self):
+        """Test the most basic getters for qasm."""
+        qasm_conf = self.provider.get_backend('fake_qasm_simulator').configuration()
+        self.assertEqual(qasm_conf.dt, 1.3333 * 1.e-9)
+        self.assertEqual(qasm_conf.dtm, 10.5 * 1.e-9)
+
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""
         self.assertEqual(self.config.sample_rate, 1. / self.config.dt)
@@ -156,7 +162,9 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_deepcopy(self):
         """Ensure that a deepcopy succeeds and results in an identical object."""
         copy_config = copy.deepcopy(self.config)
-        print(copy_config.to_dict())
-        print("Original:")
-        print(self.config.to_dict())
         self.assertEqual(copy_config, self.config)
+
+    def test_u_channel_lo_scale(self):
+        """Ensure that u_channel_lo scale is a complex number"""
+        valencia_conf = self.provider.get_backend('fake_valencia').configuration()
+        self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))

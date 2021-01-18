@@ -73,6 +73,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.gate_reliability = {}
         self.swap_reliabs = {}
         self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
         self.qarg_to_id = {}
         self.pending_program_edges = []
         self.prog2hw = {}
@@ -120,9 +121,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     self.swap_reliabs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
-                    # TODO: Replace with neighbors_directed() after
-                    # https://github.com/Qiskit/retworkx/pull/147 is released
-                    for n in self.swap_graph.adj_direction(j, False):
+                    for n in self.swap_graph.neighbors(j):
                         if (n, j) in self.cx_reliability:
                             reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(n, j)]
                         else:
@@ -192,11 +191,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
     def _select_best_remaining_qubit(self, prog_qubit):
         """Select the best remaining hardware qubit for the next program qubit."""
         reliab_store = {}
+        if prog_qubit not in self.prog_neighbors:
+            self.prog_neighbors[prog_qubit] = self.prog_graph.neighbors(prog_qubit)
         for hw_qubit in self.available_hw_qubits:
             reliab = 1
-            # TODO: Replace with neighbors() after
-            # https://github.com/Qiskit/retworkx/pull/147 is released
-            for n in self.prog_graph.adj(prog_qubit):
+            for n in self.prog_neighbors[prog_qubit]:
                 if n in self.prog2hw:
                     reliab *= self.swap_reliabs[self.prog2hw[n]][hw_qubit]
             reliab *= self.readout_reliability[hw_qubit]
@@ -211,6 +210,19 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
     def run(self, dag):
         """Run the NoiseAdaptiveLayout pass on `dag`."""
+        self.swap_graph = rx.PyDiGraph()
+        self.cx_reliability = {}
+        self.readout_reliability = {}
+        self.available_hw_qubits = []
+        self.gate_list = []
+        self.gate_reliability = {}
+        self.swap_reliabs = {}
+        self.prog_graph = rx.PyGraph()
+        self.prog_neighbors = {}
+        self.qarg_to_id = {}
+        self.pending_program_edges = []
+        self.prog2hw = {}
+
         self._initialize_backend_prop()
         num_qubits = self._create_program_graph(dag)
         if num_qubits > len(self.swap_graph):

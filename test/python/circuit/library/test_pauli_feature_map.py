@@ -54,7 +54,7 @@ class TestDataPreparation(QiskitTestCase):
         with self.subTest(pauli_string='ZZ'):
             evo = QuantumCircuit(2)
             evo.cx(0, 1)
-            evo.u1(2 * time, 1)
+            evo.p(2 * time, 1)
             evo.cx(0, 1)
 
             pauli = encoding.pauli_evolution('ZZ', time)
@@ -67,7 +67,7 @@ class TestDataPreparation(QiskitTestCase):
             evo.rx(np.pi / 2, 1)
             evo.cx(0, 1)
             evo.cx(1, 2)
-            evo.u1(2 * time, 2)
+            evo.p(2 * time, 2)
             evo.cx(1, 2)
             evo.cx(0, 1)
             evo.rx(-np.pi / 2, 1)
@@ -90,7 +90,7 @@ class TestDataPreparation(QiskitTestCase):
         for _ in range(3):
             ref.h([0, 1, 2, 3])
             for i in range(4):
-                ref.u1(2 * times[i], i)
+                ref.p(2 * times[i], i)
 
         self.assertTrue(Operator(encoding).equiv(ref))
 
@@ -102,19 +102,26 @@ class TestDataPreparation(QiskitTestCase):
         def zz_evolution(circuit, qubit1, qubit2):
             time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])
             circuit.cx(qubit1, qubit2)
-            circuit.u1(2 * time, qubit2)
+            circuit.p(2 * time, qubit2)
             circuit.cx(qubit1, qubit2)
 
         ref = QuantumCircuit(3)
         for _ in range(2):
             ref.h([0, 1, 2])
             for i in range(3):
-                ref.u1(2 * times[i], i)
+                ref.p(2 * times[i], i)
             zz_evolution(ref, 0, 1)
             zz_evolution(ref, 0, 2)
             zz_evolution(ref, 1, 2)
 
         self.assertTrue(Operator(encoding).equiv(ref))
+
+    def test_pauli_alpha(self):
+        """Test  Pauli rotation factor (getter, setter)."""
+        encoding = PauliFeatureMap()
+        self.assertEqual(encoding.alpha, 2.0)
+        encoding.alpha = 1.4
+        self.assertEqual(encoding.alpha, 1.4)
 
 
 if __name__ == '__main__':

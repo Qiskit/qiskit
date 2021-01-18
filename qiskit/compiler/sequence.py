@@ -18,13 +18,14 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.sequence import sequence as _sequence
 
 
 def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-             backend: Optional[BaseBackend] = None,
+             backend: Optional[Union[Backend, BaseBackend]] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              meas_map: Optional[List[List[int]]] = None,
              dt: Optional[float] = None) -> Union[Schedule, List[Schedule]]:

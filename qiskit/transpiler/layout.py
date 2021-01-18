@@ -129,6 +129,11 @@ class Layout():
     def __len__(self):
         return len(self._p2v)
 
+    def __eq__(self, other):
+        if isinstance(other, Layout):
+            return self._p2v == other._p2v and self._v2p == other._v2p
+        return False
+
     def copy(self):
         """Returns a copy of a Layout instance."""
         layout_copy = type(self)()
@@ -286,9 +291,8 @@ class Layout():
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
         num_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
-        if len(int_list) < num_qubits:
-            err_msg = 'Integer list length must equal number of qubits in circuit.'
-            raise LayoutError(err_msg)
+        if len(int_list) != num_qubits:
+            raise LayoutError('Integer list length must equal number of qubits in circuit.')
         out = Layout()
         main_idx = 0
         for qreg in qregs:

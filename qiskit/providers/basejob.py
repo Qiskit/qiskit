@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module implements the abstract base class for backend jobs.
+"""This module implements the legacy abstract base class for backend jobs.
 
 When creating a new backend module it is also necessary to implement this
 job interface.
@@ -26,7 +26,7 @@ from .basebackend import BaseBackend
 
 
 class BaseJob(ABC):
-    """Class to handle asynchronous jobs"""
+    """Legacy Class to handle asynchronous jobs"""
 
     def __init__(self, backend: BaseBackend, job_id: str) -> None:
         """Initializes the asynchronous job.

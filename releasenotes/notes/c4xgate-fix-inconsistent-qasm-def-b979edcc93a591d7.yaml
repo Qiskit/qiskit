@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The QASM definition of 'c4x' in qelib1.inc has been corrected to match
+    the standard library definition for C4XGate.

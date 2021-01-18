@@ -68,7 +68,7 @@ class MSBasisDecomposer(TransformationPass):
         cnot_decomposition = cnot_rxx_decompose()
 
         for node in dag.op_nodes():
-            basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+            basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
             if node.name in basic_insts:
                 # TODO: this is legacy behavior. basic_insts should be removed and these
                 #  instructions should be part of the device-reported basis. Currently, no

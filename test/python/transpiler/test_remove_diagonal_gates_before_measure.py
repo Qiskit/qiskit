@@ -16,6 +16,7 @@ import unittest
 from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library import U1Gate, CU1Gate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
@@ -174,7 +175,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.u1(0.1, qr[0])
+        circuit.append(U1Gate(0.1), [qr[0]])
         circuit.measure(qr[0], cr[0])
         dag = circuit_to_dag(circuit)
 
@@ -276,7 +277,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.cu1(0.1, qr[0], qr[1])
+        circuit.append(CU1Gate(0.1), [qr[0], qr[1]])
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[0])
         dag = circuit_to_dag(circuit)

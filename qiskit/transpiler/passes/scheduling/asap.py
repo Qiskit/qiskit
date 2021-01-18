@@ -50,6 +50,7 @@ class ASAPSchedule(TransformationPass):
 
         if not time_unit:
             time_unit = self.property_set['time_unit']
+
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -85,6 +86,7 @@ class ASAPSchedule(TransformationPass):
         pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
 
         new_dag.name = dag.name
+        new_dag.metadata = dag.metadata
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit
         return new_dag

@@ -23,6 +23,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers import BaseBackend
+from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 
@@ -35,7 +36,7 @@ def _log_schedule_time(start_time, end_time):
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-             backend: Optional[BaseBackend] = None,
+             backend: Optional[Union[Backend, BaseBackend]] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              meas_map: Optional[List[List[int]]] = None,
              dt: Optional[float] = None,

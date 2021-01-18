@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import U1Gate
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 
@@ -54,8 +55,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.y(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.rz(0.5, qr[0])
-        circuit.u1(0.5, qr[0])
-        circuit.u1(0.5, qr[0])
+        circuit.append(U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
+        circuit.append(U1Gate(0.5), [qr[0]])
         circuit.rx(0.5, qr[0])
         circuit.rx(0.5, qr[0])
         circuit.cx(qr[0], qr[1])
@@ -70,7 +71,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.u1(2.0, qr[0])
+        expected.append(U1Gate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
 
         self.assertEqual(expected, new_circuit)
@@ -271,7 +272,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_target_bit_of_cnot(self):
-
         """A simple circuit where nothing should be cancelled.
 
         qr0:----.---------------.--       qr0:----.---------------.--
@@ -368,7 +368,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.u1(np.pi * 17 / 12, qr[2])
+        expected.append(U1Gate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(expected, new_circuit)
@@ -412,8 +412,8 @@ class TestCommutativeCancellation(QiskitTestCase):
                            do_while=lambda property_set: not property_set['size_fixed_point'])
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.u1(np.pi * 17 / 12, qr[2])
-        expected.u1(np.pi * 2 / 3, qr[3])
+        expected.append(U1Gate(np.pi * 17 / 12), [qr[2]])
+        expected.append(U1Gate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(expected, new_circuit)

@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
@@ -163,8 +163,8 @@ class PauliTable(BaseOperator):
 
         # Set size properties
         self._num_paulis = self._array.shape[0]
-        dims = (self._array.shape[1] // 2) * (2, )
-        super().__init__(dims, dims)
+        num_qubits = self._array.shape[1] // 2
+        super().__init__(num_qubits=num_qubits)
 
     def __repr__(self):
         """Display representation."""

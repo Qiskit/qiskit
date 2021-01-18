@@ -93,10 +93,10 @@ class HGate(Gate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
         return numpy.array([[1, 1],
-                            [1, -1]], dtype=complex) / numpy.sqrt(2)
+                            [1, -1]], dtype=dtype) / numpy.sqrt(2)
 
 
 class CHGate(ControlledGate):
@@ -143,12 +143,11 @@ class CHGate(ControlledGate):
 
             CH\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes H =
-                \frac{1}{\sqrt{2}}
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & 1 & 1 \\
-                    0 & 0 & 1 & -1
+                    0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\
+                    0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
@@ -204,9 +203,9 @@ class CHGate(ControlledGate):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CH gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

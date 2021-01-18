@@ -34,8 +34,7 @@ The function signature of the generator is restricted to:
             gate: types.ScheduledGate,
             formatter: Dict[str, Any]) -> List[ElementaryData]:
 
-        # generate gate object.
-        pass
+        # your code here: create and return drawings related to the gate object.
     ```
 
 2. generator.bits
@@ -51,8 +50,7 @@ The function signature of the generator is restricted to:
             bit: types.Bits,
             formatter: Dict[str, Any]) -> List[ElementaryData]:
 
-        # generate timeline object.
-        pass
+        # your code here: create and return drawings related to the bit object.
     ```
 
 3. generator.barriers
@@ -68,8 +66,7 @@ The function signature of the generator is restricted to:
             barrier: types.Barrier,
             formatter: Dict[str, Any]) -> List[ElementaryData]:
 
-        # generate barrier object.
-        pass
+        # your code here: create and return drawings related to the barrier object.
     ```
 
 4. generator.gate_links
@@ -85,8 +82,7 @@ The function signature of the generator is restricted to:
             link: types.GateLink,
             formatter: Dict[str, Any]) -> List[ElementaryData]:
 
-        # generate barrier object.
-        pass
+        # your code here: create and return drawings related to the link object.
     ```
 
 Arbitrary generator function satisfying the above format can be accepted.

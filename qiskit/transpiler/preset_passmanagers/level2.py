@@ -42,6 +42,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
@@ -51,6 +52,7 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -99,7 +101,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout_1 = CSPLayout(coupling_map, call_limit=1000, time_limit=10)
+    _choose_layout_1 = [] if pass_manager_config.layout_method \
+        else CSPLayout(coupling_map, call_limit=1000, time_limit=10)
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -132,6 +135,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='decay', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
@@ -169,7 +175,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
+    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
+                        'u3' in basis_gates):
+        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
+    else:
+        _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
@@ -183,7 +193,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm2 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm2.append(_given_layout)
         pm2.append(_choose_layout_1, condition=_choose_layout_condition)
         pm2.append(_choose_layout_2, condition=_choose_layout_condition)
