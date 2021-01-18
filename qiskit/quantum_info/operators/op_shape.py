@@ -165,10 +165,6 @@ class OpShape:
         """Raise an exception if shape is not valid for the OpShape"""
         return self._validate(shape, raise_exception=True)
 
-    def valid_shape(self, shape):
-        """Return True if shape is valid for the OpShape"""
-        return self._validate(shape, raise_exception=False)
-
     def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
         # pylint: disable=too-many-return-statements
@@ -241,9 +237,8 @@ class OpShape:
 
             if num_qubits_r is None:
                 if isinstance(dims_r, Integral):
-                    nq = int(log2(dims_r))
-                    if dims_r == 2 ** nq:
-                        num_qubits_r = nq
+                    if dims_r != 0 and (dims_r & (dims_r - 1) == 0):
+                        num_qubits_r = int(log2(dims_r))
                         dims_r = None
                     else:
                         dims_r = (dims_r, )
@@ -256,9 +251,8 @@ class OpShape:
 
             if num_qubits_l is None:
                 if isinstance(dims_l, Integral):
-                    nq = int(log2(dims_l))
-                    if dims_l == 2 ** nq:
-                        num_qubits_l = nq
+                    if dims_l != 0 and (dims_l & (dims_l - 1) == 0):
+                        num_qubits_l = int(log2(dims_l))
                         dims_l = None
                     else:
                         dims_l = (dims_l, )
