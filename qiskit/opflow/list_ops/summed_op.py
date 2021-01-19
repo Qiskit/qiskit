@@ -13,15 +13,12 @@
 """ SummedOp Class """
 
 from typing import List, Union, cast
-import warnings
 
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
 from ..exceptions import OpflowError
-from ..legacy.base_operator import LegacyBaseOperator
-from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 from ..operator_base import OperatorBase
 from .list_op import ListOp
 
@@ -185,39 +182,6 @@ class SummedOp(ListOp):
             abelian=self.abelian,
         ).reduce()
         return pauli_sum.to_pauli_op()  # type: ignore
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        # We do this recursively in case there are SummedOps of PauliOps in oplist.
-        legacy_ops = [op.to_legacy_op(massive=massive) for op in self.oplist]
-
-        if not all(isinstance(op, WeightedPauliOperator) for op in legacy_ops):
-            # If any Operators in oplist cannot be represented by Legacy Operators, the error
-            # will be raised in the offending matrix-converted result (e.g. StateFn or ListOp)
-            return self.to_matrix_op(massive=massive).to_legacy_op(massive=massive)
-
-        if isinstance(self.coeff, ParameterExpression):
-            try:
-                coeff = float(self.coeff)
-            except TypeError as ex:
-                raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff)) from ex
-        else:
-            coeff = cast(float, self.coeff)
-
-        return self.combo_fn(legacy_ops) * coeff
-
-    def print_details(self):
-        """
-        Print out the operator in details.
-        Returns:
-            str: a formatted string describes the operator.
-        """
-        warnings.warn("print_details() is deprecated and will be removed in "
-                      "a future release. Instead you can use .to_legacy_op() "
-                      "and call print_details() on it's output",
-                      DeprecationWarning)
-        ret = self.to_legacy_op().print_details()
-        return ret
 
     def equals(self, other: OperatorBase) -> bool:
         """Check if other is equal to self.
