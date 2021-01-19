@@ -531,7 +531,7 @@ class Operator(BaseOperator):
                                   'definition is {} but expected QuantumCircuit.'.format(
                                       obj.name, type(obj.definition)))
             if obj.definition.global_phase:
-                dimension = 2 ** self.num_qubits
+                dimension = 2 ** obj.num_qubits
                 op = self.compose(
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs)
