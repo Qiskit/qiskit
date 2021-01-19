@@ -136,5 +136,5 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
                     # self.assertTrue(commutator(op_1, op_2).is_zero())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

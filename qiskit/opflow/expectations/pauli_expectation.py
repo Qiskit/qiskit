@@ -70,11 +70,7 @@ class PauliExpectation(ExpectationBase):
                 pauli_obsv = operator.primitive.to_pauli_op(massive=False)
                 operator = StateFn(pauli_obsv, is_measurement=True, coeff=operator.coeff)
 
-            if self._grouper and isinstance(operator.primitive, ListOp):
-                grouped = self._grouper.convert(operator.primitive)
-                operator = StateFn(grouped, is_measurement=True, coeff=operator.coeff)
-
-            if self._grouper and isinstance(operator.primitive, PauliSumOp):
+            if self._grouper and isinstance(operator.primitive, (ListOp, PauliSumOp)):
                 grouped = self._grouper.convert(operator.primitive)
                 operator = StateFn(grouped, is_measurement=True, coeff=operator.coeff)
 

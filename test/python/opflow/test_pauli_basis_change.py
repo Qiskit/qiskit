@@ -110,10 +110,10 @@ class TestPauliCoB(QiskitOpflowTestCase):
         inst, dest = converter.get_cob_circuit(origin_pauli)
         self.assertEqual(str(dest), "ZZ")
         expected_inst = np.array([
-            [0.5+0.j, -0.5j, 0.5, -0.5j],
-            [0.5+0.j, 0.5j, 0.5, 0.5j],
-            [0.5+0.j, -0.5j, -0.5, 0.5j],
-            [0.5+0.j, 0.5j, -0.5, -0.5j]
+            [0.5, -0.5j, 0.5, -0.5j],
+            [0.5, 0.5j, 0.5, 0.5j],
+            [0.5, -0.5j, -0.5, 0.5j],
+            [0.5, 0.5j, -0.5, -0.5j]
         ])
         np.testing.assert_array_almost_equal(inst.to_matrix(), expected_inst)
 
