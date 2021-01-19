@@ -30,6 +30,7 @@ DEFAULT_ATOL = 1e-12
 
 ONE_QUBIT_EULER_BASIS_GATES = {
     'U3': ['u3'],
+    'U321': ['u3'],
     'U': ['u'],
     'PSX': ['p', 'sx'],
     'U1X': ['u1', 'rx'],
@@ -91,20 +92,18 @@ class OneQubitEulerDecomposer:
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
     """
 
-    def __init__(self, basis='U3', u3_only=True):
+    def __init__(self, basis='U3'):
         """Initialize decomposer
 
         Supported bases are: 'U', 'PSX', 'ZSX', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
-            u3_only (bool): True if 'u3' is only basis gate
 
         Raises:
             QiskitError: If input basis is not recognized.
         """
         self.basis = basis  # sets: self._basis, self._params, self._circuit
-        self.simplify = not u3_only
 
     def __call__(self,
                  unitary,
@@ -145,7 +144,7 @@ class OneQubitEulerDecomposer:
                               "input matrix is not unitary.")
         theta, phi, lam, phase = self._params(unitary)
         circuit = self._circuit(theta, phi, lam, phase,
-                                simplify=self.simplify,
+                                simplify=simplify,
                                 atol=atol)
         return circuit
 
@@ -159,6 +158,7 @@ class OneQubitEulerDecomposer:
         """Set the decomposition basis."""
         basis_methods = {
             'U3': (self._params_u3, self._circuit_u3),
+            'U321': (self._params_u3, self._circuit_u321),
             'U': (self._params_u3, self._circuit_u),
             'PSX': (self._params_u1x, self._circuit_psx),
             'ZSX': (self._params_u1x, self._circuit_zsx),
@@ -323,6 +323,18 @@ class OneQubitEulerDecomposer:
                     phase,
                     simplify=True,
                     atol=DEFAULT_ATOL):
+        # pylint: disable=unused-argument
+        circuit = QuantumCircuit(1, global_phase=phase)
+        circuit.append(U3Gate(theta, phi, lam), [0])
+        return circuit
+
+    @staticmethod
+    def _circuit_u321(theta,
+                      phi,
+                      lam,
+                      phase,
+                      simplify=True,
+                      atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and (np.isclose(theta, 0.0, atol=atol)):
             if not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any():

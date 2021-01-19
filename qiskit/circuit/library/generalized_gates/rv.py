@@ -55,7 +55,7 @@ class RVGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
         super().__init__('rv', 1, [v_x, v_y, v_z])
-        self._decomposer = OneQubitEulerDecomposer(basis=basis, u3_only=(basis == 'U3'))
+        self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
         try:
