@@ -43,7 +43,7 @@ class QDrift(TrotterizationBase):
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         if not isinstance(operator, (SummedOp, PauliSumOp)):
-            raise TypeError("Trotterization converters can only convert SummedOpor PauliSumOp.")
+            raise TypeError("Trotterization converters can only convert SummedOp or PauliSumOp.")
 
         if isinstance(operator, PauliSumOp):
             # We artificially make the weights positive, TODO check approximation performance
