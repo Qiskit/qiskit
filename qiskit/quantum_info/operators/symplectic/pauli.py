@@ -816,7 +816,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._set_dims(pauli.num_qubits * (2, ), pauli.num_qubits * (2, ))
+        self._op_shape = self._op_shape.expand(other._op_shape)
         return self
 
     @deprecate_function(
@@ -945,7 +945,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._num_qubits = pauli._num_qubits
+        self._op_shape = pauli._op_shape
         return self
 
     @deprecate_function(
@@ -987,7 +987,7 @@ class Pauli(BasePauli):
         self._z = pauli._z
         self._x = pauli._x
         self._phase = pauli._phase
-        self._num_qubits = pauli._num_qubits
+        self._op_shape = pauli._op_shape
         return self
 
     @classmethod
