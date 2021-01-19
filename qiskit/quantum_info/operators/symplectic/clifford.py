@@ -115,10 +115,10 @@ class Clifford(BaseOperator):
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
-            if not data.is_unitary() or set(data._input_dims) != {2}:
+            if not data.num_qubits or not data.is_unitary():
                 raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
-                np.eye(2 * len(data._input_dims), dtype=np.bool))
+                np.eye(2 * data.num_qubits, dtype=np.bool))
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
@@ -264,10 +264,8 @@ class Clifford(BaseOperator):
         if not isinstance(other, Clifford):
             other = Clifford(other)
 
-        # Validate dimensions. Note we don't need to get updated input or
-        # output dimensions from `_get_compose_dims` as the dimensions of the
-        # Clifford object can't be changed by composition
-        self._get_compose_dims(other, qargs, front)
+        # Validate compose dimensions
+        self._op_shape.compose(other._op_shape, qargs, front)
 
         # Pad other with identities if composeing on subsystem
         other = self._pad_with_identity(other, qargs)
