@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-boolean-expressions
-
 """
 Object to represent a quantum circuit as a directed acyclic graph (DAG).
 
@@ -1421,6 +1419,8 @@ class DAGCircuit:
                 if len(group) >= 1:
                     group_list.append(tuple(group))
         return set(group_list)
+
+    # pylint: disable=too-many-boolean-expressions
 
     def collect_1q_runs(self):
         """Return a set of non-conditional runs of 1q "op" nodes."""
