@@ -24,6 +24,7 @@ from qiskit.opflow import (
     DictStateFn,
     H,
     I,
+    One,
     OperatorStateFn,
     PauliSumOp,
     SummedOp,
@@ -167,6 +168,18 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         expected = DictStateFn({"011": (3 + 2j)})
         self.assertEqual(target0, expected)
         self.assertEqual(target1, expected)
+
+        phi = 0.5 * ((One + Zero) ^ 2)
+        zero_op = ((Z + I)/2)
+        one_op = ((I - Z)/2)
+        h1 = one_op ^ I
+        h2 = one_op ^ (one_op + zero_op)
+        h2a = one_op ^ one_op
+        h2b = one_op ^ zero_op
+        self.assertEqual((~OperatorStateFn(h1)@phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2)@phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2a)@phi).eval(), 0.25)
+        self.assertEqual((~OperatorStateFn(h2b)@phi).eval(), 0.25)
 
     def test_exp_i(self):
         """ exp_i test """
