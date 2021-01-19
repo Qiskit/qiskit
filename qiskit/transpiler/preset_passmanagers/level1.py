@@ -24,7 +24,7 @@ from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
@@ -42,7 +42,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -163,12 +163,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 7. Fix any bad CX directions
-    _direction_check = [CheckCXDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
 
-    _direction = [CXDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map)]
 
     # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()

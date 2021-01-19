@@ -19,7 +19,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import U2Gate, CXGate, ECRGate
+from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate
 
 
 class GateDirection(TransformationPass):
@@ -90,17 +90,17 @@ class GateDirection(TransformationPass):
                 sub_dag.add_qreg(sub_qr)
 
                 if node.name == 'cx':
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
                     sub_dag.apply_operation_back(CXGate(), [sub_qr[1], sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
                 elif node.name == 'ecr':
-                    sub_dag.apply_operation_back(U2Gate(pi, pi), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, 0), [sub_qr[1]], [])
+                    sub_dag.apply_operation_back(RYGate(-pi/2), [sub_qr[0]], [])
+                    sub_dag.apply_operation_back(RYGate(pi/2), [sub_qr[1]], [])
                     sub_dag.apply_operation_back(ECRGate(), [sub_qr[1], sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
+                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
 
                 dag.substitute_node_with_dag(node, sub_dag)
 

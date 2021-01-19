@@ -38,8 +38,8 @@ from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
-from qiskit.quantum_info import Operator
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
+from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 
@@ -516,8 +516,8 @@ class TestTranspile(QiskitTestCase):
                       initial_layout=layout)
             self.assertTrue(mock_pass.called)
 
-    def test_do_not_run_cxdirection_with_symmetric_cm(self):
-        """When the coupling map is symmetric, do not run CXDirection."""
+    def test_do_not_run_gatedirection_with_symmetric_cm(self):
+        """When the coupling map is symmetric, do not run GateDirection."""
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
         layout = Layout.generate_trivial_layout(*circ.qregs)
@@ -526,8 +526,8 @@ class TestTranspile(QiskitTestCase):
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
-        orig_pass = CXDirection(CouplingMap(coupling_map))
-        with patch.object(CXDirection, 'run', wraps=orig_pass.run) as mock_pass:
+        orig_pass = GateDirection(CouplingMap(coupling_map))
+        with patch.object(GateDirection, 'run', wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
@@ -1050,6 +1050,23 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(len(out.qubits), FakeAlmaden().configuration().num_qubits)
         self.assertEqual(out.clbits, clbits)
 
+    @data(0, 1, 2, 3)
+    def test_transpile_ecr_basis(self, optimization_level):
+        """Verify that rewriting in ECR basis is efficient."""
+        circuit = QuantumCircuit(2)
+        circuit.append(random_unitary(4, seed=1), [0, 1])
+        circuit.barrier()
+        circuit.cx(0, 1)
+        circuit.barrier()
+        circuit.swap(0, 1)
+        circuit.barrier()
+        circuit.swap(1, 0)
+        circuit.iswap(0, 1)
+
+        res = transpile(circuit, basis_gates=['u', 'ecr'],
+                        optimization_level=optimization_level)
+        self.assertEqual(res.count_ops()['ecr'], 7)
+        self.assertTrue(Operator(res).equiv(circuit))
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""

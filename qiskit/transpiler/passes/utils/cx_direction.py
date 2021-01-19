@@ -23,4 +23,4 @@ class CXDirection(GateDirection):
         super().__init__(coupling_map)
         warnings.warn("The CXDirection pass has been deprecated "
                       "and replaced by a more generic GateDirection pass.",
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
