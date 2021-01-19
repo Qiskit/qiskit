@@ -1428,16 +1428,15 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        topo_ops = list(self.topological_op_nodes())
-        nodes_seen = dict(zip(topo_ops, [False] * len(topo_ops)))
-        for node in topo_ops:
+        nodes_seen = set()
+        for node in self.topological_op_nodes():
             if len(node.qargs) == 1 and node.condition is None \
                     and not node.cargs \
                     and not node.op.is_parameterized() \
                     and isinstance(node.op, Gate) \
-                    and not nodes_seen[node]:
+                    and node not in nodes_seen:
                 group = [node]
-                nodes_seen[node] = True
+                nodes_seen.add(node)
                 s = self._multi_graph.successors(node._node_id)
                 while len(s) == 1 and \
                         s[0].type == "op" and \
@@ -1447,7 +1446,7 @@ class DAGCircuit:
                         not s[0].op.is_parameterized() and \
                         isinstance(node.op, Gate):
                     group.append(s[0])
-                    nodes_seen[s[0]] = True
+                    nodes_seen.add(s[0])
                     s = self._multi_graph.successors(s[0]._node_id)
                 if len(group) >= 1:
                     group_list.append(tuple(group))
