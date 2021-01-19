@@ -45,10 +45,14 @@ class AnalysisResult:
 class AnalysisResultV1(AnalysisResult, ABC):
     """Class representing an analysis result for an experiment."""
 
+    version = 1
+    data_version = 1
+
     def __init__(
             self,
             experiment: Optional[experiment_data.ExperimentDataV1] = None,
             experiment_id: Optional[str] = None,
+            result_type: Optional[str] = None,
             quality: Union[ResultQuality, int] = ResultQuality.AVERAGE,
             tags: Optional[List[str]] = None,
             data: Optional[Dict] = None
@@ -59,12 +63,14 @@ class AnalysisResultV1(AnalysisResult, ABC):
             experiment: Experiment this analysis result is for. If ``None``,
                 `experiment_id` is required.
             experiment_id: ID of the experiment. Required if `experiment` is ``None``.
+            result_type: Result type. If ``None``, the class name is used.
             quality: Quality of the analysis.
             tags: Tags for this analysis.
-            data: Additional analysis result data
+            data: Additional analysis result data. Note that ``_source_path`` and
+                ``_data_version`` are reserved keys and cannot be in `data`.
 
         Raises:
-            IBMQInputValueError: If an input argument is invalid.
+            ExperimentError: If an input argument is invalid.
         """
         if not experiment and not experiment_id:
             raise ExperimentError("Experiment or experiment ID is required when "
@@ -74,8 +80,16 @@ class AnalysisResultV1(AnalysisResult, ABC):
                                   "but the IDs don't match.")
 
         # Data to be stored in DB.
+        self._source = {'_source_path': f"{self.__class__.__module__}.{self.__class__.__name__}",
+                        '_data_version': self.data_version}
+        data = data or {}
+        for key in self._source:
+            if key in data and data[key] != self._source[key]:
+                raise ExperimentError(f"{key} is reserved and cannot be in data.")
+
         self._experiment_id = experiment_id or experiment.id
         self._id = str(uuid.uuid4())
+        self._type = result_type or self.__class__.__name__
         self._data = MonitoredDict.create_with_callback(
             callback=self._monitored_callback, init_data=data)
         self._type = f"{self.__class__.__module__}.{self.__class__.__name__}"
@@ -138,11 +152,16 @@ class AnalysisResultV1(AnalysisResult, ABC):
         obj = cls(
             experiment=kwargs.get('experiment', None),
             experiment_id=kwargs.get('experiment_id', None),
+            result_type=kwargs.get('type', None),
             tags=kwargs.get('tags', []),
         )
         obj._id = kwargs.get('result_id', obj.id)
         obj._quality = kwargs.get('quality', obj._quality)
-        obj._data.update(obj.deserialize_data(json.dumps(kwargs.get('data', {}))))
+
+        _data = obj.deserialize_data(json.dumps(kwargs.get('data', {})))
+        obj._source = {'_source_path', _data.pop('_source_path', ''),
+                       '_data_version', _data.pop('_data_version', cls.data_version)}
+        obj._data.update(_data)
         obj._creation_date = kwargs.get('creation_date', obj._creation_date)
         return obj
 
@@ -191,9 +210,18 @@ class AnalysisResultV1(AnalysisResult, ABC):
             remote_service: Remote experiment service to be used to save the data.
                 Not applicable if `local_only` is set to ``True``. If ``None``, the
                 default, if any, is used.
+
+        Raises:
+            ExperimentError: If the analysis result contains invalid data.
         """
+        _data = json.loads(self.serialize_data())
+        for key in self._source:
+            if key in _data and _data[key] != self._source[key]:
+                raise ExperimentError(f"{key} is reserved and cannot be in data.")
+        _data.update(self._source)
+
         new_data = {'experiment_id': self._experiment_id, 'result_type': self._type}
-        update_data = {'result_id': self.id, 'data': json.loads(self.serialize_data()),
+        update_data = {'result_id': self.id, 'data': _data,
                        'tags': self.tags, 'quality': self.quality}
 
         save_local = save_local if save_local is not None else self.save_local
@@ -251,6 +279,15 @@ class AnalysisResultV1(AnalysisResult, ABC):
             ID for this analysis result.
         """
         return self._id
+
+    @property
+    def type(self) -> str:
+        """Return analysis result type.
+
+        Returns:
+            Analysis result type.
+        """
+        return self._type
 
     @property
     def quality(self) -> ResultQuality:

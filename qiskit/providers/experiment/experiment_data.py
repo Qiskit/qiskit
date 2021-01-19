@@ -45,9 +45,11 @@ class ExperimentDataV1(ExperimentData, ABC):
     """Class to handle experiment data."""
 
     version = 1
+    data_version = 1
 
     def __init__(
             self,
+            experiment_type: Optional[str] = None,
             tags: Optional[List[str]] = None,
             jobs: Optional[List[Job]] = None,
             share_level: Optional[str] = None,
@@ -56,18 +58,20 @@ class ExperimentDataV1(ExperimentData, ABC):
             graph_names: Optional[List[str]] = None,
             auto_save: bool = True,
             save_local: bool = True,
-            save_remote: bool = True,
+            save_remote: bool = True
     ):
         """Initializes the experiment data.
 
         Args:
+            experiment_type: Experiment type. If ``None``, the class name is used.
             tags: Tags to be associated with the experiment.
             jobs: Experiment jobs.
             share_level: Whether this experiment can be shared with others. This
                 is applicable only if the experiment service supports sharing. See
                 the specific service provider's documentation on valid values.
             backend_name: Name of the backend this experiment is for.
-            data: Additional experiment data.
+            data: Additional experiment data. Note that ``_source_path`` and
+                ``_data_version`` are reserved keys and cannot be in `data`.
             graph_names: Name of graphs associated with this experiment.
             auto_save: ``True`` if changes to the experiment data, including newly
                 generated analysis results and graphs, should be automatically saved.
@@ -75,16 +79,29 @@ class ExperimentDataV1(ExperimentData, ABC):
             save_remote: ``True`` if changes should be saved in the remote database.
                 Data will not be saved remotely if no remote experiment
                 service can be found.
+
+        Raises:
+            ExperimentError: If an input argument is invalid.
         """
+        # Save the class path and data version in order to recreate the object later.
+        # No good place to save them in the database so `data` is used, which means
+        # we need to verify there are no conflicts.
+        self._source = {'_source_path': f"{self.__class__.__module__}.{self.__class__.__name__}",
+                        '_data_version': self.data_version}
+        data = data or {}
+        for key in self._source:
+            if key in data and data[key] != self._source[key]:
+                raise ExperimentError(f"{key} is reserved and cannot be in data.")
+
         # Data to be saved in DB.
         self._id = str(uuid.uuid4())
+        self._type = experiment_type or self.__class__.__name__
         self._tags = MonitoredList.create_with_callback(
             callback=self._monitored_callback, init_data=tags)
         self._job_ids = {job.job_id() for job in jobs} if jobs else set()
         self._share_level = share_level
         self._data = MonitoredDict.create_with_callback(
             callback=self._monitored_callback, init_data=data)
-        self._type = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self._backend_name = None
         if backend_name:
             self._backend_name = backend_name
@@ -128,6 +145,7 @@ class ExperimentDataV1(ExperimentData, ABC):
             An ``ExperimentData`` instance.
         """
         obj = cls(
+            experiment_type=kwargs.get('type', None),
             tags=kwargs.get('tags', []),
             share_level=kwargs.get('share_level', None),
             backend_name=kwargs.get('backend_name', None),
@@ -136,10 +154,12 @@ class ExperimentDataV1(ExperimentData, ABC):
         saved_auto_save = obj.auto_save
         obj.auto_save = False
         obj._id = kwargs['experiment_id']
-        obj._data.update(obj.deserialize_data(json.dumps(kwargs.get('data', {}))))
+        _data = obj.deserialize_data(json.dumps(kwargs.get('data', {})))
+        obj._source = {'_source_path', _data.pop('_source_path', ''),
+                       '_data_version', _data.pop('_data_version', cls.data_version)}
+        obj._data.update(_data)
         obj._job_ids = kwargs.get('job_ids', set())
         obj._creation_date = kwargs.get('creation_date', obj._creation_date)
-        obj._type = kwargs.get('type', obj._type)
         obj._jobs.append(kwargs.get('jobs'), [])
         obj._analysis_results.append(kwargs.get('analysis_results', []))
         obj.auto_save = saved_auto_save
@@ -162,12 +182,21 @@ class ExperimentDataV1(ExperimentData, ABC):
             remote_service: Remote experiment service to be used to save the data.
                 Not applicable if `local_only` is set to ``True``. If ``None``, the
                 provider used to submit jobs will be used.
+
+        Raises:
+            ExperimentError: If the experiment contains invalid data.
         """
         if not self._backend_name and not self._jobs:
             raise ExperimentError("Experiment can only be saved after jobs are submitted.")
         self._backend_name = self._backend_name or self._jobs[0].backend().name()
 
-        update_data = {'experiment_id': self._id, 'data': json.loads(self.serialize_data()),
+        _data = json.loads(self.serialize_data())
+        for key in self._source:
+            if key in _data and _data[key] != self._source[key]:
+                raise ExperimentError(f"{key} is reserved and cannot be in data.")
+        _data.update(self._source)
+
+        update_data = {'experiment_id': self._id, 'data': _data,
                        'job_ids': self.job_ids, 'tags': self.tags}
         new_data = {'experiment_type': self._type, 'backend_name': self._backend_name,
                     'creation_date': self.creation_date}
@@ -408,6 +437,15 @@ class ExperimentDataV1(ExperimentData, ABC):
         Returns: A list of jobs IDs for this experiment.
         """
         return self._job_ids
+
+    @property
+    def type(self) -> str:
+        """Return experiment type.
+
+        Returns:
+            Experiment type.
+        """
+        return self._type
 
     @property
     def tags(self):
