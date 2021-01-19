@@ -383,11 +383,39 @@ class ParameterExpression:
         Returns:
             bool: result of the comparison
         """
-        from sympy import srepr
+        from sympy import srepr, sympify, UnevaluatedExpr
+        def _sym_eq(expr1, expr2):
+            """expr_arg1 = iter(expr1.args)
+            expr_arg2 = iter(expr2.args)
+            for arg1 in expr_arg1:
+                print(arg1)
+                arg2 = next(expr_arg2, None)
+                print(arg2)
+                if arg2 and arg1 == arg2:
+                    _sym_eq(arg1, arg2)
+                else:
+                    return False"""
+            return True
+        print(self, type(self), self._symbol_expr.args)
+        print(other, type(other), other._symbol_expr.args)
         if isinstance(other, ParameterExpression):
-            return (self.parameters == other.parameters
-                    and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+            expr1 = sympify(str(self))#, evaluate=False)
+            expr2 = sympify(str(other))#, evaluate=False)
+            if expr1.equals(expr2):
+                return True
+            else:
+                return False
+            #return _sym_eq(expr1, expr2)
+            #return (self.parameters == other.parameters
+            #        and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)
         return False
+
+    @staticmethod
+    def _sym_eq(expr1, expr2):
+        print(expr1)
+        print(expr2)
+        return True
