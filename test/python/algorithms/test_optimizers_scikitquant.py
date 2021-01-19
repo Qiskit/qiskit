@@ -19,7 +19,7 @@ from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, aqua_globals
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.opflow import WeightedPauliOperator
+from qiskit.opflow import PauliSumOp
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import BOBYQA, SNOBFIT, IMFIL
 
@@ -31,15 +31,13 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         """ Set the problem. """
         super().setUp()
         aqua_globals.random_seed = 50
-        pauli_dict = {
-            'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
-                       {"coeff": {"imag": 0.0, "real": 0.39793742484318045}, "label": "IZ"},
-                       {"coeff": {"imag": 0.0, "real": -0.39793742484318045}, "label": "ZI"},
-                       {"coeff": {"imag": 0.0, "real": -0.01128010425623538}, "label": "ZZ"},
-                       {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
-                       ]
-        }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
+        self.qubit_op = PauliSumOp.from_list([
+            ("II", -1.052373245772859),
+            ("IZ", 0.39793742484318045),
+            ("ZI", -0.39793742484318045),
+            ("ZZ", -0.01128010425623538),
+            ("XX", 0.18093119978423156),
+        ])
 
     def _optimize(self, optimizer):
         """ launch vqe """
