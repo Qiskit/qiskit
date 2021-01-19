@@ -18,7 +18,7 @@ from typing import List
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
+from qiskit.circuit.library import iSwapGate, CXGate, CZGate, RXXGate, ECRGate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
@@ -32,6 +32,7 @@ def _choose_kak_gate(basis_gates):
         'cz': CZGate(),
         'iswap': iSwapGate(),
         'rxx': RXXGate(pi / 2),
+        'ecr': ECRGate()
     }
 
     kak_gate = None

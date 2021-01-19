@@ -49,6 +49,25 @@ class GateDirection(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
 
+        # Create the replacement dag and associated register.
+        self._cx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        self._cx_dag.add_qreg(qr)
+        self._cx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        self._cx_dag.apply_operation_back(HGate(), [qr[1]], [])
+        self._cx_dag.apply_operation_back(CXGate(), [qr[1], qr[0]], [])
+        self._cx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        self._cx_dag.apply_operation_back(HGate(), [qr[1]], [])
+
+        self._ecr_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        self._ecr_dag.add_qreg(qr)
+        self._ecr_dag.apply_operation_back(RYGate(-pi/2), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(RYGate(pi/2), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(ECRGate(), [qr[1], qr[0]], [])
+        self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])
+
     def run(self, dag):
         """Run the GateDirection pass on `dag`.
 
@@ -84,24 +103,12 @@ class GateDirection(TransformationPass):
                                       'qubits %s and %s' % (physical_q0, physical_q1))
 
             if (physical_q0, physical_q1) not in cmap_edges:
-                # Create the replacement dag and associated register.
-                sub_dag = DAGCircuit()
-                sub_qr = QuantumRegister(2)
-                sub_dag.add_qreg(sub_qr)
-
                 if node.name == 'cx':
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
-                    sub_dag.apply_operation_back(CXGate(), [sub_qr[1], sub_qr[0]], [])
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
+                    dag.substitute_node_with_dag(node, self._cx_dag)
                 elif node.name == 'ecr':
-                    sub_dag.apply_operation_back(RYGate(-pi/2), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(RYGate(pi/2), [sub_qr[1]], [])
-                    sub_dag.apply_operation_back(ECRGate(), [sub_qr[1], sub_qr[0]], [])
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[0]], [])
-                    sub_dag.apply_operation_back(HGate(), [sub_qr[1]], [])
-
-                dag.substitute_node_with_dag(node, sub_dag)
+                    dag.substitute_node_with_dag(node, self._ecr_dag)
+                else:
+                    raise TranspilerError('Flipping of gate direction is only supported '
+                                          'for CX and ECR at this time.')
 
         return dag

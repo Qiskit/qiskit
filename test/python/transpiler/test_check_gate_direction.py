@@ -139,7 +139,7 @@ class TestCheckCNotDirection(QiskitTestCase):
          qr1:---.---
 
          qr2:---.---
-                
+
          qr3:--(+)--
 
          CouplingMap map: [0]->[1]->[2]->[3]

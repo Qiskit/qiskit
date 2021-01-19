@@ -1051,7 +1051,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(out.clbits, clbits)
 
     @data(0, 1, 2, 3)
-    def test_transpile_ecr_basis(self, optimization_level):
+    def test_translate_ecr_basis(self, optimization_level):
         """Verify that rewriting in ECR basis is efficient."""
         circuit = QuantumCircuit(2)
         circuit.append(random_unitary(4, seed=1), [0, 1])
@@ -1060,12 +1060,22 @@ class TestTranspile(QiskitTestCase):
         circuit.barrier()
         circuit.swap(0, 1)
         circuit.barrier()
-        circuit.swap(1, 0)
         circuit.iswap(0, 1)
 
         res = transpile(circuit, basis_gates=['u', 'ecr'],
                         optimization_level=optimization_level)
-        self.assertEqual(res.count_ops()['ecr'], 7)
+        self.assertEqual(res.count_ops()['ecr'], 9)
+        self.assertTrue(Operator(res).equiv(circuit))
+
+    def test_optimize_ecr_basis(self):
+        """Test highest optimization level can optimize over ECR."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(1, 0)
+        circuit.iswap(0, 1)
+
+        res = transpile(circuit, basis_gates=['u', 'ecr'],
+                        optimization_level=3)
+        self.assertEqual(res.count_ops()['ecr'], 1)
         self.assertTrue(Operator(res).equiv(circuit))
 
 class StreamHandlerRaiseException(StreamHandler):
