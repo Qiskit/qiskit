@@ -133,19 +133,8 @@ class PauliBasisChange(ConverterBase):
             The converted Operator.
 
         """
-        if isinstance(operator, PauliSumOp) and operator.grouping_type == "TPB":
-            primitive = operator.primitive.copy()
-            origin_x = reduce(np.logical_or, primitive.table.X)
-            origin_z = reduce(np.logical_or, primitive.table.Z)
-            origin_pauli = Pauli((origin_z, origin_x))
-            cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
-            primitive.table.Z = np.logical_or(primitive.table.X, primitive.table.Z)
-            primitive.table.X = False
-            dest_pauli_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
-            return self._replacement_fn(cob_instr_op, dest_pauli_op)
-
         if (
-                isinstance(operator, StateFn)
+                isinstance(operator, OperatorStateFn)
                 and isinstance(operator.primitive, PauliSumOp)
                 and operator.primitive.grouping_type == "TPB"
         ):
