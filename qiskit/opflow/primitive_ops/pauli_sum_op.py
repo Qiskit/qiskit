@@ -35,10 +35,6 @@ logger = logging.getLogger(__name__)
 class PauliSumOp(PrimitiveOp):
     """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
 
-    # pylint: disable=unused-argument, arguments-differ
-    def __new__(cls, *args, **kwargs):
-        return object.__new__(cls)
-
     def __init__(
             self,
             primitive: SparsePauliOp,
