@@ -28,7 +28,6 @@ from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
-from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 
 logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
@@ -324,14 +323,3 @@ class PauliOp(PrimitiveOp):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         return self
-
-    def to_legacy_op(self, massive: bool = False) -> WeightedPauliOperator:
-        if isinstance(self.coeff, ParameterExpression):
-            try:
-                coeff = float(self.coeff)
-            except TypeError as ex:
-                raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff)) from ex
-        else:
-            coeff = cast(float, self.coeff)
-        return WeightedPauliOperator(paulis=[(coeff, self.primitive)])  # type: ignore
