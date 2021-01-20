@@ -17,6 +17,7 @@ from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 
 from qiskit import user_config
+from qiskit.circuit import Delay
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
@@ -122,8 +123,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
-            Sometimes a perfect layout can be available in which case the layout_method
-            may not run.
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre', 'none')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
@@ -403,6 +402,9 @@ def _parse_transpile_args(circuits, backend,
 
     Returns:
         list[dicts]: a list of transpile parameters.
+
+    Raises:
+        TranspilerError: If instruction_durations are required but not supplied or found.
     """
     if initial_layout is not None and layout_method is not None:
         warnings.warn("initial_layout provided; layout_method is ignored.",
@@ -420,13 +422,16 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
-    durations = _parse_instruction_durations(backend, instruction_durations, dt,
-                                             num_circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
+
+    durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
+    scheduling_method = _parse_scheduling_method(scheduling_method, circuits)
+    if scheduling_method and not durations:
+        raise TranspilerError("Transpiling a circuit with a scheduling method or with delay "
+                              "instructions requires a backend or instruction_durations.")
 
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
@@ -619,26 +624,55 @@ def _parse_translation_method(translation_method, num_circuits):
     return translation_method
 
 
-def _parse_scheduling_method(scheduling_method, num_circuits):
+def _parse_scheduling_method(scheduling_method, circuits):
+    """If there is a delay in any circuit, implicitly add a default scheduling method."""
+    def has_delay(circuit):
+        for inst, _, _ in circuit:
+            if isinstance(inst, Delay):
+                return True
+        return False
+
+    if scheduling_method is None:
+        for circ in circuits:
+            if has_delay(circ):
+                scheduling_method = 'alap'
+                break
+
     if not isinstance(scheduling_method, list):
-        scheduling_method = [scheduling_method] * num_circuits
+        scheduling_method = [scheduling_method] * len(circuits)
     return scheduling_method
 
 
-def _parse_instruction_durations(backend, inst_durations, dt, num_circuits):
-    durations = None
-    if inst_durations is None and backend:
+def _parse_instruction_durations(backend, inst_durations, dt, circuits):
+    """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
+    the backend will be ignored, otherwise, the durations will be populated from the
+    backend. If any circuits have gate calibrations, those calibration durations would
+    take precedence over backend durations, but be superceded by ``inst_duration``s.
+    """
+    if not inst_durations:
+        backend_durations = InstructionDurations()
         try:
             backend_durations = InstructionDurations.from_backend(backend)
         except AttributeError:
-            backend_durations = InstructionDurations()
-        durations = backend_durations.update(None, dt)
-    else:
-        durations = InstructionDurations(inst_durations,
-                                         dt or getattr(inst_durations, 'dt', None))
+            pass
 
-    if not isinstance(durations, list):
-        durations = [durations] * num_circuits
+    durations = []
+    for circ in circuits:
+        circ_durations = InstructionDurations()
+        if not inst_durations:
+            circ_durations.update(backend_durations, dt or backend_durations.dt)
+
+        if circ.calibrations:
+            cal_durations = []
+            for gate, gate_cals in circ.calibrations.items():
+                for (qubits, _), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, schedule.duration))
+            circ_durations.update(cal_durations, circ_durations.dt)
+
+        if inst_durations:
+            circ_durations.update(inst_durations, dt or getattr(inst_durations, 'dt', None))
+
+        durations.append(circ_durations)
     return durations
 
 

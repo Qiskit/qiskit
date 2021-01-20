@@ -117,7 +117,7 @@ class Chi(QuantumChannel):
         num_qubits = int(np.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
-        super().__init__(chi_mat, None, None, num_qubits, 'Chi')
+        super().__init__(chi_mat, num_qubits=num_qubits)
 
     def __array__(self, dtype=None):
         if dtype:
