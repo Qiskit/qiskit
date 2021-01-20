@@ -14,7 +14,6 @@
 import re
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.classicalfunction import ClassicalFunction
 
 
 class LogicalExpressionOracle(QuantumCircuit):
@@ -79,6 +78,7 @@ class LogicalExpressionOracle(QuantumCircuit):
         Args:
             expression: The logical expression string.
         """
+        from qiskit.circuit.classicalfunction import ClassicalFunction
         # convert the expression string to an AST source and create a classicalfunction object
         source = self._expression_to_source(expression)
         classicalfunction = ClassicalFunction(source)
