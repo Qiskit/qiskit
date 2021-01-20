@@ -17,7 +17,7 @@ import itertools
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
-from qiskit.circuit.library import IGate
+import qiskit.circuit.library.standard_gates as gates
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -38,10 +38,31 @@ class SolovayKitaev():
     See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
     """
 
+    # allowed (unparameterized) single qubit gates
+    _1q_gates = {
+        'i': gates.IGate(),
+        'x': gates.XGate(),
+        'y': gates.YGate(),
+        'z': gates.ZGate(),
+        'h': gates.HGate(),
+        't': gates.TGate(),
+        'tdg': gates.TdgGate(),
+        's': gates.SGate(),
+        'sdg': gates.SdgGate(),
+        'sx': gates.SXGate(),
+        'sxdg': gates.SXdgGate()
+    }
+
     def __init__(self, basis_gates: List[Union[str, Gate]]) -> None:
         # generate the basic approximations once for this basis gates set
-        self._basic_approximations = self.generate_basic_approximations(basis_gates)
+        for i, gate in enumerate(basis_gates):
+            if isinstance(gate, str):
+                if gate in self._1q_gates.keys():
+                    basis_gates[i] = self._1q_gates[gate]
+                else:
+                    raise ValueError(f'Invalid gate identifier: {gate}')
 
+        self._basic_approximations = self.generate_basic_approximations(basis_gates)
 
     def generate_basic_approximations(self, basis_gates: List[Union[str, Gate]]
                                       ) -> List[GateSequence]:
@@ -106,12 +127,12 @@ class SolovayKitaev():
         decomposition = self._recurse(gate_matrix_su2, recursion_degree)
 
         # simplify
-        _remove_inverse_follows_gate(decomposition)
         _remove_identities(decomposition)
+        _remove_inverse_follows_gate(decomposition)
 
         # convert to a circuit and attach the right phases
         # TODO insert simplify again, but it seems to break the accuracy test
-        circuit = self._synth_circuit(global_phase, decomposition)
+        circuit = self._synth_circuit(-global_phase, decomposition)
 
         return circuit
 
@@ -136,8 +157,7 @@ class SolovayKitaev():
             return self.find_basic_approximation(sequence)
 
         u_n1 = self._recurse(sequence, n - 1)
-        tuple_v_w = commutator_decompose(
-            np.dot(sequence.product, np.matrix.getH(u_n1.product)))
+        tuple_v_w = commutator_decompose(np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
         v_n1 = self._recurse(tuple_v_w[0], n - 1)
         w_n1 = self._recurse(tuple_v_w[1], n - 1)
@@ -160,7 +180,6 @@ class SolovayKitaev():
 
 def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
                          ) -> Tuple[GateSequence, GateSequence]:
-
     r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
 
     This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
@@ -259,7 +278,7 @@ def _remove_inverse_follows_gate(sequence):
 def _remove_identities(sequence):
     index = 0
     while index < len(sequence.gates):
-        if isinstance(sequence.gates[index], IGate):
+        if isinstance(sequence.gates[index], gates.IGate):
             sequence.gates.pop(index)
         else:
             index += 1

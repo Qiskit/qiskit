@@ -31,7 +31,7 @@ from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
-from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence 
+from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 
 # pylint: disable=invalid-name, missing-class-docstring
 
@@ -287,7 +287,8 @@ class TestSolovayKitaev(QiskitTestCase):
         second_so3 = actual_result[1].product
         actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
             np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(actual_commutator, u_so3))
+        self.assertTrue(are_almost_equal_so3_matrices(
+            actual_commutator, u_so3))
 
     @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
                      st.integers(min_value=0, max_value=4)))
@@ -298,7 +299,8 @@ class TestSolovayKitaev(QiskitTestCase):
         second_so3 = actual_result[1].product
         actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
             np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(actual_commutator, u_so3))
+        self.assertTrue(are_almost_equal_so3_matrices(
+            actual_commutator, u_so3))
 
     @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
                      st.integers(min_value=0, max_value=4)))
@@ -318,13 +320,14 @@ class TestSolovayKitaev(QiskitTestCase):
         """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
         actual_result = commutator_decompose(u_so3)
         actual = actual_result[1]
-        self.assertAlmostEqual(actual[1][1],1.0)
-        self.assertAlmostEqual(actual[0][1],0.0)
-        self.assertAlmostEqual(actual[1][0],0.0)
-        self.assertAlmostEqual(actual[1][2],0.0)
-        self.assertAlmostEqual(actual[2][1],0.0)
-    
+        self.assertAlmostEqual(actual[1][1], 1.0)
+        self.assertAlmostEqual(actual[0][1], 0.0)
+        self.assertAlmostEqual(actual[1][0], 0.0)
+        self.assertAlmostEqual(actual[1][2], 0.0)
+        self.assertAlmostEqual(actual[2][1], 0.0)
+
     def test_solovay_kitaev_basic_gates_on_h_returns_circuit_h(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
         circuit.h(0)
 
@@ -338,6 +341,7 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(circuit == decomposed_circuit)
 
     def test_solovay_kitaev_basic_gates_on_i_returns_circuit_i(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
         circuit.i(0)
 
@@ -351,6 +355,7 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(circuit == decomposed_circuit)
 
     def test_solovay_kitaev_basic_gates_on_t_returns_circuit_t(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
         circuit.t(0)
 
@@ -364,6 +369,7 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(circuit == decomposed_circuit)
 
     def test_solovay_kitaev_basic_gates_on_s_returns_circuit_s(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
         circuit.s(0)
 
@@ -377,8 +383,9 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(circuit == decomposed_circuit)
 
     def test_solovay_kitaev_basic_gates_on_rxpi_returns_circuit_rxpi(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
-        circuit.rx(math.pi,0)
+        circuit.rx(math.pi, 0)
 
         basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
                        S_dg(), RXGate(math.pi), RYGate(math.pi)]
@@ -390,8 +397,9 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(circuit == decomposed_circuit)
 
     def test_solovay_kitaev_basic_gates_on_rypi_returns_circuit_rypi(self):
+        """TODO"""
         circuit = QuantumCircuit(1)
-        circuit.ry(math.pi,0)
+        circuit.ry(math.pi, 0)
 
         basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
                        S_dg(), RXGate(math.pi), RYGate(math.pi)]
@@ -402,8 +410,29 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
-    @data(1,2,3,4,5)
-    def test_solovay_kitaev_converges(self,depth: int):
+    def test_str_basis_gates(self):
+        """Test specifying the basis gates by string works."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.8, 0)
+
+        basis_gates = ['h', 't', 's']
+        synth = SolovayKitaevDecomposition(2, basis_gates)
+
+        dag = circuit_to_dag(circuit)
+        discretized = dag_to_circuit(synth.run(dag))
+
+        print(discretized.draw())
+
+        reference = QuantumCircuit(1, global_phase=-np.pi / 8)
+        reference.h(0)
+        reference.t(0)
+        reference.h(0)
+
+        self.assertEqual(discretized, reference)
+
+    @data(1, 2, 3, 4, 5)
+    def test_solovay_kitaev_converges(self, depth: int):
+        """TODO"""
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
         print(circuit.draw())
@@ -417,11 +446,12 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
 
-        dag_plus_one = circuit_to_dag(circuit)
         decomposed_dag_plus_one = synth_plus_one.run(dag)
         decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
 
-        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data), distance(Operator(circuit).data, Operator(decomposed_circuit_plus_one).data))
+        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data),
+                        distance(Operator(circuit).data,
+                                 Operator(decomposed_circuit_plus_one).data))
 
     def test_example_non_su2(self):
         """@Lisa Example to show how to call the pass."""
@@ -440,7 +470,8 @@ class TestSolovayKitaev(QiskitTestCase):
         print(Operator(circuit))
         print('Synthesized')
         print(Operator(decomposed_circuit))
-        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data), 0.1)
+        self.assertLess(distance(Operator(circuit).data,
+                                 Operator(decomposed_circuit).data), 0.1)
 
 
 @ddt
@@ -456,20 +487,24 @@ class TestSolovayKitaevUtils(QiskitTestCase):
 
     @data(
         [GateSequence([IGate()]), GateSequence([IGate(), IGate()]), 0.0],
-        [GateSequence([IGate(), IGate()]), GateSequence([IGate(), IGate(), IGate()]), 0.0],
+        [GateSequence([IGate(), IGate()]), GateSequence(
+            [IGate(), IGate(), IGate()]), 0.0],
         [GateSequence([IGate(), RXGate(1)]), GateSequence([RXGate(1)]), 0.0],
         [GateSequence([RXGate(1)]), GateSequence([RXGate(0.99)]), 0.01],
     )
     @unpack
     def test_represents_same_gate_true(self, first_sequence, second_sequence, precision):
         """Test ``represents_same_gate``."""
-        self.assertTrue(first_sequence.represents_same_gate(second_sequence, precision))
+        self.assertTrue(first_sequence.represents_same_gate(
+            second_sequence, precision))
 
     @data(
         [GateSequence([IGate()]), GateSequence([IGate(), RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1), RXGate(1), RXGate(0.5)]), GateSequence([RXGate(1)]), 0.0],
+        [GateSequence([RXGate(1), RXGate(1), RXGate(0.5)]),
+         GateSequence([RXGate(1)]), 0.0],
         [GateSequence([RXGate(1)]), GateSequence([RXGate(0.5)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence([RXGate(0.3), RXGate(0.2)]), 0.0],
+        [GateSequence([RXGate(1)]), GateSequence(
+            [RXGate(0.3), RXGate(0.2)]), 0.0],
         [GateSequence([RXGate(0.3), RXGate(0.5), RXGate(1)]),
          GateSequence([RXGate(0.3), RXGate(0.2)]), 0.0],
         [GateSequence([RXGate(0.3), RXGate(0.8), RXGate(1)]),
@@ -478,14 +513,17 @@ class TestSolovayKitaevUtils(QiskitTestCase):
     @unpack
     def test_represents_same_gate_false(self, first_sequence, second_sequence, precision):
         """Test ``represents_same_gate``."""
-        self.assertFalse(first_sequence.represents_same_gate(second_sequence, precision))
+        self.assertFalse(first_sequence.represents_same_gate(
+            second_sequence, precision))
 
     @data(
         [GateSequence([IGate(), IGate()]), GateSequence([]), 0.0],
-        [GateSequence([IGate(), RXGate(1), IGate()]), GateSequence([RXGate(1)]), 0.0],
+        [GateSequence([IGate(), RXGate(1), IGate()]),
+         GateSequence([RXGate(1)]), 0.0],
         [GateSequence([IGate(), RXGate(1), IGate(), RXGate(0.4)]),
          GateSequence([RXGate(1), RXGate(0.4)]), 0.0],
-        [GateSequence([IGate(), RXGate(2*math.pi), RXGate(2*math.pi)]), GateSequence([]), 1e10],
+        [GateSequence([IGate(), RXGate(2*math.pi), RXGate(2*math.pi)]),
+         GateSequence([]), 1e10],
     )
     @unpack
     def test_simplify(self, original_sequence, expected_sequence, precision):
