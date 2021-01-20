@@ -122,7 +122,7 @@ class PTM(QuantumChannel):
         num_qubits = int(np.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
-        super().__init__(ptm, None, None, num_qubits, 'PTM')
+        super().__init__(ptm, num_qubits=num_qubits)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -181,12 +181,16 @@ class PTM(QuantumChannel):
         # Convert other to PTM
         if not isinstance(other, PTM):
             other = PTM(other)
-        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        input_dims = new_shape.dims_r()
+        output_dims = new_shape.dims_l()
         if front:
             data = np.dot(self._data, other.data)
         else:
             data = np.dot(other.data, self._data)
-        return PTM(data, input_dims, output_dims)
+        ret = PTM(data, input_dims, output_dims)
+        ret._op_shape = new_shape
+        return ret
 
     def power(self, n):
         """The matrix power of the channel.
