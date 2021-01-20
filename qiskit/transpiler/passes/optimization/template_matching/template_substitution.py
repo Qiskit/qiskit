@@ -66,7 +66,7 @@ class TemplateSubstitution:
         self.dag_optimized = DAGCircuit()
 
         if user_cost_dict is not None:
-            self.cost_dict = {key: cost for key, cost in user_cost_dict.items()}
+            self.cost_dict = dict(user_cost_dict)
         else:
             self.cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1,
                               'sdg': 1, 'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1,
