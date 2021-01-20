@@ -24,6 +24,7 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.utils.validation import validate_min
 from qiskit.utils.quantum_instance import QuantumInstance
+from .qaoa_circuit import QAOACircuit
 from .var_form import QAOAVarForm
 from ..vqe import VQE
 
@@ -137,6 +138,17 @@ class QAOA(VQE):
         # Recreates var_form based on operator parameter.
         if operator.num_qubits != self.var_form.num_qubits:
             self.var_form = QAOAVarForm(operator,
+                                        self._p,
+                                        initial_state=self._initial_state,
+                                        mixer_operator=self._mixer)
+        operator = super()._check_operator(operator)
+        return operator
+
+    def _check_operator_new(self,
+                        operator: OperatorBase) -> OperatorBase:
+        # Recreates var_form based on operator parameter.
+        if operator.num_qubits != self.var_form.num_qubits:
+            self.var_form = QAOACircuit(operator,
                                         self._p,
                                         initial_state=self._initial_state,
                                         mixer_operator=self._mixer)
