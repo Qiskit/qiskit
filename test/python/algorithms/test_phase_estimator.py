@@ -82,9 +82,9 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_water_hamiltonian(self):
         """Test water hamiltonian"""
-        hamiltonian = (-1.0523732457728587 * (I ^ I)) + (0.3979374248431802 * (I^Z)) \
-        + (-0.3979374248431802 * (Z^I)) + (-0.011280104256235324 * (Z^Z)) \
-        + (0.18093119978423147 * (X^X))
+        hamiltonian = (-1.0523732457728587 * (I ^ I)) + (0.3979374248431802 * (I ^ Z)) \
+            + (-0.3979374248431802 * (Z ^ I)) + (-0.011280104256235324 * (Z ^ Z)) \
+            + (0.18093119978423147 * (X ^ X))
         state_preparation = (I^H).to_circuit()
         evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=4)
         result = self.hamiltonian_pe(hamiltonian.to_pauli_op(), state_preparation, evolution=evo)

@@ -102,11 +102,11 @@ class PhaseEstimationScale():
         """
         w = 2 * self._bound
         if isinstance(phases, list):
-            phases = [(x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient) \
+            phases = [(x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient)
                       for x in phases]
         else:
-            phases = {((x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient)) \
-                      : phases[x] for x in phases.keys()}
+            phases = {((x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient)):
+                      phases[x] for x in phases.keys()}
 
         return phases
 

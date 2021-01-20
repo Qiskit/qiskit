@@ -78,7 +78,6 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
             `SummedOp` whose terms are `PauliOp`s.)
         """
 
-
         self._evolution = evolution
         self._bound = bound
 

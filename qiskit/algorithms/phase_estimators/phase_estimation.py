@@ -115,7 +115,6 @@ class PhaseEstimation(PhaseEstimator):
 
         self._quantum_instance = quantum_instance
 
-
     def _add_classical_register(self) -> None:
         """Add measurement instructions only if we are not using a state vector simulator."""
         if not self._quantum_instance.is_statevector and not self._measurements_added:

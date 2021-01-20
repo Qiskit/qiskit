@@ -155,8 +155,8 @@ from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
                                     NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
-from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult, PhaseEstimationScale,
-                                PhaseEstimation, PhaseEstimationResult)
+from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
+                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
 from .exceptions import AlgorithmError
 
 __all__ = [
