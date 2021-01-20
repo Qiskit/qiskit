@@ -1431,10 +1431,10 @@ class DAGCircuit:
         nodes_seen = set()
         for node in self.topological_op_nodes():
             if len(node.qargs) == 1 and node.condition is None \
-                    and not node.cargs \
+                    and not node.cargs\
+                    and node not in nodes_seen \
                     and not node.op.is_parameterized() \
-                    and isinstance(node.op, Gate) \
-                    and node not in nodes_seen:
+                    and isinstance(node.op, Gate):
                 group = [node]
                 nodes_seen.add(node)
                 s = self._multi_graph.successors(node._node_id)
