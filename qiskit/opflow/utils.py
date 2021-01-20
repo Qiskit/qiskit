@@ -13,22 +13,19 @@
 """ Utility functions for OperatorFlow """
 
 import logging
-from typing import Optional, Union
-import warnings
+from typing import Optional
 
 from .operator_base import OperatorBase
-from . import legacy
-from .legacy import LegacyBaseOperator
 
 logger = logging.getLogger(__name__)
 
 
 def commutator(
-        op_a: Union[OperatorBase, LegacyBaseOperator],
-        op_b: Union[OperatorBase, LegacyBaseOperator],
-        op_c: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+        op_a: OperatorBase,
+        op_b: OperatorBase,
+        op_c: Optional[OperatorBase] = None,
         sign: bool = False,
-) -> Union[OperatorBase, LegacyBaseOperator]:
+) -> OperatorBase:
     r"""
     Compute commutator of `op_a` and `op_b` or
     the symmetric double commutator of `op_a`, `op_b` and `op_c`.
@@ -46,16 +43,6 @@ def commutator(
     Returns:
         OperatorBase: the commutator
     """
-    # TODO: remove 3 months after 0.17.0
-    if isinstance(op_a, LegacyBaseOperator):
-        warnings.warn(
-            "LegacyBaseOperator is deprecated as of 0.17.0, "
-            "and will be removed no earlier than 3 months after that "
-            "release date. You should use the `opflow` "
-            "module instead.", DeprecationWarning
-            )
-        return legacy.commutator(op_a, op_b, op_c, sign)
-
     sign_num = 1 if sign else -1
 
     op_ab = op_a @ op_b
