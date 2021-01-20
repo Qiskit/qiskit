@@ -55,7 +55,7 @@ class SolovayKitaev():
         products = []
         for reps in range(1, depth + 1):
             products += list(list(comb)
-                            for comb in itertools.product(*[basis_gates] * reps))
+                             for comb in itertools.product(*[basis_gates] * reps))
 
         sequences = []
         for item in products:
@@ -136,7 +136,6 @@ class SolovayKitaev():
         w_n1 = self._recurse(tuple_v_w[1], n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
         """Finds gate in ``self._basic_approximations`` that best represents ``u``.
 
@@ -150,6 +149,7 @@ class SolovayKitaev():
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
         return min(self._basic_approximations, key=key)
+
 
 def commutator_decompose(u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]:
     """Decompose an SO(3)-matrix as a balanced commutator.
@@ -198,6 +198,7 @@ def commutator_decompose(u_so3: np.ndarray) -> Tuple[GateSequence, GateSequence]
     w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
 
     return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
+
 
 def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal

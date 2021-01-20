@@ -387,45 +387,33 @@ def solve_decomposition_angle(matrix: np.ndarray) -> float:
     decomposition_angle = scipy.optimize.fsolve(objective, angle)[0]
     return decomposition_angle
 
-def compute_frobenius_norm(u: np.ndarray) -> float:
-    """Computes the Frobenius-norm of the matrix ``u``.
 
-    Args:
-        u: SO(3)-matrix.
-
-    Returns:
-        The Frobenius-norm of the matrix u.
-    """
-    return np.linalg.norm(u)
-
-
-def compute_euler_angles_from_s03(u: np.ndarray) -> Tuple[float, float, float]:
-    """Computes the Euler angles from the SO(3)-matrix u.
+def compute_euler_angles_from_s03(matrix: np.ndarray) -> Tuple[float, float, float]:
+    """Computes the Euler angles from the input SO(3)-matrix.
 
     Uses the algorithm from Gregory Slabaugh,
     see `here <https://www.gregslabaugh.net/publications/euler.pdf>`_.
 
     Args:
-        u: The SO(3)-matrix for which the Euler angles need to be computed.
+        matrix: The SO(3)-matrix for which the Euler angles need to be computed.
 
     Returns:
-        Tuple phi, theta, psi\n
-        where phi is rotation about z-axis, theta rotation about y-axis\n
-        and psi rotation about x-axis.
+        A tuple ``(phi, theta, psi)``, which indicate rotations about the Z, Y and X axis,
+        respectively.
     """
-    if (u[2][0] != 1 and u[2][1] != -1):
-        theta = -math.asin(u[2][0])
-        psi = math.atan2(u[2][1]/math.cos(theta), u[2][2]/math.cos(theta))
-        phi = math.atan2(u[1][0]/math.cos(theta), u[0][0]/math.cos(theta))
+    if matrix[2][0] != 1 and matrix[2][1] != -1:
+        theta = -math.asin(matrix[2][0])
+        psi = math.atan2(matrix[2][1]/math.cos(theta), matrix[2][2]/math.cos(theta))
+        phi = math.atan2(matrix[1][0]/math.cos(theta), matrix[0][0]/math.cos(theta))
         return phi, theta, psi
     else:
         phi = 0
-        if u[2][0] == 1:
+        if matrix[2][0] == 1:
             theta = math.pi/2
-            psi = phi + math.atan2(u[0][1], u[0][2])
+            psi = phi + math.atan2(matrix[0][1], matrix[0][2])
         else:
             theta = -math.pi/2
-            psi = -phi + math.atan2(-u[0][1], -u[0][2])
+            psi = -phi + math.atan2(-matrix[0][1], -matrix[0][2])
         return phi, theta, psi
 
 
