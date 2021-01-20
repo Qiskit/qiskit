@@ -318,16 +318,15 @@ class TestSolovayKitaev(QiskitTestCase):
         """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
         actual_result = commutator_decompose(u_so3)
         actual = actual_result[1]
-        self.assertAlmostEqual(actual[1][1], 1.0)
-        self.assertAlmostEqual(actual[0][1], 0.0)
-        self.assertAlmostEqual(actual[1][0], 0.0)
-        self.assertAlmostEqual(actual[1][2], 0.0)
-        self.assertAlmostEqual(actual[2][1], 0.0)
-
-    def test_example(self):
-        """@Lisa Example to show how to call the pass."""
+        self.assertAlmostEqual(actual[1][1],1.0)
+        self.assertAlmostEqual(actual[0][1],0.0)
+        self.assertAlmostEqual(actual[1][0],0.0)
+        self.assertAlmostEqual(actual[1][2],0.0)
+        self.assertAlmostEqual(actual[2][1],0.0)
+    
+    def test_solovay_kitaev_basic_gates_on_h_returns_circuit_h(self):
         circuit = QuantumCircuit(1)
-        circuit.rx(0.2, 0)
+        circuit.h(0)
 
         basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
                        S_dg(), RXGate(math.pi), RYGate(math.pi)]
@@ -336,27 +335,93 @@ class TestSolovayKitaev(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
 
-        print(decomposed_circuit.draw())
+    def test_solovay_kitaev_basic_gates_on_i_returns_circuit_i(self):
+        circuit = QuantumCircuit(1)
+        circuit.i(0)
 
-    def test_example_2(self):
-        """@Lisa Example to show how to call the pass."""
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(3, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
+
+    def test_solovay_kitaev_basic_gates_on_t_returns_circuit_t(self):
+        circuit = QuantumCircuit(1)
+        circuit.t(0)
+
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(3, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
+
+    def test_solovay_kitaev_basic_gates_on_s_returns_circuit_s(self):
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(3, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
+
+    def test_solovay_kitaev_basic_gates_on_rxpi_returns_circuit_rxpi(self):
+        circuit = QuantumCircuit(1)
+        circuit.rx(math.pi,0)
+
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(3, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
+
+    def test_solovay_kitaev_basic_gates_on_rypi_returns_circuit_rypi(self):
+        circuit = QuantumCircuit(1)
+        circuit.ry(math.pi,0)
+
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(3, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        self.assertTrue(circuit == decomposed_circuit)
+
+    @data(1,2,3,4,5)
+    def test_solovay_kitaev_converges(self,depth: int):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
         print(circuit.draw())
 
-        basic_gates = [H(), T(), S(), T_dg(), S_dg()]
-        synth = SolovayKitaevDecomposition(2, basic_gates)
+        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
+                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(depth, basic_gates)
+        synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
 
-        print(decomposed_circuit.draw())
-        print('Original')
-        print(Operator(circuit))
-        print('Synthesized')
-        print(Operator(decomposed_circuit))
+        dag_plus_one = circuit_to_dag(circuit)
+        decomposed_dag_plus_one = synth_plus_one.run(dag)
+        decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
+
+        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data), distance(Operator(circuit).data, Operator(decomposed_circuit_plus_one).data))
 
     def test_example_non_su2(self):
         """@Lisa Example to show how to call the pass."""

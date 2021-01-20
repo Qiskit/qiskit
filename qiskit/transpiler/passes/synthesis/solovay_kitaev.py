@@ -33,11 +33,15 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
 
 
 class SolovayKitaev():
-    """The Solovay Kitaev discrete decomposition algorithm."""
+    """The Solovay Kitaev discrete decomposition algorithm.
+
+    See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
+    """
 
     def __init__(self, basis_gates: List[Union[str, Gate]]) -> None:
         # generate the basic approximations once for this basis gates set
         self._basic_approximations = self.generate_basic_approximations(basis_gates)
+
 
     def generate_basic_approximations(self, basis_gates: List[Union[str, Gate]]
                                       ) -> List[GateSequence]:
@@ -50,6 +54,7 @@ class SolovayKitaev():
             List of GateSequences using the gates in basic_gates.
         """
         depth = 3
+
         # get all products from all depths
         products = []
         for reps in range(1, depth + 1):
@@ -66,15 +71,14 @@ class SolovayKitaev():
         return sequences
 
     def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
-        """Synthesizes Qiskit QuantumCircuit with global phase from GateSequence.
+        """Converts a ``GateSequence`` to a circuit, additionally adding the ``global_phase``.
 
         Args:
             global_phase: The global phase of the circuit.
-            gate_sequence: GateSequence from which to construct a QuantumCircuit.
+            gate_sequence: GateSequence from which to construct the circuit.
 
         Returns:
-            QuantumCircuit from ``gate_sequence`` with global phase ``global_phase``.
-
+            The gate sequence as a circuit.
         """
         qr = QuantumRegister(1, 'q')
         qc = QuantumCircuit(qr)
@@ -112,14 +116,14 @@ class SolovayKitaev():
         return circuit
 
     def _recurse(self, sequence: GateSequence, n: int) -> GateSequence:
-        """Performs ``n`` iterations of the Solovay-Kitaev algorithm with GateSequence ``u``.
+        """Performs ``n`` iterations of the Solovay-Kitaev algorithm on ``sequence``.
 
         Args:
             sequence: GateSequence to which the Solovay-Kitaev algorithm is applied.
             n: number of iterations that the algorithm needs to run.
 
         Returns:
-            GateSequence that approximates ``u``.
+            GateSequence that approximates ``sequence``.
 
         Raises:
             ValueError: if ``u`` does not represent an SO(3)-matrix.
@@ -140,13 +144,13 @@ class SolovayKitaev():
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``u``.
+        """Finds gate in ``self._basic_approximations`` that best represents ``sequence``.
 
         Args:
             sequence: The gate to find the approximation to.
 
         Returns:
-            Gate in basic approximations that is closest to ``u``.
+            Gate in basic approximations that is closest to ``sequence``.
         """
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
@@ -156,20 +160,31 @@ class SolovayKitaev():
 
 def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
                          ) -> Tuple[GateSequence, GateSequence]:
-    """Decompose an SO(3)-matrix as a balanced commutator.
 
-    Find SO(3)-matrices v and w such that ``u_so3`` equals the commutator [v,w] and such that
-    the Frobenius norm of both v and w is smaller than
-    the square root of half the Frobenius norm of ``u_so3``.
-    Then return each matrix as GateSequence.
+    r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
+
+    This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
+    equals
+
+    .. math::
+
+        U = V^\dagger W^\dagger V W.
+
+    For this decomposition, the following statement holds
+
+
+    .. math::
+
+        ||V - I||_F, ||W - I||_F \leq \frac{\sqrt{||U - I||_F}}{2},
+
+    where :math:`I` is the identity and :math:`||\cdot ||_F` is the Frobenius norm.
 
     Args:
         u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
         check_input: If True, checks whether the input matrix is actually SO(3).
 
     Returns:
-        Tuple of GateSequences from SO(3)-matrices v and w such that
-        ``u_so3`` = [v,w] and d(I,v), d(I,w) < sqrt(d(I,u_so3)/2).
+        Tuple of GateSequences from SO(3)-matrices :math:`V, W`.
 
     Raises:
         ValueError: if ``u_so3`` is not an SO(3)-matrix.
@@ -251,34 +266,105 @@ def _remove_identities(sequence):
 
 
 class SolovayKitaevDecomposition(TransformationPass):
-    """Synthesize gates according to their basis gates."""
+    r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
+
+    The Solovay-Kitaev theorem [1] states that any single qubit gate can be approximated to
+    arbitrary precision by a set of fixed single-qubit gates, if the set generates a dense
+    subset in :math:`SU(2)`. This is an important result, since it means that any single-qubit
+    gate can be expressed in terms of a discrete, universal gate set that we know how to implement
+    fault-tolerantly. Therefore, the Solovay-Kitaev algorithm allows us to take any
+    non-fault tolerant circuit and rephrase it in a fault-tolerant manner.
+
+    This implementation of the Solovay-Kitaev algorithm is based on [2].
+
+    For example, the following circuit
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤ RX(0.8) ├
+             └─────────┘
+
+    can be decomposed into
+
+    .. parsed-literal::
+
+        global phase: -π/8
+             ┌───┐┌───┐┌───┐
+        q_0: ┤ H ├┤ T ├┤ H ├
+             └───┘└───┘└───┘
+
+    with an L2-error of approximately 0.01.
+
+
+    Examples:
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import TGate, HGate, TdgGate
+            from qiskit.converters import circuit_to_dag, dag_to_circuit
+            from qiskit.transpiler.passes import SolovayKitaevDecomposition
+            from qiskit.quantum_info import Operator
+
+            circuit = QuantumCircuit(1)
+            circuit.rx(0.8, 0)
+            dag = circuit_to_dag(circuit)
+
+            print('Original circuit:')
+            print(circuit.draw())
+
+            basis_gates = [TGate(), TdgGate(), HGate()]
+            skd = SolovayKitaevDecomposition(recursion_degree=2, basis_gates=basis_gates)
+
+            discretized = dag_to_circuit(skd.run(dag))
+
+            print('Discretized circuit:')
+            print(discretized.draw())
+
+            print('Error:', np.linalg.norm(Operator(circuit).data - Operator(discretized).data))
+
+
+    References:
+
+        [1]: Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
+             Russian Mathematical Surveys. 52 (6): 1191–1249.
+             `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
+
+        [2]: Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
+             `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_
+
+
+    """
 
     def __init__(self, recursion_degree: int, basis_gates: List[Union[str, Gate]]) -> None:
-        """SynthesizeUnitaries initializer.
-
+        """
         Args:
-            recursion_degree: The recursion depth.
-            basis_gates: List of gate names to target.
+            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
+                A larger recursion depth increases the accuracy and length of the
+                decomposition.
+            basis_gates: A list of gates used to approximate the single qubit gates.
         """
         super().__init__()
         self._recursion_degree = recursion_degree
         self._sk = SolovayKitaev(basis_gates)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the UnitarySynthesis pass on `dag`.
+        """Run the SolovayKitaevDecomposition pass on `dag`.
 
         Args:
-            dag: input dag.
+            dag: The input dag.
 
         Returns:
-            Output dag with UnitaryGates synthesized to target basis.
+            Output dag with 1q gates synthesized in the discrete target basis.
         """
         for node in dag.nodes():
             if node.type != 'op':
                 continue  # skip all nodes that do not represent operations
 
             if not node.op.num_qubits == 1:
-                continue  # ignore all non-single qubit gates, possible raise error here?
+                continue  # ignore all non-single qubit gates
 
             matrix = node.op.to_matrix()
 
