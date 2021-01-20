@@ -359,6 +359,15 @@ class OpShape:
                        num_qargs_l=num_qargs_l,
                        num_qargs_r=num_qargs_r)
 
+    def reverse(self):
+        """Reverse order of left and right qargs"""
+        ret = copy.copy(self)
+        if self._dims_r:
+            ret._dims_r = tuple(reversed(self._dims_r))
+        if self._dims_l:
+            ret._dims_l = tuple(reversed(self._dims_l))
+        return ret
+
     def transpose(self):
         """Return the transposed OpShape."""
         ret = copy.copy(self)
