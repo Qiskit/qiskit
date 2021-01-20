@@ -13,7 +13,7 @@
 """A quantum oracle constructed from a DIMACS format logical expression."""
 import re
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalfunction import ClassicalFunction
 
 
@@ -22,9 +22,9 @@ class LogicalExpressionOracle(QuantumCircuit):
 
     The Logical Expression Oracle, as its name suggests, constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
-    `&` (`AND`), `|` (`OR`), `~` (`NOT`), and `^` (`XOR`),
+    `&` (`AND`), `|` (`OR`) and `~` (`NOT`),
     as well as symbols for literals (variables).
-    For example, `'a & b'`, and `(v0 | ~v1) ^ (~v2 & v3)`
+    For example, `'a & b'`, and `(v0 | ~v1) & (~v2 & v3)`
     are both valid string representation of boolean logical expressions.
 
     For convenience, this oracle, in addition to parsing arbitrary logical expressions,
@@ -66,22 +66,12 @@ class LogicalExpressionOracle(QuantumCircuit):
     in DIMACS using the `Logical Expression oracle with the Grover algorithm.
     <https://github.com/Qiskit/qiskit-tutorials-community/blob/master/optimization/grover.ipynb>`__
 
-    Logic expressions, regardless of the input formats, are parsed and stored as Abstract Syntax
-    Tree (AST) tuples, from which the corresponding circuits are constructed. The oracle circuits
+    Logic expressions, regardless of the input formats, are parsed and stored as a source string,
+    from which the corresponding circuits are constructed by
+    :class:`~qiskit.circuit.classicalfunction.ClassicalFunction`. The oracle circuits
     can then be used with any oracle-oriented algorithms when appropriate. For example, an oracle
     built from a DIMACS input can be used with the Grover's algorithm to search for a satisfying
     assignment to the encoded SAT instance.
-
-    By default, the Logical Expression oracle will not try to apply any optimization when building
-    the circuits. For any DIMACS input, the constructed circuit truthfully recreates each inner
-    disjunctive clauses as well as the outermost conjunction; For other arbitrary input expression,
-    It only tries to convert it to a CNF or DNF (Disjunctive Normal Form, similar to CNF, but with
-    inner conjunctions and a outer disjunction) before constructing its circuit. This, for example,
-    could be good for educational purposes, where a user would like to compare a built circuit
-    against their input expression to examine and analyze details. However, this often leads
-    to relatively deep circuits that possibly also involve many ancillary qubits. The oracle
-    therefore, provides the option to try to optimize the input logical expression before
-    building its circuit.
     """
 
     def __init__(self, expression: str) -> None:
@@ -98,7 +88,6 @@ class LogicalExpressionOracle(QuantumCircuit):
 
         # build the circuit
         oracle = classicalfunction.synth()
-        print(oracle)
 
         # initialize the quantumcircuit
         qr_state = QuantumRegister(oracle.num_qubits - 1, 'q')
@@ -115,7 +104,7 @@ class LogicalExpressionOracle(QuantumCircuit):
 
     def _expression_to_source(self, expression, name='f'):
         # create the variables and header for the AST
-        _expr = list(filter(None, re.split('[()&|~\s]', expression)))
+        _expr = list(filter(None, re.split(r'[()&|~\s]', expression)))
         argnames = sorted(set(_expr), key=_expr.index)
 
         # sanitize input and convert operators to strings
@@ -148,7 +137,7 @@ class LogicalExpressionOracle(QuantumCircuit):
         return self._result_lookup[::-1][index] == '1'
 
     @classmethod
-    def from_dimacs(cls, dimacs) -> QuantumCircuit:
+    def from_dimacs(cls, dimacs: str) -> QuantumCircuit:
         """Create a LogicalExpressionOracle from the string in the DIMACS format.
         Args:
             dimacs: The string in the DIMACS format.
@@ -156,11 +145,11 @@ class LogicalExpressionOracle(QuantumCircuit):
         Returns:
             A quantum circuit (LogicalExpressionOracle) for the input string
         """
-        logical_expression = _parse_dimacs(dimacs)
+        logical_expression = _dimacs_to_expression(dimacs)
         return cls(logical_expression)
 
 
-def _parse_dimacs(dimacs):
+def _dimacs_to_expression(dimacs):
     # Convert the string in the DIMACS format to a logical expression
     lines = [
         ll for ll in [
