@@ -421,8 +421,6 @@ class TestSolovayKitaev(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         discretized = dag_to_circuit(synth.run(dag))
 
-        print(discretized.draw())
-
         reference = QuantumCircuit(1, global_phase=-np.pi / 8)
         reference.h(0)
         reference.t(0)
