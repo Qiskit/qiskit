@@ -272,6 +272,27 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
 
+    def reverse_qargs(self):
+        r"""Return a DensityMatrix with reversed subsystem ordering.
+
+        For a tensor product state this is equivalent to reversing the order
+        of tensor product subsystems. For a density matrix
+        :math:`\rho = \rho_{n-1} \otimes ... \otimes \rho_0`
+        the returned state will be
+        :math:`\rho_0 \otimes ... \otimes \rho_{n-1}`.
+
+        Returns:
+            DensityMatrix: the state with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        axes = axes + tuple(len(axes) + i for i in axes)
+        ret._data = np.reshape(np.transpose(
+            np.reshape(self.data, self._op_shape.tensor_shape), axes),
+                               self._op_shape.shape)
+        ret._op_shape = self._op_shape.reverse()
+        return ret
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
