@@ -142,3 +142,21 @@ class TestChannelEvents(QiskitTestCase):
 
         self.assertTrue(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.frame.phase, param + 1.57)
+
+    def test_zero_duration_delay(self):
+        """Test generating waveforms that contains zero duration delay.
+
+        Zero duration delay should be ignored.
+        """
+        ch = pulse.DriveChannel(0)
+
+        with pulse.build() as test_sched:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
+            pulse.delay(0, ch)
+            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
+            pulse.delay(1, ch)
+            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
+
+        ch_events = events.ChannelEvents.load_program(test_sched, ch)
+
+        self.assertEqual(len(list(ch_events.get_waveforms())), 4)

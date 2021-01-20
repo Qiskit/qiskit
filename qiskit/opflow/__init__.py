@@ -96,9 +96,7 @@ Operators
 +++++++++
 
 The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
-represent the primary Operator modules. The :mod:`.legacy` submodule includes older
-Operator classes which are currently being migrate out of usage, but are still used in
-some places.
+represent the primary Operator modules.
 
 .. autosummary::
    :toctree:
@@ -106,7 +104,6 @@ some places.
    primitive_ops
    list_ops
    state_fns
-   legacy
 
 Converters
 ++++++++++
@@ -134,15 +131,6 @@ Exceptions
 
    OpflowError
 """
-
-from .legacy import (evolution_instruction,
-                     suzuki_expansion_slice_pauli_list,
-                     pauli_measurement,
-                     measure_pauli_z, covariance, row_echelon_F2,
-                     kernel_F2, check_commutativity)
-from .legacy import (LegacyBaseOperator, WeightedPauliOperator,
-                     TPBGroupedWeightedPauliOperator, MatrixOperator,
-                     PauliGraph, op_converter)
 
 # New Operators
 from .operator_base import OperatorBase
@@ -172,14 +160,6 @@ from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
 from .exceptions import OpflowError
 
 __all__ = [
-    # Common
-    'evolution_instruction', 'suzuki_expansion_slice_pauli_list',
-    'pauli_measurement', 'measure_pauli_z',
-    'covariance', 'row_echelon_F2', 'kernel_F2', 'check_commutativity',
-    # Legacy
-    'PauliGraph', 'LegacyBaseOperator', 'WeightedPauliOperator',
-    'TPBGroupedWeightedPauliOperator',
-    'MatrixOperator',
     # Operators
     'OperatorBase',
     'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp', 'TaperedPauliSumOp',
