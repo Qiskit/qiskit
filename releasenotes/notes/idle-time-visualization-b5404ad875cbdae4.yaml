@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug with the timeline_drawer's visualization of classical bits.
+    Fixes an issue with delays not being considered as idle in circuit
+    visualization.
+    
