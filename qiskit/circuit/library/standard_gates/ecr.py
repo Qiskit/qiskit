@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from .rzx import RZXGate
 from .x import XGate
 
