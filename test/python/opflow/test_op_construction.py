@@ -33,7 +33,6 @@ from qiskit.opflow import (
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp, OperatorBase, Zero, OpflowError
 )
-from qiskit.opflow import MatrixOperator
 
 
 # pylint: disable=invalid-name
@@ -927,11 +926,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
             _ = MatrixOp('invalid')
 
         self.assertEqual(str(cm.exception), msg + "'str'")
-
-        with self.assertRaises(TypeError) as cm:
-            _ = MatrixOp(MatrixOperator(np.eye(2)))
-
-        self.assertEqual(str(cm.exception), msg + "'MatrixOperator'")
 
         with self.assertRaises(TypeError) as cm:
             _ = MatrixOp(None)
