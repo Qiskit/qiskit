@@ -207,6 +207,22 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
+    def test_multi_control_z(self):
+        """Test a multi controlled Z gate. """
+        qc = QuantumCircuit(1)
+        qc.z(0)
+        ctr_gate = qc.to_gate().control(2)
+
+        ctr_circ = QuantumCircuit(3)
+        ctr_circ.append(ctr_gate, range(3))
+
+        ref_circ = QuantumCircuit(3)
+        ref_circ.h(2)
+        ref_circ.ccx(0, 1, 2)
+        ref_circ.h(2)
+
+        self.assertEqual(ctr_circ.decompose(), ref_circ)
+
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
         import qiskit.circuit.library.standard_gates.u3 as u3
@@ -589,6 +605,14 @@ class TestControlledGate(QiskitTestCase):
         cls = MCXGate(num_ctrl_qubits).__class__
         explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
+
+    @data(1, 2, 3, 4)
+    def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
+        """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
+        qc = QuantumCircuit(num_ctrl_qubits+1)
+        qc.mcx(list(range(num_ctrl_qubits)), [num_ctrl_qubits])
+        explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
+        self.assertEqual(type(qc[0][0]), explicit[num_ctrl_qubits])
 
     @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
