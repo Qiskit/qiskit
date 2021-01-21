@@ -22,6 +22,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
@@ -103,6 +104,8 @@ class Choi(QuantumChannel):
             # Check dimensions
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for input Choi-matrix.")
+            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
+                                    shape=(output_dim, input_dim))
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -114,18 +117,12 @@ class Choi(QuantumChannel):
                 # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
-            input_dim, output_dim = data.dim
+            op_shape = data._op_shape
+            output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a Choi object
             rep = getattr(data, '_channel_rep', 'Operator')
             choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        # Check and format input and output dimensions
-        input_dims, output_dims, num_qubits = self._automatic_dims(
-            input_dims, input_dim, output_dims, output_dim)
-        super().__init__(choi_mat, input_dims, output_dims, num_qubits, 'Choi')
+        super().__init__(choi_mat, op_shape=op_shape)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -186,9 +183,8 @@ class Choi(QuantumChannel):
 
         if not isinstance(other, Choi):
             other = Choi(other)
-        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
-        input_dim = np.product(input_dims)
-        output_dim = np.product(output_dims)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        output_dim, input_dim = new_shape.shape
 
         if front:
             first = np.reshape(other._data, other._bipartite_shape)
@@ -200,7 +196,9 @@ class Choi(QuantumChannel):
         # Contract Choi matrices for composition
         data = np.reshape(np.einsum('iAjB,AkBl->ikjl', first, second),
                           (input_dim * output_dim, input_dim * output_dim))
-        return Choi(data, input_dims, output_dims)
+        ret = Choi(data)
+        ret._op_shape = new_shape
+        return ret
 
     def power(self, n):
         """The matrix power of the channel.

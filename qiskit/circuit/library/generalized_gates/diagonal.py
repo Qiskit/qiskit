@@ -109,6 +109,7 @@ class Diagonal(QuantumCircuit):
             target_qubit = num_qubits - num_act_qubits
             self.ucrz(angles_rz, ctrl_qubits, target_qubit)
             n //= 2
+        self.global_phase += diag_phases[0]
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
