@@ -24,6 +24,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
@@ -137,6 +138,8 @@ class Kraus(QuantumChannel):
                     kraus = (kraus_left, kraus_right)
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
+            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
+                                    shape=kraus[0][0].shape)
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -148,27 +151,20 @@ class Kraus(QuantumChannel):
                 # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
-            input_dim, output_dim = data.dim
+            op_shape = data._op_shape
+            output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a Kraus
             rep = getattr(data, '_channel_rep', 'Operator')
             kraus = _to_kraus(rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
 
-        output_dim, input_dim = kraus[0][0].shape
-        # Check and format input and output dimensions
-        input_dims, output_dims, num_qubits = self._automatic_dims(
-            input_dims, input_dim, output_dims, output_dim)
         # Initialize either single or general Kraus
         if kraus[1] is None or np.allclose(kraus[0], kraus[1]):
             # Standard Kraus map
-            super().__init__((kraus[0], None), input_dims,
-                             output_dims, num_qubits, 'Kraus')
+            data = (kraus[0], None)
         else:
             # General (non-CPTP) Kraus map
-            super().__init__(kraus, input_dims, output_dims, num_qubits, 'Kraus')
+            data = kraus
+        super().__init__(data, op_shape=op_shape)
 
     @property
     def data(self):
@@ -244,7 +240,9 @@ class Kraus(QuantumChannel):
 
         if not isinstance(other, Kraus):
             other = Kraus(other)
-        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        input_dims = new_shape.dims_r()
+        output_dims = new_shape.dims_l()
 
         if front:
             ka_l, ka_r = self._data
@@ -262,7 +260,9 @@ class Kraus(QuantumChannel):
             kab_r = [np.dot(a, b) for a in ka_r for b in kb_l]
         else:
             kab_r = [np.dot(a, b) for a in ka_r for b in kb_r]
-        return Kraus((kab_l, kab_r), input_dims, output_dims)
+        ret = Kraus((kab_l, kab_r), input_dims, output_dims)
+        ret._op_shape = new_shape
+        return ret
 
     def dot(self, other, qargs=None):
         """Return the right multiplied quantum channel self * other.
