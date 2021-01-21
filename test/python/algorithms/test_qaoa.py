@@ -23,7 +23,7 @@ from ddt import ddt, idata, unpack
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
-from qiskit.opflow import I, X, WeightedPauliOperator
+from qiskit.opflow import I, X, PauliSumOp
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
 
@@ -339,7 +339,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                     z_p[j] = True
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
-        return WeightedPauliOperator(paulis=pauli_list).to_opflow(), shift
+        opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
+        return PauliSumOp.from_list(opflow_list), shift
 
     def _get_graph_solution(self, x: np.ndarray) -> np.ndarray:
         """Get graph solution from binary string.
