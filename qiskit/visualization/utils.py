@@ -131,7 +131,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
                 cregs.remove(wire)
 
     ops = [[op for op in layer if any(q in qregs for q in op.qargs)]
-            for layer in ops]
+           for layer in ops]
 
     return qregs, cregs, ops
 
