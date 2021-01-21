@@ -13,6 +13,7 @@
 """ Test QAOA """
 
 import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import math
 import networkx as nx
@@ -29,7 +30,6 @@ from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Pauli
 from qiskit.utils import QuantumInstance, aqua_globals
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 W1 = np.array([
     [0, 1, 0, 1],
@@ -73,7 +73,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend('statevector_simulator')
         optimizer = COBYLA()
-        qubit_op, offset = self._get_operator(w)
+        qubit_op, _ = self._get_operator(w)
         if convert_to_matrix_op:
             qubit_op = qubit_op.to_matrix_op()
 
@@ -83,11 +83,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
-        # self.log.debug('energy:             %s', result.eigenvalue.real)
-        # self.log.debug('time:               %s', result.optimizer_time)
-        # self.log.debug('maxcut objective:   %s', result.eigenvalue.real + offset)
-        # self.log.debug('solution:           %s', graph_solution)
-        # self.log.debug('solution objective: %s', max_cut.max_cut_value(x, w))
         self.assertIn(''.join([str(int(i)) for i in graph_solution]), solutions)
 
     @idata([

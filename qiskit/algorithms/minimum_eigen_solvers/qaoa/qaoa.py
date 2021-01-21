@@ -30,9 +30,6 @@ from ..vqe import VQE
 
 logger = logging.getLogger(__name__)
 
-# disable check for operator setter because of pylint bug
-# disable=no-member
-
 
 class QAOA(VQE):
     """
@@ -58,7 +55,6 @@ class QAOA(VQE):
     and in `this paper <https://arxiv.org/abs/1709.03489>`__ for QAOA,
     to run constrained optimization problems where the mixer constrains
     the evolution to a feasible subspace of the full Hilbert space.
-
     """
 
     # pylint: disable=invalid-name
@@ -134,7 +130,6 @@ class QAOA(VQE):
 
     def _check_operator(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
-        # todo: remove this if statement?
         if operator.num_qubits != self.var_form.num_qubits:
             self.var_form = QAOACircuit(operator,
                                         self._p,

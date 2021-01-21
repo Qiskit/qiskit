@@ -53,30 +53,6 @@ class QAOACircuit(BlueprintCircuit):
         self._initial_state = initial_state
         self._mixer_operator = mixer_operator
 
-        # self._num_qubits = cost_operator.num_qubits
-        #
-        # if isinstance(mixer_operator, QuantumCircuit):
-        #     self._num_parameters = (1 + mixer_operator.num_parameters) * param_p
-        #     self._bounds = [(None, None)] * param_p + [(None, None)] * \
-        #         param_p * mixer_operator.num_parameters
-        #     self._mixer = mixer_operator
-        # elif isinstance(mixer_operator, OperatorBase):
-        #     self._num_parameters = 2 * param_p
-        #     self._bounds = [(None, None)] * param_p + [(None, None)] * param_p
-        #     self._mixer = mixer_operator
-        # elif mixer_operator is None:
-        #     self._num_parameters = 2 * param_p
-        #     # next three lines are to avoid a mypy error (incorrect types, etc)
-        #     self._bounds = []
-        #     self._bounds.extend([(None, None)] * param_p)
-        #     self._bounds.extend([(0, 2 * np.pi)] * param_p)
-        #     # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
-        #     # will simply produce rx's on each qubit.
-        #     num_qubits = self._cost_operator.num_qubits
-        #     mixer_terms = [(I ^ left) ^ X ^ (I ^ (num_qubits - left - 1))
-        #                    for left in range(num_qubits)]
-        #     self._mixer = sum(mixer_terms)
-
         # set this circuit as a not-built circuit
         self._num_qubits = 0
         self._num_parameters = 0
@@ -144,13 +120,8 @@ class QAOACircuit(BlueprintCircuit):
         elif self._mixer_operator is None:
             self._num_parameters = 2 * self._param_p
             self._bounds = [(None, None)] * self._param_p + [(0, 2 * np.pi)] * self._param_p
-            # next three lines are to avoid a mypy error (incorrect types, etc)
-            # self._bounds = []
-            # self._bounds.extend([(None, None)] * self._param_p)
-            # self._bounds.extend([(0, 2 * np.pi)] * self._param_p)
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
-            # num_qubits = self._cost_operator.num_qubits
             mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
                            for left in range(self._num_qubits)]
             self._mixer = sum(mixer_terms)
