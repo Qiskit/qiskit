@@ -628,30 +628,6 @@ class C3XGate(ControlledGate):
         return gate
 
     def inverse(self):
-<<<<<<< HEAD
-        """Invert this gate. The C3X is its own inverse."""
-        return C3XGate(angle=-self._angle, ctrl_state=self.ctrl_state)
-
-    # This matrix is only correct if the angle is pi/4
-    # def to_matrix(self):
-    #     """Return a numpy.array for the C3X gate."""
-    #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
-=======
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
@@ -663,7 +639,6 @@ class C3XGate(ControlledGate):
         if dtype:
             return numpy.asarray(mat, dtype=dtype)
         return mat
->>>>>>> b9c943b17... More efficient C3X implementation (#5668)
 
 
 class RC3XGate(Gate):
@@ -808,13 +783,8 @@ class C4XGate(ControlledGate):
             (HGate(), [q[4]], []),
             (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-<<<<<<< HEAD
-            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-            (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
-=======
             (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
             (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
->>>>>>> b9c943b17... More efficient C3X implementation (#5668)
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
