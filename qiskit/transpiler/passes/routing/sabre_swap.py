@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import copy
+from copy import copy, deepcopy
 from itertools import cycle
 import numpy as np
 
@@ -118,7 +118,7 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+        self.coupling_map = deepcopy(coupling_map)
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
