@@ -79,7 +79,8 @@ class TestUnroller(QiskitTestCase):
         pass_ = Unroller(['u1', 'u2', 'u3'])
         unrolled_dag = pass_.run(dag)
 
-        ref_circuit = QuantumCircuit(qr, cr)
+        # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
+        ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
         ref_circuit.append(U2Gate(0, pi), [qr[0]])
         ref_circuit.append(U1Gate(-pi/4), [qr[0]])
         ref_circuit.append(U1Gate(pi), [qr[0]])
@@ -120,7 +121,7 @@ class TestUnroller(QiskitTestCase):
 
         unrolled_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=-theta / 2)
         expected.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
@@ -139,7 +140,7 @@ class TestUnroller(QiskitTestCase):
 
         unrolled_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=-sum_ / 2)
         expected.append(U1Gate(sum_), [qr[0]])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
@@ -180,7 +181,9 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(qc)
         out_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
-        expected = QuantumCircuit(qr2)
+        # Pick up -1 * theta / 2 global phase four twice (once for each RZ -> P
+        # in each of the two sub_instr instructions).
+        expected = QuantumCircuit(qr2, global_phase=-1 * 4 * theta / 2.0)
         expected.append(U1Gate(theta), [qr2[0]])
         expected.cx(qr2[0], qr2[1])
         expected.append(U1Gate(theta), [qr2[1]])
@@ -202,7 +205,7 @@ class TestUnroller(QiskitTestCase):
         dag = circuit_to_dag(qc)
         out_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
-        expected = QuantumCircuit(qr2)
+        expected = QuantumCircuit(qr2, global_phase=-1 * (2 * phi + 2 * gamma) / 2.0)
         expected.append(U1Gate(phi), [qr2[0]])
         expected.cx(qr2[0], qr2[1])
         expected.append(U1Gate(phi), [qr2[1]])
@@ -451,12 +454,14 @@ class TestUnrollAllInstructions(QiskitTestCase):
     def test_unroll_rz(self):
         """test unroll rz"""
         self.circuit.rz(0.3, 2)
+        self.ref_circuit.global_phase = -1 * 0.3 / 2
         self.ref_circuit.append(U3Gate(0, 0, 0.3), [2])
         self.compare_dags()
 
     def test_unroll_rzz(self):
         """test unroll rzz"""
         self.circuit.rzz(0.6, 1, 0)
+        self.ref_circuit.global_phase = -1 * 0.6 / 2
         self.ref_circuit.cx(1, 0)
         self.ref_circuit.append(U3Gate(0, 0, 0.6), [0])
         self.ref_circuit.cx(1, 0)
