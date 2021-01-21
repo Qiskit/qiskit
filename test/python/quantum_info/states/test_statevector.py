@@ -23,7 +23,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, QFT
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
@@ -74,6 +74,17 @@ class TestStatevector(QiskitTestCase):
         self.assertEqual(state.dim, 2 * 3 * 4)
         self.assertEqual(state.dims(), (2, 3, 4))
         self.assertIsNone(state.num_qubits)
+
+    def test_init_circuit(self):
+        """Test initialization from circuit."""
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        state = Statevector(circuit)
+
+        self.assertEqual(state.dim, 8)
+        self.assertEqual(state.dims(), (2, 2, 2))
+        self.assertTrue(all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex)))
+        self.assertEqual(state.num_qubits, 3)
 
     def test_init_array_except(self):
         """Test initialization exception from array."""
@@ -360,13 +371,22 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(-state, Statevector(-1 * vec))
 
     def test_equiv(self):
-        """Test negate method"""
+        """Test equiv method"""
         vec = np.array([1, 0, 0, -1j]) / np.sqrt(2)
         phase = np.exp(-1j * np.pi / 4)
         statevec = Statevector(vec)
         self.assertTrue(statevec.equiv(phase * vec))
         self.assertTrue(statevec.equiv(Statevector(phase * vec)))
         self.assertFalse(statevec.equiv(2 * vec))
+
+    def test_equiv_on_circuit(self):
+        """Test the equiv method on different types of input."""
+        statevec = Statevector([1, 0])
+
+        qc = QuantumCircuit(1)
+        self.assertTrue(statevec.equiv(qc))
+        qc.x(0)
+        self.assertFalse(statevec.equiv(qc))
 
     def test_to_dict(self):
         """Test to_dict method"""
@@ -891,6 +911,15 @@ class TestStatevector(QiskitTestCase):
         expected = np.array([0.96891242-0.24740396j, 0])
         self.assertEqual(float(qc2.global_phase), -1/4)
         self.assertEqual(sv, Statevector(expected))
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = Statevector.from_instruction(circ1)
+        state2 = Statevector.from_instruction(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
 
 
 if __name__ == '__main__':

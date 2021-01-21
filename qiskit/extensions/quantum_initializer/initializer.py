@@ -28,6 +28,7 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
+from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -36,8 +37,7 @@ class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
-    flexible collection of qubit registers (assuming the qubits are in the
-    zero state).
+    flexible collection of qubit registers.
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
@@ -45,7 +45,8 @@ class Initialize(Instruction):
     def __init__(self, params, num_qubits=None):
         """Create new initialize composite.
 
-        params (str, list, or int):
+        params (str, list, int or Statevector):
+          * Statevector: Statevector to initialize to.
           * list: vector of complex amplitudes to initialize to.
           * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
@@ -60,11 +61,15 @@ class Initialize(Instruction):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         """
+        if isinstance(params, Statevector):
+            params = params.data
+
         if not isinstance(params, int) and num_qubits is not None:
             raise QiskitError("The num_qubits parameter to Initialize should only be"
                               " used when params is an integer")
         self._from_label = False
         self._from_int = False
+
         if isinstance(params, str):
             self._from_label = True
             num_qubits = len(params)
@@ -358,7 +363,87 @@ class Initialize(Instruction):
 
 
 def initialize(self, params, qubits=None):
-    """Apply initialize to circuit."""
+    r"""Initialize qubits in a specific state.
+
+    Qubit initializalition is done by first resetting the qubits to :math:`|0\rangle`
+    followed by an state preparing unitary. Both these steps are included in the
+    `Initialize` instruction.
+
+    Args:
+        params (str or list or int):
+            * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
+                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+                Notice the order of the labels is reversed with respect to the qubit index to
+                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+                qubit one to `|0>`.
+            * list: vector of complex amplitudes to initialize to.
+            * int: an integer that is used as a bitmap indicating which qubits to initialize
+               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+               to `|1>` and qubit 1 to `|0>`.
+        qubits (QuantumRegister or int):
+            * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * int: Index of qubit to initialized [Default: None].
+
+    Returns:
+        qiskit.circuit.Instruction: a handle to the instruction that was just initialized
+
+    Examples:
+        Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.initialize([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+            circuit.draw()
+
+        output:
+             ┌──────────────────────────────┐
+        q_0: ┤ initialize(0.70711,-0.70711) ├
+             └──────────────────────────────┘
+
+
+        Initialize from a string two qubits in the state `|10>`.
+        The order of the labels is reversed with respect to qubit index.
+        More information about labels for basis states are in
+        :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.initialize('01', circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌──────────────────┐
+        q_0: ┤0                 ├
+             │  initialize(0,1) │
+        q_1: ┤1                 ├
+             └──────────────────┘
+
+
+        Initialize two qubits from an array of complex amplitudes
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌────────────────────────────────────┐
+        q_0: ┤0                                   ├
+             │  initialize(0,0.70711,-0.70711j,0) │
+        q_1: ┤1                                   ├
+             └────────────────────────────────────┘
+    """
     if qubits is None:
         qubits = self.qubits
     else:

@@ -111,10 +111,10 @@ class XGate(Gate):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the X gate."""
         return numpy.array([[0, 1],
-                            [1, 0]], dtype=complex)
+                            [1, 0]], dtype=dtype)
 
 
 class CXGate(ControlledGate):
@@ -203,18 +203,18 @@ class CXGate(ControlledGate):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CX gate."""
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 0, 0, 1],
                                 [0, 0, 1, 0],
-                                [0, 1, 0, 0]], dtype=complex)
+                                [0, 1, 0, 0]], dtype=dtype)
         else:
             return numpy.array([[0, 0, 1, 0],
                                 [0, 1, 0, 0],
                                 [1, 0, 0, 0],
-                                [0, 0, 0, 1]], dtype=complex)
+                                [0, 0, 0, 1]], dtype=dtype)
 
 
 class CCXGate(ControlledGate):
@@ -343,11 +343,14 @@ class CCXGate(ControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CCX gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        mat = _compute_control_matrix(self.base_gate.to_matrix(),
+                                      self.num_ctrl_qubits,
+                                      ctrl_state=self.ctrl_state)
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
 
 
 class RCCXGate(Gate):
@@ -401,7 +404,7 @@ class RCCXGate(Gate):
 
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the simplified CCX gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0],
@@ -410,7 +413,7 @@ class RCCXGate(Gate):
                             [0, 0, 0, 0, 1, 0, 0, 0],
                             [0, 0, 0, 0, 0, -1, 0, 0],
                             [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
+                            [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=dtype)
 
 
 class C3XGate(ControlledGate):
@@ -518,7 +521,7 @@ class C3XGate(ControlledGate):
         return C3XGate(angle=-self._angle, ctrl_state=self.ctrl_state)
 
     # This matrix is only correct if the angle is pi/4
-    # def to_matrix(self):
+    # def __array__(self, dtype=None):
     #     """Return a numpy.array for the C3X gate."""
     #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     #                         [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -535,7 +538,7 @@ class C3XGate(ControlledGate):
     #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
     #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
     #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-    #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
+    #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=dtype)
 
 
 class RC3XGate(Gate):
@@ -605,7 +608,7 @@ class RC3XGate(Gate):
 
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RC3X gate."""
         return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                             [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -622,7 +625,7 @@ class RC3XGate(Gate):
                             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
                             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
                             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
+                            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=dtype)
 
 
 class C4XGate(ControlledGate):
@@ -712,11 +715,14 @@ class C4XGate(ControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the C4X gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        mat = _compute_control_matrix(self.base_gate.to_matrix(),
+                                      self.num_ctrl_qubits,
+                                      ctrl_state=self.ctrl_state)
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
 
 
 class MCXGate(ControlledGate):
@@ -725,11 +731,11 @@ class MCXGate(ControlledGate):
     def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
         """Create a new MCX instance.
 
-        Depending on the number of controls, this creates an explicit CX, CCX, C3X or C4X
-        instance or a generic MCX gate.
+        Depending on the number of controls and which mode of the MCX, this creates an
+        explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
-        # these gates will always be implemented for all modes of the MCX if the number of control
-        # qubits matches this
+        # The CXGate and CCXGate will be implemented for all modes of the MCX, and
+        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {
             1: CXGate,
             2: CCXGate
@@ -808,6 +814,23 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
+    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
+        """Create a new MCXGrayCode instance
+        """
+        # if 1 to 4 control qubits, create explicit gates
+        explicit = {
+            1: CXGate,
+            2: CCXGate,
+            3: C3XGate,
+            4: C4XGate
+        }
+        if num_ctrl_qubits in explicit.keys():
+            gate_class = explicit[num_ctrl_qubits]
+            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
+            # if __new__ does not return the same type as cls, init is not called
+            gate.__init__(label=label, ctrl_state=ctrl_state)
+            return gate
+        return super().__new__(cls)
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')

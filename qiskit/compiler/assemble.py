@@ -190,7 +190,8 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-            memory. Also if shots exceeds max_shots for the configured backend.
+            memory. Also if shots exceeds max_shots for the configured backend. Also if
+            the type of shots is not int.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -221,6 +222,9 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
             shots = min(1024, max_shots)
         else:
             shots = 1024
+    elif not isinstance(shots, int):
+        raise QiskitError(
+            "Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
             'Number of shots specified: %s exceeds max_shots property of the '
@@ -416,11 +420,14 @@ def _expand_parameters(circuits, run_config):
     """
 
     parameter_binds = run_config.parameter_binds
+
     if parameter_binds or \
        any(circuit.parameters for circuit in circuits):
 
-        all_bind_parameters = [bind.keys()
+        # Unroll params here in order to handle ParamVects
+        all_bind_parameters = [QuantumCircuit()._unroll_param_dict(bind).keys()
                                for bind in parameter_binds]
+
         all_circuit_parameters = [circuit.parameters for circuit in circuits]
 
         # Collect set of all unique parameters across all circuits and binds

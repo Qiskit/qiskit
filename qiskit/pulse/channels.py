@@ -35,10 +35,30 @@ class Channel(metaclass=ABCMeta):
     hardware signal channels. The final label -> physical channel mapping is the responsibility
     of the hardware backend. For instance, ``DriveChannel(0)`` holds instructions which the backend
     should map to the signal line driving gate operations on the qubit labeled (indexed) 0.
+
+    When serialized channels are identified by their serialized name ``<prefix><index>``.
+    The type of the channel is interpreted from the prefix,
+    and the index often (but not always) maps to the qubit index.
+    All concrete channel classes must have a ``prefix`` class attribute
+    (and instances of that class have an index attribute). Base classes which have
+    ``prefix`` set to ``None`` are prevented from being instantiated.
+
+    To implement a new channel inherit from :class:`Channel` and provide a unique string identifier
+    for the ``prefix`` class attribute.
     """
 
-    prefix = None  # type: str
+    prefix = None  # type: Optional[str]
     """A shorthand string prefix for characterizing the channel type."""
+
+    # pylint: disable=unused-argument
+    def __new__(cls, *args, **kwargs):
+        if cls.prefix is None:
+            raise NotImplementedError(
+                "Cannot instantiate abstract channel. "
+                "See Channel documentation for more information."
+            )
+
+        return super(Channel, cls).__new__(cls)
 
     def __init__(self, index: int):
         """Channel class.
