@@ -23,7 +23,6 @@ from qiskit.circuit import QuantumCircuit, ParameterExpression
 from qiskit.utils import arithmetic
 
 from ..exceptions import OpflowError
-from ..legacy.base_operator import LegacyBaseOperator
 from ..operator_base import OperatorBase
 
 
@@ -499,13 +498,6 @@ class ListOp(OperatorBase):
                                for op in self.oplist],
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        mat_op = self.to_matrix_op(massive=massive).reduce()
-        if isinstance(mat_op, ListOp):
-            raise TypeError('A hierarchical (non-subclass) ListOp cannot be represented by '
-                            'LegacyBaseOperator.')
-        return mat_op.to_legacy_op(massive=massive)
 
     # Array operations:
 

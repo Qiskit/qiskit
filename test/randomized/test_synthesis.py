@@ -39,6 +39,8 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
         self.check_one_qubit_euler_angles(unitary, 'U3')
         self.check_one_qubit_euler_angles(unitary, 'U1X')
+        self.check_one_qubit_euler_angles(unitary, 'PSX')
+        self.check_one_qubit_euler_angles(unitary, 'ZSX')
         self.check_one_qubit_euler_angles(unitary, 'ZYZ')
         self.check_one_qubit_euler_angles(unitary, 'ZXZ')
         self.check_one_qubit_euler_angles(unitary, 'XYX')
