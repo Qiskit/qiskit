@@ -12,7 +12,7 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, Dict, List, Any, Callable
+from typing import Optional, Union, Dict, List, Callable
 import logging
 import warnings
 import operator
@@ -25,18 +25,17 @@ from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
 
-from qiskit.utils import name_args
+from qiskit.utils import name_args, QuantumInstance, aqua_globals
 from qiskit.quantum_info import partial_trace
 from qiskit.utils.validation import validate_min, validate_in_set
-from qiskit.utils.quantum_instance import QuantumInstance
-from ..quantum_algorithm import QuantumAlgorithm
 from ..algorithm_result import AlgorithmResult
+from ..exceptions import AlgorithmError
 
 
 logger = logging.getLogger(__name__)
 
 
-class Grover(QuantumAlgorithm):
+class Grover:
     r"""Grover's Search algorithm.
 
     Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
@@ -196,7 +195,10 @@ class Grover(QuantumAlgorithm):
             [1]: Boyer et al., Tight bounds on quantum searching
                  `<https://arxiv.org/abs/quant-ph/9605034>`_
         """
-        super().__init__(quantum_instance)
+        self._quantum_instance = None
+        if quantum_instance:
+            self.quantum_instance = quantum_instance
+
         _check_deprecated_args(mct_mode, rotation_counts, lam, num_iterations)
 
         if mct_mode is None:
@@ -256,7 +258,20 @@ class Grover(QuantumAlgorithm):
             logger.debug('Incremental mode specified, \
                 ignoring "num_iterations" and "num_solutions".')
 
-        self._ret = {}  # type: Dict[str, Any]
+        self._ret = GroverResult()
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """ Returns quantum instance. """
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
+                                                       BaseBackend, Backend]) -> None:
+        """ Sets quantum instance. """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self._quantum_instance = quantum_instance
 
     @staticmethod
     def optimal_num_iterations(num_solutions: int, num_qubits: int) -> int:
@@ -289,10 +304,10 @@ class Grover(QuantumAlgorithm):
         else:
             qc = self.construct_circuit(power, measurement=True)
             measurement = self._quantum_instance.execute(qc).get_counts(qc)
-            self._ret['measurement'] = measurement
+            self._ret.measurement = dict(measurement)
             top_measurement = max(measurement.items(), key=operator.itemgetter(1))[0]
 
-        self._ret['top_measurement'] = top_measurement
+        self._ret.top_measurement = top_measurement
 
         # as_list = [int(bit) for bit in top_measurement]
         # return self.post_processing(as_list), self.is_good_state(top_measurement)
@@ -358,33 +373,48 @@ class Grover(QuantumAlgorithm):
             qc.add_register(measurement_cr)
             qc.measure(self._grover_operator.reflection_qubits, measurement_cr)
 
-        self._ret['circuit'] = qc
+        self._ret.circuit = qc
         return qc
+
+    def run(self,
+            quantum_instance: Optional[
+                Union[QuantumInstance, Backend, BaseBackend]] = None,
+            **kwargs) -> 'GroverResult':
+        """Execute the algorithm with selected backend.
+
+        Args:
+            quantum_instance: the experimental setting.
+            kwargs (dict): kwargs
+        Returns:
+            results of an algorithm.
+        Raises:
+            AlgorithmError: If a quantum instance or backend has not been provided
+        """
+        if quantum_instance is None and self.quantum_instance is None:
+            raise AlgorithmError("A QuantumInstance or Backend "
+                                 "must be supplied to run the quantum algorithm.")
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            self.quantum_instance = QuantumInstance(quantum_instance)
+            self.quantum_instance.set_config(**kwargs)
+        else:
+            if quantum_instance is not None:
+                self.quantum_instance = quantum_instance
+
+        return self._run()
 
     def _run(self) -> 'GroverResult':
         # If ``rotation_counts`` is specified, run Grover's circuit for the powers specified
         # in ``rotation_counts``. Once a good state is found (oracle_evaluation is True), stop.
         for power in self._iterations:
             if self._sample_from_iterations:
-                power = self.random.integers(power)
+                power = aqua_globals.random.integers(power)
             assignment, oracle_evaluation = self._run_experiment(power)
             if oracle_evaluation:
                 break
 
-        # TODO remove all former dictionary logic
-        self._ret['result'] = assignment
-        self._ret['oracle_evaluation'] = oracle_evaluation
-
-        result = GroverResult()
-        if 'measurement' in self._ret:
-            result.measurement = dict(self._ret['measurement'])
-        if 'top_measurement' in self._ret:
-            result.top_measurement = self._ret['top_measurement']
-        if 'circuit' in self._ret:
-            result.circuit = self._ret['circuit']
-        result.assignment = self._ret['result']
-        result.oracle_evaluation = self._ret['oracle_evaluation']
-        return result
+        self._ret.assignment = assignment
+        self._ret.oracle_evaluation = oracle_evaluation
+        return self._ret
 
     @property
     def grover_operator(self) -> QuantumCircuit:
@@ -467,64 +497,60 @@ def _check_is_good_state(is_good_state):
 class GroverResult(AlgorithmResult):
     """Grover Result."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._measurement = None
+        self._top_measurement = None
+        self._circuit = None
+        self._assignment = None
+        self._oracle_evaluation = None
+
     @property
     def measurement(self) -> Optional[Dict[str, int]]:
         """ returns measurement """
-        return self.get('measurement')
+        return self._measurement
 
     @measurement.setter
     def measurement(self, value: Dict[str, int]) -> None:
         """ set measurement """
-        self.data['measurement'] = value
+        self._measurement = value
 
     @property
     def top_measurement(self) -> Optional[str]:
         """ return top measurement """
-        return self.get('top_measurement')
+        return self._top_measurement
 
     @top_measurement.setter
     def top_measurement(self, value: str) -> None:
         """ set top measurement """
-        self.data['top_measurement'] = value
+        self._top_measurement = value
 
     @property
     def circuit(self) -> Optional[QuantumCircuit]:
         """ return circuit """
-        return self.get('circuit')
+        return self._circuit
 
     @circuit.setter
     def circuit(self, value: QuantumCircuit) -> None:
         """ set circuit """
-        self.data['circuit'] = value
+        self._circuit = value
 
     @property
     def assignment(self) -> List[int]:
         """ return assignment """
-        return self.get('assignment')
+        return self._assignment
 
     @assignment.setter
     def assignment(self, value: List[int]) -> None:
         """ set assignment """
-        self.data['assignment'] = value
+        self._assignment = value
 
     @property
     def oracle_evaluation(self) -> bool:
         """ return oracle evaluation """
-        return self.get('oracle_evaluation')
+        return self._oracle_evaluation
 
     @oracle_evaluation.setter
     def oracle_evaluation(self, value: bool) -> None:
         """ set oracle evaluation """
-        self.data['oracle_evaluation'] = value
-
-    @staticmethod
-    def from_dict(a_dict: Dict) -> 'GroverResult':
-        """ create new object from a dictionary """
-        return GroverResult(a_dict)
-
-    def __getitem__(self, key: object) -> object:
-        if key == 'result':
-            warnings.warn('result deprecated, use assignment property.', DeprecationWarning)
-            return super().__getitem__('assignment')
-
-        return super().__getitem__(key)
+        self._oracle_evaluation = value
