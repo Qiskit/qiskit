@@ -436,7 +436,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -453,7 +453,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -470,7 +470,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -488,7 +488,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -927,14 +927,16 @@ class TestTranspile(QiskitTestCase):
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
-
         qc = QuantumCircuit(1)
         qc.ry(0.2, 0)
 
         out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
                         optimization_level=optimization_level)
 
-        expected = QuantumCircuit(1)
+        # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
+        # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
+        # for the second and third RZ gates in the U3 decomposition.
+        expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
         expected.p(np.pi + 0.2, 0)
         expected.sx(0)

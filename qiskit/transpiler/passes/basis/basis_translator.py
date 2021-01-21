@@ -151,12 +151,14 @@ class BasisTranslator(TransformationPass):
                     bound_target_dag = circuit_to_dag(target_circuit)
                 else:
                     bound_target_dag = target_dag
-                if bound_target_dag.global_phase:
-                    dag.global_phase += bound_target_dag.global_phase
+
                 if (len(bound_target_dag.op_nodes()) == 1
                         and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
                     dag_op = bound_target_dag.op_nodes()[0].op
                     dag.substitute_node(node, dag_op, inplace=True)
+
+                    if bound_target_dag.global_phase:
+                        dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:
