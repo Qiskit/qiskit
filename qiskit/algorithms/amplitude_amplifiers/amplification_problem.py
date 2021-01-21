@@ -12,10 +12,11 @@
 
 """The Amplification problem class."""
 
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Union, List
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
+from qiskit.quantum_info import Statevector
 
 
 class AmplificationProblem:
@@ -31,6 +32,7 @@ class AmplificationProblem:
                  state_preparation: Optional[QuantumCircuit] = None,
                  grover_operator: Optional[QuantumCircuit] = None,
                  post_processing: Optional[Callable[[str], Any]] = None,
+                 objective_qubits: Optional[Union[int, List[int]]] = None,
                  is_good_state: Optional[Callable[[str], bool]] = None,
                  ) -> None:
         r"""
@@ -41,12 +43,16 @@ class AmplificationProblem:
             grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
                 phase estimation circuit.
             post_processing: A mapping applied to the most likely bitstring.
+            objective_qubits: If set, specifies the indices of the qubits that should be measured.
+                If None, all qubits will be measured. The ``is_good_state`` function will be
+                applied on the measurement outcome of these qubits.
             is_good_state: A function to check whether a string represents a good state.
         """
         self._oracle = oracle
         self._state_preparation = state_preparation
         self._grover_operator = grover_operator
         self._post_processing = post_processing
+        self._objective_qubits = objective_qubits
         self._is_good_state = is_good_state
 
     @property
@@ -91,7 +97,7 @@ class AmplificationProblem:
         self._state_preparation = state_preparation
 
     @property
-    def post_processing(self) -> Callable[[float], float]:
+    def post_processing(self) -> Callable[[str], Any]:
         """Apply post processing to the input value.
 
         Returns:
@@ -103,13 +109,39 @@ class AmplificationProblem:
         return self._post_processing
 
     @post_processing.setter
-    def post_processing(self, post_processing: Callable[[float], float]) -> None:
+    def post_processing(self, post_processing: Callable[[str], Any]) -> None:
         """Set the post processing function.
 
         Args:
             post_processing: A handle to the post processing function.
         """
         self._post_processing = post_processing
+
+    @property
+    def objective_qubits(self) -> List[int]:
+        """The indices of the objective qubits.
+
+        Returns:
+            The indices of the objective qubits as list of integers.
+        """
+        if self._objective_qubits is None:
+            return list(range(self.oracle.num_qubits))
+
+        if isinstance(self._objective_qubits, int):
+            return [self._objective_qubits]
+
+        return self._objective_qubits
+
+    @objective_qubits.setter
+    def objective_qubits(self, objective_qubits: Optional[Union[int, List[int]]]) -> None:
+        """Set the objective qubits.
+
+        Args:
+            objective_qubits: The indices of the qubits that should be measured.
+                If None, all qubits will be measured. The ``is_good_state`` function will be
+                applied on the measurement outcome of these qubits.
+        """
+        self._objective_qubits = objective_qubits
 
     @property
     def is_good_state(self) -> Callable[[str], float]:
@@ -131,7 +163,9 @@ class AmplificationProblem:
         return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
 
     @is_good_state.setter
-    def is_good_state(self, is_good_state: Callable[[str], float]) -> None:
+    def is_good_state(self,
+                      is_good_state: Union[Callable[[str], bool], List[int], List[str], Statevector]
+                      ) -> None:
         """Set the ``is_good_state`` function.
 
         Args:

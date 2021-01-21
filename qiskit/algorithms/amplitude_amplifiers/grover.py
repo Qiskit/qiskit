@@ -184,11 +184,9 @@ class Grover:
         result = GroverResult()
         result.iterations = iterations
 
-        # If ``rotation_counts`` is specified, run Grover's circuit for the powers specified
-        # in ``rotation_counts``. Once a good state is found (oracle_evaluation is True), stop.
         for power in iterations:
             if self._sample_from_iterations:
-                power = np.random.integers(power)
+                power = np.random.randint(power)
             top_measurement, oracle_evaluation = self._single_experiment(amplification_problem,
                                                                          power)
             if oracle_evaluation is True:
@@ -218,11 +216,14 @@ class Grover:
             qc = self.construct_circuit(problem, power, measurement=False)
             result = self._quantum_instance.execute(qc)
             statevector = result.get_statevector(qc)
-            num_bits = len(problem.grover_operator.reflection_qubits)
+            num_bits = len(problem.objective_qubits)
+
             # trace out work qubits
             if qc.width() != num_bits:
-                rho = partial_trace(statevector, range(num_bits, qc.width()))
+                indices = [i for i in range(qc.num_qubits) if i not in problem.objective_qubits]
+                rho = partial_trace(statevector, indices)
                 statevector = np.diag(rho.data)
+
             max_amplitude = max(statevector.max(), statevector.min(), key=abs)
             max_amplitude_idx = np.where(statevector == max_amplitude)[0][0]
             top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
@@ -262,10 +263,9 @@ class Grover:
             qc.compose(problem.grover_operator.power(power), inplace=True)
 
         if measurement:
-            reflection_qubits = problem.grover_operator.reflection_qubits
-            measurement_cr = ClassicalRegister(len(reflection_qubits))
+            measurement_cr = ClassicalRegister(len(problem.objective_qubits))
             qc.add_register(measurement_cr)
-            qc.measure(reflection_qubits, measurement_cr)
+            qc.measure(problem.objective_qubits, measurement_cr)
 
         return qc
 
