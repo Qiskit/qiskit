@@ -71,10 +71,7 @@ def _disassemble_circuit(qobj) -> CircuitModule:
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
 def _qobj_to_circuit_cals(qobj_cals):
-    qc_cals = {}
-    for gate in qobj_cals['gates']:
-        qc_cals[gate['name']] = {(tuple(gate['qubits']), tuple(gate['params'])): pulse.Schedule()}
-    return qc_cals
+    return {gate['name']: {(tuple(gate['qubits']), tuple(gate['params'])): pulse.Schedule()} for gate in qobj_cals['gates']}
 
 def _experiments_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj.
