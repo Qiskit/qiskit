@@ -1078,6 +1078,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(res.count_ops()['ecr'], 1)
         self.assertTrue(Operator(res).equiv(circuit))
 
+
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
 
