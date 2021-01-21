@@ -25,6 +25,7 @@ Standard Gates
 
    Barrier
    C3XGate
+   C3SXGate
    C4XGate
    CCXGate
    DCXGate
