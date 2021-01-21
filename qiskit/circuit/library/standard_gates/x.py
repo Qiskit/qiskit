@@ -542,7 +542,9 @@ class C3XGate(ControlledGate):
         if angle is not None:
             return C3SqrtXGate(label, ctrl_state, angle=angle)
 
-        return cls(None, label, ctrl_state)
+        instance = super().__new__(cls)
+        instance.__init__(None, label, ctrl_state)
+        return instance
 
     # pylint: disable=unused-argument
     def __init__(self, angle=None, label=None, ctrl_state=None):
@@ -642,7 +644,7 @@ class C3XGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
-        return C3XSqrtTGate(ctrl_state=self.ctrl_state)
+        return C3XGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the C4X gate."""
