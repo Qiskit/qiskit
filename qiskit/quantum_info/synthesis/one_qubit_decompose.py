@@ -30,7 +30,7 @@ DEFAULT_ATOL = 1e-12
 
 ONE_QUBIT_EULER_BASIS_GATES = {
     'U3': ['u3'],
-    'U321': ['u3'],
+    'U321': ['u3', 'u2', 'u1'],
     'U': ['u'],
     'PSX': ['p', 'sx'],
     'U1X': ['u1', 'rx'],
