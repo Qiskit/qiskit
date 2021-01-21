@@ -92,8 +92,8 @@ class TestPresetPassManager(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.h(1)
-        qc.cp(np.pi/8,0,1)
-        qc.cp(np.pi/4,0,2)
+        qc.cp(np.pi / 8, 0, 1)
+        qc.cp(np.pi / 4, 0, 2)
         result = transpile(qc, basis_gates=['id', 'rz', 'sx', 'x', 'cx'],
                            optimization_level=2)
 
@@ -102,7 +102,7 @@ class TestPresetPassManager(QiskitTestCase):
         # Assert no u1 or rx gates from commutative cancellation end up in
         # end up in the output since they're not in the target basis gates
         self.assertNotIn('u1', op_nodes)
-        self.assertNotIn('u1', op_nodes)
+        self.assertNotIn('rx', op_nodes)
 
 
 @ddt
