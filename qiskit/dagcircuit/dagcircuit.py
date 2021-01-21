@@ -826,6 +826,12 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
+        if (
+                self.global_phase != other.global_phase
+                or self.calibrations != other.calibrations
+        ):
+            return False
+
         return rx.is_isomorphic_node_match(self._multi_graph,
                                            other._multi_graph,
                                            DAGNode.semantic_eq)
