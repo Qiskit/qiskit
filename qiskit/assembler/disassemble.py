@@ -71,7 +71,8 @@ def _disassemble_circuit(qobj) -> CircuitModule:
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
 def _qobj_to_circuit_cals(qobj_cals):
-    return {gate['name']: {(tuple(gate['qubits']), tuple(gate['params'])): pulse.Schedule()} for gate in qobj_cals['gates']}
+    return {gate['name']: {(tuple(gate['qubits']), tuple(gate['params'])): pulse.Schedule()}
+            for gate in qobj_cals['gates']}
 
 def _experiments_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj.
@@ -168,10 +169,12 @@ def _experiments_to_circuits(qobj):
             if conditional and name != 'bfunc':
                 _inst.c_if(conditional['register'], conditional['value'])
                 conditional = {}
-        if hasattr(qobj.config, 'calibrations'): 
-            circuit.calibrations = dict(**circuit.calibrations , **_qobj_to_circuit_cals(qobj.config.calibrations.to_dict()))
+        if hasattr(qobj.config, 'calibrations'):
+            circuit.calibrations = dict(**circuit.calibrations,
+                                        **_qobj_to_circuit_cals(qobj.config.calibrations.to_dict()))
         if hasattr(exp.config, 'calibrations'):
-            circuit.calibrations = dict(**circuit.calibrations, **_qobj_to_circuit_cals(exp.config.calibrations.to_dict()))
+            circuit.calibrations = dict(**circuit.calibrations,
+                                        **_qobj_to_circuit_cals(exp.config.calibrations.to_dict()))
         circuits.append(circuit)
     return circuits
 
