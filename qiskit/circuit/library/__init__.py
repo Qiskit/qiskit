@@ -200,6 +200,7 @@ N-local circuits
 
    NLocal
    TwoLocal
+   PauliTwoDesign
    RealAmplitudes
    EfficientSU2
    ExcitationPreserving
@@ -312,6 +313,7 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
+    PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,
