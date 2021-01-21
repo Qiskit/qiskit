@@ -14,6 +14,7 @@
 ScalarOp class
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -46,7 +47,7 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if not isinstance(coeff, Number):
             QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
-        super().__init__(*self._automatic_dims(dims, np.product(dims)))
+        super().__init__(input_dims=dims, output_dims=dims)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -105,9 +106,10 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
-            coeff = self.coeff * other.coeff
-            dims = other.input_dims() + self.input_dims()
-            return ScalarOp(dims, coeff=coeff)
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.tensor(other._op_shape)
+            return ret
         return other.expand(self)
 
     def expand(self, other):
@@ -123,9 +125,10 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
         if isinstance(other, ScalarOp):
-            coeff = self.coeff * other.coeff
-            dims = self.input_dims() + other.input_dims()
-            return ScalarOp(dims, coeff=coeff)
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.expand(other._op_shape)
+            return ret
         return other.tensor(self)
 
     def compose(self, other, qargs=None, front=False):
@@ -158,18 +161,21 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
-        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
 
         # If other is also an ScalarOp we only need to
         # update the coefficient and dimensions
         if isinstance(other, ScalarOp):
-            coeff = self.coeff * other.coeff
-            return ScalarOp(input_dims, coeff=coeff)
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = new_shape
+            return ret
 
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
         if qargs is None:
-            ret = other.reshape(input_dims, output_dims)
+            ret = copy.copy(other)
+            ret._op_shape = new_shape
             # Other operator might not support scalar multiplication
             # so we treat the identity as a special case to avoid a
             # possible error
@@ -228,7 +234,7 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         # Next if we are adding two ScalarOps we return a ScalarOp
         if isinstance(other, ScalarOp):

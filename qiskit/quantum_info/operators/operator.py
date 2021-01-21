@@ -71,6 +71,7 @@ class Operator(BaseOperator, TolerancesMixin):
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
         """
+        op_shape = None
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
@@ -89,10 +90,7 @@ class Operator(BaseOperator, TolerancesMixin):
             # an Operator object.
             data = data.to_operator()
             self._data = data.data
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
+            op_shape = data._op_shape
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -100,9 +98,11 @@ class Operator(BaseOperator, TolerancesMixin):
             self._data = np.asarray(data.to_matrix(), dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
-        # Determine input and output dimensions
-        dout, din = self._data.shape
-        super().__init__(*self._automatic_dims(input_dims, din, output_dims, dout))
+
+        super().__init__(op_shape=op_shape,
+                         input_dims=input_dims,
+                         output_dims=output_dims,
+                         shape=self._data.shape)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -216,8 +216,7 @@ class Operator(BaseOperator, TolerancesMixin):
         # Make a shallow copy and update array
         ret = copy.copy(self)
         ret._data = np.transpose(self._data)
-        # Swap input and output dimensions
-        ret._set_dims(self.output_dims(), self.input_dims())
+        ret._op_shape = self._op_shape.transpose()
         return ret
 
     def compose(self, other, qargs=None, front=False):
@@ -248,10 +247,12 @@ class Operator(BaseOperator, TolerancesMixin):
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Operator):
             other = Operator(other)
+
         # Validate dimensions are compatible and return the composed
         # operator dimensions
-        input_dims, output_dims = self._get_compose_dims(
-            other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        input_dims = new_shape.dims_r()
+        output_dims = new_shape.dims_l()
 
         # Full composition of operators
         if qargs is None:
@@ -261,15 +262,18 @@ class Operator(BaseOperator, TolerancesMixin):
             else:
                 # Composition other * self
                 data = np.dot(other.data, self._data)
-            return Operator(data, input_dims, output_dims)
+            ret = Operator(data, input_dims, output_dims)
+            ret._op_shape = new_shape
+            return ret
 
         # Compose with other on subsystem
+        num_qargs_l, num_qargs_r = self._op_shape.num_qargs
         if front:
-            num_indices = self._num_input
-            shift = self._num_output
+            num_indices = num_qargs_r
+            shift = num_qargs_l
             right_mul = True
         else:
-            num_indices = self._num_output
+            num_indices = num_qargs_l
             shift = 0
             right_mul = False
 
@@ -277,14 +281,16 @@ class Operator(BaseOperator, TolerancesMixin):
         # Note that we must reverse the subsystem dimension order as
         # qubit 0 corresponds to the right-most position in the tensor
         # product, which is the last tensor wire index.
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
+        tensor = np.reshape(self.data, self._op_shape.tensor_shape)
+        mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
-        return Operator(data, input_dims, output_dims)
+        ret = Operator(data, input_dims, output_dims)
+        ret._op_shape = new_shape
+        return ret
 
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
@@ -341,10 +347,10 @@ class Operator(BaseOperator, TolerancesMixin):
         """
         if not isinstance(other, Operator):
             other = Operator(other)
-        input_dims = other.input_dims() + self.input_dims()
-        output_dims = other.output_dims() + self.output_dims()
-        data = np.kron(self._data, other._data)
-        return Operator(data, input_dims, output_dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(self._data, other._data)
+        ret._op_shape = self._op_shape.tensor(other._op_shape)
+        return ret
 
     def expand(self, other):
         """Return the tensor product operator other ⊗ self.
@@ -360,10 +366,10 @@ class Operator(BaseOperator, TolerancesMixin):
         """
         if not isinstance(other, Operator):
             other = Operator(other)
-        input_dims = self.input_dims() + other.input_dims()
-        output_dims = self.output_dims() + other.output_dims()
-        data = np.kron(other._data, self._data)
-        return Operator(data, input_dims, output_dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(other._data, self._data)
+        ret._op_shape = self._op_shape.expand(other._op_shape)
+        return ret
 
     def _add(self, other, qargs=None):
         """Return the operator self + other.
@@ -392,7 +398,7 @@ class Operator(BaseOperator, TolerancesMixin):
         if not isinstance(other, Operator):
             other = Operator(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
         other = ScalarOp._pad_with_identity(self, other, qargs)
 
         ret = copy.copy(self)
@@ -441,12 +447,6 @@ class Operator(BaseOperator, TolerancesMixin):
             rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
-
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return tuple(reversed(self.output_dims())) + tuple(
-            reversed(self.input_dims()))
 
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
@@ -535,7 +535,7 @@ class Operator(BaseOperator, TolerancesMixin):
                                   'definition is {} but expected QuantumCircuit.'.format(
                                       obj.name, type(obj.definition)))
             if obj.definition.global_phase:
-                dimension = 2 ** self.num_qubits
+                dimension = 2 ** obj.num_qubits
                 op = self.compose(
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs)

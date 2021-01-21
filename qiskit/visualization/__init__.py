@@ -71,9 +71,10 @@ Pulse Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   pulse_drawer
-   ~qiskit.visualization.pulse.qcstyle
-   ~qiskit.visualization.pulse.interpolation
+   ~qiskit.visualization.pulse_v2.draw
+   ~qiskit.visualization.pulse_v2.IQXStandard
+   ~qiskit.visualization.pulse_v2.IQXSimple
+   ~qiskit.visualization.pulse_v2.IQXDebugging
 
 Timeline Visualizations
 =======================
@@ -122,6 +123,7 @@ from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer
+from .pulse_v2 import draw as pulse_drawer_v2
 from .timeline import draw as timeline_drawer
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
