@@ -91,7 +91,7 @@ class TestSabreSwap(QiskitTestCase):
 
         passmanager = PassManager(SabreSwap(coupling))
         _ = passmanager.run(QuantumCircuit(1))
-        print(set(coupling.get_edges()))
+
         self.assertEqual(set([(1, 0), (2, 0), (2, 1), (3, 2), (3, 4), (4, 2)]), set(coupling.get_edges()))
 
 
