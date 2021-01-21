@@ -513,7 +513,7 @@ class C3SXGate(ControlledGate):
         """Invert this gate. The C3X is its own inverse."""
         # pylint: disable=invalid-unary-operand-type
         if self._angle is not None:
-            angle = -angle
+            angle = -self._angle
         else:
             angle = None
 
