@@ -22,6 +22,9 @@ from qiskit.transpiler.passes.optimization.commutation_analysis import Commutati
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
+from qiskit.circuit.library.standard_gates.p import PhaseGate
+from qiskit.circuit.library.standard_gates.rz import RZGate
+
 
 _CUTOFF_PRECISION = 1E-5
 
@@ -35,8 +38,23 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self):
+    def __init__(self, basis_gates=None):
+        """
+        CommutativeCancellation initializer.
+
+        Args:
+            basis_gates (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
+                of this pass, the basis is the set intersection between the `basis` parameter
+                and the gates in the dag.
+        """
         super().__init__()
+        if basis_gates:
+            self.basis = set(basis_gates)
+        else:
+            self.basis = set()
+
+        self._z_variable_gates = ['rz', 'p', 'u1']
+        self._var_z_map = {'rz': RZGate, 'p': PhaseGate, 'u1': U1Gate}
         self.requires.append(CommutationAnalysis())
 
     def run(self, dag):
@@ -51,6 +69,18 @@ class CommutativeCancellation(TransformationPass):
         Raises:
             TranspilerError: when the 1-qubit rotation gates are not found
         """
+        var_z_gate = None
+        z_var_gates = [gate for gate in dag.properties()['operations'].keys()
+                       if gate in set(self._z_variable_gates)]
+        if z_var_gates:
+            # priortize z gates in circuit
+            var_z_gate = self._var_z_map[next(iter(z_var_gates))]
+        else:
+            z_var_gates = [gate for gate in self.basis
+                           if gate in set(self._z_variable_gates)]
+            if z_var_gates:
+                var_z_gate = self._var_z_map[next(iter(z_var_gates))]
+
         # Now the gates supported are hard-coded
         q_gate_list = ['cx', 'cy', 'cz', 'h', 'y']
 
@@ -76,7 +106,7 @@ class CommutativeCancellation(TransformationPass):
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ['z', 'u1', 'rz', 't', 's']:
+                    if num_qargs == 1 and node.name in ['p', 'z', 'u1', 'rz', 't', 's']:
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['rx', 'x']:
                         cancellation_sets[('x_rotation', wire_name, com_set_idx)].append(node)
@@ -106,7 +136,7 @@ class CommutativeCancellation(TransformationPass):
                             or current_node.qargs[0] != run_qarg):
                         raise TranspilerError("internal error")
 
-                    if current_node.name in ['u1', 'rz', 'rx']:
+                    if current_node.name in ['p', 'u1', 'rz', 'rx']:
                         current_angle = float(current_node.op.params[0])
                     elif current_node.name in ['z', 'x']:
                         current_angle = np.pi
@@ -120,7 +150,10 @@ class CommutativeCancellation(TransformationPass):
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == 'z_rotation':
-                    new_op = U1Gate(total_angle)
+                    if var_z_gate:
+                        new_op = var_z_gate(total_angle)
+                    else:
+                        continue
                 elif cancel_set_key[0] == 'x_rotation':
                     new_op = RXGate(total_angle)
 
