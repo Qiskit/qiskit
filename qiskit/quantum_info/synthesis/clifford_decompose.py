@@ -19,7 +19,9 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _append_z, _append_x, _append_h, _append_s, _append_v, _append_w, _append_cx, _append_swap)
+    _append_z, _append_x, _append_y, _append_h, _append_s, _append_sdg, _append_v, _append_w,
+    _append_cx, _append_swap)
+from qiskit.quantum_info.operators.symplectic import PauliTable
 
 
 def decompose_clifford(clifford):
@@ -413,3 +415,268 @@ def _set_row_z_zero(clifford, circuit, qubit):
             circuit.s(qubit)
         _append_h(clifford, qubit)
         circuit.h(qubit)
+
+# ---------------------------------------------------------------------
+# Synthesis based on Bravyi's greedy clifford compiler
+# ---------------------------------------------------------------------
+
+def decompose_clifford_greedy(clifford):
+    """Decompose a Clifford operator into a QuantumCircuit.
+
+    Args:
+        clifford (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+    """
+
+    num_qubits = clifford.num_qubits
+    circ = QuantumCircuit(num_qubits)
+    qubit_list = list(range(num_qubits))
+    clifford_cpy = clifford.copy()
+
+    while len(qubit_list) > 0:
+        clifford_cpy_inv = clifford_cpy.adjoint()
+
+        list_greedy_cost = []
+        for qubit in qubit_list:
+            cliff_ox = clifford_cpy.copy()
+            _append_x(cliff_ox, qubit)
+            cliff_ox = cliff_ox.compose(clifford_cpy_inv)
+
+            cliff_oz = clifford_cpy.copy()
+            _append_z(cliff_oz, qubit)
+            cliff_oz = cliff_oz.compose(clifford_cpy_inv)
+
+            list_pairs = []
+            pauli_count = 0
+
+            for i in qubit_list:
+                typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, i)
+                list_pairs.append(typeq)
+                pauli_count += 1
+            cost = _compute_greedy_cost(list_pairs)
+            list_greedy_cost.append([cost, qubit])
+
+        min_cost, min_qubit = (sorted(list_greedy_cost))[0]
+
+        cliff_ox = clifford_cpy.copy()
+        _append_x(cliff_ox, min_qubit)
+        cliff_ox = cliff_ox.compose(clifford_cpy_inv)
+
+        cliff_oz = clifford_cpy.copy()
+        _append_z(cliff_oz, min_qubit)
+        cliff_oz = cliff_oz.compose(clifford_cpy_inv)
+
+        decouple_circ, decouple_cliff = _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits)
+        circ = circ.compose(decouple_circ)
+
+        clifford_cpy = decouple_cliff.adjoint().compose(clifford_cpy)
+        qubit_list.remove(min_qubit)
+
+    for qubit in range(num_qubits):
+        stab = clifford_cpy.stabilizer.phase[qubit]
+        destab = clifford_cpy.destabilizer.phase[qubit]
+        if destab and stab:
+            circ.y(qubit)
+        elif not destab and stab:
+            circ.x(qubit)
+        elif destab and not stab:
+            circ.z(qubit)
+
+    return(circ)
+
+
+# ---------------------------------------------------------------------
+# Helper functions for Bravyi's greedy clifford compiler
+# ---------------------------------------------------------------------
+# Global arrays
+A = [[[False, True], [True, True]],
+     [[False, True], [True, False]],
+     [[True, True], [False, True]],
+     [[True, True], [True, False]],
+     [[True, False], [False, True]],
+     [[True, False], [True, True]]] #['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
+B = [[[True, False], [True, False]],
+     [[False, True], [False, True]],
+     [[True, True], [True, True]]] #['XX', 'YY', 'ZZ']
+C = [[[True, False], [False, False]],
+     [[False, True], [False, False]],
+     [[True, True], [False, False]]] #['XI', 'YI', 'ZI']
+D = [[[False, False], [False, True]],
+     [[False, False], [True, False]],
+     [[False, False], [True, True]]] #['IX', 'IY', 'IZ']
+E = [[[False, False], [False, False]]] #['II']
+
+
+def _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit):
+    """Converts a pair of Ox and Oz Cliffords to a type"""
+
+    type_ox = [cliff_ox.destabilizer.phase[qubit], cliff_ox.stabilizer.phase[qubit]]
+    type_oz = [cliff_oz.destabilizer.phase[qubit], cliff_oz.stabilizer.phase[qubit]]
+    return [type_ox, type_oz]
+
+
+def _compute_greedy_cost(list_pairs):
+    """ Compute the CNOT cost of one layer of the algorithm"""
+
+    A_num = 0
+    B_num = 0
+    C_num = 0
+    D_num = 0
+    E_num = 0
+
+    for pair in list_pairs:
+        if pair in A:
+            A_num += 1
+        elif pair in B:
+            B_num += 1
+        elif pair in C:
+            C_num += 1
+        elif pair in D:
+            D_num += 1
+        elif pair in E:
+            E_num += 1
+
+    #print (A_num, B_num, C_num, D_num)
+    assert ((A_num % 2) == 1)
+    cost = 3 * (A_num - 1) / 2 + (B_num + 1) * (B_num > 0) + C_num + D_num
+    if list_pairs[0] not in A:  # additional SWAP
+        cost += 3
+
+    return(cost)
+
+
+def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
+    """Calculate a decoupling operator D:
+    D^{-1} * ox * D = x1
+    D^{-1} * oz * D = z1
+    """
+
+    circ = QuantumCircuit(num_qubits)
+    decouple_cliff = cliff_ox.copy()
+    num_qubits = decouple_cliff.num_qubits
+    decouple_cliff.table.phase = np.zeros(2 * num_qubits)
+
+    qubit0 = min_qubit
+
+    # 1-qubit gates
+    for qubit in qubit_list:
+
+        typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
+
+        if typeq in [[[True, True], [False, False]],
+                     [[True, True], [True, True]],
+                     [[True, True], [True, False]]]: #["YI", "YY", "YZ"]:
+            circ.s(qubit)
+            _append_s(decouple_cliff, qubit)
+
+        elif typeq in [[[True, False], [False, False]],
+                       [[True, False], [True, False]],
+                       [[True, False], [False, True]],
+                       [[False, False], [False, True]]]: #["ZI", "IX", "ZZ", "ZX"]:
+            circ.h(qubit)
+            _append_h(decouple_cliff, qubit)
+
+        elif typeq in [[[False, False], [True, True]],
+                       [[True, False], [True, True]]]: #["IY", "ZY"]:
+            circ.s(qubit)
+            circ.h(qubit)
+            _append_s(decouple_cliff, qubit)
+            _append_h(decouple_cliff, qubit)
+
+        elif typeq == [[True, True], [False, True]]: #"YX":
+            circ.h(qubit)
+            circ.s(qubit)
+            _append_h(decouple_cliff, qubit)
+            _append_s(decouple_cliff, qubit)
+
+        elif typeq == [[False, True], [True, True]]: #"XY":
+            circ.s(qubit)
+            circ.h(qubit)
+            circ.s(qubit)
+            _append_s(decouple_cliff, qubit)
+            _append_h(decouple_cliff, qubit)
+            _append_s(decouple_cliff, qubit)
+
+    # 2-qubit gates
+    A_qubits = []
+    B_qubits = []
+    C_qubits = []
+    D_qubits = []
+
+    for qubit in qubit_list:
+        typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
+        if typeq in A:
+            A_qubits.append(qubit)
+        elif typeq in B:
+            B_qubits.append(qubit)
+        elif typeq in C:
+            C_qubits.append(qubit)
+        elif typeq in D:
+            D_qubits.append(qubit)
+
+    #print (A_qubits, B_qubits, C_qubits, D_qubits)
+    assert (len(A_qubits) % 2 == 1)
+
+    if qubit0 not in A_qubits:
+        #print (qubit0, A_qubits, B_qubits, C_qubits, D_qubits)
+        #print ("SWAP")
+        circ.swap(qubit0, A_qubits[0])
+        _append_swap(decouple_cliff, qubit0, A_qubits[0])
+        if qubit0 in B_qubits:
+            B_qubits.remove(qubit0)
+            B_qubits.append(A_qubits[0])
+            A_qubits.remove(A_qubits[0])
+            A_qubits.append(qubit0)
+        elif qubit0 in C_qubits:
+            C_qubits.remove(qubit0)
+            C_qubits.append(A_qubits[0])
+            A_qubits.remove(A_qubits[0])
+            A_qubits.append(qubit0)
+        elif qubit0 in D_qubits:
+            D_qubits.remove(qubit0)
+            D_qubits.append(A_qubits[0])
+            A_qubits.remove(A_qubits[0])
+            A_qubits.append(qubit0)
+        else:
+            A_qubits.remove(A_qubits[0])
+            A_qubits.append(qubit0)
+
+    for qubit in C_qubits:
+        #print ("in C")
+        circ.cx(qubit0, qubit)
+        _append_cx(decouple_cliff, qubit0, qubit)
+
+    for qubit in D_qubits:
+        #print ("in D")
+        circ.cx(qubit, qubit0)
+        _append_cx(decouple_cliff, qubit, qubit0)
+
+    if len(B_qubits) > 1:
+        for qubit in B_qubits[1:]:
+            circ.cx(B_qubits[0], qubit)
+            _append_cx(decouple_cliff, B_qubits[0], qubit)
+
+    if len(B_qubits) > 0:
+        #print ("in B")
+        circ.cx(qubit0, B_qubits[0])
+        circ.h(B_qubits[0])
+        circ.cx(B_qubits[0], qubit0)
+        _append_cx(decouple_cliff, qubit0, B_qubits[0])
+        _append_h(decouple_cliff, B_qubits[0])
+        _append_cx(decouple_cliff, B_qubits[0], qubit0)
+
+    Alen = int((len(A_qubits) - 1) / 2)
+    if Alen > 0:
+        A_qubits.remove(qubit0)
+    for qubit in range(Alen):
+        #print ("in A", qubit0, A_qubits)
+        circ.cx(A_qubits[2 * qubit + 1], A_qubits[2 * qubit])
+        circ.cx(A_qubits[2 * qubit], qubit0)
+        circ.cx(qubit0, A_qubits[2 * qubit + 1])
+        _append_cx(decouple_cliff, A_qubits[2 * qubit + 1], A_qubits[2 * qubit])
+        _append_cx(decouple_cliff, A_qubits[2 * qubit], qubit0)
+        _append_cx(decouple_cliff, qubit0, A_qubits[2 * qubit + 1])
+
+    return(circ, decouple_cliff)
