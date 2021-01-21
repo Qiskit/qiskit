@@ -38,8 +38,8 @@ from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
                                     U3Gate, CHGate, CRZGate, CU3Gate, CUGate,
                                     SXGate, CSXGate, MSGate, Barrier, RCCXGate,
                                     RC3XGate, MCU1Gate, MCXGate, MCXGrayCode,
-                                    MCXRecursive, MCXVChain, C3XGate, C4XGate,
-                                    MCPhaseGate)
+                                    MCXRecursive, MCXVChain, C3XGate, C3SXGate,
+                                    C4XGate, MCPhaseGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
@@ -1253,6 +1253,7 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
                 else:
                     base_mat = Operator(gate).data
+
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
                 self.assertEqual(Operator(cgate), Operator(target_mat))
@@ -1296,6 +1297,7 @@ class TestControlledGateLabel(QiskitTestCase):
                       (CXGate, []),
                       (CCXGate, []),
                       (C3XGate, []),
+                      (C3SXGate, []),
                       (C4XGate, []),
                       (MCXGate, [5]),
                       (PhaseGate, [0.1]),
