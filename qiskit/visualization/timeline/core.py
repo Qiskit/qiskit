@@ -136,6 +136,8 @@ class DrawerCanvas:
         Args:
             data: New drawing to add.
         """
+        if not self.formatter['control.show_clbits']:
+            data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
         self._collections[data.data_key] = data
 
     def load_program(self,
@@ -381,7 +383,7 @@ class DrawerCanvas:
 
         # return y coordinates
         def y_coords(link: drawings.GateLinkData):
-            return np.array([self.assigned_coordinates.get(bit, None) for bit in link.bits])
+            return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
         overlapped_group = []
