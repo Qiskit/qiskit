@@ -36,7 +36,7 @@ class ExperimentServiceV1(ExperimentService, ABC):
 
     The experiment service allows you to store experiment data and metadata
     in a database. An experiment can have one or more jobs, analysis results,
-    and graphs.
+    and figures.
 
     Each implementation of this service may use different data structure and
     should issue a warning on unsupported keywords.
@@ -282,84 +282,84 @@ class ExperimentServiceV1(ExperimentService, ABC):
         pass
 
     @abstractmethod
-    def create_graph(
+    def create_figure(
             self,
             experiment_id: str,
-            graph: Union[str, bytes],
-            graph_name: Optional[str]
+            figure: Union[str, bytes],
+            figure_name: Optional[str]
     ) -> Tuple[str, int]:
-        """Store a new graph in the database.
+        """Store a new figure in the database.
 
         Args:
-            experiment_id: ID of the experiment this graph is for.
-            graph: Name of the graph file or graph data to store.
-            graph_name: Name of the graph. If ``None``, the graph file name, if
+            experiment_id: ID of the experiment this figure is for.
+            figure: Name of the figure file or figure data to store.
+            figure_name: Name of the figure. If ``None``, the figure file name, if
                 given, or a generated name is used.
 
         Returns:
-            A tuple of the name and size of the saved graph.
+            A tuple of the name and size of the saved figure.
 
         Raises:
-            ExperimentDataExists: If the graph already exits.
+            ExperimentDataExists: If the figure already exits.
         """
         pass
 
     @abstractmethod
-    def update_graph(
+    def update_figure(
             self,
             experiment_id: str,
-            graph: Union[str, bytes],
-            graph_name: str
+            figure: Union[str, bytes],
+            figure_name: str
     ) -> Dict:
-        """Update an existing graph.
+        """Update an existing figure.
 
         Args:
             experiment_id: Experiment ID.
-            graph: Name of the graph file or graph data to store.
-            graph_name: Name of the graph.
+            figure: Name of the figure file or figure data to store.
+            figure_name: Name of the figure.
 
         Returns:
-            A dictionary with name and size of the uploaded graph.
+            A dictionary with name and size of the uploaded figure.
 
         Raises:
-            ExperimentDataNotFound: If the graph does not exist.
+            ExperimentDataNotFound: If the figure does not exist.
         """
         pass
 
     @abstractmethod
-    def graph(
+    def figure(
             self,
             experiment_id: str,
-            graph_name: str,
+            figure_name: str,
             file_name: Optional[str] = None
     ) -> Union[int, bytes]:
-        """Retrieve an existing graph.
+        """Retrieve an existing figure.
 
         Args:
             experiment_id: Experiment ID.
-            graph_name: Name of the graph.
-            file_name: Name of the local file to save the graph to. If ``None``,
-                the content of the graph is returned instead.
+            figure_name: Name of the figure.
+            file_name: Name of the local file to save the figure to. If ``None``,
+                the content of the figure is returned instead.
 
         Returns:
-            The size of the graph if `file_name` is specified. Otherwise the
-            content of the graph in bytes.
+            The size of the figure if `file_name` is specified. Otherwise the
+            content of the figure in bytes.
 
         Raises:
-            ExperimentDataNotFound: If the graph does not exist.
+            ExperimentDataNotFound: If the figure does not exist.
         """
         pass
 
     @abstractmethod
-    def delete_graph(
+    def delete_figure(
             self,
             experiment_id: str,
-            graph_name: str,
+            figure_name: str,
     ) -> None:
-        """Delete an existing graph.
+        """Delete an existing figure.
 
         Args:
             experiment_id: Experiment ID.
-            graph_name: Name of the graph.
+            figure_name: Name of the figure.
         """
         pass

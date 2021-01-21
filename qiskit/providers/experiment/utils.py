@@ -74,9 +74,29 @@ def decorate_func(func: Callable, callback: Callable):
 
 
 class MonitoredList(list):
+    """A list class with a callback function.
+
+    Use :meth:`create_with_callback` method to create an instance of
+    this class. The callback function is invoked when the data inside the
+    list changes.
+    """
 
     @classmethod
-    def create_with_callback(cls, callback: Callable, init_data: Optional[list] = None):
+    def create_with_callback(
+            cls,
+            callback: Callable,
+            init_data: Optional[list] = None
+    ) -> 'MonitoredList':
+        """Create an instance with a callback function.
+
+        Args:
+            callback: The callback function to invoke when data inside this
+                list changes.
+            init_data: Initial data used to populate the list.
+
+        Returns:
+            An instance of this class.
+        """
         obj = cls()
         if init_data:
             obj.append(init_data)
@@ -91,9 +111,29 @@ class MonitoredList(list):
 
 
 class MonitoredDict(dict):
+    """A dictionary class with a callback function.
+
+    Use :meth:`create_with_callback` method to create an instance of
+    this class. The callback function is invoked when the data inside the
+    dictionary changes.
+    """
 
     @classmethod
-    def create_with_callback(cls, callback: Callable, init_data: Optional[dict] = None):
+    def create_with_callback(
+            cls,
+            callback: Callable,
+            init_data: Optional[dict] = None
+    ) -> 'MonitoredDict':
+        """Create an instance with a callback function.
+
+        Args:
+            callback: The callback function to invoke when data inside this
+                dictionary changes.
+            init_data: Initial data used to populate the dictionary.
+
+        Returns:
+            An instance of this class.
+        """
         obj = cls()
         if init_data:
             obj.update(init_data)

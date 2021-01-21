@@ -55,10 +55,12 @@ class ExperimentDataV1(ExperimentData, ABC):
             share_level: Optional[str] = None,
             backend_name: Optional[str] = None,
             data: Optional[Dict] = None,
-            graph_names: Optional[List[str]] = None,
+            figure_names: Optional[List[str]] = None,
             auto_save: bool = True,
             save_local: bool = True,
-            save_remote: bool = True
+            save_remote: bool = True,
+            local_service: Optional[experiment_service.ExperimentServiceV1] = None,
+            remote_service: Optional[experiment_service.ExperimentServiceV1] = None
     ):
         """Initializes the experiment data.
 
@@ -72,13 +74,15 @@ class ExperimentDataV1(ExperimentData, ABC):
             backend_name: Name of the backend this experiment is for.
             data: Additional experiment data. Note that ``_source_path`` and
                 ``_data_version`` are reserved keys and cannot be in `data`.
-            graph_names: Name of graphs associated with this experiment.
+            figure_names: Name of figures associated with this experiment.
             auto_save: ``True`` if changes to the experiment data, including newly
-                generated analysis results and graphs, should be automatically saved.
+                generated analysis results and figures, should be automatically saved.
             save_local: ``True`` if changes should be saved in the local database.
             save_remote: ``True`` if changes should be saved in the remote database.
                 Data will not be saved remotely if no remote experiment
                 service can be found.
+            local_service: Local experiment service to use.
+            remote_service: Remote experiment service to use.
 
         Raises:
             ExperimentError: If an input argument is invalid.
@@ -108,14 +112,14 @@ class ExperimentDataV1(ExperimentData, ABC):
         elif jobs:
             self._backend_name = jobs[0].backend().name()
         self._creation_date = datetime.now()
-        self._graph_names = MonitoredList.create_with_callback(
-            callback=self._jobs_list_callback, init_data=graph_names)
+        self._figure_names = MonitoredList.create_with_callback(
+            callback=self._jobs_list_callback, init_data=figure_names)
 
         # Other metadata
         self.save_local = save_local
         self.save_remote = save_remote
-        self._local_service = LocalExperimentService()
-        self._remote_service = None  # Determined after jobs are submitted.
+        self._local_service = local_service or LocalExperimentService()
+        self._remote_service = remote_service  # Determined after jobs are submitted if None.
         self._analysis_results = []
         self.auto_save = auto_save
         self._jobs = MonitoredList.create_with_callback(
@@ -149,12 +153,12 @@ class ExperimentDataV1(ExperimentData, ABC):
             tags=kwargs.get('tags', []),
             share_level=kwargs.get('share_level', None),
             backend_name=kwargs.get('backend_name', None),
-            graph_names=kwargs.get('graph_names', []))
+            figure_names=kwargs.get('figure_names', []))
         # Turn off auto_save during initialization.
         saved_auto_save = obj.auto_save
         obj.auto_save = False
         obj._id = kwargs['experiment_id']
-        _data = obj.deserialize_data(json.dumps(kwargs.get('data', {})))
+        _data = obj._deserialize_data(json.dumps(kwargs.get('data', {})))
         obj._source = {'_source_path', _data.pop('_source_path', ''),
                        '_data_version', _data.pop('_data_version', cls.data_version)}
         obj._data.update(_data)
@@ -190,7 +194,7 @@ class ExperimentDataV1(ExperimentData, ABC):
             raise ExperimentError("Experiment can only be saved after jobs are submitted.")
         self._backend_name = self._backend_name or self._jobs[0].backend().name()
 
-        _data = json.loads(self.serialize_data())
+        _data = json.loads(self._serialize_data())
         for key in self._source:
             if key in _data and _data[key] != self._source[key]:
                 raise ExperimentError(f"{key} is reserved and cannot be in data.")
@@ -295,7 +299,7 @@ class ExperimentDataV1(ExperimentData, ABC):
         return False
 
     @abstractmethod
-    def serialize_data(self, encoder: Optional[json.JSONEncoder] = NumpyEncoder) -> str:
+    def _serialize_data(self, encoder: Optional[json.JSONEncoder] = NumpyEncoder) -> str:
         """Serialize experiment data into JSON string.
 
         Args:
@@ -304,10 +308,10 @@ class ExperimentDataV1(ExperimentData, ABC):
         Returns:
             Serialized JSON string.
         """
-        return json.dumps(self._data, cls=encoder)
+        pass
 
     @abstractmethod
-    def deserialize_data(
+    def _deserialize_data(
             self,
             data: str,
             decoder: Optional[json.JSONDecoder] = NumpyDecoder
@@ -321,81 +325,81 @@ class ExperimentDataV1(ExperimentData, ABC):
         Returns:
             Deserialized data.
         """
-        return json.loads(data, cls=decoder)
+        pass
 
-    def save_graph(
+    def save_figure(
             self,
-            graph: Union[str, bytes],
-            graph_name: str = None,
+            figure: Union[str, bytes],
+            figure_name: str = None,
             overwrite=False,
             remote_service: experiment_service.ExperimentServiceV1 = None
     ) -> Tuple[str, int]:
-        """Save the experiment graph in the remote database.
+        """Save the experiment figure in the remote database.
 
-        Note that graphs are not saved in the local database because they are
+        Note that figures are not saved in the local database because they are
         not structured data.
 
         Args:
-            graph: Name of the graph file or graph data to upload.
-            graph_name: Name of the graph. If ``None``, use the graph file name, if
+            figure: Name of the figure file or figure data to upload.
+            figure_name: Name of the figure. If ``None``, use the figure file name, if
                 given, or a generated name.
-            overwrite: Whether to overwrite the graph if one already exists with
+            overwrite: Whether to overwrite the figure if one already exists with
                 the same name.
             remote_service: Remote experiment service to be used to save the data.
                 If ``None``, the  provider used to submit jobs will be used.
 
         Returns:
-            A tuple of the name and size of the saved graph.
+            A tuple of the name and size of the saved figure.
         """
-        if not graph_name:
-            if isinstance(graph, str):
-                graph_name = graph
+        if not figure_name:
+            if isinstance(figure, str):
+                figure_name = figure
             else:
-                graph_name = f"graph_{self.id}_{len(self.graph_names)}"
+                figure_name = f"figure_{self.id}_{len(self.figure_names)}"
 
-        existing_graph = graph_name in self.graph_names
-        if existing_graph and not overwrite:
-            raise ExperimentError(f"A graph with the name {graph_name} for this experiment "
+        existing_figure = figure_name in self.figure_names
+        if existing_figure and not overwrite:
+            raise ExperimentError(f"A figure with the name {figure_name} for this experiment "
                                   f"already exists. Specify overwrite=True if you "
                                   f"want to overwrite it.")
 
         out = {'', 0}
         if self._is_access_remote(save_remote=True, remote_service=remote_service):
-            data = {'experiment_id': self.id, 'graph': graph, 'graph_name': graph_name}
+            data = {'experiment_id': self.id, 'figure': figure, 'figure_name': figure_name}
             remote_service = remote_service or self.remote_service
-            _, out = self._save(is_new=not existing_graph,
-                                new_func=remote_service.create_graph,
-                                update_func=remote_service.update_graph,
+            _, out = self._save(is_new=not existing_figure,
+                                new_func=remote_service.create_figure,
+                                update_func=remote_service.update_figure,
                                 new_data={},
                                 update_data=data)
-        if not existing_graph:
-            self._graph_names.append(graph_name)
+        if not existing_figure:
+            self._figure_names.append(figure_name)
 
         return out
 
-    def graph(
+    def figure(
             self,
-            graph_name: str,
+            figure_name: str,
             file_name: Optional[str] = None
     ) -> Union[int, bytes]:
-        """Retrieve the specified experiment graph from the remote database.
+        """Retrieve the specified experiment figure from the remote database.
 
         Args:
-            graph_name: Name of the graph.
-            file_name: Name of the local file to save the graph to. If ``None``,
-                the content of the graph is returned instead.
+            figure_name: Name of the figure.
+            file_name: Name of the local file to save the figure to. If ``None``,
+                the content of the figure is returned instead.
 
         Returns:
-            The size of the graph if `file_name` is specified. Otherwise the
-            content of the graph in bytes.
+            The size of the figure if `file_name` is specified. Otherwise the
+            content of the figure in bytes.
 
         Raises:
-            ExperimentDataNotFound: If the graph cannot be found.
+            ExperimentDataNotFound: If the figure cannot be found.
         """
         if self._is_access_remote(save_remote=True):
-            return self.remote_service.graph(self.id, graph_name, file_name)
+            return self.remote_service.figure(self.id, figure_name, file_name)
 
-        raise ExperimentDataNotFound("Unable to retrieve graph because there is "
+        raise ExperimentDataNotFound("Unable to retrieve figure because there is "
                                      "no access to remote database.")
 
     def save_analysis_result(
@@ -465,13 +469,13 @@ class ExperimentDataV1(ExperimentData, ABC):
             self.save()
 
     @property
-    def graph_names(self) -> List[str]:
-        """Return names of the graphs associated with this experiment.
+    def figure_names(self) -> List[str]:
+        """Return names of the figures associated with this experiment.
 
         Returns:
-            Names of graphs associated with this experiment.
+            Names of figures associated with this experiment.
         """
-        return self._graph_names
+        return self._figure_names
 
     @property
     def share_level(self) -> str:

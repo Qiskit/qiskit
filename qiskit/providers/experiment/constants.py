@@ -20,6 +20,6 @@ class ResultQuality(enum.IntEnum):
 
     LOWEST = 1
     LOW = 2
-    AVERAGE = 3
+    UNKNOWN = 3
     HIGH = 4
     HIGHEST = 5

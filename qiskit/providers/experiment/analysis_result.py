@@ -53,7 +53,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
             experiment: Optional[experiment_data.ExperimentDataV1] = None,
             experiment_id: Optional[str] = None,
             result_type: Optional[str] = None,
-            quality: Union[ResultQuality, int] = ResultQuality.AVERAGE,
+            quality: Union[ResultQuality, int] = ResultQuality.UNKNOWN,
             tags: Optional[List[str]] = None,
             data: Optional[Dict] = None
     ):
@@ -92,7 +92,6 @@ class AnalysisResultV1(AnalysisResult, ABC):
         self._type = result_type or self.__class__.__name__
         self._data = MonitoredDict.create_with_callback(
             callback=self._monitored_callback, init_data=data)
-        self._type = f"{self.__class__.__module__}.{self.__class__.__name__}"
         self._quality = ResultQuality(quality)
         self._tags = MonitoredList.create_with_callback(
             callback=self._monitored_callback, init_data=tags)
@@ -109,9 +108,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
             self._local_service = experiment.local_service
             self._remote_service = experiment.remote_service
         else:
-            self.auto_save = True
-            self.save_local = True
-            self.save_remote = True
+            self.auto_save = self.save_local = self.save_remote = True
             self._local_service = LocalExperimentService()
             self._remote_service = None
 
@@ -158,7 +155,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
         obj._id = kwargs.get('result_id', obj.id)
         obj._quality = kwargs.get('quality', obj._quality)
 
-        _data = obj.deserialize_data(json.dumps(kwargs.get('data', {})))
+        _data = obj._deserialize_data(json.dumps(kwargs.get('data', {})))
         obj._source = {'_source_path', _data.pop('_source_path', ''),
                        '_data_version', _data.pop('_data_version', cls.data_version)}
         obj._data.update(_data)
@@ -166,7 +163,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
         return obj
 
     @abstractmethod
-    def serialize_data(self, encoder: Optional[json.JSONEncoder] = NumpyEncoder) -> str:
+    def _serialize_data(self, encoder: Optional[json.JSONEncoder] = NumpyEncoder) -> str:
         """Serialize experiment data into JSON string.
 
         Args:
@@ -175,10 +172,10 @@ class AnalysisResultV1(AnalysisResult, ABC):
         Returns:
             Serialized JSON string.
         """
-        return json.dumps(self._data, cls=encoder)
+        pass
 
     @abstractmethod
-    def deserialize_data(
+    def _deserialize_data(
             self,
             data: str,
             decoder: Optional[json.JSONDecoder] = NumpyDecoder
@@ -192,7 +189,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
         Returns:
             Deserialized data.
         """
-        return json.loads(data, cls=decoder)
+        pass
 
     def save(
             self,
@@ -214,7 +211,7 @@ class AnalysisResultV1(AnalysisResult, ABC):
         Raises:
             ExperimentError: If the analysis result contains invalid data.
         """
-        _data = json.loads(self.serialize_data())
+        _data = json.loads(self._serialize_data())
         for key in self._source:
             if key in _data and _data[key] != self._source[key]:
                 raise ExperimentError(f"{key} is reserved and cannot be in data.")
