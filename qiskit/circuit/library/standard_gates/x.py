@@ -779,7 +779,7 @@ class C4XGate(ControlledGate):
             (HGate(), [q[4]], []),
             (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
-            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
             (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
