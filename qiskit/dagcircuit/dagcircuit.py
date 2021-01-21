@@ -1420,6 +1420,38 @@ class DAGCircuit:
                     group_list.append(tuple(group))
         return set(group_list)
 
+    # pylint: disable=too-many-boolean-expressions
+
+    def collect_1q_runs(self):
+        """Return a set of non-conditional runs of 1q "op" nodes."""
+        group_list = []
+        # Iterate through the nodes of self in topological order
+        # and form tuples containing sequences of gates
+        # on the same qubit(s).
+        nodes_seen = set()
+        for node in self.topological_op_nodes():
+            if len(node.qargs) == 1 and node.condition is None \
+                    and not node.cargs\
+                    and node not in nodes_seen \
+                    and not node.op.is_parameterized() \
+                    and isinstance(node.op, Gate):
+                group = [node]
+                nodes_seen.add(node)
+                s = self._multi_graph.successors(node._node_id)
+                while len(s) == 1 and \
+                        s[0].type == "op" and \
+                        len(s[0].qargs) == 1 and \
+                        len(s[0].cargs) == 0 and \
+                        s[0].condition is None and \
+                        not s[0].op.is_parameterized() and \
+                        isinstance(node.op, Gate):
+                    group.append(s[0])
+                    nodes_seen.add(s[0])
+                    s = self._multi_graph.successors(s[0]._node_id)
+                if len(group) >= 1:
+                    group_list.append(tuple(group))
+        return set(group_list)
+
     def nodes_on_wire(self, wire, only_ops=False):
         """
         Iterator for nodes that affect a given wire.
