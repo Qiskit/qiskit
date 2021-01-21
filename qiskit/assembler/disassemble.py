@@ -171,11 +171,11 @@ def _experiments_to_circuits(qobj):
             if conditional and name != 'bfunc':
                 _inst.c_if(conditional['register'], conditional['value'])
                 conditional = {}
+        if hasattr(qobj.config, 'calibrations'): 
+            circuit.calibrations = dict(**circuit.calibrations , **_qobj_to_circuit_cals(qobj.config.calibrations.to_dict()))
         if hasattr(exp.config, 'calibrations'):
             circuit.calibrations = dict(**circuit.calibrations, **_qobj_to_circuit_cals(exp.config.calibrations.to_dict()))
         circuits.append(circuit)
-        if hasattr(qobj.config, 'calibrations'): 
-            circuit.calibrations = dict(**circuit.calibrations , **_qobj_to_circuit_cals(qobj.config.calibrations.to_dict()))
     return circuits
 
 
