@@ -103,8 +103,8 @@ class BasePass(metaclass=MetaPass):
             property_set (PropertySet or dict or None): input/output property set.
 
         Returns:
-            QuantumCircuit or None: If on transformation pass, a QuantumCircuit. If analysis
-                   pass, None.
+            QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
+                   pass, the input circuit.
         """
         from qiskit.converters import circuit_to_dag, dag_to_circuit
         from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -118,13 +118,21 @@ class BasePass(metaclass=MetaPass):
 
         result = self.run(circuit_to_dag(circuit))
 
+        result_circuit = circuit
+
         if isinstance(property_set, (dict, PropertySet)):
             property_set.update(self.property_set)
 
         if isinstance(result, DAGCircuit):
-            result = dag_to_circuit(result)
+            result_circuit = dag_to_circuit(result)
 
-        return result
+        if result is None and self.property_set['layout']:
+            result_circuit = circuit.copy()
+
+        if self.property_set['layout']:
+            result_circuit._layout = self.property_set['layout']
+
+        return result_circuit
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
