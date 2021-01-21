@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,28 +12,26 @@
 
 """ The Quantum Approximate Optimization Algorithm. """
 
-from typing import List, Callable, Optional, Union
 import logging
+from typing import List, Callable, Optional, Union
+
 import numpy as np
 
+from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit import QuantumCircuit
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
 from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
-from qiskit.algorithms.optimizers import Optimizer
-from qiskit.utils.validation import validate_min
+from qiskit.providers import Backend
+from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.validation import validate_min
 from .qaoa_circuit import QAOACircuit
-from .var_form import QAOAVarForm
 from ..vqe import VQE
 
 logger = logging.getLogger(__name__)
 
-
-# pylint: disable=invalid-name
 # disable check for operator setter because of pylint bug
-# pylint: disable=no-member
+# disable=no-member
 
 
 class QAOA(VQE):
@@ -63,6 +61,7 @@ class QAOA(VQE):
 
     """
 
+    # pylint: disable=invalid-name
     def __init__(self,
                  optimizer: Optimizer = None,
                  p: int = 1,
@@ -133,20 +132,9 @@ class QAOA(VQE):
                          callback=callback,
                          quantum_instance=quantum_instance)
 
-    def _check_operator(self,
-                        operator: OperatorBase) -> OperatorBase:
-        # Recreates var_form based on operator parameter.
-        if operator.num_qubits != self.var_form.num_qubits:
-            self.var_form = QAOAVarForm(operator,
-                                        self._p,
-                                        initial_state=self._initial_state,
-                                        mixer_operator=self._mixer)
-        operator = super()._check_operator(operator)
-        return operator
-
-    def _check_operator_new(self,
-                        operator: OperatorBase) -> OperatorBase:
-        # Recreates var_form based on operator parameter.
+    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
+        # Recreates a circuit based on operator parameter.
+        # todo: remove this if statement?
         if operator.num_qubits != self.var_form.num_qubits:
             self.var_form = QAOACircuit(operator,
                                         self._p,
