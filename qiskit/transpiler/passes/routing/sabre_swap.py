@@ -118,7 +118,7 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = deepcopy(coupling_map)
+        self.coupling_map = coupling_map if coupling_map.is_symmetric else deepcopy(coupling_map)
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
