@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A quantum oracle constructed from a DIMACS format logical expression."""
+"""A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 import re
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -34,7 +34,7 @@ class LogicalExpressionOracle(QuantumCircuit):
     which is a conjunction of one or more clauses, where a clause is a disjunction of one
     or more literals.
 
-    The following is an example of a CNF expressed in DIMACS format:
+    The following is an example of a CNF expressed in the DIMACS format:
 
     .. code:: text
 
@@ -67,10 +67,18 @@ class LogicalExpressionOracle(QuantumCircuit):
 
     Logic expressions, regardless of the input formats, are parsed and stored as a source string,
     from which the corresponding circuits are constructed by
-    :class:`~qiskit.circuit.classicalfunction.ClassicalFunction`. The oracle circuits
+    :class:`~qiskit.circuit.classicalfunction.ClassicalFunction`.
+    The oracle circuits
     can then be used with any oracle-oriented algorithms when appropriate. For example, an oracle
     built from a DIMACS input can be used with the Grover's algorithm to search for a satisfying
     assignment to the encoded SAT instance.
+
+    Examples:
+        >>> from qiskit.circuit.library import LogicalExpressionOracle
+        >>> from qiskit.algorithms.amplitude_amplifiers import Grover
+        >>> expr = "(x0 and x1 or not x2) ^ x4"
+        >>> leo = LogicalExpressionOracle(expr)
+        >>> grover = Grover(oracle=leo, good_state=leo.evaluate_bitstring)
     """
 
     def __init__(self, expression: str) -> None:
@@ -104,21 +112,16 @@ class LogicalExpressionOracle(QuantumCircuit):
 
     def _expression_to_source(self, expression, name='f'):
         # create the variables and header for the AST
-        _expr = list(filter(None, re.split(r'[()&|~\s]', expression)))
+        _expr = list(filter(None, [arg.strip()
+                                   for arg in re.split(r' and | or |not | \^ |[()]', expression)]))
         argnames = sorted(set(_expr), key=_expr.index)
-
-        # sanitize input and convert operators to strings
-        expression = re.sub(re.escape(' & '), ' and ', expression)
-        expression = re.sub(re.escape(' | '), ' or ', expression)
-        expression = re.sub(re.escape('~'), 'not ', expression)
 
         parsed = f'def {name}('
         for arg in argnames[:-1]:
             parsed += f'{arg}: Int1, '
         parsed += f'{argnames[-1]}: Int1) -> Int1:\n'
-        indent = 4 * ' '
         # combine all clauses
-        parsed += f'{indent}return ' + expression
+        parsed += '    return ' + expression
 
         return parsed
 
@@ -144,32 +147,30 @@ class LogicalExpressionOracle(QuantumCircuit):
 
         Returns:
             A quantum circuit (LogicalExpressionOracle) for the input string
+
+        Raises:
+            ValueError: If a string does not have a header of the DIMACS format.
+            ValueError: If a line does not endo with '0'
         """
-        logical_expression = _dimacs_to_expression(dimacs)
-        return cls(logical_expression)
+        lines = [
+            ll for ll in [
+                l.strip().lower() for l in dimacs.strip().split('\n')
+            ] if len(ll) > 0 and not ll[0] == 'c'
+        ]
 
+        if not lines[0][:6] == 'p cnf ':
+            raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
 
-def _dimacs_to_expression(dimacs):
-    # Convert the string in the DIMACS format to a logical expression
-    lines = [
-        ll for ll in [
-            l.strip().lower() for l in dimacs.strip().split('\n')
-        ] if len(ll) > 0 and not ll[0] == 'c'
-    ]
+        def create_var(cnf_tok):
+            return ('not v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
 
-    if not lines[0][:6] == 'p cnf ':
-        raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
+        clauses = []
+        for line in lines[1:]:
+            toks = line.split()
+            if not toks[-1] == '0':
+                raise ValueError('Unrecognized dimacs line {}.'.format(line))
 
-    def create_var(cnf_tok):
-        return ('~v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
-
-    clauses = []
-    for line in lines[1:]:
-        toks = line.split()
-        if not toks[-1] == '0':
-            raise ValueError('Unrecognized dimacs line {}.'.format(line))
-
-        clauses.append('({})'.format(' | '.join(
-            [create_var(t) for t in toks[:-1]]
-        )))
-    return ' & '.join(clauses)
+            clauses.append('({})'.format(' or '.join(
+                [create_var(t) for t in toks[:-1]]
+            )))
+        return cls(' and '.join(clauses))
