@@ -39,9 +39,10 @@ class AmplificationProblem:
         Args:
             oracle: The oracle reflecting about the bad states.
             state_preparation: A circuit preparing the input state, referred to as
-                :math:`\mathcal{A}`.
+                :math:`\mathcal{A}`. If None, a layer of Hadamard gates is used.
             grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
-                phase estimation circuit.
+                phase estimation circuit. If None, this operator is constructed from the ``oracle``
+                and ``state_preparation``.
             post_processing: A mapping applied to the most likely bitstring.
             objective_qubits: If set, specifies the indices of the qubits that should be measured.
                 If None, all qubits will be measured. The ``is_good_state`` function will be
@@ -88,11 +89,11 @@ class AmplificationProblem:
         return self._state_preparation
 
     @state_preparation.setter
-    def state_preparation(self, state_preparation: QuantumCircuit) -> None:
-        r"""Set the :math:`\mathcal{A}` operator.
+    def state_preparation(self, state_preparation: Optional[QuantumCircuit]) -> None:
+        r"""Set the :math:`\mathcal{A}` operator. If None, a layer of Hadamard gates is used.
 
         Args:
-            state_preparation: The new :math:`\mathcal{A}` operator.
+            state_preparation: The new :math:`\mathcal{A}` operator or None.
         """
         self._state_preparation = state_preparation
 
@@ -189,10 +190,12 @@ class AmplificationProblem:
         return self._grover_operator
 
     @grover_operator.setter
-    def grover_operator(self, grover_operator: QuantumCircuit) -> None:
+    def grover_operator(self, grover_operator: Optional[QuantumCircuit]) -> None:
         r"""Set the :math:`\mathcal{Q}` operator.
 
+        If None, this operator is constructed from the ``oracle`` and ``state_preparation``.
+
         Args:
-            grover_operator: The new :math:`\mathcal{Q}` operator.
+            grover_operator: The new :math:`\mathcal{Q}` operator or None.
         """
         self._grover_operator = grover_operator

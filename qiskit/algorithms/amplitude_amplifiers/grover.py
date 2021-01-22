@@ -12,7 +12,7 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, List, Any, Iterator
+from typing import Optional, Union, List, Iterator
 import itertools
 import logging
 import operator
@@ -28,13 +28,13 @@ from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import partial_trace
 from .amplification_problem import AmplificationProblem
-from ..algorithm_result import AlgorithmResult
+from .amplification_algorithm import AmplificationAlgorithm, AmplificationResult
 
 
 logger = logging.getLogger(__name__)
 
 
-class Grover:
+class Grover(AmplificationAlgorithm):
     r"""Grover's Search algorithm.
 
     Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
@@ -332,52 +332,27 @@ def _check_is_good_state(is_good_state):
         raise TypeError('Unsupported type "{}" of is_good_state'.format(type(is_good_state)))
 
 
-class GroverResult(AlgorithmResult):
+class GroverResult(AmplificationResult):
     """Grover Result."""
 
     def __init__(self) -> None:
         super().__init__()
-        self._top_measurement = None
-        self._assignment = None
         self._iterations = None
-        self._oracle_evaluation = None
-
-    @property
-    def top_measurement(self) -> Optional[str]:
-        """ return top measurement """
-        return self._top_measurement
-
-    @top_measurement.setter
-    def top_measurement(self, value: str) -> None:
-        """ set top measurement """
-        self._top_measurement = value
-
-    @property
-    def assignment(self) -> Any:
-        """ return assignment """
-        return self._assignment
-
-    @assignment.setter
-    def assignment(self, value: Any) -> None:
-        """ set assignment """
-        self._assignment = value
 
     @property
     def iterations(self) -> List[int]:
-        """ return iterations """
+        """All the powers of the Grover operator that have been tried.
+
+        Returns:
+            The powers of the Grover operator tested.
+        """
         return self._iterations
 
     @iterations.setter
     def iterations(self, value: List[int]) -> None:
-        """ set iterations """
+        """Set the powers of the Grover operator that have been tried.
+
+        Args:
+            value: A new value for the powers.
+        """
         self._iterations = value
-
-    @property
-    def oracle_evaluation(self) -> bool:
-        """ return oracle evaluation """
-        return self._oracle_evaluation
-
-    @oracle_evaluation.setter
-    def oracle_evaluation(self, value: bool) -> None:
-        """ set oracle evaluation """
-        self._oracle_evaluation = value
