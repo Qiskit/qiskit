@@ -119,9 +119,10 @@ class Grover:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
-                  number of iterations or maximum power is reached.
+                number of iterations or maximum power is reached.
                 * If a float larget than 1, this specifies the growth rate. The iterator is set to
-                  yield the increasing powers of this number.
+                yield the increasing powers of this number.
+
                 If the number of solutions is known, this should be set to a list with a single
                 entry, namely the optimal number of iterations, see
                 ``Grover.optimal_num_iterations``.
