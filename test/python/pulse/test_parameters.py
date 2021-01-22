@@ -337,5 +337,5 @@ class TestParameterDuration(QiskitTestCase):
         test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur/4), ch)
 
         sched = pulse.Schedule()
-        with self.assertRaises(pulse.exceptions.PulseError):
+        with self.assertRaises(pulse.exceptions.UnassignedDurationError):
             sched.insert(0, test_play)

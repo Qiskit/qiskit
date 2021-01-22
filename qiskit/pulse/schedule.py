@@ -524,8 +524,8 @@ class Schedule(abc.ABC):
         if not isinstance(time, int):
             raise PulseError("Schedule start time must be an integer.")
 
-        self._duration = max(self._duration, time + schedule.duration)
         other_timeslots = _get_timeslot(schedule)
+        self._duration = max(self._duration, time + schedule.duration)
 
         for channel in schedule.channels:
             if channel not in self._timeslots:
