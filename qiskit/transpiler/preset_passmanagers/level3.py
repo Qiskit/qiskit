@@ -180,22 +180,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if basis_gates and 'u3' in basis_gates:
-        _opt = [
-            Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
-            Optimize1qGates(basis_gates),
-            CommutativeCancellation(),
-        ]
-    else:
-        _opt = [
-            Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
-            Optimize1qGatesDecomposition(basis_gates),
-            CommutativeCancellation(),
-        ]
+    _opt = [
+        Collect2qBlocks(),
+        ConsolidateBlocks(basis_gates=basis_gates),
+        UnitarySynthesis(basis_gates),
+        Optimize1qGatesDecomposition(basis_gates),
+        CommutativeCancellation(),
+    ]
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:

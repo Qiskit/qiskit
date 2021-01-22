@@ -29,8 +29,9 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 DEFAULT_ATOL = 1e-12
 
 ONE_QUBIT_EULER_BASIS_GATES = {
-    'U3': ['u3'],
+    # 'U321' must precede 'U3' in the list
     'U321': ['u3', 'u2', 'u1'],
+    'U3': ['u3'],
     'U': ['u'],
     'PSX': ['p', 'sx'],
     'U1X': ['u1', 'rx'],
@@ -157,8 +158,8 @@ class OneQubitEulerDecomposer:
     def basis(self, basis):
         """Set the decomposition basis."""
         basis_methods = {
-            'U3': (self._params_u3, self._circuit_u3),
             'U321': (self._params_u3, self._circuit_u321),
+            'U3': (self._params_u3, self._circuit_u3),
             'U': (self._params_u3, self._circuit_u),
             'PSX': (self._params_u1x, self._circuit_psx),
             'ZSX': (self._params_u1x, self._circuit_zsx),
