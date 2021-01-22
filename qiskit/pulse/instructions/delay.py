@@ -16,7 +16,6 @@ from typing import Optional, Union
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.utils import instruction_duration_validation
 
 
 class Delay(Instruction):
@@ -59,5 +58,4 @@ class Delay(Instruction):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        instruction_duration_validation(self.operands[0])
         return self.operands[0]

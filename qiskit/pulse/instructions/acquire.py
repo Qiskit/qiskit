@@ -20,7 +20,6 @@ from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.utils import instruction_duration_validation
 
 
 class Acquire(Instruction):
@@ -88,7 +87,6 @@ class Acquire(Instruction):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        instruction_duration_validation(self.operands[0])
         return self.operands[0]
 
     @property

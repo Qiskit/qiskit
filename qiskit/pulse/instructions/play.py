@@ -20,7 +20,6 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.utils import instruction_duration_validation
 
 
 class Play(Instruction):
@@ -74,7 +73,6 @@ class Play(Instruction):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        instruction_duration_validation(self.pulse.duration)
         return self.pulse.duration
 
     def assign_parameters(self,

@@ -30,6 +30,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 # pylint: disable=cyclic-import, unused-import
 from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
 # pylint: disable=missing-return-doc
@@ -1163,7 +1164,9 @@ def _get_timeslot(schedule: Union[Instruction, Schedule]) -> TimeSlots:
         PulseError: When invalid schedule type is specified.
     """
     if isinstance(schedule, Instruction):
-        timeslots = {channel: [(0, schedule.duration)] for channel in schedule.channels}
+        duration = schedule.duration
+        instruction_duration_validation(duration)
+        timeslots = {channel: [(0, duration)] for channel in schedule.channels}
     elif isinstance(schedule, Schedule):
         timeslots = schedule.timeslots
     else:
