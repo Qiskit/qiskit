@@ -62,7 +62,6 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         pauli_sum = X + Y
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
-        self.assertEqual(summed_op, pauli_sum)
 
     def test_mul(self):
         """ multiplication test """

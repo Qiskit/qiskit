@@ -39,7 +39,7 @@ class PauliSumOp(PrimitiveOp):
             self,
             primitive: SparsePauliOp,
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-            grouping_type: Optional[str] = None,
+            grouping_type: str = "None",
     ) -> None:
         """
         Args:
@@ -62,7 +62,7 @@ class PauliSumOp(PrimitiveOp):
         return {"SparsePauliOp"}
 
     @property
-    def grouping_type(self) -> Optional[str]:
+    def grouping_type(self) -> str:
         """
         Returns: Type of Grouping
         """
@@ -298,9 +298,9 @@ class PauliSumOp(PrimitiveOp):
                 corrected_z_bits = self.primitive.table.Z
                 coeffs = self.primitive.coeffs
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=np.int).astype(np.bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
-                    new_str = ["".join([str(int(b)) for b in bs]) for bs in new_b_str]
+                    new_str = ["".join([str(b) for b in bs]) for bs in new_b_str.astype(int)]
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits), axis=1)
                     y_factor = np.product(
                         np.sqrt(1 - 2 * np.logical_and(corrected_x_bits, corrected_z_bits) + 0j),

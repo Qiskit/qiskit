@@ -46,26 +46,21 @@ class QDrift(TrotterizationBase):
             raise TypeError("Trotterization converters can only convert SummedOpor PauliSumOp.")
 
         if isinstance(operator, PauliSumOp):
-            # We artificially make the weights positive, TODO check approximation performance
-            weights = np.abs(operator.primitive.coeffs)
-            lambd = np.sum(weights)
+            operator_iter = operator
+            coeffs = operator.coeffs
+        else:
+            operator_iter = operator.oplist
+            coeffs = [op.coeff for op in operator_iter]
 
-            N = 2 * (lambd ** 2) * (operator.coeff ** 2)
-            factor = lambd * operator.coeff / (N * self.reps)
-            # The protocol calls for the removal of the individual coefficients,
-            # and multiplication by a constant factor.
-            scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator]
+        # We artificially make the weights positive, TODO check approximation performance
+        weights = np.abs(coeffs)
+        lambd = np.sum(weights)
 
-        if isinstance(operator, SummedOp):
-            # We artificially make the weights positive, TODO check approximation performance
-            weights = np.abs([op.coeff for op in operator.oplist])
-            lambd = sum(weights)
-            N = 2 * (lambd ** 2) * (operator.coeff ** 2)
-
-            factor = lambd * operator.coeff / (N * self.reps)
-            # The protocol calls for the removal of the individual coefficients,
-            # and multiplication by a constant factor.
-            scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator.oplist]
+        N = 2 * (lambd ** 2) * (operator.coeff ** 2)
+        factor = lambd * operator.coeff / (N * self.reps)
+        # The protocol calls for the removal of the individual coefficients,
+        # and multiplication by a constant factor.
+        scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]
 
         sampled_ops = aqua_globals.random.choice(
             scaled_ops, size=(int(N * self.reps),), p=weights / lambd
