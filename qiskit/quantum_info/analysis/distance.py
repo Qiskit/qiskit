@@ -57,9 +57,12 @@ def hellinger_fidelity(dist_p, dist_q):
     """Computes the Hellinger fidelity between
     two counts distributions.
 
-    The fidelity is defined as (1-H**2)**2 where H is the
-    Hellinger distance.  This value is bounded
-    in the range [0, 1].
+    The fidelity is defined as :math:`\\left(1-H^{2}\\right)^{2}` where H is the
+    Hellinger distance.  This value is bounded in the range [0, 1].
+
+    This is equivalent to the standard classical fidelity
+    :math:`F(Q,P)=\\left(\\sum_{i}\\sqrt{p_{i}q_{i}}\\right)^{2}` that in turn
+    is equal to the quantum state fidelity for diagonal density matrices.
 
     Parameters:
         dist_p (dict): First dict of counts.
@@ -90,6 +93,7 @@ def hellinger_fidelity(dist_p, dist_q):
             hellinger_fidelity(res1.get_counts(), res2.get_counts())
 
     References:
+        `Quantum Fidelity @ wikipedia <https://en.wikipedia.org/wiki/Fidelity_of_quantum_states>`_
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
     """
     dist = hellinger_distance(dist_p, dist_q)
