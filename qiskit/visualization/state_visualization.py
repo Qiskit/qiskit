@@ -1038,7 +1038,7 @@ def repr_state_latex(state, max_size=(8,8)):
 def repr_state_markdown(state, max_size=(8,8)):
     latex_str = repr_state_latex(state, max_size=max_size)
     description = "{state_type} object: dims={dims}".format(state_type=type(state).__name__,
-                                                    dims=state._dims)
+                                                    dims=state._op_shape.dims_l())
     return description + latex_str
 
 def repr_state_text(state):
@@ -1076,7 +1076,7 @@ class TextMatrix():
             threshold=threshold
         )
         if self.dims:
-            suffix = f',\ndims={self.state._dims})' 
+            suffix = f',\ndims={self.state._op_shape.dims_l()})' 
         else:
             suffix = '\n)'
         return prefix + data + suffix

@@ -151,15 +151,15 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         from qiskit.visualization.state_visualization import state_drawer
         output = output.lower()
-        valid_choices = ['text','markdown','markdown_source','latex_source'
+        valid_choices = ['text','markdown','markdown_source','latex_source',
                              'qsphere', 'hinton', 'bloch']
         if output in valid_choices:
             return state_drawer(self, output=output, max_size=max_size, dims=dims)
         else:
             valid_choices_string = "', '".join(c for c in valid_choices)[:-1]
             obj_name = type(self).__name__
-            raise VisualizationError(f"""'{output}' is not a valid drawing method for
-            {obj_name}, choose from '{valid_choices_string}'""")
+            raise ValueError(f"'{output}' is not a valid drawing method for"
+            f"{obj_name}, choose from '{valid_choices_string}'")
             
 
     def _ipython_display_(self):
