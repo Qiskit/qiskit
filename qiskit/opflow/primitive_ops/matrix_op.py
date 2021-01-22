@@ -29,7 +29,6 @@ from ..primitive_ops.circuit_op import CircuitOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
-from ..legacy.matrix_operator import MatrixOperator
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +218,3 @@ class MatrixOp(PrimitiveOp):
 
     def to_instruction(self) -> Instruction:
         return (self.coeff * self.primitive).to_instruction()  # type: ignore
-
-    def to_legacy_op(self, massive: bool = False) -> MatrixOperator:
-        return MatrixOperator(self.to_matrix(massive=massive))

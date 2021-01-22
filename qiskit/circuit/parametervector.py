@@ -35,6 +35,10 @@ class ParameterVector:
         """Returns the list of parameters in the ParameterVector."""
         return self._params
 
+    def index(self, value):
+        """Returns first index of value."""
+        return self._params.index(value)
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             start, stop, step = key.indices(self._size)
