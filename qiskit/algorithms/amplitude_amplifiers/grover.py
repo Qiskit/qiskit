@@ -28,13 +28,13 @@ from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import partial_trace
 from .amplification_problem import AmplificationProblem
-from .amplification_algorithm import AmplificationAlgorithm, AmplificationResult
+from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
 
 logger = logging.getLogger(__name__)
 
 
-class Grover(AmplificationAlgorithm):
+class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
     Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
@@ -332,7 +332,7 @@ def _check_is_good_state(is_good_state):
         raise TypeError('Unsupported type "{}" of is_good_state'.format(type(is_good_state)))
 
 
-class GroverResult(AmplificationResult):
+class GroverResult(AmplitudeAmplifierResult):
     """Grover Result."""
 
     def __init__(self) -> None:

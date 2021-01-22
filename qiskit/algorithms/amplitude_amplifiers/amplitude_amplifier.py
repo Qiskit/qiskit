@@ -19,7 +19,7 @@ from .amplification_problem import AmplificationProblem
 from ..algorithm_result import AlgorithmResult
 
 
-class AmplificationAlgorithm(ABC):
+class AmplitudeAmplifier(ABC):
     """The interface for amplification algorithms."""
 
     @abstractmethod
@@ -36,7 +36,7 @@ class AmplificationAlgorithm(ABC):
         raise NotImplementedError
 
 
-class AmplificationResult(AlgorithmResult):
+class AmplitudeAmplifierResult(AlgorithmResult):
     """The rmplification result base class."""
 
     def __init__(self) -> None:
