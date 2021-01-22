@@ -12,7 +12,8 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, List, Any
+from typing import Optional, Union, List, Any, Iterator
+import itertools
 import logging
 import operator
 import math
@@ -108,7 +109,7 @@ class Grover:
     """
 
     def __init__(self,
-                 iterations: Union[int, List[int]] = 1,
+                 iterations: Union[List[int], Iterator[int], float] = 1.2,
                  sample_from_iterations: bool = False,
                  quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
                  ) -> None:
@@ -116,29 +117,41 @@ class Grover:
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
-                It the number of solutions is known, this should be an integer specifying the
-                optimal number of iterations (see ``optimal_num_iterations``). Alternatively,
-                this can be a list of powers to check.
+                * If a list, all the powers in the list are run in the specified order.
+                * If an iterator, the powers yielded by the iterator are checked, until a maximum
+                  number of iterations or maximum power is reached.
+                * If a float larget than 1, this specifies the growth rate. The iterator is set to
+                  yield the increasing powers of this number.
+                If the number of solutions is known, this should be set to a list with a single
+                entry, namely the optimal number of iterations, see
+                ``Grover.optimal_num_iterations``.
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
             quantum_instance: A Quantum Instance or Backend to run the circuits.
 
         Raises:
-            TypeError: If ``init_state`` is of unsupported type or is of type ``InitialState` but
-                the oracle is not of type ``Oracle``.
-            TypeError: If ``oracle`` is of unsupported type.
+            ValueError: Ig ``iterations`` is a float but not larger than 1.
 
 
         References:
             [1]: Boyer et al., Tight bounds on quantum searching
                  `<https://arxiv.org/abs/quant-ph/9605034>`_
         """
+        if isinstance(iterations, float):
+            if iterations <= 1:
+                raise ValueError('The growth rate must be strictly larger than 1, but is '
+                                 f'{iterations}')
+
+            # yield iterations ** 1, iterations ** 2, etc. and casts to int
+            self._iterations = map(lambda x: int(iterations ** x), itertools.count(1))
+        else:
+            self._iterations = iterations
+
         self._quantum_instance = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 
-        self._iterations = iterations if isinstance(iterations, list) else [iterations]
         self._sample_from_iterations = sample_from_iterations
 
     @property
@@ -170,28 +183,42 @@ class Grover:
             The result as a ``GroverResult``, where e.g. the most likely state can be queried
             as ``result.top_measurement``.
         """
-        max_iterations = np.ceil(
-            2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2))
-        # else: already a list
-
-        # cutoff if max_iterations is exceeded (legacy code, should considered for removal?)
-        iterations = []
-        for iteration in self._iterations:  # make sure it's iterable (could be int)
-            if iteration > max_iterations:
-                break
-            iterations += [iteration]
+        if isinstance(self._iterations, list):
+            max_iterations = len(self._iterations)
+            max_power = np.inf  # no cap on the power
+            iterator = iter(self._iterations)
+        else:
+            max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
+            max_power = np.ceil(
+                2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2))
+            iterator = self._iterations
 
         result = GroverResult()
-        result.iterations = iterations
 
-        for power in iterations:
+        iterations = []
+        top_measurement = '0' * len(amplification_problem.objective_qubits)
+        oracle_evaluation = False
+
+        for _ in range(max_iterations):  # iterate at most to the max number of iterations
+            # get next power and check if allowed
+            power = next(iterator)
+            if power > max_power:
+                break
+
+            iterations.append(power)  # store power
+
+            # sample from [0, power) if specified
             if self._sample_from_iterations:
                 power = np.random.randint(power)
+
+            # run Grover for this power
             top_measurement, oracle_evaluation = self._single_experiment(amplification_problem,
                                                                          power)
+
             if oracle_evaluation is True:
                 break  # we found a solution
 
+        result.iterations = iterations
         result.top_measurement = top_measurement
         result.assignment = amplification_problem.post_processing(top_measurement)
         result.oracle_evaluation = oracle_evaluation

@@ -89,7 +89,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_fixed_iterations(self):
         """Test the iterations argument"""
-        grover = Grover(iterations=2, quantum_instance=self.statevector)
+        grover = Grover(iterations=[2], quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, '111')
@@ -100,6 +100,50 @@ class TestGrover(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, '111')
+
+    def test_iterator(self):
+        """Test running the algorithm on an iterator."""
+
+        # step-function iterator
+        def iterator():
+            wait, value, count = 3, 1, 0
+            while True:
+                yield value
+                count += 1
+                if count % wait == 0:
+                    value += 1
+
+        grover = Grover(iterations=iterator(), quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
+
+    def test_growth_rate(self):
+        """Test running the algorithm on a growth rate"""
+        grover = Grover(iterations=8/7, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, '111')
+
+    def test_max_num_iterations(self):
+        """Test the iteration stops when the maximum number of iterations is reached."""
+        def zero():
+            while True:
+                yield 0
+
+        grover = Grover(iterations=zero(), quantum_instance=self.statevector)
+        n = 5
+        problem = AmplificationProblem(Statevector.from_label('1' * n), is_good_state=['1' * n])
+        result = grover.amplify(problem)
+        self.assertEqual(len(result.iterations), 2 ** n)
+
+    def test_max_power(self):
+        """Test the iteration stops when the maximum power is reached."""
+        lam = 10.0
+        grover = Grover(iterations=lam, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
+        result = grover.amplify(problem)
+        self.assertEqual(len(result.iterations), 0)
 
     def test_run_circuit_oracle(self):
         """Test execution with a quantum circuit oracle"""
