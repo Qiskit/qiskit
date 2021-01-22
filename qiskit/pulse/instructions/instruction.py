@@ -25,7 +25,7 @@ import warnings
 
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -50,7 +50,7 @@ class Instruction(ABC):
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
+            duration: Deprecated.
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
@@ -59,20 +59,18 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError("Instruction duration must be an integer, "
-                             "got {} instead.".format(duration))
-        if duration < 0:
-            raise PulseError("{} duration of {} is invalid: must be nonnegative."
-                             "".format(self.__class__.__name__, duration))
-
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
-        self._duration = duration
+        if duration is not None:
+            warnings.warn('Specifying duration in the constructor is deprecated. '
+                          'Now duration is abstract property rather than class variable. '
+                          'All subclasses should implement ``duration`` accordingly. '
+                          'See Qiskit-Terra #5679 for more information.',
+                          DeprecationWarning)
+
         self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
@@ -107,12 +105,6 @@ class Instruction(ABC):
         return self._channels
 
     @property
-    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
-        """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
-        return self._timeslots
-
-    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction."""
         return 0
@@ -125,7 +117,7 @@ class Instruction(ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self._duration
+        raise NotImplementedError
 
     @property
     def _children(self) -> Tuple['Instruction']:

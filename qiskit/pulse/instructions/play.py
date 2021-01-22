@@ -20,6 +20,7 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.utils import instruction_duration_validation
 
 
 class Play(Instruction):
@@ -49,7 +50,7 @@ class Play(Instruction):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         if name is None:
             name = pulse.name
-        super().__init__((pulse, channel), pulse.duration, (channel,), name=name)
+        super().__init__((pulse, channel), None, (channel,), name=name)
 
         if pulse.is_parameterized():
             for value in pulse.parameters.values():
@@ -69,6 +70,12 @@ class Play(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        instruction_duration_validation(self.pulse.duration)
+        return self.pulse.duration
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]

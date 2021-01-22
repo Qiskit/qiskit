@@ -522,22 +522,29 @@ class Schedule(abc.ABC):
 
         self._duration = max(self._duration, time + schedule.duration)
 
+        if isinstance(schedule, Instruction):
+            other_timeslots = {channel: [(0, schedule.duration)] for channel in schedule.channels}
+        elif isinstance(schedule, Schedule):
+            other_timeslots = schedule.timeslots
+        else:
+            raise PulseError('Invalid schedule type {} is specified.'.format(type(schedule)))
+
         for channel in schedule.channels:
 
             if channel not in self._timeslots:
                 if time == 0:
-                    self._timeslots[channel] = copy.copy(schedule._timeslots[channel])
+                    self._timeslots[channel] = copy.copy(other_timeslots[channel])
                 else:
                     self._timeslots[channel] = [(i[0] + time, i[1] + time)
-                                                for i in schedule._timeslots[channel]]
+                                                for i in other_timeslots[channel]]
                 continue
 
-            for idx, interval in enumerate(schedule._timeslots[channel]):
+            for idx, interval in enumerate(other_timeslots[channel]):
                 if interval[0] + time >= self._timeslots[channel][-1][1]:
                     # Can append the remaining intervals
                     self._timeslots[channel].extend(
                         [(i[0] + time, i[1] + time)
-                         for i in schedule._timeslots[channel][idx:]])
+                         for i in other_timeslots[channel][idx:]])
                     break
 
                 try:

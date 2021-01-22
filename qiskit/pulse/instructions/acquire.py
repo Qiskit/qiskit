@@ -13,12 +13,14 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-from typing import Optional
+from typing import Optional, Union
 
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.utils import instruction_duration_validation
 
 
 class Acquire(Instruction):
@@ -39,7 +41,7 @@ class Acquire(Instruction):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  channel: AcquireChannel,
                  mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
@@ -73,9 +75,8 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-        all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
-        super().__init__((duration, channel, mem_slot, reg_slot),
-                         duration, all_channels, name=name)
+        all_channels = tuple([chan for chan in [channel, mem_slot, reg_slot] if chan is not None])
+        super().__init__((duration, channel, mem_slot, reg_slot), None, all_channels, name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -83,6 +84,12 @@ class Acquire(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        instruction_duration_validation(self.operands[0])
+        return self.operands[0]
 
     @property
     def kernel(self) -> Kernel:
