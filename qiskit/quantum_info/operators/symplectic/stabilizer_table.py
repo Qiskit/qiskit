@@ -672,7 +672,7 @@ class StabilizerTable(PauliTable):
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         if qargs is None or (sorted(qargs) == qargs
                              and len(qargs) == self.num_qubits):
@@ -865,7 +865,7 @@ class StabilizerTable(PauliTable):
         Returns:
             list or array: The rows of the StabilizerTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self._num_qubits))
+        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self.num_qubits))
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i], self._phase[i])
         if array:
