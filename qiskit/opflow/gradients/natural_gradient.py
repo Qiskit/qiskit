@@ -20,6 +20,7 @@ from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.exceptions import MissingOptionalLibraryError
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
+from ..list_ops.composed_op import ComposedOp
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from .circuit_gradients import CircuitGradient
 from .circuit_qfis import CircuitQFI
@@ -68,11 +69,10 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get('epsilon', 1e-6)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterVector, ParameterExpression,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
                 ) -> OperatorBase:
         r"""
         Args:
@@ -87,6 +87,11 @@ class NaturalGradient(GradientBase):
                 state is not ``CircuitStateFn``.
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
+        if not isinstance(operator, ComposedOp):
+            if not (isinstance(operator, ListOp) and len(operator.oplist) == 1):
+                raise TypeError('Please provide the operator either as ComposedOp or as ListOp of '
+                                'a CircuitStateFn potentially with a combo function.')
+
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError('Please make sure that the operator for which you want to compute '
                             'Quantum Fisher Information represents an expectation value or a '
