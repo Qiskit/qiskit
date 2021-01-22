@@ -73,9 +73,15 @@ def _disassemble_circuit(qobj) -> CircuitModule:
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
 
-def _qobj_to_circuit_cals(qobj_cals):
-    return {gate['name']: {(tuple(gate['qubits']), tuple(gate['params'])): pulse.Schedule()}
-            for gate in qobj_cals['gates']}
+def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
+    qobj_cals = qobj.config.calibrations.to_dict()['gates']
+    converter = QobjToInstructionConverter(pulse_lib)
+
+    qc_cals = {}
+    for gate in qobj_cals:
+        config = (tuple(gate['qubits']), tuple(gate['params']))
+        cal = {config: pulse.Schedule()}
+        # convert instructions
 
     return qc_cals
 
