@@ -33,7 +33,7 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
 
 
 class TestPauliSumOp(QiskitOpflowTestCase):
@@ -41,7 +41,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_construct(self):
         """ constructor test """
-        sparse_pauli = SparsePauliOp(Pauli(label="XYZX"), coeffs=[2.0])
+        sparse_pauli = SparsePauliOp(Pauli("XYZX"), coeffs=[2.0])
         coeff = 3.0
         pauli_sum = PauliSumOp(sparse_pauli, coeff=coeff)
         self.assertIsInstance(pauli_sum, PauliSumOp)
@@ -54,7 +54,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         pauli_sum = 3 * X + Y
         self.assertIsInstance(pauli_sum, PauliSumOp)
         expected = PauliSumOp(
-            3.0 * SparsePauliOp(Pauli(label="X")) + SparsePauliOp(Pauli(label="Y"))
+            3.0 * SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Y"))
         )
         self.assertEqual(pauli_sum, expected)
 
@@ -86,13 +86,13 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_adjoint(self):
         """ adjoint test """
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli(label="XYZX"), coeffs=[2]), coeff=3)
-        expected = PauliSumOp(SparsePauliOp(Pauli(label="XYZX")), coeff=-6)
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZX"), coeffs=[2]), coeff=3)
+        expected = PauliSumOp(SparsePauliOp(Pauli("XYZX")), coeff=-6)
 
         self.assertEqual(pauli_sum.adjoint(), expected)
 
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli(label="XYZY"), coeffs=[2]), coeff=3j)
-        expected = PauliSumOp(SparsePauliOp(Pauli(label="XYZY")), coeff=-6j)
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=3j)
+        expected = PauliSumOp(SparsePauliOp(Pauli("XYZY")), coeff=-6j)
         self.assertEqual(pauli_sum.adjoint(), expected)
 
     def test_equals(self):
@@ -105,7 +105,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         pauli_sum0 = theta[0] * (X + Z)
         pauli_sum1 = theta[1] * (X + Z)
         expected = PauliSumOp(
-            SparsePauliOp(Pauli(label="X")) + SparsePauliOp(Pauli(label="Z")),
+            SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Z")),
             coeff=1.0 * theta[0],
         )
         self.assertEqual(pauli_sum0, expected)
@@ -228,6 +228,30 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             + 0.18093119978423156 * (X ^ X)
         )
         self.assertEqual(target, expected)
+
+    def test_matrix_iter(self):
+        """Test PauliSumOp dense matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        table = PauliTable.from_labels(labels)
+        coeff = 10
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter()):
+            self.assertTrue(
+                np.array_equal(i, coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
+
+    def test_matrix_iter_sparse(self):
+        """Test PauliSumOp sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        coeff = 10
+        table = PauliTable.from_labels(labels)
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter(sparse=True)):
+            self.assertTrue(
+                np.array_equal(i.toarray(), coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
 
 
 if __name__ == "__main__":

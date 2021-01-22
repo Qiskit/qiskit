@@ -26,6 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
@@ -69,7 +70,7 @@ class Statevector(QuantumState, TolerancesMixin):
         elif isinstance(data, Statevector):
             self._data = data._data
             if dims is None:
-                dims = data._dims
+                dims = data._op_shape._dims_l
         elif isinstance(data, Operator):
             # We allow conversion of column-vector operators to Statevectors
             input_dim, _ = data.dim
@@ -87,9 +88,11 @@ class Statevector(QuantumState, TolerancesMixin):
         if ndim != 1:
             if ndim == 2 and shape[1] == 1:
                 self._data = np.reshape(self._data, shape[0])
+                shape = self._data.shape
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
-        super().__init__(self._automatic_dims(dims, shape[0]))
+        super().__init__(op_shape=OpShape.auto(
+            shape=shape, dims_l=dims, num_qubits_r=0))
 
     def __array__(self, dtype=None):
         if dtype:
@@ -106,7 +109,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return '{}{},\n{}dims={})'.format(
             prefix, np.array2string(
                 self.data, separator=', ', prefix=prefix),
-            pad, self._dims)
+            pad, self._op_shape.dims_l())
 
     @property
     def data(self):
@@ -157,9 +160,10 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        dims = other.dims() + self.dims()
-        data = np.kron(self._data, other._data)
-        return Statevector(data, dims)
+        ret = copy.copy(self)
+        ret._op_shape = self._op_shape.tensor(other._op_shape)
+        ret._data = np.kron(self._data, other._data)
+        return ret
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
@@ -175,9 +179,10 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        dims = self.dims() + other.dims()
-        data = np.kron(other._data, self._data)
-        return Statevector(data, dims)
+        ret = copy.copy(self)
+        ret._op_shape = self._op_shape.expand(other._op_shape)
+        ret._data = np.kron(other._data, self._data)
+        return ret
 
     def _add(self, other):
         """Return the linear combination self + other.
@@ -194,9 +199,10 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        if self.dim != other.dim:
-            raise QiskitError("other Statevector has different dimensions.")
-        return Statevector(self.data + other.data, self.dims())
+        self._op_shape._validate_add(other._op_shape)
+        ret = copy.copy(self)
+        ret._data = self.data + other.data
+        return ret
 
     def _multiply(self, other):
         """Return the scalar multiplied state self * other.
@@ -212,7 +218,9 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        return Statevector(other * self.data, self.dims())
+        ret = copy.copy(self)
+        ret._data = other * self.data
+        return ret
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by the operator.
@@ -285,6 +293,26 @@ class Statevector(QuantumState, TolerancesMixin):
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 
+    def reverse_qargs(self):
+        r"""Return a Statevector with reversed subsystem ordering.
+
+        For a tensor product state this is equivalent to reversing the order
+        of tensor product subsystems. For a statevector
+        :math:`|\psi \rangle = |\psi_{n-1} \rangle \otimes ... \otimes |\psi_0 \rangle`
+        the returned statevector will be
+        :math:`|\psi_{0} \rangle \otimes ... \otimes |\psi_{n-1} \rangle`.
+
+        Returns:
+            Statevector: the Statevector with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        ret._data = np.reshape(np.transpose(
+            np.reshape(self.data, self._op_shape.tensor_shape), axes),
+                               self._op_shape.shape)
+        ret._op_shape = self._op_shape.reverse()
+        return ret
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -356,7 +384,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 print('Swapped probs: {}'.format(probs_swapped))
         """
         probs = self._subsystem_probabilities(
-            np.abs(self.data) ** 2, self._dims, qargs=qargs)
+            np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs)
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs
@@ -382,9 +410,11 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
-            state = np.zeros(self._dim, dtype=complex)
+            ret = copy.copy(self)
+            state = np.zeros(self._op_shape.shape, dtype=complex)
             state[0] = 1
-            return Statevector(state, dims=self._dims)
+            ret._data = state
+            return ret
 
         # Sample a single measurement outcome
         dims = self.dims(qargs)
@@ -589,66 +619,42 @@ class Statevector(QuantumState, TolerancesMixin):
                 print(psi.to_dict())
         """
         return self._vector_to_dict(self.data,
-                                    self._dims,
+                                    self._op_shape.dims_l(),
                                     decimals=decimals,
                                     string_labels=True)
-
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return tuple(reversed(self.dims()))
 
     @staticmethod
     def _evolve_operator(statevec, oper, qargs=None):
         """Evolve a qudit statevector"""
-        is_qubit = bool(statevec.num_qubits and oper.num_qubits)
-
+        new_shape = statevec._op_shape.compose(oper._op_shape, qargs=qargs)
         if qargs is None:
             # Full system evolution
             statevec._data = np.dot(oper._data, statevec._data)
-            if not is_qubit:
-                statevec._set_dims(oper._output_dims)
+            statevec._op_shape = new_shape
             return statevec
 
-        # Calculate contraction dimensions
-        if is_qubit:
-            # Qubit contraction
-            new_dim = statevec._dim
-            num_qargs = statevec.num_qubits
-        else:
-            # Qudit contraction
-            new_dims = list(statevec._dims)
-            for i, qubit in enumerate(qargs):
-                new_dims[qubit] = oper._output_dims[i]
-            new_dim = np.product(new_dims)
-            num_qargs = len(new_dims)
-
         # Get transpose axes
+        num_qargs = statevec._op_shape.num_qargs[0]
         indices = [num_qargs - 1 - i for i in reversed(qargs)]
         axes = indices + [i for i in range(num_qargs) if i not in indices]
         axes_inv = np.argsort(axes).tolist()
 
         # Calculate contraction dimensions
-        if is_qubit:
-            pre_tensor_shape = num_qargs * (2,)
-            post_tensor_shape = pre_tensor_shape
-            contract_shape = (1 << oper.num_qubits, 1 << (num_qargs - oper.num_qubits))
-        else:
-            contract_dim = np.product(oper._input_dims)
-            pre_tensor_shape = statevec._shape
-            contract_shape = (contract_dim, statevec._dim // contract_dim)
-            post_tensor_shape = list(reversed(oper._output_dims)) + [
-                pre_tensor_shape[i] for i in range(num_qargs) if i not in indices]
+        contract_dim = oper._op_shape.shape[1]
+        contract_shape = (contract_dim, statevec._op_shape.shape[0] // contract_dim)
 
-        # reshape input for contraction
-        statevec._data = np.reshape(np.transpose(
-            np.reshape(statevec.data, pre_tensor_shape), axes), contract_shape)
-        statevec._data = np.reshape(np.dot(oper.data, statevec._data), post_tensor_shape)
-        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_dim)
+        # Reshape input for contraction
+        statevec._data = np.reshape(
+            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape),
+                         axes), contract_shape)
+        # Contract and reshape output
+        statevec._data = np.reshape(np.dot(oper.data, statevec._data),
+                                    new_shape.tensor_shape)
+        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv),
+                                    new_shape.shape[0])
 
         # Update dimension
-        if not is_qubit:
-            statevec._set_dims(new_dims)
+        statevec._op_shape = new_shape
         return statevec
 
     @staticmethod

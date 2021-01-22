@@ -20,6 +20,8 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -58,6 +60,39 @@ class PauliSumOp(PrimitiveOp):
     @property
     def num_qubits(self) -> int:
         return self.primitive.num_qubits  # type: ignore
+
+    @property
+    def coeffs(self):
+        """Return the Pauli coefficients."""
+        return self.coeff * self.primitive.coeffs
+
+    def matrix_iter(self, sparse=False):
+        """Return a matrix representation iterator.
+
+        This is a lazy iterator that converts each term in the PauliSumOp
+        into a matrix as it is used. To convert to a single matrix use the
+        :meth:`to_matrix` method.
+
+        Args:
+            sparse (bool): optionally return sparse CSR matrices if True,
+                           otherwise return Numpy array matrices
+                           (Default: False)
+
+        Returns:
+            MatrixIterator: matrix iterator object for the PauliTable.
+        """
+        class MatrixIterator(CustomIterator):
+            """Matrix representation iteration and item access."""
+            def __repr__(self):
+                return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
+
+            def __getitem__(self, key):
+                sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
+                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key],
+                                            sparse=sparse)
+                return sumopcoeff * mat
+
+        return MatrixIterator(self)
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -112,7 +147,7 @@ class PauliSumOp(PrimitiveOp):
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
         return PauliSumOp(
             self.primitive.tensor(  # type:ignore
-                SparsePauliOp(Pauli(label="I" * num_qubits))
+                SparsePauliOp(Pauli("I" * num_qubits))
             ),
             coeff=self.coeff,
         )
@@ -145,7 +180,7 @@ class PauliSumOp(PrimitiveOp):
                               "same size as Pauli Operator")
         length = max(permutation) + 1
         spop = self.primitive.tensor(  # type:ignore
-            SparsePauliOp(Pauli(label="I" * (length - self.num_qubits)))
+            SparsePauliOp(Pauli("I" * (length - self.num_qubits)))
         )
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permutation = np.arange(length)[np.argsort(permutation)]
@@ -299,13 +334,13 @@ class PauliSumOp(PrimitiveOp):
 
         if len(self.primitive) == 1:
             return PauliOp(
-                Pauli(x=self.primitive.table.X[0], z=self.primitive.table.Z[0]),  # type: ignore
+                Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),  # type: ignore
                 to_native(to_real(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
             )
         return SummedOp(
             [
                 PauliOp(
-                    Pauli(x=s.table.X[0], z=s.table.Z[0]),
+                    Pauli((s.table.Z[0], s.table.X[0])),
                     to_native(to_real(s.coeffs[0])),
                 )
                 for s in self.primitive

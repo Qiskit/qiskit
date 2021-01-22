@@ -23,7 +23,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info import Operator as MatrixOperator
 
-from ..legacy.base_operator import LegacyBaseOperator
 from ..operator_base import OperatorBase
 
 logger = logging.getLogger(__name__)
@@ -251,10 +250,6 @@ class PrimitiveOp(OperatorBase):
         from .matrix_op import MatrixOp
         return MatrixOp(prim_mat, coeff=self.coeff)
 
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        mat_op = self.to_matrix_op(massive=massive)
-        return mat_op.to_legacy_op(massive=massive)
-
     def to_instruction(self) -> Instruction:
         """ Returns an ``Instruction`` equivalent to this Operator. """
         raise NotImplementedError
@@ -286,12 +281,12 @@ class PrimitiveOp(OperatorBase):
         if len(sparse_pauli) == 1:
             label, coeff = sparse_pauli.to_list()[0]
             coeff = coeff.real if np.isreal(coeff) else coeff
-            return PrimitiveOp(Pauli.from_label(label), coeff * self.coeff)
+            return PrimitiveOp(Pauli(label), coeff * self.coeff)
 
         return SummedOp(
             [
                 PrimitiveOp(
-                    Pauli.from_label(label),  # type: ignore
+                    Pauli(label),
                     coeff.real if coeff == coeff.real else coeff,
                 )
                 for (label, coeff) in sparse_pauli.to_list()
