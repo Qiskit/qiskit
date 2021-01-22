@@ -23,7 +23,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info import Operator as MatrixOperator
 
-from ..legacy.base_operator import LegacyBaseOperator
 from ..operator_base import OperatorBase
 
 logger = logging.getLogger(__name__)
@@ -250,10 +249,6 @@ class PrimitiveOp(OperatorBase):
         prim_mat = self.__class__(self.primitive).to_matrix(massive=massive)
         from .matrix_op import MatrixOp
         return MatrixOp(prim_mat, coeff=self.coeff)
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        mat_op = self.to_matrix_op(massive=massive)
-        return mat_op.to_legacy_op(massive=massive)
 
     def to_instruction(self) -> Instruction:
         """ Returns an ``Instruction`` equivalent to this Operator. """
