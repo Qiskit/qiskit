@@ -37,6 +37,9 @@ from qiskit.utils.multiprocessing import is_main_process
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
+TimeSlots = Dict[Channel, List[Tuple[int, int]]]
+"""List of timeslots occupied by instructions for each channel."""
+
 
 class Schedule(abc.ABC):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
@@ -95,7 +98,7 @@ class Schedule(abc.ABC):
         return self._name
 
     @property
-    def timeslots(self) -> Dict[Channel, List[Interval]]:
+    def timeslots(self) -> TimeSlots:
         """Time keeping attribute."""
         return self._timeslots
 
@@ -521,16 +524,9 @@ class Schedule(abc.ABC):
             raise PulseError("Schedule start time must be an integer.")
 
         self._duration = max(self._duration, time + schedule.duration)
-
-        if isinstance(schedule, Instruction):
-            other_timeslots = {channel: [(0, schedule.duration)] for channel in schedule.channels}
-        elif isinstance(schedule, Schedule):
-            other_timeslots = schedule.timeslots
-        else:
-            raise PulseError('Invalid schedule type {} is specified.'.format(type(schedule)))
+        other_timeslots = _get_timeslot(schedule)
 
         for channel in schedule.channels:
-
             if channel not in self._timeslots:
                 if time == 0:
                     self._timeslots[channel] = copy.copy(other_timeslots[channel])
@@ -583,7 +579,9 @@ class Schedule(abc.ABC):
                     'The channel {} is not present in the schedule'.format(channel))
 
             channel_timeslots = self._timeslots[channel]
-            for interval in schedule._timeslots[channel]:
+            other_timeslots = _get_timeslot(schedule)
+
+            for interval in other_timeslots[channel]:
                 if channel_timeslots:
                     interval = (interval[0] + time, interval[1] + time)
                     index = _interval_index(channel_timeslots, interval)
@@ -1141,7 +1139,7 @@ def _overlaps(first: Interval, second: Interval) -> bool:
     return second[0] < first[1]
 
 
-def _check_nonnegative_timeslot(timeslots):
+def _check_nonnegative_timeslot(timeslots: TimeSlots):
     """Test that a channel has no negative timeslots.
 
     Raises:
@@ -1153,3 +1151,22 @@ def _check_nonnegative_timeslot(timeslots):
                 raise PulseError(
                     "An instruction on {} has a negative "
                     " starting time.".format(chan))
+
+
+def _get_timeslot(schedule: Union[Instruction, Schedule]) -> TimeSlots:
+    """Generate timeslot from given schedule component.
+
+    Args:
+        schedule: Input schedule component.
+
+    Raises:
+        PulseError: When invalid schedule type is specified.
+    """
+    if isinstance(schedule, Instruction):
+        timeslots = {channel: [(0, schedule.duration)] for channel in schedule.channels}
+    elif isinstance(schedule, Schedule):
+        timeslots = schedule.timeslots
+    else:
+        raise PulseError('Invalid schedule type {} is specified.'.format(type(schedule)))
+
+    return timeslots

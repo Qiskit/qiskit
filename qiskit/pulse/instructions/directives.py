@@ -24,6 +24,11 @@ class Directive(instruction.Instruction, ABC):
     This is a hint to the pulse compiler and is not loaded into hardware.
     """
 
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0
+
 
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
@@ -42,11 +47,6 @@ class RelativeBarrier(Directive):
             name: Name of the directive for display purposes.
         """
         super().__init__(tuple(channels), None, tuple(channels), name=name)
-
-    @property
-    def duration(self) -> int:
-        """Duration of this instruction."""
-        return 0
 
     def __eq__(self, other):
         """Verify two barriers are equivalent."""
