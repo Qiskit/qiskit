@@ -157,10 +157,11 @@ class SolovayKitaev():
             return self.find_basic_approximation(sequence)
 
         u_n1 = self._recurse(sequence, n - 1)
-        tuple_v_w = commutator_decompose(np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
-        v_n1 = self._recurse(tuple_v_w[0], n - 1)
-        w_n1 = self._recurse(tuple_v_w[1], n - 1)
+        v_n, w_n = commutator_decompose(sequence.dot(u_n1.adjoint()).product)
+
+        v_n1 = self._recurse(v_n, n - 1)
+        w_n1 = self._recurse(w_n, n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
