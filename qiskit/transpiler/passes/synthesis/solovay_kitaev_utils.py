@@ -286,8 +286,10 @@ def compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, flo
     matrix = np.round(matrix, decimals=7)
     if (matrix[2][0] != 1 and matrix[2][1] != -1):
         theta = -math.asin(matrix[2][0])
-        psi = math.atan2(matrix[2][1] / math.cos(theta), matrix[2][2] / math.cos(theta))
-        phi = math.atan2(matrix[1][0] / math.cos(theta), matrix[0][0] / math.cos(theta))
+        psi = math.atan2(matrix[2][1] / math.cos(theta),
+                         matrix[2][2] / math.cos(theta))
+        phi = math.atan2(matrix[1][0] / math.cos(theta),
+                         matrix[0][0] / math.cos(theta))
         return phi, theta, psi
     else:
         phi = 0
@@ -369,7 +371,8 @@ def solve_decomposition_angle(matrix: np.ndarray) -> float:
     """
     descr_method = 'Computation of decomposition angle'
     if matrix.shape != (3, 3):
-        raise ValueError(descr_method + 'called on matrix of shape', matrix.shape)
+        raise ValueError(
+            descr_method + 'called on matrix of shape', matrix.shape)
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
         raise ValueError(
@@ -403,8 +406,10 @@ def compute_euler_angles_from_s03(matrix: np.ndarray) -> Tuple[float, float, flo
     """
     if matrix[2][0] != 1 and matrix[2][1] != -1:
         theta = -math.asin(matrix[2][0])
-        psi = math.atan2(matrix[2][1]/math.cos(theta), matrix[2][2]/math.cos(theta))
-        phi = math.atan2(matrix[1][0]/math.cos(theta), matrix[0][0]/math.cos(theta))
+        psi = math.atan2(matrix[2][1]/math.cos(theta),
+                         matrix[2][2]/math.cos(theta))
+        phi = math.atan2(matrix[1][0]/math.cos(theta),
+                         matrix[0][0]/math.cos(theta))
         return phi, theta, psi
     else:
         phi = 0
