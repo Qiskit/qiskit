@@ -1393,8 +1393,7 @@ class DAGCircuit:
                 and isinstance(node.op, Gate) \
                 and hasattr(node.op, '__array__')
 
-        group_list = rx.collect_runs(self._multi_graph, filter_fn)
-        return set(tuple(x) for x in group_list)
+        return rx.collect_runs(self._multi_graph, filter_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
