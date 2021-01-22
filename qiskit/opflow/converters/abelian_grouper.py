@@ -136,7 +136,7 @@ class AbelianGrouper(ConverterBase):
             This method is applicable to only PauliOps.
 
         Args:
-            operators
+            ops: operators
 
         Returns:
             A list of pairs of indices of the operators that are not commutable
