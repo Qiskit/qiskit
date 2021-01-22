@@ -69,16 +69,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 continue
 
             new_circs = []
-            if hasattr(run[0].op, '__array__'):
-                operator = Operator(np.array(run[0].op, dtype=complex))
-            else:
-                operator = Operator(run[0].op)
+            operator = Operator(run[0].op)
             for gate in run[1:]:
-                if hasattr(gate.op, '__array__'):
-                    operator = operator.compose(
-                        np.array(gate.op, dtype=complex))
-                else:
-                    operator = operator.compose(gate.op)
+                operator = operator.compose(gate.op)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
             if new_circs:
