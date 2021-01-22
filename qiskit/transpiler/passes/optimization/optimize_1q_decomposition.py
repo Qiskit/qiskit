@@ -69,16 +69,21 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 continue
 
             new_circs = []
-            q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(1)
-            for gate in run:
-                qc._append(gate.op, [q[0]], [])
-            operator = Operator(qc)
+            if hasattr(run[0].op, '__array__'):
+                operator = Operator(np.array(run[0].op, dtype=complex))
+            else:
+                operator = Operator(run[0].op)
+            for gate in run[1:]:
+                if hasattr(gate.op, '__array__'):
+                    operator = operator.compose(
+                        np.array(gate.op, dtype=complex))
+                else:
+                    operator = operator.compose(gate.op)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=lambda circ: circ.depth())
-                if qc.depth() > new_circ.depth():
+                if len(run) > new_circ.depth():
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
