@@ -458,8 +458,8 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_dag_plus_one = synth_plus_one.run(dag_plus_one)
         decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
 
-        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit).data), distance(
-            Operator(circuit).data, Operator(decomposed_circuit_plus_one).data))
+        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit_plus_one).data),
+                        distance(Operator(circuit).data, Operator(decomposed_circuit).data))
 
 
 @ddt
