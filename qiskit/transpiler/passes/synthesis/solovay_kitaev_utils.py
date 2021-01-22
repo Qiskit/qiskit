@@ -18,7 +18,7 @@ import math
 import numpy as np
 import scipy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.library import IGate
 
 
@@ -76,6 +76,24 @@ class GateSequence():
             return False
 
         return True
+
+    def to_circuit(self):
+        """Convert to a circuit.
+
+        If no gates set but the product is not the identity, returns a circuit with a
+        unitary operation to implement the matrix.
+        """
+        if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
+            circuit = QuantumCircuit(1, global_phase=self.global_phase)
+            su2 = convert_so3_to_su2(self.product)
+            circuit.unitary(su2, [0])
+            return circuit
+
+        circuit = QuantumCircuit(1, global_phase=self.global_phase)
+        for gate in self.gates:
+            circuit.append(gate, [0])
+
+        return circuit
 
     def represents_same_gate(self, other: 'GateSequence', precision: float = 0.0) -> bool:
         """Returns whether to ``self`` represents the same gate as ``other`` up to ``precision``.
@@ -447,22 +465,24 @@ def compute_rotation_between(from_vector: np.ndarray, to_vector: np.ndarray) -> 
     Raises:
         ValueError: if at least one of ``from_vector`` of ``to_vector`` is not a 3-dim unit vector.
     """
-    descr_method = 'Computation rotation between vectors'
-    if from_vector.shape != (3,):
-        raise ValueError(
-            descr_method + 'called on matrix of shape', from_vector.shape)
+    # descr_method = 'Computation rotation between vectors'
+    # if from_vector.shape != (3,):
+    #     raise ValueError(
+    #         descr_method + 'called on matrix of shape', from_vector.shape)
 
-    if to_vector.shape != (3,):
-        raise ValueError(
-            descr_method + 'called on matrix of shape', to_vector.shape)
+    # if to_vector.shape != (3,):
+    #     raise ValueError(
+    #         descr_method + 'called on matrix of shape', to_vector.shape)
 
-    if abs(np.linalg.norm(from_vector)-1.0) > 1e-4:
-        raise ValueError(
-            descr_method + 'called on vector with norm', np.linalg.norm(from_vector))
+    # if abs(np.linalg.norm(from_vector)-1.0) > 1e-4:
+    #     raise ValueError(
+    #         descr_method + 'called on vector with norm', np.linalg.norm(from_vector))
 
-    if abs(np.linalg.norm(to_vector)-1.0) > 1e-4:
-        raise ValueError(
-            descr_method + 'called on vector with norm', np.linalg.norm(to_vector))
+    # if abs(np.linalg.norm(to_vector)-1.0) > 1e-4:
+    #     raise ValueError(
+    #         descr_method + 'called on vector with norm', np.linalg.norm(to_vector))
+    from_vector = from_vector / np.linalg.norm(from_vector)
+    to_vector = to_vector / np.linalg.norm(to_vector)
 
     v = np.cross(from_vector, to_vector)
     c = np.dot(from_vector, to_vector)
