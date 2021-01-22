@@ -533,7 +533,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     @combine(seed=range(10),
-             euler_bases=[('U3', ['u3']), ('U321', ['u3', 'u2', 'u1']), ('U', ['u']),
+             euler_bases=[('U321', ['u3', 'u2', 'u1']), ('U3', ['u3']), ('U', ['u']),
                           ('U1X', ['u1', 'rx']), ('RR', ['r']),
                           ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
                           ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],

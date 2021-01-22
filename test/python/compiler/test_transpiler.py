@@ -523,9 +523,9 @@ class TestTranspile(QiskitTestCase):
     def test_optimize_to_nothing(self):
         """ Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
-        qr = QuantumRegister(2)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
+        #qr = QuantumRegister(2)
+        circ = QuantumCircuit(2, global_phase=0)
+        """circ.h(qr[0])
         circ.cx(qr[0], qr[1])
         circ.x(qr[0])
         circ.y(qr[0])
@@ -533,12 +533,27 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.h(qr[0])
         circ.cx(qr[0], qr[1])
-        circ.cx(qr[0], qr[1])
+        circ.cx(qr[0], qr[1])"""
 
-        after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.x(0)
+        circ.y(0)
+        circ.z(0)
+        circ.cx(0, 1)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.cx(0, 1)
+
+        after = transpile(circ,# coupling_map=[[0, 1], [1, 0]],
                           basis_gates=['u3', 'u2', 'u1', 'cx'])
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        expected = QuantumCircuit(2, global_phase=-np.pi/2)
+        print(circ)
+        print(after)
+        print(expected)
+        print(after.count_ops())
+        print(len(after.count_ops()))
         self.assertEqual(after, expected)
 
     def test_pass_manager_empty(self):

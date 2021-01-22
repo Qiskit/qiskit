@@ -40,7 +40,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
