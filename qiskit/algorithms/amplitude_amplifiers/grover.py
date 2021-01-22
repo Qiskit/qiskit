@@ -132,7 +132,7 @@ class Grover:
             quantum_instance: A Quantum Instance or Backend to run the circuits.
 
         Raises:
-            ValueError: Ig ``iterations`` is a float but not larger than 1.
+            ValueError: If ``iterations`` is a float but not larger than 1.
 
 
         References:
