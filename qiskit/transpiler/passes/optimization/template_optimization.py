@@ -23,7 +23,9 @@ Exact and practical pattern matching for quantum circuit optimization.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.dagcircuit import DAGDependency
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
+from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
@@ -85,15 +87,20 @@ class TemplateOptimization(TransformationPass):
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
 
         for template in self.template_list:
-            if not isinstance(template, QuantumCircuit):
-                raise TranspilerError('A template is a Quantumciruit().')
+            if not isinstance(template, (QuantumCircuit, DAGDependency)):
+                raise TranspilerError('A template is a Quantumciruit or a DAGDependency.')
 
-            if template.num_qubits > len(circuit_dag_dep.qubits):
+            if len(template.qubits) > len(circuit_dag_dep.qubits):
                 continue
 
-            identity = np.identity(2 ** template.num_qubits, dtype=complex)
+            identity = np.identity(2 ** len(template.qubits), dtype=complex)
             try:
-                comparison = np.allclose(Operator(template).data, identity)
+                if isinstance(template, DAGDependency):
+                    data = Operator(dagdependency_to_circuit(template)).data
+                else:
+                    data = Operator(template).data
+
+                comparison = np.allclose(data, identity)
 
                 if not comparison:
                     raise TranspilerError('A template is a Quantumciruit() that '
@@ -101,7 +108,10 @@ class TemplateOptimization(TransformationPass):
             except TypeError:
                 pass
 
-            template_dag_dep = circuit_to_dagdependency(template)
+            if isinstance(template, QuantumCircuit):
+                template_dag_dep = circuit_to_dagdependency(template)
+            else:
+                template_dag_dep = template
 
             template_m = TemplateMatching(circuit_dag_dep,
                                           template_dag_dep,
