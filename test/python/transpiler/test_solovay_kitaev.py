@@ -418,6 +418,24 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
+    def test_str_basis_gates(self):
+        """Test specifying the basis gates by string works."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.8, 0)
+
+        basis_gates = ['h', 't', 's']
+        synth = SolovayKitaevDecomposition(2, basis_gates)
+
+        dag = circuit_to_dag(circuit)
+        discretized = dag_to_circuit(synth.run(dag))
+
+        reference = QuantumCircuit(1, global_phase=-np.pi / 8)
+        reference.h(0)
+        reference.t(0)
+        reference.h(0)
+
+        self.assertEqual(discretized, reference)
+
     @data(2, 3, 4, 5)
     def test_solovay_kitaev_converges(self, depth: int):
         """Test that the SolovayKitaevDecomposition returns a circuit closer to the input gate

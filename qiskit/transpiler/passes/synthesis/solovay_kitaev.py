@@ -17,7 +17,7 @@ import itertools
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate, QuantumRegister
-from qiskit.circuit.library import IGate
+import qiskit.circuit.library.standard_gates as gates
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -38,23 +38,44 @@ class SolovayKitaev():
     See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
     """
 
-    def __init__(self, basis_gates: List[Union[str, Gate]]) -> None:
+    # allowed (unparameterized) single qubit gates
+    _1q_gates = {
+        'i': gates.IGate(),
+        'x': gates.XGate(),
+        'y': gates.YGate(),
+        'z': gates.ZGate(),
+        'h': gates.HGate(),
+        't': gates.TGate(),
+        'tdg': gates.TdgGate(),
+        's': gates.SGate(),
+        'sdg': gates.SdgGate(),
+        'sx': gates.SXGate(),
+        'sxdg': gates.SXdgGate()
+    }
+
+    def __init__(self, basis_gates: List[Union[str, Gate]], depth: int = 3) -> None:
         # generate the basic approximations once for this basis gates set
-        self._basic_approximations = self.generate_basic_approximations(basis_gates)
+        for i, gate in enumerate(basis_gates):
+            if isinstance(gate, str):
+                if gate in self._1q_gates.keys():
+                    basis_gates[i] = self._1q_gates[gate]
+                else:
+                    raise ValueError(f'Invalid gate identifier: {gate}')
 
+        self._basic_approximations = self.generate_basic_approximations(
+            basis_gates, depth)
 
-    def generate_basic_approximations(self, basis_gates: List[Union[str, Gate]]
+    def generate_basic_approximations(self, basis_gates: List[Union[str, Gate]], depth: int
                                       ) -> List[GateSequence]:
         """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
         Args:
             basis_gates: The gates from which to create the sequences of gates.
+            depth: The maximum depth of the approximations.
 
         Returns:
             List of GateSequences using the gates in basic_gates.
         """
-        depth = 3
-
         # get all products from all depths
         products = []
         for reps in range(1, depth + 1):
@@ -69,23 +90,6 @@ class SolovayKitaev():
                 sequences.append(candidate)
 
         return sequences
-
-    def _synth_circuit(self, global_phase: float, gate_sequence: GateSequence) -> QuantumCircuit:
-        """Converts a ``GateSequence`` to a circuit, additionally adding the ``global_phase``.
-
-        Args:
-            global_phase: The global phase of the circuit.
-            gate_sequence: GateSequence from which to construct the circuit.
-
-        Returns:
-            The gate sequence as a circuit.
-        """
-        qr = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(qr)
-        for gate in gate_sequence.gates:
-            qc.append(gate, [qr[0]])
-        qc.global_phase = global_phase + gate_sequence.global_phase
-        return qc
 
     def run(self, gate_matrix: np.ndarray, recursion_degree: int) -> QuantumCircuit:
         r"""Run the algorithm.
@@ -106,12 +110,13 @@ class SolovayKitaev():
         decomposition = self._recurse(gate_matrix_su2, recursion_degree)
 
         # simplify
-        _remove_inverse_follows_gate(decomposition)
         _remove_identities(decomposition)
+        _remove_inverse_follows_gate(decomposition)
 
         # convert to a circuit and attach the right phases
         # TODO insert simplify again, but it seems to break the accuracy test
-        circuit = self._synth_circuit(global_phase, decomposition)
+        circuit = decomposition.to_circuit()
+        decomposition.global_phase = decomposition.global_phase - global_phase
 
         return circuit
 
@@ -136,11 +141,11 @@ class SolovayKitaev():
             return self.find_basic_approximation(sequence)
 
         u_n1 = self._recurse(sequence, n - 1)
-        tuple_v_w = commutator_decompose(
-            np.dot(sequence.product, np.matrix.getH(u_n1.product)))
 
-        v_n1 = self._recurse(tuple_v_w[0], n - 1)
-        w_n1 = self._recurse(tuple_v_w[1], n - 1)
+        v_n, w_n = commutator_decompose(sequence.dot(u_n1.adjoint()).product)
+
+        v_n1 = self._recurse(v_n, n - 1)
+        w_n1 = self._recurse(w_n, n - 1)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
@@ -152,15 +157,21 @@ class SolovayKitaev():
         Returns:
             Gate in basic approximations that is closest to ``sequence``.
         """
+        # use this snippet to return the exact gate with no approximation
+        # from .solovay_kitaev_utils import convert_so3_to_su2
+        # from qiskit.extensions import UnitaryGate
+        # su2 = convert_so3_to_su2(sequence.product)
+        # return GateSequence([UnitaryGate(su2)])
+
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
-        return min(self._basic_approximations, key=key)
+        best = min(self._basic_approximations, key=key)
+        return best
 
 
 def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
                          ) -> Tuple[GateSequence, GateSequence]:
-
     r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
 
     This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
@@ -259,7 +270,7 @@ def _remove_inverse_follows_gate(sequence):
 def _remove_identities(sequence):
     index = 0
     while index < len(sequence.gates):
-        if isinstance(sequence.gates[index], IGate):
+        if isinstance(sequence.gates[index], gates.IGate):
             sequence.gates.pop(index)
         else:
             index += 1
@@ -338,7 +349,8 @@ class SolovayKitaevDecomposition(TransformationPass):
 
     """
 
-    def __init__(self, recursion_degree: int, basis_gates: List[Union[str, Gate]]) -> None:
+    def __init__(self, recursion_degree: int, basis_gates: List[Union[str, Gate]],
+                 product_depth: int = 3) -> None:
         """
         Args:
             recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
@@ -348,7 +360,7 @@ class SolovayKitaevDecomposition(TransformationPass):
         """
         super().__init__()
         self._recursion_degree = recursion_degree
-        self._sk = SolovayKitaev(basis_gates)
+        self._sk = SolovayKitaev(basis_gates, product_depth)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the SolovayKitaevDecomposition pass on `dag`.

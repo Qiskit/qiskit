@@ -18,7 +18,7 @@ import math
 import numpy as np
 import scipy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.library import IGate
 
 
@@ -43,7 +43,7 @@ class GateSequence():
         # get U(2) representation of the gate sequence
         u2_matrix = np.identity(2)
         for gate in gates:
-            u2_matrix = u2_matrix.dot(gate.to_matrix())
+            u2_matrix = gate.to_matrix().dot(u2_matrix)
 
         # convert to SU(2)
         su2_matrix, global_phase = _convert_u2_to_su2(u2_matrix)
@@ -77,17 +77,23 @@ class GateSequence():
 
         return True
 
-    def __mul__(self, other: 'GateSequence') -> 'GateSequence':
-        """Concatenate another GateSequence to this one by appending every gate from ``other``.
+    def to_circuit(self):
+        """Convert to a circuit.
 
-        Args:
-            other: The GateSequence that will be concatenated to ``self``.
-
-        Returns:
-            GateSequence ``self`` concatenated to ``other``.
+        If no gates set but the product is not the identity, returns a circuit with a
+        unitary operation to implement the matrix.
         """
-        summed = GateSequence(self.gates + other.gates)
-        return summed
+        if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
+            circuit = QuantumCircuit(1, global_phase=self.global_phase)
+            su2 = convert_so3_to_su2(self.product)
+            circuit.unitary(su2, [0])
+            return circuit
+
+        circuit = QuantumCircuit(1, global_phase=self.global_phase)
+        for gate in self.gates:
+            circuit.append(gate, [0])
+
+        return circuit
 
     def represents_same_gate(self, other: 'GateSequence', precision: float = 0.0) -> bool:
         """Returns whether to ``self`` represents the same gate as ``other`` up to ``precision``.
@@ -117,7 +123,7 @@ class GateSequence():
         su2, phase = _convert_u2_to_su2(gate.to_matrix())
         so3 = convert_su2_to_so3(su2)
 
-        self.product = self.product.dot(so3)
+        self.product = so3.dot(self.product.dot)
         self.global_phase = self.global_phase + phase
         self.gates.append(gate)
 
@@ -125,9 +131,10 @@ class GateSequence():
 
     def adjoint(self) -> 'GateSequence':
         """Get the complex conjugate."""
-
-        adjoint = GateSequence([gate.inverse()
-                                for gate in reversed(self.gates)])
+        adjoint = GateSequence()
+        adjoint.gates = [gate.inverse() for gate in reversed(self.gates)]
+        adjoint.product = np.matrix.getH(self.product)
+        adjoint.global_phase = -self.global_phase
 
         return adjoint
 
@@ -256,9 +263,12 @@ class GateSequence():
         Returns:
             The dot-product as gate sequence.
         """
-        # if len(other.gates) == 0 or len(self.gates) == 0:
-        #     raise ValueError('one sequence has no gates')
-        return GateSequence(self.gates + other.gates)
+        composed = GateSequence()
+        composed.gates = other.gates + self.gates
+        composed.product = np.dot(self.product, other.product)
+        composed.global_phase = self.global_phase + other.global_phase
+
+        return composed
 
 
 def _convert_u2_to_su2(u2_matrix: np.ndarray) -> Tuple[np.ndarray, float]:
@@ -460,22 +470,24 @@ def compute_rotation_between(from_vector: np.ndarray, to_vector: np.ndarray) -> 
     Raises:
         ValueError: if at least one of ``from_vector`` of ``to_vector`` is not a 3-dim unit vector.
     """
-    descr_method = 'Computation rotation between vectors'
-    if from_vector.shape != (3,):
-        raise ValueError(
-            descr_method + 'called on matrix of shape', from_vector.shape)
+    # descr_method = 'Computation rotation between vectors'
+    # if from_vector.shape != (3,):
+    #     raise ValueError(
+    #         descr_method + 'called on matrix of shape', from_vector.shape)
 
-    if to_vector.shape != (3,):
-        raise ValueError(
-            descr_method + 'called on matrix of shape', to_vector.shape)
+    # if to_vector.shape != (3,):
+    #     raise ValueError(
+    #         descr_method + 'called on matrix of shape', to_vector.shape)
 
-    if abs(np.linalg.norm(from_vector)-1.0) > 1e-4:
-        raise ValueError(
-            descr_method + 'called on vector with norm', np.linalg.norm(from_vector))
+    # if abs(np.linalg.norm(from_vector)-1.0) > 1e-4:
+    #     raise ValueError(
+    #         descr_method + 'called on vector with norm', np.linalg.norm(from_vector))
 
-    if abs(np.linalg.norm(to_vector)-1.0) > 1e-4:
-        raise ValueError(
-            descr_method + 'called on vector with norm', np.linalg.norm(to_vector))
+    # if abs(np.linalg.norm(to_vector)-1.0) > 1e-4:
+    #     raise ValueError(
+    #         descr_method + 'called on vector with norm', np.linalg.norm(to_vector))
+    from_vector = from_vector / np.linalg.norm(from_vector)
+    to_vector = to_vector / np.linalg.norm(to_vector)
 
     v = np.cross(from_vector, to_vector)
     c = np.dot(from_vector, to_vector)
