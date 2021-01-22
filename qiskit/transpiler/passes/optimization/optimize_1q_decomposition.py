@@ -68,7 +68,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if not self.basis:
             LOG.info("Skipping pass because no basis is set")
             return dag
-        runs = dag.collect_1q_runs()
+        runs = dag._collect_1q_runs()
         for run in runs:
             # Don't try to optimize a single 1q gate
             if len(run) <= 1:
