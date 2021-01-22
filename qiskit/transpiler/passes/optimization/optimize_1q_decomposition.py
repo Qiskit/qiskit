@@ -57,13 +57,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
             LOG.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
+        identity_matrix = np.eye(2)
         for run in runs:
             # Don't try to optimize a single 1q gate
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
                 if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      np.eye(2)):
+                                                      identity_matrix):
                     dag.remove_op_node(run[0])
                 continue
 
