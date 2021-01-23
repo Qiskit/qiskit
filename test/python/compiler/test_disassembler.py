@@ -258,6 +258,68 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             zip(qc.calibrations.items(), dasm_circuits[0].calibrations.items())
             for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]), True)
 
+    def test_parametric_pulse_circuit_calibrations(self):
+        """Test that disassembler parses parametric pulses back to pulse gates."""
+        with pulse.build() as h_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.add_calibration('h', [0], h_sched)
+
+        backend = FakeOpenPulse2Q()
+        backend.configuration().parametric_pulses = ['drag']
+
+        qobj = assemble(qc, backend)
+        dasm_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(len(qc.calibrations), len(dasm_circuits[0].calibrations))
+        self.assertEqual(qc.calibrations.keys(), dasm_circuits[0].calibrations.keys())
+        self.assertEqual(all([
+            qc_cal.keys() == dasm_qc_cal.keys()
+            for qc_cal, dasm_qc_cal in
+            zip(qc.calibrations.values(), dasm_circuits[0].calibrations.values())]), True)
+        self.assertEqual(all([
+            _parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
+            for (_, qc_gate), (_, dasm_qc_gate) in
+            zip(qc.calibrations.items(), dasm_circuits[0].calibrations.items())
+            for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]), True)
+
+    def test_multi_circuit_uncommon_calibrations(self):
+        """Test that disassembler parses uncommon calibrations (stored at QOBJ experiment-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration('h', [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        dasm_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(
+            all([len(qc.calibrations) == len(dasm_qc.calibrations)
+                 for qc, dasm_qc in zip(circuits, dasm_circuits)]), True)
+        self.assertEqual(
+            all([circuit.calibrations.keys() == dasm_qc.calibrations.keys()
+                 for circuit, dasm_qc in zip(circuits, dasm_circuits)]), True)
+        self.assertEqual(
+            set([tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()]) ==
+            set([tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
+                 for dasm_qc_cal in dasm_qc.calibrations.values()]))
+        self.assertEqual(
+            all([_parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
+                 for qc, dasm_qc in zip(circuits, dasm_circuits)
+                 for (_, qc_gate), (_, dasm_qc_gate) in zip(
+                        qc.calibrations.items(), dasm_qc.calibrations.items())
+                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]))
+
 
 class TestPulseScheduleDisassembler(QiskitTestCase):
     """Tests for disassembling pulse schedules to qobj."""
