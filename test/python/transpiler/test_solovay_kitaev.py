@@ -20,13 +20,12 @@ import scipy
 
 from hypothesis import given
 import hypothesis.strategies as st
-from scipy.stats import special_ortho_group
 from scipy.optimize import minimize
 from ddt import ddt, data, unpack
 
-from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 import qiskit.circuit.library as gates
-from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate
+from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate, QFT
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
@@ -35,108 +34,6 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompo
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 
 # pylint: disable=invalid-name, missing-class-docstring
-
-
-class H(Gate):
-    def __init__(self):
-        super().__init__('H', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.h(0)
-        definition.global_phase = np.pi / 2
-        self.definition = definition
-
-    def to_matrix(self):
-        return 1j * gates.HGate().to_matrix()
-
-    def inverse(self):
-        return H_dg()
-
-
-class H_dg(Gate):
-    def __init__(self):
-        super().__init__('iH_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.h(0)
-        definition.global_phase = -np.pi / 2
-        self.definition = definition
-
-    def to_matrix(self):
-        return -1j * gates.HGate().to_matrix()
-
-    def inverse(self):
-        return H()
-
-
-class T(Gate):
-    def __init__(self):
-        super().__init__('T', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.t(0)
-        definition.global_phase = -np.pi / 8
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(-1j * np.pi / 8) * gates.TGate().to_matrix()
-
-    def inverse(self):
-        return T_dg()
-
-
-class T_dg(Gate):
-    def __init__(self):
-        super().__init__('T_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.tdg(0)
-        definition.global_phase = np.pi / 8
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(1j * np.pi / 8) * gates.TdgGate().to_matrix()
-
-    def inverse(self):
-        return T()
-
-
-class S(Gate):
-    def __init__(self):
-        super().__init__('S', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.s(0)
-        definition.global_phase = -np.pi / 4
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(-1j * np.pi / 4) * gates.SGate().to_matrix()
-
-    def inverse(self):
-        return S_dg()
-
-
-class S_dg(Gate):
-    def __init__(self):
-        super().__init__('S_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.sdg(0)
-        definition.global_phase = np.pi / 4
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(1j * np.pi / 4) * gates.SdgGate().to_matrix()
-
-    def inverse(self):
-        return S()
 
 
 def distance(A, B):
@@ -308,7 +205,8 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a X-rotation as first element."""
         actual_result = commutator_decompose(u_so3)
-        actual = actual_result[0]
+        actual_first = actual_result[0]
+        actual = actual_first.product
         self.assertAlmostEqual(actual[0][0], 1.0)
         self.assertAlmostEqual(actual[0][1], 0.0)
         self.assertAlmostEqual(actual[0][2], 0.0)
@@ -320,7 +218,8 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
         actual_result = commutator_decompose(u_so3)
-        actual = actual_result[1]
+        actual_second = actual_result[1]
+        actual = actual_second.product
         self.assertAlmostEqual(actual[1][1], 1.0)
         self.assertAlmostEqual(actual[0][1], 0.0)
         self.assertAlmostEqual(actual[1][0], 0.0)
@@ -418,6 +317,36 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
+    @data(2, 3, 4, 5)
+    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self, nr_qubits):
+        """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
+        it approximates the QFT-circuit and the basic gates contain the gates of QFT."""
+        circuit = QFT(nr_qubits, 0)
+        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(4, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        self.assertTrue(circuit == decomposed_circuit)
+
+    @data(2, 3, 4, 5)
+    def test_solovay_kitaev_on_qft_without_h_in_basic_gates_does_not_return_qft(self, nr_qubits):
+        """Test that ``SolovayKitaevDecomposition`` does not return a QFT-circuit when
+        it approximates the QFT-circuit and the basic gates do not contain H-gate and inverse"""
+        circuit = QFT(nr_qubits, 0)
+        basic_gates = [TGate(), SGate(), gates.IGate(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(4, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        self.assertFalse(circuit == decomposed_circuit)
+
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
         circuit = QuantumCircuit(1)
@@ -443,10 +372,9 @@ class TestSolovayKitaev(QiskitTestCase):
 
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
-        print(circuit.draw())
 
-        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
-                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
         synth = SolovayKitaevDecomposition(depth, basic_gates)
         synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates)
 
@@ -458,7 +386,8 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_dag_plus_one = synth_plus_one.run(dag_plus_one)
         decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
 
-        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit_plus_one).data),
+        self.assertLess(distance(Operator(circuit).data,
+                                 Operator(decomposed_circuit_plus_one).data),
                         distance(Operator(circuit).data, Operator(decomposed_circuit).data))
 
 
