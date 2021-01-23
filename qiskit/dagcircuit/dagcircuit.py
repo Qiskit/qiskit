@@ -26,6 +26,7 @@ import itertools
 import warnings
 import math
 
+import numpy as np
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -826,10 +827,18 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
-        if (
-                self.global_phase != other.global_phase
-                or self.calibrations != other.calibrations
-        ):
+        # Try to convert to float, but in case of unbound ParameterExpressions
+        # a TypeError will be raise, fallback to normal equality in those
+        # cases
+        try:
+            self_phase = float(self.global_phase)
+            other_phase = float(other.global_phase)
+            if not np.isclose(self_phase, other_phase):
+                return False
+        except TypeError:
+            if self.global_phase != other.global_phase:
+                return False
+        if self.calibrations != other.calibrations:
             return False
 
         return rx.is_isomorphic_node_match(self._multi_graph,
