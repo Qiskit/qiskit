@@ -310,15 +310,16 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             all([circuit.calibrations.keys() == dasm_qc.calibrations.keys()
                  for circuit, dasm_qc in zip(circuits, dasm_circuits)]), True)
         self.assertEqual(
-            set([tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()]),
-            set([tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
-                 for dasm_qc_cal in dasm_qc.calibrations.values()]))
+            {tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()},
+            {tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
+             for dasm_qc_cal in dasm_qc.calibrations.values()})
         self.assertEqual(
             all([_parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
                  for qc, dasm_qc in zip(circuits, dasm_circuits)
                  for (_, qc_gate), (_, dasm_qc_gate) in zip(
                      qc.calibrations.items(), dasm_qc.calibrations.items())
-                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]))
+                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]),
+            True)
 
     def test_multi_circuit_common_calibrations(self):
         """Test that disassembler parses common calibrations (stored at QOBJ-level)."""
@@ -346,15 +347,16 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             all([circuit.calibrations.keys() == dasm_qc.calibrations.keys()
                  for circuit, dasm_qc in zip(circuits, dasm_circuits)]), True)
         self.assertEqual(
-            set([tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()]) ==
-            set([tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
-                 for dasm_qc_cal in dasm_qc.calibrations.values()]))
+            {tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()},
+            {tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
+             for dasm_qc_cal in dasm_qc.calibrations.values()})
         self.assertEqual(
             all([_parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
                  for qc, dasm_qc in zip(circuits, dasm_circuits)
                  for (_, qc_gate), (_, dasm_qc_gate) in zip(
                      qc.calibrations.items(), dasm_qc.calibrations.items())
-                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]))
+                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]),
+            True)
 
     def test_single_circuit_delay_calibrations(self):
         """Test that disassembler parses delay instruction back to delay gate."""
