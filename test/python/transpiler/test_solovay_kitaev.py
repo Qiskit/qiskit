@@ -317,10 +317,11 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
-    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self):
+    @data(2, 3, 4, 5)
+    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self, nr_qubits):
         """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
         it approximates the QFT-circuit and the basic gates contain the gates of QFT."""
-        circuit = QFT(2, 0)
+        circuit = QFT(nr_qubits, 0)
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
         synth = SolovayKitaevDecomposition(4, basic_gates)
@@ -331,10 +332,11 @@ class TestSolovayKitaev(QiskitTestCase):
 
         self.assertTrue(circuit == decomposed_circuit)
 
-    def test_solovay_kitaev_basic_gates_on_qft_without_h_in_basic_gates_does_not_return_qft(self):
+    @data(2, 3, 4, 5)
+    def test_solovay_kitaev_on_qft_without_h_in_basic_gates_does_not_return_qft(self, nr_qubits):
         """Test that ``SolovayKitaevDecomposition`` does not return a QFT-circuit when
         it approximates the QFT-circuit and the basic gates do not contain H-gate and inverse"""
-        circuit = QFT(2, 0)
+        circuit = QFT(nr_qubits, 0)
         basic_gates = [TGate(), SGate(), gates.IGate(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
         synth = SolovayKitaevDecomposition(4, basic_gates)
