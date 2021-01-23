@@ -25,7 +25,7 @@ from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from .qaoa_circuit import QAOACircuit
+from .qaoa_ansatz import QAOAAnsatz
 from ..vqe import VQE
 
 logger = logging.getLogger(__name__)
@@ -131,10 +131,10 @@ class QAOA(VQE):
     def _check_operator(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.var_form.num_qubits:
-            self.var_form = QAOACircuit(operator,
-                                        self._p,
-                                        initial_state=self._initial_state,
-                                        mixer_operator=self._mixer)
+            self.var_form = QAOAAnsatz(operator,
+                                       self._p,
+                                       initial_state=self._initial_state,
+                                       mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
         return operator
 

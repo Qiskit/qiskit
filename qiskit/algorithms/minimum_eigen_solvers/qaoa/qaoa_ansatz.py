@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Global X phases and parameterized problem hamiltonian."""
+"""A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 from typing import Optional, Union, cast, Set
 
@@ -22,8 +22,14 @@ from qiskit.circuit.library import BlueprintCircuit
 from qiskit.opflow import OperatorBase, I, X, CircuitStateFn, H, CircuitOp, EvolutionFactory
 
 
-class QAOACircuit(BlueprintCircuit):
-    """Global X phases and parameterized problem hamiltonian."""
+class QAOAAnsatz(BlueprintCircuit):
+    """A generalized QAOA quantum circuit with a support of custom initial states and mixers.
+
+    References:
+
+        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
+            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    """
 
     def __init__(self,
                  cost_operator: OperatorBase,
@@ -31,17 +37,16 @@ class QAOACircuit(BlueprintCircuit):
                  initial_state: Optional[QuantumCircuit] = None,
                  mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]] = None,
                  name: str = "qaoa"):
-        """
-        Constructor, following the QAOA paper https://arxiv.org/abs/1411.4028
-
+        r"""
         Args:
             cost_operator: The operator representing the cost of the optimization problem,
-                denoted as U(B, gamma) in the original paper.
+                denoted as :math:`U(C, \gamma)` in the original paper.
             param_p: The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper.
-            initial_state: An optional initial state to use.
+            initial_state: An optional initial state to use. If `None` is passed then a set of
+                Hadamard gates is applied as an initial state to all qubits.
             mixer_operator: An optional custom mixer to use instead of the global X-rotations,
-                denoted as U(B, beta) in the original paper. Can be an operator or
+                denoted as :math:`U(B, \beta)` in the original paper. Can be an operator or
                 an optionally parameterized quantum circuit.
             name: A name of the circuit, default 'qaoa'
         Raises:
@@ -54,7 +59,7 @@ class QAOACircuit(BlueprintCircuit):
         self._mixer_operator = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._num_qubits = 0
+        self._num_qubits = None
         self._num_parameters = 0
         self._bounds = None
         self._mixer = None
@@ -173,7 +178,7 @@ class QAOACircuit(BlueprintCircuit):
     def cost_operator(self, cost_operator: OperatorBase) -> None:
         """Sets cost operator."""
         self._cost_operator = cost_operator
-        self._data = None
+        self._invalidate()
 
     @property
     def param_p(self) -> int:
@@ -184,7 +189,7 @@ class QAOACircuit(BlueprintCircuit):
     def param_p(self, param_p: int) -> None:
         """Sets the `p` parameter."""
         self._param_p = param_p
-        self._data = None
+        self._invalidate()
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:
@@ -195,7 +200,7 @@ class QAOACircuit(BlueprintCircuit):
     def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
         """Sets initial state."""
         self._initial_state = initial_state
-        self._data = None
+        self._invalidate()
 
     @property
     def mixer_operator(self) -> Optional[Union[QuantumCircuit, OperatorBase]]:
@@ -206,4 +211,4 @@ class QAOACircuit(BlueprintCircuit):
     def mixer_operator(self, mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]]) -> None:
         """Sets mixer operator."""
         self._mixer_operator = mixer_operator
-        self._data = None
+        self._invalidate()
