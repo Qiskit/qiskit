@@ -448,3 +448,4 @@ class LoadFromQasmTest(QiskitTestCase):
         expected_result = Unroller(basis).run(expected_dag)
 
         self.assertEqual(circuit_result, expected_result)
+

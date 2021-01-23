@@ -1144,6 +1144,8 @@ class QuantumCircuit:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
         """
+        from qiskit.circuit.controlledgate import ControlledGate
+
         existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
                                'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
                                'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
@@ -1167,7 +1169,8 @@ class QuantumCircuit:
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
             # If instruction is a root gate or a root instruction (in that case, compositive)
-            elif type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
+            elif (type(instruction) in [Gate, Instruction] or
+                  (isinstance(instruction, ControlledGate) and instruction._open_ctrl)):  # pylint: disable=unidiomatic-typecheck
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name

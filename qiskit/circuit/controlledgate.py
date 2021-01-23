@@ -94,6 +94,7 @@ class ControlledGate(Gate):
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
+        self._name = name
 
     @property
     def definition(self) -> List:
@@ -126,6 +127,17 @@ class ControlledGate(Gate):
         Args:
             excited_def: The circuit with all closed controls."""
         super(Gate, self.__class__).definition.fset(self, excited_def)
+
+    @property
+    def name(self) -> str:
+        if self._open_ctrl:
+            return f'{self._name}_o{self.ctrl_state}'
+        else:
+            return self._name
+
+    @name.setter
+    def name(self, name_str):
+        self._name = name_str
 
     @property
     def num_ctrl_qubits(self):

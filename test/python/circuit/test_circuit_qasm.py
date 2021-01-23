@@ -212,3 +212,11 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
+
+    def test_gate_qasm_with_ctrl_state(self):
+        """Test gate qasm() with controlled gate that has ctrl_state setting."""
+        from qiskit.quantum_info import Operator
+        qc = QuantumCircuit(2)
+        qc.ch(0, 1, ctrl_state=0)
+        qasm_str = qc.qasm()
+        self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
