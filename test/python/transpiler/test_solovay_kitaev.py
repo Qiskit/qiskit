@@ -20,13 +20,12 @@ import scipy
 
 from hypothesis import given
 import hypothesis.strategies as st
-from scipy.stats import special_ortho_group
 from scipy.optimize import minimize
 from ddt import ddt, data, unpack
 
-from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 import qiskit.circuit.library as gates
-from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate
+from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate, QFT
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
@@ -318,6 +317,34 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
+    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self):
+        """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
+        it approximates the QFT-circuit and the basic gates contain the gates of QFT."""
+        circuit = QFT(2, 0)
+        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(4, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        self.assertTrue(circuit == decomposed_circuit)
+
+    def test_solovay_kitaev_basic_gates_on_qft_without_h_in_basic_gates_does_not_return_qft(self):
+        """Test that ``SolovayKitaevDecomposition`` does not return a QFT-circuit when
+        it approximates the QFT-circuit and the basic gates do not contain H-gate and inverse"""
+        circuit = QFT(2, 0)
+        basic_gates = [TGate(), SGate(), gates.IGate(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        synth = SolovayKitaevDecomposition(4, basic_gates)
+
+        dag = circuit_to_dag(circuit)
+        decomposed_dag = synth.run(dag)
+        decomposed_circuit = dag_to_circuit(decomposed_dag)
+
+        self.assertFalse(circuit == decomposed_circuit)
+
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
         circuit = QuantumCircuit(1)
@@ -357,7 +384,8 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_dag_plus_one = synth_plus_one.run(dag_plus_one)
         decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
 
-        self.assertLess(distance(Operator(circuit).data, Operator(decomposed_circuit_plus_one).data),
+        self.assertLess(distance(Operator(circuit).data,
+                                 Operator(decomposed_circuit_plus_one).data),
                         distance(Operator(circuit).data, Operator(decomposed_circuit).data))
 
 
