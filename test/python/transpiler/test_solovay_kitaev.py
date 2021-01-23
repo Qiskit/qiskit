@@ -206,7 +206,8 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a X-rotation as first element."""
         actual_result = commutator_decompose(u_so3)
-        actual = actual_result[0]
+        actual_first = actual_result[0]
+        actual = actual_first.product
         self.assertAlmostEqual(actual[0][0], 1.0)
         self.assertAlmostEqual(actual[0][1], 0.0)
         self.assertAlmostEqual(actual[0][2], 0.0)
@@ -218,7 +219,8 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
         actual_result = commutator_decompose(u_so3)
-        actual = actual_result[1]
+        actual_second = actual_result[1]
+        actual = actual_second.product
         self.assertAlmostEqual(actual[1][1], 1.0)
         self.assertAlmostEqual(actual[0][1], 0.0)
         self.assertAlmostEqual(actual[1][0], 0.0)
