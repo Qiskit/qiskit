@@ -235,7 +235,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -250,7 +250,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -265,7 +265,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -280,7 +280,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -295,7 +295,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -310,7 +310,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates)
+        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -324,7 +324,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QFT(nr_qubits, 0)
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(4, basic_gates)
+        synth = SolovayKitaevDecomposition(4, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -339,7 +339,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QFT(nr_qubits, 0)
         basic_gates = [TGate(), SGate(), gates.IGate(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(4, basic_gates)
+        synth = SolovayKitaevDecomposition(4, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
@@ -353,7 +353,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.rx(0.8, 0)
 
         basis_gates = ['h', 't', 's']
-        synth = SolovayKitaevDecomposition(2, basis_gates)
+        synth = SolovayKitaevDecomposition(2, basis_gates, 3)
 
         dag = circuit_to_dag(circuit)
         discretized = dag_to_circuit(synth.run(dag))
@@ -375,8 +375,8 @@ class TestSolovayKitaev(QiskitTestCase):
 
         basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
                        SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(depth, basic_gates)
-        synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates)
+        synth = SolovayKitaevDecomposition(depth, basic_gates, 3)
+        synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)

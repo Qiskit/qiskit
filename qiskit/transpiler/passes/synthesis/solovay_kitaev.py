@@ -12,7 +12,7 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 import itertools
 import numpy as np
 
@@ -53,12 +53,33 @@ class SolovayKitaev():
         'sxdg': gates.SXdgGate()
     }
 
-    def __init__(self) -> None:
-        # generate the basic approximations once for this basis gates set
-        self._basic_approximations = None
+    def __init__(self, basis_gates: Optional[List[Union[str, Gate]]] = None,
+                 depth: Optional[int] = None) -> None:
+        """
+
+        .. note::
+
+            If ``basis_gates`` and ``depth`` are not passed, the basic approximations can be
+            generated with the ``generate_basic_approximations`` method and loaded into the
+            class via ``load_basic_approximations``. Since in practice, large basic approximations
+            are required we suggest to generate a sufficiently large set once and always load
+            the approximations afterwards.
+
+        Args:
+            basis_gates: The basis gates used in the basic approximations.
+            depth: The maximum depth of the basic approximations.
+        """
+        if basis_gates is not None and depth is not None:
+            self._basic_approximations = self.generate_basic_approximations(basis_gates, depth)
+        else:
+            self._basic_approximations = None
 
     def load_basic_approximations(self, filename: str) -> None:
-        """Load basic approximations."""
+        """Load basic approximations.
+
+        Args:
+            filename: The path to the file from where to load the data.
+        """
         data = np.load(filename, allow_pickle=True)
         gatestrings = data[0]
         matrices = data[1:]
@@ -76,14 +97,15 @@ class SolovayKitaev():
         self._basic_approximations = sequences
 
     @staticmethod
-    def generate_basic_approximations(filename: str, basis_gates: List[Union[str, Gate]],
-                                      depth: int) -> List[GateSequence]:
+    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
+                                      filename: Optional[str] = None
+                                      ) -> Optional[List[GateSequence]]:
         """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
         Args:
-            filename: The file to store the approximations.
             basis_gates: The gates from which to create the sequences of gates.
             depth: The maximum depth of the approximations.
+            filename: The file to store the approximations.
 
         Returns:
             List of GateSequences using the gates in basic_gates.
@@ -112,14 +134,17 @@ class SolovayKitaev():
             if accept:
                 sequences.append(candidate)
 
-        gatestrings = []
-        matrices = []
-        for sequence in sequences:
-            matrices.append(sequence.product)
-            gatestrings.append(' '.join([gate.name for gate in sequence.gates]))
+        if filename is not None:
+            gatestrings = []
+            matrices = []
+            for sequence in sequences:
+                matrices.append(sequence.product)
+                gatestrings.append(' '.join([gate.name for gate in sequence.gates]))
 
-        data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
-        np.save(filename, data)
+            data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
+            np.save(filename, data)
+
+        return sequences
 
     def run(self, gate_matrix: np.ndarray, recursion_degree: int) -> QuantumCircuit:
         r"""Run the algorithm.
@@ -198,6 +223,151 @@ class SolovayKitaev():
 
         best = min(self._basic_approximations, key=key)
         return best
+
+
+class SolovayKitaevDecomposition(TransformationPass):
+    r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
+
+    The Solovay-Kitaev theorem [1] states that any single qubit gate can be approximated to
+    arbitrary precision by a set of fixed single-qubit gates, if the set generates a dense
+    subset in :math:`SU(2)`. This is an important result, since it means that any single-qubit
+    gate can be expressed in terms of a discrete, universal gate set that we know how to implement
+    fault-tolerantly. Therefore, the Solovay-Kitaev algorithm allows us to take any
+    non-fault tolerant circuit and rephrase it in a fault-tolerant manner.
+
+    This implementation of the Solovay-Kitaev algorithm is based on [2].
+
+    For example, the following circuit
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤ RX(0.8) ├
+             └─────────┘
+
+    can be decomposed into
+
+    .. parsed-literal::
+
+        global phase: -π/8
+             ┌───┐┌───┐┌───┐
+        q_0: ┤ H ├┤ T ├┤ H ├
+             └───┘└───┘└───┘
+
+    with an L2-error of approximately 0.01.
+
+
+    Examples:
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import TGate, HGate, TdgGate
+            from qiskit.converters import circuit_to_dag, dag_to_circuit
+            from qiskit.transpiler.passes import SolovayKitaevDecomposition
+            from qiskit.quantum_info import Operator
+
+            circuit = QuantumCircuit(1)
+            circuit.rx(0.8, 0)
+            dag = circuit_to_dag(circuit)
+
+            print('Original circuit:')
+            print(circuit.draw())
+
+            basis_gates = [TGate(), TdgGate(), HGate()]
+            skd = SolovayKitaevDecomposition(recursion_degree=2, basis_gates=basis_gates)
+
+            discretized = dag_to_circuit(skd.run(dag))
+
+            print('Discretized circuit:')
+            print(discretized.draw())
+
+            print('Error:', np.linalg.norm(Operator(circuit).data - Operator(discretized).data))
+
+
+    References:
+
+        [1]: Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
+             Russian Mathematical Surveys. 52 (6): 1191–1249.
+             `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
+
+        [2]: Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
+             `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_
+
+
+    """
+
+    def __init__(self, recursion_degree: int,
+                 basis_gates: Optional[List[Union[str, Gate]]] = None,
+                 depth: Optional[int] = None) -> None:
+        """
+
+        .. note::
+
+            If ``basis_gates`` and ``depth`` are not passed, the basic approximations can be
+            generated with the ``generate_basic_approximations`` method and loaded into the
+            class via ``load_basic_approximations``. Since in practice, large basic approximations
+            are required we suggest to generate a sufficiently large set once and always load
+            the approximations afterwards.
+
+        Args:
+            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
+                A larger recursion depth increases the accuracy and length of the
+                decomposition.
+            basis_gates: The basis gates used in the basic approximations.
+            depth: The maximum depth of the basic approximations.
+        """
+        super().__init__()
+        self._recursion_degree = recursion_degree
+        self._sk = SolovayKitaev(basis_gates, depth)
+
+    @staticmethod
+    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
+                                      filename: str) -> None:
+        """Generate and save the basic approximations.
+
+        Args:
+            basis_gates: The gates from which to create the sequences of gates.
+            depth: The maximum depth of the approximations.
+            filename: The file to store the approximations.
+        """
+        SolovayKitaev.generate_basic_approximations(basis_gates, depth, filename)
+
+    def load_basic_approximations(self, filename: str) -> None:
+        """Load basic approximations.
+
+        Args:
+            filename: The path to the file from where to load the data.
+        """
+        self._sk.load_basic_approximations(filename)
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the SolovayKitaevDecomposition pass on `dag`.
+
+        Args:
+            dag: The input dag.
+
+        Returns:
+            Output dag with 1q gates synthesized in the discrete target basis.
+        """
+        for node in dag.nodes():
+            if node.type != 'op':
+                continue  # skip all nodes that do not represent operations
+
+            if not node.op.num_qubits == 1:
+                continue  # ignore all non-single qubit gates
+
+            matrix = node.op.to_matrix()
+
+            # call solovay kitaev
+            approximation = self._sk.run(matrix, self._recursion_degree)
+
+            # convert to a dag and replace the gate by the approximation
+            substitute = circuit_to_dag(approximation)
+            dag.substitute_node_with_dag(node, substitute)
+
+        return dag
 
 
 def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
@@ -304,118 +474,3 @@ def _remove_identities(sequence):
             sequence.gates.pop(index)
         else:
             index += 1
-
-
-class SolovayKitaevDecomposition(TransformationPass):
-    r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
-
-    The Solovay-Kitaev theorem [1] states that any single qubit gate can be approximated to
-    arbitrary precision by a set of fixed single-qubit gates, if the set generates a dense
-    subset in :math:`SU(2)`. This is an important result, since it means that any single-qubit
-    gate can be expressed in terms of a discrete, universal gate set that we know how to implement
-    fault-tolerantly. Therefore, the Solovay-Kitaev algorithm allows us to take any
-    non-fault tolerant circuit and rephrase it in a fault-tolerant manner.
-
-    This implementation of the Solovay-Kitaev algorithm is based on [2].
-
-    For example, the following circuit
-
-    .. parsed-literal::
-
-             ┌─────────┐
-        q_0: ┤ RX(0.8) ├
-             └─────────┘
-
-    can be decomposed into
-
-    .. parsed-literal::
-
-        global phase: -π/8
-             ┌───┐┌───┐┌───┐
-        q_0: ┤ H ├┤ T ├┤ H ├
-             └───┘└───┘└───┘
-
-    with an L2-error of approximately 0.01.
-
-
-    Examples:
-
-        .. jupyter-execute::
-
-            import numpy as np
-            from qiskit.circuit import QuantumCircuit
-            from qiskit.circuit.library import TGate, HGate, TdgGate
-            from qiskit.converters import circuit_to_dag, dag_to_circuit
-            from qiskit.transpiler.passes import SolovayKitaevDecomposition
-            from qiskit.quantum_info import Operator
-
-            circuit = QuantumCircuit(1)
-            circuit.rx(0.8, 0)
-            dag = circuit_to_dag(circuit)
-
-            print('Original circuit:')
-            print(circuit.draw())
-
-            basis_gates = [TGate(), TdgGate(), HGate()]
-            skd = SolovayKitaevDecomposition(recursion_degree=2, basis_gates=basis_gates)
-
-            discretized = dag_to_circuit(skd.run(dag))
-
-            print('Discretized circuit:')
-            print(discretized.draw())
-
-            print('Error:', np.linalg.norm(Operator(circuit).data - Operator(discretized).data))
-
-
-    References:
-
-        [1]: Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
-             Russian Mathematical Surveys. 52 (6): 1191–1249.
-             `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
-
-        [2]: Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
-             `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_
-
-
-    """
-
-    def __init__(self, recursion_degree: int) -> None:
-        """
-        Args:
-            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
-                A larger recursion depth increases the accuracy and length of the
-                decomposition.
-        """
-        super().__init__()
-        self._recursion_degree = recursion_degree
-        self._sk = SolovayKitaev()
-
-    def load_basic_approximations(self, filename: str) -> None:
-        self._sk.load_basic_approximations(filename)
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the SolovayKitaevDecomposition pass on `dag`.
-
-        Args:
-            dag: The input dag.
-
-        Returns:
-            Output dag with 1q gates synthesized in the discrete target basis.
-        """
-        for node in dag.nodes():
-            if node.type != 'op':
-                continue  # skip all nodes that do not represent operations
-
-            if not node.op.num_qubits == 1:
-                continue  # ignore all non-single qubit gates
-
-            matrix = node.op.to_matrix()
-
-            # call solovay kitaev
-            approximation = self._sk.run(matrix, self._recursion_degree)
-
-            # convert to a dag and replace the gate by the approximation
-            substitute = circuit_to_dag(approximation)
-            dag.substitute_node_with_dag(node, substitute)
-
-        return dag
