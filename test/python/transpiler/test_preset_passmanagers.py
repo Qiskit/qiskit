@@ -14,6 +14,8 @@
 from test import combine
 from ddt import ddt, data
 
+import numpy as np
+
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
@@ -84,6 +86,23 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.reset(q[0])
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
+
+    def test_level2_respects_basis(self):
+        """Test that level2 with commutative cancellation respects basis"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cp(np.pi / 8, 0, 1)
+        qc.cp(np.pi / 4, 0, 2)
+        result = transpile(qc, basis_gates=['id', 'rz', 'sx', 'x', 'cx'],
+                           optimization_level=2)
+
+        dag = circuit_to_dag(result)
+        op_nodes = [node.name for node in dag.topological_op_nodes()]
+        # Assert no u1 or rx gates from commutative cancellation end up in
+        # end up in the output since they're not in the target basis gates
+        self.assertNotIn('u1', op_nodes)
+        self.assertNotIn('rx', op_nodes)
 
 
 @ddt
