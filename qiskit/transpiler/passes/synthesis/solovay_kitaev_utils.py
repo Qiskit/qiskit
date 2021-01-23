@@ -123,7 +123,7 @@ class GateSequence():
         su2, phase = _convert_u2_to_su2(gate.to_matrix())
         so3 = convert_su2_to_so3(su2)
 
-        self.product = so3.dot(self.product.dot)
+        self.product = so3.dot(self.product)
         self.global_phase = self.global_phase + phase
         self.gates.append(gate)
 
