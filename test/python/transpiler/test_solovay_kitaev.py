@@ -37,108 +37,6 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 # pylint: disable=invalid-name, missing-class-docstring
 
 
-class H(Gate):
-    def __init__(self):
-        super().__init__('H', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.h(0)
-        definition.global_phase = np.pi / 2
-        self.definition = definition
-
-    def to_matrix(self):
-        return 1j * gates.HGate().to_matrix()
-
-    def inverse(self):
-        return H_dg()
-
-
-class H_dg(Gate):
-    def __init__(self):
-        super().__init__('iH_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.h(0)
-        definition.global_phase = -np.pi / 2
-        self.definition = definition
-
-    def to_matrix(self):
-        return -1j * gates.HGate().to_matrix()
-
-    def inverse(self):
-        return H()
-
-
-class T(Gate):
-    def __init__(self):
-        super().__init__('T', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.t(0)
-        definition.global_phase = -np.pi / 8
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(-1j * np.pi / 8) * gates.TGate().to_matrix()
-
-    def inverse(self):
-        return T_dg()
-
-
-class T_dg(Gate):
-    def __init__(self):
-        super().__init__('T_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.tdg(0)
-        definition.global_phase = np.pi / 8
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(1j * np.pi / 8) * gates.TdgGate().to_matrix()
-
-    def inverse(self):
-        return T()
-
-
-class S(Gate):
-    def __init__(self):
-        super().__init__('S', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.s(0)
-        definition.global_phase = -np.pi / 4
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(-1j * np.pi / 4) * gates.SGate().to_matrix()
-
-    def inverse(self):
-        return S_dg()
-
-
-class S_dg(Gate):
-    def __init__(self):
-        super().__init__('S_dg', 1, [])
-
-    def _define(self):
-        definition = QuantumCircuit(1)
-        definition.sdg(0)
-        definition.global_phase = np.pi / 4
-        self.definition = definition
-
-    def to_matrix(self):
-        return np.exp(1j * np.pi / 4) * gates.SdgGate().to_matrix()
-
-    def inverse(self):
-        return S()
-
-
 def distance(A, B):
     """Find the distance in norm of A and B, ignoring global phase."""
 
@@ -443,10 +341,9 @@ class TestSolovayKitaev(QiskitTestCase):
 
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
-        print(circuit.draw())
 
-        basic_gates = [H(), T(), S(), gates.IGate(), H_dg(), T_dg(),
-                       S_dg(), RXGate(math.pi), RYGate(math.pi)]
+        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
+                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
         synth = SolovayKitaevDecomposition(depth, basic_gates)
         synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates)
 
