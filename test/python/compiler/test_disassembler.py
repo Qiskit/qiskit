@@ -22,7 +22,7 @@ from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
-from qiskit.circuit.library import RXGate, RYGate
+from qiskit.circuit.library import RXGate
 from qiskit.compiler.assemble import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -310,6 +310,42 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             all([circuit.calibrations.keys() == dasm_qc.calibrations.keys()
                  for circuit, dasm_qc in zip(circuits, dasm_circuits)]), True)
         self.assertEqual(
+            set([tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()]),
+            set([tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
+                 for dasm_qc_cal in dasm_qc.calibrations.values()]))
+        self.assertEqual(
+            all([_parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
+                 for qc, dasm_qc in zip(circuits, dasm_circuits)
+                 for (_, qc_gate), (_, dasm_qc_gate) in zip(
+                     qc.calibrations.items(), dasm_qc.calibrations.items())
+                 for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]))
+
+    def test_multi_circuit_common_calibrations(self):
+        """Test that disassembler parses common calibrations (stored at QOBJ-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration('h', [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+        qc_1.add_calibration(RXGate(np.pi), [1], sched)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        dasm_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(
+            all([len(qc.calibrations) == len(dasm_qc.calibrations)
+                 for qc, dasm_qc in zip(circuits, dasm_circuits)]), True)
+        self.assertEqual(
+            all([circuit.calibrations.keys() == dasm_qc.calibrations.keys()
+                 for circuit, dasm_qc in zip(circuits, dasm_circuits)]), True)
+        self.assertEqual(
             set([tuple(qc_cal.keys()) for qc in circuits for qc_cal in qc.calibrations.values()]) ==
             set([tuple(dasm_qc_cal.keys()) for dasm_qc in dasm_circuits
                  for dasm_qc_cal in dasm_qc.calibrations.values()]))
@@ -317,8 +353,31 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             all([_parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
                  for qc, dasm_qc in zip(circuits, dasm_circuits)
                  for (_, qc_gate), (_, dasm_qc_gate) in zip(
-                        qc.calibrations.items(), dasm_qc.calibrations.items())
+                     qc.calibrations.items(), dasm_qc.calibrations.items())
                  for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]))
+
+    def test_single_circuit_delay_calibrations(self):
+        """Test that disassembler parses delay instruction back to delay gate."""
+        qc = QuantumCircuit(2)
+        qc.append(Gate('test', 1, []), [0])
+        test_sched = pulse.Delay(
+            64, pulse.DriveChannel(0)) + pulse.Delay(
+                160, pulse.DriveChannel(0))
+
+        qc.add_calibration('test', [0], test_sched)
+
+        qobj = assemble(qc, FakeOpenPulse2Q())
+        dasm_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(len(qc.calibrations), len(dasm_circuits[0].calibrations))
+        self.assertEqual(qc.calibrations.keys(), dasm_circuits[0].calibrations.keys())
+        self.assertEqual(all([
+            qc_cal.keys() == dasm_qc_cal.keys()
+            for qc_cal, dasm_qc_cal in
+            zip(qc.calibrations.values(), dasm_circuits[0].calibrations.values())]), True)
+        self.assertEqual(
+            qc.calibrations['test'][((0,), ())],
+            dasm_circuits[0].calibrations['test'][((0,), ())])
 
 
 class TestPulseScheduleDisassembler(QiskitTestCase):
