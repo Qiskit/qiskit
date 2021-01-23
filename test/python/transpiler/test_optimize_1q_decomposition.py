@@ -370,7 +370,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.append(UGate(np.pi / 2, 0, np.pi / 4), [qr[0]])
         circuit.cx(0, 1)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=-np.pi/4)
         expected.append(PhaseGate(-np.pi / 4), [qr[0]])
         expected.append(SXGate(), [qr[0]])
         expected.append(PhaseGate(np.pi / 2), [qr[0]])
