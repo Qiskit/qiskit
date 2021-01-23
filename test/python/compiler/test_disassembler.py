@@ -22,30 +22,16 @@ from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
-from qiskit.circuit import (Gate, Instruction, Parameter)
-from qiskit.circuit.library import RXGate, RYGate
 from qiskit.compiler.assemble import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
 
 
-def _parametric_to_waveforms(schedule):
-    instructions = list(schedule.instructions)
-    for i, instruction in enumerate(instructions):
-        if not isinstance(instruction[1].pulse, pulse.library.waveform.Waveform):
-            instructions[i] = list(instruction)
-            instructions[i][1] = pulse.Play(
-                instruction[1].pulse.get_waveform(),
-                instruction[1].channel)
-            instructions[i] = tuple(instructions[i])
-    return tuple(instructions)
-
-
 class TestQuantumCircuitDisassembler(QiskitTestCase):
     """Tests for disassembling circuits to qobj."""
 
-    def semble_single_circuit(self):
+    def test_disassemble_single_circuit(self):
         """Test disassembling a single circuit.
         """
         qr = QuantumRegister(2, name='q')
@@ -66,7 +52,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
 
-    def semble_multiple_circuits(self):
+    def test_disassemble_multiple_circuits(self):
         """Test disassembling multiple circuits, all should have the same config.
         """
         qr0 = QuantumRegister(2, name='q0')
@@ -97,7 +83,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             self.assertIn(circuit, [circ0, circ1])
         self.assertEqual({}, headers)
 
-    def semble_no_run_config(self):
+    def test_disassemble_no_run_config(self):
         """Test disassembling with no run_config, relying on default.
         """
         qr = QuantumRegister(2, name='q')
@@ -116,7 +102,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
 
-    def semble_initialize(self):
+    def test_disassemble_initialize(self):
         """Test disassembling a circuit with an initialize.
         """
         q = QuantumRegister(2, name='q')
@@ -132,7 +118,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, header)
 
-    def semble_isometry(self):
+    def test_disassemble_isometry(self):
         """Test disassembling a circuit with an isometry.
         """
         q = QuantumRegister(2, name='q')
@@ -225,40 +211,6 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
-    def test_single_circuit_calibrations(self):
-        """Test that disassembler parses single circuit QOBJ calibrations (from QOBJ-level)."""
-        theta = Parameter('theta')
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.append(RXGate(np.pi), [0])
-        qc.append(RXGate(theta), [1])
-        qc = qc.assign_parameters({theta: np.pi})
-
-        with pulse.build() as h_sched:
-            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
-
-        with pulse.build() as x180:
-            pulse.play(pulse.library.Gaussian(1, 0.2, 5), pulse.DriveChannel(1))
-
-        qc.add_calibration('h', [0], h_sched)
-        qc.add_calibration(RXGate(np.pi), [0], x180)
-        qc.add_calibration(RXGate(np.pi), [1], x180)
-
-        qobj = assemble(qc, FakeOpenPulse2Q())
-        dasm_circuits, _, _ = disassemble(qobj)
-
-        self.assertEqual(len(qc.calibrations), len(dasm_circuits[0].calibrations))
-        self.assertEqual(qc.calibrations.keys(), dasm_circuits[0].calibrations.keys())
-        self.assertEqual(all([
-            qc_cal.keys() == dasm_qc_cal.keys()
-            for qc_cal, dasm_qc_cal in
-            zip(qc.calibrations.values(), dasm_circuits[0].calibrations.values())]), True)
-        self.assertEqual(all([
-            _parametric_to_waveforms(qc_sched) == _parametric_to_waveforms(dasm_qc_sched)
-            for (_, qc_gate), (_, dasm_qc_gate) in
-            zip(qc.calibrations.items(), dasm_circuits[0].calibrations.items())
-            for qc_sched, dasm_qc_sched in zip(qc_gate.values(), dasm_qc_gate.values())]), True)
-
 
 class TestPulseScheduleDisassembler(QiskitTestCase):
     """Tests for disassembling pulse schedules to qobj."""
@@ -271,7 +223,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
             'constant', 'gaussian', 'gaussian_square', 'drag'
         ]
 
-    def semble_single_schedule(self):
+    def test_disassemble_single_schedule(self):
         """Test disassembling a single schedule.
         """
         d0 = pulse.DriveChannel(0)
@@ -301,7 +253,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(len(scheds), 1)
         self.assertEqual(scheds[0], sched)
 
-    def semble_multiple_schedules(self):
+    def test_disassemble_multiple_schedules(self):
         """Test disassembling multiple schedules, all should have the same config.
         """
         d0 = pulse.DriveChannel(0)
@@ -341,7 +293,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(scheds[0], sched0)
         self.assertEqual(scheds[1], sched1)
 
-    def semble_parametric_pulses(self):
+    def test_disassemble_parametric_pulses(self):
         """Test disassembling multiple schedules all should have the same config.
         """
         d0 = pulse.DriveChannel(0)
@@ -356,7 +308,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         scheds, _, _ = disassemble(qobj)
         self.assertEqual(scheds[0], sched)
 
-    def semble_schedule_los(self):
+    def test_disassemble_schedule_los(self):
         """Test disassembling schedule los."""
         d0 = pulse.DriveChannel(0)
         m0 = pulse.MeasureChannel(0)
