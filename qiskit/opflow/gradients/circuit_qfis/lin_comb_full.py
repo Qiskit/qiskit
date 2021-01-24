@@ -84,7 +84,7 @@ class LinCombFull(CircuitQFI):
             phase_fix_states = [gradient_states]
 
         # Get  4 * Re[〈∂kψ|∂lψ]
-        qfi_operators = []
+        qfi_operators = np.empty((len(params), len(params)), dtype=object)
         # Add a working qubit
         qr_work = QuantumRegister(1, 'work_qubit')
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
@@ -93,8 +93,10 @@ class LinCombFull(CircuitQFI):
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
-            qfi_ops = []
             for j, param_j in enumerate(params):
+                if i > j:
+                    # we can skip i > j due to symmetry of QFI
+                    continue
                 # Get the gates of the quantum state which are parameterized by param_i
                 qfi_op = []
                 param_gates_i = state_qc._parameter_table[param_i]
@@ -163,11 +165,12 @@ class LinCombFull(CircuitQFI):
                                    combo_fn=phase_fix_combo_fn)
                 # Add the phase fix quantities to the entries of the QFI
                 # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
-                qfi_ops += [SummedOp(qfi_op) + phase_fix]
+                qfi_operators[i, j] = qfi_operators[j, i] = SummedOp(qfi_op) + phase_fix
 
-            qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp(qfi_operators)
+        return ListOp([
+            ListOp([qfi_operators[i, j] for i in range(len(params))]) for j in range(len(params))
+        ])
 
     @staticmethod
     def trim_circuit(circuit: QuantumCircuit,
