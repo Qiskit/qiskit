@@ -118,7 +118,11 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
+
+        # Assume bidirectional couplings, fixing gate direction is easy later.
         self.coupling_map = coupling_map if coupling_map.is_symmetric else deepcopy(coupling_map)
+        self.coupling_map.make_symmetric()
+
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
@@ -145,9 +149,6 @@ class SabreSwap(TransformationPass):
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = dag._copy_circuit_metadata()
-
-        # Assume bidirectional couplings, fixing gate direction is easy later.
-        self.coupling_map.make_symmetric()
 
         canonical_register = dag.qregs['q']
         current_layout = Layout.generate_trivial_layout(canonical_register)
