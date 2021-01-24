@@ -92,7 +92,7 @@ class Hessian(HessianBase):
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
             if all(isinstance(param, ParameterExpression) for param in params):
-                return self._symListOp(operator, params)
+                return self._symmetric_list_op(operator, params)
             # Case: a list was given containing tuples of parameter pairs.
             elif all(isinstance(param, tuple) for param in params):
                 # Compute the Hessian entries corresponding to these pairs of parameters.
@@ -255,7 +255,7 @@ class Hessian(HessianBase):
             raise TypeError('The computation of Hessians is only supported for Operators which '
                             'represent expectation values.')
 
-    def _symListOp(self, operator, params):
+    def _symmetric_list_op(self, operator, params):
         """ exploits symmetry of hessian and computes only i,j-th derivatives for i <= j """
         dim = len(params)
         hes = np.empty((dim, dim), dtype=object)
