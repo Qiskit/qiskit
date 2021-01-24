@@ -17,7 +17,7 @@ import sys
 import time
 
 
-def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout):
+def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout, line_discipline='\r'):
     """A text-based job status checker
 
     Args:
@@ -27,6 +27,8 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
+        line_discipline (string): How do we want to create new lines?
+        By default job_monitor uses '\r', but we might need to change to '\n'
 
     """
     status = job.status()
@@ -35,7 +37,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
     msg_len = len(msg)
 
     if not quiet:
-        print('\r%s: %s' % ('Job Status', msg), end='', file=output)
+        print('%s%s: %s' % (line_discipline,'Job Status', msg), end='', file=output)
     while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
         time.sleep(interval)
         status = job.status()
@@ -58,13 +60,13 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
             msg_len = len(msg)
 
         if msg != prev_msg and not quiet:
-            print('\r%s: %s' % ('Job Status', msg), end='', file=output)
+            print('%s%s: %s' % (line_discipline,'Job Status', msg), end='', file=output)
             prev_msg = msg
     if not quiet:
         print('', file=output)
 
 
-def job_monitor(job, interval=None, quiet=False, output=sys.stdout):
+def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipline='\r'):
     """Monitor the status of a IBMQJob instance.
 
     Args:
@@ -73,6 +75,9 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout):
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
+        line_discipline (string): How do we want to create new lines?
+        By default job_monitor uses '\r', but we might need to change to '\n'
+        
     """
     if interval is None:
         _interval_set = False
@@ -81,4 +86,4 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout):
         _interval_set = True
 
     _text_checker(job, interval, _interval_set,
-                  quiet=quiet, output=output)
+                  quiet=quiet, output=output, line_discipline=line_discipline)
