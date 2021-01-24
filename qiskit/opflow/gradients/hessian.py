@@ -58,16 +58,6 @@ class Hessian(HessianBase):
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
         """
-        # if input is a tuple instead of a list, wrap it into a list
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.convert(operator, (p0, p1)) for p1 in params]) for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp([self.convert(operator, param_pair) for param_pair in params])
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
@@ -98,6 +88,15 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
+        # if input is a tuple instead of a list, wrap it into a list
+        if isinstance(params, (ParameterVector, list)):
+            # Case: a list of parameters were given, compute the Hessian for all param pairs
+            if all(isinstance(param, ParameterExpression) for param in params):
+                return self._symListOp(operator, params)
+            # Case: a list was given containing tuples of parameter pairs.
+            elif all(isinstance(param, tuple) for param in params):
+                # Compute the Hessian entries corresponding to these pairs of parameters.
+                return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
 
         def is_coeff_c(coeff, c):
             if isinstance(coeff, ParameterExpression):
@@ -255,3 +254,14 @@ class Hessian(HessianBase):
         else:
             raise TypeError('The computation of Hessians is only supported for Operators which '
                             'represent expectation values.')
+
+    def _symListOp(self, operator, params):
+        """ exploits symmetry of hessian and computes only i,j-th derivatives for i <= j """
+        dim = len(params)
+        hes = np.empty((dim, dim), dtype=object)
+        for i, param_i in enumerate(params):
+            for j, param_j in enumerate(params):
+                if i <= j:
+                    hes[i, j] = hes[j, i] = self.get_hessian(operator, (param_i, param_j))
+
+        return ListOp([ListOp([hes[i, j] for i in range(dim)]) for j in range(dim)])
