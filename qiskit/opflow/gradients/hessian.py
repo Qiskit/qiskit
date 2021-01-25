@@ -93,12 +93,10 @@ class Hessian(HessianBase):
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
             if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp([
-                    ListOp([
-                        self.get_hessian(operator, (p_i, p_j))
-                        for i, p_i in enumerate(params[j:], j)
-                    ]) for j, p_j in enumerate(params)
-                ], combo_fn=_triu_to_dense)
+                return ListOp([ListOp([
+                    self.get_hessian(operator, (p_i, p_j))
+                    for i, p_i in enumerate(params[j:], j)])
+                    for j, p_j in enumerate(params)], combo_fn=_triu_to_dense)
             # Case: a list was given containing tuples of parameter pairs.
             elif all(isinstance(param, tuple) for param in params):
                 # Compute the Hessian entries corresponding to these pairs of parameters.
