@@ -159,7 +159,7 @@ class LinCombFull(CircuitQFI):
                 def phase_fix_combo_fn(x):
                     return 4 * (-0.5) * (x[0] * np.conjugate(x[1]) + x[1] * np.conjugate(x[0]))
 
-                phase_fix = ListOp([phase_fix_states[i], phase_fix_states[j]],
+                phase_fix = ListOp([phase_fix_states[i], phase_fix_states[i + j]],
                                    combo_fn=phase_fix_combo_fn)
                 # Add the phase fix quantities to the entries of the QFI
                 # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
