@@ -28,18 +28,20 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
 from qiskit.extensions.quantum_initializer.isometry import Isometry
 
+SEED = 125
+
 
 @ddt
 class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""
 
-    @data(np.eye(2, 2), random_unitary(2).data, np.eye(4, 4),
-          random_unitary(4).data[:, 0],
-          np.eye(4, 4)[:, 0:2], random_unitary(4).data,
+    @data(np.eye(2, 2), random_unitary(2, seed=SEED).data, np.eye(4, 4),
+          random_unitary(4, seed=SEED).data[:, 0],
+          np.eye(4, 4)[:, 0:2], random_unitary(4, seed=SEED).data,
           np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
           np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
-          random_unitary(8).data[:, 0:4], random_unitary(8).data, random_unitary(16).data,
-          random_unitary(16).data[:, 0:8])
+          random_unitary(8, seed=SEED).data[:, 0:4], random_unitary(8, seed=SEED).data,
+          random_unitary(16, seed=SEED).data, random_unitary(16, seed=SEED).data[:, 0:8])
     def test_isometry(self, iso):
         """Tests for the decomposition of isometries from m to n qubits"""
         if len(iso.shape) == 1:
