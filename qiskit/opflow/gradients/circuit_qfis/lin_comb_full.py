@@ -94,7 +94,7 @@ class LinCombFull(CircuitQFI):
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
             qfi_ops = []
-            for j, param_j in enumerate(params):
+            for j, param_j in enumerate(params[i:]):
                 # Get the gates of the quantum state which are parameterized by param_i
                 qfi_op = []
                 param_gates_i = state_qc._parameter_table[param_i]
@@ -167,7 +167,7 @@ class LinCombFull(CircuitQFI):
 
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp(qfi_operators)
+        return ListOp(qfi_operators, combo_fn=_triu_to_dense)
 
     @staticmethod
     def trim_circuit(circuit: QuantumCircuit,
@@ -200,3 +200,15 @@ class LinCombFull(CircuitQFI):
                 return trimmed_circuit
 
         raise OpflowError('The reference gate is not in the given quantum circuit.')
+
+
+def _triu_to_dense(triu):
+    dim = len(triu)
+    matrix = np.empty((dim, dim))
+    for i in range(dim):
+        for j in range(dim - i):
+            matrix[i, i + j] = triu[i][j]
+            if j != 0:
+                matrix[i + j, i] = triu[i][j]
+
+    return matrix
