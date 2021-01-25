@@ -134,7 +134,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend('statevector_simulator')
         q_i = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
-        qaoa = QAOA(optimizer=optimizer, p=2, mixer=mixer, quantum_instance=q_i)
+        qaoa = QAOA(optimizer=optimizer, reps=2, mixer=mixer, quantum_instance=q_i)
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
@@ -155,7 +155,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend('statevector_simulator')
         q_i = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
-        qaoa = QAOA(optimizer=COBYLA(), p=1, mixer=mixer, quantum_instance=q_i)
+        qaoa = QAOA(optimizer=COBYLA(), reps=1, mixer=mixer, quantum_instance=q_i)
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
@@ -311,7 +311,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                               seed_simulator=aqua_globals.random_seed,
                               seed_transpiler=aqua_globals.random_seed,
                               shots=4096)
-        qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), p=1, quantum_instance=q_i)
+        qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=q_i)
         _ = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         np.testing.assert_almost_equal([-0.8901, -5.8885], qaoa.optimal_params, decimal=4)

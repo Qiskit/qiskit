@@ -33,7 +33,7 @@ class QAOAAnsatz(BlueprintCircuit):
 
     def __init__(self,
                  cost_operator: OperatorBase,
-                 param_p: int,
+                 reps: int,
                  initial_state: Optional[QuantumCircuit] = None,
                  mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]] = None,
                  name: str = "qaoa"):
@@ -41,7 +41,7 @@ class QAOAAnsatz(BlueprintCircuit):
         Args:
             cost_operator: The operator representing the cost of the optimization problem,
                 denoted as :math:`U(C, \gamma)` in the original paper.
-            param_p: The integer parameter p, which determines the depth of the circuit,
+            reps: The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper.
             initial_state: An optional initial state to use. If `None` is passed then a set of
                 Hadamard gates is applied as an initial state to all qubits.
@@ -54,7 +54,7 @@ class QAOAAnsatz(BlueprintCircuit):
         """
         super().__init__(name=name)
         self._cost_operator = cost_operator
-        self._param_p = param_p
+        self._reps = reps
         self._initial_state = initial_state
         self._mixer_operator = mixer_operator
 
@@ -73,7 +73,7 @@ class QAOAAnsatz(BlueprintCircuit):
             if raise_on_failure:
                 raise AttributeError("The operator representing the cost of "
                                      "the optimization problem is not set")
-        if self._param_p is None or self._param_p < 1:
+        if self._reps is None or self._reps < 1:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The integer parameter p, which determines the depth "
@@ -114,17 +114,17 @@ class QAOAAnsatz(BlueprintCircuit):
         self._num_qubits = self._cost_operator.num_qubits
 
         if isinstance(self._mixer_operator, QuantumCircuit):
-            self._num_parameters = (1 + self._mixer_operator.num_parameters) * self._param_p
-            self._bounds = [(None, None)] * self._param_p + [(None, None)] * \
-                self._param_p * self._mixer_operator.num_parameters
+            self._num_parameters = (1 + self._mixer_operator.num_parameters) * self._reps
+            self._bounds = [(None, None)] * self._reps + [(None, None)] * \
+                           self._reps * self._mixer_operator.num_parameters
             self._mixer = self._mixer_operator
         elif isinstance(self._mixer_operator, OperatorBase):
-            self._num_parameters = 2 * self._param_p
-            self._bounds = [(None, None)] * self._param_p + [(None, None)] * self._param_p
+            self._num_parameters = 2 * self._reps
+            self._bounds = [(None, None)] * self._reps + [(None, None)] * self._reps
             self._mixer = self._mixer_operator
         elif self._mixer_operator is None:
-            self._num_parameters = 2 * self._param_p
-            self._bounds = [(None, None)] * self._param_p + [(0, 2 * np.pi)] * self._param_p
+            self._num_parameters = 2 * self._reps
+            self._bounds = [(None, None)] * self._reps + [(0, 2 * np.pi)] * self._reps
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
@@ -145,22 +145,22 @@ class QAOAAnsatz(BlueprintCircuit):
             circuit_op = (H ^ self._num_qubits)
 
         # iterate over layers
-        for idx in range(self._param_p):
+        for idx in range(self._reps):
             # the first [:self._p] parameters are used for the cost operator,
             # so we apply them here
             circuit_op = (self._cost_operator * parameters[idx]).exp_i().compose(circuit_op)
             if isinstance(self._mixer, OperatorBase):
                 mixer = cast(OperatorBase, self._mixer)
                 # we apply beta parameter in case of operator based mixer.
-                circuit_op = (mixer * parameters[idx + self._param_p]).exp_i().compose(circuit_op)
+                circuit_op = (mixer * parameters[idx + self._reps]).exp_i().compose(circuit_op)
             else:
                 # mixer as a quantum circuit that can be parameterized
                 mixer = cast(QuantumCircuit, self._mixer)
                 num_params = mixer.num_parameters
                 # the remaining [self._p:] parameters are used for the mixer,
                 # there may be multiple layers, so parameters are grouped by layers.
-                param_values = parameters[self._param_p + num_params * idx:
-                                          self._param_p + num_params * (idx + 1)]
+                param_values = parameters[self._reps + num_params * idx:
+                                          self._reps + num_params * (idx + 1)]
                 param_dict = dict(zip(mixer.parameters, param_values))
                 mixer = mixer.assign_parameters(param_dict)
                 circuit_op = CircuitOp(mixer).compose(circuit_op)
@@ -181,14 +181,14 @@ class QAOAAnsatz(BlueprintCircuit):
         self._invalidate()
 
     @property
-    def param_p(self) -> int:
+    def reps(self) -> int:
         """Returns the `p` parameter, which determines the depth of the circuit."""
-        return self._param_p
+        return self._reps
 
-    @param_p.setter
-    def param_p(self, param_p: int) -> None:
+    @reps.setter
+    def reps(self, reps: int) -> None:
         """Sets the `p` parameter."""
-        self._param_p = param_p
+        self._reps = reps
         self._invalidate()
 
     @property

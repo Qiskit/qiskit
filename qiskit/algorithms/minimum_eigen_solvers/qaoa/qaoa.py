@@ -60,7 +60,7 @@ class QAOA(VQE):
     # pylint: disable=invalid-name
     def __init__(self,
                  optimizer: Optimizer = None,
-                 p: int = 1,
+                 reps: int = 1,
                  initial_state: Optional[QuantumCircuit] = None,
                  mixer: Union[QuantumCircuit, OperatorBase] = None,
                  initial_point: Optional[np.ndarray] = None,
@@ -75,7 +75,7 @@ class QAOA(VQE):
         """
         Args:
             optimizer: A classical optimizer.
-            p: the integer parameter p as specified in https://arxiv.org/abs/1411.4028,
+            reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with
             mixer: the mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
@@ -112,9 +112,9 @@ class QAOA(VQE):
                 variational form, the evaluated mean and the evaluated standard deviation.
             quantum_instance: Quantum Instance or Backend
         """
-        validate_min('p', p, 1)
+        validate_min('p', reps, 1)
 
-        self._p = p
+        self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
 
@@ -132,7 +132,7 @@ class QAOA(VQE):
         # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.var_form.num_qubits:
             self.var_form = QAOAAnsatz(operator,
-                                       self._p,
+                                       self._reps,
                                        initial_state=self._initial_state,
                                        mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
