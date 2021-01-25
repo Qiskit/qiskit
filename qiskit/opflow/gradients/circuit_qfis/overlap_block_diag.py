@@ -55,7 +55,7 @@ class OverlapBlockDiag(CircuitQFI):
         Raises:
             NotImplementedError: If ``operator`` is neither ``CircuitOp`` nor ``CircuitStateFn``.
         """
-        if not isinstance(operator, (CircuitStateFn)):
+        if not isinstance(operator, (CircuitOp, CircuitStateFn)):
             raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
         return self._block_diag_approx(operator=operator, params=params)
 
