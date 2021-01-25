@@ -17,6 +17,7 @@ from typing import List, Union
 import numpy as np
 from scipy.linalg import block_diag
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.utils.arithmetic import _triu_to_dense
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -54,7 +55,7 @@ class OverlapBlockDiag(CircuitQFI):
         Raises:
             NotImplementedError: If ``operator`` is neither ``CircuitOp`` nor ``CircuitStateFn``.
         """
-        if not isinstance(operator, (CircuitOp, CircuitStateFn)):
+        if not isinstance(operator, (CircuitStateFn)):
             raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
         return self._block_diag_approx(operator=operator, params=params)
 
@@ -146,18 +147,14 @@ class OverlapBlockDiag(CircuitQFI):
             for i, p_i in enumerate(params):
                 generator_i = generators[p_i]
                 param_expr_i = get_parameter_expression(circuit, p_i)
-
-                for j, p_j in enumerate(params):
+                for j, p_j in enumerate(params[i:], i):
                     if i == j:
                         block[i][i] = ListOp([single_terms[i]], combo_fn=lambda x: 1 - x[0] ** 2)
                         if isinstance(param_expr_i, ParameterExpression) and not isinstance(
                                 param_expr_i, Parameter):
                             expr_grad_i = DerivativeBase.parameter_expression_grad(
                                 param_expr_i, p_i)
-                            block[i][j] *= expr_grad_i * expr_grad_i
-                        continue
-                    if i > j:
-                        # we can skip i > j due to symmetry of QFI
+                            block[i][i] *= expr_grad_i * expr_grad_i
                         continue
 
                     generator_j = generators[p_j]
@@ -167,21 +164,18 @@ class OverlapBlockDiag(CircuitQFI):
                     psi_gen_ij = ~StateFn(generator) @ psi_i @ Zero
                     psi_gen_ij = PauliExpectation().convert(psi_gen_ij)
                     cross_term = ListOp([single_terms[i], single_terms[j]], combo_fn=np.prod)
-                    block[i][j] = block[j][i] = psi_gen_ij - cross_term
+                    block[i][j] = psi_gen_ij - cross_term
 
                     # pylint: disable=unidiomatic-typecheck
-                    if type(param_expr_i) == ParameterExpression:
+                    if isinstance(param_expr_i, ParameterExpression):
                         expr_grad_i = DerivativeBase.parameter_expression_grad(param_expr_i, p_i)
                         block[i][j] *= expr_grad_i
-                        block[j][i] = block[i][j]
-                    if type(param_expr_j) == ParameterExpression:
+                    if isinstance(param_expr_j, ParameterExpression):
                         expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
-                        block[j][i] = block[i][j]
 
             wrapped_block = ListOp([ListOp(row) for row in block])
             blocks.append(wrapped_block)
 
-        block_diagonal_qfi = ListOp(oplist=blocks,
-                                    combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])
-        return block_diagonal_qfi
+        return ListOp(oplist=blocks,
+                      combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])
