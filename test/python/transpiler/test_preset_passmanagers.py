@@ -494,9 +494,9 @@ class TestFinalLayouts(QiskitTestCase):
         rows = [x[0] for x in config.coupling_map]
         cols = [x[1] for x in config.coupling_map]
 
-        A = np.zeros((20, 20))
-        A[rows, cols] = 1
-        qc = GraphState(A)
+        adjacency_matrix = np.zeros((20, 20))
+        adjacency_matrix[rows, cols] = 1
+        qc = GraphState(adjacency_matrix)
         qc.measure_all()
         expected = {
             0: Qubit(QuantumRegister(20, 'q'), 0),
