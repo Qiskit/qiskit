@@ -14,7 +14,7 @@
 import numpy as np
 
 
-def hellinger_distance(dist_p, dist_q):
+def _hellinger_distance(dist_p, dist_q):
     """Computes the Hellinger distance between
     two counts distributions.
 
@@ -96,5 +96,5 @@ def hellinger_fidelity(dist_p, dist_q):
         `Quantum Fidelity @ wikipedia <https://en.wikipedia.org/wiki/Fidelity_of_quantum_states>`_
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
     """
-    dist = hellinger_distance(dist_p, dist_q)
+    dist = _hellinger_distance(dist_p, dist_q)
     return (1-dist**2)**2
