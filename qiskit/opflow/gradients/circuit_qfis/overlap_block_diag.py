@@ -167,10 +167,10 @@ class OverlapBlockDiag(CircuitQFI):
                     block[i][j] = psi_gen_ij - cross_term
 
                     # pylint: disable=unidiomatic-typecheck
-                    if isinstance(param_expr_i, ParameterExpression):
+                    if type(param_expr_i) == ParameterExpression:
                         expr_grad_i = DerivativeBase.parameter_expression_grad(param_expr_i, p_i)
                         block[i][j] *= expr_grad_i
-                    if isinstance(param_expr_j, ParameterExpression):
+                    if type(param_expr_j) == ParameterExpression:
                         expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
 
