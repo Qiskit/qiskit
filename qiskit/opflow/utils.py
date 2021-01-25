@@ -20,64 +20,94 @@ from .operator_base import OperatorBase
 logger = logging.getLogger(__name__)
 
 
-def commutator(
+def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
+    r"""
+    Compute commutator of `op_a` and `op_b`.
+
+    .. math::
+
+        AB - BA.
+
+    Args:
+        op_a: Operator A
+        op_b: Operator B
+    Returns:
+        OperatorBase: the commutator
+    """
+    return (op_a @ op_b - op_b @ op_a).reduce()
+
+
+def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
+    r"""
+    Compute anti-commutator of `op_a` and `op_b`.
+
+    .. math::
+
+        AB + BA.
+
+    Args:
+        op_a: Operator A
+        op_b: Operator B
+    Returns:
+        OperatorBase: the anti-commutator
+    """
+    return (op_a @ op_b + op_b @ op_a).reduce()
+
+
+def double_commutator(
         op_a: OperatorBase,
         op_b: OperatorBase,
-        op_c: Optional[OperatorBase] = None,
+        op_c: OperatorBase,
         sign: bool = False,
 ) -> OperatorBase:
     r"""
-    Compute commutator of `op_a` and `op_b` or
-    the symmetric double commutator of `op_a`, `op_b` and `op_c`.
+    Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
     See McWeeny chapter 13.6 Equation of motion methods (page 479)
-    | If only `op_a` and `op_b` are provided:
-    |     result = A\*B - B\*A;
-    |
-    | If `op_a`, `op_b` and `op_c` are provided:
-    |     result = 0.5 \* (2\*A\*B\*C + 2\*C\*B\*A - B\*A\*C - C\*A\*B - A\*C\*B - B\*C\*A)
+
+    If `sign` is `False`, it returns
+
+    .. math::
+
+         [[A, B], C]/2 + [A, [B, C]]/2
+         = (2ABC + 2CBA - BAC - CAB - ACB - BCA)/2.
+
+    If `sign` is `True`, it returns
+
+    .. math::
+         \lbrace[A, B], C\rbrace/2 + \lbrace A, [B, C]\rbrace/2
+         = (2ABC - 2CBA - BAC + CAB - ACB + BCA)/2.
+
     Args:
-        op_a: operator a
-        op_b: operator b
-        op_c: operator c
+        op_a: Operator A
+        op_b: Operator B
+        op_c: Operator C
         sign: False anti-commutes, True commutes
     Returns:
-        OperatorBase: the commutator
+        OperatorBase: the double commutator
     """
     sign_num = 1 if sign else -1
 
     op_ab = op_a @ op_b
     op_ba = op_b @ op_a
+    op_ac = op_a @ op_c
+    op_ca = op_c @ op_a
 
-    if op_c is None:
-        res = op_ab - op_ba
-    else:
-        op_ac = op_a @ op_c
-        op_ca = op_c @ op_a
+    op_abc = op_ab @ op_c
+    op_cba = op_c @ op_ba
+    op_bac = op_ba @ op_c
+    op_cab = op_c @ op_ab
+    op_acb = op_ac @ op_b
+    op_bca = op_b @ op_ca
 
-        op_abc = op_ab @ op_c
-        op_cba = op_c @ op_ba
-        op_bac = op_ba @ op_c
-        op_cab = op_c @ op_ab
-        op_acb = op_ac @ op_b
-        op_bca = op_b @ op_ca
-
-        tmp = -op_bac + sign_num * op_cab - op_acb + sign_num * op_bca  # type: ignore
-        tmp = 0.5 * tmp
-        res = op_abc - op_cba * sign_num + tmp  # type: ignore
+    res = (
+        op_abc
+        - sign_num * op_cba
+        + 0.5 * (
+            - op_bac
+            + sign_num * op_cab
+            - op_acb
+            + sign_num * op_bca
+        )
+    )
 
     return res.reduce()
-
-
-def anti_commutator(
-        op_a: OperatorBase,
-        op_b: OperatorBase,
-) -> OperatorBase:
-    r"""
-    Compute anti-commutator of `op_a` and `op_b` A\*B + B\*A;
-    Args:
-        op_a: operator a
-        op_b: operator b
-    Returns:
-        OperatorBase: the anti-commutator
-    """
-    return (op_a @ op_b + op_b @ op_a).reduce()

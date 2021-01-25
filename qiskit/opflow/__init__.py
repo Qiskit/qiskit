@@ -123,6 +123,16 @@ only diagonal Paulis.
    expectations
    gradients
 
+Utility functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   commutator
+   anti_commutator
+   double_commutator
+
 Exceptions
 ==========
 
@@ -145,7 +155,7 @@ from .expectations import (ExpectationBase, ExpectationFactory, PauliExpectation
 from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotterEvolution,
                          MatrixEvolution, TrotterizationBase, TrotterizationFactory, Trotter,
                          Suzuki, QDrift)
-from .utils import commutator, anti_commutator
+from .utils import commutator, anti_commutator, double_commutator
 
 # Convenience immutable instances
 from .operator_globals import (EVAL_SIG_DIGITS,
@@ -180,5 +190,5 @@ __all__ = [
     'HessianBase', 'Hessian', 'QFIBase', 'QFI',
     'OpflowError',
     # utils
-    'commutator', 'anti_commutator',
+    'commutator', 'anti_commutator', 'double_commutator',
 ]
