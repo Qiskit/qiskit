@@ -134,6 +134,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
 
 
 def triu_to_dense(triu):
+    """ Converts upper triangular part of matrix to dense matrix. """
     dim = len(triu)
     matrix = np.empty((dim, dim), dtype=complex)
     for i in range(dim):
