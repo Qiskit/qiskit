@@ -16,7 +16,6 @@ from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info import random_unitary
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -176,8 +175,7 @@ my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
         """Test circuit qasm() method with pi params.
         """
         circuit = QuantumCircuit(2)
-        circuit.append(random_unitary(4, seed=1234), [0, 1])
-        circuit = circuit.decompose()
+        circuit.cz(0, 1)
         circuit.u(2*pi, 3*pi, -5*pi, 0)
         qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
