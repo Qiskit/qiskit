@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Complete refactor of the linear_solvers package from qiskit-aqua.
