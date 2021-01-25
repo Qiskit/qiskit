@@ -52,6 +52,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
@@ -106,9 +107,22 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
+    _choose_layout_0 = [] if pass_manager_config.layout_method \
+        else [TrivialLayout(coupling_map),
+              Layout2qDistance(coupling_map,
+                               property_name='trivial_layout_score')]
 
+    _reset_layout = SetLayout(initial_layout)
     _choose_layout_1 = [] if pass_manager_config.layout_method \
-        else CSPLayout(coupling_map, call_limit=10000, time_limit=60)
+        else CSPLayout(coupling_map, call_limit=1000, time_limit=10)
+
+    def _not_perfect_yet(property_set):
+        if property_set['trivial_layout_score'] is not None:
+            if property_set['trivial_layout_score'] != 0:
+                property_set['layout']._wrapped = None
+                return True
+        return False
+
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -214,7 +228,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_reset + _meas)
     if coupling_map or initial_layout:
         pm3.append(_given_layout)
-        pm3.append(_choose_layout_1, condition=_choose_layout_condition)
+        pm3.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm3.append(_reset_layout, condition=_not_perfect_yet)
+        pm3.append(_choose_layout_1, condition=_not_perfect_yet)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
         pm3.append(_swap_check)
