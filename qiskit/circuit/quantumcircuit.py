@@ -1799,7 +1799,7 @@ class QuantumCircuit:
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression):
+        if isinstance(angle, ParameterExpression) and angle.parameters:
             self._global_phase = angle
         else:
             # Set the phase to the [-2 * pi, 2 * pi] interval
