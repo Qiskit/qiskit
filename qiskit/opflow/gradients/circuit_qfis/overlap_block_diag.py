@@ -174,7 +174,10 @@ class OverlapBlockDiag(CircuitQFI):
                         expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
 
-            wrapped_block = ListOp([ListOp(row) for row in block])
+            wrapped_block = ListOp([ListOp([
+                block[i][j]
+                for j in range(i, len(params))])
+                for i in range(len(params))], combo_fn=_triu_to_dense)
             blocks.append(wrapped_block)
 
         return ListOp(oplist=blocks,
