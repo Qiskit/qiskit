@@ -483,6 +483,11 @@ class TestFinalLayouts(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
+        """Test that we always use trivial if it's a perfect match.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more
+        details
+        """
         backend = FakeTokyo()
         config = backend.configuration()
 

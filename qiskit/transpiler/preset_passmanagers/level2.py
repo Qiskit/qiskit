@@ -106,7 +106,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else [TrivialLayout(coupling_map),
               Layout2qDistance(coupling_map,
                                property_name='trivial_layout_score')]
-    _reset_layout = SetLayout(initial_layout)
     _choose_layout_1 = [] if pass_manager_config.layout_method \
         else CSPLayout(coupling_map, call_limit=1000, time_limit=10)
 
@@ -114,6 +113,14 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         if property_set['trivial_layout_score'] is not None:
             if property_set['trivial_layout_score'] != 0:
                 return True
+        return False
+
+    def _csp_not_found_match(property_set):
+        if property_set['layout'] is None:
+            return True
+        if property_set['CSPLayout_stop_reason'] is not None \
+                and property_set['CSPLayout_stop_reason'] != "solution found":
+            return True
         return False
 
     if layout_method == 'trivial':
@@ -209,9 +216,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map or initial_layout:
         pm2.append(_given_layout)
         pm2.append(_choose_layout_0, condition=_choose_layout_condition)
-        pm2.append(_reset_layout, condition=_not_perfect_yet)
         pm2.append(_choose_layout_1, condition=_not_perfect_yet)
-        pm2.append(_choose_layout_2, condition=_choose_layout_condition)
+        pm2.append(_choose_layout_2, condition=_csp_not_found_match)
         pm2.append(_embed)
         pm2.append(_unroll3q)
         pm2.append(_swap_check)
