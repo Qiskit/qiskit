@@ -260,17 +260,6 @@ class Hessian(HessianBase):
             raise TypeError('The computation of Hessians is only supported for Operators which '
                             'represent expectation values.')
 
-    def _symmetric_list_op(self, operator, params):
-        """ exploits symmetry of hessian and computes only i,j-th derivatives for i <= j """
-        dim = len(params)
-        hes = np.empty((dim, dim), dtype=object)
-        for i, param_i in enumerate(params):
-            for j, param_j in enumerate(params):
-                if i <= j:
-                    hes[i, j] = hes[j, i] = self.get_hessian(operator, (param_i, param_j))
-
-        return ListOp([ListOp([hes[i, j] for i in range(dim)]) for j in range(dim)])
-
 
 def vec_to_mat(triu):
     print(triu)
