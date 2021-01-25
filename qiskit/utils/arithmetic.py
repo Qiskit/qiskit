@@ -131,3 +131,15 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
             for y in x[len_x - 1:0:-1]:
                 res.append((first, y))
     return res
+
+
+def triu_to_dense(triu):
+    dim = len(triu)
+    matrix = np.empty((dim, dim))
+    for i in range(dim):
+        for j in range(dim - i):
+            matrix[i, i + j] = triu[i][j]
+            if j != 0:
+                matrix[i + j, i] = triu[i][j]
+
+    return matrix

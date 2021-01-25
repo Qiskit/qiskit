@@ -17,8 +17,8 @@ import warnings
 
 import numpy as np
 from qiskit.circuit import Gate
-from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
-                            ParameterExpression)
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
+from qiskit.utils.arithmetic import triu_to_dense
 
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
@@ -84,7 +84,7 @@ class LinCombFull(CircuitQFI):
             phase_fix_states = [gradient_states]
 
         # Get  4 * Re[〈∂kψ|∂lψ]
-        qfi_operators = np.empty((len(params), len(params)), dtype=object)
+        qfi_operators = []
         # Add a working qubit
         qr_work = QuantumRegister(1, 'work_qubit')
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
@@ -93,10 +93,8 @@ class LinCombFull(CircuitQFI):
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
-            for j, param_j in enumerate(params):
-                if i > j:
-                    # we can skip i > j due to symmetry of QFI
-                    continue
+            qfi_ops = []
+            for j, param_j in enumerate(params[i:]):
                 # Get the gates of the quantum state which are parameterized by param_i
                 qfi_op = []
                 param_gates_i = state_qc._parameter_table[param_i]
@@ -161,16 +159,15 @@ class LinCombFull(CircuitQFI):
                 def phase_fix_combo_fn(x):
                     return 4 * (-0.5) * (x[0] * np.conjugate(x[1]) + x[1] * np.conjugate(x[0]))
 
-                phase_fix = ListOp([phase_fix_states[i], phase_fix_states[j]],
+                phase_fix = ListOp([phase_fix_states[i], phase_fix_states[i + j]],
                                    combo_fn=phase_fix_combo_fn)
                 # Add the phase fix quantities to the entries of the QFI
                 # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
-                qfi_operators[i, j] = qfi_operators[j, i] = SummedOp(qfi_op) + phase_fix
+                qfi_ops += [SummedOp(qfi_op) + phase_fix]
 
+            qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp([
-            ListOp([qfi_operators[i, j] for i in range(len(params))]) for j in range(len(params))
-        ])
+        return ListOp(qfi_operators, combo_fn=triu_to_dense)
 
     @staticmethod
     def trim_circuit(circuit: QuantumCircuit,
