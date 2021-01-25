@@ -29,6 +29,7 @@ from ..operator_base import OperatorBase
 from .gradient import Gradient
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
+from ...utils.arithmetic import triu_to_dense
 
 try:
     from jax import grad, jit
@@ -97,7 +98,7 @@ class Hessian(HessianBase):
                         self.get_hessian(operator, (p_i, p_j))
                         for i, p_i in enumerate(params) if i >= j
                     ]) for j, p_j in enumerate(params)
-                ], combo_fn=vec_to_mat)
+                ], combo_fn=triu_to_dense)
             # Case: a list was given containing tuples of parameter pairs.
             elif all(isinstance(param, tuple) for param in params):
                 # Compute the Hessian entries corresponding to these pairs of parameters.
@@ -259,15 +260,3 @@ class Hessian(HessianBase):
         else:
             raise TypeError('The computation of Hessians is only supported for Operators which '
                             'represent expectation values.')
-
-
-def vec_to_mat(triu):
-    print(triu)
-    dim = len(triu)
-    matrix = np.empty((dim, dim))
-    for i in range(dim):
-        for j in range(dim - i):
-            matrix[i, i + j] = triu[i][j]
-            if j != 0:
-                matrix[i + j, i] = triu[i][j]
-    return matrix

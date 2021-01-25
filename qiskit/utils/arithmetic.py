@@ -135,7 +135,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
 
 def triu_to_dense(triu):
     dim = len(triu)
-    matrix = np.empty((dim, dim))
+    matrix = np.empty((dim, dim), dtype=complex)
     for i in range(dim):
         for j in range(dim - i):
             matrix[i, i + j] = triu[i][j]
