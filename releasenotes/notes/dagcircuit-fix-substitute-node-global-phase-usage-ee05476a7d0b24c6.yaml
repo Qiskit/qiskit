@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The :class:`~qiskit.transpiler.passes.BasisTranslator` and :class:`~qiskit.transpiler.passes.Unroller` passes, in some cases, had not been
+    preserving the global phase of the circuit under transpilation. This has
+    been fixed.
