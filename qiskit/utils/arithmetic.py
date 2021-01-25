@@ -134,8 +134,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
 
 
 def _triu_to_dense(triu: np.ndarray) -> np.ndarray:
-    """
-    Converts upper triangular part of matrix to dense matrix.
+    """Converts upper triangular part of matrix to dense matrix.
 
     Args:
         triu: array in the form [[A, B, C], [D, E], [F]]
