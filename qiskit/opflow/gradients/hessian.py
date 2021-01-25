@@ -96,7 +96,7 @@ class Hessian(HessianBase):
                 return ListOp([
                     ListOp([
                         self.get_hessian(operator, (p_i, p_j))
-                        for i, p_i in enumerate(params) if i >= j
+                        for i, p_i in enumerate(params[j:], j)
                     ]) for j, p_j in enumerate(params)
                 ], combo_fn=_triu_to_dense)
             # Case: a list was given containing tuples of parameter pairs.
