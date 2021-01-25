@@ -130,6 +130,15 @@ class ControlledGate(Gate):
 
     @property
     def name(self) -> str:
+        """Get name of gate. If the gate has open controls the gate name
+        will become:
+
+           <original_name_o<ctrl_state>
+
+        where <original_name> is the gate name for the default case of
+        closed control qubits and <ctrl_state> is the integer value of
+        the control state for the gate.
+        """
         if self._open_ctrl:
             return f'{self._name}_o{self.ctrl_state}'
         else:
@@ -137,6 +146,9 @@ class ControlledGate(Gate):
 
     @name.setter
     def name(self, name_str):
+        """Set the name of the gate. Note the reported name may differ
+        from the set name if the gate has open controls.
+        """
         self._name = name_str
 
     @property

@@ -1169,8 +1169,9 @@ class QuantumCircuit:
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
             # If instruction is a root gate or a root instruction (in that case, compositive)
-            # pylint: disable=unidiomatic-typecheck
-            elif (type(instruction) in [Gate, Instruction] or
+
+            elif (type(instruction) in
+                  [Gate, Instruction] or  # pylint: disable=unidiomatic-typecheck
                   (isinstance(instruction, ControlledGate) and instruction._open_ctrl)):
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
