@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The module for Quantum the Fisher Information."""
+"""The module for the Quantum Fisher Information."""
 
 from typing import List, Union
 
