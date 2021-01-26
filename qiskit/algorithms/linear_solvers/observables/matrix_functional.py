@@ -45,7 +45,6 @@ class MatrixFunctional(LinearSystemObservable):
             The observable as a list of sums of Pauli strings.
 
         Raises:
-            TODO
         """
         ZeroOp = ((I + Z) / 2)
         OneOp = ((I - Z) / 2)
@@ -68,7 +67,6 @@ class MatrixFunctional(LinearSystemObservable):
             The observable as a list of QuantumCircuits.
 
         Raises:
-            TODO
         """
         qcs = []
         # Again, the first value in the list will correspond to the norm of x
@@ -96,7 +94,6 @@ class MatrixFunctional(LinearSystemObservable):
             The value of the absolute average.
 
         Raises:
-            TODO
         """
         if num_qubits is None:
             raise ValueError("Number of qubits must be defined to calculate the absolute average.")
@@ -120,7 +117,6 @@ class MatrixFunctional(LinearSystemObservable):
             The value of the observable.
 
         Raises:
-            TODO
         """
 
         matrix = diags([self._off_diag, self._main_diag, self._off_diag], [-1, 0, 1],

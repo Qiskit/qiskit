@@ -36,7 +36,6 @@ class AbsoluteAverage(LinearSystemObservable):
             The observable as a sum of Pauli strings.
 
         Raises:
-            TODO
         """
         ZeroOp = ((I + Z) / 2)
         return TensoredOp(num_qubits * [ZeroOp])
@@ -51,14 +50,12 @@ class AbsoluteAverage(LinearSystemObservable):
             The observable as a QuantumCircuit.
 
         Raises:
-            TODO
         """
         qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         qc.h(qr)
         return qc
 
-    # TODO: can remove the list option or does it have to be as in the abstract method?.
     def post_processing(self, solution: Union[float, List[float]],
                         num_qubits: int,
                         constant: Optional[float] = 1) -> float:
@@ -73,7 +70,6 @@ class AbsoluteAverage(LinearSystemObservable):
             The value of the absolute average.
 
         Raises:
-            TODO
         """
         if num_qubits is None:
             raise ValueError("Number of qubits must be defined to calculate the absolute average.")
@@ -92,7 +88,6 @@ class AbsoluteAverage(LinearSystemObservable):
             The value of the observable.
 
         Raises:
-            TODO
         """
         result = 0
         for xi in solution:

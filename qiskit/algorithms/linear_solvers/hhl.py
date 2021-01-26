@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 
-"""TODO: The HHL algorithm."""
+"""The HHL algorithm."""
 
 from typing import Optional, Union, List, Callable
 import numpy as np
@@ -26,15 +26,13 @@ from qiskit.circuit.library import PhaseEstimation
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
-from qiskit.aqua.algorithms.linear_solvers_new.exact_inverse import ExactInverse
+from qiskit.aqua.algorithms.linear_solvers.exact_inverse import ExactInverse
 from qiskit.opflow import Zero, One, Z, I, StateFn, TensoredOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 # logger = logging.getLogger(__name__)
 
-# TODO: allow a different eigenvalue circuit
-# TODO: need negative eigenvalues? try that algorithm figures out on its own
 class HHL(LinearSolver):
     def __init__(self,
                  epsilon: float = 1e-2,
@@ -60,14 +58,14 @@ class HHL(LinearSolver):
 
         self._epsilon = epsilon
         # Tolerance for the different parts of the algorithm as per [1]
-        self._epsilonR = epsilon / 3  # conditioned rotation TODO: change
-        self._epsilonS = epsilon / 3  # state preparation TODO: change
-        self._epsilonA = epsilon / 6  # hamiltonian simulation TODO: change
+        self._epsilonR = epsilon / 3  # conditioned rotation
+        self._epsilonS = epsilon / 3  # state preparation
+        self._epsilonA = epsilon / 6  # hamiltonian simulation
 
         # Number of qubits for the different registers
         self._nb = None  # number of qubits for the solution register
-        self._nl = None  # TODO:number of qubits for the eigenvalue register
-        self._na = None  # TODO:number of ancilla qubits
+        self._nl = None  # number of qubits for the eigenvalue register
+        self._na = None  # number of ancilla qubits
         # Time of the evolution. Once the matrix is specified,
         # it can be updated 2 * np.pi / lambda_max
         self._evo_time = 2 * np.pi
@@ -86,7 +84,7 @@ class HHL(LinearSolver):
 
     @property
     def _num_qubits(self) -> int:
-        """TODO: implement. Return the number of qubits needed in the circuit.
+        """Return the number of qubits needed in the circuit.
 
         Returns:
             The total number of qubits.
@@ -119,7 +117,6 @@ class HHL(LinearSolver):
 
         return np.real(np.sqrt(norm_2) / self._lambda_min)
 
-    # TODO allow lists
     def calculate_observable(self, qc: QuantumCircuit,
                              observable: Optional[Union[BaseOperator, List[BaseOperator]]] = None,
                              post_processing: Optional[Callable[[Union[float, List[float]]],
@@ -157,7 +154,6 @@ class HHL(LinearSolver):
                     if obs is None:
                         obs = I ^ self._nb
                     new_observable = OneOp ^ TensoredOp((self._nl + self._na) * [ZeroOp]) ^ obs
-                    # TODO check lists are the same length
                     if qcs:
                         result.append((~StateFn(new_observable) @ qcs[i]).eval())
                     else:
@@ -173,7 +169,6 @@ class HHL(LinearSolver):
             else:
                 result = (~StateFn(new_observable) @ qc).eval()
 
-        # TODO if state prep is probabilistic add 1/sqrt(N) to constant
         if isinstance(result, list):
             circuit_results = result
         else:
@@ -204,7 +199,7 @@ class HHL(LinearSolver):
         else:
             qc = QuantumCircuit(qb, ql, qf)
 
-        # State preparation - TODO: check if work qubits
+        # State preparation
         qc.append(self._vector_circuit, qb[:])
         # QPE
         phase_estimation = PhaseEstimation(self._nl, self._matrix_circuit)
@@ -225,7 +220,6 @@ class HHL(LinearSolver):
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
 
-    # TODO: neg eigenvalues, general matrix
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,
@@ -249,11 +243,8 @@ class HHL(LinearSolver):
         Returns:
             The result of the linear system.
         """
-        # TODO: better error catches, e.g. np.array type, input could be just vectors
         # State preparation circuit - default is qiskit
         if isinstance(vector, QuantumCircuit):
-            # TODO: check if more than one register -> one has to be named work qubits
-            # TODO: polynomial, then need epsilon too
             self._nb = vector.num_qubits
             self._vector_circuit = vector
         elif isinstance(vector, np.ndarray):
@@ -265,8 +256,6 @@ class HHL(LinearSolver):
             raise ValueError("Input vector type must be either QuantumCircuit or numpy ndarray.")
 
         # Hamiltonian simulation circuit - default is Trotterization
-        # TODO: check if all resize and truncate methods are necessary to have.
-        #  Matrix_circuit must have _evo_time parameter, control and power methods
         if isinstance(matrix, QuantumCircuit):
             self._matrix_circuit = matrix
             matrix_array = matrix.matrix()
@@ -281,10 +270,6 @@ class HHL(LinearSolver):
                 raise ValueError("Input vector dimension does not match input "
                                  "matrix dimension!")
             matrix_array = matrix
-
-            # Default is a Trotterization of the matrix TODO:depends on implementation
-            # evolved_op = MatrixTrotterEvolution(trotter_mode='suzuki', reps=2).convert(
-            #     (self._evo_time * MatrixOp(matrix)).exp_i())
         else:
             raise ValueError("Input matrix type must be either QuantumCircuit or numpy ndarray.")
 
@@ -299,8 +284,7 @@ class HHL(LinearSolver):
         # Constant from the representation of eigenvalues
         delta = self.get_delta(self._nl, self._lambda_min, self._lambda_max)
 
-        # Update evolution time - TODO: leave it as optional since not doable for all matrices
-        #  without killing the speedup
+        # Update evolution time
         self._evo_time = 2 * np.pi * delta / self._lambda_min
         self._matrix_circuit.set_simulation_params(self._evo_time, self._epsilonA)
 
@@ -353,9 +337,3 @@ class HHL(LinearSolver):
             self.calculate_observable(solution.state, observable, post_processing)
         return solution
 
-
-# TODO set the euclidean_norm property
-"""Test:
-State preparation with vector
-State preparation with circuit
-"""

@@ -32,7 +32,6 @@ class LinearSystemObservable(ABC):
             The observable as a sum of Pauli strings.
 
         Raises:
-            TODO
         """
         raise NotImplementedError
 
@@ -47,7 +46,6 @@ class LinearSystemObservable(ABC):
             The observable as a QuantumCircuit.
 
         Raises:
-            TODO
         """
         raise NotImplementedError
 
@@ -66,7 +64,6 @@ class LinearSystemObservable(ABC):
             The value of the observable.
 
         Raises:
-            TODO
         """
         raise NotImplementedError
 
@@ -81,6 +78,5 @@ class LinearSystemObservable(ABC):
             The value of the observable.
 
         Raises:
-            TODO
         """
         raise NotImplementedError

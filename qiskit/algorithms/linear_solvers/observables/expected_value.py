@@ -53,7 +53,5 @@ class ExpectedValue(LinearSystemObservable):
             The value of the euclidean norm.
 
         Raises:
-            TODO
         """
-        #TODO: implement
         raise NotImplementedError

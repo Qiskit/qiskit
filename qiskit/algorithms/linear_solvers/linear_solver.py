@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit
 from qiskit.result import Result
 
 from qiskit.aqua.algorithms import AlgorithmResult
-from qiskit.aqua.algorithms.linear_solvers_new.observables.linear_system_observable import LinearSystemObservable
+from qiskit.aqua.algorithms.linear_solvers.observables.linear_system_observable import LinearSystemObservable
 
 
 class LinearSolverResult(AlgorithmResult):
@@ -29,12 +29,9 @@ class LinearSolverResult(AlgorithmResult):
     with the information about the solution obtained.
 
     Examples:
-        >>> TODO
 
     Note:
-        TODO
     """
-    #TODO add stuff from hhl solve
     def __init__(self) -> None:
         super().__init__()
 
@@ -88,7 +85,6 @@ class LinearSolver(ABC):
     def __init__(self):
         pass
 
-    # TODO: add repeat-until-success circuit option
     @abstractmethod
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
@@ -105,6 +101,5 @@ class LinearSolver(ABC):
             The result of the linear system.
 
         Raises:
-            TODO
         """
         raise NotImplementedError

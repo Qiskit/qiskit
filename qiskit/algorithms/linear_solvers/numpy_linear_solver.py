@@ -50,10 +50,8 @@ class NumPyLinearSolver(LinearSolver):
             LinearSolverResult
 
         Raises:
-            TODO
         """
         # Raise a warning if the matrix or vector are given as a circuit
-        # TODO: maybe it's possible to extract the matrix from the circuit
         if isinstance(matrix, QuantumCircuit) or isinstance(vector, QuantumCircuit):
             raise ValueError("The classical algorithm does not accept a QuantumCircuit as an input.")
 
