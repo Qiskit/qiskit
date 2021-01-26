@@ -1,9 +1,14 @@
 ---
 fixes:
   - |
-    Pulse :py:class:`~qiskit.pulse.instructions.Delay` is now explicitly
-    assembled as qobj instructions.
+    Pulse :py:class:`~qiskit.pulse.instructions.Delay` instructions are now
+    explicitly assembled as :class:`~qiskit.qobj.PulseQobjInstruction` objects
+    included in the :class:`~qiskit.qobj.PulseQobj` output from
+    :func:`~qiskit.compiler.assemble`.
 
-    Previously, we could ignore delays rather than assembling them. Now, with
-    pulse gates, there are times that we want to schedule ONLY a delay, and not
-    including the delay itself would remove the delay.
+    Previously, we could ignore :py:class:`~qiskit.pulse.instructions.Delay`
+    instructions in a :class:`~qiskit.pulse.Schedule` as part of
+    :func:`~qiskit.compiler.assemble` as the time was explicit in the
+    :class:`~qiskit.qobj.PulseQobj` objects. But, now with pulse gates, there
+    are situations where we can schedule ONLY a delay, and not including the
+    delay itself would remove the delay.
