@@ -21,7 +21,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
 
 from ..operator_base import OperatorBase
-from ..legacy.base_operator import LegacyBaseOperator
 
 
 class StateFn(OperatorBase):
@@ -371,9 +370,6 @@ class StateFn(OperatorBase):
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .vector_state_fn import VectorStateFn
         return VectorStateFn(self.to_matrix(massive=massive), is_measurement=self.is_measurement)
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        raise TypeError('A StateFn cannot be represented by LegacyBaseOperator.')
 
     # TODO to_dict_op
 

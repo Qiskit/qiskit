@@ -952,11 +952,35 @@ class TestParameters(QiskitTestCase):
         qc_aer = transpile(qc, backend)
         self.assertIn(phi, qc_aer.parameters)
 
+    def test_parametervector_resize(self):
+        """Test the resize method of the parameter vector."""
+
+        vec = ParameterVector('x', 2)
+        element = vec[1]  # store an entry for instancecheck later on
+
+        with self.subTest('shorten'):
+            vec.resize(1)
+            self.assertEqual(len(vec), 1)
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 1))
+
+        with self.subTest('enlargen'):
+            vec.resize(3)
+            self.assertEqual(len(vec), 3)
+            # ensure we still have the same instance not a copy with the same name
+            # this is crucial for adding parameters to circuits since we cannot use the same
+            # name if the instance is not the same
+            self.assertIs(element, vec[1])
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 3))
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
     qc.ry(param, qr[0])
     return qc
+
+
+def _paramvec_names(prefix, length):
+    return [f'{prefix}[{i}]' for i in range(length)]
 
 
 @ddt

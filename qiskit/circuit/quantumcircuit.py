@@ -1785,7 +1785,7 @@ class QuantumCircuit:
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression):
+        if isinstance(angle, ParameterExpression) and angle.parameters:
             self._global_phase = angle
         else:
             # Set the phase to the [-2 * pi, 2 * pi] interval
@@ -2274,7 +2274,7 @@ class QuantumCircuit:
                         'qubit gate QuantumCircuit.u instead: u2(φ,λ) = '
                         'u(π/2, φ, λ). Alternatively, you can decompose it in'
                         'terms of QuantumCircuit.p and QuantumCircuit.sx: '
-                        'u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).')
+                        'u2(φ,λ) = p(π/2+φ) sx p(λ-π/2) (1 pulse on hardware).')
     def u2(self, phi, lam, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
