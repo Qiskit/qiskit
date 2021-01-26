@@ -20,7 +20,7 @@ from qiskit.quantum_info import Pauli
 from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..operator_base import OperatorBase
 from .converter_base import ConverterBase
-from .z2_symmetries import Z2Symmetries
+from ..primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 
 logger = logging.getLogger(__name__)
 
