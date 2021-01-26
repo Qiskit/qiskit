@@ -384,9 +384,8 @@ class ParameterExpression:
             bool: result of the comparison
         """
         if isinstance(other, ParameterExpression):
-            if (self.parameters == other.parameters
+            return (self.parameters == other.parameters
                     and self._symbol_expr.equals(other._symbol_expr)):
-                return True
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)
