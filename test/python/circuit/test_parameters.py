@@ -1573,6 +1573,7 @@ class TestParameterExpressions(QiskitTestCase):
         except ValueError:
             self.fail('Max() raised ValueError unexpectedly')
 
+    # TODO: add after issue 5614 is resolved which should make this possible.
     # def test_python_max_raises(self):
     #     """Test ParameterExpression max."""
     #     x = Parameter('x')
