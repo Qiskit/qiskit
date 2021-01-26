@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
-from qiskit.utils.arithmetic import _triu_to_dense
+from qiskit.utils.arithmetic import triu_to_dense
 
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
@@ -167,7 +167,7 @@ class LinCombFull(CircuitQFI):
 
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp(qfi_operators, combo_fn=_triu_to_dense)
+        return ListOp(qfi_operators, combo_fn=triu_to_dense)
 
     @staticmethod
     def trim_circuit(circuit: QuantumCircuit,

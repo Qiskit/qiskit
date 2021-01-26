@@ -29,7 +29,7 @@ from ..operator_base import OperatorBase
 from .gradient import Gradient
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
-from ...utils.arithmetic import _triu_to_dense
+from ...utils.arithmetic import triu_to_dense
 
 try:
     from jax import grad, jit
@@ -96,7 +96,8 @@ class Hessian(HessianBase):
                 return ListOp([ListOp([
                     self.get_hessian(operator, (p_i, p_j))
                     for i, p_i in enumerate(params[j:], j)])
-                    for j, p_j in enumerate(params)], combo_fn=_triu_to_dense)
+                               for j, p_j in enumerate(params)],
+                              combo_fn=triu_to_dense)
             # Case: a list was given containing tuples of parameter pairs.
             elif all(isinstance(param, tuple) for param in params):
                 # Compute the Hessian entries corresponding to these pairs of parameters.
@@ -107,18 +108,6 @@ class Hessian(HessianBase):
                 expr = coeff._symbol_expr
                 return expr == c
             return coeff == c
-
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.get_hessian(operator, (p0, p1)) for p1 in params])
-                     for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp(
-                    [self.get_hessian(operator, param_pair) for param_pair in params])
 
         # If a gradient is requested w.r.t a single parameter, then call the
         # Gradient().get_gradient method.
