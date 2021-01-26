@@ -148,6 +148,23 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('CheckCXDirection', self.passes)
 
     @data(0, 1, 2, 3)
+    def test_5409(self, level):
+        """The parameter layout_method='noise_adaptive' should be honored
+        See: https://github.com/Qiskit/qiskit-terra/issues/5409
+        """
+        qr = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[4])
+        backend = FakeMelbourne()
+
+        _ = transpile(qc, backend, layout_method='noise_adaptive',
+                      optimization_level=level, callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertIn('NoiseAdaptiveLayout', self.passes)
+
+    @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
         """Symmetric coupling map does not run CheckCXDirection
         """

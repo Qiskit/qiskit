@@ -174,6 +174,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'default_rep_delay', default_rep_delay)
 
         # dynamic rep rates off
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -192,6 +193,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'rep_delay_range', rep_delay_range)
 
         # dynamic rep rates off (no default so shouldn't be in qobj config)
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend, rep_delay=rep_delay)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -548,6 +550,14 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
         self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
 
+    def test_assemble_adds_circuit_metadata_to_experiment_header(self):
+        """Verify that any circuit metadata is added to the exeriment header."""
+        circ = QuantumCircuit(2, metadata=dict(experiment_type="gst", execution_number='1234'))
+        qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
+        self.assertEqual(qobj.experiments[0].header.metadata,
+                         {'experiment_type': 'gst',
+                          'execution_number': '1234'})
+
     def test_pulse_gates_delay_only(self):
         """Test that a single delay gate is translated to an instruction."""
         circ = QuantumCircuit(2)
@@ -596,6 +606,16 @@ class TestPulseAssembler(QiskitTestCase):
             'backend_name': 'FakeOpenPulse2Q',
             'backend_version': '0.0.0'
         }
+
+    def test_assemble_adds_schedule_metadata_to_experiment_header(self):
+        """Verify that any circuit metadata is added to the exeriment header."""
+        self.schedule.metadata = {'experiment_type': 'gst', 'execution_number': '1234'}
+        qobj = assemble(self.schedule, shots=100, qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[])
+        self.assertEqual(qobj.experiments[0].header.metadata,
+                         {'experiment_type': 'gst',
+                          'execution_number': '1234'})
 
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
