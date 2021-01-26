@@ -12,12 +12,7 @@
 
 """ Utility functions for OperatorFlow """
 
-import logging
-from typing import Optional
-
 from .operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
 
 
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
