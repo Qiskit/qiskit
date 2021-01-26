@@ -22,6 +22,179 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.3
+*************
+
+Terra 0.16.2
+============
+
+.. _Release Notes_0.16.2_New Features:
+
+New Features
+------------
+
+- Python 3.9 support has been added in this release. You can now run Qiskit
+  Terra using Python 3.9.
+
+
+.. _Release Notes_0.16.2_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- The class :class:`~qiskit.library.standard_gates.x.MCXGrayCode` will now create
+  a ``C3XGate`` if ``num_ctrl_qubits`` is 3 and a ``C4XGate`` if ``num_ctrl_qubits``
+  is 4. This is in addition to the previous functionality where for any of the
+  modes of the :class:'qiskit.library.standard_gates.x.MCXGate`, if ``num_ctrl_bits``
+  is 1, a ``CXGate`` is created, and if 2, a ``CCXGate`` is created.
+
+
+.. _Release Notes_0.16.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Pulse :py:class:`~qiskit.pulse.instructions.Delay` instructions are now
+  explicitly assembled as :class:`~qiskit.qobj.PulseQobjInstruction` objects
+  included in the :class:`~qiskit.qobj.PulseQobj` output from
+  :func:`~qiskit.compiler.assemble`.
+
+  Previously, we could ignore :py:class:`~qiskit.pulse.instructions.Delay`
+  instructions in a :class:`~qiskit.pulse.Schedule` as part of
+  :func:`~qiskit.compiler.assemble` as the time was explicit in the
+  :class:`~qiskit.qobj.PulseQobj` objects. But, now with pulse gates, there
+  are situations where we can schedule ONLY a delay, and not including the
+  delay itself would remove the delay.
+
+- Circuits with custom gate calibrations can now be scheduled with the
+  transpiler without explicitly providing the durations of each circuit
+  calibration.
+
+- The :class:`~qiskit.transpiler.passes.BasisTranslator` and
+  :class:`~qiskit.transpiler.passes.Unroller` passes, in some cases, had not been
+  preserving the global phase of the circuit under transpilation. This has
+  been fixed.
+
+- A bug in :func:`qiskit.pulse.builder.frequency_offset` where when
+  ``compensate_phase`` was set a factor of :math:`2\pi`
+  was missing from the appended phase.
+
+- Fix the global phase of the output of the
+  :class:`~qiskit.circuit.QuantumCircuit` method
+  :meth:`~qiskit.circuit.QuantumCircuit.repeat`. If a circuit with global
+  phase is appended to another circuit, the global phase is currently not
+  propagated. Simulators rely on this, since the phase otherwise gets
+  applied multiple times. This sets the global phase of
+  :meth:`~qiskit.circuit.QuantumCircuit.repeat` to 0 before appending the
+  repeated circuit instead of multiplying the existing phase times the
+  number of repetitions.
+
+- Fixes bug in :class:`~qiskit.quantum_info.SparsePauliOp` where multiplying
+  by a certain non Python builtin Numpy scalar types returned incorrect values.
+  Fixes `#5408 <https://github.com/Qiskit/qiskit-terra/issues/5408>`__
+
+- The definition of the Hellinger fidelity from has been corrected from the
+  previous defition of :math:`1-H(P,Q)` to :math:`[1-H(P,Q)^2]^2` so that it
+  is equal to the quantum state fidelity of P, Q as diagonal density
+  matrices.
+
+- Reduce the number of CX gates in the decomposition of the 3-controlled
+  X gate, :class:`~qiskit.circuit.library.C3XGate`. Compiled and optimized
+  in the `U CX` basis, now only 14 CX and 16 U gates are used instead of
+  20 and 22, respectively.
+
+- Fixes the issue wherein using Jupyter backend widget or
+  :meth:`qiskit.tools.backend_monitor` would fail if the
+  backend's basis gates do not include the traditional u1, u2, and u3.
+
+- When running :func:`qiskit.compiler.transpile` on a list of circuits with a
+  single element, the function used to return a circuit instead of a list. Now,
+  when :func:`qiskit.compiler.transpile` is called with a list, it will return a
+  list even if that list has a single element. See
+  `#5260 <https://github.com/Qiskit/qiskit-terra/issues/5260>`__.
+
+  .. code-block:: python
+
+    from qiskit import *
+
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure_all()
+
+    transpiled = transpile([qc])
+    print(type(transpiled), len(transpiled))
+
+  .. parsed-literal::
+   <class 'list'> 1
+
+Aer 0.7.3
+==========
+
+.. _Release Notes_Aer_0.7.3_New Features:
+
+New Features
+------------
+
+- Python 3.9 support has been added in this release. You can now run Qiskit
+  Aer using Python 3.9 without building from source.
+
+
+.. _Release Notes_Aer_0.7.3_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+- Python 3.6 support has been deprecated and will be removed in a future
+  release. When support is removed you will need to upgrade the Python
+  version you're using to Python 3.7 or above.
+
+
+.. _Release Notes_Aer_0.7.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes issue with setting :class:`~qiskit.providers.aer.QasmSimulator`
+  basis gates when using ``"method"`` and ``"noise_model"`` options
+  together, and when using them with a simulator constructed using
+  :meth:`~qiskit.providers.aer.QasmSimulator.from_backend`. Now the
+  listed basis gates will be the intersection of gates supported by
+  the backend configuration, simulation method, and noise model basis
+  gates. If the intersection of the noise model basis gates and
+  simulator basis gates is empty a warning will be logged.
+
+- Fixes a bug that resulted in `c_if` not working when the
+  width of the conditional register was greater than 64. See
+  `#1077 <https://github.com/Qiskit/qiskit-aer/issues/1077>`.
+
+- Fixes bug in
+  :meth:`~qiskit.providers.aer.noise.NoiseModel.from_backend` and
+  :meth:`~qiskit.providers.aer.QasmSimulator.from_backend` where
+  :attr:`~qiskit.providers.aer.noise.NoiseModel.basis_gates` was set
+  incorrectly for IBMQ devices with basis gate set
+  ``['id', 'rz', 'sx', 'x', 'cx']``. Now the noise model will always
+  have the same basis gates as the backend basis gates regardless of
+  whether those instructions have errors in the noise model or not.
+
+- Fixes a bug when applying truncation in the matrix product state method of the QasmSimulator.
+
+Ignis 0.5.1
+===========
+
+No change
+
+Aqua 0.8.1
+==========
+
+No change
+
+IBM Q Provider 0.11.1
+=====================
+
+No change
+
+*************
 Qiskit 0.23.2
 *************
 
