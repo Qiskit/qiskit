@@ -116,7 +116,7 @@ class QAOAAnsatz(BlueprintCircuit):
         if isinstance(self._mixer_operator, QuantumCircuit):
             self._num_parameters = (1 + self._mixer_operator.num_parameters) * self._reps
             self._bounds = [(None, None)] * self._reps + [(None, None)] * \
-                           self._reps * self._mixer_operator.num_parameters
+                self._reps * self._mixer_operator.num_parameters
             self._mixer = self._mixer_operator
         elif isinstance(self._mixer_operator, OperatorBase):
             self._num_parameters = 2 * self._reps
