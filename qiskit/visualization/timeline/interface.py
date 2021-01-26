@@ -155,7 +155,7 @@ def draw(program: circuit.QuantumCircuit,
                     'r': '#BB8BFF',
                     'rx': '#BB8BFF',
                     'ry': '#BB8BFF',
-                    'rz': '#BB8BFF',
+                    'rz': '#000000',
                     'reset': '#808080',
                     'measure': '#808080'
                 }
