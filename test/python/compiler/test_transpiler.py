@@ -438,7 +438,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -455,7 +455,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -472,7 +472,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -490,7 +490,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -636,7 +636,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.h(0)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=np.pi/2)
         expected.append(RYGate(theta=np.pi/2), [0])
         expected.append(RXGate(theta=np.pi), [0])
 
@@ -965,23 +965,41 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(out.duration, 1200)
 
+    def test_delay_converts_to_dt(self):
+        """Test that a delay instruction is converted to units of dt given a backend."""
+        qc = QuantumCircuit(2)
+        qc.delay(1000, [0], unit='us')
+
+        backend = FakeRueschlikon()
+        backend.configuration().dt = 0.5e-6
+        out = transpile([qc, qc], backend)
+        self.assertEqual(out[0].data[0][0].unit, 'dt')
+        self.assertEqual(out[1].data[0][0].unit, 'dt')
+
+        out = transpile(qc, dt=1e-9)
+        self.assertEqual(out.data[0][0].unit, 'dt')
+
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
-
         qc = QuantumCircuit(1)
         qc.ry(0.2, 0)
 
         out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
                         optimization_level=optimization_level)
 
-        expected = QuantumCircuit(1)
+        # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
+        # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
+        # for the second and third RZ gates in the U3 decomposition.
+        expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
         expected.p(np.pi + 0.2, 0)
         expected.sx(0)
         expected.p(np.pi, 0)
 
-        self.assertEqual(out, expected)
+        error_message = "\nOutput circuit:\n%s\nExpected circuit:\n%s" % (
+            str(out), str(expected))
+        self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
@@ -1014,6 +1032,7 @@ class TestLogTranspile(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))

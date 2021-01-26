@@ -201,20 +201,20 @@ class PauliTable(BaseOperator):
     @property
     def X(self):
         """The X block of the :attr:`array`."""
-        return self._array[:, 0:self._num_qubits]
+        return self._array[:, 0:self.num_qubits]
 
     @X.setter
     def X(self, val):
-        self._array[:, 0:self._num_qubits] = val
+        self._array[:, 0:self.num_qubits] = val
 
     @property
     def Z(self):
         """The Z block of the :attr:`array`."""
-        return self._array[:, self._num_qubits:2*self._num_qubits]
+        return self._array[:, self.num_qubits:2*self.num_qubits]
 
     @Z.setter
     def Z(self, val):
-        self._array[:, self._num_qubits:2*self._num_qubits] = val
+        self._array[:, self.num_qubits:2*self.num_qubits] = val
 
     # ---------------------------------------------------------------------
     # Size Properties
@@ -285,7 +285,7 @@ class PauliTable(BaseOperator):
         if max(ind) >= self.num_qubits:
             raise QiskitError("Indices {} are not all less than the number of"
                               " qubits in the PauliTable ({})".format(ind, self.num_qubits))
-        cols = ind + [self._num_qubits + i for i in ind]
+        cols = ind + [self.num_qubits + i for i in ind]
         return PauliTable(np.delete(self._array, cols, axis=1))
 
     def insert(self, ind, value, qubit=False):
@@ -651,7 +651,7 @@ class PauliTable(BaseOperator):
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         if qargs is None or (sorted(qargs) == qargs
                              and len(qargs) == self.num_qubits):
@@ -860,7 +860,7 @@ class PauliTable(BaseOperator):
         Returns:
             list or array: The rows of the PauliTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(self._num_qubits))
+        ret = np.zeros(self.size, dtype='<U{}'.format(self.num_qubits))
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i])
         if array:
