@@ -301,7 +301,7 @@ class DrawerCanvas:
             return True
 
         def _associated_bit_check(_data):
-            """If all associated bits are not shown."""
+            """If any associated bit is not shown."""
             if all([bit not in self.assigned_coordinates for bit in _data.bits]):
                 return False
             return True
@@ -379,7 +379,8 @@ class DrawerCanvas:
 
         This method dynamically shifts horizontal position of links if they are overlapped.
         """
-        allowed_overlap = self.formatter['margin.link_interval_dt']
+        duration = self.time_range[1] - self.time_range[0]
+        allowed_overlap = self.formatter['margin.link_interval_percent'] * duration
 
         # return y coordinates
         def y_coords(link: drawings.GateLinkData):

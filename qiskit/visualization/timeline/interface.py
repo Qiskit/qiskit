@@ -112,10 +112,10 @@ def draw(program: circuit.QuantumCircuit,
             the right limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,
             this keeps right margin of 5 (default `0.02`).
-        formatter.margin.link_interval_dt: Allowed overlap of gate links.
+        formatter.margin.link_interval_percent: Allowed overlap of gate links.
             If multiple gate links are drawing within this range, links are horizontally
-            shifted not to overlap with each other. This value is in units of
-            the system cycle time dt (default `20`).
+            shifted not to overlap with each other. The value is in units of percentage of
+            the whole program duration (default `0.01`).
         formatter.time_bucket.edge_dt: The length of round edge of gate boxes. Gate boxes are
             smoothly faded in and out from the zero line. This value is in units of
             the system cycle time dt (default `10`).

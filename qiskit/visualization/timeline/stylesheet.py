@@ -45,7 +45,7 @@ from qiskit.visualization.timeline import generators, layouts
 
 class QiskitTimelineStyle(dict):
     """Stylesheet for pulse drawer."""
-    _deprecated_keys = {}
+    _deprecated_keys = {'link_interval_dt': 'link_interval_percent'}
 
     def __init__(self):
         super().__init__()
@@ -199,7 +199,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.02,
         'formatter.margin.right_percent': 0.02,
-        'formatter.margin.link_interval_dt': 20,
+        'formatter.margin.link_interval_percent': 0.01,
         'formatter.margin.minimum_duration': 50,
         'formatter.time_bucket.edge_dt': 10,
         'formatter.color.background': '#FFFFFF',
