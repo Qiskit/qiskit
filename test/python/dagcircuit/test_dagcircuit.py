@@ -718,7 +718,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1])
         self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
-        collected_runs = self.dag.collect_1q_runs()
+        collected_runs = self.dag._collect_1q_runs()
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
             if run[0].name == 'h':
@@ -742,7 +742,7 @@ class TestDagNodeSelection(QiskitTestCase):
             h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
-        collected_runs = self.dag.collect_1q_runs()
+        collected_runs = self.dag._collect_1q_runs()
         self.assertEqual(len(collected_runs), 1)
         run = collected_runs.pop()
         self.assertEqual(len(run), 2)
@@ -758,7 +758,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(
             h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
-        collected_runs = self.dag.collect_1q_runs()
+        collected_runs = self.dag._collect_1q_runs()
         # Should return 2 single h gate runs (1 before condition, 1 after)
         self.assertEqual(len(collected_runs), 2)
         for run in collected_runs:
@@ -774,7 +774,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(U1Gate(theta), [self.qubit0])
         self.dag.apply_operation_back(XGate(), [self.qubit0])
         self.dag.apply_operation_back(XGate(), [self.qubit0])
-        collected_runs = self.dag.collect_1q_runs()
+        collected_runs = self.dag._collect_1q_runs()
         self.assertEqual(len(collected_runs), 2)
         run_gates = [[x.name for x in run] for run in collected_runs]
         self.assertIn(['h', 'h'], run_gates)
@@ -794,7 +794,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(YGate(), [self.qubit0])
         self.dag.apply_operation_back(XGate(), [self.qubit1])
         self.dag.apply_operation_back(XGate(), [self.qubit1])
-        collected_runs = self.dag.collect_1q_runs()
+        collected_runs = self.dag._collect_1q_runs()
         self.assertEqual(len(collected_runs), 4)
         for run in collected_runs:
             if run[0].name == 'h':

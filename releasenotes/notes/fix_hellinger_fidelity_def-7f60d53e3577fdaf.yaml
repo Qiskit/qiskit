@@ -2,5 +2,6 @@
 fixes:
   - |
     The definition of the Hellinger fidelity from has been corrected from the
-    previous defition of :math`1-H(P,Q)` to :math:`[1-H(P,Q)**2]**2` so that it
-    is equal to the quantum state fidelity of P, Q as diagonal density matrices.
+    previous defition of :math:`1-H(P,Q)` to :math:`[1-H(P,Q)^2]^2` so that it
+    is equal to the quantum state fidelity of P, Q as diagonal density
+    matrices.

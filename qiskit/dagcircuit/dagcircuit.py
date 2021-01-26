@@ -1422,7 +1422,7 @@ class DAGCircuit:
 
     # pylint: disable=too-many-boolean-expressions
 
-    def collect_1q_runs(self):
+    def _collect_1q_runs(self):
         """Return a set of non-conditional runs of 1q "op" nodes."""
         group_list = []
         # Iterate through the nodes of self in topological order
