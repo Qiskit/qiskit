@@ -13,12 +13,12 @@
 """The matrix functional of the vector solution to the linear systems."""
 from typing import Union, Optional, List
 import numpy as np
+from scipy.sparse import diags
 
 from qiskit.aqua.operators import PauliSumOp
-from .linear_system_observable import LinearSystemObservable
 from qiskit import QuantumCircuit
-from qiskit.opflow import I, Z, Zero, One, TensoredOp
-from scipy.sparse import diags
+from qiskit.opflow import I, Z, TensoredOp
+from .linear_system_observable import LinearSystemObservable
 
 
 class MatrixFunctional(LinearSystemObservable):
@@ -43,18 +43,16 @@ class MatrixFunctional(LinearSystemObservable):
 
         Returns:
             The observable as a list of sums of Pauli strings.
-
-        Raises:
         """
-        ZeroOp = ((I + Z) / 2)
-        OneOp = ((I - Z) / 2)
+        zero_op = ((I + Z) / 2)
+        one_op = ((I - Z) / 2)
         observables = []
         # First we measure the norm of x
         observables.append(I ^ num_qubits)
-        for i in range(0,num_qubits):
+        for i in range(0, num_qubits):
             j = num_qubits - i - 1
-            observables.append([(I ^ j) ^ ZeroOp ^ TensoredOp(i * [OneOp]),
-                                (I ^ j) ^ OneOp ^ TensoredOp(i * [OneOp])])
+            observables.append([(I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
+                                (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])])
         return observables
 
     def post_rotation(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
@@ -65,8 +63,6 @@ class MatrixFunctional(LinearSystemObservable):
 
         Returns:
             The observable as a list of QuantumCircuits.
-
-        Raises:
         """
         qcs = []
         # Again, the first value in the list will correspond to the norm of x
@@ -94,6 +90,7 @@ class MatrixFunctional(LinearSystemObservable):
             The value of the absolute average.
 
         Raises:
+            ValueError: If the input is not in the correct format.
         """
         if num_qubits is None:
             raise ValueError("Number of qubits must be defined to calculate the absolute average.")
@@ -115,8 +112,6 @@ class MatrixFunctional(LinearSystemObservable):
 
         Returns:
             The value of the observable.
-
-        Raises:
         """
 
         matrix = diags([self._off_diag, self._main_diag, self._off_diag], [-1, 0, 1],

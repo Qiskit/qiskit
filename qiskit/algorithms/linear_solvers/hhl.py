@@ -15,35 +15,27 @@
 
 """The HHL algorithm."""
 
-from typing import Optional, Union, List, Callable
+from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
-import logging
 
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit.library import PhaseEstimation
+from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+from qiskit.opflow import Z, I, StateFn, TensoredOp
+from .exact_inverse import ExactInverse
 from .linear_solver import LinearSolver, LinearSolverResult
 from .observables.linear_system_observable import LinearSystemObservable
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, AncillaRegister, Aer, execute
-from qiskit.circuit.library import PhaseEstimation
-from qiskit.providers import BaseBackend
-from qiskit.aqua import QuantumInstance
-from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
-from qiskit.aqua.algorithms.linear_solvers.exact_inverse import ExactInverse
-from qiskit.opflow import Zero, One, Z, I, StateFn, TensoredOp
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 # logger = logging.getLogger(__name__)
 
 class HHL(LinearSolver):
-    def __init__(self,
-                 epsilon: float = 1e-2,
-                 quantum_instance: Optional[Union[BaseBackend, QuantumInstance]] = None,
-                 pec: QuantumCircuit = None) -> None:
-
+    """The HHL algorithm to solve systems of linear equations"""
+    def __init__(self, epsilon: float = 1e-2) -> None:
         """
         Args:
          epsilon : Error tolerance.
-         quantum_instance: Quantum Instance or Backend.
-         pec: Custom circuit for phase estimation with neg. eigenvalues, no use case now, but maybe in future
 
         .. note::
 
@@ -58,14 +50,15 @@ class HHL(LinearSolver):
 
         self._epsilon = epsilon
         # Tolerance for the different parts of the algorithm as per [1]
-        self._epsilonR = epsilon / 3  # conditioned rotation
-        self._epsilonS = epsilon / 3  # state preparation
-        self._epsilonA = epsilon / 6  # hamiltonian simulation
+        self._epsilon_r = epsilon / 3  # conditioned rotation
+        self._epsilon_s = epsilon / 3  # state preparation
+        self._epsilon_a = epsilon / 6  # hamiltonian simulation
 
         # Number of qubits for the different registers
         self._nb = None  # number of qubits for the solution register
         self._nl = None  # number of qubits for the eigenvalue register
         self._na = None  # number of ancilla qubits
+        self._nf = None  # number of flag qubits
         # Time of the evolution. Once the matrix is specified,
         # it can be updated 2 * np.pi / lambda_max
         self._evo_time = 2 * np.pi
@@ -79,7 +72,7 @@ class HHL(LinearSolver):
         self._inverse_circuit = None
         self._post_rotation = None
 
-        # Temporary fix - TODO update how to decide if exact inverse
+        # For now the default inverse implementation is exact
         self._exact_inverse = True
 
     @property
@@ -89,30 +82,44 @@ class HHL(LinearSolver):
         Returns:
             The total number of qubits.
         """
-        if self.a_factory is None:  # if A factory is not set, no qubits are specified
-            return 0
-
-        num_ancillas = self.q_factory.required_ancillas()
-        num_qubits = self.a_factory.num_target_qubits + num_ancillas
+        num_qubits = self._na + self._nl + self._nl + self._nf
 
         return num_qubits
 
-    def get_delta(self, nl, lambda_min, lambda_max):
-        formatstr = "#0" + str(nl + 2) + "b"
-        lambda_min_tilde = np.abs(lambda_min * (2 ** nl - 1) / lambda_max)
+    def get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
+        """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
+
+        Args:
+            n_l: The number of qubits to represent the eigenvalues.
+            lambda_min: the smallest eigenvalue.
+            lambda_max: the largest eigenvalue.
+
+        Returns:
+            The value of the scaling factor.
+        """
+        formatstr = "#0" + str(n_l + 2) + "b"
+        lambda_min_tilde = np.abs(lambda_min * (2 ** n_l - 1) / lambda_max)
         binstr = format(int(lambda_min_tilde), formatstr)[2::]
         lamb_min_rep = 0
-        for i in range(0, len(binstr)):
-            lamb_min_rep += int(binstr[i]) / (2 ** (i + 1))
+        for i, char in enumerate(binstr):
+            lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
 
     def calculate_norm(self, qc: QuantumCircuit) -> float:
+        """Calculates the value of the euclidean norm of the solution.
+
+        Args:
+            qc: The quantum circuit preparing the solution x to the system.
+
+        Returns:
+            The value of the euclidean norm of the solution.
+        """
         # Create the Operators Zero and One
-        ZeroOp = ((I + Z) / 2)
-        OneOp = ((I - Z) / 2)
+        zero_op = ((I + Z) / 2)
+        one_op = ((I - Z) / 2)
 
         # Norm observable
-        observable = OneOp ^ TensoredOp((self._nl + self._na) * [ZeroOp]) ^ (I ^ self._nb)
+        observable = one_op ^ TensoredOp((self._nl + self._na) * [zero_op]) ^ (I ^ self._nb)
         norm_2 = (~StateFn(observable) @ qc).eval()
 
         return np.real(np.sqrt(norm_2) / self._lambda_min)
@@ -121,10 +128,22 @@ class HHL(LinearSolver):
                              observable: Optional[Union[BaseOperator, List[BaseOperator]]] = None,
                              post_processing: Optional[Callable[[Union[float, List[float]]],
                                                                 Union[float, List[float]]]]
-                             = None):
+                             = None) -> Tuple[Union[float, List[float]], Union[float,
+                                                                               List[float]]]:
+        """Calculates the value of the observable(s) given.
+
+        Args:
+            qc: The quantum circuit preparing the solution x to the system.
+            observable: The (list of) observable(s).
+            post_processing: Function(s) to compute the value of the observable(s).
+
+        Returns:
+            The value of the observable(s) and the circuit results before post-processing as a
+             tuple.
+        """
         # Create the Operators Zero and One
-        ZeroOp = ((I + Z) / 2)
-        OneOp = ((I - Z) / 2)
+        zero_op = ((I + Z) / 2)
+        one_op = ((I - Z) / 2)
         # List of quantum circuits with post_rotation gates appended
         qcs = []
         # Observable gates
@@ -143,8 +162,8 @@ class HHL(LinearSolver):
             for i, obs in enumerate(observable):
                 if isinstance(obs, list):
                     result_temp = []
-                    for o in obs:
-                        new_observable = OneOp ^ TensoredOp((self._nl + self._na) * [ZeroOp]) ^ o
+                    for ob in obs:
+                        new_observable = one_op ^ TensoredOp((self._nl + self._na) * [zero_op]) ^ ob
                         if qcs:
                             result_temp.append((~StateFn(new_observable) @ qcs[i]).eval())
                         else:
@@ -153,7 +172,7 @@ class HHL(LinearSolver):
                 else:
                     if obs is None:
                         obs = I ^ self._nb
-                    new_observable = OneOp ^ TensoredOp((self._nl + self._na) * [ZeroOp]) ^ obs
+                    new_observable = one_op ^ TensoredOp((self._nl + self._na) * [zero_op]) ^ obs
                     if qcs:
                         result.append((~StateFn(new_observable) @ qcs[i]).eval())
                     else:
@@ -162,10 +181,10 @@ class HHL(LinearSolver):
             if observable is None:
                 observable = I ^ self._nb
 
-            new_observable = OneOp ^ TensoredOp((self._nl + self._na) * [ZeroOp]) ^ observable
+            new_observable = one_op ^ TensoredOp((self._nl + self._na) * [zero_op]) ^ observable
             if qcs:
-                for qc in qcs:
-                    result.append((~StateFn(new_observable) @ qc).eval())
+                for circ in qcs:
+                    result.append((~StateFn(new_observable) @ circ).eval())
             else:
                 result = (~StateFn(new_observable) @ qc).eval()
 
@@ -182,8 +201,6 @@ class HHL(LinearSolver):
     def construct_circuit(self) -> QuantumCircuit:
         """Construct the HHL circuit.
 
-            Args:
-
             Returns:
                 QuantumCircuit: the QuantumCircuit object for the constructed circuit
         """
@@ -192,7 +209,7 @@ class HHL(LinearSolver):
         ql = QuantumRegister(self._nl)  # eigenvalue evaluation qubits
         if self._na > 0:
             qa = AncillaRegister(self._na)  # ancilla qubits
-        qf = QuantumRegister(1) # flag qubits
+        qf = QuantumRegister(self._nf)  # flag qubits
 
         if self._na > 0:
             qc = QuantumCircuit(qb, ql, qa, qf)
@@ -215,7 +232,8 @@ class HHL(LinearSolver):
                       qa[:self._inverse_circuit.num_ancillas])
         # QPE inverse
         if self._na > 0:
-            qc.append(phase_estimation.inverse(), ql[:] + qb[:] + qa[:self._matrix_circuit.num_ancillas])
+            qc.append(phase_estimation.inverse(), ql[:] + qb[:] +
+                      qa[:self._matrix_circuit.num_ancillas])
         else:
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
@@ -228,9 +246,7 @@ class HHL(LinearSolver):
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
             -> LinearSolverResult:
-        """Tries to solves the given problem using the optimizer.
-
-        Runs the optimizer to try to solve the optimization problem.
+        """Tries to solve the given linear system.
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
@@ -242,6 +258,9 @@ class HHL(LinearSolver):
 
         Returns:
             The result of the linear system.
+
+        Raises:
+            ValueError: If the input is not in the correct format.
         """
         # State preparation circuit - default is qiskit
         if isinstance(vector, QuantumCircuit):
@@ -254,6 +273,9 @@ class HHL(LinearSolver):
                                                                        list(range(self._nb)))
         else:
             raise ValueError("Input vector type must be either QuantumCircuit or numpy ndarray.")
+
+        # If state preparation is probabilistic the number of qubit flags should increase
+        self._nf = 1
 
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
@@ -277,8 +299,6 @@ class HHL(LinearSolver):
         self._lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
         self._kappa = np.linalg.cond(matrix_array)
         # Update the number of qubits required to represent the eigenvalues
-        # self._nl = min(self._nb + 1, 3 * (int(np.log2(2 * (2 * (self._kappa ** 2) - self._epsilonR) /
-        #                                               self._epsilonR + 1) + 1)))
         self._nl = max(self._nb + 1, int(np.log2(self._lambda_max / self._lambda_min)) + 1)
 
         # Constant from the representation of eigenvalues
@@ -286,7 +306,7 @@ class HHL(LinearSolver):
 
         # Update evolution time
         self._evo_time = 2 * np.pi * delta / self._lambda_min
-        self._matrix_circuit.set_simulation_params(self._evo_time, self._epsilonA)
+        self._matrix_circuit.set_simulation_params(self._evo_time, self._epsilon_a)
 
         if self._exact_inverse:
             self._inverse_circuit = ExactInverse(self._nl, delta)
@@ -297,14 +317,14 @@ class HHL(LinearSolver):
             # Calculate breakpoints for the inverse approximation
             num_values = 2 ** self._nl
             constant = delta
-            # constant = num_values * self._evo_time * self._lambda_min / 2 / np.pi
             a = int(round(num_values ** (2 / 3)))  # pylint: disable=invalid-name
 
             # Calculate the degree of the polynomial and the number of intervals
             r = 2 * constant / a + np.sqrt(np.abs(1 - (2 * constant / a) ** 2))
-            degree = min(self._nb, int(np.log(1 + (16.23 * np.sqrt(np.log(r) ** 2 + (np.pi / 2) ** 2) *
-                                                   self._kappa * (2 * self._kappa - self._epsilonR)) /
-                                              self._epsilonR)))
+            degree = min(self._nb, int(np.log(1 + (16.23 * np.sqrt(np.log(r) ** 2 + (np.pi / 2)
+                                                                   ** 2) * self._kappa *
+                                                   (2 * self._kappa - self._epsilon_r)) /
+                                              self._epsilon_r)))
             num_intervals = int(np.ceil(np.log((num_values - 1) / a) / np.log(5)))
 
             # Calculate breakpoints and polynomials
@@ -317,7 +337,8 @@ class HHL(LinearSolver):
                 if i == num_intervals - 1:
                     breakpoints.append(num_values - 1)
 
-            inverse_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree, breakpoints, self._nl)
+            inverse_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree,
+                                                 breakpoints, self._nl)
             self._inverse_circuit = inverse_circuit.to_instruction()
             self._inverse_circuit._build()
             self._na = max(self._matrix_circuit.num_ancillas, inverse_circuit.num_ancillas)
@@ -336,4 +357,3 @@ class HHL(LinearSolver):
         (solution.observable, solution.circuit_results) =\
             self.calculate_observable(solution.state, observable, post_processing)
         return solution
-

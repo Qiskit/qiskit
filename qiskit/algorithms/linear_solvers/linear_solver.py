@@ -12,14 +12,15 @@
 
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Result
 
 from qiskit.aqua.algorithms import AlgorithmResult
-from qiskit.aqua.algorithms.linear_solvers.observables.linear_system_observable import LinearSystemObservable
+from .observables.linear_system_observable import LinearSystemObservable
 
 
 class LinearSolverResult(AlgorithmResult):
@@ -43,6 +44,7 @@ class LinearSolverResult(AlgorithmResult):
 
     @property
     def observable(self) -> Union[float, List[float]]:
+        """return the (list of) calculated observable(s)"""
         return self._observable
 
     @observable.setter
@@ -52,6 +54,7 @@ class LinearSolverResult(AlgorithmResult):
 
     @property
     def state(self) -> Union[QuantumCircuit, np.ndarray]:
+        """return either the circuit that prepares the solution or the solution as a vector"""
         return self._state
 
     @state.setter
@@ -88,18 +91,23 @@ class LinearSolver(ABC):
     @abstractmethod
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
-              observable: Optional[Union[LinearSystemObservable, List[LinearSystemObservable]]]
-              = None) -> LinearSolverResult:
+              observable: Optional[Union[LinearSystemObservable, BaseOperator,
+                                         List[BaseOperator]]] = None,
+              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
+              post_processing: Optional[Callable[[Union[float, List[float]]],
+                                                 Union[float, List[float]]]] = None) \
+            -> LinearSolverResult:
         """Solve the system and compute the observable(s)
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
             vector: The vector specifying the right hand side of the equation in Ax=b.
             observable: Information to be extracted from the solution.
+                Default is `EuclideanNorm`
+            post_rotation: Circuit to be applied to the solution to extract information.
+            post_processing: Function to compute the value of the observable.
 
         Returns:
             The result of the linear system.
-
-        Raises:
         """
         raise NotImplementedError

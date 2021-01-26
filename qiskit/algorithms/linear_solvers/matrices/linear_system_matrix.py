@@ -12,15 +12,23 @@
 
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List
-import numpy as np
+
+from qiskit import QuantumCircuit
 
 
 class LinearSystemMatrix(ABC):
     """An abstract class for linear system matrices in Qiskit.(Placeholder)"""
-    def __init__(self):
-        pass
-
     @abstractmethod
-    def power(self, power: int):
+    def power(self, power: int, matrix_power=False) -> QuantumCircuit:
+        """Build powers of the circuit.
+
+        Args:
+            power: The power to raise this circuit to.
+            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+                matrix power is computed. If False, and ``power`` is a positive integer,
+                the implementation defaults to ``repeat``.
+
+        Returns:
+            The quantum circuit implementing powers of the unitary.
+        """
         raise NotImplementedError

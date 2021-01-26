@@ -1,9 +1,23 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
+
 from typing import Optional
 
 import numpy as np
 from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, Qubit
+
 
 class Tridiagonal(QuantumCircuit):
     """Class of tridiagonal Toeplitz symmetric matrices"""
@@ -30,17 +44,21 @@ class Tridiagonal(QuantumCircuit):
         self._num_state_qubits = num_state_qubits
 
     def set_simulation_params(self, time: float, tolerance: float):
+        """Override the simulation parameters"""
         self.tolerance(tolerance)
         self.time(time)
 
     def tolerance(self, tolerance: float):
+        """Return the error tolerance"""
         self._tolerance = tolerance
 
     def time(self, time: float):
+        """Return the time of the evolution"""
         self._time = time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
-        self._trotter = min(self._num_state_qubits + 1,int(np.ceil(np.sqrt(((time * np.abs(self._off_diag)) ** 3) / 2 /
-                                                  self._tolerance))))
+        self._trotter = min(self._num_state_qubits + 1,
+                            int(np.ceil(np.sqrt(((time * np.abs(self._off_diag)) ** 3)
+                                                / 2 / self._tolerance))))
 
     def matrix(self) -> np.ndarray:
         """Return the matrix"""
@@ -49,16 +67,20 @@ class Tridiagonal(QuantumCircuit):
         return matrix
 
     def _cn_gate(self, qc: QuantumCircuit, controls: QuantumRegister, qr_a: AncillaRegister,
-                 phi: float, ulambda: float, theta: float, tgt: Qubit):
+                 phi: float, ulambda: float, theta: float, tgt: Qubit) -> QuantumCircuit:
         """Apply an n-controlled gate.
 
         Args:
+            qc: Thq QuantumCircuit implementing the unitary gate
             controls: list of controlling qubits
             qr_a: ancilla register
             phi: argument for a general qiskit u gate
             ulambda: argument for a general qiskit u gate
             theta: argument for a general qiskit u gate
             tgt: target qubit
+
+        Returns:
+            The quantum circuit implementing a multi-controlled unitary.
         """
         # The first Toffoli
         qc.ccx(controls[0], controls[1], qr_a[0])
@@ -74,12 +96,18 @@ class Tridiagonal(QuantumCircuit):
         return qc
 
     # Controlled version of the circuit for the main diagonal
-    def _build_main_controlled(self, qc: QuantumCircuit, q_control: Qubit, params: Optional[float] = 1):
+    def _build_main_controlled(self, qc: QuantumCircuit, q_control: Qubit,
+                               params: Optional[float] = 1) -> QuantumCircuit:
         """Controlled circuit for the matrix consisting of entries in the main diagonal.
 
         Args:
+            qc: The quantum circuit to be controlled.
             q_control: The control qubit.
             params: Argument for the rotation.
+
+        Returns:
+            The controlled version of the quantum circuit implementing the matrix consisting of
+            entries in the main diagonal.
         """
         qc.p(params, q_control)
         return qc
@@ -96,6 +124,10 @@ class Tridiagonal(QuantumCircuit):
             qr: The quantum register where the circuit is built.
             qr_anc: The quantum register containing the ancilla qubits.
             params: Argument for the rotation.
+
+        Returns:
+            The controlled version of the quantum circuit implementing the matrix consisting of
+            entries in the off diagonals.
         """
         # Gates for H2 with t
         qc.cu(-2 * params, 3 * np.pi / 2, np.pi / 2, 0, q_control, qr[0])
@@ -130,13 +162,19 @@ class Tridiagonal(QuantumCircuit):
         return qc
 
     def inverse(self):
-        self._time = - self._time
+        self._time = -1 * self._time
 
-    def power(self, power: int):
+    def power(self, power: int, matrix_power=False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:
-            power: The exponent.
+            power: The power to raise this circuit to.
+            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+                matrix power is computed. If False, and ``power`` is a positive integer,
+                the implementation defaults to ``repeat``.
+
+        Returns:
+            The quantum circuit implementing powers of the unitary.
         """
         qc_raw = QuantumCircuit(self._num_state_qubits)
 
@@ -164,7 +202,8 @@ class Tridiagonal(QuantumCircuit):
                 self._build_off_diag_controlled(qc, q_control, qr, qr_ancilla,
                                                 self._time * self._off_diag * power / trotter_new)
             # exp(-iA2t/2m)
-            qc.u(-self._off_diag * self._time * power / trotter_new, 3 * np.pi / 2, np.pi / 2, qr[0])
+            qc.u(-self._off_diag * self._time * power / trotter_new, 3 * np.pi / 2, np.pi / 2,
+                 qr[0])
             return qc
 
         qc_raw.control = control

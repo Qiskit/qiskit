@@ -16,9 +16,9 @@ from typing import Union, Optional, List
 import numpy as np
 
 from qiskit.aqua.operators import PauliSumOp
-from .linear_system_observable import LinearSystemObservable
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.opflow import I, Z, Zero, One, TensoredOp
+from qiskit.opflow import I, Z, TensoredOp
+from .linear_system_observable import LinearSystemObservable
 
 
 class AbsoluteAverage(LinearSystemObservable):
@@ -34,11 +34,9 @@ class AbsoluteAverage(LinearSystemObservable):
 
         Returns:
             The observable as a sum of Pauli strings.
-
-        Raises:
         """
-        ZeroOp = ((I + Z) / 2)
-        return TensoredOp(num_qubits * [ZeroOp])
+        zero_op = ((I + Z) / 2)
+        return TensoredOp(num_qubits * [zero_op])
 
     def post_rotation(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
         """The observable circuit.
@@ -48,8 +46,6 @@ class AbsoluteAverage(LinearSystemObservable):
 
         Returns:
             The observable as a QuantumCircuit.
-
-        Raises:
         """
         qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
@@ -70,6 +66,7 @@ class AbsoluteAverage(LinearSystemObservable):
             The value of the absolute average.
 
         Raises:
+            ValueError: If the input is not in the correct format.
         """
         if num_qubits is None:
             raise ValueError("Number of qubits must be defined to calculate the absolute average.")
@@ -86,8 +83,6 @@ class AbsoluteAverage(LinearSystemObservable):
 
         Returns:
             The value of the observable.
-
-        Raises:
         """
         result = 0
         for xi in solution:

@@ -14,11 +14,11 @@
 from typing import Union, Optional
 import numpy as np
 
-from .linear_system_observable import LinearSystemObservable
 from qiskit import QuantumCircuit
 from qiskit.providers import BaseBackend, Backend
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators.operator_base import OperatorBase
+from .linear_system_observable import LinearSystemObservable
 
 
 class ExpectedValue(LinearSystemObservable):

@@ -22,7 +22,7 @@ from qiskit.opflow import PauliSumOp
 class LinearSystemObservable(ABC):
     """An abstract class for linear system observables in Qiskit."""
     @abstractmethod
-    def observable(self, num_qubits) -> Union[PauliSumOp, List[PauliSumOp]]:
+    def observable(self, num_qubits: int) -> Union[PauliSumOp, List[PauliSumOp]]:
         """The observable operator.
 
         Args:
@@ -30,8 +30,6 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The observable as a sum of Pauli strings.
-
-        Raises:
         """
         raise NotImplementedError
 
@@ -44,8 +42,6 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The observable as a QuantumCircuit.
-
-        Raises:
         """
         raise NotImplementedError
 
@@ -62,8 +58,6 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The value of the observable.
-
-        Raises:
         """
         raise NotImplementedError
 
@@ -76,7 +70,5 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The value of the observable.
-
-        Raises:
         """
         raise NotImplementedError
