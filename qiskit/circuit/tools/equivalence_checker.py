@@ -17,7 +17,7 @@ class EquivalenceChecker():
 
         start = time()
         try:
-            is_equivalent = Operator(circ1).equiv(Operator(circ2))
+            is_equivalent = (Operator(circ1) == Operator(circ2))
         except:
             success = False
 
