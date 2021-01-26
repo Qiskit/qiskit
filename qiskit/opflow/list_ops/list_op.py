@@ -20,10 +20,9 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression
-from qiskit.exceptions import AquaError
 from qiskit.utils import arithmetic
 
-from ..legacy.base_operator import LegacyBaseOperator
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 
 
@@ -250,17 +249,17 @@ class ListOp(OperatorBase):
             A new ListOp representing the permuted operator.
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         new_self = self
         circuit_size = max(permutation) + 1
 
         try:
             if self.num_qubits != len(permutation):
-                raise AquaError("New index must be defined for each qubit of the operator.")
+                raise OpflowError("New index must be defined for each qubit of the operator.")
         except ValueError:
-            raise AquaError("Permute is only possible if all operators in the ListOp have the "
-                            "same number of qubits.") from ValueError
+            raise OpflowError("Permute is only possible if all operators in the ListOp have the "
+                              "same number of qubits.") from ValueError
         if self.num_qubits < circuit_size:
             # pad the operator with identities
             new_self = self._expand_dim(circuit_size - self.num_qubits)
@@ -499,13 +498,6 @@ class ListOp(OperatorBase):
                                for op in self.oplist],
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        mat_op = self.to_matrix_op(massive=massive).reduce()
-        if isinstance(mat_op, ListOp):
-            raise TypeError('A hierarchical (non-subclass) ListOp cannot be represented by '
-                            'LegacyBaseOperator.')
-        return mat_op.to_legacy_op(massive=massive)
 
     # Array operations:
 

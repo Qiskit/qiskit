@@ -39,17 +39,17 @@ def make_immutable(obj):
 
     # TODO figure out how to get correct error message
     # def throw_immutability_exception(self, *args):
-    #     raise AquaError('Operator convenience globals are immutable.')
+    #     raise OpflowError('Operator convenience globals are immutable.')
 
     obj.__setattr__ = None
     return obj
 
 
 # 1-Qubit Paulis
-X = make_immutable(PauliOp(Pauli.from_label('X')))
-Y = make_immutable(PauliOp(Pauli.from_label('Y')))
-Z = make_immutable(PauliOp(Pauli.from_label('Z')))
-I = make_immutable(PauliOp(Pauli.from_label('I')))
+X = make_immutable(PauliOp(Pauli('X')))
+Y = make_immutable(PauliOp(Pauli('Y')))
+Z = make_immutable(PauliOp(Pauli('Z')))
+I = make_immutable(PauliOp(Pauli('I')))
 
 # Clifford+T, and some other common non-parameterized gates
 CX = make_immutable(CircuitOp(CXGate()))

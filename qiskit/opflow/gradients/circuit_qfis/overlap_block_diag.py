@@ -12,11 +12,10 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union, Optional
+from typing import List, Union
 
 import numpy as np
 from scipy.linalg import block_diag
-from qiskit.exceptions import AquaError
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
@@ -24,6 +23,7 @@ from ...expectations.pauli_expectation import PauliExpectation
 from ...operator_globals import Zero
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
+from ...exceptions import OpflowError
 
 from .circuit_qfi import CircuitQFI
 from ..derivative_base import DerivativeBase
@@ -39,8 +39,7 @@ class OverlapBlockDiag(CircuitQFI):
 
     def convert(self,
                 operator: Union[CircuitOp, CircuitStateFn],
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:
@@ -61,8 +60,9 @@ class OverlapBlockDiag(CircuitQFI):
 
     def _block_diag_approx(self,
                            operator: Union[CircuitOp, CircuitStateFn],
-                           params: Optional[Union[ParameterExpression, ParameterVector,
-                                                  List[ParameterExpression]]] = None
+                           params: Union[ParameterExpression,
+                                         ParameterVector,
+                                         List[ParameterExpression]]
                            ) -> ListOp:
         r"""
         Args:
@@ -77,9 +77,13 @@ class OverlapBlockDiag(CircuitQFI):
         Raises:
             NotImplementedError: If a circuit is found such that one parameter controls multiple
                 gates, or one gate contains multiple parameters.
-            AquaError: If there are more than one parameter.
+            OpflowError: If there are more than one parameter.
 
         """
+
+        # If a single parameter is given wrap it into a list.
+        if isinstance(params, ParameterExpression):
+            params = [params]
 
         circuit = operator.primitive
         # Partition the circuit into layers, and build the circuits to prepare $\psi_i$
@@ -131,8 +135,8 @@ class OverlapBlockDiag(CircuitQFI):
                                               "circuits use LinCombFull")
                 gate = circuit._parameter_table[param][0][0]
                 if len(gate.params) > 1:
-                    raise AquaError("OverlapDiag cannot yet support gates with more than one "
-                                    "parameter.")
+                    raise OpflowError("OverlapDiag cannot yet support gates with more than one "
+                                      "parameter.")
 
                 param_value = gate.params[0]
                 return param_value

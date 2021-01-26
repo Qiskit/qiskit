@@ -21,14 +21,13 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, Instruction
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.circuit.library import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
-from qiskit.exceptions import AquaError
 
+from ..exceptions import OpflowError
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
-from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 
 logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
@@ -96,15 +95,14 @@ class PauliOp(PrimitiveOp):
         return self.primitive == other.primitive
 
     def _expand_dim(self, num_qubits: int) -> 'PauliOp':
-        return PauliOp(Pauli(label='I'*num_qubits).kron(self.primitive), coeff=self.coeff)
+        return PauliOp(Pauli('I'*num_qubits).expand(self.primitive), coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Both Paulis
         if isinstance(other, PauliOp):
             # Copying here because Terra's Pauli kron is in-place.
-            op_copy = Pauli(x=other.primitive.x, z=other.primitive.z)  # type: ignore
-            # NOTE!!! REVERSING QISKIT ENDIANNESS HERE
-            return PauliOp(op_copy.kron(self.primitive), coeff=self.coeff * other.coeff)
+            op_copy = Pauli((other.primitive.z, other.primitive.x))  # type: ignore
+            return PauliOp(self.primitive.tensor(op_copy), coeff=self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
@@ -125,16 +123,17 @@ class PauliOp(PrimitiveOp):
               indices=[1,2,4], it returns (X ^ I ^ Y ^ Z ^ I).
 
         Raises:
-            AquaError: if indices do not define a new index for each qubit.
+            OpflowError: if indices do not define a new index for each qubit.
         """
         pauli_string = self.primitive.__str__()
         length = max(permutation) + 1  # size of list must be +1 larger then its max index
         new_pauli_list = ['I'] * length
         if len(permutation) != self.num_qubits:
-            raise AquaError("List of indices to permute must have the same size as Pauli Operator")
+            raise OpflowError("List of indices to permute must "
+                              "have the same size as Pauli Operator")
         for i, index in enumerate(permutation):
             new_pauli_list[-index - 1] = pauli_string[-i - 1]
-        return PauliOp(Pauli(label=''.join(new_pauli_list)), self.coeff)
+        return PauliOp(Pauli(''.join(new_pauli_list)), self.coeff)
 
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
@@ -150,8 +149,8 @@ class PauliOp(PrimitiveOp):
 
         # Both Paulis
         if isinstance(other, PauliOp):
-            product, phase = Pauli.sgn_prod(new_self.primitive, other.primitive)
-            return PrimitiveOp(product, coeff=new_self.coeff * other.coeff * phase)
+            product = new_self.primitive * other.primitive
+            return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
@@ -228,7 +227,13 @@ class PauliOp(PrimitiveOp):
                     y_factor = np.product(np.sqrt(1 - 2 * np.logical_and(corrected_x_bits,
                                                                          corrected_z_bits) + 0j))
                     new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)
-                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff)
+                    # The coefficient consists of:
+                    #   1. the coefficient of *this* PauliOp (self)
+                    #   2. the coefficient of the evaluated DictStateFn (front)
+                    #   3. AND acquires the phase of the internal primitive. This is necessary to
+                    #      ensure that (X @ Z) and (-iY) return the same result.
+                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff *
+                                        (-1j) ** self.primitive.phase)
 
             elif isinstance(front, StateFn) and front.is_measurement:
                 raise ValueError('Operator composed with a measurement is undefined.')
@@ -318,14 +323,3 @@ class PauliOp(PrimitiveOp):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         return self
-
-    def to_legacy_op(self, massive: bool = False) -> WeightedPauliOperator:
-        if isinstance(self.coeff, ParameterExpression):
-            try:
-                coeff = float(self.coeff)
-            except TypeError as ex:
-                raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff)) from ex
-        else:
-            coeff = cast(float, self.coeff)
-        return WeightedPauliOperator(paulis=[(coeff, self.primitive)])  # type: ignore
