@@ -17,7 +17,7 @@ from typing import List, Union
 import numpy as np
 from scipy.linalg import block_diag
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
-from qiskit.utils.arithmetic import _triu_to_dense
+from qiskit.utils.arithmetic import triu_to_dense
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -176,8 +176,8 @@ class OverlapBlockDiag(CircuitQFI):
 
             wrapped_block = ListOp([ListOp([
                 block[i][j]
-                for j in range(i, len(params))])
-                for i in range(len(params))], combo_fn=_triu_to_dense)
+                for j in range(i, len(params))]) for i in range(len(params))],
+                                   combo_fn=triu_to_dense)
             blocks.append(wrapped_block)
 
         return ListOp(oplist=blocks,
