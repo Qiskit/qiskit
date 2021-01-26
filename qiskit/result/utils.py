@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utility functions for working with Result counts."""
+"""Utility functions for working with Results."""
 
 from collections import Counter
 from copy import deepcopy
@@ -99,7 +99,7 @@ def _marginalize(counts, indices=None):
     if (indices is None) or set(range(num_clbits)) == set(indices):
         ret = {}
         for key, val in counts.items():
-            key = key.replace(' ', '').replace('_', '')
+            key = _remove_space_underscore(key)
             ret[key] = val
         return ret
 
@@ -113,7 +113,7 @@ def _marginalize(counts, indices=None):
     # Build the return list
     new_counts = Counter({})
     for key, val in counts.items():
-        new_key = ''.join([key.replace(' ', '').replace('_', '')[-idx-1] for idx in indices])
+        new_key = ''.join([_remove_space_underscore(key)[-idx-1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 
@@ -135,3 +135,8 @@ def _format_marginal(counts, marg_counts, indices):
                 count_bits = count_bits[:index] + ' ' + count_bits[index:]
         format_counts[count_bits] = marg_counts[count]
     return format_counts
+
+
+def _remove_space_underscore(bitstring):
+    """Removes all spaces and underscores from bitstring"""
+    return bitstring.replace(" ", "").replace("_", "")
