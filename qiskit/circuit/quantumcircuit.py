@@ -1221,9 +1221,13 @@ class QuantumCircuit:
         else:
             return string_temp
 
-    def _repr_html_(self):
-        return self.draw('mpl')._repr_html_()
-
+    def _ipython_display_(self):
+        from IPython.display import display
+        from qiskit.visualization import HAS_MATPLOTLIB
+        if HAS_MATPLOTLIB:
+            display(self.draw('mpl'))
+        else:
+            display(self.draw('text'))
 
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
