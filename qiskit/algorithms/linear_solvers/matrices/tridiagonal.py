@@ -169,7 +169,7 @@ class Tridiagonal(QuantumCircuit):
 
         Args:
             power: The power to raise this circuit to.
-            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+            matrix_power: If True, the circuit is converted to a matrix and then the
                 matrix power is computed. If False, and ``power`` is a positive integer,
                 the implementation defaults to ``repeat``.
 
