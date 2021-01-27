@@ -112,12 +112,9 @@ def plot_gate_map(backend, figsize=None,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
-    import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
-    import matplotlib.gridspec as gridspec
-    from matplotlib import ticker
 
     if backend.configuration().simulator:
         raise QiskitError('Requires a device backend, not simulator.')
@@ -440,7 +437,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     import matplotlib
     from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
-    import matplotlib.patches as mpatches
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 

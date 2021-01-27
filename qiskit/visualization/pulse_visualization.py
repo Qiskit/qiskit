@@ -151,6 +151,9 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
 
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
@@ -170,7 +173,7 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
 
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
                          'nbAgg']:
-        _matplotlib.plt.close(image)
+        plt.close(image)
     if image and interactive:
         image.show()
     return image

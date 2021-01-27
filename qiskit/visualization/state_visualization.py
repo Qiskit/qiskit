@@ -24,8 +24,7 @@ import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.utils.deprecation import deprecate_arguments
-from .matplotlib import HAS_MATPLOTLIB
-
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
 from qiskit.circuit.tools.pi_check import pi_check
@@ -685,6 +684,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
+    from matplotlib import get_backend
 
     class Arrow3D(FancyArrowPatch):
         """Standard 3D arrow."""
@@ -891,6 +891,8 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         color (array_like): sequence of valid color specifications, optional
     Returns:
         list: Shaded colors for bars.
+    Raises:
+        ImportError: If matplotlib is not installed
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '

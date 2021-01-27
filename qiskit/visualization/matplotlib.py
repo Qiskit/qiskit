@@ -455,8 +455,8 @@ class MatplotlibDrawer:
         wid = max((text_width, sub_width, WID))
 
         box = self.patches_mod.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
-                                width=wid, height=HIG, fc=fc, ec=ec,
-                                linewidth=self._lwidth15, zorder=PORDER_GATE)
+                                         width=wid, height=HIG, fc=fc, ec=ec,
+                                         linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
 
         if text:
@@ -512,16 +512,16 @@ class MatplotlibDrawer:
 
         # add measure symbol
         arc = self.patches_mod.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
-                          height=HIG * 0.7, theta1=0, theta2=180, fill=False,
-                          ec=gt, linewidth=self._lwidth2, zorder=PORDER_GATE)
+                                   height=HIG * 0.7, theta1=0, theta2=180, fill=False,
+                                   ec=gt, linewidth=self._lwidth2, zorder=PORDER_GATE)
         self._ax.add_patch(arc)
         self._ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                       color=gt, linewidth=self._lwidth2, zorder=PORDER_GATE)
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style['cc'], ls=self._style['cline'])
         arrowhead = self.patches_mod.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
-                                     (cx + 0.20 * WID, cy + 0.35 * WID),
-                                     (cx, cy + 0.04)), fc=self._style['cc'], ec=None)
+                                              (cx + 0.20 * WID, cy + 0.35 * WID),
+                                              (cx, cy + 0.04)), fc=self._style['cc'], ec=None)
         self._ax.add_artist(arrowhead)
         # target
         if self._cregbundle:
@@ -534,13 +534,14 @@ class MatplotlibDrawer:
 
         fc = self._style['lc'] if istrue else self._style['bg']
         box = self.patches_mod.Circle(xy=(xpos, ypos), radius=WID * 0.15, fc=fc,
-                             ec=self._style['lc'], linewidth=self._lwidth15, zorder=PORDER_GATE)
+                                      ec=self._style['lc'], linewidth=self._lwidth15,
+                                      zorder=PORDER_GATE)
         self._ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text='', text_top=None):
         xpos, ypos = xy
         box = self.patches_mod.Circle(xy=(xpos, ypos), radius=WID * 0.15,
-                             fc=fc, ec=ec, linewidth=self._lwidth15, zorder=PORDER_GATE)
+                                      fc=fc, ec=ec, linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
         # display the control label at the top or bottom if there is one
         if text_top is True:
@@ -580,8 +581,8 @@ class MatplotlibDrawer:
         linewidth = self._lwidth2
         xpos, ypos = xy
         box = self.patches_mod.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
-                             fc=ec, ec=ec, linewidth=linewidth,
-                             zorder=PORDER_GATE)
+                                      fc=ec, ec=ec, linewidth=linewidth,
+                                      zorder=PORDER_GATE)
         self._ax.add_patch(box)
 
         # add '+' symbol
@@ -608,9 +609,9 @@ class MatplotlibDrawer:
                           linewidth=self._scale, linestyle="dashed",
                           color=self._style['lc'], zorder=PORDER_TEXT)
             box = self.patches_mod.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
-                                    width=0.6 * WID, height=1,
-                                    fc=self._style['bc'], ec=None, alpha=0.6,
-                                    linewidth=self._lwidth15, zorder=PORDER_GRAY)
+                                             width=0.6 * WID, height=1,
+                                             fc=self._style['bc'], ec=None, alpha=0.6,
+                                             linewidth=self._lwidth15, zorder=PORDER_GRAY)
             self._ax.add_patch(box)
 
     def draw(self, filename=None, verbose=False):
@@ -633,7 +634,7 @@ class MatplotlibDrawer:
                                      self._style['figwidth'] * fig_h / fig_w)
         if self._global_phase:
             self.plt_mod.text(_xl, _yt, 'Global Phase: %s' % pi_check(self._global_phase,
-                                                             output='mpl'))
+                                                                      output='mpl'))
 
         if filename:
             self._figure.savefig(filename, dpi=self._style['dpi'], bbox_inches='tight',
@@ -1084,6 +1085,7 @@ class HasMatplotlibWrapper:
     """Wrapper to lazily import matplotlib."""
     has_matplotlib = False
 
+    # pylint: disable=unused-import
     def __bool__(self):
         if not self.has_matplotlib:
             try:
