@@ -140,16 +140,6 @@ New Features
   Aer using Python 3.9 without building from source.
 
 
-.. _Release Notes_Aer_0.7.3_Deprecation Notes:
-
-Deprecation Notes
------------------
-
-- Python 3.6 support has been deprecated and will be removed in a future
-  release. When support is removed you will need to upgrade the Python
-  version you're using to Python 3.7 or above.
-
-
 .. _Release Notes_Aer_0.7.3_Bug Fixes:
 
 Bug Fixes
@@ -166,7 +156,7 @@ Bug Fixes
 
 - Fixes a bug that resulted in `c_if` not working when the
   width of the conditional register was greater than 64. See
-  `#1077 <https://github.com/Qiskit/qiskit-aer/issues/1077>`.
+  `#1077 <https://github.com/Qiskit/qiskit-aer/issues/1077>`__.
 
 - Fixes bug in
   :meth:`~qiskit.providers.aer.noise.NoiseModel.from_backend` and
