@@ -323,7 +323,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             weight_matrix (numpy.ndarray) : adjacency matrix.
 
         Returns:
-            WeightedPauliOperator: operator for the Hamiltonian
+            PauliSumOp: operator for the Hamiltonian
             float: a constant shift for the obj function.
 
         """

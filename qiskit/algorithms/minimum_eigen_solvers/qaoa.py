@@ -25,8 +25,8 @@ from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from .qaoa_ansatz import QAOAAnsatz
-from ..vqe import VQE
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 logger = logging.getLogger(__name__)
 

@@ -11,15 +11,15 @@
 # that they have been altered from the originals.
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
-
+# pylint: disable=R0401
 from typing import Optional, Union, cast, Set
 
 import numpy as np
 
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter, ParameterVector
-from qiskit.circuit.library import BlueprintCircuit
-from qiskit.opflow import OperatorBase, I, X, CircuitStateFn, H, CircuitOp, EvolutionFactory
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from ..blueprintcircuit import BlueprintCircuit
 
 
 class QAOAAnsatz(BlueprintCircuit):
@@ -30,12 +30,11 @@ class QAOAAnsatz(BlueprintCircuit):
         [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
             `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
-
     def __init__(self,
-                 cost_operator: OperatorBase,
+                 cost_operator: 'OperatorBase',
                  reps: int,
                  initial_state: Optional[QuantumCircuit] = None,
-                 mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]] = None,
+                 mixer_operator: Optional[Union[QuantumCircuit, 'OperatorBase']] = None,
                  name: str = "qaoa"):
         r"""
         Args:
@@ -79,6 +78,19 @@ class QAOAAnsatz(BlueprintCircuit):
                 raise AttributeError("The integer parameter p, which determines the depth "
                                      "of the circuit, either not set or set to non-positive value")
 
+        num_qubits = self._cost_operator.num_qubits
+        if self._initial_state is not None and self._initial_state.num_qubits != num_qubits:
+            valid = False
+            if raise_on_failure:
+                raise AttributeError("The number of qubits of the initial state does not match "
+                                     "the number of qubits of the cost operator")
+
+        if self._mixer_operator is not None and self._mixer_operator.num_qubits != num_qubits:
+            valid = False
+            if raise_on_failure:
+                raise AttributeError("The number of qubits of the mixer does not match "
+                                     "the number of qubits of the cost operator")
+
         return valid
 
     def _build(self) -> None:
@@ -113,10 +125,11 @@ class QAOAAnsatz(BlueprintCircuit):
     def _calculate_parameters(self):
         self._num_qubits = self._cost_operator.num_qubits
 
+        from qiskit.opflow import OperatorBase
         if isinstance(self._mixer_operator, QuantumCircuit):
             self._num_parameters = (1 + self._mixer_operator.num_parameters) * self._reps
-            self._bounds = [(None, None)] * self._reps + [(None, None)] * \
-                self._reps * self._mixer_operator.num_parameters
+            self._bounds = [(None, None)] * self._reps + \
+                           [(None, None)] * self._reps * self._mixer_operator.num_parameters
             self._mixer = self._mixer_operator
         elif isinstance(self._mixer_operator, OperatorBase):
             self._num_parameters = 2 * self._reps
@@ -125,6 +138,8 @@ class QAOAAnsatz(BlueprintCircuit):
         elif self._mixer_operator is None:
             self._num_parameters = 2 * self._reps
             self._bounds = [(None, None)] * self._reps + [(0, 2 * np.pi)] * self._reps
+            # local imports to avoid circular imports
+            from qiskit.opflow import I, X
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
@@ -138,6 +153,10 @@ class QAOAAnsatz(BlueprintCircuit):
                 self._num_parameters, len(parameters)
             ))
 
+        # local imports to avoid circular imports
+        from qiskit.opflow import CircuitStateFn
+        from qiskit.opflow import H, CircuitOp, EvolutionFactory
+
         # initialize circuit, possibly based on given register/initial state
         if isinstance(self._initial_state, QuantumCircuit):
             circuit_op = CircuitStateFn(self._initial_state)
@@ -149,6 +168,7 @@ class QAOAAnsatz(BlueprintCircuit):
             # the first [:self._p] parameters are used for the cost operator,
             # so we apply them here
             circuit_op = (self._cost_operator * parameters[idx]).exp_i().compose(circuit_op)
+            from qiskit.opflow import OperatorBase
             if isinstance(self._mixer, OperatorBase):
                 mixer = cast(OperatorBase, self._mixer)
                 # we apply beta parameter in case of operator based mixer.
@@ -170,12 +190,12 @@ class QAOAAnsatz(BlueprintCircuit):
         return circuit_op.to_circuit()
 
     @property
-    def cost_operator(self) -> OperatorBase:
+    def cost_operator(self) -> 'OperatorBase':
         """Returns an operator representing the cost of the optimization problem."""
         return self._cost_operator
 
     @cost_operator.setter
-    def cost_operator(self, cost_operator: OperatorBase) -> None:
+    def cost_operator(self, cost_operator: 'OperatorBase') -> None:
         """Sets cost operator."""
         self._cost_operator = cost_operator
         self._invalidate()
@@ -203,12 +223,13 @@ class QAOAAnsatz(BlueprintCircuit):
         self._invalidate()
 
     @property
-    def mixer_operator(self) -> Optional[Union[QuantumCircuit, OperatorBase]]:
+    def mixer_operator(self) -> Optional[Union[QuantumCircuit, 'OperatorBase']]:
         """Returns an optional mixer operator expressed as an operator or a quantum circuit."""
         return self._mixer_operator
 
     @mixer_operator.setter
-    def mixer_operator(self, mixer_operator: Optional[Union[QuantumCircuit, OperatorBase]]) -> None:
+    def mixer_operator(self,
+                       mixer_operator: Optional[Union[QuantumCircuit, 'OperatorBase']]) -> None:
         """Sets mixer operator."""
         self._mixer_operator = mixer_operator
         self._invalidate()
