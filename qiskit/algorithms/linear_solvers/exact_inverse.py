@@ -24,7 +24,7 @@ class ExactInverse(QuantumCircuit):
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
 
-    def __init__(self, num_state_qubits: int, constant: float, name: str = 'inv') -> None:
+    def __init__(self, num_state_qubits: int, constant: float, name: str = '1/x') -> None:
 
         qr_state = QuantumRegister(num_state_qubits)
         qr_flag = QuantumRegister(1)
