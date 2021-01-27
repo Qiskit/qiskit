@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""An abstract class for linear systems solvers in Qiskit's aqua module."""
+"""An abstract class for linear systems solvers."""
+
 from abc import ABC, abstractmethod
 from typing import Union, Optional, List, Callable
 import numpy as np
