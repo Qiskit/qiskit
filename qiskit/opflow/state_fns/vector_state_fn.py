@@ -65,7 +65,7 @@ class VectorStateFn(StateFn):
 
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, VectorStateFn) and self.is_measurement == other.is_measurement:
-            # Covers MatrixOperator, Statevector and custom.
+            # Covers Statevector and custom.
             return VectorStateFn((self.coeff * self.primitive) + (other.primitive * other.coeff),
                                  is_measurement=self._is_measurement)
         # pylint: disable=cyclic-import,import-outside-toplevel
@@ -82,7 +82,7 @@ class VectorStateFn(StateFn):
         new_num_qubits = max(permutation) + 1
 
         if self.num_qubits != len(permutation):
-            # raise AquaError("New index must be defined for each qubit of the operator.")
+            # raise OpflowError("New index must be defined for each qubit of the operator.")
             pass
         if self.num_qubits < new_num_qubits:
             # pad the operator with identities

@@ -12,10 +12,10 @@
 
 """The module to compute Hessians."""
 
-from typing import Optional, Union, List, Tuple
+from typing import Union, List, Tuple
 
 import numpy as np
-from qiskit.exceptions import AquaError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -28,6 +28,8 @@ from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from .gradient import Gradient
 from .hessian_base import HessianBase
+from ..exceptions import OpflowError
+from ...utils.arithmetic import triu_to_dense
 
 try:
     from jax import grad, jit
@@ -39,11 +41,12 @@ except ImportError:
 class Hessian(HessianBase):
     """Compute the Hessian of an expected value."""
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]],
-                                       List[ParameterExpression], ParameterVector]] = None
+                params: Union[Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]],
+                              List[ParameterExpression], ParameterVector]
                 ) -> OperatorBase:
         """
         Args:
@@ -55,23 +58,7 @@ class Hessian(HessianBase):
 
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
-
-        Raises:
-            ValueError: If `params` is not set.
         """
-        # if input is a tuple instead of a list, wrap it into a list
-        if params is None:
-            raise ValueError("No parameters were provided to differentiate")
-
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.convert(operator, (p0, p1)) for p1 in params]) for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp([self.convert(operator, param_pair) for param_pair in params])
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
@@ -80,9 +67,8 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
-                                           List[Tuple[ParameterExpression, ParameterExpression]]]]
-                    = None
+                    params: Union[Tuple[ParameterExpression, ParameterExpression],
+                                  List[Tuple[ParameterExpression, ParameterExpression]]]
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
@@ -95,31 +81,33 @@ class Hessian(HessianBase):
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
-            AquaError: If the coefficient of the operator could not be reduced to 1.
-                        AquaError: If the differentiation of a combo_fn requires JAX but the package
-                        is not installed.
+            OpflowError: If the coefficient of the operator could not be reduced to 1.
+            OpflowError: If the differentiation of a combo_fn
+                         requires JAX but the package is not installed.
             TypeError: If the operator does not include a StateFn given by a quantum circuit
             TypeError: If the parameters were given in an unsupported format.
             Exception: Unintended code is reached
+            MissingOptionalLibraryError: jax not installed
         """
+        # if input is a tuple instead of a list, wrap it into a list
+        if isinstance(params, (ParameterVector, list)):
+            # Case: a list of parameters were given, compute the Hessian for all param pairs
+            if all(isinstance(param, ParameterExpression) for param in params):
+                return ListOp([ListOp([
+                    self.get_hessian(operator, (p_i, p_j))
+                    for i, p_i in enumerate(params[j:], j)])
+                               for j, p_j in enumerate(params)],
+                              combo_fn=triu_to_dense)
+            # Case: a list was given containing tuples of parameter pairs.
+            elif all(isinstance(param, tuple) for param in params):
+                # Compute the Hessian entries corresponding to these pairs of parameters.
+                return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
 
         def is_coeff_c(coeff, c):
             if isinstance(coeff, ParameterExpression):
                 expr = coeff._symbol_expr
                 return expr == c
             return coeff == c
-
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp(
-                    [ListOp([self.get_hessian(operator, (p0, p1)) for p1 in params])
-                     for p0 in params])
-            # Case: a list was given containing tuples of parameter pairs.
-            # Compute the Hessian entries corresponding to these pairs of parameters.
-            elif all(isinstance(param, tuple) for param in params):
-                return ListOp(
-                    [self.get_hessian(operator, param_pair) for param_pair in params])
 
         # If a gradient is requested w.r.t a single parameter, then call the
         # Gradient().get_gradient method.
@@ -172,8 +160,8 @@ class Hessian(HessianBase):
         if isinstance(operator, ComposedOp):
 
             if not is_coeff_c(operator.coeff, 1.):
-                raise AquaError('Operator pre-processing failed. Coefficients were not properly '
-                                'collected inside the ComposedOp.')
+                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
+                                  'collected inside the ComposedOp.')
 
             # Do some checks to make sure operator is sensible
             # TODO enable compatibility with sum of CircuitStateFn operators
@@ -216,20 +204,24 @@ class Hessian(HessianBase):
                     second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
                                                        holomorphic=True))
                 else:
-                    raise AquaError(
-                        'This automatic differentiation function is based on JAX. Please '
-                        'install jax and use `import jax.numpy as jnp` instead of '
-                        '`import numpy as np` when defining a combo_fn.')
+                    raise MissingOptionalLibraryError(
+                        libname='jax',
+                        name='get_hessian',
+                        msg='This automatic differentiation function is based on JAX. Please '
+                            'install jax and use `import jax.numpy as jnp` instead of '
+                            '`import numpy as np` when defining a combo_fn.')
             else:
                 if _HAS_JAX:
                     first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
                     second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
                                                        holomorphic=True))
                 else:
-                    raise AquaError(
-                        'This automatic differentiation function is based on JAX. Please install '
-                        'jax and use `import jax.numpy as jnp` instead of `import numpy as np` when'
-                        'defining a combo_fn.')
+                    raise MissingOptionalLibraryError(
+                        libname='jax',
+                        name='get_hessian',
+                        msg='This automatic differentiation function is based on JAX. '
+                            'Please install jax and use `import jax.numpy as jnp` instead '
+                            'of `import numpy as np` when defining a combo_fn.')
 
             # For a general combo_fn F(g_0, g_1, ..., g_k)
             # dF/d θ0,θ1 = sum_i: (∂F/∂g_i)•(d g_i/ d θ0,θ1) + (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d

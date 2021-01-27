@@ -41,13 +41,13 @@ class TestDiagonalGate(QiskitTestCase):
                 qc = QuantumCircuit(q)
                 qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
+                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'], optimization_level=0)
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
-                self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=True))
+                self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=False))
 
 
 def _get_diag_gate_matrix(diag):

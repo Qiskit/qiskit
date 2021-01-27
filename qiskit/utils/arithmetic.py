@@ -131,3 +131,23 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
             for y in x[len_x - 1:0:-1]:
                 res.append((first, y))
     return res
+
+
+def triu_to_dense(triu: np.ndarray) -> np.ndarray:
+    """Converts upper triangular part of matrix to dense matrix.
+
+    Args:
+        triu: array in the form [[A, B, C], [D, E], [F]]
+
+    Returns:
+        Array [[A, B, C], [B, D, E], [C, E, F]]
+    """
+    dim = len(triu)
+    matrix = np.empty((dim, dim), dtype=complex)
+    for i in range(dim):
+        for j in range(dim - i):
+            matrix[i, i + j] = triu[i][j]
+            if j != 0:
+                matrix[i + j, i] = triu[i][j]
+
+    return matrix

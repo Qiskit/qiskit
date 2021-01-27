@@ -16,9 +16,37 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
+from .pauli import Pauli
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
 from .pauli_table import PauliTable
+
+
+def random_pauli(num_qubits, group_phase=False, seed=None):
+    """Return a random Pauli.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        group_phase (bool): Optional. If True generate random phase.
+                            Otherwise the phase will be set so that the
+                            Pauli coefficient is +1 (default: False).
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
+
+    Returns:
+        Pauli: a random Pauli
+    """
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = default_rng(seed)
+    z = rng.integers(2, size=num_qubits, dtype=np.bool)
+    x = rng.integers(2, size=num_qubits, dtype=np.bool)
+    phase = rng.integers(4) if group_phase else 0
+    pauli = Pauli((z, x, phase))
+    return pauli
 
 
 def random_pauli_table(num_qubits, size=1, seed=None):
