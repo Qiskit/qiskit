@@ -164,7 +164,7 @@ class Tridiagonal(QuantumCircuit):
     def inverse(self):
         self._time = -1 * self._time
 
-    def power(self, power: int, matrix_power=False) -> QuantumCircuit:
+    def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:
