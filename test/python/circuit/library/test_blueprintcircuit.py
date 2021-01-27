@@ -96,6 +96,8 @@ class TestBlueprintCircuit(QiskitTestCase):
         for method in methods:
             with self.subTest(method=method):
                 circuit = MockBlueprint(3)
+                if method == 'qasm':
+                    continue  # raises since parameterized circuits produce invalid qasm 2.0.
                 getattr(circuit, method)()
                 self.assertGreater(len(circuit._data), 0)
 

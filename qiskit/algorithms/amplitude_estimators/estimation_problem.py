@@ -13,7 +13,7 @@
 """The Estimation problem class."""
 
 import warnings
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Union
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -31,7 +31,7 @@ class EstimationProblem:
 
     def __init__(self,
                  state_preparation: QuantumCircuit,
-                 objective_qubits: List[int],
+                 objective_qubits: Union[int, List[int]],
                  grover_operator: Optional[QuantumCircuit] = None,
                  post_processing: Optional[Callable[[float], float]] = None,
                  is_good_state: Optional[Callable[[str], bool]] = None,
@@ -40,17 +40,16 @@ class EstimationProblem:
         Args:
             state_preparation: A circuit preparing the input state, referred to as
                 :math:`\mathcal{A}`.
-            objective_qubits: A list of qubit indices to specify the oracle in the Grover operator,
-                if the Grover operator is not supplied. A measurement outcome is classified as
-                'good' state if all objective qubits are in state :math:`|1\rangle`, otherwise it
-                is classified as 'bad'.
+            objective_qubits: A single qubit index or a list of qubit indices to specify which
+                qubits to measure. The ``is_good_state`` function is applied on the bitstring of
+                these objective qubits.
             grover_operator: The Grover operator :math:`\mathcal{Q}` used as unitary in the
                 phase estimation circuit.
             post_processing: A mapping applied to the result of the algorithm
                 :math:`0 \leq a \leq 1`, usually used to map the estimate to a target interval.
                 Defaults to the identity.
             is_good_state: A function to check whether a string represents a good state. Defaults
-                to all objective qubits being in state 1.
+                to all objective qubits being in state :math:`|1\rangle`.
         """
         self._state_preparation = state_preparation
         self._objective_qubits = objective_qubits
@@ -83,10 +82,13 @@ class EstimationProblem:
         Returns:
             The criterion as list of qubit indices.
         """
+        if isinstance(self._objective_qubits, int):
+            return [self._objective_qubits]
+
         return self._objective_qubits
 
     @objective_qubits.setter
-    def objective_qubits(self, objective_qubits: List[int]) -> None:
+    def objective_qubits(self, objective_qubits: Union[int, List[int]]) -> None:
         """Set the criterion for a measurement outcome to be in a 'good' state.
 
         Args:
