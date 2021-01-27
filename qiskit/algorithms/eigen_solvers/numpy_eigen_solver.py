@@ -36,7 +36,7 @@ class NumPyEigensolver(Eigensolver):
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
 
     Note:
-        Operators are automatically converted to :class:`~qiskit.opflow.MatrixOperator`
+        Operators are automatically converted to SciPy's ``spmatrix``
         as needed and this conversion can be costly in terms of memory and performance as the
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
