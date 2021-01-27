@@ -17,8 +17,8 @@ import warnings
 
 import numpy as np
 from qiskit.circuit import Gate
-from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
-                            ParameterExpression)
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
+from qiskit.utils.arithmetic import triu_to_dense
 
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
@@ -94,7 +94,7 @@ class LinCombFull(CircuitQFI):
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
             qfi_ops = []
-            for j, param_j in enumerate(params):
+            for j, param_j in enumerate(params[i:], i):
                 # Get the gates of the quantum state which are parameterized by param_i
                 qfi_op = []
                 param_gates_i = state_qc._parameter_table[param_i]
@@ -167,7 +167,7 @@ class LinCombFull(CircuitQFI):
 
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
-        return ListOp(qfi_operators)
+        return ListOp(qfi_operators, combo_fn=triu_to_dense)
 
     @staticmethod
     def trim_circuit(circuit: QuantumCircuit,
