@@ -905,6 +905,17 @@ class TestDensityMatrix(QiskitTestCase):
         state2 = DensityMatrix.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        dm = DensityMatrix.from_instruction(qc1)
+        with self.subTest(msg='str(density_matrix)'):
+            str(dm)
+        for drawtype in ['text', 'markdown', 'markdown_source', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                dm.draw(drawtype)
+
 
 if __name__ == '__main__':
     unittest.main()
