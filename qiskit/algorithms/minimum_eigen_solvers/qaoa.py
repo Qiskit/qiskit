@@ -112,7 +112,7 @@ class QAOA(VQE):
                 variational form, the evaluated mean and the evaluated standard deviation.
             quantum_instance: Quantum Instance or Backend
         """
-        validate_min('p', reps, 1)
+        validate_min('reps', reps, 1)
 
         self._reps = reps
         self._mixer = mixer
