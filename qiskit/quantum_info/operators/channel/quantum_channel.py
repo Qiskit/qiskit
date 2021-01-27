@@ -34,33 +34,19 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 class QuantumChannel(BaseOperator, TolerancesMixin):
     """Quantum channel representation base class."""
 
-    def __init__(self, data, input_dims=None, output_dims=None,
-                 num_qubits=None,
-                 channel_rep=None):
+    def __init__(self, data, num_qubits=None, op_shape=None):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
             data (array or list): quantum channel data array.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
-            num_qubits (int): the number of qubits if N-qubit channel.
-                              [Default: None]
-            channel_rep (str): quantum channel representation name string.
+            op_shape (OpShape): the operator shape of the channel.
+            num_qubits (int): the number of qubits if the channel is N-qubit.
 
         Raises:
             QiskitError: if arguments are invalid.
         """
-        # Set channel representation string
-        if not isinstance(channel_rep, str):
-            raise QiskitError("rep must be a string not a {}".format(
-                channel_rep.__class__))
-        self._channel_rep = channel_rep
         self._data = data
-        super().__init__(input_dims=input_dims,
-                         output_dims=output_dims,
-                         num_qubits=num_qubits)
+        super().__init__(num_qubits=num_qubits, op_shape=op_shape)
 
     def __repr__(self):
         prefix = '{}('.format(self._channel_rep)
@@ -81,6 +67,11 @@ class QuantumChannel(BaseOperator, TolerancesMixin):
     def data(self):
         """Return data."""
         return self._data
+
+    @property
+    def _channel_rep(self):
+        """Return channel representation string"""
+        return type(self).__name__
 
     @abstractmethod
     def compose(self, other, qargs=None, front=False):
@@ -133,10 +124,10 @@ class QuantumChannel(BaseOperator, TolerancesMixin):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
-        if not isinstance(other, self.__class__):
-            other = self.__class__(other)
+        if not isinstance(other, type(self)):
+            other = type(self)(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
         other = ScalarOp._pad_with_identity(self, other, qargs)
 
         ret = copy.copy(self)
@@ -148,7 +139,7 @@ class QuantumChannel(BaseOperator, TolerancesMixin):
         # which can lead to problems if other is not already a quantum channel
         if not isinstance(other, QuantumChannel):
             qargs = getattr(other, 'qargs', None)
-            other = self.__class__(other)
+            other = type(self)(other)
             if qargs is not None:
                 other.qargs = qargs
         return self._add(-other)

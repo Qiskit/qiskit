@@ -20,6 +20,8 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -58,6 +60,39 @@ class PauliSumOp(PrimitiveOp):
     @property
     def num_qubits(self) -> int:
         return self.primitive.num_qubits  # type: ignore
+
+    @property
+    def coeffs(self):
+        """Return the Pauli coefficients."""
+        return self.coeff * self.primitive.coeffs
+
+    def matrix_iter(self, sparse=False):
+        """Return a matrix representation iterator.
+
+        This is a lazy iterator that converts each term in the PauliSumOp
+        into a matrix as it is used. To convert to a single matrix use the
+        :meth:`to_matrix` method.
+
+        Args:
+            sparse (bool): optionally return sparse CSR matrices if True,
+                           otherwise return Numpy array matrices
+                           (Default: False)
+
+        Returns:
+            MatrixIterator: matrix iterator object for the PauliTable.
+        """
+        class MatrixIterator(CustomIterator):
+            """Matrix representation iteration and item access."""
+            def __repr__(self):
+                return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
+
+            def __getitem__(self, key):
+                sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
+                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key],
+                                            sparse=sparse)
+                return sumopcoeff * mat
+
+        return MatrixIterator(self)
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:

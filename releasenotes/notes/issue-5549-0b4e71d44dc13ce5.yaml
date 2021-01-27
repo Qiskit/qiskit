@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Users can now supply templates as either QuantumCircuit or DAGDependency to
+    TemplateOptimization.

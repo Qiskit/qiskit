@@ -905,7 +905,7 @@ class NLocal(BlueprintCircuit):
         if not self._skip_final_rotation_layer:
             if self.insert_barriers:
                 self.barrier()
-            self._build_rotation_layer(param_iter, i)
+            self._build_rotation_layer(param_iter, self.reps)
 
         # add the appended layers
         self._build_additional_layers('appended')
@@ -965,13 +965,19 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         raise ValueError('The number of block qubits must be smaller or equal to the number of '
                          'qubits in the circuit.')
 
+    if entanglement == 'pairwise' and num_block_qubits != 2:
+        raise ValueError('Pairwise entanglement is only defined for blocks of 2 qubits.')
+
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
-    if entanglement in ['linear', 'circular', 'sca']:
+    if entanglement in ['linear', 'circular', 'sca', 'pairwise']:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == 'linear' or m == 1:
             return linear
+
+        if entanglement == 'pairwise':
+            return linear[::2] + linear[1::2]
 
         # circular equals linear plus top-bottom entanglement
         circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
