@@ -29,6 +29,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
+from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
@@ -1143,7 +1144,10 @@ class QuantumCircuit:
         Raises:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
+            QasmError: If circuit has free parameters.
         """
+        if self.num_parameters > 0:
+            raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
         existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
                                'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
                                'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
