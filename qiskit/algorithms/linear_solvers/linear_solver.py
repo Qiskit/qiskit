@@ -86,8 +86,6 @@ class LinearSolverResult(AlgorithmResult):
 class LinearSolver(ABC):
     """An abstract class for linear system solvers in Qiskit."""
 
-    def __init__(self):
-        pass
 
     @abstractmethod
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
