@@ -26,8 +26,8 @@ class ExactInverse(QuantumCircuit):
 
     def __init__(self, num_state_qubits: int, constant: float, name: str = '1/x') -> None:
 
-        qr_state = QuantumRegister(num_state_qubits)
-        qr_flag = QuantumRegister(1)
+        qr_state = QuantumRegister(num_state_qubits, 'state')
+        qr_flag = QuantumRegister(1, 'flag')
         super().__init__(qr_state, qr_flag, name=name)
 
         angles = [0.0]
