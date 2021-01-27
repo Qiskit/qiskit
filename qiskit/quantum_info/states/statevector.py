@@ -22,9 +22,8 @@ import numpy as np
 
 try:
     from IPython.display import display
-    HAS_IPYTHON = True
 except ImportError:
-    HAS_IPYTHON = False
+    pass
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
@@ -113,7 +112,7 @@ class Statevector(QuantumState, TolerancesMixin):
         text = self.draw('text')
         return str(text)
 
-    def draw(self, output='text', max_size=None, dims=True):
+    def draw(self, output='text', max_size=16, dims=True):
         """Returns a visualization of the Statevector.
 
         **text**: ASCII TextMatrix that can be printed in the console.

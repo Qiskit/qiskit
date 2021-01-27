@@ -122,7 +122,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         text = self.draw('text')
         return str(text)
 
-    def draw(self, output='text', max_size=None, dims=True):
+    def draw(self, output='text', max_size=(16, 16), dims=True):
         """Returns a visualization of the DensityMatrix.
 
         **text**: ASCII TextMatrix that can be printed in the console.
