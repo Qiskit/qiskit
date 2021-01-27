@@ -44,7 +44,7 @@ def _num_to_latex(num, precision=5):
     common_factor = None
 
     # try to factor out common terms in imaginary numbers
-    if np.isclose(abs(r), abs(i)) and not np.isclose(r, 0):
+    if np.isclose(abs(r), abs(i)) and not np.isclose(r, 0) and not np.isclose(i, 0):
         common_factor = abs(r)
         r = r/common_factor
         i = i/common_factor
@@ -77,9 +77,9 @@ def _num_to_latex(num, precision=5):
         if num + denom < 20:
             # If fraction is 'nice' return
             if val > 0:
-                return f"\\tfrac{abs(num)}{abs(denom)}"
+                return f"\\tfrac{{{abs(num)}}}{{{abs(denom)}}}"
             else:
-                return f"-\\tfrac{abs(num)}{abs(denom)}"
+                return f"-\\tfrac{{{abs(num)}}}{{{abs(denom)}}}"
         else:
             # Failing everything else, return val as a decimal
             return "{:.{}f}".format(val, precision).rstrip("0")
