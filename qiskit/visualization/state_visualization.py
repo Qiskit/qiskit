@@ -1031,26 +1031,33 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def repr_state_latex(state, max_size=(8,8)):
+def _repr_state_latex(state, max_size=(8, 8)):
     latex_str = _matrix_to_latex(state._data, max_size=max_size)
     return latex_str
 
-def repr_state_markdown(state, max_size=(8,8)):
-    latex_str = repr_state_latex(state, max_size=max_size)
-    description = "{state_type} object: dims={dims}".format(state_type=type(state).__name__,
-                                                    dims=state._op_shape.dims_l())
+
+def _repr_state_markdown(state, max_size=(8, 8), dims=True):
+    latex_str = _repr_state_latex(state, max_size=max_size)
+    state_type = type(state).__name__
+    description = f"{state_type} object: "
+    if dims:
+        dim_str = state._op_shape.dims_l()
+        description += f"dims={dim_str}"
     return description + latex_str
 
-def repr_state_text(state):
-        prefix = '{}('.format(type(state).__name__)
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                state._data, separator=', ', prefix=prefix),
-            pad, state._dims)
+
+def _repr_state_text(state):
+    prefix = '{}('.format(type(state).__name__)
+    pad = len(prefix) * ' '
+    return '{}{},\n{}dims={})'.format(
+        prefix, np.array2string(
+            state._data, separator=', ', prefix=prefix),
+        pad, state._dims)
 
 
 class TextMatrix():
+    """Text representation of an array, with `__str__` method so it
+    displays nicely in Jupyter notebooks"""
     def __init__(self, state, max_size, dims):
         self.state = state
         self.max_size = max_size
@@ -1064,7 +1071,6 @@ class TextMatrix():
             self.max_size = min(max_size)**2
         else:
             self.max_size = max_size[0]
- 
 
     def __str__(self):
         obj_name = type(self.state).__name__
@@ -1076,7 +1082,7 @@ class TextMatrix():
             threshold=threshold
         )
         if self.dims:
-            suffix = f',\ndims={self.state._op_shape.dims_l()})' 
+            suffix = f',\ndims={self.state._op_shape.dims_l()})'
         else:
             suffix = '\n)'
         return prefix + data + suffix
@@ -1084,41 +1090,80 @@ class TextMatrix():
     def __repr__(self):
         return self.__str__()
 
-
+# pylint: disable=R0911
 def state_drawer(state,
                  output=None,
                  max_size=None,
                  dims=None
                  ):
+    """Returns a visualization of the state.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **markdown**: An IPython Markdown object for displaying in Jupyter Notebooks.
+
+        **markdown_source**: ASCII markdown source used to create an IPython Markdown object.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``markdown``,
+                ``markdown_source``, ``latex_source``, ``qsphere``, ``hinton``,
+                or ``bloch``. Default is `'text`'.
+            max_size (int): Maximum number of elements before array is
+                summarized instead of fully represented. For ``latex``
+                and ``markdown`` drawers, this is also the maximum number
+                of elements that will be drawn in the output array, including
+                elipses elements. For ``text`` drawer, this is the ``threshold``
+                parameter in ``numpy.array2string()``.
+            dims (bool): For `text` and `markdown`. Whether to display the
+                dimensions.
+
+        Returns:
+            :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextMatrix`: or :class:`IPython.display.Markdown`
+
+        Raises:
+            ImportError: when `output` is `markdown` and IPython is not installed.
+            ValueError: when `output` is not a valid selection.
+    """
+
     # sort inputs:
     if output is None:
         output = 'text'
     if max_size is None:
         max_size = (8, 8)
-    if type(max_size) is int:
+    if isinstance(max_size, int):
         max_size = (max_size, max_size)
 
     # choose drawing:
     if output == 'text':
         return TextMatrix(state, max_size, dims)
     if output == 'markdown_source':
-        return repr_state_markdown(state, max_size=max_size)
+        return _repr_state_markdown(state, max_size=max_size, dims=dims)
     if output == 'markdown':
         if HAS_IPYTHON:
-            return Markdown(repr_state_markdown(state, max_size=max_size))
+            return Markdown(_repr_state_markdown(state, max_size=max_size, dims=dims))
         else:
             raise ImportError('IPython is not installed, to install run:'
                               '"pip install ipython".')
     if output == 'latex_source':
-        return repr_state_latex(state, max_size)
+        return _repr_state_latex(state, max_size)
     if output == 'qsphere':
         return plot_state_qsphere(state)
     if output == 'hinton':
         return plot_state_hinton(state)
     if output == 'bloch':
         return plot_bloch_multivector(state)
-    
+
     raise ValueError(
         """'{}' is not a valid option for drawing {} objects. Please choose from:
-        'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton', 
+        'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton',
         'bloch'.""".format(output, type(state).__name__))

@@ -11,10 +11,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+Tools to create LaTeX arrays.
+"""
 
+import math
 from fractions import Fraction
 import numpy as np
-import math
 
 
 def _num_to_latex(num, precision=5):
@@ -143,8 +146,8 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
 
     def _elements_to_latex(elements):
         el_string = ""
-        for e in elements:
-            num_string = _num_to_latex(e, precision=precision)
+        for el in elements:
+            num_string = _num_to_latex(el, precision=precision)
             el_string += num_string + " & "
         el_string = el_string[:-2]  # remove trailing ampersands
         return el_string

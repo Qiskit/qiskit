@@ -21,7 +21,7 @@ from numbers import Number
 import numpy as np
 
 try:
-    from IPython.display import Math, Markdown, display
+    from IPython.display import display
     HAS_IPYTHON = True
 except ImportError:
     HAS_IPYTHON = False
@@ -115,21 +115,21 @@ class Statevector(QuantumState, TolerancesMixin):
 
     def draw(self, output='text', max_size=None, dims=True):
         """Returns a visualization of the Statevector.
-        
+
         **text**: ASCII TextMatrix that can be printed in the console.
-        
+
         **markdown**: An IPython Markdown object for displaying in Jupyter Notebooks.
-        
+
         **markdown_source**: ASCII markdown source used to create an IPython Markdown object.
-        
+
         **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
-        
-        **qsphere**: Matplotlib figure, rendering of statevector data using `plot_state_qsphere()`.
-        
-        **hinton**: Matplotlib figure, rendering of statevector data using `plot_state_hinton()`.
-        
-        **bloch**: Matplotlib figure, rendering of statevector data using `plot_bloch_multivector()`.
-        
+
+        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+
         Args:
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``markdown``,
@@ -138,29 +138,30 @@ class Statevector(QuantumState, TolerancesMixin):
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
                 and ``markdown`` drawers, this is also the maximum number
-                of elements that will be drawn in the output array, including 
-                elipses elements. For ``text`` drawer, this is the ``threshold`` 
+                of elements that will be drawn in the output array, including
+                elipses elements. For ``text`` drawer, this is the ``threshold``
                 parameter in ``numpy.array2string()``.
-        
+            dims (bool): For `text` and `markdown`. Whether to display the
+                dimensions.
+
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
             :class:`TextMatrix`: or :class:`IPython.display.Markdown`
-        
+
         Raises:
-            VisualizationError when an invalid output method is selected.
+            ValueError: when an invalid output method is selected.
         """
         from qiskit.visualization.state_visualization import state_drawer
         output = output.lower()
-        valid_choices = ['text','markdown','markdown_source','latex_source',
-                             'qsphere', 'hinton', 'bloch']
+        valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']
         if output in valid_choices:
             return state_drawer(self, output=output, max_size=max_size, dims=dims)
         else:
             valid_choices_string = "', '".join(c for c in valid_choices)[:-1]
             obj_name = type(self).__name__
             raise ValueError(f"'{output}' is not a valid drawing method for"
-            f"{obj_name}, choose from '{valid_choices_string}'")
-            
+                             f"{obj_name}, choose from '{valid_choices_string}'")
 
     def _ipython_display_(self):
         display(self.draw('markdown'))
