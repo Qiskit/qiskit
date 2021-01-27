@@ -1221,6 +1221,10 @@ class QuantumCircuit:
         else:
             return string_temp
 
+    def _repr_html_(self):
+        return self.draw('mpl')._repr_html_()
+
+
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
