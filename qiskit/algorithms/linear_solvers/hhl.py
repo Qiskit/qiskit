@@ -352,6 +352,6 @@ class HHL(LinearSolver):
         solution.state = self.construct_circuit()
         solution.euclidean_norm = self.calculate_norm(solution.state)
         # The post-rotating gates have already been applied
-        (solution.observable, solution.circuit_results) =\
+        solution.observable, solution.circuit_results =\
             self.calculate_observable(solution.state, observable, post_processing)
         return solution
