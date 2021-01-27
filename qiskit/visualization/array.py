@@ -77,9 +77,9 @@ def _num_to_latex(num, precision=5):
         if num + denom < 20:
             # If fraction is 'nice' return
             if val > 0:
-                return "\\tfrac{%i}{%i}" % (abs(num), abs(denom))
+                return f"\\tfrac{abs(num)}{abs(denom)}"
             else:
-                return "-\\tfrac{%i}{%i}" % (abs(num), abs(denom))
+                return f"-\\tfrac{abs(num)}{abs(denom)}"
         else:
             # Failing everything else, return val as a decimal
             return "{:.{}f}".format(val, precision).rstrip("0")
@@ -109,13 +109,13 @@ def _num_to_latex(num, precision=5):
     if realstring == "0":
         # imagstring needs the negative sign adding
         if operation == "-":
-            return "-{}i".format(imagstring)
+            return f"-{imagstring}i"
         else:
-            return "{}i".format(imagstring)
+            return f"{imagstring}i"
     if common_facstring is not None:
-        return "{}({} {} {}i)".format(common_facstring, realstring, operation, imagstring)
+        return f"{common_facstring}({realstring} {operation} {imagstring}i)"
     else:
-        return "{} {} {}i".format(realstring, operation, imagstring)
+        return f"{realstring} {operation} {imagstring}i"
 
 
 def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
@@ -141,7 +141,7 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
 
-    out_string = "\n{}\n".format(pretext)
+    out_string = f"\n{pretext}\n"
     out_string += "\\begin{bmatrix}\n"
 
     def _elements_to_latex(elements):
