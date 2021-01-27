@@ -49,7 +49,7 @@ class MatrixFunctional(LinearSystemObservable):
         observables = []
         # First we measure the norm of x
         observables.append(I ^ num_qubits)
-        for i in range(0, num_qubits):
+        for i in range(num_qubits):
             j = num_qubits - i - 1
             observables.append([(I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
                                 (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])])
