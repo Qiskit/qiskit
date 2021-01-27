@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,7 @@ from ddt import ddt, unpack, data
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (PrimitiveOp, X, Z, I,
                            AerPauliExpectation, PauliExpectation,
@@ -35,7 +35,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        aqua_globals.random_seed = self.seed
+        algorithm_globals.random_seed = self.seed
         self.h2_op = -1.052373245772859 * (I ^ I) \
             + 0.39793742484318045 * (I ^ Z) \
             - 0.39793742484318045 * (Z ^ I) \
@@ -63,8 +63,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
                   quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator'),
                                                    basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                                                    coupling_map=[[0, 1]],
-                                                   seed_simulator=aqua_globals.random_seed,
-                                                   seed_transpiler=aqua_globals.random_seed))
+                                                   seed_simulator=algorithm_globals.random_seed,
+                                                   seed_transpiler=algorithm_globals.random_seed))
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -176,8 +176,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         optimizer = L_BFGS_B()
 
         quantum_instance = QuantumInstance(backend,
-                                           seed_simulator=aqua_globals.random_seed,
-                                           seed_transpiler=aqua_globals.random_seed)
+                                           seed_simulator=algorithm_globals.random_seed,
+                                           seed_transpiler=algorithm_globals.random_seed)
         vqe = VQE(var_form=wavefunction,
                   optimizer=optimizer,
                   max_evals_grouped=1,
@@ -199,8 +199,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         quantum_instance = QuantumInstance(backend,
-                                           seed_simulator=aqua_globals.random_seed,
-                                           seed_transpiler=aqua_globals.random_seed)
+                                           seed_simulator=algorithm_globals.random_seed,
+                                           seed_transpiler=algorithm_globals.random_seed)
 
         vqe = VQE(var_form=wavefunction,
                   optimizer=optimizer,
@@ -224,8 +224,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         quantum_instance = QuantumInstance(backend, shots=1,
-                                           seed_simulator=aqua_globals.random_seed,
-                                           seed_transpiler=aqua_globals.random_seed)
+                                           seed_simulator=algorithm_globals.random_seed,
+                                           seed_transpiler=algorithm_globals.random_seed)
         vqe = VQE(var_form=wavefunction,
                   optimizer=optimizer,
                   expectation=AerPauliExpectation(),

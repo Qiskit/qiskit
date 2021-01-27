@@ -84,6 +84,17 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc.num_nonlocal_gates(), 7)
 
+    def test_do_not_change_cm(self):
+        """Coupling map should not change.
+        See https://github.com/Qiskit/qiskit-terra/issues/5675"""
+        cm_edges = [(1, 0), (2, 0), (2, 1), (3, 2), (3, 4), (4, 2)]
+        coupling = CouplingMap(cm_edges)
+
+        passmanager = PassManager(SabreSwap(coupling))
+        _ = passmanager.run(QuantumCircuit(1))
+
+        self.assertEqual(set(cm_edges), set(coupling.get_edges()))
+
 
 if __name__ == '__main__':
     unittest.main()
