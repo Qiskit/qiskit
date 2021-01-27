@@ -123,7 +123,9 @@ class MatplotlibDrawer:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
         from matplotlib import patches
+        self.patches_mod = patches
         from matplotlib import pyplot as plt
+        self.plt_mod = plt
         if not HAS_PYLATEX:
             raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
                               'to install, run "pip install pylatexenc".')
@@ -294,7 +296,7 @@ class MatplotlibDrawer:
             return 0.0
 
         if self._renderer:
-            t = plt.text(0.5, 0.5, text, fontsize=fontsize)
+            t = self.plt_mod.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self._renderer).width / 60.0
         else:
             math_mode_match = self._mathmode_regex.search(text)
@@ -417,7 +419,7 @@ class MatplotlibDrawer:
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
-        box = patches.Rectangle(
+        box = self.patches_mod.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG), width=wid, height=height,
             fc=fc, ec=ec, linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
@@ -452,7 +454,7 @@ class MatplotlibDrawer:
         sub_width = self._get_text_width(subtext, sfs, param=True)
         wid = max((text_width, sub_width, WID))
 
-        box = patches.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
+        box = self.patches_mod.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
                                 width=wid, height=HIG, fc=fc, ec=ec,
                                 linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
@@ -509,7 +511,7 @@ class MatplotlibDrawer:
         self._gate(qxy, fc=fc, ec=ec, gt=gt, sc=sc)
 
         # add measure symbol
-        arc = patches.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
+        arc = self.patches_mod.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
                           height=HIG * 0.7, theta1=0, theta2=180, fill=False,
                           ec=gt, linewidth=self._lwidth2, zorder=PORDER_GATE)
         self._ax.add_patch(arc)
@@ -517,7 +519,7 @@ class MatplotlibDrawer:
                       color=gt, linewidth=self._lwidth2, zorder=PORDER_GATE)
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style['cc'], ls=self._style['cline'])
-        arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
+        arrowhead = self.patches_mod.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
                                      (cx, cy + 0.04)), fc=self._style['cc'], ec=None)
         self._ax.add_artist(arrowhead)
@@ -531,13 +533,13 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         fc = self._style['lc'] if istrue else self._style['bg']
-        box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15, fc=fc,
+        box = self.patches_mod.Circle(xy=(xpos, ypos), radius=WID * 0.15, fc=fc,
                              ec=self._style['lc'], linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text='', text_top=None):
         xpos, ypos = xy
-        box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
+        box = self.patches_mod.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=self._lwidth15, zorder=PORDER_GATE)
         self._ax.add_patch(box)
         # display the control label at the top or bottom if there is one
@@ -577,7 +579,7 @@ class MatplotlibDrawer:
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = self._lwidth2
         xpos, ypos = xy
-        box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
+        box = self.patches_mod.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
                              fc=ec, ec=ec, linewidth=linewidth,
                              zorder=PORDER_GATE)
         self._ax.add_patch(box)
@@ -605,7 +607,7 @@ class MatplotlibDrawer:
             self._ax.plot([xpos, xpos], [ypos + 0.5, ypos - 0.5],
                           linewidth=self._scale, linestyle="dashed",
                           color=self._style['lc'], zorder=PORDER_TEXT)
-            box = patches.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
+            box = self.patches_mod.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
                                     width=0.6 * WID, height=1,
                                     fc=self._style['bc'], ec=None, alpha=0.6,
                                     linewidth=self._lwidth15, zorder=PORDER_GRAY)
@@ -630,7 +632,7 @@ class MatplotlibDrawer:
         self._figure.set_size_inches(self._style['figwidth'],
                                      self._style['figwidth'] * fig_h / fig_w)
         if self._global_phase:
-            plt.text(_xl, _yt, 'Global Phase: %s' % pi_check(self._global_phase,
+            self.plt_mod.text(_xl, _yt, 'Global Phase: %s' % pi_check(self._global_phase,
                                                              output='mpl'))
 
         if filename:
@@ -640,7 +642,7 @@ class MatplotlibDrawer:
             from matplotlib import get_backend
             if get_backend() in ['module://ipykernel.pylab.backend_inline',
                                  'nbAgg']:
-                plt.close(self._figure)
+                self.plt_mod.close(self._figure)
             return self._figure
 
     def _draw_regs(self):
