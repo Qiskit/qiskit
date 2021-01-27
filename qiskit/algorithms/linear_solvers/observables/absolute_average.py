@@ -47,9 +47,8 @@ class AbsoluteAverage(LinearSystemObservable):
         Returns:
             The observable as a QuantumCircuit.
         """
-        qr = QuantumRegister(num_qubits)
-        qc = QuantumCircuit(qr)
-        qc.h(qr)
+        qc = QuantumCircuit(num_qubits)
+        qc.h(qc.qubits)
         return qc
 
     def post_processing(self, solution: Union[float, List[float]],
