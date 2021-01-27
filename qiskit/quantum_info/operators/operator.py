@@ -488,6 +488,9 @@ class Operator(BaseOperator, TolerancesMixin):
     def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
         # Initialize an identity operator of the correct size of the circuit
+        if hasattr(instruction, '__array__'):
+            return Operator(np.array(instruction, dtype=complex))
+
         dimension = 2 ** instruction.num_qubits
         op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
