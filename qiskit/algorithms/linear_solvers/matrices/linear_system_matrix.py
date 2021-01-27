@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit
 class LinearSystemMatrix(ABC):
     """An abstract class for linear system matrices in Qiskit.(Placeholder)"""
     @abstractmethod
-    def power(self, power: int, matrix_power=False) -> QuantumCircuit:
+    def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:
