@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from scipy.sparse import spmatrix, csr_matrix
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.circuit import ParameterExpression, ParameterVector
 from .exceptions import OpflowError
 
@@ -609,7 +609,7 @@ class OperatorBase(ABC):
         Raises:
             ValueError: Massive is False and number of qubits is greater than 16
         """
-        if num_qubits > 16 and not massive and not aqua_globals.massive:
+        if num_qubits > 16 and not massive and not algorithm_globals.massive:
             dim = 2 ** num_qubits
             if matrix:
                 obj_type = 'matrix'
@@ -620,7 +620,7 @@ class OperatorBase(ABC):
             raise ValueError(
                 f"'{method}' will return an exponentially large {obj_type}, "
                 f"in this case '{dimensions}' elements. "
-                "Set aqua_globals.massive=True or the method argument massive=True "
+                "Set algorithm_globals.massive=True or the method argument massive=True "
                 "if you want to proceed.")
 
     # Printing
