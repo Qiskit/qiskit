@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -40,7 +40,7 @@ Algorithm Utilities
    has_ibmq
    has_aer
    name_args
-   aqua_globals
+   algorithm_globals
 
 .. autosummary::
    :toctree: ../stubs/
@@ -68,7 +68,7 @@ from .circuit_utils import summarize_circuits
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
-from .aqua_globals import aqua_globals
+from .algorithm_globals import algorithm_globals
 
 
 __all__ = [
@@ -79,7 +79,7 @@ __all__ = [
     'has_ibmq',
     'has_aer',
     'name_args',
-    'aqua_globals',
+    'algorithm_globals',
     'deprecate_arguments',
     'deprecate_function',
     'local_hardware_info',
