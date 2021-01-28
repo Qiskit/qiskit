@@ -25,6 +25,7 @@ Standard Gates
 
    Barrier
    C3XGate
+   C3SXGate
    C4XGate
    CCXGate
    DCXGate
@@ -201,6 +202,7 @@ N-local circuits
 
    NLocal
    TwoLocal
+   PauliTwoDesign
    RealAmplitudes
    EfficientSU2
    ExcitationPreserving
@@ -313,6 +315,7 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
+    PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,

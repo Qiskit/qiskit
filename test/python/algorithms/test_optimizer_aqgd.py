@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020
+# (C) Copyright IBM 2019, 2021
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
@@ -28,7 +28,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        aqua_globals.random_seed = self.seed
+        algorithm_globals.random_seed = self.seed
         self.qubit_op = PauliSumOp.from_list([
             ("II", -1.052373245772859),
             ("IZ", 0.39793742484318045),
@@ -40,8 +40,8 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_simple(self):
         """ test AQGD optimizer with the parameters as single values."""
         q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                     seed_simulator=aqua_globals.random_seed,
-                                     seed_transpiler=aqua_globals.random_seed)
+                                     seed_simulator=algorithm_globals.random_seed,
+                                     seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(momentum=0.0)
         vqe = VQE(var_form=RealAmplitudes(),
@@ -53,8 +53,8 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_list(self):
         """ test AQGD optimizer with the parameters as lists. """
         q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                     seed_simulator=aqua_globals.random_seed,
-                                     seed_transpiler=aqua_globals.random_seed)
+                                     seed_simulator=algorithm_globals.random_seed,
+                                     seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
         vqe = VQE(var_form=RealAmplitudes(),
@@ -70,8 +70,8 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_int_values(self):
         """ test AQGD with int values passed as eta and momentum. """
         q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                     seed_simulator=aqua_globals.random_seed,
-                                     seed_transpiler=aqua_globals.random_seed)
+                                     seed_simulator=algorithm_globals.random_seed,
+                                     seed_transpiler=algorithm_globals.random_seed)
 
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
         vqe = VQE(var_form=RealAmplitudes(),
