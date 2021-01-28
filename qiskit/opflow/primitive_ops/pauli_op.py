@@ -290,23 +290,6 @@ class PauliOp(PrimitiveOp):
             from ..evolutions.evolved_op import EvolvedOp
             return EvolvedOp(self)
 
-    def commutes(self, other_op: OperatorBase) -> bool:
-        """ Returns whether self commutes with other_op.
-
-        Args:
-            other_op: An ``OperatorBase`` with which to evaluate whether self commutes.
-
-        Returns:
-            A bool equaling whether self commutes with other_op
-
-        """
-        if not isinstance(other_op, PauliOp):
-            return False
-        # Don't use compose because parameters will break this
-        self_bits = self.primitive.z + 2 * self.primitive.x  # type: ignore
-        other_bits = other_op.primitive.z + 2 * other_op.primitive.x  # type: ignore
-        return all((self_bits * other_bits) * (self_bits - other_bits) == 0)
-
     def to_circuit(self) -> QuantumCircuit:
         # If Pauli equals identity, don't skip the IGates
         is_identity = sum(self.primitive.x + self.primitive.z) == 0  # type: ignore

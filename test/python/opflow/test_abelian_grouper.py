@@ -47,7 +47,7 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         self.assertEqual(len(grouped_sum.oplist), num_groups)
         for group in grouped_sum:
             for op_1, op_2 in combinations(group, 2):
-                self.assertTrue(op_1.commutes(op_2))
+                self.assertEqual(op_1 @ op_2, op_2 @ op_1)
 
     def test_ablian_grouper_no_commute(self):
         """Abelian grouper test when non-PauliOp is given"""
@@ -89,7 +89,7 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
             grouped_sum = AbelianGrouper().convert(sum(paulis))
             for group in grouped_sum:
                 for op_1, op_2 in combinations(group, 2):
-                    self.assertTrue(op_1.commutes(op_2))
+                    self.assertEqual(op_1 @ op_2, op_2 @ op_1)
 
 
 if __name__ == '__main__':

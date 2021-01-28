@@ -50,6 +50,11 @@ class TaperedPauliSumOp(PauliSumOp):
             TypeError: invalid parameters.
         """
         super().__init__(primitive, coeff)
+        if not isinstance(z2_symmetries, Z2Symmetries):
+            raise TypeError(
+                "Argument parameter z2_symmetries must be Z2Symmetries, "
+                f"not {type(z2_symmetries)}"
+            )
         self._z2_symmetries = z2_symmetries
 
     @property
@@ -61,16 +66,6 @@ class TaperedPauliSumOp(PauliSumOp):
             The Z2 Symmetries.
         """
         return self._z2_symmetries
-
-    def equals(self, other: OperatorBase):
-
-        if not isinstance(other, TaperedPauliSumOp):
-            return False
-
-        if self.z2_symmetries != other.z2_symmetries:
-            return False
-
-        return super().equals(other)
 
 
 class Z2Symmetries:
