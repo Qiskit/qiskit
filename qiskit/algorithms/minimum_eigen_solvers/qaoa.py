@@ -57,7 +57,6 @@ class QAOA(VQE):
     the evolution to a feasible subspace of the full Hilbert space.
     """
 
-    # pylint: disable=invalid-name
     def __init__(self,
                  optimizer: Optimizer = None,
                  reps: int = 1,

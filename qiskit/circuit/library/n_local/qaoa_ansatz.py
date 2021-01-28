@@ -31,25 +31,25 @@ class QAOAAnsatz(BlueprintCircuit):
             `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
     def __init__(self,
-                 cost_operator: 'OperatorBase',
+                 cost_operator,
                  reps: int,
                  initial_state: Optional[QuantumCircuit] = None,
-                 mixer_operator: Optional[Union[QuantumCircuit, 'OperatorBase']] = None,
+                 mixer_operator=None,
                  name: str = "qaoa"):
         r"""
         Args:
-            cost_operator: The operator representing the cost of the optimization problem,
-                denoted as :math:`U(C, \gamma)` in the original paper.
-            reps: The integer parameter p, which determines the depth of the circuit,
+            cost_operator (OperatorBase): The operator representing the cost of the optimization
+                problem, denoted as :math:`U(C, \gamma)` in the original paper.
+            reps (int): The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper.
-            initial_state: An optional initial state to use. If `None` is passed then a set of
-                Hadamard gates is applied as an initial state to all qubits.
-            mixer_operator: An optional custom mixer to use instead of the global X-rotations,
-                denoted as :math:`U(B, \beta)` in the original paper. Can be an operator or
-                an optionally parameterized quantum circuit.
-            name: A name of the circuit, default 'qaoa'
-        Raises:
-            TypeError: invalid input
+            initial_state (QuantumCircuit, optional): An optional initial state to use.
+                If `None` is passed then a set of Hadamard gates is applied as an initial state
+                to all qubits.
+            mixer_operator (OperatorBase or QuantumCircuit, optional): 11An optional custom mixer
+                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
+                in the original paper. Can be an operator or an optionally parameterized quantum
+                circuit.
+            name (str): A name of the circuit, default 'qaoa'
         """
         super().__init__(name=name)
         self._cost_operator = cost_operator
@@ -75,21 +75,24 @@ class QAOAAnsatz(BlueprintCircuit):
         if self._reps is None or self._reps < 1:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The integer parameter p, which determines the depth "
-                                     "of the circuit, either not set or set to non-positive value")
+                raise AttributeError("The integer parameter reps, which determines the depth "
+                                     "of the circuit, needs to be >= 1 but has value {}"
+                                     .format(self._reps))
 
         num_qubits = self._cost_operator.num_qubits
         if self._initial_state is not None and self._initial_state.num_qubits != num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The number of qubits of the initial state does not match "
-                                     "the number of qubits of the cost operator")
+                raise AttributeError("The number of qubits of the initial state {} does not match "
+                                     "the number of qubits of the cost operator {}"
+                                     .format(self._initial_state.num_qubits, num_qubits))
 
         if self._mixer_operator is not None and self._mixer_operator.num_qubits != num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The number of qubits of the mixer does not match "
-                                     "the number of qubits of the cost operator")
+                raise AttributeError("The number of qubits of the mixer {} does not match "
+                                     "the number of qubits of the cost operator {}"
+                                     .format(self._mixer_operator.num_qubits, num_qubits))
 
         return valid
 
@@ -123,6 +126,7 @@ class QAOAAnsatz(BlueprintCircuit):
         return super().parameters
 
     def _calculate_parameters(self):
+        """Calculated internal parameters of the circuit to be built."""
         self._num_qubits = self._cost_operator.num_qubits
 
         from qiskit.opflow import OperatorBase
@@ -190,24 +194,32 @@ class QAOAAnsatz(BlueprintCircuit):
         return circuit_op.to_circuit()
 
     @property
-    def cost_operator(self) -> 'OperatorBase':
-        """Returns an operator representing the cost of the optimization problem."""
+    def cost_operator(self):
+        """Returns an operator representing the cost of the optimization problem.
+
+        Returns:
+            OperatorBase: cost operator.
+        """
         return self._cost_operator
 
     @cost_operator.setter
-    def cost_operator(self, cost_operator: 'OperatorBase') -> None:
-        """Sets cost operator."""
+    def cost_operator(self, cost_operator) -> None:
+        """Sets cost operator.
+
+        Args:
+            cost_operator (OperatorBase): cost operator to set.
+        """
         self._cost_operator = cost_operator
         self._invalidate()
 
     @property
     def reps(self) -> int:
-        """Returns the `p` parameter, which determines the depth of the circuit."""
+        """Returns the `reps` parameter, which determines the depth of the circuit."""
         return self._reps
 
     @reps.setter
     def reps(self, reps: int) -> None:
-        """Sets the `p` parameter."""
+        """Sets the `reps` parameter."""
         self._reps = reps
         self._invalidate()
 
@@ -222,14 +234,25 @@ class QAOAAnsatz(BlueprintCircuit):
         self._initial_state = initial_state
         self._invalidate()
 
+    # we can't directly specify OperatorBase as a return type, it causes a circular import
+    # and pylint objects if return type is not documented
+    # pylint: disable=missing-return-type-doc
     @property
-    def mixer_operator(self) -> Optional[Union[QuantumCircuit, 'OperatorBase']]:
-        """Returns an optional mixer operator expressed as an operator or a quantum circuit."""
+    def mixer_operator(self):
+        """Returns an optional mixer operator expressed as an operator or a quantum circuit.
+
+        Returns:
+            OperatorBase or QuantumCircuit, optional: mixer operator.
+        """
         return self._mixer_operator
 
     @mixer_operator.setter
-    def mixer_operator(self,
-                       mixer_operator: Optional[Union[QuantumCircuit, 'OperatorBase']]) -> None:
-        """Sets mixer operator."""
+    def mixer_operator(self, mixer_operator) -> None:
+        """Sets mixer operator.
+
+        Args:
+            mixer_operator (OperatorBase or QuantumCircuit, optional): mixer operator or circuit
+                to set.
+        """
         self._mixer_operator = mixer_operator
         self._invalidate()

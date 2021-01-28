@@ -29,7 +29,7 @@ from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
 
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Pauli
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 
 W1 = np.array([
     [0, 1, 0, 1],
@@ -68,7 +68,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa(self, w, prob, m, solutions, convert_to_matrix_op):
         """ QAOA test """
         seed = 0
-        aqua_globals.random_seed = seed
+        algorithm_globals.random_seed = seed
         self.log.debug('Testing %s-step QAOA with MaxCut on graph\n%s', prob, w)
 
         backend = BasicAer.get_backend('statevector_simulator')
@@ -95,7 +95,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa_qc_mixer(self, w, prob, solutions, convert_to_matrix_op):
         """ QAOA test with a mixer as a parameterized circuit"""
         seed = 0
-        aqua_globals.random_seed = seed
+        algorithm_globals.random_seed = seed
         self.log.debug('Testing %s-step QAOA with MaxCut on graph with '
                        'a mixer as a parameterized circuit\n%s', prob, w)
 
@@ -121,7 +121,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa_qc_mixer_many_parameters(self):
         """ QAOA test with a mixer as a parameterized circuit with the num of parameters > 1. """
         seed = 0
-        aqua_globals.random_seed = seed
+        algorithm_globals.random_seed = seed
 
         optimizer = COBYLA()
         qubit_op, _ = self._get_operator(W1)
@@ -144,7 +144,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa_qc_mixer_no_parameters(self):
         """ QAOA test with a mixer as a parameterized circuit with zero parameters. """
         seed = 0
-        aqua_globals.random_seed = seed
+        algorithm_globals.random_seed = seed
 
         qubit_op, _ = self._get_operator(W1)
 
@@ -163,7 +163,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_change_operator_size(self):
         """ QAOA change operator size test """
 
-        aqua_globals.random_seed = 0
+        algorithm_globals.random_seed = 0
         qubit_op, _ = self._get_operator(
             np.array([
                 [0, 1, 0, 1],
@@ -172,8 +172,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 [1, 0, 1, 0]
             ]))
         q_i = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                              seed_simulator=aqua_globals.random_seed,
-                              seed_transpiler=aqua_globals.random_seed)
+                              seed_simulator=algorithm_globals.random_seed,
+                              seed_transpiler=algorithm_globals.random_seed)
         qaoa = QAOA(COBYLA(), 1, quantum_instance=q_i)
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -208,7 +208,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     @unpack
     def test_qaoa_initial_point(self, w, solutions, init_pt):
         """ Check first parameter value used is initial point as expected """
-        aqua_globals.random_seed = 10598
+        algorithm_globals.random_seed = 10598
         optimizer = COBYLA()
         qubit_op, _ = self._get_operator(w)
 
@@ -220,8 +220,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 first_pt = list(parameters)
 
         quantum_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                           seed_simulator=aqua_globals.random_seed,
-                                           seed_transpiler=aqua_globals.random_seed)
+                                           seed_simulator=algorithm_globals.random_seed,
+                                           seed_transpiler=algorithm_globals.random_seed)
         qaoa = QAOA(optimizer, initial_point=init_pt, callback=cb_callback,
                     quantum_instance=quantum_instance)
 
@@ -303,13 +303,13 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def test_qaoa_random_initial_point(self):
         """ QAOA random initial point """
-        aqua_globals.random_seed = 10598
+        algorithm_globals.random_seed = 10598
         w = nx.adjacency_matrix(
-            nx.fast_gnp_random_graph(5, 0.5, seed=aqua_globals.random_seed)).toarray()
+            nx.fast_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)).toarray()
         qubit_op, _ = self._get_operator(w)
         q_i = QuantumInstance(BasicAer.get_backend('qasm_simulator'),
-                              seed_simulator=aqua_globals.random_seed,
-                              seed_transpiler=aqua_globals.random_seed,
+                              seed_simulator=algorithm_globals.random_seed,
+                              seed_transpiler=algorithm_globals.random_seed,
                               shots=4096)
         qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=q_i)
         _ = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
