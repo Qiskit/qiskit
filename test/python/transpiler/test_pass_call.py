@@ -21,6 +21,7 @@ class TestPassCall(QiskitTestCase):
     """Test calling passes (passmanager-less)."""
 
     def assertMessageLog(self, context, messages):
+        """Checks the log messages"""
         self.assertEqual([record.message for record in context.records], messages)
 
     def test_transformation_pass(self):
