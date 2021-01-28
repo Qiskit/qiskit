@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue introduced in 0.16.2 that would cause errors when running
+    :func:`~qiskit.compiler.transpile` on a circuit with a series of 1 qubit
+    gates and a non-gate instruction that only operates on a qubit (e.g.
+    :class:`~qiskit.circuit.Reset`). Fixes
+    `#5736 <https://github.com/Qiskit/qiskit-terra/issues/5736>`__
