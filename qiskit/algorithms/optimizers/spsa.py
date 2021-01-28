@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ import logging
 
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 from .optimizer import Optimizer, OptimizerSupportLevel
 
@@ -176,7 +176,7 @@ class SPSA(Optimizer):
             a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4],
                                                            self._parameters[2])
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
-            delta = 2 * aqua_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
@@ -234,7 +234,7 @@ class SPSA(Optimizer):
         for i in range(stat):
             if i % 5 == 0:
                 logger.debug('calibration step # %s of %s', str(i), str(stat))
-            delta = 2 * aqua_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
             if self._max_evals_grouped > 1:
