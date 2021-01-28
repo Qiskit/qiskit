@@ -11,31 +11,26 @@
 # that they have been altered from the originals.
 
 """
-Clifford template 8_2:
+Clifford template 4_4:
 .. parsed-literal::
 
-                             ┌───┐
-        q_0: ──■─────────■───┤ S ├───■────────────
-             ┌─┴─┐┌───┐┌─┴─┐┌┴───┴┐┌─┴─┐┌───┐┌───┐
-        q_1: ┤ X ├┤ H ├┤ X ├┤ SDG ├┤ X ├┤ S ├┤ H ├
-             └───┘└───┘└───┘└─────┘└───┘└───┘└───┘
+             ┌───┐   ┌─────┐
+        q_0: ┤ S ├─■─┤ SDG ├─■─
+             └───┘ │ └─────┘ │
+        q_1: ──────■─────────■─
 """
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
-def clifford_8_2():
+def clifford_4_4():
     """
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """
     qc = QuantumCircuit(2)
-    qc.cx(0, 1)
-    qc.h(1)
-    qc.cx(0, 1)
     qc.s(0)
-    qc.sdg(1)
-    qc.cx(0, 1)
-    qc.s(1)
-    qc.h(1)
+    qc.cz(0, 1)
+    qc.sdg(0)
+    qc.cz(0, 1)
     return qc
