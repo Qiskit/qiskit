@@ -405,10 +405,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # optimization routine.
         if self._gradient:
             if isinstance(self._gradient, GradientBase):
-                self._gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self._var_form),
-                    bind_params=self._var_form_params,
-                    backend=self._quantum_instance)
+                if isinstance(self._var_form, VariationalForm):
+                    var_form = self._var_form.construct_circuit(self._var_form_params)
+                    self._gradient = self._gradient.gradient_wrapper(
+                        ~StateFn(operator) @ StateFn(var_form),
+                        bind_params=self._var_form_params,
+                        backend=self._quantum_instance)
+                else:
+                    self._gradient = self._gradient.gradient_wrapper(
+                        ~StateFn(operator) @ StateFn(self._var_form),
+                        bind_params=self._var_form_params,
+                        backend=self._quantum_instance)
         if not self._expect_op:
             self._expect_op = self.construct_expectation(self._var_form_params, operator)
         vqresult = self.find_minimum(initial_point=self.initial_point,

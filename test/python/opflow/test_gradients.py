@@ -870,8 +870,8 @@ class TestGradients(QiskitOpflowTestCase):
             np.testing.assert_array_almost_equal(result, correct_values[i], decimal=1)
 
     @slow_test
-    def test_vqe(self):
-        """Test VQE with gradients"""
+    def test_vqe1(self):
+        """Test VQE with gradient"""
 
         method = 'lin_comb'
         backend = 'qasm_simulator'
@@ -900,6 +900,47 @@ class TestGradients(QiskitOpflowTestCase):
         optimizer = CG(maxiter=10)
 
         grad = Gradient(grad_method=method)
+
+        # Gradient callable
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
+
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
+
+    @slow_test
+    def test_vqe2(self):
+        """Test VQE with natural gradient"""
+
+        method = 'lin_comb'
+        backend = 'qasm_simulator'
+        q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
+                                     seed_transpiler=2)
+        # Define the Hamiltonian
+        h2_hamiltonian = -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) \
+                         - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        h2_energy = -1.85727503
+
+        # Define the Ansatz
+        wavefunction = QuantumCircuit(2)
+        params = ParameterVector('theta', length=8)
+        itr = iter(params)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+        wavefunction.cx(0, 1)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+
+        # Conjugate Gradient algorithm
+        optimizer = CG(maxiter=10)
+
+        grad = NaturalGradient(grad_method=method)
 
         # Gradient callable
         vqe = VQE(var_form=wavefunction,

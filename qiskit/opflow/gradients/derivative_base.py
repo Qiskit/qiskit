@@ -101,15 +101,18 @@ class DerivativeBase(ConverterBase):
             grad_params = bind_params
 
         def gradient_fn(p_values):
+            # Generate a dictionary to relate parameter objects to parameter values
             p_values_dict = dict(zip(bind_params, p_values))
+            # Assign parameter values to the operator
+            converter = self.convert(operator, grad_params).assign_parameters(p_values_dict)
+            # Evaluate the operator with ...
             if not backend:
-                converter = self.convert(operator, grad_params).assign_parameters(p_values_dict)
-                return np.real(converter.eval())
+                # ... eval
+                return converter.eval()
             else:
-                p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = CircuitSampler(backend=backend).convert(
-                    self.convert(operator, grad_params), p_values_dict)
-                return np.real(converter.eval()[0])
+                # ... a given backend
+                converter = CircuitSampler(backend=backend).convert(converter)
+                return converter.eval()
 
         return gradient_fn
 
