@@ -734,6 +734,21 @@ class TestDagNodeSelection(QiskitTestCase):
             else:
                 self.fail('Unknown run encountered')
 
+    def test_dag_no_reset_in_collect_1q_runs(self):
+        """Test a run does not include a reset instruction."""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(1, 'qr')
+        creg = ClassicalRegister(1, 'cr')
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(U1Gate(3.14), [qreg[0]])
+        dag.apply_operation_back(HGate(), [qreg[0]])
+        dag.apply_operation_back(Reset(), [qreg[0]])
+        dag.apply_operation_back(Measure(), [qreg[0]], [creg[0]])
+        runs = dag._collect_1q_runs()
+        self.assertEqual([[x.name for x in run] for run in runs],
+                         [['u1', 'h']])
+
     def test_dag_collect_1q_runs_start_with_conditional(self):
         """Test collect 1q runs with a conditional at the start of the run."""
         h_gate = HGate()

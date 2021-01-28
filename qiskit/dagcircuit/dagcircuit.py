@@ -1441,10 +1441,11 @@ class DAGCircuit:
                 while len(s) == 1 and \
                         s[0].type == "op" and \
                         len(s[0].qargs) == 1 and \
-                        len(s[0].cargs) == 0 and \
+                        not s[0].cargs and \
                         s[0].condition is None and \
+                        s[0] not in nodes_seen and \
                         not s[0].op.is_parameterized() and \
-                        isinstance(node.op, Gate):
+                        isinstance(s[0].op, Gate):
                     group.append(s[0])
                     nodes_seen.add(s[0])
                     s = self._multi_graph.successors(s[0]._node_id)
