@@ -1517,14 +1517,6 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
-    def test_arctan2(self):
-        """Test arctan2 of ParameterExpression."""
-        x = Parameter('x')
-        y = Parameter('y')
-        expr = numpy.arctan2(x, y)
-        bexpr = expr.bind({x: 1, y: 2})
-        self.assertEqual(float(bexpr), numpy.arctan2(1, 2))
-
     def test_sqrt(self):
         """Test sqrt of ParameterExpression."""
         from sympy import sqrt
@@ -1533,6 +1525,15 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(expr._symbol_expr, sqrt(x._symbol_expr))
         bexpr = expr.bind({x: 2})
         self.assertEqual(float(bexpr), numpy.sqrt(2))
+
+    def test_sqrt_complex(self):
+        """Test sqrt of ParameterExpression."""
+        from sympy import sqrt
+        x = Parameter('x')
+        expr = numpy.sqrt(x)
+        self.assertEqual(expr._symbol_expr, sqrt(x._symbol_expr))
+        bexpr = expr.bind({x: 2j})
+        self.assertEqual(complex(bexpr), numpy.sqrt(2j))
 
     def test_parameter_expression_grad(self):
         """Verify correctness of ParameterExpression gradients."""
@@ -1554,22 +1555,34 @@ class TestParameterExpressions(QiskitTestCase):
     def test_floor(self):
         """Test ParameterExpression floor."""
         a = 1.3
-        b = 2
         x = Parameter('x')
-        y = Parameter('y')
-        expr = numpy.floor(x*y)
-        bexpr = expr.bind({x: a, y: b})
-        self.assertEqual(float(bexpr), numpy.floor(a * b))
+        expr = numpy.floor(x)
+        bexpr = expr.bind({x: a})
+        self.assertEqual(complex(bexpr), numpy.floor(a))
+
+    def test_floor_complex(self):
+        """Test ParameterExpression floor for complex."""
+        a = -3.6 + 1.3j
+        x = Parameter('x')
+        expr = numpy.floor(x)
+        bexpr = expr.bind({x: a})
+        self.assertEqual(complex(bexpr), numpy.floor(a.real) + 1j * numpy.floor(a.imag))
 
     def test_ceil(self):
         """Test ParameterExpression ceil."""
         a = 1.3
-        b = 2
         x = Parameter('x')
-        y = Parameter('y')
-        expr = numpy.ceil(x*y)
-        bexpr = expr.bind({x: a, y: b})
-        self.assertEqual(float(bexpr), numpy.ceil(a * b))
+        expr = numpy.ceil(x)
+        bexpr = expr.bind({x: a})
+        self.assertEqual(float(bexpr), numpy.ceil(a))
+
+    def test_ceil_complex(self):
+        """Test ParameterExpression ceil for complex."""
+        a = -3.6 + 1.3j
+        x = Parameter('x')
+        expr = numpy.ceil(x)
+        bexpr = expr.bind({x: a})
+        self.assertEqual(complex(bexpr), numpy.ceil(a.real) + 1j * numpy.ceil(a.imag))
 
     def test_max(self):
         """Test ParameterExpression max."""

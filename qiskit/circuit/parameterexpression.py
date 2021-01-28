@@ -355,7 +355,7 @@ class ParameterExpression:
         return self._call(_atan)
 
     def arctan2(self, denom):
-        """Arctan2 of a ParameterExpression"""
+        """Arctan2 of a ParameterExpression. """
         from sympy import atan2 as _atan2
         return self._apply_operation(_atan2, denom)
 
@@ -375,12 +375,14 @@ class ParameterExpression:
         return self._call(_sqrt)
 
     def __floor__(self):
-        """Return floor of ParameterExpression."""
+        """Return floor of ParameterExpression. Complex expressions are treated
+        by evaluating the real and imaginary parts separately."""
         from sympy import floor as _floor
         return self._call(_floor)
 
     def __ceil__(self):
-        """Return floor of ParameterExpression."""
+        """Return ceil of ParameterExpression. Complex expressions are treated
+        by evaluating the real and imaginary parts separately."""
         from sympy import ceiling as _ceil
         return self._call(_ceil)
 
