@@ -87,7 +87,7 @@ def instruction_duration_validation(duration: int):
     if isinstance(duration, ParameterExpression):
         raise UnassignedDurationError(
             'Instruction duration {} is not assigned. '
-            'Please bind integer value before playing in the Schedule, '
+            'Please bind all durations to an integer value before playing in the Schedule, '
             'or use ScheduleBlock to align instructions with unassigned duration.'
             ''.format(repr(duration)))
 
