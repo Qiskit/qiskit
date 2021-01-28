@@ -12,7 +12,7 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=R0401
-from typing import Optional, Union, cast, Set
+from typing import Optional, cast, Set
 
 import numpy as np
 
