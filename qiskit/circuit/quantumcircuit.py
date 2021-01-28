@@ -1222,6 +1222,9 @@ class QuantumCircuit:
             return string_temp
 
     def _ipython_display_(self):
+        if self.width() > 70 or self.size() > 100 or self.depth() > 30:
+            print(self.__repr__())
+            return
         from IPython.display import display
         from qiskit.visualization import HAS_MATPLOTLIB
         if HAS_MATPLOTLIB:
