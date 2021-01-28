@@ -524,7 +524,7 @@ class Schedule(abc.ABC):
         if not isinstance(time, int):
             raise PulseError("Schedule start time must be an integer.")
 
-        other_timeslots = _get_timeslot(schedule)
+        other_timeslots = _get_timeslots(schedule)
         self._duration = max(self._duration, time + schedule.duration)
 
         for channel in schedule.channels:
@@ -580,7 +580,7 @@ class Schedule(abc.ABC):
                     'The channel {} is not present in the schedule'.format(channel))
 
             channel_timeslots = self._timeslots[channel]
-            other_timeslots = _get_timeslot(schedule)
+            other_timeslots = _get_timeslots(schedule)
 
             for interval in other_timeslots[channel]:
                 if channel_timeslots:
@@ -1154,8 +1154,8 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
                     " starting time.".format(chan))
 
 
-def _get_timeslot(schedule: Union[Instruction, Schedule]) -> TimeSlots:
-    """Generate timeslot from given schedule component.
+def _get_timeslots(schedule: Union[Instruction, Schedule]) -> TimeSlots:
+    """Generate timeslots from given schedule component.
 
     Args:
         schedule: Input schedule component.

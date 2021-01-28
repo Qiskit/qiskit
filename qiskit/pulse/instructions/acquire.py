@@ -85,7 +85,7 @@ class Acquire(Instruction):
         return self.operands[1]
 
     @property
-    def duration(self) -> int:
+    def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0]
 
