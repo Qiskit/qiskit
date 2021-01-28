@@ -1090,6 +1090,7 @@ class TextMatrix():
     def __repr__(self):
         return self.__str__()
 
+
 # pylint: disable=R0911
 def state_drawer(state,
                  output=None,

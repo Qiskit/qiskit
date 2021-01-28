@@ -13,6 +13,7 @@
 """Tests for visualization tools."""
 
 import unittest
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
@@ -328,7 +329,7 @@ class TestVisualizationUtils(QiskitTestCase):
         exp_str = "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"\
                   "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"\
                   "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
-        result = array_to_latex(matrix, display=False).replace(' ','').replace('\n','')
+        result = array_to_latex(matrix, display=False).replace(' ', '').replace('\n', '')
         self.assertEqual(exp_str, result)
 
 
