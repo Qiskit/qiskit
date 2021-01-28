@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ QDrift Class
 
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 
 from ...list_ops.composed_op import ComposedOp
 from ...list_ops.summed_op import SummedOp
@@ -61,8 +61,7 @@ class QDrift(TrotterizationBase):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]
-
-        sampled_ops = aqua_globals.random.choice(
+        sampled_ops = algorithm_globals.random.choice(
             scaled_ops, size=(int(N * self.reps),), p=weights / lambd
         )
 
