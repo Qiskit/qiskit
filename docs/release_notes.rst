@@ -22,6 +22,44 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.4
+*************
+
+Terra 0.16.3
+============
+
+.. _Release Notes_0.16.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue introduced in 0.16.2 that would cause errors when running
+  :func:`~qiskit.compiler.transpile` on a circuit with a series of 1 qubit
+  gates and a non-gate instruction that only operates on a qubit (e.g.
+  :class:`~qiskit.circuit.Reset`). Fixes
+  `#5736 <https://github.com/Qiskit/qiskit-terra/issues/5736>`__
+
+Aer 0.7.3
+=========
+
+No change
+
+Ignis 0.5.1
+===========
+
+No change
+
+Aqua 0.8.1
+==========
+
+No change
+
+IBM Q Provider 0.11.1
+=====================
+
+No change
+
+*************
 Qiskit 0.23.3
 *************
 
