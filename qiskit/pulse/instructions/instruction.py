@@ -64,7 +64,7 @@ class Instruction(ABC):
 
         if duration is not None:
             warnings.warn('Specifying duration in the constructor is deprecated. '
-                          'Now duration is abstract property rather than class variable. '
+                          'Now duration is an abstract property rather than class variable. '
                           'All subclasses should implement ``duration`` accordingly. '
                           'See Qiskit-Terra #5679 for more information.',
                           DeprecationWarning)
