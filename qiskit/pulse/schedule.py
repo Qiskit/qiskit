@@ -29,7 +29,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.instructions import Instruction, Call
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -354,8 +354,22 @@ class Schedule(abc.ABC):
         return self.insert(time, schedule, name=name, inplace=inplace)
 
     def flatten(self) -> 'Schedule':
-        """Return a new schedule which is the flattened schedule contained all ``instructions``."""
-        return Schedule(*self.instructions, name=self.name)
+        """Return a new schedule which is the flattened schedule contained all ``instructions``.
+
+        ``Call`` instruction is also decomposed into sequence of underlying instructions.
+
+        TODO: this method will be moved to proper compiler.
+        """
+        def flatten_routine_call(program: Schedule):
+            sequence = []
+            for t0, inst in program.instructions:
+                if isinstance(inst, Call):
+                    sequence.extend(flatten_routine_call(inst.subprogram))
+                else:
+                    sequence.append((t0, inst))
+            return sequence
+
+        return Schedule(*flatten_routine_call(self), name=self.name)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,

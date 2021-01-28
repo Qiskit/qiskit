@@ -34,6 +34,7 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    :toctree: ../stubs/
 
    Acquire
+   Call
    Delay
    Play
    SetFrequency
@@ -52,7 +53,7 @@ Abstract Classes
 """
 from .acquire import Acquire
 from .delay import Delay
-from .directives import Directive, RelativeBarrier
+from .directives import Directive, RelativeBarrier, Call
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase

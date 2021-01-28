@@ -12,11 +12,12 @@
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
 from abc import ABC
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import channels as chans, Schedule
 from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class Directive(Instruction, ABC):
@@ -59,30 +60,53 @@ class Call(Directive):
     """Pulse ``Call`` directive.
 
     This instruction wraps other instructions when ``pulse.call`` function is
-    used in the pulse builder context.
-    This instruction clearly indicates the attached program is a subroutine
+    used in the pulse builder context. Note that this is not an user-facing instruction,
+    but implicitly applied for improvement of the program representation.
+
+    This instruction clearly indicates the attached schedule is a subroutine
     that is defined outside the current scope. This instruction benefits the compiler
-    to reuse defined subroutines rather than redefining it multiple times.
-    Having call instruction doesn't impact to the scheduling of instructions.
+    to reuse the defined subroutines rather than redefining it multiple times.
     """
 
     def __init__(self,
-                 schedule: Schedule):
-        """Create a new call directive.
+                 subprogram: Schedule):
+        """Create a new call directive with subprogram.
+
+        Note that the subprogram will not be further optimized or scheduled because
+        this is predefined schedule outside the scope of current program.
+        Though the structure of subprogram is preserved, we can assign arbitrary parameter
+        because we can manage parameter values in individual subroutine with
+        unique Parameter object.
 
         Args:
-            schedule: Schedule to wrap with call instruction.
+            subprogram: A subprogram to wrap with call instruction.
         """
-        super().__init__((schedule, ), None, tuple(schedule.channels), name=name)
+        super().__init__((subprogram, ), None,
+                         channels=tuple(subprogram.channels),
+                         name=subprogram.name)
 
     @property
-    def channel(self) -> Channel:
+    def channel(self) -> chans.Channel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self.operands[0].channel
+        raise PulseError('This is invalid syntax. Note that returning single channel is '
+                         'not applicable to Call instruction. Call `.channels` method '
+                         'to return all channels composing the attached subprogram.')
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0].duration
+
+    @property
+    def subprogram(self) -> Schedule:
+        """Return attached subprogram."""
+        return self.operands[0]
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Call':
+        assigned_subprogram = self.subprogram.assign_parameters(value_dict)
+        self._operands = (assigned_subprogram, )
+        return self
