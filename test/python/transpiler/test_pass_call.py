@@ -20,8 +20,8 @@ from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP
 class TestPassCall(QiskitTestCase):
     """Test calling passes (passmanager-less)."""
 
-    def assertMessageLog(self, cm, messages):
-        self.assertEqual([record.message for record in cm.records], messages)
+    def assertMessageLog(self, context, messages):
+        self.assertEqual([record.message for record in context.records], messages)
 
     def test_transformation_pass(self):
         """Call a transformation pass without a scheduler"""
