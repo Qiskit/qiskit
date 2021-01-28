@@ -1154,8 +1154,8 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
                     " starting time.".format(chan))
 
 
-def _get_timeslot(schedule: Union[Instruction, Schedule]) -> TimeSlots:
-    """Generate timeslot from given schedule component.
+def _get_timeslots(schedule: Union[Instruction, Schedule]) -> TimeSlots:
+    """Generate timeslots from given schedule component.
 
     Args:
         schedule: Input schedule component.
