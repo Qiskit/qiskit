@@ -38,6 +38,7 @@ from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.optimization.applications.ising import max_cut
 from qiskit.optimization.applications.ising.common import sample_most_likely
 from qiskit.circuit import Parameter, ParameterExpression
@@ -940,7 +941,6 @@ class TestGradients(QiskitOpflowTestCase):
         wavefunction.rz(next(itr), 0)
         wavefunction.rz(next(itr), 1)
 
-
         # Conjugate Gradient algorithm
         optimizer = CG(maxiter=10)
 
@@ -956,28 +956,31 @@ class TestGradients(QiskitOpflowTestCase):
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
     @slow_test
-    def test_qaoa(self, w, p, m, solutions):
-        """ QAOA test """
-        seed = 2
-        np.random.seed(2)
-
-        w = np.array([
+    def test_qaoa(self):
+        """ QAOA test
+        qubit_op is computed using max_cut.get_operator(w)
+        for
+            w = np.array([
             [0, 1, 0, 1],
             [1, 0, 1, 0],
             [0, 1, 0, 1],
             [1, 0, 1, 0]
         ])
+        """
+        seed = 2
+        np.random.seed(2)
         p = 1
         m = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
         s = {'0101', '1010'}
 
-        self.log.debug('Testing %s-step QAOA with gradients for MaxCut on graph\n%s', p, w)
-
         backend = BasicAer.get_backend('statevector_simulator')
         optimizer = CG(maxiter=10)
-        qubit_op, offset = max_cut.get_operator(w)
-        qubit_op = qubit_op.to_opflow()
-        qubit_op = PauliSumOp(qubit_op.primitive, qubit_op.coeff)
+        qubit_op = PauliSumOp(SparsePauliOp
+                              ([[False, False, False, False,  True,  True, False, False],
+                               [False, False, False, False, False,  True,  True, False],
+                               [False, False, False, False,  True, False, False,  True],
+                               [False, False, False, False, False, False,  True,  True]],
+                               coeffs=[0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]), coeff=1.0)
 
         quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
         qaoa = QAOA(optimizer, p, mixer=m, gradient=NaturalGradient(),
@@ -986,12 +989,7 @@ class TestGradients(QiskitOpflowTestCase):
         result = qaoa.compute_minimum_eigenvalue(qubit_op)
         x = sample_most_likely(result.eigenstate)
         graph_solution = max_cut.get_graph_solution(x)
-        self.log.debug('energy:             %s', result.eigenvalue.real)
-        self.log.debug('time:               %s', result.optimizer_time)
-        self.log.debug('maxcut objective:   %s', result.eigenvalue.real + offset)
-        self.log.debug('solution:           %s', graph_solution)
-        self.log.debug('solution objective: %s', max_cut.max_cut_value(x, w))
-        self.assertIn(''.join([str(int(i)) for i in graph_solution]), solutions)
+        self.assertIn(''.join([str(int(i)) for i in graph_solution]), s)
 
     def test_qfi_overlap_works_with_bound_parameters(self):
         """Test all QFI methods work if the circuit contains a gate with bound parameters."""
