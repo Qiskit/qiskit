@@ -976,7 +976,7 @@ class TestGradients(QiskitOpflowTestCase):
         """ QAOA test """
         seed = 0
         np.random.seed(2)
-        self.log.debug('Testing %s-step QAOA with gradients for MaxCut on graph\n%s', prob, w)
+        self.log.debug('Testing %s-step QAOA with gradients for MaxCut on graph\n%s', p, w)
 
         backend = BasicAer.get_backend('statevector_simulator')
         optimizer = CG(maxiter=10)
