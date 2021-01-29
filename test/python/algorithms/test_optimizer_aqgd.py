@@ -20,6 +20,7 @@ from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
+from qiskit.opflow.gradients import Gradient
 
 
 class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
@@ -46,6 +47,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         aqgd = AQGD(momentum=0.0)
         vqe = VQE(var_form=RealAmplitudes(),
                   optimizer=aqgd,
+                  gradient=Gradient('fin_diff'),
                   quantum_instance=q_instance)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
@@ -76,6 +78,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
         vqe = VQE(var_form=RealAmplitudes(),
                   optimizer=aqgd,
+                  gradient=Gradient('lin_comb'),
                   quantum_instance=q_instance)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
