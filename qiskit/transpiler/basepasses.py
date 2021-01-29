@@ -130,8 +130,6 @@ class BasePass(metaclass=MetaPass):
 
         if result is None and self.property_set['layout']:
             result_circuit = circuit.copy()
-
-        if self.property_set['layout']:
             result_circuit._layout = self.property_set['layout']
 
         return result_circuit
