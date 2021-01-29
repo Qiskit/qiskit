@@ -535,12 +535,6 @@ class TestUnrollAllInstructions(QiskitTestCase):
         self.ref_circuit.append(U3Gate(0, 0, pi), [0])
         self.compare_dags()
 
-    def test_unroll_snapshot(self):
-        """test unroll snapshot"""
-        self.circuit.snapshot('0')
-        self.ref_circuit.snapshot('0')
-        self.compare_dags()
-
     def test_unroll_measure(self):
         """test unroll measure"""
         self.circuit.measure(self.qr, self.cr)

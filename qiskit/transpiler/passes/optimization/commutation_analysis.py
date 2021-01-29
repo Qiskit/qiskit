@@ -96,7 +96,7 @@ def _commute(node1, node2, cache):
         return False
 
     for nd in [node1, node2]:
-        if nd.op.__directive__ or nd.name in {"measure", "reset", "copy", "delay"}:
+        if nd.op.__directive__ or nd.name in {"measure", "reset", "delay"}:
             return False
 
     if node1.condition or node2.condition:
