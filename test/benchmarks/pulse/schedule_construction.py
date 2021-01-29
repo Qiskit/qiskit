@@ -16,7 +16,8 @@
 # pylint: disable=attribute-defined-outside-init
 
 import numpy as np
-from qiskit.pulse import Schedule, Gaussian, DriveChannel, SamplePulse, Play
+
+from qiskit.pulse import Schedule, Gaussian, DriveChannel, Play, Waveform
 
 
 def build_sample_pulse_schedule(number_of_unique_pulses, number_of_channels):
@@ -24,7 +25,7 @@ def build_sample_pulse_schedule(number_of_unique_pulses, number_of_channels):
     sched = Schedule()
     for _ in range(number_of_unique_pulses):
         for channel in range(number_of_channels):
-            sched.append(Play(SamplePulse(rng.random(50)),
+            sched.append(Play(Waveform(rng.random(50)),
                               DriveChannel(channel)))
     return sched
 
