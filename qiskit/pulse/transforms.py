@@ -518,8 +518,24 @@ def align_func(schedule: Schedule,
 
 
 def flatten(schedule: Schedule) -> Schedule:
-    """Flatten any called nodes into a Schedule tree with no nested children."""
-    return schedule.flatten()
+    """Flatten any called nodes into a Schedule tree with no nested children.
+
+    ``Call`` instruction is also decomposed into raw instruction sequence.
+
+    # TODO this function will also take ScheduleBlock.
+    """
+    return Schedule(_flatten_routine_call(schedule), name=schedule.name)
+
+
+def _flatten_routine_call(program: Schedule):
+    """A helper function that recursively flatten the call instruction."""
+    sequence = []
+    for t0, inst in program.instructions:
+        if isinstance(inst, instructions.Call):
+            sequence.extend(_flatten_routine_call(inst.subprogram))
+        else:
+            sequence.append((t0, inst))
+    return sequence
 
 
 def remove_directives(schedule: Schedule) -> Schedule:
