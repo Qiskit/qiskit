@@ -20,6 +20,7 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit.directive import Directive
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import exceptions
@@ -471,7 +472,7 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
 
-                elif not op.op.__directive__ and op.name not in ['measure']:
+                elif not isinstance(op.op, Directive) and op.name not in ['measure']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
@@ -939,7 +940,7 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
 
-                elif op.op.__directive__:
+                elif isinstance(op.op, Directive):
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]

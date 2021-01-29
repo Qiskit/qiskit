@@ -21,6 +21,7 @@ import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.directive import Directive
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
@@ -353,7 +354,7 @@ class DAGDependency:
             cargs (list[Clbit]): list of classical wires to attach to.
         """
         directives = ['measure']
-        if operation.__directive__ or operation.name not in directives:
+        if isinstance(operation, Directive) or operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
@@ -554,7 +555,7 @@ def _does_commute(node1, node2):
     non_unitaries = ['measure', 'reset', 'initialize', 'delay']
 
     def _unknown_commutator(n):
-        return (n.op.__directive__ or
+        return (isinstance(n.op, Directive) or
                 n.name in non_unitaries or
                 n.op.is_parameterized())
 

@@ -13,13 +13,11 @@
 """Barrier instruction."""
 
 from qiskit.exceptions import QiskitError
-from .instruction import Instruction
+from .directive import Directive
 
 
-class Barrier(Instruction):
+class Barrier(Directive):
     """Barrier instruction."""
-
-    __directive__ = True
 
     def __init__(self, num_qubits):
         """Create new barrier instruction."""

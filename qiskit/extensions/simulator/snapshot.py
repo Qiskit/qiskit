@@ -15,14 +15,12 @@ Simulator command to snapshot internal simulator representation.
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.directive import Directive
 from qiskit.extensions.exceptions import QiskitError, ExtensionError
 
 
-class Snapshot(Instruction):
+class Snapshot(Directive):
     """Simulator snapshot instruction."""
-
-    __directive__ = True
 
     def __init__(self,
                  label,
