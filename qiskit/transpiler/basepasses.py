@@ -100,7 +100,8 @@ class BasePass(metaclass=MetaPass):
 
         Args:
             circuit (QuantumCircuit): the dag on which the pass is run.
-            property_set (PropertySet or dict or None): input/output property set.
+            property_set (PropertySet or dict or None): input/output property set. An analysis pass
+                might change the property set in-place.
 
         Returns:
             QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
