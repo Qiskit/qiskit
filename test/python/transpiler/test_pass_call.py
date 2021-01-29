@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PropertySet
-from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP
+from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP
 
 
 class TestPassCall(QiskitTestCase):
@@ -41,27 +41,46 @@ class TestPassCall(QiskitTestCase):
         """Call an analysis pass without a scheduler (property_set dict)"""
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr, name='MyCircuit')
+        property_set = {'another_property': 'another_value'}
 
         pass_e = PassE_AP_NR_NP('value')
-        property_set = {'another_property': 'another_value'}
         with self.assertLogs('LocalLogger', level='INFO') as cm:
             result = pass_e(circuit, property_set)
 
         self.assertMessageLog(cm, ['run analysis pass PassE_AP_NR_NP', 'set property as value'])
         self.assertEqual(property_set, {'another_property': 'another_value', 'property': 'value'})
+        self.assertIsInstance(property_set, dict)
         self.assertEqual(circuit, result)
 
     def test_analysis_pass_property_set(self):
         """Call an analysis pass without a scheduler (PropertySet dict)"""
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr, name='MyCircuit')
+        property_set = PropertySet({'another_property': 'another_value'})
 
         pass_e = PassE_AP_NR_NP('value')
-        property_set = PropertySet({'another_property': 'another_value'})
         with self.assertLogs('LocalLogger', level='INFO') as cm:
             result = pass_e(circuit, property_set)
 
         self.assertMessageLog(cm, ['run analysis pass PassE_AP_NR_NP', 'set property as value'])
         self.assertEqual(property_set,
                          PropertySet({'another_property': 'another_value', 'property': 'value'}))
+        self.assertIsInstance(property_set, PropertySet)
+        self.assertEqual(circuit, result)
+
+    def test_analysis_pass_remove_property(self):
+        """Call an analysis pass that removes a property without a scheduler"""
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr, name='MyCircuit')
+        property_set = {'to remove': 'value to remove', 'to none': 'value to none'}
+
+        pass_e = PassN_AP_NR_NP('to remove', 'to none')
+        with self.assertLogs('LocalLogger', level='INFO') as cm:
+            result = pass_e(circuit, property_set)
+
+        self.assertMessageLog(cm, ['run analysis pass PassN_AP_NR_NP',
+                                   'property to remove deleted',
+                                   'property to none noned'])
+        self.assertEqual(property_set, PropertySet({'to none': None}))
+        self.assertIsInstance(property_set, dict)
         self.assertEqual(circuit, result)

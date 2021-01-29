@@ -122,6 +122,7 @@ class BasePass(metaclass=MetaPass):
         result_circuit = circuit
 
         if isinstance(property_set, (dict, PropertySet)):
+            property_set.clear()
             property_set.update(self.property_set)
 
         if isinstance(result, DAGCircuit):
