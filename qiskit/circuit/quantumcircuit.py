@@ -35,7 +35,7 @@ from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable
+from .parametertable import ParameterTable, ParameterView
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
@@ -706,8 +706,15 @@ class QuantumCircuit:
         else:
             dest._data += mapped_instrs
 
-        for instr, _, _ in mapped_instrs:
-            dest._update_parameter_table(instr)
+        if front:
+            # rebuild parameter table
+            dest._parameter_table.clear()
+            for instr, _, _ in dest._data:
+                dest._update_parameter_table(instr)
+        else:
+            # just append new parameters
+            for instr, _, _ in mapped_instrs:
+                dest._update_parameter_table(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -1803,8 +1810,8 @@ class QuantumCircuit:
 
     @property
     def parameters(self):
-        """Convenience function to get the parameters defined in the parameter table."""
-        return self._parameter_table.get_keys()
+        """Get the parameters in the circuit, sorted by insertion."""
+        return ParameterView(self._parameter_table._table.keys())
 
     @property
     def num_parameters(self):
@@ -1821,12 +1828,14 @@ class QuantumCircuit:
         Args:
             params (dict or iterable): A dictionary specifying the mapping from ``current_parameter``
                 to ``new_parameter``, where ``new_parameter`` can be a new parameter object
-                or a numeric value. Also, can be an iterablie list of 
+                or a numeric value. Also, can be an iterablie list of
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
 
         Raises:
-            CircuitError: If param_dict contains parameters not present in the circuit
+            CircuitError: If params is a dict and contains parameters not present in the circuit.
+            ValueError: If params is a list/array and the length mismatches the number of free
+                parameters in the circuit.
 
         Returns:
             Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
@@ -1888,6 +1897,9 @@ class QuantumCircuit:
             for parameter, value in unrolled_param_dict.items():
                 bound_circuit._assign_parameter(parameter, value)
         else:
+            if len(params) != self.num_parameters:
+                raise ValueError('Mismatching number of values and parameters. For partial binding '
+                                 'please pass a dictionary of {parameter: value} pairs.')
             for i, value in enumerate(params):
                 bound_circuit._assign_parameter(self._parameter_table[i], value)
         return None if inplace else bound_circuit
@@ -1910,11 +1922,13 @@ class QuantumCircuit:
         """
         if isinstance(params, dict):
             if any(isinstance(value, ParameterExpression) for value in params.values()):
-                raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
+                raise TypeError(
+                    'Found ParameterExpression in values; use assign_parameters() instead.')
             return self.assign_parameters(params)
         else:
             if any(isinstance(value, ParameterExpression) for value in params):
-                raise TypeError('Found ParameterExpression in values; use assign_parameters() instead.')
+                raise TypeError(
+                    'Found ParameterExpression in values; use assign_parameters() instead.')
             return self.assign_parameters(params)
 
     def _unroll_param_dict(self, value_dict):

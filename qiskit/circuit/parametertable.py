@@ -61,7 +61,7 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the keys in the parameter table
         """
-        return ParameterView(self._table.keys())
+        return self._keys
 
     def get_names(self):
         """Return a set of all parameter names in the parameter table
@@ -92,11 +92,11 @@ def _deprecated_set_method():
         def wrapper(*args, **kwargs):
             # warn only once
             if not wrapper._warned:
-                warnings.warn(f'The {func} method is deprecated as of Qiskit Terra 0.17.0 and will '
-                              'be removed no sooner than 3 months after the release date. Circuit '
-                              'parameters are returned as View object, not set. To use set methods '
-                              'you can explicitly cast to a set.',
-                              DeprecationWarning, stacklevel=2)
+                warnings.warn(f'The ParameterView.{func.__name__} method is deprecated as of '
+                              'Qiskit Terra 0.17.0 and will be removed no sooner than 3 months '
+                              'after the release date. Circuit parameters are returned as View '
+                              'object, not set. To use set methods you can explicitly cast to a '
+                              'set.', DeprecationWarning, stacklevel=2)
                 wrapper._warned = True
             return func(*args, **kwargs)
         wrapper._warned = False
@@ -112,11 +112,10 @@ class ParameterView(MappingView):
     """
 
     def __init__(self, iterable=None):
-        self.data = []
-
         if iterable is not None:
-            for x in iterable:
-                self.add(x)
+            self.data = list(iterable)
+        else:
+            self.data = []
 
         super().__init__(self.data)
 
@@ -212,7 +211,6 @@ class ParameterView(MappingView):
         """Get the intersection between self and the input."""
         inter = []
         for element in self:
-            print('checking', element)
             if element in x:
                 inter.append(element)
 

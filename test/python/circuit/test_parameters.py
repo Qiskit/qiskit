@@ -174,7 +174,7 @@ class TestParameters(QiskitTestCase):
                 bqc = getattr(qc, assign_fun)(params)
                 for value1, value2 in zip(bqc._parameter_table.values(), params):
                     self.assertEqual(value1, value2)
-            
+
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
         from qiskit.circuit.library.standard_gates.h import HGate
@@ -1626,15 +1626,15 @@ class TestParameterView(QiskitTestCase):
 
     def test_and(self):
         """Test __and__."""
-        self.assertEqual(self.view1 & self.view, set(self.params[1]))
+        self.assertEqual(self.view1 & self.view2, {self.params[1]})
 
     def test_or(self):
         """Test __or__."""
-        self.assertEqual(self.view1 | self.view, set(self.params))
+        self.assertEqual(self.view1 | self.view2, set(self.params))
 
     def test_xor(self):
         """Test __xor__."""
-        self.assertEqual(self.view1 ^ self.view, set([self.params[0], self.params[2]]))
+        self.assertEqual(self.view1 ^ self.view2, {self.params[0], self.params[2]})
 
     def test_len(self):
         """Test __len__."""
