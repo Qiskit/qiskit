@@ -17,3 +17,5 @@ from .backward_match import BackwardMatch, Match, MatchingScenarios, MatchingSce
 from .template_matching import TemplateMatching
 from .maximal_matches import MaximalMatches
 from .template_substitution import SubstitutionConfig, TemplateSubstitution
+from .zx_templates import zx_templates
+from .calibration_adder import CalibrationAdder
