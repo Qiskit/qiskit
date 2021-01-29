@@ -168,7 +168,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZSXX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
              name='test_one_qubit_clifford_{basis}_basis')
     def test_one_qubit_clifford_all_basis(self, basis):
         """Verify for {basis} basis and all Cliffords."""
@@ -182,6 +182,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('U1X', 1e-7),
                               ('PSX', 1e-7),
                               ('ZSX', 1e-7),
+                              ('ZSXX', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
     # Lower tolerance for U1X test since decomposition since it is
@@ -193,7 +194,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
                                               basis_tolerance[1])
 
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR', 'ZSXX'], seed=range(50),
              name='test_one_qubit_random_{basis}_basis_{seed}')
     def test_one_qubit_random_all_basis(self, basis, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
@@ -204,6 +205,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         """Test decompositions of psx and zsx at special values of parameters"""
         oqed_psx = OneQubitEulerDecomposer(basis='PSX')
         oqed_zsx = OneQubitEulerDecomposer(basis='ZSX')
+        oqed_zsxx = OneQubitEulerDecomposer(basis='ZSXX')
         theta = np.pi / 3
         phi = np.pi / 5
         lam = np.pi / 7
@@ -227,8 +229,10 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             unitary = gate.to_matrix()
             qc_psx = oqed_psx(unitary)
             qc_zsx = oqed_zsx(unitary)
+            qc_zsxx = oqed_zsxx(unitary)
             self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
+            self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
 
 
 # FIXME: streamline the set of test cases
@@ -525,7 +529,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
              euler_bases=[('U321', ['u3', 'u2', 'u1']), ('U3', ['u3']), ('U', ['u']),
                           ('U1X', ['u1', 'rx']), ('RR', ['r']),
                           ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
-                          ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],
+                          ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx']),
+                          ('ZSXX', ['rz', 'sx', 'x'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),
                         (RXXGate(np.pi / 2), 'rxx')],
              name='test_euler_basis_selection_{seed}_{euler_bases[0]}_{kak_gates[1]}')
