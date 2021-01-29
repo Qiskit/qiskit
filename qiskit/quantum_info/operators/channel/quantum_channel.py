@@ -23,7 +23,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
@@ -172,7 +171,7 @@ class QuantumChannel(BaseOperator, TolerancesMixin):
             choi, atol, rtol)
 
     def is_tp(self, atol=None, rtol=None):
-        """Test if a channel is completely-positive (CP)"""
+        """Test if a channel is trace-preserving (TP)"""
         choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_tp_helper(choi, atol, rtol)
 
@@ -245,7 +244,9 @@ class QuantumChannel(BaseOperator, TolerancesMixin):
         d_in, d_out = self.dim
         mat = np.trace(
             np.reshape(choi, (d_in, d_out, d_in, d_out)), axis1=1, axis2=3)
-        return is_identity_matrix(mat, rtol=rtol, atol=atol)
+        tp_cond = np.linalg.eigvalsh(mat - np.eye(len(mat)))
+        zero = np.isclose(tp_cond, 0, atol=atol, rtol=rtol)
+        return np.all(zero)
 
     def _format_state(self, state, density_matrix=False):
         """Format input state so it is statevector or density matrix"""
