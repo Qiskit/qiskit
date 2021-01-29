@@ -14,6 +14,7 @@
 """ Test Quantum Gradient Framework """
 
 import unittest
+from collections import OrderedDict
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
@@ -39,8 +40,6 @@ from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.optimization.applications.ising import max_cut
-from qiskit.optimization.applications.ising.common import sample_most_likely
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
@@ -965,21 +964,48 @@ class TestGradients(QiskitOpflowTestCase):
             [1, 0, 1, 0],
             [0, 1, 0, 1],
             [1, 0, 1, 0]
-        ])
+            ])
+
         """
+
+        def sample_most_likely(state_vector):
+            """Compute the most likely binary string from state vector.
+            Args:
+                state_vector (numpy.ndarray or dict): state vector or counts.
+            Returns:
+                numpy.ndarray: binary string as numpy.ndarray of ints.
+            """
+            if isinstance(state_vector, (OrderedDict, dict)):
+                # get the binary string with the largest count
+                binary_string = sorted(state_vector.items(), key=lambda kv: kv[1])[-1][0]
+                x = np.asarray([int(y) for y in reversed(list(binary_string))])
+                return x
+            elif isinstance(state_vector, StateFn):
+                binary_string = list(state_vector.sample().keys())[0]
+                x = np.asarray([int(y) for y in reversed(list(binary_string))])
+                return x
+            else:
+                n = int(np.log2(state_vector.shape[0]))
+                k = np.argmax(np.abs(state_vector))
+                x = np.zeros(n)
+                for i in range(n):
+                    x[i] = k % 2
+                    k >>= 1
+                return x
+
         seed = 2
         np.random.seed(2)
         p = 1
         m = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
-        s = {'0101', '1010'}
+        solution = {'0101', '1010'}
 
         backend = BasicAer.get_backend('statevector_simulator')
         optimizer = CG(maxiter=10)
         qubit_op = PauliSumOp(SparsePauliOp
-                              ([[False, False, False, False,  True,  True, False, False],
-                               [False, False, False, False, False,  True,  True, False],
-                               [False, False, False, False,  True, False, False,  True],
-                               [False, False, False, False, False, False,  True,  True]],
+                              ([[False, False, False, False, True, True, False, False],
+                                [False, False, False, False, False, True, True, False],
+                                [False, False, False, False, True, False, False, True],
+                                [False, False, False, False, False, False, True, True]],
                                coeffs=[0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]), coeff=1.0)
 
         quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
@@ -988,8 +1014,8 @@ class TestGradients(QiskitOpflowTestCase):
 
         result = qaoa.compute_minimum_eigenvalue(qubit_op)
         x = sample_most_likely(result.eigenstate)
-        graph_solution = max_cut.get_graph_solution(x)
-        self.assertIn(''.join([str(int(i)) for i in graph_solution]), s)
+        graph_solution = 1 - x
+        self.assertIn(''.join([str(int(i)) for i in graph_solution]), solution)
 
     def test_qfi_overlap_works_with_bound_parameters(self):
         """Test all QFI methods work if the circuit contains a gate with bound parameters."""
