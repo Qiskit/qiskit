@@ -913,7 +913,7 @@ class TestGradients(QiskitOpflowTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
-    # @slow_test
+    @slow_test
     def test_vqe2(self):
         """Test VQE with natural gradient"""
 
@@ -955,27 +955,22 @@ class TestGradients(QiskitOpflowTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
-
-    W1 = np.array([
-        [0, 1, 0, 1],
-        [1, 0, 1, 0],
-        [0, 1, 0, 1],
-        [1, 0, 1, 0]
-    ])
-    P1 = 1
-    M1 = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
-    S1 = {'0101', '1010'}
-
-    CUSTOM_SUPERPOSITION = [1 / np.sqrt(15)] * 15 + [0]
-
-    @idata([
-        [W1, P1, M1, S1]
-    ])
-    @unpack
+    @slow_test
     def test_qaoa(self, w, p, m, solutions):
         """ QAOA test """
-        seed = 0
+        seed = 2
         np.random.seed(2)
+
+        w = np.array([
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0]
+        ])
+        p = 1
+        m = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
+        s = {'0101', '1010'}
+
         self.log.debug('Testing %s-step QAOA with gradients for MaxCut on graph\n%s', p, w)
 
         backend = BasicAer.get_backend('statevector_simulator')
