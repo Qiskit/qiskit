@@ -1091,7 +1091,7 @@ class TextMatrix():
         return self.__str__()
 
 
-# pylint: disable=R0911
+# pylint: disable=too-many-return-statements
 def state_drawer(state,
                  output=None,
                  max_size=None,

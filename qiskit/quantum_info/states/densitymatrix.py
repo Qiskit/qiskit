@@ -35,7 +35,6 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
-from qiskit.quantum_info.states.statevector import Statevector
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -488,6 +487,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             QiskitError: if the label contains invalid characters, or the length
                          of the label is larger than an explicitly specified num_qubits.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
         return DensityMatrix(Statevector.from_label(label))
 
     @staticmethod
@@ -711,6 +711,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if the state is not pure.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
         if atol is None:
             atol = self.atol
         if rtol is None:

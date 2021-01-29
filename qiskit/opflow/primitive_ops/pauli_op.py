@@ -173,7 +173,7 @@ class PauliOp(PrimitiveOp):
         Raises:
             ValueError: invalid parameters.
         """
-        return self.primitive.to_spmatrix() * self.coeff  # type: ignore
+        return self.primitive.to_matrix(sparse=True) * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
