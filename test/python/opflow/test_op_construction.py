@@ -33,7 +33,6 @@ from qiskit.opflow import (
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp, OperatorBase, Zero, OpflowError
 )
-from qiskit.opflow import MatrixOperator
 
 
 # pylint: disable=invalid-name
@@ -62,6 +61,25 @@ class TestOpConstruction(QiskitOpflowTestCase):
     def test_composed_eval(self):
         """ Test eval of ComposedOp """
         self.assertAlmostEqual(Minus.eval('1'), -.5 ** .5)
+
+    def test_xz_compose_phase(self):
+        """ Test phase composition """
+        self.assertEqual((-1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((-1j * Y).eval('0').eval('1'), 1)
+        self.assertEqual((-1j * Y).eval('1').eval('0'), -1)
+        self.assertEqual((-1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('0'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('1'), 1)
+        self.assertEqual((X @ Z).eval('1').eval('0'), -1)
+        self.assertEqual((X @ Z).eval('1').eval('1'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('1'), -1)
+        self.assertEqual((1j * Y).eval('1').eval('0'), 1)
+        self.assertEqual((1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('0'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('1'), -1)
+        self.assertEqual((Z @ X).eval('1').eval('0'), 1)
+        self.assertEqual((Z @ X).eval('1').eval('1'), 0)
 
     def test_evals(self):
         """ evals test """
@@ -908,11 +926,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
             _ = MatrixOp('invalid')
 
         self.assertEqual(str(cm.exception), msg + "'str'")
-
-        with self.assertRaises(TypeError) as cm:
-            _ = MatrixOp(MatrixOperator(np.eye(2)))
-
-        self.assertEqual(str(cm.exception), msg + "'MatrixOperator'")
 
         with self.assertRaises(TypeError) as cm:
             _ = MatrixOp(None)

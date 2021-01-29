@@ -28,7 +28,6 @@ from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
-from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 
 logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
@@ -174,7 +173,7 @@ class PauliOp(PrimitiveOp):
         Raises:
             ValueError: invalid parameters.
         """
-        return self.primitive.to_spmatrix() * self.coeff  # type: ignore
+        return self.primitive.to_matrix(sparse=True) * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -228,7 +227,13 @@ class PauliOp(PrimitiveOp):
                     y_factor = np.product(np.sqrt(1 - 2 * np.logical_and(corrected_x_bits,
                                                                          corrected_z_bits) + 0j))
                     new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)
-                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff)
+                    # The coefficient consists of:
+                    #   1. the coefficient of *this* PauliOp (self)
+                    #   2. the coefficient of the evaluated DictStateFn (front)
+                    #   3. AND acquires the phase of the internal primitive. This is necessary to
+                    #      ensure that (X @ Z) and (-iY) return the same result.
+                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff *
+                                        (-1j) ** self.primitive.phase)
 
             elif isinstance(front, StateFn) and front.is_measurement:
                 raise ValueError('Operator composed with a measurement is undefined.')
@@ -318,14 +323,3 @@ class PauliOp(PrimitiveOp):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         return self
-
-    def to_legacy_op(self, massive: bool = False) -> WeightedPauliOperator:
-        if isinstance(self.coeff, ParameterExpression):
-            try:
-                coeff = float(self.coeff)
-            except TypeError as ex:
-                raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff)) from ex
-        else:
-            coeff = cast(float, self.coeff)
-        return WeightedPauliOperator(paulis=[(coeff, self.primitive)])  # type: ignore

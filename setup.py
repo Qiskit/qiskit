@@ -22,20 +22,8 @@ except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
     from Cython.Build import cythonize
 
-REQUIREMENTS = [
-    "contextvars>=2.4;python_version<'3.7'",
-    "jsonschema>=2.6",
-    "retworkx>=0.7.0",
-    "numpy>=1.17",
-    "ply>=3.10",
-    "psutil>=5",
-    "scipy>=1.4",
-    "sympy>=1.3",
-    "dill>=0.3",
-    "fastjsonschema>=2.10",
-    "python-constraint>=1.4",
-    "python-dateutil>=2.8.0",
-]
+with open('requirements.txt') as f:
+    REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
 CYTHON_EXTS = ['utils', 'swap_trial']
