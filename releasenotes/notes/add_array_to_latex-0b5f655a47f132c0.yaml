@@ -1,9 +1,13 @@
 ---
 features:
   - |
-    ``Statevector`` and ``DensityMatrix`` classes now have LaTeX representations
-    for viewing in Jupyter Notebooks and other environments that support
+    :class:`Statevector` and :class:`DensityMatrix` classes now have :meth:`__ipython_dispay__`
+    methods for viewing in Jupyter Notebooks and other environments that support
     it.
   - |
-    Can now use ``array_to_latex()`` to represent vectors and matrices as 
+    :class:`Statevector` and :class:`DensityMatrix` classes now have :meth:`.draw()` methods
+    allowing them to be drawn as text matrices, LaTeX source matrices,
+    markdown, Q-spheres, Bloch spheres and Hinton plots.
+  - |
+    Can now use :func:`array_to_latex()` to represent vectors and matrices as
     human-friendly LaTeX.
