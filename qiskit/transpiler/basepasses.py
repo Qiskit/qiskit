@@ -111,7 +111,7 @@ class BasePass(metaclass=MetaPass):
         from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
         property_set_ = None
-        if isinstance(property_set, dict):
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
             property_set_ = PropertySet(property_set)
 
         if isinstance(property_set_, PropertySet):
@@ -121,7 +121,7 @@ class BasePass(metaclass=MetaPass):
 
         result_circuit = circuit
 
-        if isinstance(property_set, (dict, PropertySet)):
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
             property_set.clear()
             property_set.update(self.property_set)
 
