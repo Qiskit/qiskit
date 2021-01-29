@@ -94,9 +94,13 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    schedules = [
-        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
-    ]
+    schedules = []
+    for sched in schedules:
+        if isinstance(sched, pulse.Schedule):
+            schedules.append(transforms.flatten(sched))
+        else:
+            schedules.append(pulse.Schedule(sched))
+
     compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}

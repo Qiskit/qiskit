@@ -207,7 +207,7 @@ class DrawerCanvas:
             VisualizationError: When input program is invalid data format.
         """
         if isinstance(program, pulse.Schedule):
-            self._schedule_loader(program)
+            self._schedule_loader(program.flatten())
         elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
             self._waveform_loader(program)
         else:

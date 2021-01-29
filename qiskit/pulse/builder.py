@@ -434,7 +434,7 @@ class _PulseBuilder():
 
     def call_schedule(self, schedule: Schedule):
         """Call a schedule and append to the builder's context schedule."""
-        self.append_schedule(schedule)
+        self.append_instruction(instructions.Call(schedule))
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""

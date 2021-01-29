@@ -86,15 +86,6 @@ class Call(Directive):
                          name=subprogram.name)
 
     @property
-    def channel(self) -> chans.Channel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
-        scheduled on.
-        """
-        raise PulseError('This is invalid syntax. Note that returning single channel is '
-                         'not applicable to Call instruction. Call `.channels` method '
-                         'to return all channels composing the attached subprogram.')
-
-    @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0].duration
