@@ -81,9 +81,9 @@ def zx_xz(theta: float = None):
         theta = Parameter('ϴ')
 
     qc = QuantumCircuit(2)
-    qc.cx(1, 1)
-    qc.rx(theta, 0)
-    qc.cx(1, 1)
+    qc.cx(1, 0)
+    qc.rx(theta, 1)
+    qc.cx(1, 0)
 
     qc.rz(np.pi / 2, 0)
     qc.rx(np.pi / 2, 0)
