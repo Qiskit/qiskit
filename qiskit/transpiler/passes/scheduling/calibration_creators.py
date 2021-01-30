@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
 from qiskit.dagcircuit import DAGNode
 from qiskit.circuit.library.standard_gates import RZXGate
