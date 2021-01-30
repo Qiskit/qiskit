@@ -17,27 +17,7 @@ import numpy as np
 from typing import List
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter, Gate
-from qiskit.extensions import UnitaryGate
-
-
-class ZX(Gate):
-    """CZ gates used for the test."""
-
-    def __init__(self, params):
-        super().__init__('ZX', 2, params)
-        self.num_ctrl_qubits = 1
-        self.ctrl_state = 1
-
-    def inverse(self):
-        theta = -self.params[0]
-        inverse = UnitaryGate(
-            [[np.cos(-0.5 * theta), 1.0j * np.sin(-0.5 * theta), 0, 0],
-             [1.0j * np.sin(-0.5 * theta), np.cos(-0.5 * theta), 0, 0],
-             [0, 0, np.cos(0.5 * theta), 1.0j * np.sin(0.5 * theta)],
-             [0, 0, 1.0j * np.sin(0.5 * theta), np.cos(0.5 * theta)]])
-        inverse.name = 'zx(%.3f)' % theta
-        return inverse
+from qiskit.circuit import Parameter
 
 
 def zx_zz1():
@@ -60,7 +40,7 @@ def zx_zz1():
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.append(ZX([-theta]), [1, 0])
+    qc.rzx(-theta, 1, 0)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -84,7 +64,7 @@ def zx_zz2():
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.append(ZX([-theta]), [1, 0])
+    qc.rzx(-theta, 1, 0)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -102,7 +82,7 @@ def zx_zy():
     circ.ry(-theta, 0)
     circ.cx(0, 1)
     circ.rx(np.pi / 2, 0)
-    circ.append(ZX([theta]), [1, 0])
+    circ.rzx(theta, 1, 0)
     circ.rx(-np.pi / 2, 0)
 
     return circ
@@ -125,7 +105,7 @@ def zx_templates(template_list: List[str] = None):
     if 'zy' in template_list:
         templates.append(zx_zy())
 
-    cost_dict = {'ZX': 0, 'cx': 6, 'rz': 1, 'sx': 2, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
+    cost_dict = {'rzx': 0, 'cx': 6, 'rz': 1, 'sx': 2, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
 
     zx_dict = {'template_list': templates, 'user_cost_dict': cost_dict}
 

@@ -14,8 +14,6 @@
 
 from qiskit.transpiler.passes.scheduling import CalibrationCreator
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import Gate
-from qiskit.extensions import UnitaryGate
 
 
 class CalibrationAdder(TransformationPass):
@@ -40,16 +38,13 @@ class CalibrationAdder(TransformationPass):
             DAGCircuit: A DAG with calibrations added to it.
         """
         for node in dag.nodes():
-            if self._calibration_adder.supported(node.name):
-                name = node.name
-                qubits = [_.index for _ in node.qargs]
+            if node.type == 'op':
+                if self._calibration_adder.supported(node.op):
+                    params = node.op.params
+                    qubits = [_.index for _ in node.qargs]
 
-                schedule, params = self._calibration_adder.get_calibration(name, qubits)
+                    schedule = self._calibration_adder.get_calibration(params, qubits)
 
-                dag.add_calibration(name, qubits, schedule, params=params)
-
-                # Unitary gate has unhashable data
-                if isinstance(node.op, UnitaryGate):
-                    node.op = Gate(name, node.op.num_qubits, params)
+                    dag.add_calibration(node.op, qubits, schedule, params=params)
 
         return dag

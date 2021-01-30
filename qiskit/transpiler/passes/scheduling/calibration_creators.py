@@ -14,23 +14,24 @@
 
 import math
 import numpy as np
-from typing import List, Tuple
+from typing import List
 from abc import ABC, abstractmethod
-import re
 
 from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare
 from qiskit import QiskitError
 from qiskit.providers import basebackend
+from qiskit.dagcircuit import DAGNode
+from qiskit.circuit.library.standard_gates import RZXGate
 
 
 class CalibrationCreator(ABC):
 
     @abstractmethod
-    def supported(self, name: str) -> bool:
+    def supported(self, node_op: DAGNode) -> bool:
         """Determine if a given name supports the calibration."""
 
     @abstractmethod
-    def get_calibration(self, name: str, qubits: List) -> Tuple[Schedule, List]:
+    def get_calibration(self, params: List, qubits: List) -> Schedule:
         """Gets the calibrated schedule for the given qubits and parameters."""
 
 
@@ -49,20 +50,15 @@ class ZXScheduleBuilder(CalibrationCreator):
         self._config = backend.configuration()
         self._channel_map = backend.configuration().qubit_channel_mapping
 
-    def supported(self, name: str) -> bool:
+    def supported(self, node_op: DAGNode) -> bool:
         """
         Args:
-            name: This calibration builder supports names of the form zx(%.3f)
+            node_op: The node from the dag dep.
 
         Returns:
-            match: True if the name of the node is zx(%.3f) where %.3f is the rotation
-                angle.
+            match: True if the node is a RZXGate.
         """
-        pattern = r'^zx\([+-]?([0-9]*[.])?[0-9]+\)$'
-        if re.match(pattern, name):
-            return True
-
-        return False
+        return isinstance(node_op, RZXGate)
 
     @staticmethod
     def rescale_cr_inst(instruction: Play, theta: float, sample_mult: int = 16) -> Play:
@@ -101,27 +97,19 @@ class ZXScheduleBuilder(CalibrationCreator):
         else:
             raise QiskitError('ZXScheduleBuilder builder only stretches/compresses GaussianSquare.')
 
-    @staticmethod
-    def name(theta: float) -> str:
+    def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
         Args:
-            theta: Rotation angle of the parametric CZ gate.
-        """
-        return 'zx(%.3f)' % theta
-
-    def get_calibration(self, name: str, qubits: List) -> Tuple[Schedule, List]:
-        """
-        Args:
-            name: Name of the instruction with the rotation angle in it.
+            params: Name of the instruction with the rotation angle in it.
             qubits: List of qubits for which to get the schedules.
 
         Returns:
             schedule: The calibration schedule for the instruction with name.
         """
-        theta = float(name.replace('zx(', '').replace(')', ''))
+        theta = params[0]
         q1, q2 = qubits[0], qubits[1]
         cx_sched = self._inst_map.get('cx', qubits=(q1, q2))
-        zx_theta = Schedule(name=self.name(theta))
+        zx_theta = Schedule(name='zx(%.3f)' % theta)
 
         crs, comp_tones, shift_phases = [], [], []
         control, target = None, None
@@ -170,4 +158,4 @@ class ZXScheduleBuilder(CalibrationCreator):
             time = 2*comp1.duration + echo_x.duration
             zx_theta = zx_theta.insert(time, echo_x)
 
-        return zx_theta, [theta]
+        return zx_theta
