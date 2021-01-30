@@ -91,6 +91,24 @@ def zx_zy(theta: float = None):
     return circ
 
 
+def zx_cy(theta: float = None):
+    """ZY template."""
+    if theta is None:
+        theta = Parameter('ϴ')
+
+    circ = QuantumCircuit(2)
+    circ.cx(0, 1)
+    circ.ry(theta, 1)
+    circ.cx(0, 1)
+    circ.ry(-theta, 1)
+    circ.rz(-np.pi / 2, 1)
+    circ.rx(theta, 1)
+    circ.rzx(-theta, 0, 1)
+    circ.rz(np.pi / 2, 1)
+
+    return circ
+
+
 def zx_templates(template_list: List[str] = None):
     """
     Convenience function to get the cost_dict and

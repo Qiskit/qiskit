@@ -12,8 +12,8 @@
 
 """Scheduling transformation pass to add calibrations to the dag."""
 
-from qiskit.transpiler.passes.scheduling import CalibrationCreator
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.scheduling import CalibrationCreator
 
 
 class CalibrationAdder(TransformationPass):

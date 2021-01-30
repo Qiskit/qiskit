@@ -66,6 +66,7 @@ from .nct.template_nct_9d_9 import template_nct_9d_9
 from .nct.template_nct_9d_10 import template_nct_9d_10
 
 from .zx_templates import zx_zy
+from .zx_templates import zx_cy
 from .zx_templates import zx_zz1
 from .zx_templates import zx_zz2
 from .zx_templates import zx_templates
