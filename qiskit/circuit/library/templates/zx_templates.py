@@ -33,7 +33,7 @@ def zx_zz1(theta: float = None):
     qc.sx(1)
     qc.rz(3 * np.pi, 1)
     qc.cx(0, 1)
-    qc.rz(-theta, 1)
+    qc.rz(-1*theta, 1)
 
     # Hadamard
     qc.rz(np.pi / 2, 1)
@@ -41,7 +41,7 @@ def zx_zz1(theta: float = None):
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.rzx(-theta, 0, 1)
+    qc.rzx(-1*theta, 0, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -59,14 +59,14 @@ def zx_zz2(theta: float = None):
     qc.cx(0, 1)
     qc.p(theta, 1)
     qc.cx(0, 1)
-    qc.p(-theta, 1)
+    qc.p(-1*theta, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.rzx(-theta, 0, 1)
+    qc.rzx(-1*theta, 0, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -82,7 +82,7 @@ def zx_zy(theta: float = None):
 
     circ = QuantumCircuit(2)
     circ.cx(0, 1)
-    circ.ry(-theta, 0)
+    circ.ry(-1*theta, 0)
     circ.cx(0, 1)
     circ.rx(np.pi / 2, 0)
     circ.rzx(theta, 0, 1)

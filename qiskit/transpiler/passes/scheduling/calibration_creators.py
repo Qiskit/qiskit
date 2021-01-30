@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Calibration adders."""
+"""Calibration creators."""
 
 import math
 from typing import List
@@ -45,8 +45,12 @@ class ZXScheduleBuilder(CalibrationCreator):
     def __init__(self, backend: basebackend):
         """
         Initializes a Parameterized Controlled-Z gate builder.
+
         Args:
             backend: Backend for which to construct the gates.
+
+        Raises:
+            QiskitError: if open pulse is not supported by the backend.
         """
         if not backend.configuration().open_pulse:
             raise QiskitError(backend.name() + ' is not a pulse backend.')

@@ -25,9 +25,6 @@ class TestZXTemplates(QiskitTestCase):
     def test_templates(self):
         """Test that the templates compose to the identity."""
 
-        print(Operator(zx_zy(0.456)).data)
-        print(np.allclose(Operator(zx_zy(0.456)).data, np.eye(4)))
-
         self.assertTrue(np.allclose(Operator(zx_zy(0.456)).data, np.eye(4)))
 
         data = Operator(zx_zz1(0.456)).data
