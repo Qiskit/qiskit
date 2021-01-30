@@ -272,51 +272,6 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertTrue(circuit == decomposed_circuit)
 
-    def test_solovay_kitaev_basic_gates_on_s_returns_circuit_s(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with an S-gate when
-        it approximates the S-gate and the S-gate is in the basic gates."""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    def test_solovay_kitaev_basic_gates_on_rxpi_returns_circuit_rxpi(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with an RX-gate when
-        it approximates the RX-gate and the RX-gate is in the basic gates."""
-        circuit = QuantumCircuit(1)
-        circuit.rx(math.pi, 0)
-
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    def test_solovay_kitaev_basic_gates_on_rypi_returns_circuit_rypi(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with an RY-gate when
-        it approximates the RY-gate and the RY-gate is in the basic gates."""
-        circuit = QuantumCircuit(1)
-        circuit.ry(math.pi, 0)
-
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
     @data(2, 3, 4, 5)
     def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self, nr_qubits):
         """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
