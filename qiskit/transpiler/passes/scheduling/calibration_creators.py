@@ -115,7 +115,8 @@ class ZXScheduleBuilder(CalibrationCreator):
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
         Args:
-            params: Name of the instruction with the rotation angle in it.
+            params: Name of the instruction with the rotation angle in it. The first qubit is
+                the control and the second is the target.
             qubits: List of qubits for which to get the schedules.
 
         Returns:
@@ -128,6 +129,9 @@ class ZXScheduleBuilder(CalibrationCreator):
         q1, q2 = qubits[0], qubits[1]
         cx_sched = self._inst_map.get('cx', qubits=(q1, q2))
         zx_theta = Schedule(name='zx(%.3f)' % theta)
+
+        if theta == 0.0:
+            return zx_theta
 
         crs, comp_tones, shift_phases = [], [], []
         control, target = None, None
@@ -166,14 +170,29 @@ class ZXScheduleBuilder(CalibrationCreator):
         comp1 = self.rescale_cr_inst(comp_tones[0][1], theta)
         comp2 = self.rescale_cr_inst(comp_tones[1][1], theta)
 
-        if theta != 0.0:
-            zx_theta = zx_theta.insert(0, cr1)
-            zx_theta = zx_theta.insert(0, comp1)
-            zx_theta = zx_theta.insert(comp1.duration, echo_x)
-            time = comp1.duration + echo_x.duration
-            zx_theta = zx_theta.insert(time, cr2)
-            zx_theta = zx_theta.insert(time, comp2)
-            time = 2*comp1.duration + echo_x.duration
-            zx_theta = zx_theta.insert(time, echo_x)
+        zx_theta = zx_theta.insert(0, cr1)
+        zx_theta = zx_theta.insert(0, comp1)
+        zx_theta = zx_theta.insert(comp1.duration, echo_x)
+        time = comp1.duration + echo_x.duration
+        zx_theta = zx_theta.insert(time, cr2)
+        zx_theta = zx_theta.insert(time, comp2)
+        time = 2*comp1.duration + echo_x.duration
+        zx_theta = zx_theta.insert(time, echo_x)
 
-        return zx_theta
+        # Reverse direction of the ZX with Hadamard gates
+        if control == qubits[0]:
+            return zx_theta
+        else:
+            rzc = self._inst_map.get('rz', [control], np.pi / 2)
+            sxc = self._inst_map.get('sx', [control])
+            rzt = self._inst_map.get('rz', [target], np.pi / 2)
+            sxt = self._inst_map.get('sx', [target])
+            h_sched = Schedule(name='hadamards')
+            h_sched = h_sched.insert(0, rzc)
+            h_sched = h_sched.insert(0, sxc)
+            h_sched = h_sched.insert(sxc.duration, rzc)
+            h_sched = h_sched.insert(0, rzt)
+            h_sched = h_sched.insert(0, sxt)
+            h_sched = h_sched.insert(sxc.duration, rzt)
+            zx_theta = h_sched.append(zx_theta)
+            return zx_theta.append(h_sched)
