@@ -224,7 +224,6 @@ class PassM_AP_NR_NP(DummyAP):
         super().run(dag)
         self.argument1 *= 2
         logging.getLogger(logger).info('self.argument1 = %s', self.argument1)
-
 class PassN_AP_NR_NP(DummyAP):
     """ A dummy analysis pass that deletes and nones properties.
     AP: Analysis Pass
