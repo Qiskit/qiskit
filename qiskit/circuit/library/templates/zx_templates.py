@@ -75,7 +75,27 @@ def zx_zz2(theta: float = None):
     return qc
 
 
-def zx_zy(theta: float = None):
+def zx_xz(theta: float = None):
+    """ZY template."""
+    if theta is None:
+        theta = Parameter('ϴ')
+
+    qc = QuantumCircuit(2)
+    qc.cx(1, 1)
+    qc.rx(theta, 0)
+    qc.cx(1, 1)
+
+    qc.rz(np.pi / 2, 0)
+    qc.rx(np.pi / 2, 0)
+    qc.rz(np.pi / 2, 0)
+    qc.rzx(-1*theta, 0, 1)
+    qc.rz(np.pi / 2, 0)
+    qc.rx(np.pi / 2, 0)
+    qc.rz(np.pi / 2, 0)
+    return qc
+
+
+def zx_yz(theta: float = None):
     """ZY template."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -100,10 +120,10 @@ def zx_cy(theta: float = None):
     circ.cx(0, 1)
     circ.ry(theta, 1)
     circ.cx(0, 1)
-    circ.ry(-theta, 1)
+    circ.ry(-1*theta, 1)
     circ.rz(-np.pi / 2, 1)
     circ.rx(theta, 1)
-    circ.rzx(-theta, 0, 1)
+    circ.rzx(-1*theta, 0, 1)
     circ.rz(np.pi / 2, 1)
 
     return circ
@@ -124,7 +144,7 @@ def zx_templates(template_list: List[str] = None):
     if 'zz2' in template_list:
         templates.append(zx_zz2())
     if 'zy' in template_list:
-        templates.append(zx_zy())
+        templates.append(zx_yz())
 
     cost_dict = {'rzx': 0, 'cx': 6, 'rz': 1, 'sx': 2, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
 

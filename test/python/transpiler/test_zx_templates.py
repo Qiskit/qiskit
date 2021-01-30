@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library.templates import zx_zz1, zx_zz2, zx_zy, zx_cy
+from qiskit.circuit.library.templates import zx_zz1, zx_zz2, zx_yz, zx_cy, zx_xz
 from qiskit.test import QiskitTestCase
 
 
@@ -25,7 +25,10 @@ class TestZXTemplates(QiskitTestCase):
     def test_templates(self):
         """Test that the templates compose to the identity."""
 
-        self.assertTrue(np.allclose(Operator(zx_zy(0.456)).data, np.eye(4)))
+        self.assertTrue(np.allclose(Operator(zx_yz(0.456)).data, np.eye(4)))
+
+        data = Operator(zx_xz(0.456)).data
+        self.assertTrue(np.allclose(data, data[0, 0] * np.eye(4)))
 
         data = Operator(zx_cy(0.456)).data
         self.assertTrue(np.allclose(data, data[0, 0] * np.eye(4)))
