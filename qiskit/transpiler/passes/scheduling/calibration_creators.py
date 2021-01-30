@@ -13,9 +13,9 @@
 """Calibration adders."""
 
 import math
-import numpy as np
 from typing import List
 from abc import ABC, abstractmethod
+import numpy as np
 
 from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare
 from qiskit import QiskitError
@@ -25,6 +25,7 @@ from qiskit.circuit.library.standard_gates import RZXGate
 
 
 class CalibrationCreator(ABC):
+    """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
     def supported(self, node_op: DAGNode) -> bool:
@@ -36,6 +37,10 @@ class CalibrationCreator(ABC):
 
 
 class ZXScheduleBuilder(CalibrationCreator):
+    """
+    Creates calibrations for ZX(theta) by stretching and compressing
+    Gaussian square pulses.
+    """
 
     def __init__(self, backend: basebackend):
         """
@@ -65,9 +70,15 @@ class ZXScheduleBuilder(CalibrationCreator):
         """
         Args:
             instruction: The instruction from which to create a new shortened or lengthened pulse.
-            theta: desired angle, pi/2 is assumed to be the angle that
-                the schedule with name 'name' in 'sched' implements.
+            theta: desired angle, pi/2 is assumed to be the angle that the pulse in the given
+                play instruction implements.
             sample_mult: All pulses must be a multiple of sample_mult.
+
+        Returns:
+            Play: The play instruction with the stretched compressed GaussianSquare pulse.
+
+        Raises:
+            QiskitError: if the pulses are not GaussianSquare.
         """
         pulse_ = instruction.pulse
         if isinstance(pulse_, GaussianSquare):
@@ -105,6 +116,9 @@ class ZXScheduleBuilder(CalibrationCreator):
 
         Returns:
             schedule: The calibration schedule for the instruction with name.
+
+        Raises:
+            QiskitError: if the the control and target qubits cannot be identified.
         """
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]

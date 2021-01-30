@@ -13,16 +13,17 @@
 """
 A library of ZX based two qubit gates.
 """
-import numpy as np
+
 from typing import List
+import numpy as np
 
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 
 
-def zx_zz1():
+def zx_zz1(theta: float = None):
     """ZZ template with rz gate."""
-    theta = Parameter('ϴ')
+    if theta is None:
+        theta = Parameter('ϴ')
 
     qc = QuantumCircuit(2)
     qc.cx(0, 1)
@@ -32,7 +33,7 @@ def zx_zz1():
     qc.sx(1)
     qc.rz(3 * np.pi, 1)
     qc.cx(0, 1)
-    qc.p(-theta, 1)
+    qc.rz(-theta, 1)
 
     # Hadamard
     qc.rz(np.pi / 2, 1)
@@ -40,7 +41,7 @@ def zx_zz1():
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.rzx(-theta, 1, 0)
+    qc.rzx(-theta, 0, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -49,9 +50,10 @@ def zx_zz1():
     return qc
 
 
-def zx_zz2():
+def zx_zz2(theta: float = None):
     """ZZ template is p gate."""
-    theta = Parameter('ϴ')
+    if theta is None:
+        theta = Parameter('ϴ')
 
     qc = QuantumCircuit(2)
     qc.cx(0, 1)
@@ -64,7 +66,7 @@ def zx_zz2():
     qc.rz(np.pi / 2, 1)
 
     qc.rx(theta, 1)
-    qc.rzx(-theta, 1, 0)
+    qc.rzx(-theta, 0, 1)
     # Hadamard
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
@@ -73,16 +75,17 @@ def zx_zz2():
     return qc
 
 
-def zx_zy():
+def zx_zy(theta: float = None):
     """ZY template."""
-    theta = Parameter('ϴ')
+    if theta is None:
+        theta = Parameter('ϴ')
 
     circ = QuantumCircuit(2)
     circ.cx(0, 1)
     circ.ry(-theta, 0)
     circ.cx(0, 1)
     circ.rx(np.pi / 2, 0)
-    circ.rzx(theta, 1, 0)
+    circ.rzx(theta, 0, 1)
     circ.rx(-np.pi / 2, 0)
 
     return circ
