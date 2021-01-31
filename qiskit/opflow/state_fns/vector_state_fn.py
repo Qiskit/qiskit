@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit
 
 from qiskit.quantum_info import Statevector
 from qiskit.circuit import ParameterExpression
-from qiskit.utils import aqua_globals, arithmetic
+from qiskit.utils import algorithm_globals, arithmetic
 
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
@@ -211,10 +211,11 @@ class VectorStateFn(StateFn):
         deterministic_counts = self.primitive.probabilities_dict()
         # Don't need to square because probabilities_dict already does.
         probs = np.array(list(deterministic_counts.values()))
-        unique, counts = np.unique(aqua_globals.random.choice(list(deterministic_counts.keys()),
-                                                              size=shots,
-                                                              p=(probs / sum(probs))),
-                                   return_counts=True)
+        unique, counts = np.unique(
+            algorithm_globals.random.choice(list(deterministic_counts.keys()),
+                                            size=shots,
+                                            p=(probs / sum(probs))),
+            return_counts=True)
         counts = dict(zip(unique, counts))
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}
