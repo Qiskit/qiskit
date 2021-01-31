@@ -75,6 +75,31 @@ def zx_zz2(theta: float = None):
     return qc
 
 
+def zx_zz3(theta: float = None):
+    """ZZ template is p gate."""
+    if theta is None:
+        theta = Parameter('ϴ')
+
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.rz(theta, 1)
+    qc.cx(0, 1)
+    qc.rz(-1*theta, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    qc.rx(theta, 1)
+    qc.rzx(-1*theta, 0, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    return qc
+
+
 def zx_xz(theta: float = None):
     """ZY template."""
     if theta is None:
@@ -136,17 +161,23 @@ def zx_templates(template_list: List[str] = None):
     """
 
     if template_list is None:
-        template_list = ['zz1', 'zz2', 'zy']
+        template_list = ['zz1', 'zz2', 'zz3', 'yz', 'xz', 'cy']
 
     templates = []
     if 'zz1' in template_list:
         templates.append(zx_zz1())
     if 'zz2' in template_list:
         templates.append(zx_zz2())
-    if 'zy' in template_list:
+    if 'zz3' in template_list:
+        templates.append(zx_zz3())
+    if 'yz' in template_list:
         templates.append(zx_yz())
+    if 'xz' in template_list:
+        templates.append(zx_xz())
+    if 'cy' in template_list:
+        templates.append(zx_cy())
 
-    cost_dict = {'rzx': 0, 'cx': 6, 'rz': 1, 'sx': 2, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
+    cost_dict = {'rzx': 0, 'cx': 6, 'rz': 0, 'sx': 1, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
 
     zx_dict = {'template_list': templates, 'user_cost_dict': cost_dict}
 

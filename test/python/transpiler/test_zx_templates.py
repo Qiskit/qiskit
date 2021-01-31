@@ -38,3 +38,6 @@ class TestZXTemplates(QiskitTestCase):
 
         data = Operator(zx_zz2(0.456)).data
         self.assertTrue(np.allclose(data, data[0, 0]*np.eye(4)))
+
+        data = Operator(zx_zz3(0.456)).data
+        self.assertTrue(np.allclose(data, data[0, 0] * np.eye(4)))

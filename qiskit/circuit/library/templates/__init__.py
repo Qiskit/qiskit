@@ -70,4 +70,5 @@ from .zx_templates import zx_xz
 from .zx_templates import zx_cy
 from .zx_templates import zx_zz1
 from .zx_templates import zx_zz2
+from .zx_templates import zx_zz3
 from .zx_templates import zx_templates
