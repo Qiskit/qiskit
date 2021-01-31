@@ -39,11 +39,11 @@ class CalibrationAdder(TransformationPass):
         """
         for node in dag.nodes():
             if node.type == 'op':
-                if self._calibration_adder.supported(node.op):
+                if self._calibration_creator.supported(node.op):
                     params = node.op.params
                     qubits = [_.index for _ in node.qargs]
 
-                    schedule = self._calibration_adder.get_calibration(params, qubits)
+                    schedule = self._calibration_creator.get_calibration(params, qubits)
 
                     dag.add_calibration(node.op, qubits, schedule, params=params)
 
