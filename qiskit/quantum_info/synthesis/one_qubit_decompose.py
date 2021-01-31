@@ -336,11 +336,12 @@ class OneQubitEulerDecomposer:
                       phase,
                       simplify=True,
                       atol=DEFAULT_ATOL):
+        rtol = 1e-9
         circuit = QuantumCircuit(1, global_phase=phase)
-        if simplify and (np.isclose(theta, 0.0, atol=atol)):
-            if not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol).any():
+        if simplify and (np.isclose(theta, 0.0, atol=atol, rtol=rtol)):
+            if not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol, rtol=rtol).any():
                 circuit.append(U1Gate(_mod2pi(phi+lam)), [0])
-        elif simplify and np.isclose(abs(theta), np.pi/2, atol=atol):
+        elif simplify and np.isclose(theta, np.pi/2, atol=atol, rtol=rtol):
             circuit.append(U2Gate(phi, lam), [0])
         else:
             circuit.append(U3Gate(theta, phi, lam), [0])
