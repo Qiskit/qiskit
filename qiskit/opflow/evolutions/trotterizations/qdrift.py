@@ -25,7 +25,6 @@ from ...operator_base import OperatorBase
 from ...primitive_ops.pauli_sum_op import PauliSumOp
 from .trotterization_base import TrotterizationBase
 
-
 # pylint: disable=invalid-name
 
 
@@ -62,5 +61,8 @@ class QDrift(TrotterizationBase):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]
+        sampled_ops = algorithm_globals.random.choice(
+            scaled_ops, size=(int(N * self.reps),), p=weights / lambd
+        )
 
         return ComposedOp(sampled_ops).reduce()
