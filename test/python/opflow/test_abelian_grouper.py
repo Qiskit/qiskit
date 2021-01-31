@@ -14,18 +14,20 @@
 
 import random
 import unittest
-from test.python.opflow import QiskitOpflowTestCase
 from itertools import combinations
-from ddt import ddt, data
+from test.python.opflow import QiskitOpflowTestCase
 
-from qiskit.opflow import (X, Y, Z, I, Zero, Plus, AbelianGrouper, OpflowError)
+from ddt import data, ddt
+
+from qiskit.opflow import (AbelianGrouper, commutator, I, OpflowError, Plus, SummedOp, X,
+                           Y, Z, Zero)
 
 
 @ddt
 class TestAbelianGrouper(QiskitOpflowTestCase):
     """Abelian Grouper tests."""
 
-    @data('h2_op', 'generic')
+    @data("h2_op", "generic")
     def test_abelian_grouper(self, pauli_op):
         """Abelian grouper test"""
         if pauli_op == 'h2_op':
@@ -47,6 +49,38 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         self.assertEqual(len(grouped_sum.oplist), num_groups)
         for group in grouped_sum:
             for op_1, op_2 in combinations(group, 2):
+                self.assertTrue(commutator(op_1, op_2).is_zero())
+
+    @data("h2_op", "generic")
+    def test_abelian_grouper_summedop(self, pauli_op):
+        """Abelian grouper test for summedop"""
+        if pauli_op == "h2_op":
+            paulis = SummedOp(
+                [
+                    (-1.052373245772859 * I ^ I),
+                    (0.39793742484318045 * I ^ Z),
+                    (-0.39793742484318045 * Z ^ I),
+                    (-0.01128010425623538 * Z ^ Z),
+                    (0.18093119978423156 * X ^ X),
+                ]
+            )
+            num_groups = 2
+        else:
+            paulis = SummedOp(
+                [
+                    (I ^ I ^ X ^ X * 0.2),
+                    (Z ^ Z ^ X ^ X * 0.3),
+                    (Z ^ Z ^ Z ^ Z * 0.4),
+                    (X ^ X ^ Z ^ Z * 0.5),
+                    (X ^ X ^ X ^ X * 0.6),
+                    (I ^ X ^ X ^ X * 0.7),
+                ]
+            )
+            num_groups = 4
+        grouped_sum = AbelianGrouper().convert(paulis)
+        self.assertEqual(len(grouped_sum.oplist), num_groups)
+        for group in grouped_sum:
+            for op_1, op_2 in combinations(group, 2):
                 self.assertEqual(op_1 @ op_2, op_2 @ op_1)
 
     def test_ablian_grouper_no_commute(self):
@@ -59,19 +93,21 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
         """grouper subroutine test"""
         paulis = (I ^ X) + (2 * X ^ X) + (3 * Z ^ Y)
         grouped_sum = AbelianGrouper.group_subops(paulis)
-        with self.subTest('test group subops 1'):
+        with self.subTest("test group subops 1"):
             self.assertEqual(len(grouped_sum), 2)
-            self.assertListEqual([str(op.primitive) for op in grouped_sum[0]], ['IX', 'XX'])
-            self.assertListEqual([op.coeff for op in grouped_sum[0]], [1, 2])
-            self.assertListEqual([str(op.primitive) for op in grouped_sum[1]], ['ZY'])
-            self.assertListEqual([op.coeff for op in grouped_sum[1]], [3])
+            self.assertSetEqual(
+                frozenset([frozenset(grouped_sum[i].primitive.to_list()) for i in range(2)]),
+                frozenset({frozenset({('ZY', 3)}), frozenset({('IX', 1), ('XX', 2)})})
+            )
 
         paulis = X + (2 * Y) + (3 * Z)
         grouped_sum = AbelianGrouper.group_subops(paulis)
-        with self.subTest('test group subops 2'):
+        with self.subTest("test group subops 2"):
             self.assertEqual(len(grouped_sum), 3)
-            self.assertListEqual([str(op[0].primitive) for op in grouped_sum], ['X', 'Y', 'Z'])
-            self.assertListEqual([op[0].coeff for op in grouped_sum], [1, 2, 3])
+            self.assertSetEqual(
+                frozenset(sum([grouped_sum[i].primitive.to_list() for i in range(3)], [])),
+                frozenset([('X', 1), ('Y', 2), ('Z', 3)])
+            )
 
     def test_abelian_grouper_random(self):
         """Abelian grouper test with random paulis"""
@@ -89,7 +125,7 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
             grouped_sum = AbelianGrouper().convert(sum(paulis))
             for group in grouped_sum:
                 for op_1, op_2 in combinations(group, 2):
-                    self.assertEqual(op_1 @ op_2, op_2 @ op_1)
+                    self.assertTrue(commutator(op_1, op_2).is_zero())
 
 
 if __name__ == '__main__':

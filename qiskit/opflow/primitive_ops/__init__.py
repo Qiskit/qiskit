@@ -68,5 +68,5 @@ __all__ = ['PrimitiveOp',
            'CircuitOp',
            'PauliSumOp',
            'TaperedPauliSumOp',
-           'Z2Symmetries'
+           'Z2Symmetries',
            ]

@@ -145,7 +145,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # TODO benchmark this later.
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=3)
 
     def test_qasm_aux_operators_normalized(self):
         """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
