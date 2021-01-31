@@ -53,7 +53,8 @@ class ZXScheduleBuilder(CalibrationCreator):
             QiskitError: if open pulse is not supported by the backend.
         """
         if not backend.configuration().open_pulse:
-            raise QiskitError(backend.name() + ' is not a pulse backend.')
+            raise QiskitError('Calibrations can only be added to Pulse-enabled backends, '
+                'but {0} is not enabled with Pulse.'.format(backend.name()))
 
         self._inst_map = backend.defaults().instruction_schedule_map
         self._config = backend.configuration()
