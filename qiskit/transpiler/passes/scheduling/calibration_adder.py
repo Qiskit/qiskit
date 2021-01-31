@@ -26,7 +26,7 @@ class CalibrationAdder(TransformationPass):
                 schedules that will be added to the circuit.
         """
         super().__init__()
-        self._calibration_adder = calibration_creator
+        self._calibration_creator = calibration_creator
 
     def run(self, dag):
         """Run the calibration adder pass on `dag`.
