@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library.templates import zx_zz1, zx_zz2, zx_yz, zx_cy, zx_xz
+from qiskit.circuit.library.templates import zx_zz1, zx_zz2, zx_yz, zx_cy, zx_xz, zx_zz3
 from qiskit.test import QiskitTestCase
 
 
