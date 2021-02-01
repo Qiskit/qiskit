@@ -151,6 +151,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 parameter in ``numpy.array2string()``.
             dims (bool): For `text` and `markdown`. Whether to display the
                 dimensions.
+            prefix (str): For `text` and `markdown`. String to be displayed
+                before the data representation.
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or

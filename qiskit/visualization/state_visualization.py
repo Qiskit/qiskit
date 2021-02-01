@@ -1155,7 +1155,10 @@ def state_drawer(state,
         return _repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix)
     if output == 'markdown':
         if HAS_IPYTHON:
-            return Markdown(_repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix))
+            return Markdown(_repr_state_markdown(state,
+                                                 max_size=max_size,
+                                                 dims=dims,
+                                                 prefix=prefix))
         else:
             raise ImportError('IPython is not installed, to install run:'
                               '"pip install ipython".')
