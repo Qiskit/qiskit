@@ -1826,9 +1826,12 @@ class QuantumCircuit:
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            params (dict or iterable): A dictionary specifying the mapping from ``current_parameter``
-                to ``new_parameter``, where ``new_parameter`` can be a new parameter object
-                or a numeric value. Also, can be an iterablie list of
+            params (dict or iterable): Either a dictionary or iterable specifying the new parameter
+                values. If a dict, it specifies the mapping from ``current_parameter`` to
+                ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
+                numeric value. If an iterable, the elements are assigned to the existing parameters
+                in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
+                this order.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
 
