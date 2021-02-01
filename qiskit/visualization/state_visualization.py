@@ -1036,13 +1036,15 @@ def _repr_state_latex(state, max_size=(8, 8)):
     return latex_str
 
 
-def _repr_state_markdown(state, max_size=(8, 8), dims=True):
+def _repr_state_markdown(state, max_size=(8, 8), dims=True, prefix=None):
     latex_str = _repr_state_latex(state, max_size=max_size)
+    if prefix is None:
+        prefix = ''
     suffix = ""
     if dims:
         dim_str = state._op_shape.dims_l()
         suffix += f"dims={dim_str}"
-    return latex_str + suffix
+    return prefix + latex_str + suffix
 
 
 def _repr_state_text(state):
@@ -1057,14 +1059,14 @@ def _repr_state_text(state):
 class TextMatrix():
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
-    def __init__(self, state, max_size, dims):
+    def __init__(self, state, max_size, dims, prefix):
         self.state = state
         self.max_size = max_size
         self.dims = dims
-        obj_name = type(self.state).__name__
+        self.prefix = prefix
         if isinstance(max_size, int):
             self.max_size = max_size
-        elif obj_name == 'DensityMatrix':
+        elif isinstance(state, DensityMatrix):
             # density matrices are square, so threshold for
             # summarization is shortest side squared
             self.max_size = min(max_size)**2
@@ -1072,19 +1074,17 @@ class TextMatrix():
             self.max_size = max_size[0]
 
     def __str__(self):
-        obj_name = type(self.state).__name__
         threshold = self.max_size
-        prefix = f'{obj_name}('
         data = np.array2string(
             self.state._data,
-            prefix=prefix,
+            prefix=self.prefix,
             threshold=threshold
         )
         if self.dims:
-            suffix = f',\ndims={self.state._op_shape.dims_l()})'
+            suffix = f',\ndims={self.state._op_shape.dims_l()}'
         else:
-            suffix = '\n)'
-        return prefix + data + suffix
+            suffix = ''
+        return self.prefix + data + suffix
 
     def __repr__(self):
         return self.__str__()
@@ -1094,7 +1094,8 @@ class TextMatrix():
 def state_drawer(state,
                  output=None,
                  max_size=None,
-                 dims=None
+                 dims=None,
+                 prefix=None
                  ):
     """Returns a visualization of the state.
 
@@ -1125,6 +1126,8 @@ def state_drawer(state,
                 parameter in ``numpy.array2string()``.
             dims (bool): For `text` and `markdown`. Whether to display the
                 dimensions.
+            prefix (str): For `text` and `markdown`. Text to be displayed before
+                the rest of the state.
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
@@ -1138,6 +1141,8 @@ def state_drawer(state,
     # sort inputs:
     if output is None:
         output = 'text'
+    if prefix is None:
+        prefix = ''
     if max_size is None:
         max_size = (8, 8)
     if isinstance(max_size, int):
@@ -1145,12 +1150,12 @@ def state_drawer(state,
 
     # choose drawing:
     if output == 'text':
-        return TextMatrix(state, max_size, dims)
+        return TextMatrix(state, max_size, dims, prefix=prefix)
     if output == 'markdown_source':
-        return _repr_state_markdown(state, max_size=max_size, dims=dims)
+        return _repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix)
     if output == 'markdown':
         if HAS_IPYTHON:
-            return Markdown(_repr_state_markdown(state, max_size=max_size, dims=dims))
+            return Markdown(_repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix))
         else:
             raise ImportError('IPython is not installed, to install run:'
                               '"pip install ipython".')

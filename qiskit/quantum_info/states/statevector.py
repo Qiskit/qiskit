@@ -109,10 +109,10 @@ class Statevector(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        text = self.draw('text')
-        return str(text)
+        text = self.draw('text', prefix='Statevector(')
+        return str(text) + ')'
 
-    def draw(self, output='text', max_size=16, dims=True):
+    def draw(self, output='text', max_size=16, dims=True, prefix=''):
         """Returns a visualization of the Statevector.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -142,6 +142,8 @@ class Statevector(QuantumState, TolerancesMixin):
                 parameter in ``numpy.array2string()``.
             dims (bool): For `text` and `markdown`. Whether to display the
                 dimensions.
+            prefix (str): For `text` and `markdown`. Text to be displayed before
+                the state.
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
@@ -155,7 +157,7 @@ class Statevector(QuantumState, TolerancesMixin):
         valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
                          'qsphere', 'hinton', 'bloch']
         if output in valid_choices:
-            return state_drawer(self, output=output, max_size=max_size, dims=dims)
+            return state_drawer(self, output=output, max_size=max_size, dims=dims, prefix=prefix)
         else:
             valid_choices_string = "', '".join(c for c in valid_choices)[:-1]
             obj_name = type(self).__name__

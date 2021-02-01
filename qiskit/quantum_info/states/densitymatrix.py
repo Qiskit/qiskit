@@ -118,10 +118,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        text = self.draw('text')
-        return str(text)
+        text = self.draw('text', prefix="DensityMatrix(")
+        return str(text) + ')'
 
-    def draw(self, output='text', max_size=(16, 16), dims=True):
+    def draw(self, output='text', max_size=(16, 16), dims=True, prefix=''):
         """Returns a visualization of the DensityMatrix.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -164,7 +164,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
                          'qsphere', 'hinton', 'bloch']
         if output in valid_choices:
-            return state_drawer(self, output=output, max_size=max_size, dims=dims)
+            return state_drawer(self, output=output, max_size=max_size, dims=dims, prefix=prefix)
         else:
             valid_choices_string = "', '".join(c for c in valid_choices)[:-1]
             obj_name = type(self).__name__
