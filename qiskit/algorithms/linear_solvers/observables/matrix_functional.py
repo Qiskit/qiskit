@@ -15,7 +15,6 @@ from typing import Union, Optional, List
 import numpy as np
 from scipy.sparse import diags
 
-from qiskit.aqua.operators import PauliSumOp
 from qiskit import QuantumCircuit
 from qiskit.opflow import I, Z, TensoredOp
 from .linear_system_observable import LinearSystemObservable
@@ -35,7 +34,7 @@ class MatrixFunctional(LinearSystemObservable):
         self._main_diag = main_diag
         self._off_diag = off_diag
 
-    def observable(self, num_qubits: int) -> Union[PauliSumOp, List[PauliSumOp]]:
+    def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
         """The observable operators.
 
         Args:

@@ -15,7 +15,6 @@ linear systems."""
 from typing import Union, Optional, List
 import numpy as np
 
-from qiskit.aqua.operators import PauliSumOp
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.opflow import I, Z, TensoredOp
 from .linear_system_observable import LinearSystemObservable
@@ -26,7 +25,7 @@ class AbsoluteAverage(LinearSystemObservable):
     to the linear systems.
     For a vector :math:`x=(x_1,...,x_N)`, the average is defined as
     :math:`\abs{\frac{1}{N}\sum_{i-1}^{N}x_i}`."""
-    def observable(self, num_qubits: int) -> Union[PauliSumOp, List[PauliSumOp]]:
+    def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
         """The observable operator.
 
         Args:
@@ -51,15 +50,14 @@ class AbsoluteAverage(LinearSystemObservable):
         qc.h(qc.qubits)
         return qc
 
-    def post_processing(self, solution: Union[float, List[float]],
-                        num_qubits: int,
-                        constant: Optional[float] = 1) -> float:
+    def post_processing(self, solution: Union[float, List[float]], num_qubits: int,
+                        scaling: float = 1) -> float:
         """Evaluates the absolute average on the solution to the linear system.
 
         Args:
             solution: The probability calculated from the circuit and the observable.
             num_qubits: The number of qubits where the observable was applied.
-            constant: If known, scaling of the solution.
+            scaling: Scaling of the solution.
 
         Returns:
             The value of the absolute average.
@@ -67,12 +65,13 @@ class AbsoluteAverage(LinearSystemObservable):
         Raises:
             ValueError: If the input is not in the correct format.
         """
-        if num_qubits is None:
-            raise ValueError("Number of qubits must be defined to calculate the absolute average.")
         if isinstance(solution, list):
-            raise ValueError("Solution probability must be given as a single value.")
+            if len(solution) == 1:
+                solution = solution[0]
+            else:
+                raise ValueError("Solution probability must be given as a single value.")
 
-        return np.real(np.sqrt(solution / (2 ** num_qubits)) / constant)
+        return np.real(np.sqrt(solution / (2 ** num_qubits)) / scaling)
 
     def evaluate_classically(self, solution: np.array) -> float:
         """Evaluates the given observable on the solution to the linear system.
