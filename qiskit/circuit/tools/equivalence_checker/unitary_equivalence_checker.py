@@ -11,18 +11,12 @@
 # that they have been altered from the originals.
 
 from time import time
+from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 
-class EquivalenceCheckerResult():
-    def __init__(self, success, equivalent, time_taken,
-                 circname1, circname2, error_msg):
-        self.success = success
-        self.time_taken = time_taken
-        self.equivalent = equivalent
-        self.circname1 = circname1
-        self.circname2 = circname2
-        self.error_msg = error_msg
-
-class BaseEquivalenceChecker():
+class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
+    def __init__(self):
+        super().__init__('unitary')
+    
     def run(self, circ1, circ2):
         start = time()
         

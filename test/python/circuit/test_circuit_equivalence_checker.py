@@ -18,20 +18,22 @@ import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.tools import BaseEquivalenceChecker
+from qiskit.circuit.tools import UnitaryEquivalenceChecker
 
 
 class TestEquivalenceChecker(QiskitTestCase):
     """Test equivalence checker"""
 
-    def verify_result(self, checker, circ1, circ2, success, equivalent):
-        res = checker.run(circ1, circ2)
-        self.assertEqual(success, res.success)
-        self.assertEqual(equivalent, res.equivalent)
+    def verify_result(self, checkers, circ1, circ2, success, equivalent):
+        for checker in checkers:
+            res = checker.run(circ1, circ2)
+            checker_msg = "Checker '" + checker.name + "' failed"
+            self.assertEqual(success, res.success, checker_msg)
+            self.assertEqual(equivalent, res.equivalent, checker_msg)
 
-    def test_basic(self):
+    def test_equivalence_checkers_basic(self):
         '''Test equivalence chekcer for valid circuits'''
-        checker = BaseEquivalenceChecker()
+        checkers = [UnitaryEquivalenceChecker()]
         
         circ1 = QuantumCircuit(2)
         circ1.cx(0, 1)
@@ -43,26 +45,26 @@ class TestEquivalenceChecker(QiskitTestCase):
         circ2.cx(0, 1)
         circ2.cx(1, 0)
 
-        self.verify_result(checker, circ1, circ2, True, True)
+        self.verify_result(checkers, circ1, circ2, True, True)
         
         circ1.x(0)
-        self.verify_result(checker, circ1, circ2, True, False)
+        self.verify_result(checkers, circ1, circ2, True, False)
 
-    def test_error(self):
+    def test_error_in_unitary_checker(self):
         '''Test error messages for invalid circuits'''
-        checker = BaseEquivalenceChecker()
+        checker = UnitaryEquivalenceChecker()
         
         circ1 = QuantumCircuit(1, 1)
         circ1.measure(0, 0)
 
         circ2 = QuantumCircuit(1, 1)
 
-        self.verify_result(checker, circ1, circ2, False, None)
-        self.verify_result(checker, circ2, circ1, False, None)
+        self.verify_result([checker], circ1, circ2, False, None)
+        self.verify_result([checker], circ2, circ1, False, None)
 
         circ2.measure(0, 0)
 
-        self.verify_result(checker, circ1, circ2, False, None)
+        self.verify_result([checker], circ1, circ2, False, None)
 
 if __name__ == '__main__':
     unittest.main()
