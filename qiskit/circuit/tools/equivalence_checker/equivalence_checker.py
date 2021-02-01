@@ -22,7 +22,7 @@ class EquivalenceCheckerResult():
         self.circname2 = circname2
         self.error_msg = error_msg
 
-class EquivalenceChecker():
+class BaseEquivalenceChecker():
     def run(self, circ1, circ2):
         start = time()
         

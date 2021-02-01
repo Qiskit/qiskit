@@ -18,7 +18,7 @@ import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.tools import EquivalenceChecker
+from qiskit.circuit.tools import BaseEquivalenceChecker
 
 
 class TestEquivalenceChecker(QiskitTestCase):
@@ -31,7 +31,7 @@ class TestEquivalenceChecker(QiskitTestCase):
 
     def test_basic(self):
         '''Test equivalence chekcer for valid circuits'''
-        checker = EquivalenceChecker()
+        checker = BaseEquivalenceChecker()
         
         circ1 = QuantumCircuit(2)
         circ1.cx(0, 1)
@@ -50,7 +50,7 @@ class TestEquivalenceChecker(QiskitTestCase):
 
     def test_error(self):
         '''Test error messages for invalid circuits'''
-        checker = EquivalenceChecker()
+        checker = BaseEquivalenceChecker()
         
         circ1 = QuantumCircuit(1, 1)
         circ1.measure(0, 0)

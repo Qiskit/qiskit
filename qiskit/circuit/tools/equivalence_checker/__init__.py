@@ -14,4 +14,4 @@
 Circuit Equivalence Checker
 """
 
-from .equivalence_checker import EquivalenceChecker
+from .equivalence_checker import BaseEquivalenceChecker
