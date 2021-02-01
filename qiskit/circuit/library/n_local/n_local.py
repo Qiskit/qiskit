@@ -738,8 +738,8 @@ class NLocal(BlueprintCircuit):
 
         return self
 
-    def assign_parameters(self, param_dict: Union[dict, List[float], List[Parameter],
-                                                  ParameterVector],
+    def assign_parameters(self, params: Union[dict, List[float], List[Parameter],
+                                              ParameterVector],
                           inplace: bool = False) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
