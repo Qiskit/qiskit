@@ -31,9 +31,11 @@ from .observables.linear_system_observable import LinearSystemObservable
 class HHL(LinearSolver):
     """The HHL algorithm to solve systems of linear equations"""
     def __init__(self, epsilon: float = 1e-2) -> None:
-        """
+        r"""
         Args:
-         epsilon : Error tolerance.
+         epsilon : Error tolerance of the approximation to the solution, i.e. if x is the exact
+          solution and ::math::`\tilde{x}` the one calculated by the algorithm, then
+          ::math::`||x - \tilde{x}|| < epsilon`.
 
         .. note::
 
@@ -62,7 +64,7 @@ class HHL(LinearSolver):
         # For now the default inverse implementation is exact
         self._exact_inverse = True
 
-    def get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
+    def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
 
         Args:
@@ -81,7 +83,7 @@ class HHL(LinearSolver):
             lamb_min_rep += int(char) / (2 ** (i + 1))
         return lamb_min_rep
 
-    def calculate_norm(self, qc: QuantumCircuit, scaling: Optional[float] = 1) -> float:
+    def _calculate_norm(self, qc: QuantumCircuit, scaling: Optional[float] = 1) -> float:
         """Calculates the value of the euclidean norm of the solution.
 
         Args:
@@ -106,7 +108,7 @@ class HHL(LinearSolver):
 
         return np.real(np.sqrt(norm_2) / scaling)
 
-    def calculate_observable(self, qc: QuantumCircuit,
+    def _calculate_observable(self, qc: QuantumCircuit,
                              observable: Optional[Union[LinearSystemObservable, BaseOperator,
                                                         List[BaseOperator]]] = None,
                              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]]
@@ -246,7 +248,7 @@ class HHL(LinearSolver):
         nl = max(nb + 1, int(np.log2(lambda_max / lambda_min)) + 1)
 
         # Constant from the representation of eigenvalues
-        delta = self.get_delta(nl, lambda_min, lambda_max)
+        delta = self._get_delta(nl, lambda_min, lambda_max)
 
         # Update evolution time
         evo_time = 2 * np.pi * delta / lambda_min
@@ -362,9 +364,9 @@ class HHL(LinearSolver):
 
         solution = LinearSolverResult()
         solution.state = self.construct_circuit(matrix, vector)
-        solution.euclidean_norm = self.calculate_norm(solution.state, lambda_min)
+        solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
         # The post-rotating gates have already been applied
         solution.observable, solution.circuit_results =\
-            self.calculate_observable(solution.state, observable, post_rotation, post_processing,
-                                      lambda_min)
+            self._calculate_observable(solution.state, observable, post_rotation, post_processing,
+                                       lambda_min)
         return solution
