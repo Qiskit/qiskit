@@ -24,7 +24,7 @@ class EquivalenceCheckerResult():
 class EquivalenceChecker():
     def run(self, circ1, circ2):
         from qiskit.quantum_info.operators import Operator
-        is_equivalent = None
+        equivalent = None
         success = True
 
         start = time()
