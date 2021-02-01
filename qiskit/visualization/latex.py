@@ -1030,7 +1030,7 @@ def _truncate_float(matchobj, ndigits=3):
     return ''
 
 
-def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
+def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
 
         Args:
@@ -1039,9 +1039,8 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
             precision (int): For numbers not close to integers or common terms, the number of
                              decimal places to round to.
             pretext (str): Latex string to be prepended to the latex, intended for labels.
-            display (bool): If True, will attempt to use IPython.display to display the LaTeX.
-                            If display is False, or IPython.display is not available, will instead
-                            return the LaTeX string.
+            source (bool): If ``False``, will return IPython.display.Latex object. If display is
+                           ``True``, will instead return the LaTeX source string.
             max_size (list(int) or int): The maximum size of the output Latex array.
                       * If list(```int```), then the 0th element of the list specifies the maximum
                         width (including dots characters) and the 1st specifies the maximum height
@@ -1050,14 +1049,16 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
                         height.
 
         Returns:
-            if display is False:
-                str: Latex representation of the array, wrapped in $$
+            if ``source`` is ``True``:
+                ``str``: LaTeX string representation of the array, wrapped in `$$`.
             else:
-                None
+                ``IPython.display.Latex``: LaTeX representation of the array.
 
         Raises:
-            ValueError: If array can not be interpreted as a numerical numpy array
-            ValueError: If the dimension of array is not 1 or 2
+            ValueError: If array can not be interpreted as a numerical numpy array.
+            ValueError: If the dimension of array is not 1 or 2.
+            ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
+                         imported.
     """
     try:
         array = np.asarray(array)
@@ -1073,12 +1074,12 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
     else:
         raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
 
-    if display is True:
+    if source is False:
         try:
-            from IPython.display import Latex, display
-            display(Latex(outstr))
-            return None
-        except ImportError:
-            return outstr
+            from IPython.display import Latex
+        except ImportError as err:
+            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
+                                         " source string, set `source=True`).")
+        return Latex(outstr)
     else:
         return outstr
