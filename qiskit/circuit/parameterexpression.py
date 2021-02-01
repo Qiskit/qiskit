@@ -355,7 +355,7 @@ class ParameterExpression:
         return self._call(_atan)
 
     def arctan2(self, denom):
-        """Arctan2 of a ParameterExpression. """
+        """Arctan2 of a ParameterExpression."""
         from sympy import atan2 as _atan2
         return self._apply_operation(_atan2, denom)
 
