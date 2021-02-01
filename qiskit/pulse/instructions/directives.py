@@ -15,12 +15,11 @@ from abc import ABC
 from typing import Optional, Union, Dict
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse import channels as chans, Schedule
-from qiskit.pulse.instructions import Instruction
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse import channels as chans
+from qiskit.pulse.instructions import instruction
 
 
-class Directive(Instruction, ABC):
+class Directive(instruction.Instruction, ABC):
     """A compiler directive.
 
     This is a hint to the pulse compiler and is not loaded into hardware.
@@ -68,8 +67,8 @@ class Call(Directive):
     to reuse the defined subroutines rather than redefining it multiple times.
     """
 
-    def __init__(self,
-                 subprogram: Schedule):
+    # note that we cannot type hint for this due to cyclic import
+    def __init__(self, subprogram):
         """Create a new call directive with subprogram.
 
         Note that the subprogram will not be further optimized or scheduled because
@@ -79,7 +78,7 @@ class Call(Directive):
         unique Parameter object.
 
         Args:
-            subprogram: A subprogram to wrap with call instruction.
+            subprogram (Schedule): A subprogram to wrap with call instruction.
         """
         super().__init__((subprogram, ), None,
                          channels=tuple(subprogram.channels),
@@ -91,8 +90,12 @@ class Call(Directive):
         return self.operands[0].duration
 
     @property
-    def subprogram(self) -> Schedule:
-        """Return attached subprogram."""
+    def subprogram(self):
+        """Return attached subprogram.
+
+        Returns:
+            (Schedule): Attached schedule.
+        """
         return self.operands[0]
 
     def assign_parameters(self,

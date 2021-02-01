@@ -32,7 +32,6 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
-from qiskit.pulse.transforms import flatten
 
 # pylint: disable=missing-return-doc
 
@@ -356,6 +355,8 @@ class Schedule(abc.ABC):
 
     def flatten(self) -> 'Schedule':
         """Deprecated."""
+        from qiskit.pulse.transforms import flatten
+
         warnings.warn('`This method is being deprecated. Please use '
                       '`qiskit.pulse.transforms.flatten` function with this schedule.')
 
@@ -778,7 +779,10 @@ class Schedule(abc.ABC):
         Args:
             schedule:
         """
-        schedule = schedule.flatten()
+        # need to fix cyclic import
+        from qiskit.pulse.transforms import flatten
+
+        schedule = flatten(self)
         for _, inst in schedule.instructions:
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)

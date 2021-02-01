@@ -524,7 +524,7 @@ def flatten(schedule: Schedule) -> Schedule:
 
     # TODO this function will also take ScheduleBlock.
     """
-    return Schedule(_flatten_routine_call(schedule), name=schedule.name)
+    return Schedule(*_flatten_routine_call(schedule), name=schedule.name)
 
 
 def _flatten_routine_call(program: Schedule):
