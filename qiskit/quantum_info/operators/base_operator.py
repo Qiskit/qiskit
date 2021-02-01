@@ -20,12 +20,12 @@ from abc import ABC
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
 
-from .mixins import GateOpMixin
+from .mixins import GroupMixin, AdjointMixin
 
 
 # pylint: disable = abstract-method
-class BaseOperator(GateOpMixin, ABC):
-    """Abstract linear operator base class."""
+class BaseOperator(GroupMixin, AdjointMixin, ABC):
+    """Abstract operator base class."""
 
     def __init__(self, input_dims=None, output_dims=None,
                  num_qubits=None, shape=None, op_shape=None):

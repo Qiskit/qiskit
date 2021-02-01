@@ -21,8 +21,8 @@ from numbers import Integral
 from qiskit.exceptions import QiskitError
 
 
-class GateOpMixin(ABC):
-    """Abstract Mixin for base operator operations.
+class GroupMixin(ABC):
+    """Abstract Mixin for operator group operations.
 
     This class defines the following methods
 
@@ -31,22 +31,16 @@ class GateOpMixin(ABC):
         - :meth:`tensor`
         - :meth:`expand`
         - :meth:`power`
-        - :meth:`transpose`
-        - :meth:`conjugate`
-        - :meth:`adjoint`
 
     And the following operator overloads:
 
         - ``*``, ``__mul__`` -> :meth:`dot`
         - ``@``, ``__matmul__`` -> :meth:`compose`
         - ``**``, ``__pow__`` -> :meth:`power`
-        - ``^``, ``__xor__`` -> :meth:`tensor`
 
     The following abstract methods must be implemented by subclasses
     using this mixin
 
-        - ``conjugate(self)``
-        - ``transpose(self)``
         - ``_compose(self, other, qargs=None, inplace=False)``
         - ``_tensor(cls, a, b)``
     """
@@ -168,18 +162,6 @@ class GateOpMixin(ABC):
         for _ in range(1, n):
             ret = ret.dot(self)
         return ret
-
-    def adjoint(self):
-        """Return the adjoint of the {cls}.""".format(cls=type(self).__name__)
-        return self.conjugate().transpose()
-
-    @abstractmethod
-    def conjugate(self):
-        """Return the conjugate of the {cls}.""".format(cls=type(self).__name__)
-
-    @abstractmethod
-    def transpose(self):
-        """Return the transpose of the {cls}.""".format(cls=type(self).__name__)
 
     @classmethod
     @abstractmethod

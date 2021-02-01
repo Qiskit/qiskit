@@ -14,7 +14,8 @@
 Operator Mixins
 """
 
-from .gate_op import GateOpMixin
-from .linear import LinearMixin  # Include MultiplyMixin
+from .group import GroupMixin
+from .adjoint import AdjointMixin
+from .linear import LinearMixin
 from .multiply import MultiplyMixin
 from .tolerances import TolerancesMixin
