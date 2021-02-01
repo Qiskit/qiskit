@@ -314,8 +314,12 @@ class AQGD(Optimizer):
                     break
 
                 # Calculate objective function and estimate of analytical gradient
-                objval, gradient = \
-                    self._compute_objective_fn_and_gradient(params, objective_function)
+                if gradient_function is None:
+                    objval, gradient = \
+                        self._compute_objective_fn_and_gradient(params, objective_function)
+                else:
+                    objval = objective_function(params)
+                    gradient = gradient_function(params)
 
                 logger.info(" Iter: %4d | Obj: %11.6f | Grad Norm: %f",
                             iter_count, objval, np.linalg.norm(gradient, ord=np.inf))
