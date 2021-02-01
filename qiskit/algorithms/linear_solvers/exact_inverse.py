@@ -24,7 +24,13 @@ class ExactInverse(QuantumCircuit):
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
 
-    def __init__(self, num_state_qubits: int, constant: float, name: str = '1/x') -> None:
+    def __init__(self, num_state_qubits: int, scaling: float, name: str = '1/x') -> None:
+        r"""
+        Args:
+            num_state_qubits: The number of qubits representing the value to invert.
+            scaling: Scaling factor of the inverse function, i.e. to compute
+             ::math:: `scaling / x`.
+        """
 
         qr_state = QuantumRegister(num_state_qubits, 'state')
         qr_flag = QuantumRegister(1, 'flag')
@@ -34,10 +40,10 @@ class ExactInverse(QuantumCircuit):
         nl = 2 ** num_state_qubits
 
         for i in range(1, nl):
-            if isclose(constant * nl / i, 1, abs_tol=1e-5):
+            if isclose(scaling * nl / i, 1, abs_tol=1e-5):
                 angles.append(np.pi)
-            elif constant * nl / i < 1:
-                angles.append(2 * np.arcsin(constant * nl / i))
+            elif scaling * nl / i < 1:
+                angles.append(2 * np.arcsin(scaling * nl / i))
             else:
                 angles.append(0.0)
 
