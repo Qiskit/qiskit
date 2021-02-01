@@ -126,28 +126,17 @@ class QAOAAnsatz(BlueprintCircuit):
 
     def _calculate_parameters(self):
         """Calculated internal parameters of the circuit to be built."""
-        # self._num_qubits = self._cost_operator.num_qubits
-
         from qiskit.opflow import OperatorBase
         if isinstance(self._mixer, QuantumCircuit):
             self._num_parameters = (1 + self._mixer.num_parameters) * self._reps
             self._bounds = [(None, None)] * self._reps + \
                            [(None, None)] * self._reps * self._mixer.num_parameters
-            # self._mixer = self._mixer_operator
         elif isinstance(self._mixer, OperatorBase):
             self._num_parameters = 2 * self._reps
             self._bounds = [(None, None)] * self._reps + [(None, None)] * self._reps
-            # self._mixer = self._mixer_operator
         elif self._mixer is None:
             self._num_parameters = 2 * self._reps
             self._bounds = [(None, None)] * self._reps + [(0, 2 * np.pi)] * self._reps
-            # # local imports to avoid circular imports
-            # from qiskit.opflow import I, X
-            # # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
-            # # will simply produce rx's on each qubit.
-            # mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
-            #                for left in range(self._num_qubits)]
-            # self._mixer = sum(mixer_terms)
 
     def _construct_circuit(self, parameters) -> QuantumCircuit:
         """Construct a parametrized circuit."""
