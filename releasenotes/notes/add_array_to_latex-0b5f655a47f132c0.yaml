@@ -5,7 +5,7 @@ features:
     methods for viewing in Jupyter Notebooks and other environments that support
     it.
   - |
-    :class:`Statevector` and :class:`DensityMatrix` classes now have :meth:`.draw()` methods
+    :class:`Statevector` and :class:`DensityMatrix` classes now have ``.draw()`` methods
     allowing them to be drawn as text matrices, LaTeX source matrices,
     markdown, Q-spheres, Bloch spheres and Hinton plots.
   - |
