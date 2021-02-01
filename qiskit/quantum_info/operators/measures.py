@@ -312,3 +312,63 @@ def _cvxpy_check(name):
         raise ImportError(
             'Incompatible CVXPY version {} found.'
             ' Install version >=1.0.'.format(version))
+<<<<<<< HEAD
+=======
+
+
+# pylint: disable=too-many-return-statements
+def _input_formatter(obj, fallback_class, func_name, arg_name):
+    """Formatting function for input conversion"""
+    # Empty input
+    if obj is None:
+        return obj
+
+    # Channel-like input
+    if isinstance(obj, QuantumChannel):
+        return obj
+    if hasattr(obj, 'to_quantumchannel'):
+        return obj.to_quantumchannel()
+    if hasattr(obj, 'to_channel'):
+        return obj.to_channel()
+
+    # Unitary-like input
+    if isinstance(obj, (Gate, BaseOperator)):
+        return Operator(obj)
+    if hasattr(obj, 'to_operator'):
+        return obj.to_operator()
+
+    warnings.warn(
+        'Passing in a list or Numpy array to `{}` `{}` argument is '
+        'deprecated as of 0.17.0 since the matrix representation cannot be inferred '
+        'unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, '
+        'SuperOp, Choi) object instead.'.format(func_name, arg_name),
+        DeprecationWarning)
+    warnings.warn(
+        'Treating array input as a {} object'.format(fallback_class.__name__))
+    return fallback_class(obj)
+
+
+def _cp_condition(channel):
+    """Return Choi-matrix eigenvalues for checking if channel is CP"""
+    if isinstance(channel, QuantumChannel):
+        if not isinstance(channel, Choi):
+            channel = Choi(channel)
+        return np.linalg.eigvalsh(channel.data)
+    unitary = Operator(channel).data
+    return np.tensordot(unitary, unitary.conj(), axes=([0, 1], [0, 1])).real
+
+
+def _tp_condition(channel):
+    """Return partial tr Choi-matrix eigenvalues for checking if channel is TP"""
+    if isinstance(channel, QuantumChannel):
+        if not isinstance(channel, Choi):
+            channel = Choi(channel)
+        choi = channel.data
+        dims = tuple(np.sqrt(choi.shape).astype(int))
+        shape = dims + dims
+        tr_choi = np.trace(np.reshape(choi, shape), axis1=1, axis2=3)
+    else:
+        unitary = Operator(channel).data
+        tr_choi = np.tensordot(unitary, unitary.conj(), axes=(0, 0))
+    return np.linalg.eigvalsh(tr_choi - np.eye(len(tr_choi)))
+>>>>>>> 5f9da19d4... Remove DeprecationWarning of np.int, np.bool, np.complex (#5758)

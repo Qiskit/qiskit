@@ -99,7 +99,38 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
              'linewidth': formatter['line_width.fill_waveform'],
              'linestyle': formatter['line_style.fill_waveform']}
 
+<<<<<<< HEAD
     color_code = types.ComplexColors(*formatter[_fill_waveform_color(channel)])
+=======
+        # phase modulation
+        if formatter['control.apply_phase_modulation']:
+            ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
+        else:
+            ydata = np.asarray(ydata, dtype=complex)
+
+        return _draw_shaped_waveform(xdata=xdata,
+                                     ydata=ydata,
+                                     meta=meta,
+                                     channel=channel,
+                                     formatter=formatter)
+
+    elif isinstance(waveform_data, types.OpaqueShape):
+        # Draw parametric pulse with unbound parameters
+
+        # parameter name
+        unbound_params = []
+        for pname, pval in data.inst.pulse.parameters.items():
+            if isinstance(pval, circuit.ParameterExpression):
+                unbound_params.append(pname)
+
+        return _draw_opaque_waveform(init_time=data.t0,
+                                     duration=waveform_data.duration,
+                                     pulse_shape=data.inst.pulse.__class__.__name__,
+                                     pnames=unbound_params,
+                                     meta=meta,
+                                     channel=channel,
+                                     formatter=formatter)
+>>>>>>> 5f9da19d4... Remove DeprecationWarning of np.int, np.bool, np.complex (#5758)
 
     # create real part
     if np.any(re_y):
@@ -286,9 +317,9 @@ def gen_waveform_max_value(data: types.PulseInstruction,
 
     # phase modulation
     if formatter['control.apply_phase_modulation']:
-        ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
     else:
-        ydata = np.asarray(ydata, dtype=np.complex)
+        ydata = np.asarray(ydata, dtype=complex)
 
     texts = []
 
