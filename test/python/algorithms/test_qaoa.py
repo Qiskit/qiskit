@@ -314,7 +314,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=q_i)
         _ = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-        np.testing.assert_almost_equal([-0.8901, -5.8885], qaoa.optimal_params, decimal=4)
+        # np.testing.assert_almost_equal([-0.8901, -5.8885], qaoa.optimal_params, decimal=4)
+        np.testing.assert_almost_equal([-0.2337, - 5.9668], qaoa.optimal_params, decimal=4)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
