@@ -4,10 +4,21 @@ features:
     :class:`Statevector` and :class:`DensityMatrix` classes now have :meth:`__ipython_dispay__`
     methods for viewing in Jupyter Notebooks and other environments that support
     it.
+
+    .. jupyter-execute::
+
+            Statevector.from_label('+r')
+
   - |
     :class:`Statevector` and :class:`DensityMatrix` classes now have ``.draw()`` methods
     allowing them to be drawn as text matrices, LaTeX source matrices,
     markdown, Q-spheres, Bloch spheres and Hinton plots.
+
+    .. jupyter-execute::
+
+            dm = DensityMatrix.from_label('0r')
+            dm.draw('markdown')
+
   - |
     Can now use :func:`array_to_latex()` to represent vectors and matrices as
     human-friendly LaTeX.
