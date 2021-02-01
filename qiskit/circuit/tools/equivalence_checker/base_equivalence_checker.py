@@ -11,12 +11,14 @@
 # that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
+from inspect import signature
+from time import time
 
-class EquivalenceCheckerResult():
-    def __init__(self, success, equivalent, time_taken,
+
+class EquivalenceCheckerResult:
+    def __init__(self, success, equivalent,
                  circname1, circname2, error_msg):
         self.success = success
-        self.time_taken = time_taken
         self.equivalent = equivalent
         self.circname1 = circname1
         self.circname2 = circname2
@@ -26,6 +28,14 @@ class BaseEquivalenceChecker(ABC):
     def __init__(self, name):
         self.name = name
     
+    def run(self, circ1, circ2, **kwargs):
+        start = time()        
+        res = self._run_checker(circ1, circ2, **kwargs)
+        time_taken = time() - start
+        res.time_taken = time_taken
+        
+        return res
+
     @abstractmethod
-    def run(self, circ1, circ2):
+    def _run_checker(self, circ1, circ2, **kwargs):
         pass

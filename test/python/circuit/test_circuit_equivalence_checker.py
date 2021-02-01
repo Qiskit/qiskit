@@ -24,15 +24,17 @@ from qiskit.circuit.tools import UnitaryEquivalenceChecker
 class TestEquivalenceChecker(QiskitTestCase):
     """Test equivalence checker"""
 
-    def verify_result(self, checkers, circ1, circ2, success, equivalent):
+    def verify_result(self, checkers, circ1, circ2,
+                      success, equivalent,
+                      phase):
         for checker in checkers:
-            res = checker.run(circ1, circ2)
+            res = checker.run(circ1, circ2, phase=phase)
             checker_msg = "Checker '" + checker.name + "' failed"
             self.assertEqual(success, res.success, checker_msg)
             self.assertEqual(equivalent, res.equivalent, checker_msg)
 
-    def test_equivalence_checkers_basic(self):
-        '''Test equivalence chekcer for valid circuits'''
+    def test_equivalence_checkers_equal_phase(self):
+        '''Test equivalence chekcers for valid circuits, requiring equal phase'''
         checkers = [UnitaryEquivalenceChecker()]
         
         circ1 = QuantumCircuit(2)
@@ -45,10 +47,27 @@ class TestEquivalenceChecker(QiskitTestCase):
         circ2.cx(0, 1)
         circ2.cx(1, 0)
 
-        self.verify_result(checkers, circ1, circ2, True, True)
+        self.verify_result(checkers, circ1, circ2, True, True, 'equal')
         
         circ1.x(0)
-        self.verify_result(checkers, circ1, circ2, True, False)
+        self.verify_result(checkers, circ1, circ2, True, False, 'equal')
+
+    def test_equivalence_checkers_up_to_global_phase(self):
+        '''Test equivalence chekcers for valid circuits, requiring up-to-global phase'''
+        checkers = [UnitaryEquivalenceChecker()]
+        
+        circ1 = QuantumCircuit(1)
+        circ1.x(0)
+        circ1.z(0)
+
+        circ2 = QuantumCircuit(1)
+        circ2.y(0)
+
+        self.verify_result(checkers, circ1, circ2, True, False, 'equal')
+        self.verify_result(checkers, circ1, circ2, True, True, 'up_to_global')
+        
+        circ1.x(0)
+        self.verify_result(checkers, circ1, circ2, True, False, 'up_to_global')
 
     def test_error_in_unitary_checker(self):
         '''Test error messages for invalid circuits'''
@@ -59,12 +78,12 @@ class TestEquivalenceChecker(QiskitTestCase):
 
         circ2 = QuantumCircuit(1, 1)
 
-        self.verify_result([checker], circ1, circ2, False, None)
-        self.verify_result([checker], circ2, circ1, False, None)
+        self.verify_result([checker], circ1, circ2, False, None, 'equal')
+        self.verify_result([checker], circ2, circ1, False, None, 'equal')
 
         circ2.measure(0, 0)
 
-        self.verify_result([checker], circ1, circ2, False, None)
+        self.verify_result([checker], circ1, circ2, False, None, 'equal')
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,16 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from time import time
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 
 class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     def __init__(self):
         super().__init__('unitary')
     
-    def run(self, circ1, circ2):
-        start = time()
-        
+    def _run_checker(self, circ1, circ2, phase):
         from qiskit.quantum_info.operators import Operator
         equivalent = None
         success = True
@@ -38,11 +35,16 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
 
         if success:
             try:
-                equivalent = (ops[0] == ops[1])
+                if phase == 'equal':
+                    equivalent = (ops[0] == ops[1])
+                elif phase == 'up_to_global':
+                    equivalent = (ops[0].equiv(ops[1]))
+                else:
+                    raise('Unrecognized phase criterion: ' + str(phase))
             except:
                 error_msg = e
                 success = False
 
-        time_taken = time() - start
-        return EquivalenceCheckerResult(success, equivalent, time_taken,
-                                        circ1.name, circ2.name, error_msg)
+        return EquivalenceCheckerResult(success, equivalent,
+                                        circ1.name, circ2.name,
+                                        error_msg)
