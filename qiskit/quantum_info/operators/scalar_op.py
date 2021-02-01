@@ -20,13 +20,11 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.mixins import LinearMixin, TolerancesMixin
+from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.operator import Operator
 
 
-class ScalarOp(BaseOperator,
-               LinearMixin,
-               TolerancesMixin):
+class ScalarOp(LinearOp):
     """Scalar identity operator class.
 
     This is a symbolic representation of an scalar identity operator on

@@ -20,8 +20,7 @@ from numbers import Number, Integral
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.mixins import LinearMixin, TolerancesMixin
+from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _transform_rep
@@ -31,7 +30,7 @@ from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 
-class QuantumChannel(BaseOperator, LinearMixin, TolerancesMixin):
+class QuantumChannel(LinearOp):
     """Quantum channel representation base class."""
 
     def __init__(self, data, num_qubits=None, op_shape=None):
@@ -74,7 +73,7 @@ class QuantumChannel(BaseOperator, LinearMixin, TolerancesMixin):
         return type(self).__name__
 
     # ---------------------------------------------------------------------
-    # BaseOperator methods
+    # LinearOp methods
     # ---------------------------------------------------------------------
 
     @abstractmethod
