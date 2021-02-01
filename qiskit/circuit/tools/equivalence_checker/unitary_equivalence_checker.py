@@ -45,6 +45,4 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 error_msg = e
                 success = False
 
-        return EquivalenceCheckerResult(success, equivalent,
-                                        circ1.name, circ2.name,
-                                        error_msg)
+        return EquivalenceCheckerResult(success, equivalent, error_msg)

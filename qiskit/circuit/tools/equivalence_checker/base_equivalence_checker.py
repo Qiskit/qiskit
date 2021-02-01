@@ -16,12 +16,9 @@ from time import time
 
 
 class EquivalenceCheckerResult:
-    def __init__(self, success, equivalent,
-                 circname1, circname2, error_msg):
+    def __init__(self, success, equivalent, error_msg):
         self.success = success
         self.equivalent = equivalent
-        self.circname1 = circname1
-        self.circname2 = circname2
         self.error_msg = error_msg
 
 class BaseEquivalenceChecker(ABC):
