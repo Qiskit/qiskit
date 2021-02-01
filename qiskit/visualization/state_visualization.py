@@ -1038,12 +1038,11 @@ def _repr_state_latex(state, max_size=(8, 8)):
 
 def _repr_state_markdown(state, max_size=(8, 8), dims=True):
     latex_str = _repr_state_latex(state, max_size=max_size)
-    state_type = type(state).__name__
-    description = f"{state_type} object: "
+    suffix = ""
     if dims:
         dim_str = state._op_shape.dims_l()
-        description += f"dims={dim_str}"
-    return description + latex_str
+        suffix += f"dims={dim_str}"
+    return latex_str + suffix
 
 
 def _repr_state_text(state):
