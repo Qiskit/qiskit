@@ -146,7 +146,7 @@ Provider
 ========
 
 A provider class serves a single purpose: to get backend objects that enable
-executing circuits on a device or simulator. The expecation is that any
+executing circuits on a device or simulator. The expectation is that any
 required credentials and/or authentication will be handled in the initialization
 of a provider object. The provider object will then provide a list of backends,
 and methods to filter and acquire backends (using the provided credentials if
