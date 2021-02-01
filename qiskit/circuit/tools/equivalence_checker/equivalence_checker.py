@@ -14,25 +14,41 @@ from time import time
 
 class EquivalenceCheckerResult():
     def __init__(self, success, equivalent, time_taken,
-                 circname1, circname2):
+                 circname1, circname2, error_msg):
         self._success = success
         self._time_taken = time_taken
         self._equivalent = equivalent
         self._circname1 = circname1
         self._circname2 = circname2
+        self._error_msg = error_msg
 
 class EquivalenceChecker():
     def run(self, circ1, circ2):
+        start = time()
+        
         from qiskit.quantum_info.operators import Operator
         equivalent = None
         success = True
+        error_msg = ''
 
-        start = time()
-        try:
-            equivalent = (Operator(circ1) == Operator(circ2))
-        except:
-            success = False
+        ops = []
+        circs = [circ1, circ2]
+
+        for circ in circs:
+            try:
+                op = Operator(circ)
+                ops.append(op)
+            except Exception as e:
+                error_msg += 'Circuit ' + circ.name + ' is invalid: ' + str(e) + '\n'
+                success = False
+
+        if success:
+            try:
+                equivalent = (ops[0] == ops[1])
+            except:
+                error_msg = e
+                success = False
 
         time_taken = time() - start
         return EquivalenceCheckerResult(success, equivalent, time_taken,
-                                        circ1.name, circ2.name)
+                                        circ1.name, circ2.name, error_msg)
