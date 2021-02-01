@@ -26,8 +26,8 @@ class TestEquivalenceChecker(QiskitTestCase):
 
     def verify_result(self, checker, circ1, circ2, success, equivalent):
         res = checker.run(circ1, circ2)
-        self.assertEqual(success, res._success)
-        self.assertEqual(equivalent, res._equivalent)
+        self.assertEqual(success, res.success)
+        self.assertEqual(equivalent, res.equivalent)
 
     def test_basic(self):
         '''Test equivalence chekcer for valid circuits'''

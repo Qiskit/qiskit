@@ -15,12 +15,12 @@ from time import time
 class EquivalenceCheckerResult():
     def __init__(self, success, equivalent, time_taken,
                  circname1, circname2, error_msg):
-        self._success = success
-        self._time_taken = time_taken
-        self._equivalent = equivalent
-        self._circname1 = circname1
-        self._circname2 = circname2
-        self._error_msg = error_msg
+        self.success = success
+        self.time_taken = time_taken
+        self.equivalent = equivalent
+        self.circname1 = circname1
+        self.circname2 = circname2
+        self.error_msg = error_msg
 
 class EquivalenceChecker():
     def run(self, circ1, circ2):
