@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,7 +30,7 @@ from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from .algorithm_result import AlgorithmResult
 from .optimizers import Optimizer, SLSQP
 from .variational_forms import VariationalForm
@@ -210,7 +210,7 @@ class VariationalAlgorithm:
                 if initial_point is None:  # If still None use a random generated point
                     low = [(l if l is not None else -2 * np.pi) for (l, u) in bounds]
                     high = [(u if u is not None else 2 * np.pi) for (l, u) in bounds]
-                    initial_point = aqua_globals.random.uniform(low, high)
+                    initial_point = algorithm_globals.random.uniform(low, high)
 
         start = time.time()
         if not optimizer.is_gradient_supported:  # ignore the passed gradient function

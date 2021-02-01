@@ -35,6 +35,10 @@ class ParameterVector:
         """Returns the list of parameters in the ParameterVector."""
         return self._params
 
+    def index(self, value):
+        """Returns first index of value."""
+        return self._params.index(value)
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             start, stop, step = key.indices(self._size)
@@ -63,7 +67,7 @@ class ParameterVector:
         previous elements are cached and not re-generated if the vector is enlargened again.
         This is to ensure that the parameter instances do not change.
         """
-        if length > self._size:
-            for i in range(self._size, length):
+        if length > len(self._params):
+            for i in range(len(self._params), length):
                 self._params += [Parameter('{}[{}]'.format(self._name, i))]
         self._size = length

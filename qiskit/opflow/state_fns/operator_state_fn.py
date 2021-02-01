@@ -67,7 +67,7 @@ class OperatorStateFn(StateFn):
                 return StateFn(self.primitive,
                                coeff=self.coeff + other.coeff,
                                is_measurement=self.is_measurement)
-            # Covers MatrixOperator, Statevector and custom.
+            # Covers Statevector and custom.
             elif isinstance(other, OperatorStateFn):
                 # Also assumes scalar multiplication is available
                 return OperatorStateFn(

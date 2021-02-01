@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ from typing import Dict, Optional, Tuple, List, Callable
 import logging
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class GSLS(Optimizer):
                          variable_bounds, initial_point)
 
         if initial_point is None:
-            initial_point = aqua_globals.random.normal(size=num_vars)
+            initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
             initial_point = np.array(initial_point)
 
@@ -242,7 +242,7 @@ class GSLS(Optimizer):
         Returns:
             A tuple containing the sampling points and the directions.
         """
-        normal_samples = aqua_globals.random.normal(size=(num_points, n))
+        normal_samples = algorithm_globals.random.normal(size=(num_points, n))
         row_norms = np.linalg.norm(normal_samples, axis=1, keepdims=True)
         directions = normal_samples / row_norms
         points = x + self._options['sampling_radius'] * directions
