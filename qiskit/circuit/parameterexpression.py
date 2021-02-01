@@ -385,7 +385,7 @@ class ParameterExpression:
         """
         if isinstance(other, ParameterExpression):
             return (self.parameters == other.parameters
-                    and self._symbol_expr.equals(other._symbol_expr)):
+                    and self._symbol_expr.equals(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return (len(self.parameters) == 0
                     and complex(self._symbol_expr) == other)
