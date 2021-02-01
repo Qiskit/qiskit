@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Aqua Globals """
+""" Algorithm Globals """
 
 from typing import Optional
 import logging
@@ -18,22 +18,29 @@ import logging
 import numpy as np
 
 from qiskit.tools import parallel
+from ..user_config import get_config
 from ..exceptions import QiskitError
 
 
 logger = logging.getLogger(__name__)
 
 
-class QiskitAquaGlobals:
-    """Aqua class for global properties."""
+class QiskitAlgorithmGlobals:
+    """Class for global properties."""
 
     CPU_COUNT = parallel.local_hardware_info()['cpus']
 
     def __init__(self) -> None:
         self._random_seed = None  # type: Optional[int]
-        self._num_processes = QiskitAquaGlobals.CPU_COUNT
+        self._num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         self._random = None
         self._massive = False
+        try:
+            settings = get_config()
+            self.num_processes = settings.get('num_processes',
+                                              QiskitAlgorithmGlobals.CPU_COUNT)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug('User Config read error %s', str(ex))
 
     @property
     def random_seed(self) -> Optional[int]:
@@ -54,15 +61,15 @@ class QiskitAquaGlobals:
     @num_processes.setter
     def num_processes(self, num_processes: Optional[int]) -> None:
         """Set num processes.
-           If 'None' is passed, it resets to QiskitAquaGlobals.CPU_COUNT
+           If 'None' is passed, it resets to QiskitAlgorithmGlobals.CPU_COUNT
         """
         if num_processes is None:
-            num_processes = QiskitAquaGlobals.CPU_COUNT
+            num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         elif num_processes < 1:
             raise QiskitError('Invalid Number of Processes {}.'.format(num_processes))
-        elif num_processes > QiskitAquaGlobals.CPU_COUNT:
+        elif num_processes > QiskitAlgorithmGlobals.CPU_COUNT:
             raise QiskitError('Number of Processes {} cannot be greater than cpu count {}.'
-                              .format(num_processes, QiskitAquaGlobals.CPU_COUNT))
+                              .format(num_processes, QiskitAlgorithmGlobals.CPU_COUNT))
         self._num_processes = num_processes
         # TODO: change Terra CPU_COUNT until issue
         # gets resolved: https://github.com/Qiskit/qiskit-terra/issues/1963
@@ -91,4 +98,4 @@ class QiskitAquaGlobals:
 
 
 # Global instance to be used as the entry point for globals.
-aqua_globals = QiskitAquaGlobals()  # pylint: disable=invalid-name
+algorithm_globals = QiskitAlgorithmGlobals()  # pylint: disable=invalid-name

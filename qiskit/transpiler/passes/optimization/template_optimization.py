@@ -44,7 +44,8 @@ class TemplateOptimization(TransformationPass):
 
     def __init__(self, template_list=None,
                  heuristics_qubits_param=None,
-                 heuristics_backward_param=None):
+                 heuristics_backward_param=None,
+                 user_cost_dict=None):
         """
         Args:
             template_list (list[QuantumCircuit()]): list of the different template circuit to apply.
@@ -62,6 +63,9 @@ class TemplateOptimization(TransformationPass):
                 predecessors that will be explored in the dag dependency of the circuit, each
                 qubits of the nodes are added to the set of authorized qubits. We advice to use
                 length=1. Check reference for more details.
+            user_cost_dict (Dict[str, int]): quantum cost dictonary passed to TemplateSubstitution
+                to configure its behavior. This will override any default values if None
+                is not given. The key is the name of the gate and the value its quantum cost.
         """
         super().__init__()
         # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
@@ -72,6 +76,8 @@ class TemplateOptimization(TransformationPass):
             if heuristics_qubits_param is not None else []
         self.heuristics_backward_param = heuristics_backward_param \
             if heuristics_backward_param is not None else []
+
+        self.user_cost_dict = user_cost_dict
 
     def run(self, dag):
         """
@@ -129,7 +135,8 @@ class TemplateOptimization(TransformationPass):
 
                 substitution = TemplateSubstitution(max_matches,
                                                     template_m.circuit_dag_dep,
-                                                    template_m.template_dag_dep)
+                                                    template_m.template_dag_dep,
+                                                    self.user_cost_dict)
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized

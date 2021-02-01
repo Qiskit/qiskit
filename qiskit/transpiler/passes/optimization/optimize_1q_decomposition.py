@@ -16,7 +16,6 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
@@ -58,27 +57,26 @@ class Optimize1qGatesDecomposition(TransformationPass):
             LOG.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
+        identity_matrix = np.eye(2)
         for run in runs:
             # Don't try to optimize a single 1q gate
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
                 if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      np.eye(2)):
+                                                      identity_matrix):
                     dag.remove_op_node(run[0])
                 continue
 
             new_circs = []
-            q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(1)
-            for gate in run:
-                qc._append(gate.op, [q[0]], [])
-            operator = Operator(qc)
+            operator = Operator(run[0].op)
+            for gate in run[1:]:
+                operator = operator.compose(gate.op)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
             if new_circs:
-                new_circ = min(new_circs, key=lambda circ: circ.depth())
-                if qc.depth() > new_circ.depth():
+                new_circ = min(new_circs, key=len)
+                if len(run) > len(new_circ):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
