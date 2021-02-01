@@ -1610,7 +1610,7 @@ class TestParameterEquality(QiskitTestCase):
 
 
 class TestParameterView(QiskitTestCase):
-    """TODO Test the ParameterView object."""
+    """Test the ParameterView object."""
 
     def setUp(self):
         super().setUp()
@@ -1619,10 +1619,6 @@ class TestParameterView(QiskitTestCase):
         self.view1 = ParameterView([x, y])
         self.view2 = ParameterView([y, z])
         self.view3 = ParameterView([x])
-
-    def test_deprecated_methods(self):
-        """TODO"""
-        pass
 
     def test_and(self):
         """Test __and__."""

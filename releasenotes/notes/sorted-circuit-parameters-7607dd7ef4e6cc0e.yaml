@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Return unbound parameters in a circuit in an order sorted by insertion and
+    allow to bind/assign parameters by a list of values or new parameters instead of
+    only by a dictionary. For example
+
+    .. parsed-literal::
+
+      from qiskit.circuit import QuantumCircuit, Parameter
+
+      circuit = QuantumCircuit(1)
+      circuit.rx(Parameter('x'), 0)
+      circuit.ry(Parameter('y'), 0)
+
+      print(circuit.parameters)  # ParameterView([x, y])
+
+      bound = circuit.bind_parameters([1, 2])
