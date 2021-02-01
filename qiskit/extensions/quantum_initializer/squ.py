@@ -26,7 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.util import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

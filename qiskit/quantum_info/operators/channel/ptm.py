@@ -120,12 +120,14 @@ class PTM(QuantumChannel):
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
         num_qubits = int(np.log2(input_dim))
-        if 2**num_qubits != input_dim:
+        if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
-        # Check and format input and output dimensions
-        input_dims = self._automatic_dims(input_dims, input_dim)
-        output_dims = self._automatic_dims(output_dims, output_dim)
-        super().__init__(ptm, input_dims, output_dims, 'PTM')
+        super().__init__(ptm, num_qubits=num_qubits)
+
+    def __array__(self, dtype=None):
+        if dtype:
+            np.asarray(self.data, dtype=dtype)
+        return self.data
 
     @property
     def _bipartite_shape(self):
@@ -179,12 +181,16 @@ class PTM(QuantumChannel):
         # Convert other to PTM
         if not isinstance(other, PTM):
             other = PTM(other)
-        input_dims, output_dims = self._get_compose_dims(other, qargs, front)
+        new_shape = self._op_shape.compose(other._op_shape, qargs, front)
+        input_dims = new_shape.dims_r()
+        output_dims = new_shape.dims_l()
         if front:
             data = np.dot(self._data, other.data)
         else:
             data = np.dot(other.data, self._data)
-        return PTM(data, input_dims, output_dims)
+        ret = PTM(data, input_dims, output_dims)
+        ret._op_shape = new_shape
+        return ret
 
     def power(self, n):
         """The matrix power of the channel.

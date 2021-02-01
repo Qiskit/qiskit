@@ -112,6 +112,7 @@ def classical_function(func):
         method).
     """
     import inspect
+    from textwrap import dedent
 
-    source = inspect.getsource(func).strip()
+    source = dedent(inspect.getsource(func))
     return ClassicalFunction(source, name=func.__name__)
