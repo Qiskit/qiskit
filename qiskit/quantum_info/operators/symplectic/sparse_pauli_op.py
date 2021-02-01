@@ -58,7 +58,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         else:
             table = PauliTable(data)
             if coeffs is None:
-                coeffs = np.ones(table.size, dtype=np.complex)
+                coeffs = np.ones(table.size, dtype=complex)
         # Initialize PauliTable
         self._table = table
 
@@ -128,7 +128,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.int)):
+        if isinstance(key, int):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
@@ -355,7 +355,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
-            table = np.zeros((1, 2 * self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2 * self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
             return SparsePauliOp(table, coeffs)
         # Otherwise we just update the phases
@@ -385,7 +385,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
 
         table, indexes = np.unique(self.table.array,
                                    return_inverse=True, axis=0)
-        coeffs = np.zeros(len(table), dtype=np.complex)
+        coeffs = np.zeros(len(table), dtype=complex)
         for i, val in zip(indexes, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
@@ -397,7 +397,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if coeffs.size == 0:
-            table = np.zeros((1, 2*self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2*self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
         return SparsePauliOp(table, coeffs)
 
