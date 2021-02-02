@@ -111,8 +111,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
                     GaussianSquare(amp=amp * amp_scale, width=0, sigma=sigma, duration=duration),
                     channel=instruction.channel)
         else:
-            raise QiskitError('RZXCalibrationBuilder builder only '
-                              'stretches/compresses GaussianSquare.')
+            raise QiskitError('RZXCalibrationBuilder only stretches/compresses GaussianSquare.')
 
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
