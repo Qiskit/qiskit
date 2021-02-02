@@ -173,7 +173,7 @@ class PauliOp(PrimitiveOp):
         Raises:
             ValueError: invalid parameters.
         """
-        return self.primitive.to_spmatrix() * self.coeff  # type: ignore
+        return self.primitive.to_matrix(sparse=True) * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -220,7 +220,7 @@ class PauliOp(PrimitiveOp):
                 corrected_z_bits = self.primitive.z[::-1]  # type: ignore
 
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
                     new_str = ''.join(map(str, 1 * new_b_str))
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))

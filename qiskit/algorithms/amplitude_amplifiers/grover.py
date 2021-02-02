@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,7 +25,7 @@ from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
 
-from qiskit.utils import name_args, QuantumInstance, aqua_globals
+from qiskit.utils import name_args, QuantumInstance, algorithm_globals
 from qiskit.quantum_info import partial_trace
 from qiskit.utils.validation import validate_min, validate_in_set
 from ..algorithm_result import AlgorithmResult
@@ -407,7 +407,7 @@ class Grover:
         # in ``rotation_counts``. Once a good state is found (oracle_evaluation is True), stop.
         for power in self._iterations:
             if self._sample_from_iterations:
-                power = aqua_globals.random.integers(power)
+                power = algorithm_globals.random.integers(power)
             assignment, oracle_evaluation = self._run_experiment(power)
             if oracle_evaluation:
                 break
