@@ -32,7 +32,7 @@ def pauli_basis(num_qubits, weight=False):
                                     [True, False],
                                     [True, True],
                                     [False, True]],
-                                   dtype=np.bool))
+                                   dtype=bool))
     if num_qubits == 1:
         return pauli_1q
     pauli = pauli_1q

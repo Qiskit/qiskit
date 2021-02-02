@@ -59,17 +59,10 @@ class PauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        # TODO: implement direct way
-        if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, PauliSumOp)
-                and operator.is_measurement
-        ):
-            operator = ~OperatorStateFn(operator.primitive.to_pauli_op(), operator.coeff)
-
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
-            if not {'Pauli'} == operator.primitive_strings():
+            prim_str = operator.primitive_strings()
+            if not isinstance(operator.primitive, PauliSumOp) and {'Pauli'} != prim_str:
                 logger.warning('Measured Observable is not composed of only Paulis, converting to '
                                'Pauli representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this
@@ -77,7 +70,7 @@ class PauliExpectation(ExpectationBase):
                 pauli_obsv = operator.primitive.to_pauli_op(massive=False)
                 operator = StateFn(pauli_obsv, is_measurement=True, coeff=operator.coeff)
 
-            if self._grouper and isinstance(operator.primitive, ListOp):
+            if self._grouper and isinstance(operator.primitive, (ListOp, PauliSumOp)):
                 grouped = self._grouper.convert(operator.primitive)
                 operator = StateFn(grouped, is_measurement=True, coeff=operator.coeff)
 
@@ -86,11 +79,10 @@ class PauliExpectation(ExpectationBase):
             cob = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
             return cob.convert(operator).reduce()
 
-        elif isinstance(operator, ListOp):
+        if isinstance(operator, ListOp):
             return operator.traverse(self.convert).reduce()
 
-        else:
-            return operator
+        return operator
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, np.ndarray]:
 

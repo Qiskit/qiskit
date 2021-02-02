@@ -44,6 +44,10 @@ class PrimitiveOp(OperatorBase):
 
     """
 
+    # pylint: disable=unused-argument
+    def __init_subclass__(cls, *args, **kwargs):
+        cls.__new__ = lambda cls, *args, **kwargs: super().__new__(cls)
+
     @staticmethod
     # pylint: disable=unused-argument
     def __new__(cls,
@@ -65,9 +69,6 @@ class PrimitiveOp(OperatorBase):
         Raises:
             TypeError: Unsupported primitive type passed.
         """
-        if cls.__name__ != PrimitiveOp.__name__:
-            return super().__new__(cls)
-
         # pylint: disable=cyclic-import,import-outside-toplevel
         if isinstance(primitive, (Instruction, QuantumCircuit)):
             from .circuit_op import CircuitOp
