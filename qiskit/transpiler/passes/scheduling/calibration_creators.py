@@ -38,7 +38,7 @@ class CalibrationCreator(ABC):
 
 class ZXScheduleBuilder(CalibrationCreator):
     """
-    Creates calibrations for ZX(theta) by stretching and compressing
+    Creates calibrations for RZX(theta) by stretching and compressing
     Gaussian square pulses.
     """
 
