@@ -282,6 +282,7 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                                                         reverse_bits=reverse_bits,
                                                         justify=justify,
                                                         idle_wires=idle_wires)
+
     if with_layout:
         layout = circuit._layout
     else:

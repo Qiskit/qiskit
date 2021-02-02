@@ -28,7 +28,7 @@ from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
-from qiskit.execute import execute
+from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -1542,6 +1542,14 @@ class TestParameterEquality(QiskitTestCase):
         """Verify an expression is equal an identical expression."""
         theta = Parameter('theta')
         expr1 = 2 * theta
+        expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
+    def test_parameter_expression_equal_floats_to_ints(self):
+        """Verify an expression with float and int is identical."""
+        theta = Parameter('theta')
+        expr1 = 2.0 * theta
         expr2 = 2 * theta
 
         self.assertEqual(expr1, expr2)
