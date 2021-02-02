@@ -541,6 +541,10 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
             unitary = random_unitary(4, seed=seed)
             self.check_exact_decomposition(unitary.data, decomposer)
 
+            a = 2 * np.pi * np.random.random()
+            unitary = Ud(a, 0, 0)
+            self.check_exact_decomposition(unitary, decomposer)
+
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(

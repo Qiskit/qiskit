@@ -453,7 +453,9 @@ class TwoQubitBasisDecomposer():
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
         return_circuit.global_phase = target_decomposed.global_phase
-        return_circuit.global_phase += (-1)**best_nbasis * best_nbasis * self.basis.global_phase
+        return_circuit.global_phase -= best_nbasis * self.basis.global_phase
+        if best_nbasis == 2:
+            return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
             return_circuit.compose(decomposition_euler[2*i], [q[0]], inplace=True)
             return_circuit.compose(decomposition_euler[2*i+1], [q[1]], inplace=True)
