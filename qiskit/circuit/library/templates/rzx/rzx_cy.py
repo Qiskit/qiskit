@@ -25,7 +25,7 @@ import numpy as np
 
 
 def rzx_cy(theta: float = None):
-    """ZY template."""
+    """Template for CX - RYGate - CX."""
     if theta is None:
         theta = Parameter('ϴ')
 

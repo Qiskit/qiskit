@@ -35,7 +35,7 @@ import numpy as np
 
 
 def rzx_zz1(theta: float = None):
-    """ZZ template with RZGate."""
+    """Template for CX - RZGate - CX."""
     if theta is None:
         theta = Parameter('ϴ')
 

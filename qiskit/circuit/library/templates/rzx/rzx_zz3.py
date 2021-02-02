@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-RZX based template for CX - phase - CX
+RZX based template for CX - RZGate - CX
 .. parsed-literal::
                                                                             »
 q_0: ──■─────────────■──────────────────────────────────────────────────────»
@@ -30,7 +30,7 @@ import numpy as np
 
 
 def rzx_zz3(theta: float = None):
-    """ZZ template with RZGate."""
+    """Template for CX - RZGate - CX."""
     if theta is None:
         theta = Parameter('ϴ')
 
