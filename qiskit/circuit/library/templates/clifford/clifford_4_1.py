@@ -14,11 +14,11 @@
 Clifford template 4_1:
 .. parsed-literal::
 
-                  ┌───┐        
+                  ┌───┐
         q_0: ──■──┤ X ├──■───X─
-             ┌─┴─┐└─┬─┘┌─┴─┐ │ 
+             ┌─┴─┐└─┬─┘┌─┴─┐ │
         q_1: ┤ X ├──■──┤ X ├─X─
-             └───┘     └───┘   
+             └───┘     └───┘
 """
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit

@@ -15,7 +15,7 @@ Clifford template 2_1:
 .. parsed-literal::
 
         q_0: ─■──■─
-              │  │ 
+              │  │
         q_1: ─■──■─
 """
 

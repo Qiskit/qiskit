@@ -15,9 +15,9 @@ Clifford template 4_2:
 .. parsed-literal::
 
         q_0: ───────■────────■─
-             ┌───┐┌─┴─┐┌───┐ │ 
+             ┌───┐┌─┴─┐┌───┐ │
         q_1: ┤ H ├┤ X ├┤ H ├─■─
-             └───┘└───┘└───┘   
+             └───┘└───┘└───┘
 """
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit

@@ -18,7 +18,7 @@ Clifford template 6_1:
         q_0: ┤ H ├──■──┤ H ├┤ X ├
              ├───┤┌─┴─┐├───┤└─┬─┘
         q_1: ┤ H ├┤ X ├┤ H ├──■──
-             └───┘└───┘└───┘     
+             └───┘└───┘└───┘
 """
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
