@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-A library of ZX based two qubit gates.
+A template library based on RZXGate.
 """
 
 from typing import List
