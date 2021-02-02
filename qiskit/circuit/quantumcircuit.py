@@ -31,7 +31,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -1818,7 +1818,9 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    def assign_parameters(self, params, inplace=False):
+    @deprecate_arguments({'param_dict': 'params'})
+    def assign_parameters(self, params, inplace=False, *,
+                          param_dict=None):  # pylint: disable=unused-argument
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -1834,6 +1836,7 @@ class QuantumCircuit:
                 this order.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
+            param_dict (dict): Deprecated, use ``params`` instead.
 
         Raises:
             CircuitError: If params is a dict and contains parameters not present in the circuit.
@@ -1907,14 +1910,16 @@ class QuantumCircuit:
                 bound_circuit._assign_parameter(self._parameter_table[i], value)
         return None if inplace else bound_circuit
 
-    def bind_parameters(self, params):
+    @deprecate_arguments({'value_dict': 'values'})
+    def bind_parameters(self, values, *, value_dict=None):  # pylint: disable=unused-argument
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
         circuit, use the :meth:`assign_parameters` method.
 
         Args:
-            params (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
+            values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
+            value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
             CircuitError: If params contains parameters not present in the circuit.
@@ -1923,16 +1928,16 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        if isinstance(params, dict):
-            if any(isinstance(value, ParameterExpression) for value in params.values()):
+        if isinstance(values, dict):
+            if any(isinstance(value, ParameterExpression) for value in values.values()):
                 raise TypeError(
                     'Found ParameterExpression in values; use assign_parameters() instead.')
-            return self.assign_parameters(params)
+            return self.assign_parameters(values)
         else:
-            if any(isinstance(value, ParameterExpression) for value in params):
+            if any(isinstance(value, ParameterExpression) for value in values):
                 raise TypeError(
                     'Found ParameterExpression in values; use assign_parameters() instead.')
-            return self.assign_parameters(params)
+            return self.assign_parameters(values)
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}

@@ -125,7 +125,6 @@ class ParameterView(MappingView):
         if x not in self.data:
             self.data.append(x)
 
-    @_deprecated_set_method()
     def copy(self):
         """Copy the ParameterView."""
         return self.__class__(self.data.copy())

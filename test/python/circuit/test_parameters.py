@@ -151,11 +151,11 @@ class TestParameters(QiskitTestCase):
         qc.rz(z, 0)
         qc.ry(y, 0)
         qc.u(*v, 0)
-        self.assertEqual(x, qc._parameter_table[0])
-        self.assertEqual(y, qc._parameter_table[2])
-        self.assertEqual(z, qc._parameter_table[1])
+        self.assertEqual(x, qc.parameters[0])
+        self.assertEqual(y, qc.parameters[2])
+        self.assertEqual(z, qc.parameters[1])
         for i, vi in enumerate(v):
-            self.assertEqual(vi, qc._parameter_table[3+i])
+            self.assertEqual(vi, qc.parameters[3+i])
 
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
@@ -174,6 +174,60 @@ class TestParameters(QiskitTestCase):
                 bqc = getattr(qc, assign_fun)(params)
                 for value1, value2 in zip(bqc._parameter_table.values(), params):
                     self.assertEqual(value1, value2)
+
+    @data(True, False)
+    def test_parameter_order_compose(self, front):
+        """Test the parameter order is correctly maintained upon composing circuits."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qc1 = QuantumCircuit(1)
+        qc1.p(x, 0)
+        qc2 = QuantumCircuit(1)
+        qc2.rz(y, 0)
+
+        if front:
+            order = [y, x]
+        else:
+            order = [x, y]
+
+        composed = qc1.compose(qc2, front=front)
+
+        self.assertListEqual(list(composed.parameters), order)
+
+    def test_parameter_order_append(self):
+        """Test the parameter order is correctly maintained upon appending circuits."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qc1 = QuantumCircuit(1)
+        qc1.p(x, 0)
+        qc2 = QuantumCircuit(1)
+        qc2.rz(y, 0)
+
+        qc1.append(qc2, [0])
+
+        self.assertListEqual(list(qc1.parameters), [x, y])
+
+    def test_parameter_order_composing_nested_circuit(self):
+        """Test the parameter order after nesting circuits and instructions."""
+        x = ParameterVector('x', 5)
+        inner = QuantumCircuit(1)
+        inner.rx(x[0], [0])
+
+        mid = QuantumCircuit(2)
+        mid.p(x[1], 1)
+        mid.append(inner, [0])
+        mid.p(x[2], 0)
+        mid.append(inner, [0])
+
+        outer = QuantumCircuit(2)
+        outer.compose(mid, inplace=True)
+        outer.ryy(x[3], 0, 1)
+        outer.compose(inner, inplace=True)
+        outer.rz(x[4], 0)
+
+        order = [x[1], x[0], x[2], x[3], x[4]]
+
+        self.assertListEqual(list(outer.parameters), order)
 
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
