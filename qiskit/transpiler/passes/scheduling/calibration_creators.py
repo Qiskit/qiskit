@@ -14,7 +14,7 @@
 
 import math
 from typing import List
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import numpy as np
 
 from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare
@@ -22,9 +22,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
 from qiskit.dagcircuit import DAGNode
 from qiskit.circuit.library.standard_gates import RZXGate
+from qiskit.transpiler.basepasses import TransformationPass
 
 
-class CalibrationCreator(ABC):
+class CalibrationCreator(TransformationPass):
     """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
@@ -34,6 +35,27 @@ class CalibrationCreator(ABC):
     @abstractmethod
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """Gets the calibrated schedule for the given qubits and parameters."""
+
+    def run(self, dag):
+        """Run the calibration adder pass on `dag`.
+
+        Args:
+            dag (DAGCircuit): DAG to schedule.
+
+        Returns:
+            DAGCircuit: A DAG with calibrations added to it.
+        """
+        for node in dag.nodes():
+            if node.type == 'op':
+                if self.supported(node.op):
+                    params = node.op.params
+                    qubits = [_.index for _ in node.qargs]
+
+                    schedule = self.get_calibration(params, qubits)
+
+                    dag.add_calibration(node.op, qubits, schedule, params=params)
+
+        return dag
 
 
 class RZXCalibrationBuilder(CalibrationCreator):
@@ -52,6 +74,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         Raises:
             QiskitError: if open pulse is not supported by the backend.
         """
+        super().__init__()
         if not backend.configuration().open_pulse:
             raise QiskitError('Calibrations can only be added to Pulse-enabled backends, '
                               'but {0} is not enabled with Pulse.'.format(backend.name()))
