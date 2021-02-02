@@ -124,8 +124,9 @@ class TestUseCases(SchedulerTestCase):
         """A pass set with a conditional parameter (with FlowController). The callable is True."""
         self.passmanager.append(PassE_AP_NR_NP(True))
 
-        self.passmanager.append(ConditionalController([PassA_TP_NR_NP()],
-                                condition=lambda property_set: property_set['property']))
+        self.passmanager.append(
+            ConditionalController([PassA_TP_NR_NP()],
+                                  condition=lambda property_set: property_set['property']))
         self.assertScheduler(self.circuit, self.passmanager,
                              ['run analysis pass PassE_AP_NR_NP',
                               'set property as True',
