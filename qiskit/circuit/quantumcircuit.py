@@ -2503,7 +2503,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_start_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
@@ -2543,7 +2544,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_stop_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_stop_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]

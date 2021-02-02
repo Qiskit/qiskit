@@ -11,11 +11,11 @@
 # that they have been altered from the originals.
 
 """
-=============================================
-Executing Experiments (:mod:`qiskit.execute`)
-=============================================
+======================================================
+Executing Experiments (:mod:`qiskit.execute_function`)
+======================================================
 
-.. currentmodule:: qiskit.execute
+.. currentmodule:: qiskit.execute_function
 
 .. autofunction:: execute
 """
