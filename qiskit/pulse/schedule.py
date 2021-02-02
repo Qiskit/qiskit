@@ -30,12 +30,16 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 # pylint: disable=cyclic-import, unused-import
 from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
 # pylint: disable=missing-return-doc
 
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
+
+TimeSlots = Dict[Channel, List[Tuple[int, int]]]
+"""List of timeslots occupied by instructions for each channel."""
 
 
 class Schedule(abc.ABC):
@@ -95,7 +99,7 @@ class Schedule(abc.ABC):
         return self._name
 
     @property
-    def timeslots(self) -> Dict[Channel, List[Interval]]:
+    def timeslots(self) -> TimeSlots:
         """Time keeping attribute."""
         return self._timeslots
 
@@ -520,24 +524,24 @@ class Schedule(abc.ABC):
         if not isinstance(time, int):
             raise PulseError("Schedule start time must be an integer.")
 
+        other_timeslots = _get_timeslots(schedule)
         self._duration = max(self._duration, time + schedule.duration)
 
         for channel in schedule.channels:
-
             if channel not in self._timeslots:
                 if time == 0:
-                    self._timeslots[channel] = copy.copy(schedule._timeslots[channel])
+                    self._timeslots[channel] = copy.copy(other_timeslots[channel])
                 else:
                     self._timeslots[channel] = [(i[0] + time, i[1] + time)
-                                                for i in schedule._timeslots[channel]]
+                                                for i in other_timeslots[channel]]
                 continue
 
-            for idx, interval in enumerate(schedule._timeslots[channel]):
+            for idx, interval in enumerate(other_timeslots[channel]):
                 if interval[0] + time >= self._timeslots[channel][-1][1]:
                     # Can append the remaining intervals
                     self._timeslots[channel].extend(
                         [(i[0] + time, i[1] + time)
-                         for i in schedule._timeslots[channel][idx:]])
+                         for i in other_timeslots[channel][idx:]])
                     break
 
                 try:
@@ -576,7 +580,9 @@ class Schedule(abc.ABC):
                     'The channel {} is not present in the schedule'.format(channel))
 
             channel_timeslots = self._timeslots[channel]
-            for interval in schedule._timeslots[channel]:
+            other_timeslots = _get_timeslots(schedule)
+
+            for interval in other_timeslots[channel]:
                 if channel_timeslots:
                     interval = (interval[0] + time, interval[1] + time)
                     index = _interval_index(channel_timeslots, interval)
@@ -1134,7 +1140,7 @@ def _overlaps(first: Interval, second: Interval) -> bool:
     return second[0] < first[1]
 
 
-def _check_nonnegative_timeslot(timeslots):
+def _check_nonnegative_timeslot(timeslots: TimeSlots):
     """Test that a channel has no negative timeslots.
 
     Raises:
@@ -1146,3 +1152,24 @@ def _check_nonnegative_timeslot(timeslots):
                 raise PulseError(
                     "An instruction on {} has a negative "
                     " starting time.".format(chan))
+
+
+def _get_timeslots(schedule: Union[Instruction, Schedule]) -> TimeSlots:
+    """Generate timeslots from given schedule component.
+
+    Args:
+        schedule: Input schedule component.
+
+    Raises:
+        PulseError: When invalid schedule type is specified.
+    """
+    if isinstance(schedule, Instruction):
+        duration = schedule.duration
+        instruction_duration_validation(duration)
+        timeslots = {channel: [(0, duration)] for channel in schedule.channels}
+    elif isinstance(schedule, Schedule):
+        timeslots = schedule.timeslots
+    else:
+        raise PulseError('Invalid schedule type {} is specified.'.format(type(schedule)))
+
+    return timeslots
