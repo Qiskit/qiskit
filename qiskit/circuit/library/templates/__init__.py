@@ -71,4 +71,4 @@ from .rzx.rzx_cy import rzx_cy
 from .rzx.rzx_zz1 import rzx_zz1
 from .rzx.rzx_zz2 import rzx_zz2
 from .rzx.rzx_zz3 import rzx_zz3
-from .rzx.rzx_yz import rzx_templates
+from .rzx_templates import rzx_templates
