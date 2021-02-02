@@ -84,6 +84,13 @@ class Call(Directive):
                          channels=tuple(subprogram.channels),
                          name=subprogram.name)
 
+        if subprogram.is_parameterized():
+            for value in subprogram.parameters:
+                if isinstance(value, ParameterExpression):
+                    for param in value.parameters:
+                        # Table maps parameter to operand index, 0 for ``subprogram``
+                        self._parameter_table[param].append(0)
+
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
