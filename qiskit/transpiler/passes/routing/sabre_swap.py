@@ -352,6 +352,6 @@ def _transform_gate_for_layout(op_node, layout):
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs
     mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
-    mapped_op_node.qargs = mapped_op_node.op.qargs = list(mapped_qargs)
+    mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node
