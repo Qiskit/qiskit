@@ -525,25 +525,23 @@ def flatten(program: ScheduleComponent) -> ScheduleComponent:
     """Flatten any called nodes into a Schedule tree with no nested children.
 
     ``Call`` instruction is also decomposed into raw instruction sequence.
-
-    # TODO this function will also take ScheduleBlock.
     """
     if isinstance(program, instructions.Instruction):
         return program
     else:
-        return Schedule(*_flatten_routine_call(program), name=program.name)
+        return Schedule(*program.instructions, name=program.name)
 
 
-def _flatten_routine_call(program: Schedule, time_offset: Optional[int] = 0):
-    """A helper function that recursively flatten the call instruction."""
-    sequence = []
+def remove_subroutines(program: Schedule):
+    """Recursively removes the call instruction."""
+    schedule = Schedule(name=program.name)
     for t0, inst in program.instructions:
-        start_time = t0 + time_offset
         if isinstance(inst, instructions.Call):
-            sequence.extend(_flatten_routine_call(start_time, inst.subprogram))
+            sub_sched = remove_subroutines(inst.subprogram)
+            schedule.insert(t0, sub_sched, inplace=True)
         else:
-            sequence.append((start_time + time_offset, inst))
-    return tuple(sequence)
+            schedule.insert(t0, inst, inplace=True)
+    return schedule
 
 
 def remove_directives(schedule: Schedule) -> Schedule:

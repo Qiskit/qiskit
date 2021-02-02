@@ -97,7 +97,9 @@ def _assemble_experiments(
     schedules = []
     for sched in schedules:
         if isinstance(sched, pulse.Schedule):
-            schedules.append(transforms.flatten(sched))
+            sched = transforms.remove_subroutines(sched)
+            sched = transforms.flatten(sched)
+            schedules.append(sched)
         else:
             schedules.append(pulse.Schedule(sched))
 
