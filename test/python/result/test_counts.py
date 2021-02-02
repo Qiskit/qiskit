@@ -290,6 +290,5 @@ class TestCounts(unittest.TestCase):
     def test_as_probabilities(self):
         raw_counts = {'00': 1024, '11': 3072}
         counts_obj = counts.Counts(raw_counts)
-        expected = {'00': 0.25, '11': 0.75}
-        expected_counts = counts.Counts(expected)
-        self.assertEqual(counts_obj, expected_counts)
+        expected_counts = {'00': 0.25, '11': 0.75}
+        self.assertEqual(counts_obj.as_probabilities(), expected_counts)
