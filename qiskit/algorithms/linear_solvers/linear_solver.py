@@ -91,7 +91,7 @@ class LinearSolver(ABC):
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,
                                          List[BaseOperator]]] = None,
-              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
+              observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
             -> LinearSolverResult:
@@ -102,7 +102,7 @@ class LinearSolver(ABC):
             vector: The vector specifying the right hand side of the equation in Ax=b.
             observable: Information to be extracted from the solution.
                 Default is `EuclideanNorm`
-            post_rotation: Circuit to be applied to the solution to extract information.
+            observable_circuit: Circuit to be applied to the solution to extract information.
             post_processing: Function to compute the value of the observable.
 
         Returns:

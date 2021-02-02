@@ -54,8 +54,8 @@ class MatrixFunctional(LinearSystemObservable):
                                 (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])])
         return observables
 
-    def post_rotation(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
-        """The observable circuits.
+    def observable_circuit(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        """The circuits to implement the matrix functional observable.
 
         Args:
             num_qubits: The number of qubits on which the observable will be applied.
@@ -91,8 +91,6 @@ class MatrixFunctional(LinearSystemObservable):
         Raises:
             ValueError: If the input is not in the correct format.
         """
-        if num_qubits is None:
-            raise ValueError("Number of qubits must be defined to calculate the absolute average.")
         if not isinstance(solution, list):
             raise ValueError("Solution probabilities must be given in list form.")
 

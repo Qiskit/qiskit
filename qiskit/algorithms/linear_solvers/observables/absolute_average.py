@@ -37,8 +37,8 @@ class AbsoluteAverage(LinearSystemObservable):
         zero_op = ((I + Z) / 2)
         return TensoredOp(num_qubits * [zero_op])
 
-    def post_rotation(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
-        """The observable circuit.
+    def observable_circuit(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        """The circuit implementing the absolute average observable.
 
         Args:
             num_qubits: The number of qubits on which the observable will be applied.

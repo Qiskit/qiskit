@@ -55,13 +55,6 @@ class HHL(LinearSolver):
         self._epsilon_s = epsilon / 3  # state preparation
         self._epsilon_a = epsilon / 6  # hamiltonian simulation
 
-        # Time of the evolution. Once the matrix is specified,
-        # it can be updated 2 * np.pi / lambda_max
-        self._evo_time = 2 * np.pi
-
-        # Circuits for the different blocks of the algorithm
-        self._post_rotation = None
-
         # For now the default inverse implementation is exact
         self._exact_inverse = True
 
@@ -112,8 +105,8 @@ class HHL(LinearSolver):
     def _calculate_observable(self, qc: QuantumCircuit,
                               observable: Optional[Union[LinearSystemObservable, BaseOperator,
                                                          List[BaseOperator]]] = None,
-                              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]]
-                              = None,
+                              observable_circuit: Optional[Union[QuantumCircuit,
+                                                                 List[QuantumCircuit]]] = None,
                               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                                  Union[float, List[float]]]] = None,
                               scaling: Optional[float] = 1) -> Tuple[Union[float, List[float]],
@@ -123,7 +116,7 @@ class HHL(LinearSolver):
         Args:
             qc: The quantum circuit preparing the solution x to the system.
             observable: Information to be extracted from the solution.
-            post_rotation: Circuit to be applied to the solution to extract information.
+            observable_circuit: Circuit to be applied to the solution to extract information.
             post_processing: Function to compute the value of the observable.
             scaling: Factor scaling the solution vector.
 
@@ -137,24 +130,24 @@ class HHL(LinearSolver):
         na = qc.num_ancillas
 
         if observable is not None and isinstance(observable, LinearSystemObservable):
-            post_rotation = observable.post_rotation(nb)
+            observable_circuit = observable.observable_circuit(nb)
             post_processing = observable.post_processing
             observable = observable.observable(nb)
 
         # Create the Operators Zero and One
         zero_op = ((I + Z) / 2)
         one_op = ((I - Z) / 2)
-        # List of quantum circuits with post_rotation gates appended
+        # List of quantum circuits with observable_circuit gates appended
         qcs = []
         # Observable gates
-        if post_rotation is not None and isinstance(post_rotation, list):
-            for circ in post_rotation:
+        if observable_circuit is not None and isinstance(observable_circuit, list):
+            for circ in observable_circuit:
                 qc_temp = QuantumCircuit(qc.num_qubits)
                 qc_temp.append(qc, list(range(qc.num_qubits)))
                 qc_temp.append(circ, list(range(nb)))
                 qcs.append(qc_temp)
-        elif post_rotation:
-            qc.append(post_rotation, list(range(nb)))
+        elif observable_circuit:
+            qc.append(observable_circuit, list(range(nb)))
 
         # Update observable to include ancilla and rotation qubit
         result = []
@@ -254,7 +247,7 @@ class HHL(LinearSolver):
         # Update evolution time
         evo_time = 2 * np.pi * delta / lambda_min
         matrix_circuit.tolerance = self._epsilon_a
-        matrix_circuit.time = evo_time
+        matrix_circuit.evo_time = evo_time
 
         if self._exact_inverse:
             inverse_circuit = ExactInverse(nl, delta)
@@ -326,7 +319,7 @@ class HHL(LinearSolver):
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,
                                          List[BaseOperator]]] = None,
-              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
+              observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
             -> LinearSolverResult:
@@ -337,7 +330,7 @@ class HHL(LinearSolver):
             vector: The vector specifying the right hand side of the equation in Ax=b.
             observable: Information to be extracted from the solution.
                 Default is `EuclideanNorm`
-            post_rotation: Circuit to be applied to the solution to extract information.
+            observable_circuit: Circuit to be applied to the solution to extract information.
             post_processing: Function to compute the value of the observable.
 
         Returns:
@@ -368,6 +361,6 @@ class HHL(LinearSolver):
         solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
         # The post-rotating gates have already been applied
         solution.observable, solution.circuit_results = \
-            self._calculate_observable(solution.state, observable, post_rotation, post_processing,
+            self._calculate_observable(solution.state, observable, observable_circuit, post_processing,
                                        lambda_min)
         return solution

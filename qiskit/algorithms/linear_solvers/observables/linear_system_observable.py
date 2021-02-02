@@ -34,8 +34,8 @@ class LinearSystemObservable(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def post_rotation(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
-        """The observable circuit.
+    def observable_circuit(self, num_qubits: int) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        """The circuit implementing the observable.
 
         Args:
             num_qubits: The number of qubits on which the observable will be applied.
