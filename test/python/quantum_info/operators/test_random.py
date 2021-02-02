@@ -191,7 +191,7 @@ class TestRandomClifford(QiskitTestCase):
 
 
 @ddt
-class TestRandomPauliTable(QiskitTestCase):
+class TestPauliTwoDesignTable(QiskitTestCase):
     """Testing random_pauli_table function."""
 
     @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250],
