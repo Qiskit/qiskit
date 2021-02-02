@@ -640,7 +640,7 @@ class StabilizerTable(PauliTable):
             minus = (x1 & z2 & (x2 | z1)) | (~x1 & x2 & z1 & ~z2)
         else:
             minus = (x2 & z1 & (x1 | z2)) | (~x2 & x1 & z2 & ~z1)
-        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=np.bool)
+        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=bool)
         phase = phase_shift ^ phase1 ^ phase2
         return StabilizerTable(pauli, phase)
 
