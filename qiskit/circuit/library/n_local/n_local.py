@@ -758,11 +758,11 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(param_dict, dict):
-            if len(param_dict) != self.num_parameters:
+        if not isinstance(params, dict):
+            if len(params) != self.num_parameters:
                 raise AttributeError('If the parameters are provided as list, the size must match '
                                      'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(param_dict)
+                                         self.num_parameters, len(params)
                                      ))
             unbound_params = [param for param in self._ordered_parameters if
                               isinstance(param, ParameterExpression)]
@@ -772,13 +772,13 @@ class NLocal(BlueprintCircuit):
             used = set()
             unbound_unique_params = [param for param in unbound_params
                                      if param not in used and (used.add(param) or True)]
-            param_dict = dict(zip(unbound_unique_params, param_dict))
+            params = dict(zip(unbound_unique_params, params))
 
         if inplace:
-            new = [param_dict.get(param, param) for param in self.ordered_parameters]
+            new = [params.get(param, param) for param in self.ordered_parameters]
             self._ordered_parameters = new
 
-        return super().assign_parameters(param_dict, inplace=inplace)
+        return super().assign_parameters(params, inplace=inplace)
 
     def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
                            params=None):
