@@ -1,9 +1,0 @@
----
-deprecations:
-  - |
-    The submodule ``qiskit.extensions.standard`` has been removed along with
-    the deprecated gates in ``qiskit.extensions.quantum_initializer``.
-    The correct import location for the standard gates is
-    ``qiskit.circuit.library``, or ``qiskit.circuit.library.standard_gates``.
-    All gates continue to be importable from ``qiskit.extensions``.
-    Also, the deprecated ``QuantumCircuit.iden`` method has been removed.

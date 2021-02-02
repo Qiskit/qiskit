@@ -14,7 +14,6 @@
 
 from typing import Tuple, Union, List, Optional
 import numpy as np
-from scipy.stats import multivariate_normal
 from qiskit.circuit import QuantumCircuit
 
 
@@ -177,6 +176,8 @@ class NormalDistribution(QuantumCircuit):
                                      for i, bound in enumerate(bounds)], indexing='ij')
             # flatten into a list of points
             x = list(zip(*[grid.flatten() for grid in meshgrid]))
+
+        from scipy.stats import multivariate_normal
 
         # compute the normalized, truncated probabilities
         probabilities = multivariate_normal.pdf(x, mu, sigma)

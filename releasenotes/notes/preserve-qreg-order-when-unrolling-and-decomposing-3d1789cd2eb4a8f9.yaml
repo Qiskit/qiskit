@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    A bug that was causing registers to be mismapped when unrolling/decomposing
-    a gate defined with only one 2-qubit operation. Now the decomposition will reflect
-    how a gate is defined.

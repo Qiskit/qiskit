@@ -1,6 +1,6 @@
 {
     "backend_name": "quantumsimbackend1",
-    "backend_version": "1.1.1",
+    "backend_version": "1.2.0",
     "n_qubits": 32,
     "basis_gates": ["u1","u2","u3","cx"],
     "gates": [
@@ -22,5 +22,7 @@
     "conditional": true,
     "memory": true,
     "max_shots": 8192,
-    "open_pulse": false
+    "open_pulse": false,
+    "dt": 1.33,
+    "dtm": 10.5
 }

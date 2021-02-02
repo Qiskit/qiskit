@@ -1063,7 +1063,7 @@ def inline() -> ContextManager[None]:
 
 @_transform_context(transforms.pad, inplace=True)
 def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
-    """Pad all availale timeslots with delays upon exiting context.
+    """Pad all available timeslots with delays upon exiting context.
 
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
@@ -1219,9 +1219,9 @@ def frequency_offset(frequency: float,
 
     Args:
         frequency: Amount of frequency offset in Hz.
-        channels: Channels to offset phase of.
-        compensate_phase: Compensate for accumulated phase in accumulated with
-            respect to the channels frame at its initial frequency.
+        channels: Channels to offset frequency of.
+        compensate_phase: Compensate for accumulated phase accumulated with
+            respect to the channels' frame at its initial frequency.
 
     Yields:
         None
@@ -1237,7 +1237,7 @@ def frequency_offset(frequency: float,
         if compensate_phase:
             duration = builder.context_schedule.duration - t0
             dt = active_backend().configuration().dt
-            accumulated_phase = duration * dt * frequency % (2*np.pi)
+            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 
