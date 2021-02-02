@@ -14,10 +14,10 @@
 
 import unittest
 from test import combine
+from inspect import getmembers, isfunction
 from ddt import ddt
 
 import numpy as np
-from inspect import getmembers, isfunction
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
