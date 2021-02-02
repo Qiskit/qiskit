@@ -205,7 +205,7 @@ class Counts(dict):
                 It has no effect if ``result`` is a dict.
 
         Returns:
-            Result or dict[str, int]: A dictionary with the observed counts,
+            dict[str, int]: A dictionary with the observed counts,
             marginalized to only account for frequency of observations
             of bits of interest.
         """
