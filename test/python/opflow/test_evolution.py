@@ -18,10 +18,10 @@ import numpy as np
 import scipy.linalg
 
 import qiskit
-from qiskit.circuit import ParameterVector, Parameter
-
-from qiskit.opflow import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, EvolutionFactory,
-                           EvolvedOp, PauliTrotterEvolution, QDrift, Trotter, Suzuki)
+from qiskit.circuit import Parameter, ParameterVector
+from qiskit.opflow import (CX, CircuitOp, EvolutionFactory, EvolvedOp, H, I,
+                           ListOp, PauliTrotterEvolution, QDrift, SummedOp,
+                           Suzuki, Trotter, X, Y, Z, Zero)
 
 # pylint: disable=invalid-name
 
@@ -65,6 +65,21 @@ class TestEvolution(QiskitOpflowTestCase):
              (0.18093119978423156 * X ^ X) + \
              (-0.39793742484318045 * Z ^ I) + \
              (-0.01128010425623538 * Z ^ Z)
+        evolution = EvolutionFactory.build(operator=op)
+        # wf = (Pl^Pl) + (Ze^Ze)
+        wf = ((np.pi / 2) * op).exp_i() @ CX @ (H ^ I) @ Zero
+        mean = evolution.convert(wf)
+        self.assertIsNotNone(mean)
+
+    def test_summedop_pauli_evolution(self):
+        """ SummedOp[PauliOp] evolution test """
+        op = SummedOp([
+            (-1.052373245772859 * I ^ I),
+            (0.39793742484318045 * I ^ Z),
+            (0.18093119978423156 * X ^ X),
+            (-0.39793742484318045 * Z ^ I),
+            (-0.01128010425623538 * Z ^ Z),
+        ])
         evolution = EvolutionFactory.build(operator=op)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = ((np.pi / 2) * op).exp_i() @ CX @ (H ^ I) @ Zero
@@ -159,6 +174,26 @@ class TestEvolution(QiskitOpflowTestCase):
     def test_qdrift(self):
         """ QDrift test """
         op = (2 * Z ^ Z) + (3 * X ^ X) - (4 * Y ^ Y) + (.5 * Z ^ I)
+        trotterization = QDrift().convert(op)
+        self.assertGreater(len(trotterization.oplist), 150)
+        last_coeff = None
+        # Check that all types are correct and all coefficients are equals
+        for op in trotterization.oplist:
+            self.assertIsInstance(op, (EvolvedOp, CircuitOp))
+            if isinstance(op, EvolvedOp):
+                if last_coeff:
+                    self.assertEqual(op.primitive.coeff, last_coeff)
+                else:
+                    last_coeff = op.primitive.coeff
+
+    def test_qdrift_summed_op(self):
+        """ QDrift test for SummedOp"""
+        op = SummedOp([
+            (2 * Z ^ Z),
+            (3 * X ^ X),
+            (-4 * Y ^ Y),
+            (.5 * Z ^ I),
+        ])
         trotterization = QDrift().convert(op)
         self.assertGreater(len(trotterization.oplist), 150)
         last_coeff = None
@@ -267,6 +302,19 @@ class TestEvolution(QiskitOpflowTestCase):
 
         qdrift = QDrift(reps=reps)
         self.assertEqual(qdrift.reps, reps)
+
+    def test_suzuki_directly(self):
+        """ Test for Suzuki converter """
+        operator = X + Z
+
+        evo = Suzuki()
+        evolution = evo.convert(operator)
+
+        matrix = np.array([
+            [0.29192658 - 0.45464871j, -0.84147098j],
+            [-0.84147098j, 0.29192658 + 0.45464871j]
+        ])
+        np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
 
 
 if __name__ == '__main__':
