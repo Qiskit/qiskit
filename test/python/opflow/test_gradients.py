@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,7 +30,7 @@ from qiskit import QuantumCircuit, QuantumRegister, BasicAer
 from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
 from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
@@ -48,7 +48,7 @@ class TestGradients(QiskitOpflowTestCase):
 
     def setUp(self):
         super().setUp()
-        aqua_globals.random_seed = 50
+        algorithm_globals.random_seed = 50
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_p(self, method):
