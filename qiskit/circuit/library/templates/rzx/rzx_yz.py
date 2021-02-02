@@ -20,8 +20,8 @@ q_1: ┤ X ├──────────┤ X ├─────────
      └───┘          └───┘           └─────────┘
 """
 
-from qiskit.circuit import Parameter, QuantumCircuit
 import numpy as np
+from qiskit.circuit import Parameter, QuantumCircuit
 
 
 def rzx_yz(theta: float = None):

@@ -20,8 +20,8 @@ q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) 
      └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
 """
 
-from qiskit.circuit import Parameter, QuantumCircuit
 import numpy as np
+from qiskit.circuit import Parameter, QuantumCircuit
 
 
 def rzx_cy(theta: float = None):
