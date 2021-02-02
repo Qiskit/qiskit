@@ -17,7 +17,6 @@ from re import match
 from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
-from qiskit.result.result import Result
 from qiskit.result.postprocess import _bin_to_hex
 
 
@@ -41,6 +40,7 @@ def marginal_counts(result, indices=None, inplace=False):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
+    from qiskit.result.result import Result
     if isinstance(result, Result):
         if not inplace:
             result = deepcopy(result)

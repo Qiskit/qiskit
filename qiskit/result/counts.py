@@ -14,9 +14,9 @@
 
 import re
 
-from qiskit.result import postprocess
 from qiskit import exceptions
-
+from qiskit.result.utils import marginal_counts
+from .result import postprocess
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__
 # this can cause unexpected behavior and issues as the cPython dict
@@ -179,3 +179,34 @@ class Counts(dict):
                 int_key = int(bitstring.replace(" ", ""), 2)
                 out_dict[int_key] = value
             return out_dict
+
+    def as_probabilities(self):
+        """Return counts dict as probabilities.
+
+        Returns:
+            dict: A dictionary probabilities in place of counts
+        """
+        shots = sum(self.values())
+        out_dict = {}
+        for key, val in self.items():
+            out_dict[key] = val / shots
+        return out_dict
+
+    def marginal_counts(self, indices=None, inplace=False):
+        """
+        Marginalize counts over some indices of interest.
+
+        Args:
+            indices (list(int) or None): The bit positions of interest
+                to marginalize over. If ``None`` (default), do not marginalize at all.
+
+            inplace (bool): Default: False. Operates on the original Result
+                argument if True, leading to loss of original Job Result.
+                It has no effect if ``result`` is a dict.
+
+        Returns:
+            Result or dict[str, int]: A dictionary with the observed counts,
+            marginalized to only account for frequency of observations
+            of bits of interest.
+        """
+        return marginal_counts(self, indices, inplace)

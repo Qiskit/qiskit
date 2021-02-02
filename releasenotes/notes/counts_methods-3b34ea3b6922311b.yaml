@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added `counts.as_probabilities()` and `counts.marginal_counts()` methods that
+    converts integer counts to probabilities and extracts marginal_counts, respectively.
