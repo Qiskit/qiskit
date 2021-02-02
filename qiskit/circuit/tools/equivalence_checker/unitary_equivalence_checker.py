@@ -13,36 +13,58 @@
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 
 class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
-    def __init__(self):
-        super().__init__('unitary')
+    def __init__(self, simulator, name='unitary', external_backend=None, **backend_options):
+        super().__init__(name)
+        self.simulator = simulator
+        self.backend_options = backend_options
+
+        if simulator == 'external':
+            self.backend = external_backend
+        elif simulator == 'aer':
+            try:
+                from qiskit.providers.aer import UnitarySimulator
+                self.backend = UnitarySimulator()
+                self.backend.set_options(**backend_options)
+            except ImportError:
+                raise('Could not import the Aer simulator')
+        elif simulator == 'quantum_info':
+            self.backend = None
+        else:
+            raise('Unrecognized simulator option: ' + str(self.simulator))
     
     def _run_checker(self, circ1, circ2, phase):
+        # importing here to avoid circular imports
         from qiskit.quantum_info.operators import Operator
+        from qiskit.quantum_info.operators.predicates import is_identity_matrix
+        from qiskit.compiler import transpile, assemble
+        
         equivalent = None
         success = True
-        error_msg = ''
+        error_msg = None
 
-        ops = []
-        circs = [circ1, circ2]
+        try:
+            circ = circ1 + circ2.inverse()
+            circ = transpile(circ, self.backend)
 
-        for circ in circs:
-            try:
+            if self.simulator == 'quantum_info':
                 op = Operator(circ)
-                ops.append(op)
-            except Exception as e:
-                error_msg += 'Circuit ' + circ.name + ' is invalid: ' + str(e) + '\n'
-                success = False
+            else:
+                backend_res = self.backend.run(assemble(circ), shots=1, **self.backend_options).result()
+                op = backend_res.get_unitary(circ)
 
-        if success:
-            try:
-                if phase == 'equal':
-                    equivalent = (ops[0] == ops[1])
-                elif phase == 'up_to_global':
-                    equivalent = (ops[0].equiv(ops[1]))
-                else:
-                    raise('Unrecognized phase criterion: ' + str(phase))
-            except:
-                error_msg = e
-                success = False
+            if phase == 'equal':
+                ignore_phase = False
+            elif phase == 'up_to_global':
+                ignore_phase = True
+            else:
+                raise('Unrecognized phase criterion: ' + str(phase))
+
+            # TODO: This can be made more efficient, because when checking whether
+            # a unitary matrix is the identity, it suffices to check only the diagonal
+            equivalent = is_identity_matrix(op, ignore_phase)
+                
+        except Exception as e:
+            error_msg = str(e)
+            success = False
 
         return EquivalenceCheckerResult(success, equivalent, error_msg)
