@@ -76,5 +76,6 @@ from .clifford.clifford_6_1 import clifford_6_1
 from .clifford.clifford_6_2 import clifford_6_2
 from .clifford.clifford_6_3 import clifford_6_3
 from .clifford.clifford_6_4 import clifford_6_4
+from .clifford.clifford_6_5 import clifford_6_5
 from .clifford.clifford_8_1 import clifford_8_1
 from .clifford.clifford_8_2 import clifford_8_2
