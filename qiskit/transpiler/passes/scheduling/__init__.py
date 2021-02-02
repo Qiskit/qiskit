@@ -15,5 +15,5 @@
 from .alap import ALAPSchedule
 from .asap import ASAPSchedule
 from .time_unit_analysis import TimeUnitAnalysis
-from .calibration_creators import CalibrationCreator, ZXScheduleBuilder
+from .calibration_creators import CalibrationCreator, RZXCalibrationBuilder
 from .calibration_adder import CalibrationAdder

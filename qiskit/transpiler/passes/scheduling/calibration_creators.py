@@ -36,15 +36,15 @@ class CalibrationCreator(ABC):
         """Gets the calibrated schedule for the given qubits and parameters."""
 
 
-class ZXScheduleBuilder(CalibrationCreator):
+class RZXCalibrationBuilder(CalibrationCreator):
     """
-    Creates calibrations for RZX(theta) by stretching and compressing
+    Creates calibrations for RZXGate(theta) by stretching and compressing
     Gaussian square pulses.
     """
 
     def __init__(self, backend: basebackend):
         """
-        Initializes a Parameterized Controlled-Z gate builder.
+        Initializes a RZXGate calibration builder.
 
         Args:
             backend: Backend for which to construct the gates.
