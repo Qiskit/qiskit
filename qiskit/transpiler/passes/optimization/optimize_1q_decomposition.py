@@ -40,9 +40,20 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if basis:
             self.basis = []
             basis_set = set(basis)
-            for basis_name, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+            basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+            for basis_name, gates in basis_gates.items():
                 if set(gates).issubset(basis_set):
-                    self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
+                    for base in self.basis:
+                        # check if the gates are a subset of another basis
+                        if set(gates).issubset(set(basis_gates[base.basis])):
+                            break
+                        # check if gates are a superset of another basis
+                        # and if so, remove that basis
+                        elif set(basis_gates[base.basis]).issubset(set(gates)):
+                            self.basis.remove(base)
+                    # if not a subset, add it to the list
+                    else:
+                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
