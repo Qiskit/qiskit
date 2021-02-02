@@ -172,6 +172,11 @@ class Instruction(ABC):
 
     def flatten(self) -> 'Instruction':
         """Return itself as already single instruction."""
+
+        warnings.warn('`This method is being deprecated. Please use '
+                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
+                      DeprecationWarning)
+
         return self
 
     def shift(self,

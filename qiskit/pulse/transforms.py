@@ -27,6 +27,10 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 
+ScheduleComponent = Union[Schedule, instructions.Instruction]
+"""An element that composes a pulse schedule."""
+
+
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
@@ -517,25 +521,29 @@ def align_func(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def flatten(schedule: Schedule) -> Schedule:
+def flatten(program: ScheduleComponent) -> ScheduleComponent:
     """Flatten any called nodes into a Schedule tree with no nested children.
 
     ``Call`` instruction is also decomposed into raw instruction sequence.
 
     # TODO this function will also take ScheduleBlock.
     """
-    return Schedule(*_flatten_routine_call(schedule), name=schedule.name)
+    if isinstance(program, instructions.Instruction):
+        return program
+    else:
+        return Schedule(*_flatten_routine_call(program), name=program.name)
 
 
-def _flatten_routine_call(program: Schedule):
+def _flatten_routine_call(program: Schedule, time_offset: Optional[int] = 0):
     """A helper function that recursively flatten the call instruction."""
     sequence = []
     for t0, inst in program.instructions:
+        start_time = t0 + time_offset
         if isinstance(inst, instructions.Call):
-            sequence.extend(_flatten_routine_call(inst.subprogram))
+            sequence.extend(_flatten_routine_call(start_time, inst.subprogram))
         else:
-            sequence.append((t0, inst))
-    return sequence
+            sequence.append((start_time + time_offset, inst))
+    return tuple(sequence)
 
 
 def remove_directives(schedule: Schedule) -> Schedule:

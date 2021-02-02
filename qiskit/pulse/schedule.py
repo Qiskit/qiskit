@@ -358,7 +358,8 @@ class Schedule(abc.ABC):
         from qiskit.pulse.transforms import flatten
 
         warnings.warn('`This method is being deprecated. Please use '
-                      '`qiskit.pulse.transforms.flatten` function with this schedule.')
+                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
+                      DeprecationWarning)
 
         return flatten(self)
 
@@ -428,7 +429,9 @@ class Schedule(abc.ABC):
             filter_func: Function of the form (int, Union['Schedule', Instruction]) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
-        subschedules = self.flatten()._children
+        from qiskit.pulse.transforms import flatten
+
+        subschedules = flatten(self)._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
         return Schedule(*valid_subschedules, name=new_sched_name)
 
@@ -779,10 +782,10 @@ class Schedule(abc.ABC):
         Args:
             schedule:
         """
-        # need to fix cyclic import
+        # TODO need to fix cyclic import
         from qiskit.pulse.transforms import flatten
 
-        schedule = flatten(self)
+        schedule = flatten(schedule)
         for _, inst in schedule.instructions:
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
