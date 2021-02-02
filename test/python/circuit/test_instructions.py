@@ -84,6 +84,31 @@ class TestInstructions(QiskitTestCase):
         self.assertNotEqual(Instruction('u', 1, 0, [0.3, phi, 0.4]),
                             Instruction('u', 1, 0, [theta, phi, 0.5]))
 
+    def test_instructions_soft_compare(self):
+        """Test soft comparison between instructions."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        # Verify that we are insensitive when there are parameters.
+        self.assertTrue(Instruction('u', 1, 0, [0.3, phi, 0.4]).soft_compare(
+            Instruction('u', 1, 0, [theta, phi, 0.4])))
+
+        # Verify that normal equality still holds.
+        self.assertTrue(Instruction('u', 1, 0, [0.4, 0.5]).soft_compare(
+            Instruction('u', 1, 0, [0.4, 0.5])))
+
+        # Test that when names differ we get False.
+        self.assertFalse(Instruction('u', 1, 0, [0.4, phi]).soft_compare(
+            Instruction('v', 1, 0, [theta, phi])))
+
+        # Test cutoff precision.
+        self.assertFalse(Instruction('v', 1, 0, [0.401, phi]).soft_compare(
+            Instruction('v', 1, 0, [0.4, phi])))
+
+        # Test cutoff precision.
+        self.assertTrue(Instruction('v', 1, 0, [0.4+1.0e-20, phi]).soft_compare(
+            Instruction('v', 1, 0, [0.4, phi])))
+
     def test_instructions_equal_with_parameter_expressions(self):
         """Test equality of instructions for cases with ParameterExpressions."""
         theta = Parameter('theta')
@@ -116,7 +141,7 @@ class TestInstructions(QiskitTestCase):
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
         circ1.i(q[1])
-        circ1.u3(0.1, 0.2, -0.2, q[0])
+        circ1.u(0.1, 0.2, -0.2, q[0])
         circ1.barrier()
         circ1.measure(q, c)
         circ1.rz(0.8, q[0]).c_if(c, 6)
@@ -163,11 +188,11 @@ class TestInstructions(QiskitTestCase):
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
         circ.i(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         gate = circ.to_gate()
 
         circ = QuantumCircuit(q, name='circ')
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         circ.i(q[1])
         circ.crz(0.1, q[0], q[1])
         circ.h(q[0])
@@ -180,7 +205,7 @@ class TestInstructions(QiskitTestCase):
         c = ClassicalRegister(4)
         circ = QuantumCircuit(q, c, name='circ')
         circ.t(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         circ.barrier()
         circ.measure(q[0], c[0])
         circ.rz(0.8, q[0]).c_if(c, 6)
@@ -190,7 +215,7 @@ class TestInstructions(QiskitTestCase):
         circ.rz(0.8, q[0]).c_if(c, 6)
         circ.measure(q[0], c[0])
         circ.barrier()
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
         inst_reverse = circ.to_instruction()
 
@@ -228,10 +253,10 @@ class TestInstructions(QiskitTestCase):
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
         circ.i(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         gate = circ.to_instruction()
         circ = QuantumCircuit(q, name='circ')
-        circ.u3(-0.1, 0.2, -0.2, q[0])
+        circ.u(-0.1, 0.2, -0.2, q[0])
         circ.i(q[1])
         circ.crz(-0.1, q[0], q[1])
         circ.h(q[0])
@@ -249,14 +274,14 @@ class TestInstructions(QiskitTestCase):
 
         qr1 = QuantumRegister(4)
         circ1 = QuantumCircuit(qr1, name='circuit1')
-        circ1.cu1(-0.1, qr1[0], qr1[2])
+        circ1.cp(-0.1, qr1[0], qr1[2])
         circ1.i(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
 
         circ_inv = QuantumCircuit(qr1, name='circ1_dg')
         circ_inv.append(little_gate.inverse(), [qr1[2], qr1[3]])
         circ_inv.i(qr1[1])
-        circ_inv.cu1(0.1, qr1[0], qr1[2])
+        circ_inv.cp(0.1, qr1[0], qr1[2])
 
         self.assertEqual(circ1.inverse(), circ_inv)
 
@@ -266,7 +291,7 @@ class TestInstructions(QiskitTestCase):
         c = ClassicalRegister(4)
         circ = QuantumCircuit(q, c, name='circ')
         circ.t(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         circ.barrier()
         circ.measure(q[0], c[0])
         inst = circ.to_instruction()
@@ -278,7 +303,7 @@ class TestInstructions(QiskitTestCase):
         c = ClassicalRegister(4)
         circ = QuantumCircuit(q, c, name='circ')
         circ.t(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
+        circ.u(0.1, 0.2, -0.2, q[0])
         circ.barrier()
         circ.measure(q[0], c[0])
         circ.rz(0.8, q[0]).c_if(c, 6)

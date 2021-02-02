@@ -32,6 +32,7 @@ class TestMeasure(QiskitTestCase):
     """Pulse measure macro."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
@@ -103,6 +104,7 @@ class TestMeasureAll(QiskitTestCase):
     """Pulse measure all macro."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 

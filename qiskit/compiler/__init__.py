@@ -26,9 +26,11 @@ Circuit and Pulse Compilation Functions
    assemble
    schedule
    transpile
+   sequence
 
 """
 
 from .assemble import assemble
 from .transpile import transpile
 from .schedule import schedule
+from .sequence import sequence

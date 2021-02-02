@@ -108,11 +108,11 @@ class RZZGate(Gate):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
         return RZZGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RZZ gate."""
         import numpy
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
                             [0, numpy.exp(itheta2), 0, 0],
                             [0, 0, numpy.exp(itheta2), 0],
-                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)
+                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=dtype)

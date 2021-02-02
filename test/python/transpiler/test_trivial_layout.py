@@ -27,6 +27,7 @@ class TestTrivialLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap5 = FakeTenerife().configuration().coupling_map
         self.cmap16 = FakeRueschlikon().configuration().coupling_map
 

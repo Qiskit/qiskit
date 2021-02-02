@@ -18,6 +18,7 @@ from typing import Any, Iterable, Tuple, Union
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils.units import apply_prefix
 
 
 class Nduv:
@@ -441,9 +442,21 @@ class BackendProperties:
             qubit: Qubit for which to return the readout error of.
 
         Return:
-            Readout error of the given qubit,
+            Readout error of the given qubit.
         """
         return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
+
+    def readout_length(self, qubit: int) -> float:
+        """
+        Return the readout length [sec] of the given qubit.
+
+        Args:
+            qubit: Qubit for which to return the readout length of.
+
+        Return:
+            Readout length of the given qubit.
+        """
+        return self.qubit_property(qubit, 'readout_length')[0]  # Throw away datetime at index 1
 
     def is_qubit_operational(self, qubit: int) -> bool:
         """
@@ -475,24 +488,7 @@ class BackendProperties:
         Raises:
             BackendPropertyError: If the units aren't recognized.
         """
-        downfactors = {
-            'p': 1e12,
-            'n': 1e9,
-            'u': 1e6,
-            'µ': 1e6,
-            'm': 1e3
-        }
-        upfactors = {
-            'k': 1e3,
-            'M': 1e6,
-            'G': 1e9
-        }
-        if not unit:
-            return value
-        if unit[0] in downfactors:
-            return value / downfactors[unit[0]]
-        elif unit[0] in upfactors:
-            return value * upfactors[unit[0]]
-        else:
-            raise BackendPropertyError(
-                "Could not understand units: {u}".format(u=unit))
+        try:
+            return apply_prefix(value, unit)
+        except Exception:
+            raise BackendPropertyError("Could not understand units: {u}".format(u=unit))

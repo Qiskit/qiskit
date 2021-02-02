@@ -19,7 +19,8 @@ import numpy
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
@@ -81,8 +82,9 @@ class UnitaryGate(Gate):
         # up to global phase?
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return matrix for the unitary."""
+        # pylint: disable=unused-argument
         return self.params[0]
 
     def inverse(self):
@@ -201,12 +203,25 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
+    def validate_parameter(self, parameter):
+        """Unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, numpy.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
+
 
 def unitary(self, obj, qubits, label=None):
     """Apply unitary gate to q."""
+    gate = UnitaryGate(obj, label=label)
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
-    return self.append(UnitaryGate(obj, label=label), qubits, [])
+    # for single qubit unitary gate, allow an 'int' or a 'list of ints' as qubits.
+    if gate.num_qubits == 1:
+        if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
+            qubits = [qubits]
+    return self.append(gate, qubits, [])
 
 
 QuantumCircuit.unitary = unitary

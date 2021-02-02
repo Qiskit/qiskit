@@ -12,10 +12,12 @@
 
 """Unitary gate."""
 
+from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
 from scipy.linalg import schur
 
+from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
@@ -37,13 +39,22 @@ class Gate(Instruction):
         self.definition = None
         super().__init__(name, num_qubits, 0, params)
 
+    # Set higher priority than Numpy array and matrix classes
+    __array_priority__ = 20
+
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
+
+        Returns:
+            np.ndarray: if the Gate subclass has a matrix defintion.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
+        if hasattr(self, '__array__'):
+            # pylint: disable = no-member
+            return self.__array__(dtype=complex)
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 
     def power(self, exponent: float):
@@ -222,3 +233,26 @@ class Gate(Instruction):
             return Gate._broadcast_3_or_more_args(qargs)
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
+
+    def validate_parameter(self, parameter):
+        """Gate parameters should be int, float, or ParameterExpression"""
+        if isinstance(parameter, ParameterExpression):
+            if len(parameter.parameters) > 0:
+                return parameter  # expression has free parameters, we cannot validate it
+            if not parameter._symbol_expr.is_real:
+                raise CircuitError("Bound parameter expression is complex in gate {}".format(
+                    self.name))
+            return parameter  # per default assume parameters must be real when bound
+        if isinstance(parameter, (int, float)):
+            return parameter
+        elif isinstance(parameter, (np.integer, np.floating)):
+            return parameter.item()
+        elif isinstance(parameter, np.ndarray):
+            warn("Gate param type %s is being deprecated as of 0.16.0, and will be removed "
+                 "no earlier than 3 months after that release date. "
+                 "Considering creating your own Gate subclass with the method validate_parameter "
+                 " to allow this param type." % type(parameter), DeprecationWarning, 3)
+            return parameter
+        else:
+            raise CircuitError("Invalid param type {0} for gate {1}.".format(type(parameter),
+                                                                             self.name))

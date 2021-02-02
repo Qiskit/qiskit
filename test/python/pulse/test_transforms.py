@@ -41,6 +41,7 @@ class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
@@ -198,6 +199,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
@@ -690,6 +692,44 @@ class TestAlignEquispaced(QiskitTestCase):
         reference.insert(20, Delay(10, d0), inplace=True)
         reference.insert(30, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_equispaced_with_multiple_channels_short_duration(self):
+        """Test equispaced context with multiple channels and duration shorter than the total
+        duration."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        sched = pulse.Schedule()
+        sched.append(Delay(10, d0), inplace=True)
+        sched.append(Delay(20, d1), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=20)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(0, Delay(20, d1), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_equispaced_with_multiple_channels_longer_duration(self):
+        """Test equispaced context with multiple channels and duration longer than the total
+        duration."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        sched = pulse.Schedule()
+        sched.append(Delay(10, d0), inplace=True)
+        sched.append(Delay(20, d1), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=30)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(10, Delay(20, d0), inplace=True)
+        reference.insert(0, Delay(10, d1), inplace=True)
+        reference.insert(10, Delay(20, d1), inplace=True)
 
         self.assertEqual(sched, reference)
 

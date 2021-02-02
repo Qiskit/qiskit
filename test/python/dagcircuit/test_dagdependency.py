@@ -102,6 +102,7 @@ class TestDagNodeEdge(QiskitTestCase):
     """Test adding nodes and edges to a dag and related functions."""
 
     def setUp(self):
+        super().setUp()
         self.dag = DAGDependency()
         self.qreg = QuantumRegister(2, 'qr')
         self.creg = ClassicalRegister(2, 'cr')
@@ -164,6 +165,7 @@ class TestDagNodeSelection(QiskitTestCase):
     """Test methods that select successors and predecessors"""
 
     def setUp(self):
+        super().setUp()
         self.dag = DAGDependency()
         self.qreg = QuantumRegister(2, 'qr')
         self.creg = ClassicalRegister(2, 'cr')
@@ -213,6 +215,7 @@ class TestDagProperties(QiskitTestCase):
     """
 
     def setUp(self):
+        super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
         circ = QuantumCircuit(qr1, qr2)
@@ -221,7 +224,7 @@ class TestDagProperties(QiskitTestCase):
         circ.h(qr1[2])
         circ.t(qr1[2])
         circ.ch(qr1[2], qr1[1])
-        circ.u2(0.1, 0.2, qr1[3])
+        circ.u(0.0, 0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
         self.dag = circuit_to_dagdependency(circ)

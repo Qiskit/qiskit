@@ -107,6 +107,7 @@ class PauliFeatureMap(NLocal):
                  feature_dimension: Optional[int] = None,
                  reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
+                 alpha: float = 2.0,
                  paulis: Optional[List[str]] = None,
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  parameter_prefix: str = 'x',
@@ -119,6 +120,7 @@ class PauliFeatureMap(NLocal):
             reps: The number of repeated circuits.
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.NLocal` for detail.
+            alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
             data_map_func: A mapping function for data x which can be supplied to override the
@@ -139,6 +141,7 @@ class PauliFeatureMap(NLocal):
 
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ['Z', 'ZZ']
+        self._alpha = alpha
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: List[int]
@@ -170,6 +173,25 @@ class PauliFeatureMap(NLocal):
         """
         self._invalidate()
         self._paulis = paulis
+
+    @property
+    def alpha(self) -> float:
+        """The Pauli rotation factor (alpha).
+
+        Returns:
+            The Pauli rotation factor.
+        """
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha: float) -> None:
+        """Set the Pauli rotation factor (alpha).
+
+        Args:
+            alpha: Pauli rotation factor
+        """
+        self._invalidate()
+        self._alpha = alpha
 
     @property
     def entanglement_blocks(self):
@@ -240,7 +262,7 @@ class PauliFeatureMap(NLocal):
 
         basis_change(evo)
         cx_chain(evo)
-        evo.u1(2.0 * time, indices[-1])
+        evo.p(self.alpha * time, indices[-1])
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo

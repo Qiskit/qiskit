@@ -41,6 +41,10 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import ALAPSchedule
+from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -74,6 +78,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     layout_method = pass_manager_config.layout_method or 'trivial'
     routing_method = pass_manager_config.routing_method or 'stochastic'
     translation_method = pass_manager_config.translation_method or 'translator'
+    scheduling_method = pass_manager_config.scheduling_method
+    instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -115,6 +121,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
@@ -143,9 +152,19 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
+    # 7. Schedule the circuit only when scheduling_method is supplied
+    if scheduling_method:
+        _scheduling = [TimeUnitAnalysis(instruction_durations)]
+        if scheduling_method in {'alap', 'as_late_as_possible'}:
+            _scheduling += [ALAPSchedule(instruction_durations)]
+        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+            _scheduling += [ASAPSchedule(instruction_durations)]
+        else:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
     # Build pass manager
     pm0 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
@@ -156,5 +175,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map and not coupling_map.is_symmetric:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
-
+    if scheduling_method:
+        pm0.append(_scheduling)
     return pm0

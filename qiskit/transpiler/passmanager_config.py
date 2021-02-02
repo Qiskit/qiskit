@@ -24,6 +24,8 @@ class PassManagerConfig:
                  layout_method=None,
                  routing_method=None,
                  translation_method=None,
+                 scheduling_method=None,
+                 instruction_durations=None,
                  backend_properties=None,
                  seed_transpiler=None):
         """Initialize a PassManagerConfig object
@@ -40,6 +42,9 @@ class PassManagerConfig:
                 architecture.
             translation_method (str): the pass to use for translating gates to
                 basis_gates.
+            scheduling_method (str): the pass to use for scheduling instructions.
+            instruction_durations (InstructionDurations): Dictionary of duration
+                (in dt) for each instruction.
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
@@ -52,5 +57,7 @@ class PassManagerConfig:
         self.layout_method = layout_method
         self.routing_method = routing_method
         self.translation_method = translation_method
+        self.scheduling_method = scheduling_method
+        self.instruction_durations = instruction_durations
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler

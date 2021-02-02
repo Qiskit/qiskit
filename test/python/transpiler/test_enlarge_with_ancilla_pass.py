@@ -25,6 +25,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
     """Tests the EnlargeWithAncilla pass."""
 
     def setUp(self):
+        super().setUp()
         self.qr3 = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(self.qr3)
         circuit.h(self.qr3)

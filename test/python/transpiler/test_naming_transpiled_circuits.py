@@ -24,6 +24,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
     """Testing the naming fuctionality for transpiled circuits."""
 
     def setUp(self):
+        super().setUp()
         self.basis_gates = ['u1', 'u2', 'u3', 'cx']
         self.backend = BasicAer.get_backend('qasm_simulator')
 

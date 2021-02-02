@@ -282,8 +282,8 @@ class _PulseBuilder():
             duplication.
 
         Args:
-            backend (BaseBackend): Input backend to use in builder. If not set
-                certain functionality will be unavailable.
+            backend (Union[Backend, BaseBackend]): Input backend to use in
+                builder. If not set certain functionality will be unavailable.
             schedule: Initital schedule to build on. If not supplied
                 a schedule will be created.
             name: Name of pulse program to be built. Only used if `schedule`
@@ -345,7 +345,7 @@ class _PulseBuilder():
         """Returns the builder backend if set.
 
         Returns:
-            Optional[BaseBackend]: The builder's backend.
+            Optional[Union[Backend, BaseBackend]]: The builder's backend.
         """
         return self._backend
 
@@ -543,7 +543,7 @@ def build(backend=None,
         qiskit.execute(pulse_prog, backend)
 
     Args:
-        backend (BaseBackend): A Qiskit backend. If not supplied certain
+        backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
         schedule: a *mutable* pulse Schedule in which your pulse program will
             be built.
@@ -592,7 +592,7 @@ def active_backend():
     """Get the backend of the currently active builder context.
 
     Returns:
-        BaseBackend: The active backend in the currently active
+        Union[Backend, BaseBackend]: The active backend in the currently active
             builder context.
 
     Raises:
@@ -1063,7 +1063,7 @@ def inline() -> ContextManager[None]:
 
 @_transform_context(transforms.pad, inplace=True)
 def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
-    """Pad all availale timeslots with delays upon exiting context.
+    """Pad all available timeslots with delays upon exiting context.
 
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
@@ -1219,9 +1219,9 @@ def frequency_offset(frequency: float,
 
     Args:
         frequency: Amount of frequency offset in Hz.
-        channels: Channels to offset phase of.
-        compensate_phase: Compensate for accumulated phase in accumulated with
-            respect to the channels frame at its initial frequency.
+        channels: Channels to offset frequency of.
+        compensate_phase: Compensate for accumulated phase accumulated with
+            respect to the channels' frame at its initial frequency.
 
     Yields:
         None
@@ -1237,7 +1237,7 @@ def frequency_offset(frequency: float,
         if compensate_phase:
             duration = builder.context_schedule.duration - t0
             dt = active_backend().configuration().dt
-            accumulated_phase = duration * dt * frequency % (2*np.pi)
+            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 

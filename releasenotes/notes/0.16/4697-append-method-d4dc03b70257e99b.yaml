@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    The :class:`qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.append` can now be used to insert one
+    parameterized gate instance into multiple circuits. This fixes a previous
+    issue where inserting a single parameterized
+    :class:`~qiskit.circuit.Gate` object into multiple circuits would
+    cause failures when one circuit had a parameter assigned.
+    Fixes `#4697 <https://github.com/Qiskit/qiskit-terra/issues/4697>`__
+upgrade:
+  - |
+    Inserting a parameterized :class:`~qiskit.circuit.Gate` instance into
+    a :class:`~qiskit.circuit.QuantumCircuit` now creates a copy of that
+    gate which is used in the circuit. If changes are made to the instance
+    inserted into the circuit it will no longer be reflected in the gate in
+    the circuit. This change was made to fix an issue when inserting a single
+    parameterized :class:`~qiskit.circuit.Gate` object into multiple circuits.

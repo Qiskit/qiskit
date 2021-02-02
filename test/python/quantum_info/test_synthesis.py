@@ -22,7 +22,7 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
+from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate, UGate,
                                     XGate, YGate, ZGate, CXGate, CZGate,
                                     iSwapGate, RXXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
@@ -79,7 +79,7 @@ class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
     def check_one_qubit_euler_angles(self, operator, basis='U3', tolerance=1e-12,
-                                     phase_equal=False):
+                                     phase_equal=True):
         """Check OneQubitEulerDecomposer works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
@@ -162,7 +162,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
                                      tolerance=1e-12,
-                                     phase_equal=False):
+                                     phase_equal=True):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):
@@ -176,7 +176,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
              name='test_one_qubit_clifford_{basis}_basis')
     def test_one_qubit_clifford_all_basis(self, basis):
         """Verify for {basis} basis and all Cliffords."""
@@ -188,6 +188,8 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('ZXZ', 1e-12),
                               ('ZYZ', 1e-12),
                               ('U1X', 1e-7),
+                              ('PSX', 1e-7),
+                              ('ZSX', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
     # Lower tolerance for U1X test since decomposition since it is
@@ -199,12 +201,42 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
                                               basis_tolerance[1])
 
-    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
+    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
              name='test_one_qubit_random_{basis}_basis_{seed}')
     def test_one_qubit_random_all_basis(self, basis, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
+
+    def test_psx_zsx_special_cases(self):
+        """Test decompositions of psx and zsx at special values of parameters"""
+        oqed_psx = OneQubitEulerDecomposer(basis='PSX')
+        oqed_zsx = OneQubitEulerDecomposer(basis='ZSX')
+        theta = np.pi / 3
+        phi = np.pi / 5
+        lam = np.pi / 7
+        test_gates = [UGate(np.pi, phi, lam), UGate(-np.pi, phi, lam),
+                      # test abs(lam + phi + theta) near 0
+                      UGate(np.pi, np.pi / 3, 2 * np.pi / 3),
+                      # test theta=pi/2
+                      UGate(np.pi / 2, phi, lam),
+                      # test theta=pi/2 and theta+lam=0
+                      UGate(np.pi / 2, phi, -np.pi / 2),
+                      # test theta close to 3*pi/2 and theta+phi=2*pi
+                      UGate(3*np.pi / 2, np.pi / 2, lam),
+                      # test theta 0
+                      UGate(0, phi, lam),
+                      # test phi 0
+                      UGate(theta, 0, lam),
+                      # test lam 0
+                      UGate(theta, phi, 0)]
+
+        for gate in test_gates:
+            unitary = gate.to_matrix()
+            qc_psx = oqed_psx(unitary)
+            qc_zsx = oqed_zsx(unitary)
+            self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
+            self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
 
 
 # FIXME: streamline the set of test cases
@@ -351,43 +383,6 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                         a = Ud(aaa, aaa, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
-    def test_random_unitary_fp_precision_error(self):
-        """Assert there are no fp precision sign flips."""
-        gate = CXGate()
-        self.check_two_qubit_weyl_decomposition(Operator(gate).data)
-        decomp = TwoQubitWeylDecomposition(Operator(gate).data)
-        expected_k1r = np.array([[-0.5 + 0.5j, -0.5 + 0.5j],
-                                 [0.5 + 0.5j, -0.5 - 0.5j]])
-        expected_k2l = np.array([[0.0 + 0.0j, -1.0 + 0.0j],
-                                 [1.0 + 0.0j, 0.0 + 0.0j]])
-        sqrt_2 = 1 / np.sqrt(2)
-        expected_k2r = np.array([[complex(0, sqrt_2), complex(0, sqrt_2)],
-                                 [complex(0, sqrt_2), complex(0, -sqrt_2)]])
-        expected_k1l = np.array([[complex(0, sqrt_2), complex(-sqrt_2, 0)],
-                                 [complex(sqrt_2, 0), complex(0, -sqrt_2)]])
-        np.allclose(decomp.K1r, expected_k1r)
-        np.allclose(decomp.K2r, expected_k2r)
-        np.allclose(decomp.K2l, expected_k2l)
-        np.allclose(decomp.K1l, expected_k1l)
-        # Assert approx 0s are not negative
-        # K2l
-        self.assertGreaterEqual(decomp.K2l[0][0].real, 0)
-        self.assertGreaterEqual(decomp.K2l[0][0].imag, 0)
-        self.assertGreaterEqual(decomp.K2l[0][1].imag, 0)
-        self.assertGreaterEqual(decomp.K2l[1][0].imag, 0)
-        self.assertGreaterEqual(decomp.K2l[1][1].real, 0)
-        self.assertGreaterEqual(decomp.K2l[1][1].imag, 0)
-        # K2r
-        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
-        self.assertGreaterEqual(decomp.K2r[0][1].real, 0)
-        self.assertGreaterEqual(decomp.K2r[1][0].real, 0)
-        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
-        # k1l
-        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
-        self.assertGreaterEqual(decomp.K2r[0][1].imag, 0)
-        self.assertGreaterEqual(decomp.K2r[1][0].imag, 0)
-        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
-
 
 @ddt
 class TestTwoQubitDecomposeExact(CheckDecompositions):
@@ -442,8 +437,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
@@ -459,13 +454,13 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
@@ -481,18 +476,18 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
@@ -508,23 +503,23 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[18], rnd[19], rnd[20], qr[0])
-        qc.u3(rnd[21], rnd[22], rnd[23], qr[1])
+        qc.u(rnd[18], rnd[19], rnd[20], qr[0])
+        qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
@@ -538,8 +533,9 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     @combine(seed=range(10),
-             euler_bases=[('U3', ['u3']), ('U1X', ['u1', 'rx']), ('RR', ['r']),
-                          ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']), ('XYX', ['rx', 'ry'])],
+             euler_bases=[('U3', ['u3']), ('U', ['u']), ('U1X', ['u1', 'rx']), ('RR', ['r']),
+                          ('PSX', ['p', 'sx']), ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']),
+                          ('XYX', ['rx', 'ry']), ('ZSX', ['rz', 'sx'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),
                         (RXXGate(np.pi / 2), 'rxx')],
              name='test_euler_basis_selection_{seed}_{euler_bases[0]}_{kak_gates[1]}')

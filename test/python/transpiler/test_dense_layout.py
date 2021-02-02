@@ -26,6 +26,7 @@ class TestDenseLayout(QiskitTestCase):
     """Tests the DenseLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap20 = FakeTokyo().configuration().coupling_map
 
     def test_5q_circuit_20q_coupling(self):

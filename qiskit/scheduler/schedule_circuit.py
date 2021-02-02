@@ -18,7 +18,7 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.methods.basic import as_soon_as_possible, as_late_as_possible
+from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
 
 
 def schedule_circuit(circuit: QuantumCircuit,

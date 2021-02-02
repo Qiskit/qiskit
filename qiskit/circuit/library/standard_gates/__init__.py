@@ -19,6 +19,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    :toctree: ../stubs/
 
    C3XGate
+   C3SXGate
    C4XGate
    CCXGate
    DCXGate
@@ -69,8 +70,8 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 
 from .h import HGate, CHGate
 from .i import IGate
-from .ms import MSGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
@@ -89,7 +90,7 @@ from .u import UGate, CUGate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate
-from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate
+from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate

@@ -51,11 +51,13 @@ class ApplyLayout(TransformationPass):
 
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)
+        new_dag.metadata = dag.metadata
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         for node in dag.topological_op_nodes():
             if node.type == 'op':
                 qargs = [q[layout[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
+        new_dag._global_phase = dag._global_phase
 
         return new_dag

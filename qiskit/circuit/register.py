@@ -25,7 +25,11 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['_name', '_size', '_bits', '_hash']
+    __slots__ = ['_name', '_size', '_bits', '_hash', '_repr']
+
+    # Register name should conform to OpenQASM 2.0 specification
+    # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
+    name_format = re.compile('[a-z][a-zA-Z0-9_]*')
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -39,10 +43,15 @@ class Register:
 
         # validate (or cast) size
         try:
-            size = int(size)
-        except Exception:
-            raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
+            valid_size = size == int(size)
+        except (ValueError, TypeError):
+            valid_size = False
+
+        if not valid_size:
+            raise CircuitError("Register size must be an integer. (%s '%s' was provided)"
                                % (type(size).__name__, size))
+        size = int(size)  # cast to int
+
         if size <= 0:
             raise CircuitError("Register size must be positive (%s '%s' was provided)"
                                % (type(size).__name__, size))
@@ -56,14 +65,15 @@ class Register:
             except Exception:
                 raise CircuitError("The circuit name should be castable to a string "
                                    "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
-            if name_format.match(name) is None:
-                raise CircuitError("%s is an invalid OPENQASM register name." % name)
+            if self.name_format.match(name) is None:
+                raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
+                                   " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name)
 
         self._name = name
         self._size = size
 
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
     def _update_bits_hash(self):
@@ -78,8 +88,12 @@ class Register:
     @name.setter
     def name(self, value):
         """Set the register name."""
+        if self.name_format.match(value) is None:
+            raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
+                               " A of https://arxiv.org/pdf/1707.03429v2.pdf." % value)
         self._name = value
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._update_bits_hash()
 
     @property
@@ -92,11 +106,12 @@ class Register:
         """Set the register size."""
         self._size = value
         self._hash = hash((type(self), self._name, self._size))
+        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
+        return self._repr
 
     def __len__(self):
         """Return register size."""
@@ -116,7 +131,7 @@ class Register:
             CircuitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
-        if not isinstance(key, (int, np.int, np.int32, np.int64, slice, list)):
+        if not isinstance(key, (int, np.int32, np.int64, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]
@@ -142,12 +157,10 @@ class Register:
         Returns:
             bool: `self` and `other` are equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self._name == other._name and \
-                self._size == other._size:
-            res = True
-        return res
+        try:
+            return self._repr == other._repr
+        except AttributeError:
+            return False
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""

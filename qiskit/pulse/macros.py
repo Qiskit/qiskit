@@ -34,8 +34,8 @@ def measure(qubits: List[int],
 
     Args:
         qubits: List of qubits to be measured.
-        backend (BaseBackend): A backend instance, which contains hardware-specific data
-            required for scheduling.
+        backend (Union[Backend, BaseBackend]): A backend instance, which contains
+            hardware-specific data required for scheduling.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
                   ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
@@ -56,7 +56,7 @@ def measure(qubits: List[int],
     except AttributeError:
         raise exceptions.PulseError(
             'inst_map or meas_map, and backend cannot be None simultaneously')
-    if isinstance(meas_map, List):
+    if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
 
     measure_groups = set()
@@ -95,8 +95,8 @@ def measure_all(backend) -> Schedule:
     Return a Schedule which measures all qubits of the given backend.
 
     Args:
-        backend (BaseBackend): A backend instance, which contains hardware-specific data
-            required for scheduling.
+        backend (Union[Backend, BaseBackend]): A backend instance, which contains
+            hardware-specific data required for scheduling.
 
     Returns:
         A schedule corresponding to the inputs provided.

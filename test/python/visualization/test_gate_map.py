@@ -70,6 +70,7 @@ class TestGraphDist(QiskitTestCase):
 
     def setUp(self):
         """ setup plots for _GraphDist """
+        super().setUp()
         ax1 = plt.subplots(figsize=(5, 5))[1]
         ax2 = plt.subplots(figsize=(9, 3))[1]
         ax1.axis("off")

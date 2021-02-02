@@ -49,11 +49,7 @@ class BasicSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG.
         """
-        new_dag = DAGCircuit()
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Basic swap runs on physical circuits only')

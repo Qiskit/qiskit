@@ -34,6 +34,7 @@ class TestParser(QiskitTestCase):
     """QasmParser"""
 
     def setUp(self):
+        super().setUp()
         self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
             'example_fail.qasm', Path.QASMS)

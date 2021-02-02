@@ -173,7 +173,7 @@ class Bloch():
         self.zlpos = [1.2, -1.2]
         # ---font options---
         # Color of fonts, default = 'black'
-        self.font_color = 'black'
+        self.font_color = plt.rcParams['axes.labelcolor']
         # Size of fonts, default = 20
         self.font_size = 20
 
@@ -412,6 +412,11 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
+        # Force aspect ratio
+        # MPL 3.2 or previous do not have set_box_aspect
+        if hasattr(self.axes, 'set_box_aspect'):
+            self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()

@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Callable, Union, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from ..exceptions import PulseError
-from .pulse import Pulse
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Waveform(Pulse):
@@ -93,31 +94,14 @@ class Waveform(Pulse):
 
         return samples
 
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
-        """Plot the interpolated envelope of pulse.
+    def is_parameterized(self) -> bool:
+        return False
 
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scale: Relative visual scaling of waveform amplitudes.
-            interactive: When set true show the circuit in a new window.
-                         (This depends on the matplotlib backend being used.)
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        # pylint: disable=invalid-name, cyclic-import
-        from qiskit import visualization
-
-        return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scale=scale,
-                                          interactive=interactive)
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Waveform':
+        # Waveforms don't accept parameters
+        return self
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.samples.shape == other.samples.shape and \

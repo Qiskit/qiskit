@@ -23,6 +23,7 @@ Generic isometries from m to n qubits.
 import itertools
 import numpy as np
 
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -72,6 +73,7 @@ class Isometry(Instruction):
 
         self.num_ancillas_zero = num_ancillas_zero
         self.num_ancillas_dirty = num_ancillas_dirty
+        self._inverse = None
 
         # Check if the isometry has the right dimension and if the columns are orthonormal
         n = np.log2(isometry.shape[0])
@@ -94,11 +96,10 @@ class Isometry(Instruction):
         super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
-        # call to generate the circuit that takes the isometry to the first 2^m columns
-        # of the 2^n identity matrix
-        iso_circuit = self._gates_to_uncompute()
-        # invert the circuit to create the circuit implementing the isometry
-        gate = iso_circuit.to_instruction().inverse()
+        # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
+        #  an isometry, but not for generating its decomposition. It would be cheaper to do the
+        #  later here instead.
+        gate = self.inverse().inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
@@ -254,6 +255,24 @@ class Isometry(Instruction):
         q_ancillas_zero = q[n:n + self.num_ancillas_zero]
         q_ancillas_dirty = q[n + self.num_ancillas_zero:]
         return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
+
+    def validate_parameter(self, parameter):
+        """Isometry parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))
+
+    def inverse(self):
+        """Return the adjoint of the unitary."""
+        if self._inverse is None:
+            # call to generate the circuit that takes the isometry to the first 2^m columns
+            # of the 2^n identity matrix
+            iso_circuit = self._gates_to_uncompute()
+            # invert the circuit to create the circuit implementing the isometry
+            self._inverse = iso_circuit.to_instruction()
+        return self._inverse
 
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or

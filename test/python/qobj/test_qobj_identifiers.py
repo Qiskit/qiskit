@@ -25,6 +25,7 @@ class TestQobjIdentifiers(QiskitTestCase):
     """Check the Qobj compiled for different backends create names properly"""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(2, name="qr2")
         cr = ClassicalRegister(2, name=None)
         qc = QuantumCircuit(qr, cr, name="qc10")

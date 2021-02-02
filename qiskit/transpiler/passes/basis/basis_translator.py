@@ -82,11 +82,14 @@ class BasisTranslator(TransformationPass):
             return dag
 
         # Names of instructions assumed to supported by any backend.
-        basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
+        basic_instrs = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
 
         target_basis = set(self._target_basis).union(basic_instrs)
-        source_basis = {(node.op.name, node.op.num_qubits)
-                        for node in dag.op_nodes()}
+
+        source_basis = set()
+        for node in dag.op_nodes():
+            if not dag.has_calibration_for(node):
+                source_basis.add((node.name, node.op.num_qubits))
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -122,6 +125,9 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
+            if dag.has_calibration_for(node):
+                continue
+
             if (node.op.name, node.op.num_qubits) in instr_map:
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
 
@@ -148,7 +154,11 @@ class BasisTranslator(TransformationPass):
 
                 if (len(bound_target_dag.op_nodes()) == 1
                         and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
-                    dag.substitute_node(node, bound_target_dag.op_nodes()[0].op, inplace=True)
+                    dag_op = bound_target_dag.op_nodes()[0].op
+                    dag.substitute_node(node, dag_op, inplace=True)
+
+                    if bound_target_dag.global_phase:
+                        dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:

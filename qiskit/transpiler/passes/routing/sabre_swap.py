@@ -13,11 +13,10 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import deepcopy
+from copy import copy, deepcopy
 from itertools import cycle
 import numpy as np
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -119,7 +118,14 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+
+        # Assume bidirectional couplings, fixing gate direction is easy later.
+        if coupling_map.is_symmetric:
+            self.coupling_map = coupling_map
+        else:
+            self.coupling_map = deepcopy(coupling_map)
+            self.coupling_map.make_symmetric()
+
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
@@ -145,10 +151,7 @@ class SabreSwap(TransformationPass):
         rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = _copy_circuit_metadata(dag)
-
-        # Assume bidirectional couplings, fixing gate direction is easy later.
-        self.coupling_map.make_symmetric()
+        mapped_dag = dag._copy_circuit_metadata()
 
         canonical_register = dag.qregs['q']
         current_layout = Layout.generate_trivial_layout(canonical_register)
@@ -168,8 +171,8 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    physical_qubits = (current_layout[v0], current_layout[v1])
-                    if physical_qubits in self.coupling_map.get_edges():
+                    if self.coupling_map.graph.has_edge(current_layout[v0],
+                                                        current_layout[v1]):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
                     execute_gate_list.append(node)
@@ -315,8 +318,15 @@ class SabreSwap(TransformationPass):
         the remaining virtual gates that must be applied.
         """
         if heuristic == 'basic':
-            return sum(self.coupling_map.distance(*[layout[q] for q in node.qargs])
-                       for node in front_layer)
+            if len(front_layer) > 1:
+                return self.coupling_map.distance_matrix[
+                    tuple(zip(*[[
+                        layout[q] for q in node.qargs] for node in front_layer]))].sum()
+            elif len(front_layer) == 1:
+                return self.coupling_map.distance(
+                    *[layout[q] for q in list(front_layer)[0].qargs])
+            else:
+                return 0
 
         elif heuristic == 'lookahead':
             first_cost = self._score_heuristic('basic', front_layer, [], layout)
@@ -335,27 +345,13 @@ class SabreSwap(TransformationPass):
             raise TranspilerError('Heuristic %s not recognized.' % heuristic)
 
 
-def _copy_circuit_metadata(source_dag):
-    """Return a copy of source_dag with metadata but empty.
-    """
-    target_dag = DAGCircuit()
-    target_dag.name = source_dag.name
-
-    for qreg in source_dag.qregs.values():
-        target_dag.add_qreg(qreg)
-    for creg in source_dag.cregs.values():
-        target_dag.add_creg(creg)
-
-    return target_dag
-
-
 def _transform_gate_for_layout(op_node, layout):
     """Return node implementing a virtual op on given layout."""
-    mapped_op_node = deepcopy(op_node)
+    mapped_op_node = copy(op_node)
 
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs
     mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
-    mapped_op_node.qargs = mapped_op_node.op.qargs = list(mapped_qargs)
+    mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

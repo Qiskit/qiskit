@@ -23,7 +23,7 @@ from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
 from qiskit import transpile
 from qiskit import execute, assemble, BasicAer
-from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
@@ -60,6 +60,15 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {:.2g}.".format(fidelity))
+
+    def test_statevector(self):
+        """Initialize gates from a statevector."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/5134 (footnote)
+        desired_vector = [0, 0, 0, 1]
+        qc = QuantumCircuit(2)
+        statevector = Statevector.from_label('11')
+        qc.initialize(statevector, [0, 1])
+        self.assertEqual(qc.data[0][0].params, desired_vector)
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -342,11 +351,27 @@ class TestInitialize(QiskitTestCase):
 
         self.assertLessEqual(number_cnots, max_cnots)
 
+    def test_from_labels(self):
+        """Initialize from labels."""
+        desired_sv = Statevector.from_label('01+-lr')
+        qc = QuantumCircuit(6)
+        qc.initialize('01+-lr', range(6))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
+
+    def test_from_int(self):
+        """Initialize from int."""
+        desired_sv = Statevector.from_label('110101')
+        qc = QuantumCircuit(6)
+        qc.initialize(53, range(6))
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertTrue(desired_sv == actual_sv)
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
 
-    def test_daig_(self):
+    def test_diag(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])

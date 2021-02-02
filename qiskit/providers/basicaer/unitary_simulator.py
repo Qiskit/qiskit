@@ -31,7 +31,7 @@ import uuid
 import time
 from math import log2, sqrt
 import numpy as np
-from qiskit.util import local_hardware_info
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
@@ -116,6 +116,7 @@ class UnitarySimulatorPy(BaseBackend):
         self._number_of_qubits = 0
         self._initial_unitary = None
         self._chop_threshold = 1e-15
+        self._global_phase = 0
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -200,6 +201,8 @@ class UnitarySimulatorPy(BaseBackend):
     def _get_unitary(self):
         """Return the current unitary"""
         unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
+        if self._global_phase:
+            unitary *= np.exp(1j * float(self._global_phase))
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
@@ -302,6 +305,7 @@ class UnitarySimulatorPy(BaseBackend):
         """
         start = time.time()
         self._number_of_qubits = experiment.header.n_qubits
+        self._global_phase = experiment.header.global_phase
 
         # Validate the dimension of initial unitary if set
         self._validate_initial_unitary()
