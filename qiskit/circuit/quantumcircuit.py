@@ -2006,11 +2006,11 @@ class QuantumCircuit:
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
         # check that all param_dict items are in the _parameter_table for this circuit
-        missing_params = [param_key for param_key in unrolled_param_dict
-                          if param_key not in self._parameter_table]
-        if missing_params:
+        params_not_in_circuit = [param_key for param_key in unrolled_param_dict
+                                 if param_key not in self._parameter_table.keys()]
+        if len(params_not_in_circuit) > 0:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                ', '.join(map(str, missing_params))))
+                ', '.join(map(str, params_not_in_circuit))))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
