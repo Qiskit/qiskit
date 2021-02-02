@@ -17,7 +17,7 @@ upgrade:
     name conflict between the :func:`~qiskit.execute_function.execute` function
     which is re-exported as ``qiskit.execute``. ``qiskit.execute`` the function
     in some situations could conflict with ``qiskit.execute`` the module which
-    would lead to cryptic error because Python was treating ``qiskit.execute``
+    would lead to a cryptic error because Python was treating ``qiskit.execute``
     as the module when the intent was to the function or vice versa. The module
     rename was necessary to avoid this conflict. If you're importing
     ``qiskit.execute`` to get the module (typical usage was
@@ -33,8 +33,8 @@ upgrade:
     potentical name conflict between the modules and the re-exported function
     paths :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
     :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`.
-    Insome situations this name conflict between the module path and
-    re-exported function path would lead to cryptic error because Python was
+    In some situations this name conflict between the module path and
+    re-exported function path would lead to a cryptic error because Python was
     treating an import as the module when the intent was to use the function or
     vice versa. The module rename was necessary to avoid this conflict. If
     you were using the imports to get the modules before (typical usage would
@@ -42,4 +42,4 @@ upgrade:
     to update this to use the new module paths.
     :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
     :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`
-    will now always resolve to the function.
+    will now always resolve to the functions.
