@@ -86,43 +86,43 @@ class TestStabilizerTableInit(QiskitTestCase):
 
         with self.subTest(msg='str init "I"'):
             value = StabilizerTable('I')._array
-            target = np.array([[False, False]], dtype=np.bool)
+            target = np.array([[False, False]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "X"'):
             value = StabilizerTable('X')._array
-            target = np.array([[True, False]], dtype=np.bool)
+            target = np.array([[True, False]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "Y"'):
             value = StabilizerTable('Y')._array
-            target = np.array([[True, True]], dtype=np.bool)
+            target = np.array([[True, True]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "Z"'):
             value = StabilizerTable('Z')._array
-            target = np.array([[False, True]], dtype=np.bool)
+            target = np.array([[False, True]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "IX"'):
             value = StabilizerTable('IX')._array
-            target = np.array([[True, False, False, False]], dtype=np.bool)
+            target = np.array([[True, False, False, False]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XI"'):
             value = StabilizerTable('XI')._array
-            target = np.array([[False, True, False, False]], dtype=np.bool)
+            target = np.array([[False, True, False, False]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "YZ"'):
             value = StabilizerTable('YZ')._array
-            target = np.array([[False, True, True, True]], dtype=np.bool)
+            target = np.array([[False, True, True, True]], dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
         with self.subTest(msg='str init "XIZ"'):
             value = StabilizerTable('XIZ')._array
             target = np.array([[False, False, True, True, False, False]],
-                              dtype=np.bool)
+                              dtype=bool)
             self.assertTrue(np.all(np.array(value == target)))
 
     def test_table_init(self):
@@ -148,7 +148,7 @@ class TestStabilizerTableProperties(QiskitTestCase):
 
         with self.subTest(msg='array'):
             stab = StabilizerTable('II')
-            array = np.zeros([2, 4], dtype=np.bool)
+            array = np.zeros([2, 4], dtype=bool)
             self.assertTrue(np.all(stab.array == array))
 
         with self.subTest(msg='set array'):
@@ -166,12 +166,12 @@ class TestStabilizerTableProperties(QiskitTestCase):
         with self.subTest(msg='X'):
             stab = StabilizerTable.from_labels(['XI', 'IZ', 'YY'])
             array = np.array([[False, True], [False, False], [True, True]],
-                             dtype=np.bool)
+                             dtype=bool)
             self.assertTrue(np.all(stab.X == array))
 
         with self.subTest(msg='set X'):
             stab = StabilizerTable.from_labels(['XI', 'IZ'])
-            val = np.array([[False, False], [True, True]], dtype=np.bool)
+            val = np.array([[False, False], [True, True]], dtype=bool)
             stab.X = val
             self.assertEqual(stab, StabilizerTable.from_labels(['II', 'XY']))
 
@@ -180,7 +180,7 @@ class TestStabilizerTableProperties(QiskitTestCase):
             def set_x():
                 stab = StabilizerTable.from_labels(['XI', 'IZ'])
                 val = np.array([[False, False, False], [True, True, True]],
-                               dtype=np.bool)
+                               dtype=bool)
                 stab.X = val
                 return stab
 
@@ -191,12 +191,12 @@ class TestStabilizerTableProperties(QiskitTestCase):
         with self.subTest(msg='Z'):
             stab = StabilizerTable.from_labels(['XI', 'IZ', 'YY'])
             array = np.array([[False, False], [True, False], [True, True]],
-                             dtype=np.bool)
+                             dtype=bool)
             self.assertTrue(np.all(stab.Z == array))
 
         with self.subTest(msg='set Z'):
             stab = StabilizerTable.from_labels(['XI', 'IZ'])
-            val = np.array([[False, False], [True, True]], dtype=np.bool)
+            val = np.array([[False, False], [True, True]], dtype=bool)
             stab.Z = val
             self.assertEqual(stab, StabilizerTable.from_labels(['XI', 'ZZ']))
 
@@ -205,7 +205,7 @@ class TestStabilizerTableProperties(QiskitTestCase):
             def set_z():
                 stab = StabilizerTable.from_labels(['XI', 'IZ'])
                 val = np.array([[False, False, False], [True, True, True]],
-                               dtype=np.bool)
+                               dtype=bool)
                 stab.Z = val
                 return stab
 
@@ -237,20 +237,20 @@ class TestStabilizerTableProperties(QiskitTestCase):
         """Test phase property"""
         with self.subTest(msg='phase'):
             phase = np.array([False, True, True, False])
-            array = np.eye(4, dtype=np.bool)
+            array = np.eye(4, dtype=bool)
             stab = StabilizerTable(array, phase)
             self.assertTrue(np.all(stab.phase == phase))
 
         with self.subTest(msg='set phase'):
             phase = np.array([False, True, True, False])
-            array = np.eye(4, dtype=np.bool)
+            array = np.eye(4, dtype=bool)
             stab = StabilizerTable(array)
             stab.phase = phase
             self.assertTrue(np.all(stab.phase == phase))
 
         with self.subTest(msg='set phase raises'):
             phase = np.array([False, True, False])
-            array = np.eye(4, dtype=np.bool)
+            array = np.eye(4, dtype=bool)
             stab = StabilizerTable(array)
 
             def set_phase_raise():
@@ -263,25 +263,25 @@ class TestStabilizerTableProperties(QiskitTestCase):
         """Test pauli property"""
         with self.subTest(msg='pauli'):
             phase = np.array([False, True, True, False])
-            array = np.eye(4, dtype=np.bool)
+            array = np.eye(4, dtype=bool)
             stab = StabilizerTable(array, phase)
             pauli = PauliTable(array)
             self.assertEqual(stab.pauli, pauli)
 
         with self.subTest(msg='set pauli'):
             phase = np.array([False, True, True, False])
-            array = np.zeros((4, 4), dtype=np.bool)
+            array = np.zeros((4, 4), dtype=bool)
             stab = StabilizerTable(array, phase)
-            pauli = PauliTable(np.eye(4, dtype=np.bool))
+            pauli = PauliTable(np.eye(4, dtype=bool))
             stab.pauli = pauli
             self.assertTrue(np.all(stab.array == pauli.array))
             self.assertTrue(np.all(stab.phase == phase))
 
         with self.subTest(msg='set pauli'):
             phase = np.array([False, True, True, False])
-            array = np.zeros((4, 4), dtype=np.bool)
+            array = np.zeros((4, 4), dtype=bool)
             stab = StabilizerTable(array, phase)
-            pauli = PauliTable(np.eye(4, dtype=np.bool)[1:])
+            pauli = PauliTable(np.eye(4, dtype=bool)[1:])
 
             def set_pauli_raise():
                 """Raise exception"""
@@ -413,8 +413,8 @@ class TestStabilizerTableLabels(QiskitTestCase):
                                          [True, False],
                                          [True, True],
                                          [False, True]],
-                                        dtype=np.bool)])
-        phase = np.array(8 * [False] + 4 * [True], dtype=np.bool)
+                                        dtype=bool)])
+        phase = np.array(8 * [False] + 4 * [True], dtype=bool)
         target = StabilizerTable(array, phase)
         value = StabilizerTable.from_labels(labels)
         self.assertEqual(target, value)
@@ -425,7 +425,7 @@ class TestStabilizerTableLabels(QiskitTestCase):
         array = np.array([[False, False, False, False],
                           [True, True, True, True],
                           [False, True, True, False]],
-                         dtype=np.bool)
+                         dtype=bool)
         phase = np.array([False, True, False])
         target = StabilizerTable(array, phase)
         value = StabilizerTable.from_labels(labels)
@@ -438,7 +438,7 @@ class TestStabilizerTableLabels(QiskitTestCase):
                           5 * [True] + 5 * [False],
                           10 * [True],
                           5 * [False] + 5 * [True]],
-                         dtype=np.bool)
+                         dtype=bool)
         phase = np.array([False, True, False, False])
         target = StabilizerTable(array, phase)
         value = StabilizerTable.from_labels(labels)
@@ -450,8 +450,8 @@ class TestStabilizerTableLabels(QiskitTestCase):
                                          [True, False],
                                          [True, True],
                                          [False, True]],
-                                        dtype=np.bool)])
-        phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
+                                        dtype=bool)])
+        phase = np.array(4 * [False] + 4 * [True], dtype=bool)
         value = StabilizerTable(array, phase).to_labels()
         target = ['+I', '+X', '+Y', '+Z', '-I', '-X', '-Y', '-Z']
         self.assertEqual(value, target)
@@ -462,8 +462,8 @@ class TestStabilizerTableLabels(QiskitTestCase):
                                          [True, False],
                                          [True, True],
                                          [False, True]],
-                                        dtype=np.bool)])
-        phase = np.array(4 * [False] + 4 * [True], dtype=np.bool)
+                                        dtype=bool)])
+        phase = np.array(4 * [False] + 4 * [True], dtype=bool)
         value = StabilizerTable(array, phase).to_labels(array=True)
         target = np.array(['+I', '+X', '+Y', '+Z',
                            '-I', '-X', '-Y', '-Z'])
