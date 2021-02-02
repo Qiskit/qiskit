@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 
 
-def zx_zz1(theta: float = None):
+def rzx_zz1(theta: float = None):
     """ZZ template with rz gate."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -50,7 +50,7 @@ def zx_zz1(theta: float = None):
     return qc
 
 
-def zx_zz2(theta: float = None):
+def rzx_zz2(theta: float = None):
     """ZZ template is p gate."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -75,7 +75,7 @@ def zx_zz2(theta: float = None):
     return qc
 
 
-def zx_zz3(theta: float = None):
+def rzx_zz3(theta: float = None):
     """ZZ template is p gate."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -100,7 +100,7 @@ def zx_zz3(theta: float = None):
     return qc
 
 
-def zx_xz(theta: float = None):
+def rzx_xz(theta: float = None):
     """ZY template."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -120,7 +120,7 @@ def zx_xz(theta: float = None):
     return qc
 
 
-def zx_yz(theta: float = None):
+def rzx_yz(theta: float = None):
     """ZY template."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -136,7 +136,7 @@ def zx_yz(theta: float = None):
     return circ
 
 
-def zx_cy(theta: float = None):
+def rzx_cy(theta: float = None):
     """ZY template."""
     if theta is None:
         theta = Parameter('ϴ')
@@ -154,7 +154,7 @@ def zx_cy(theta: float = None):
     return circ
 
 
-def zx_templates(template_list: List[str] = None):
+def rzx_templates(template_list: List[str] = None):
     """
     Convenience function to get the cost_dict and
     templates for template matching.
@@ -165,20 +165,20 @@ def zx_templates(template_list: List[str] = None):
 
     templates = []
     if 'zz1' in template_list:
-        templates.append(zx_zz1())
+        templates.append(rzx_zz1())
     if 'zz2' in template_list:
-        templates.append(zx_zz2())
+        templates.append(rzx_zz2())
     if 'zz3' in template_list:
-        templates.append(zx_zz3())
+        templates.append(rzx_zz3())
     if 'yz' in template_list:
-        templates.append(zx_yz())
+        templates.append(rzx_yz())
     if 'xz' in template_list:
-        templates.append(zx_xz())
+        templates.append(rzx_xz())
     if 'cy' in template_list:
-        templates.append(zx_cy())
+        templates.append(rzx_cy())
 
     cost_dict = {'rzx': 0, 'cx': 6, 'rz': 0, 'sx': 1, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
 
-    zx_dict = {'template_list': templates, 'user_cost_dict': cost_dict}
+    rzx_dict = {'template_list': templates, 'user_cost_dict': cost_dict}
 
-    return zx_dict
+    return rzx_dict

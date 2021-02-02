@@ -116,12 +116,12 @@ class RZXCalibrationBuilder(CalibrationCreator):
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
         Args:
-            params: Name of the instruction with the rotation angle in it. The first qubit is
+            params: Parameters of the RZXGate(theta). I.e. params[0] is theta.
+            qubits: List of qubits for which to get the schedules. The first qubit is
                 the control and the second is the target.
-            qubits: List of qubits for which to get the schedules.
 
         Returns:
-            schedule: The calibration schedule for the instruction with name.
+            schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
             QiskitError: if the the control and target qubits cannot be identified.
@@ -129,10 +129,10 @@ class RZXCalibrationBuilder(CalibrationCreator):
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]
         cx_sched = self._inst_map.get('cx', qubits=(q1, q2))
-        zx_theta = Schedule(name='zx(%.3f)' % theta)
+        rzx_theta = Schedule(name='rzx(%.3f)' % theta)
 
         if theta == 0.0:
-            return zx_theta
+            return rzx_theta
 
         crs, comp_tones, shift_phases = [], [], []
         control, target = None, None
@@ -163,7 +163,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
 
         # Build the schedule
         for inst in shift_phases:
-            zx_theta = zx_theta.insert(0, inst)
+            rzx_theta = rzx_theta.insert(0, inst)
 
         # Stretch/compress the CR gates and compensation tones
         cr1 = self.rescale_cr_inst(crs[0][1], theta)
@@ -171,18 +171,18 @@ class RZXCalibrationBuilder(CalibrationCreator):
         comp1 = self.rescale_cr_inst(comp_tones[0][1], theta)
         comp2 = self.rescale_cr_inst(comp_tones[1][1], theta)
 
-        zx_theta = zx_theta.insert(0, cr1)
-        zx_theta = zx_theta.insert(0, comp1)
-        zx_theta = zx_theta.insert(comp1.duration, echo_x)
+        rzx_theta = rzx_theta.insert(0, cr1)
+        rzx_theta = rzx_theta.insert(0, comp1)
+        rzx_theta = rzx_theta.insert(comp1.duration, echo_x)
         time = comp1.duration + echo_x.duration
-        zx_theta = zx_theta.insert(time, cr2)
-        zx_theta = zx_theta.insert(time, comp2)
+        rzx_theta = rzx_theta.insert(time, cr2)
+        rzx_theta = rzx_theta.insert(time, comp2)
         time = 2*comp1.duration + echo_x.duration
-        zx_theta = zx_theta.insert(time, echo_x)
+        rzx_theta = rzx_theta.insert(time, echo_x)
 
         # Reverse direction of the ZX with Hadamard gates
         if control == qubits[0]:
-            return zx_theta
+            return rzx_theta
         else:
             rzc = self._inst_map.get('rz', [control], np.pi / 2)
             sxc = self._inst_map.get('sx', [control])
@@ -195,5 +195,5 @@ class RZXCalibrationBuilder(CalibrationCreator):
             h_sched = h_sched.insert(0, rzt)
             h_sched = h_sched.insert(0, sxt)
             h_sched = h_sched.insert(sxc.duration, rzt)
-            zx_theta = h_sched.append(zx_theta)
-            return zx_theta.append(h_sched)
+            rzx_theta = h_sched.append(rzx_theta)
+            return rzx_theta.append(h_sched)

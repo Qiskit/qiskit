@@ -65,10 +65,10 @@ from .nct.template_nct_9d_8 import template_nct_9d_8
 from .nct.template_nct_9d_9 import template_nct_9d_9
 from .nct.template_nct_9d_10 import template_nct_9d_10
 
-from .zx_templates import zx_yz
-from .zx_templates import zx_xz
-from .zx_templates import zx_cy
-from .zx_templates import zx_zz1
-from .zx_templates import zx_zz2
-from .zx_templates import zx_zz3
-from .zx_templates import zx_templates
+from .rzx_templates import rzx_yz
+from .rzx_templates import rzx_xz
+from .rzx_templates import rzx_cy
+from .rzx_templates import rzx_zz1
+from .rzx_templates import rzx_zz2
+from .rzx_templates import rzx_zz3
+from .rzx_templates import rzx_templates
