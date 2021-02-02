@@ -12,7 +12,7 @@
 
 """An abstract class for linear systems solvers in Qiskit's aqua module."""
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List
+from typing import Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -48,13 +48,13 @@ class LinearSystemObservable(ABC):
     @abstractmethod
     def post_processing(self, solution: Union[float, List[float]],
                         num_qubits: int,
-                        constant: Optional[float] = 1) -> float:
+                        scaling: float = 1) -> float:
         """Evaluates the given observable on the solution to the linear system.
 
         Args:
             solution: The probability calculated from the circuit and the observable.
             num_qubits: The number of qubits where the observable was applied.
-            constant: If known, scaling of the solution.
+            scaling: Scaling of the solution.
 
         Returns:
             The value of the observable.

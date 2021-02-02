@@ -30,6 +30,7 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 class HHL(LinearSolver):
     """The HHL algorithm to solve systems of linear equations"""
+
     def __init__(self, epsilon: float = 1e-2) -> None:
         r"""
         Args:
@@ -109,14 +110,14 @@ class HHL(LinearSolver):
         return np.real(np.sqrt(norm_2) / scaling)
 
     def _calculate_observable(self, qc: QuantumCircuit,
-                             observable: Optional[Union[LinearSystemObservable, BaseOperator,
-                                                        List[BaseOperator]]] = None,
-                             post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]]
-                             = None,
-                             post_processing: Optional[Callable[[Union[float, List[float]]],
-                                                                Union[float, List[float]]]] = None,
-                             scaling: Optional[float] = 1) -> Tuple[Union[float, List[float]],
-                                                                    Union[float, List[float]]]:
+                              observable: Optional[Union[LinearSystemObservable, BaseOperator,
+                                                         List[BaseOperator]]] = None,
+                              post_rotation: Optional[Union[QuantumCircuit, List[QuantumCircuit]]]
+                              = None,
+                              post_processing: Optional[Callable[[Union[float, List[float]]],
+                                                                 Union[float, List[float]]]] = None,
+                              scaling: Optional[float] = 1) -> Tuple[Union[float, List[float]],
+                                                                     Union[float, List[float]]]:
         """Calculates the value of the observable(s) given.
 
         Args:
@@ -366,7 +367,7 @@ class HHL(LinearSolver):
         solution.state = self.construct_circuit(matrix, vector)
         solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
         # The post-rotating gates have already been applied
-        solution.observable, solution.circuit_results =\
+        solution.observable, solution.circuit_results = \
             self._calculate_observable(solution.state, observable, post_rotation, post_processing,
                                        lambda_min)
         return solution

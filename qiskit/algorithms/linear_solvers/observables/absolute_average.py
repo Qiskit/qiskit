@@ -12,10 +12,10 @@
 
 """The absolute value of the average of the components of the vector solution to the
 linear systems."""
-from typing import Union, Optional, List
+from typing import Union, List
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.opflow import I, Z, TensoredOp
 from .linear_system_observable import LinearSystemObservable
 

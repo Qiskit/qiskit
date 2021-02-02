@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """The matrix functional of the vector solution to the linear systems."""
-from typing import Union, Optional, List
+from typing import Union, List
 import numpy as np
 from scipy.sparse import diags
 
@@ -77,13 +77,13 @@ class MatrixFunctional(LinearSystemObservable):
 
     def post_processing(self, solution: Union[float, List[float]],
                         num_qubits: int,
-                        constant: Optional[float] = 1) -> float:
+                        scaling: float = 1) -> float:
         """Evaluates the matrix functional on the solution to the linear system.
 
         Args:
             solution: The list of probabilities calculated from the circuit and the observable.
             num_qubits: The number of qubits where the observable was applied.
-            constant: If known, scaling of the solution.
+            scaling: Scaling of the solution.
 
         Returns:
             The value of the absolute average.
@@ -99,8 +99,8 @@ class MatrixFunctional(LinearSystemObservable):
         # Calculate the value from the off-diagonal elements
         off_val = 0
         for v in solution[1::]:
-            off_val += (v[0]-v[1]) / (constant ** 2)
-        main_val = solution[0] / (constant ** 2)
+            off_val += (v[0]-v[1]) / (scaling ** 2)
+        main_val = solution[0] / (scaling ** 2)
         return np.real(self._main_diag * main_val + self._off_diag * off_val)
 
     def evaluate_classically(self, solution: np.array) -> float:

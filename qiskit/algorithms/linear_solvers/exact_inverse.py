@@ -30,6 +30,7 @@ class ExactInverse(QuantumCircuit):
             num_state_qubits: The number of qubits representing the value to invert.
             scaling: Scaling factor of the inverse function, i.e. to compute
              ::math:: `scaling / x`.
+            name: The name of the object.
         """
 
         qr_state = QuantumRegister(num_state_qubits, 'state')

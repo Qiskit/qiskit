@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
 
-from typing import Optional
-
 import numpy as np
 from scipy.sparse import diags
 
@@ -33,6 +31,7 @@ class Tridiagonal(QuantumCircuit):
             tolerance: the accuracy desired for the approximation
             evo_time: the time of the Hamiltonian simulation
             trotter: the number of Trotter steps
+            name: The name of the object.
         """
 
         qr_state = QuantumRegister(num_state_qubits, 'state')
