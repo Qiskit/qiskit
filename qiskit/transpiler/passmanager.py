@@ -21,8 +21,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .runningpassmanager import RunningPassManager
-
+from .runningpassmanager import RunningPassManager, FlowController
 
 class PassManager:
     """Manager for a set of Passes and their scheduling during transpilation."""
@@ -156,7 +155,10 @@ class PassManager:
                                                                               other.__class__))
 
     @staticmethod
-    def _normalize_passes(passes: Union[BasePass, List[BasePass]]) -> List[BasePass]:
+    def _normalize_passes(passes: Union[BasePass, List[BasePass], FlowController])\
+            -> List[BasePass]:
+        if isinstance(passes, FlowController):
+            return passes
         if isinstance(passes, BasePass):
             passes = [passes]
         for pass_ in passes:
