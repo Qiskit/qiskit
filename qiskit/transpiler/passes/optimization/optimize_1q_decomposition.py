@@ -44,13 +44,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for basis_name, gates in basis_gates.items():
                 if set(gates).issubset(basis_set):
                     for base in self.basis:
-                        # check if the gates are a subset of another basis
-                        if set(gates).issubset(set(basis_gates[base.basis])):
-                            break
                         # check if gates are a superset of another basis
                         # and if so, remove that basis
-                        elif set(basis_gates[base.basis]).issubset(set(gates)):
+                        if set(basis_gates[base.basis]).issubset(set(gates)):
                             self.basis.remove(base)
+                        # check if the gates are a subset of another basis
+                        elif set(gates).issubset(set(basis_gates[base.basis])):
+                            break
                     # if not a subset, add it to the list
                     else:
                         self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
