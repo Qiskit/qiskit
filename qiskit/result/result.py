@@ -18,7 +18,6 @@ import warnings
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.result.counts import Counts
@@ -253,6 +252,7 @@ class Result:
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
+        from qiskit.quantum_info.states import statevector
         if experiment is None:
             exp_keys = range(len(self.results))
         else:
