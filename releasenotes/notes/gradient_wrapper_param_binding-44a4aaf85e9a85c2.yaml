@@ -1,4 +1,0 @@
----
-fixes:
-  - Fixes ``QAOA`` when run with ``GradientBase`` type gradients
-  - Fixes a parameter binding issue when ``NaturalGradient`` is used with the ``CircuitSampler`` via ``gradient_wrapper``.

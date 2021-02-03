@@ -45,6 +45,31 @@ from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 
 
+def _sample_most_likely(state_vector):
+    """Compute the most likely binary string from a state vector.
+    Args:
+        state_vector (numpy.ndarray or dict): state vector or counts.
+    Returns:
+        numpy.ndarray: binary string as numpy.ndarray of ints.
+    """
+    if isinstance(state_vector, (OrderedDict, dict)):
+        # get the binary string with the largest count
+        binary_string = sorted(state_vector.items(), key=lambda kv: kv[1])[-1][0]
+        x = np.asarray([int(y) for y in reversed(list(binary_string))])
+        return x
+    elif isinstance(state_vector, StateFn):
+        binary_string = list(state_vector.sample().keys())[0]
+        x = np.asarray([int(y) for y in reversed(list(binary_string))])
+        return x
+    else:
+        n = int(np.log2(state_vector.shape[0]))
+        k = np.argmax(np.abs(state_vector))
+        x = np.zeros(n)
+        for i in range(n):
+            x[i] = k % 2
+            k >>= 1
+        return x
+
 @ddt
 class TestGradients(QiskitOpflowTestCase):
     """ Test Qiskit Gradient Framework """
@@ -954,7 +979,6 @@ class TestGradients(QiskitOpflowTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
-    @slow_test
     def test_qaoa(self):
         """ QAOA test
         qubit_op is computed using max_cut.get_operator(w)
@@ -967,31 +991,6 @@ class TestGradients(QiskitOpflowTestCase):
             ])
 
         """
-
-        def sample_most_likely(state_vector):
-            """Compute the most likely binary string from state vector.
-            Args:
-                state_vector (numpy.ndarray or dict): state vector or counts.
-            Returns:
-                numpy.ndarray: binary string as numpy.ndarray of ints.
-            """
-            if isinstance(state_vector, (OrderedDict, dict)):
-                # get the binary string with the largest count
-                binary_string = sorted(state_vector.items(), key=lambda kv: kv[1])[-1][0]
-                x = np.asarray([int(y) for y in reversed(list(binary_string))])
-                return x
-            elif isinstance(state_vector, StateFn):
-                binary_string = list(state_vector.sample().keys())[0]
-                x = np.asarray([int(y) for y in reversed(list(binary_string))])
-                return x
-            else:
-                n = int(np.log2(state_vector.shape[0]))
-                k = np.argmax(np.abs(state_vector))
-                x = np.zeros(n)
-                for i in range(n):
-                    x[i] = k % 2
-                    k >>= 1
-                return x
 
         seed = 2
         np.random.seed(2)
@@ -1013,7 +1012,7 @@ class TestGradients(QiskitOpflowTestCase):
                     quantum_instance=quantum_instance)
 
         result = qaoa.compute_minimum_eigenvalue(qubit_op)
-        x = sample_most_likely(result.eigenstate)
+        x = _sample_most_likely(result.eigenstate)
         graph_solution = 1 - x
         self.assertIn(''.join([str(int(i)) for i in graph_solution]), solution)
 
