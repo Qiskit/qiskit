@@ -529,15 +529,17 @@ def flatten(program: ScheduleComponent) -> ScheduleComponent:
     if isinstance(program, instructions.Instruction):
         return program
     else:
-        return Schedule(*program.instructions, name=program.name)
+        return Schedule(*program.instructions,
+                        name=program.name,
+                        metadata=program.metadata)
 
 
 def remove_subroutines(program: Schedule):
     """Recursively removes the call instruction."""
-    schedule = Schedule(name=program.name)
+    schedule = Schedule(name=program.name, metadata=program.metadata)
     for t0, inst in program.instructions:
         if isinstance(inst, instructions.Call):
-            sub_sched = remove_subroutines(inst.subprogram)
+            sub_sched = remove_subroutines(inst.subroutine)
             schedule.insert(t0, sub_sched, inplace=True)
         else:
             schedule.insert(t0, inst, inplace=True)

@@ -32,7 +32,11 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse import (Waveform, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
+                          Instruction, Schedule, ShiftFrequency, SetPhase)
+
+
+ScheduleComponent = Union[Schedule, Instruction]
+"""An element that composes a pulse schedule."""
 
 
 class EventsOutputChannels:

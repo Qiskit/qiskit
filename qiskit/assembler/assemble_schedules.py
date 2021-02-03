@@ -24,8 +24,12 @@ from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
+ScheduleComponent = Union[pulse.Schedule, instructions.Instruction]
+"""An element that composes a pulse schedule."""
+
+
 def assemble_schedules(
-        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
         qobj_id: int,
         qobj_header: qobj.QobjHeader,
         run_config: RunConfig) -> qobj.PulseQobj:
@@ -62,7 +66,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-        schedules: List[Union[pulse.ScheduleComponent, Tuple[int, pulse.ScheduleComponent]]],
+        schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -94,16 +98,16 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    schedules = []
+    formatted_schedules = []
     for sched in schedules:
         if isinstance(sched, pulse.Schedule):
             sched = transforms.remove_subroutines(sched)
             sched = transforms.flatten(sched)
-            schedules.append(sched)
+            formatted_schedules.append(sched)
         else:
-            schedules.append(pulse.Schedule(sched))
+            formatted_schedules.append(pulse.Schedule(sched))
 
-    compressed_schedules = transforms.compress_pulses(schedules)
+    compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
     experiments = []

@@ -18,6 +18,7 @@ from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
+from qiskit.pulse.transforms import remove_subroutines
 from qiskit.test.mock import FakeAlmaden
 
 
@@ -275,6 +276,45 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.Play(waveform2, DriveChannel(1))
 
         self.assertEqual(len(schedule.get_parameters('amp')), 2)
+
+    def test_reference_to_subroutine_params(self):
+        """Test that get parameter objects from subroutines."""
+        param1 = Parameter('amp')
+        waveform = pulse.library.Constant(duration=100, amp=param1)
+
+        program_layer0 = pulse.Schedule()
+        program_layer0 += pulse.Play(waveform, DriveChannel(0))
+
+        # from call instruction
+        program_layer1 = pulse.Schedule()
+        program_layer1 += pulse.instructions.Call(program_layer0)
+        self.assertEqual(program_layer1.get_parameters('amp')[0], param1)
+
+        # from nested call instruction
+        program_layer2 = pulse.Schedule()
+        program_layer2 += pulse.instructions.Call(program_layer1)
+        self.assertEqual(program_layer2.get_parameters('amp')[0], param1)
+
+    def test_assign_parameter_to_subroutine(self):
+        """Test that assign parameter objects to subroutines."""
+        param1 = Parameter('amp')
+        waveform = pulse.library.Constant(duration=100, amp=param1)
+
+        program_layer0 = pulse.Schedule()
+        program_layer0 += pulse.Play(waveform, DriveChannel(0))
+        reference = program_layer0.assign_parameters({param1: 0.1})
+
+        # to call instruction
+        program_layer1 = pulse.Schedule()
+        program_layer1 += pulse.instructions.Call(program_layer0)
+        target = program_layer1.assign_parameters({param1: 0.1})
+        self.assertEqual(remove_subroutines(target), reference)
+
+        # to nested call instruction
+        program_layer2 = pulse.Schedule()
+        program_layer2 += pulse.instructions.Call(program_layer1)
+        target = program_layer2.assign_parameters({param1: 0.1})
+        self.assertEqual(remove_subroutines(target), reference)
 
 
 class TestParameterDuration(QiskitTestCase):

@@ -196,6 +196,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import warnings
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -417,24 +418,54 @@ class _PulseBuilder():
 
     def _compile_lazy_circuit(self):
         """Call a QuantumCircuit and append the output pulse schedule
-        to the builder's context schedule."""
+        to the builder's context schedule.
+
+        Lazy circuit is not regarded as a subroutine though the circuit composed of
+        externally defined gate instructions, i.e. instruction schedule map.
+        These are just instructions and not a callable subroutine.
+        The circuit is converted into a schedule and appended to the context schedule as-is.
+        """
         if self._lazy_circuit:
             import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self.new_circuit()
-            transpiled_circuit = compiler.transpile(lazy_circuit,
-                                                    self.backend,
-                                                    **self.transpiler_settings)
-            sched = compiler.schedule(transpiled_circuit,
-                                      self.backend,
-                                      **self.circuit_scheduler_settings)
-            self.call_schedule(sched)
+            self.call_schedule(self._compile_circuit(lazy_circuit))
+
+    def _compile_circuit(self, circuit):
+        """Take a QuantumCircuit and append the output pulse schedule
+        to the builder's context schedule."""
+        import qiskit.compiler as compiler  # pylint: disable=cyclic-import
+
+        transpiled_circuit = compiler.transpile(circuit,
+                                                self.backend,
+                                                **self.transpiler_settings)
+        sched = compiler.schedule(transpiled_circuit,
+                                  self.backend,
+                                  **self.circuit_scheduler_settings)
+        return sched
 
     def call_schedule(self, schedule: Schedule):
-        """Call a schedule and append to the builder's context schedule."""
-        self.append_instruction(instructions.Call(schedule))
+        """Call a schedule and append to the builder's context schedule.
+
+        The schedule is just appended to the context schedule as-is.
+        """
+        self.append_schedule(schedule)
+
+    def call_subroutine(self, subroutine: Union[circuit.QuantumCircuit, Schedule]):
+        """Call a schedule defined outside of the current scope.
+
+        The schedule is appended as a call instruction which is a compiler directive.
+        This instruction clears up the ``subroutine`` is defined outside of the scope and
+        tells the Qiskit compiler that it can refer to this program instead of
+        individually redefining the underlying instructions within the current scope.
+        """
+        if isinstance(subroutine, circuit.QuantumCircuit):
+            self._compile_lazy_circuit()
+            subroutine = self._compile_circuit(subroutine)
+
+        self.append_instruction(instructions.Call(subroutine))
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""
@@ -443,9 +474,10 @@ class _PulseBuilder():
     @_requires_backend
     def call_circuit(self,
                      circ: circuit.QuantumCircuit,
-                     lazy: bool = True):
-        """Call a circuit in the pulse program.
+                     lazy: bool = False):
+        """Deprecated.
 
+        Call a circuit in the pulse program.
         The circuit is assumed to be defined on physical qubits.
 
         If ``lazy == True`` this circuit will extend a lazily constructed
@@ -460,6 +492,11 @@ class _PulseBuilder():
                 immediately. Otherwise, it will extend the active lazy circuit
                 as defined above.
         """
+        warnings.warn('Calling ``call_circuit`` is being deprecated. '
+                      'Use ``call_subroutine`` method instead. '
+                      'New method stores the circuit as a ``Call`` instruction '
+                      'after scheduling.', DeprecationWarning)
+
         if lazy:
             self._call_circuit(circ)
         else:
@@ -468,6 +505,7 @@ class _PulseBuilder():
             self._compile_lazy_circuit()
 
     def _call_circuit(self, circ):
+        # TODO deprecate this with call circuits
         if self._lazy_circuit is None:
             self._lazy_circuit = self.new_circuit()
 
@@ -505,9 +543,18 @@ class _PulseBuilder():
         except TypeError:
             qubits = (qubits,)
 
-        qc = circuit.QuantumCircuit(self.num_qubits)
-        qc.append(gate, qargs=qubits)
-        self.call_circuit(qc, lazy=lazy)
+        if lazy:
+            self._call_gate(gate, qubits)
+        else:
+            self._compile_lazy_circuit()
+            self._call_gate(gate, qubits)
+            self._compile_lazy_circuit()
+
+    def _call_gate(self, gate, qargs):
+        if self._lazy_circuit is None:
+            self._lazy_circuit = self.new_circuit()
+
+        self._lazy_circuit.append(gate, qargs=qargs)
 
 
 def build(backend=None,
@@ -1574,7 +1621,10 @@ def call_schedule(schedule: Schedule):
     Args:
         Schedule to call.
     """
-    _active_builder().call_schedule(schedule)
+    warnings.warn('``call_schedule`` is being deprecated. '
+                  '``call`` function can take both schedule and circuit.', DeprecationWarning)
+
+    call(schedule)
 
 
 def call_circuit(circ: circuit.QuantumCircuit):
@@ -1617,12 +1667,21 @@ def call_circuit(circ: circuit.QuantumCircuit):
     Args:
         Circuit to call.
     """
-    _active_builder().call_circuit(circ, lazy=True)
+    warnings.warn('``call_circuit`` is being deprecated. '
+                  '``call`` function can take both schedule and circuit.', DeprecationWarning)
+
+    call(circ)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within the currently active builder context.
-
+    
+    .. note::
+        The ``target`` program is implicitly wrapped by the ``Call`` instruction.
+        This instruction defines a subroutine that is created outside of the current scope.
+        Thus further optimizations, i.e. consecutive gate fusion and scheduling,
+        are not performed between subroutines.
+    
     Examples:
 
     .. jupyter-execute::
@@ -1647,13 +1706,11 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
     """
-    if isinstance(target, circuit.QuantumCircuit):
-        call_circuit(target)
-    elif isinstance(target, Schedule):
-        call_schedule(target)
-    else:
+    if not isinstance(target, (circuit.QuantumCircuit, Schedule)):
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
+
+    _active_builder().call_subroutine(target)
 
 
 # Directives
@@ -1807,7 +1864,10 @@ def measure(qubits: Union[List[int], int],
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
         qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)})
-    call_schedule(measure_sched)
+
+    # note this is not a subroutine.
+    # just a macro to automate combination of stimulus and acquisition.
+    _active_builder().call_schedule(measure_sched)
 
     if len(qubits) == 1:
         return registers[0]
@@ -1849,7 +1909,10 @@ def measure_all() -> List[chans.MemorySlot]:
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
         qubit_mem_slots={qubit: qubit for qubit in qubits})
-    call_schedule(measure_sched)
+
+    # note this is not a subroutine.
+    # just a macro to automate combination of stimulus and acquisition.
+    _active_builder().call_schedule(measure_sched)
 
     return registers
 
