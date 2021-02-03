@@ -2564,13 +2564,11 @@ class QuantumCircuit:
             Exception: if the gate is of type string and params is None.
         """
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
-            if params is not None:
-                self.add_calibration_params(gate.name, qubits, params)
-        else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
-            if params is not None:
-                self.add_calibration_params(gate, qubits, params)
+            params = gate.params
+            gate = gate.name
+        self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+        if params is not None:
+            self.add_calibration_params(gate, qubits, params)
 
     def add_calibration_params(self, name, qubits, params):
         """Update parameters table with calibration parameters
