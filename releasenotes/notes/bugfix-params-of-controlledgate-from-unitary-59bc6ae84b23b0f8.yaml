@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Parameter attribute of `ControlledGate` built from `UnitaryGate`
+    should be the unitary matrix of `UnitaryGate`.
