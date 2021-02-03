@@ -14,7 +14,6 @@
 
 from typing import Optional, Union, Dict, List, Callable
 import logging
-import warnings
 import operator
 import math
 import numpy as np
@@ -25,9 +24,8 @@ from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
 
-from qiskit.utils import name_args, QuantumInstance, algorithm_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.quantum_info import partial_trace
-from qiskit.utils.validation import validate_min, validate_in_set
 from ..algorithm_result import AlgorithmResult
 from ..exceptions import AlgorithmError
 
@@ -109,15 +107,6 @@ class Grover:
 
     """
 
-    @name_args([
-        ('oracle', ),
-        ('state_preparation', {bool: 'incremental'}),
-        ('iterations', ),
-        ('post_processing', {float: 'lam'}),
-        ('grover_operator', {list: 'rotation_counts'}),
-        ('quantum_instance', {str: 'mct_mode'}),
-        ('incremental', {(Backend, BaseBackend, QuantumInstance): 'quantum_instance'})
-    ], skip=1)  # skip the argument 'self'
     def __init__(self,
                  oracle: Union[QuantumCircuit, Statevector],
                  good_state: Optional[Union[Callable[[str], bool],
@@ -127,14 +116,8 @@ class Grover:
                  sample_from_iterations: bool = False,
                  post_processing: Callable[[List[int]], List[int]] = None,
                  grover_operator: Optional[QuantumCircuit] = None,
-                 quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
-                 incremental: bool = False,
-                 num_iterations: Optional[int] = None,
-                 lam: Optional[float] = None,
-                 rotation_counts: Optional[List[int]] = None,
-                 mct_mode: Optional[str] = None,
+                 quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None
                  ) -> None:
-        # pylint: disable=line-too-long
         r"""
         Args:
             oracle: The oracle to flip the phase of good states, :math:`\mathcal{S}_f`.
@@ -161,29 +144,6 @@ class Grover:
                 If None, the operator is constructed automatically using the
                 :class:`~qiskit.circuit.library.GroverOperator` from the circuit library.
             quantum_instance: A Quantum Instance or Backend to run the circuits.
-            incremental: DEPRECATED, use ``iterations`` instead.
-                Whether to use incremental search mode (True) or not (False).
-                Supplied *num_iterations* is ignored when True and instead the search task will
-                be carried out in successive rounds, using circuits built with incrementally
-                higher number of iterations for the repetition of the amplitude amplification
-                until a target is found or the maximal number :math:`\log N` (:math:`N` being the
-                total number of elements in the set from the oracle used) of iterations is
-                reached. The implementation follows Section 4 of [2].
-            num_iterations: DEPRECATED, use ``iterations`` instead.
-                How many times the marking and reflection phase sub-circuit is
-                repeated to amplify the amplitude(s) of the target(s). Has a minimum value of 1.
-            lam: DEPRECATED, use ``iterations`` instead.
-                For incremental search mode, the maximum number of repetition of amplitude
-                amplification increases by factor lam in every round,
-                :math:`R_{i+1} = lam \times R_{i}`. If this parameter is not set, the default
-                value lam = 1.34 is used, which is proved to be optimal [1].
-            rotation_counts: DEPRECATED, use ``iterations`` instead.
-                For incremental mode, if rotation_counts is defined, parameter *lam*
-                is ignored. rotation_counts is the list of integers that defines the number of
-                repetition of amplitude amplification for each round.
-            mct_mode: DEPRECATED, pass a custom ``grover_operator`` instead.
-                Multi-Control Toffoli mode ('basic' | 'basic-dirty-ancilla' |
-                'advanced' | 'noancilla')
 
         Raises:
             TypeError: If ``init_state`` is of unsupported type or is of type ``InitialState` but
@@ -199,11 +159,6 @@ class Grover:
         if quantum_instance:
             self.quantum_instance = quantum_instance
 
-        _check_deprecated_args(mct_mode, rotation_counts, lam, num_iterations)
-
-        if mct_mode is None:
-            mct_mode = 'noancilla'
-
         self._oracle = oracle
 
         # Construct GroverOperator circuit
@@ -212,28 +167,10 @@ class Grover:
         else:
             # wrap in method to hide the logic of handling deprecated arguments, can be simplified
             # once the deprecated arguments are removed
-            self._grover_operator = _construct_grover_operator(oracle, state_preparation,
-                                                               mct_mode)
+            self._grover_operator = _construct_grover_operator(oracle, state_preparation)
 
         max_iterations = np.ceil(2 ** (len(self._grover_operator.reflection_qubits) / 2))
-        if incremental:  # TODO remove 3 months after 0.8.0
-            if rotation_counts is not None:
-                iterations = rotation_counts
-                self._sample_from_iterations = False
-            else:
-                if lam is None:
-                    lam = 1.34
-
-                iterations = []
-                self._sample_from_iterations = True
-                power = 1.0
-                while power < max_iterations:
-                    iterations.append(int(power))
-                    power = lam * power
-
-        elif num_iterations is not None:  # TODO remove 3 months after 0.8.0
-            iterations = [num_iterations]
-        elif not isinstance(iterations, list):
+        if not isinstance(iterations, list):
             iterations = [iterations]
         # else: already a list
 
@@ -250,11 +187,8 @@ class Grover:
         self._is_good_state = good_state
         self._sample_from_iterations = sample_from_iterations
         self._post_processing = post_processing
-        self._incremental = incremental
-        self._lam = lam
-        self._rotation_counts = rotation_counts
 
-        if incremental or (isinstance(iterations, list) and len(iterations) > 1):
+        if isinstance(iterations, list) and len(iterations) > 1:
             logger.debug('Incremental mode specified, \
                 ignoring "num_iterations" and "num_solutions".')
 
@@ -422,7 +356,7 @@ class Grover:
         return self._grover_operator
 
 
-def _construct_grover_operator(oracle, state_preparation, mct_mode):
+def _construct_grover_operator(oracle, state_preparation):
     # check the type of state_preparation
     if not (isinstance(state_preparation, QuantumCircuit) or state_preparation is None):
         raise TypeError('Unsupported type "{}" of state_preparation'.format(
@@ -435,47 +369,8 @@ def _construct_grover_operator(oracle, state_preparation, mct_mode):
 
     grover_operator = GroverOperator(oracle=oracle,
                                      state_preparation=state_preparation,
-                                     reflection_qubits=reflection_qubits,
-                                     mcx_mode=mct_mode)
+                                     reflection_qubits=reflection_qubits)
     return grover_operator
-
-
-def _check_deprecated_args(mct_mode, rotation_counts, lam, num_iterations):
-    """Check the deprecated args."""
-
-    if mct_mode is not None:
-        validate_in_set('mct_mode', mct_mode,
-                        {'basic', 'basic-dirty-ancilla', 'advanced', 'noancilla'})
-        warnings.warn('The mct_mode argument is deprecated as of 0.8.0, and will be removed no '
-                      'earlier than 3 months after the release date. If you want to use a '
-                      'special MCX mode you should use the GroverOperator in '
-                      'qiskit.circuit.library directly and pass it to the grover_operator '
-                      'keyword argument.', DeprecationWarning, stacklevel=3)
-
-    if rotation_counts is not None:
-        warnings.warn('The rotation_counts argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the incremental mode with the rotation_counts '
-                      'argument or you should use the iterations argument instead and pass '
-                      'a list of integers',
-                      DeprecationWarning, stacklevel=3)
-
-    if lam is not None:
-        warnings.warn('The lam argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the incremental mode with the lam argument, '
-                      'you should use the iterations argument instead and pass '
-                      'a list of integers calculated with the lam argument.',
-                      DeprecationWarning, stacklevel=3)
-
-    if num_iterations is not None:
-        validate_min('num_iterations', num_iterations, 1)
-        warnings.warn('The num_iterations argument is deprecated as of 0.8.0, and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'If you want to use the num_iterations argument '
-                      'you should use the iterations argument instead and pass an integer '
-                      'for the number of iterations.',
-                      DeprecationWarning, stacklevel=3)
 
 
 def _check_is_good_state(is_good_state):
