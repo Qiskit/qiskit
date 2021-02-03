@@ -46,7 +46,7 @@ class SetFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), 0, (channel,), name=name)
+        super().__init__((frequency, channel), None, (channel,), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -59,6 +59,11 @@ class SetFrequency(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0
 
 
 class ShiftFrequency(Instruction):
@@ -77,7 +82,7 @@ class ShiftFrequency(Instruction):
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__((frequency, channel), 0, (channel,), name=name)
+        super().__init__((frequency, channel), None, (channel,), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -90,3 +95,8 @@ class ShiftFrequency(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0
