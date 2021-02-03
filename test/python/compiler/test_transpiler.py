@@ -997,7 +997,9 @@ class TestTranspile(QiskitTestCase):
         expected.sx(0)
         expected.p(np.pi, 0)
 
-        self.assertEqual(out, expected)
+        error_message = "\nOutput circuit:\n%s\nExpected circuit:\n%s" % (
+            str(out), str(expected))
+        self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
