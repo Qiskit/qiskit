@@ -109,7 +109,8 @@ class Grover(AmplitudeAmplifier):
     """
 
     def __init__(self,
-                 iterations: Union[List[int], Iterator[int], float] = 1.2,
+                 iterations: Optional[Union[int, List[int], Iterator[int], float]] = None,
+                 growth_rate: Optional[float] = None,
                  sample_from_iterations: bool = False,
                  quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
                  ) -> None:
@@ -117,35 +118,40 @@ class Grover(AmplitudeAmplifier):
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
+                * If an int, only one circuit is run with that power of the Grover operator.
+                If the number of solutions is known, this is option should be used with the optimal
+                power. The optimal power can be computed with ``Grover.optimal_num_iterations``.
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
-                * If a float larget than 1, this specifies the growth rate. The iterator is set to
-                yield the increasing powers of this number.
-
-                If the number of solutions is known, this should be set to a list with a single
-                entry, namely the optimal number of iterations, see
-                ``Grover.optimal_num_iterations``.
+            growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
+                i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
+                number of iterations is reached.
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
             quantum_instance: A Quantum Instance or Backend to run the circuits.
 
         Raises:
-            ValueError: If ``iterations`` is a float but not larger than 1.
-
+            ValueError: If ``growth_rate`` is a float but not larger than 1.
+            ValueError: If both ``iterations`` and ``growth_rate`` is set.
 
         References:
             [1]: Boyer et al., Tight bounds on quantum searching
                  `<https://arxiv.org/abs/quant-ph/9605034>`_
         """
-        if isinstance(iterations, float):
-            if iterations <= 1:
-                raise ValueError('The growth rate must be strictly larger than 1, but is '
-                                 f'{iterations}')
+        # set default value
+        if growth_rate is None and iterations is None:
+            growth_rate = 1.2
 
+        if growth_rate is not None and iterations is not None:
+            raise ValueError('Pass either a value for iterations or growth_rate, not both.')
+
+        if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(iterations ** x), itertools.count(1))
+            self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
+        elif isinstance(iterations, int):
+            self._iterations = [iterations]
         else:
             self._iterations = iterations
 

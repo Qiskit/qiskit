@@ -89,7 +89,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_fixed_iterations(self):
         """Test the iterations argument"""
-        grover = Grover(iterations=[2], quantum_instance=self.statevector)
+        grover = Grover(iterations=2, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, '111')
@@ -120,7 +120,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_growth_rate(self):
         """Test running the algorithm on a growth rate"""
-        grover = Grover(iterations=8/7, quantum_instance=self.statevector)
+        grover = Grover(growth_rate=8/7, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, '111')
@@ -140,7 +140,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
     def test_max_power(self):
         """Test the iteration stops when the maximum power is reached."""
         lam = 10.0
-        grover = Grover(iterations=lam, quantum_instance=self.statevector)
+        grover = Grover(growth_rate=lam, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label('111'), is_good_state=['111'])
         result = grover.amplify(problem)
         self.assertEqual(len(result.iterations), 0)
