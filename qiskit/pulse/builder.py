@@ -457,8 +457,9 @@ class _PulseBuilder():
 
         The schedule is appended as a call instruction which is a compiler directive.
         This instruction clears up the ``subroutine`` is defined outside of the scope and
-        tells the Qiskit compiler that it can refer to this program instead of
-        individually redefining the underlying instructions within the current scope.
+        tells the Qiskit compiler that the compiler can keep its context by
+        referring to the program instead of redefining the underlying instructions
+        within the current scope.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
