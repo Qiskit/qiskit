@@ -2553,8 +2553,6 @@ class QuantumCircuit:
 
     def add_calibration(self, gate, qubits, schedule, params=None):
         """Register a low-level, custom pulse definition for the given gate.
-        If calibration parameters are passed then it calls add_calibration_params
-        to update the internal parameter table.
 
         Args:
             gate (Union[Gate, str]): Gate information.
