@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Introduced a base class for tools of circuit equivalence checking,
+    named `BaseEquivalenceChecker`. In addition, wrote a concrete checker,
+    named `UnitaryEquivalenceChecker`.
