@@ -14,7 +14,31 @@ from qiskit.exceptions import QiskitError
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 
 class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
+    """
+    A tool to check equivalence of two circuits.
+    The tool computes the unitary operator of a concatenation of one circuit with the
+    inverse of the other circuit, and compares it to the identity.
+    The computation of the unitary can be done either by the quantum_info module,
+    by the Aer simulator, or by an external (non-Qiskit) simulator.
+    The comparison can either ignore or not ignore global phase.
+    """
+    
     def __init__(self, simulator, name='unitary', external_backend=None, **backend_options):
+        """
+        Args:
+            simulator (str): The type of simulator to compute the unitary.
+                Options are: 'quantum_info', 'aer', or 'external'.
+            name (str): The checker's name.
+            external_backend (BaseBackend): The backend to run,  when `simulator` is 'external'.
+            backend_options: Options to pass to the backend, when `simulator` is 'aer'
+                or 'external'.
+
+        Raises:
+            QiskitError:
+                If `simulator` is 'aer' but Aer is not installed.
+                If `simulator` ia different from 'quantum_info', 'aer', 'external'.
+        """
+        
         super().__init__(name)
         self.simulator = simulator
         self.backend_options = backend_options
@@ -34,6 +58,24 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
     
     def _run_checker(self, circ1, circ2, phase):
+        """
+        Check if circuits are equivalent.
+
+        Args:
+            circ1, circ2 (QuantumCircuit): Circuits to check.
+            phase (str): Options are 'global' - ignoring global phase;
+                or 'equal' - not ignoring global phase.
+
+        Returns:
+            EquivalenceCheckerResult: result of the equivalence check.
+
+        Raises:
+            QiskitError:
+                If unitary creation fails (e.g., one of the circuit contains measurements,
+                    or circuits are too large).
+                If `phase` is not one of 'equal', 'global'.
+        """
+        
         # importing here to avoid circular imports
         from qiskit.quantum_info.operators import Operator
         from qiskit.quantum_info.operators.predicates import is_identity_matrix
@@ -45,6 +87,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
 
         try:
             circ = circ1 + circ2.inverse()
+            # Optimize the circuit before creating the unitary
             circ = transpile(circ, self.backend)
 
             if self.simulator == 'quantum_info':
