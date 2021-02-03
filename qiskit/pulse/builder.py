@@ -464,7 +464,8 @@ class _PulseBuilder():
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
-        self.append_instruction(instructions.Call(subroutine))
+        if len(subroutine.instructions) > 0:
+            self.append_instruction(instructions.Call(subroutine))
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""
