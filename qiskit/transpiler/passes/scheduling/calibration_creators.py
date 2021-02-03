@@ -147,7 +147,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
-            QiskitError: if the the control and target qubits cannot be identified.
+            QiskitError: if the control and target qubits cannot be identified.
         """
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]
