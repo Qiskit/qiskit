@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from qiskit.exceptions import QiskitError
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
 
 class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
@@ -26,11 +27,11 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 self.backend = UnitarySimulator()
                 self.backend.set_options(**backend_options)
             except ImportError:
-                raise('Could not import the Aer simulator')
+                raise QiskitError('Could not import the Aer simulator')
         elif simulator == 'quantum_info':
             self.backend = None
         else:
-            raise('Unrecognized simulator option: ' + str(self.simulator))
+            raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
     
     def _run_checker(self, circ1, circ2, phase):
         # importing here to avoid circular imports
@@ -53,20 +54,20 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 if backend_res.results[0].success:
                     op = backend_res.get_unitary(circ)
                 else:
-                    raise Exception(backend_res.results[0].status)
+                    raise QiskitError(backend_res.results[0].status)
 
             if phase == 'equal':
                 ignore_phase = False
             elif phase == 'up_to_global':
                 ignore_phase = True
             else:
-                raise Exception('Unrecognized phase criterion: ' + str(phase))
+                raise QiskitError('Unrecognized phase criterion: ' + str(phase))
 
             # TODO: This can be made more efficient, because when checking whether
             # a unitary matrix is the identity, it suffices to check only the diagonal
             equivalent = is_identity_matrix(op, ignore_phase)
                 
-        except Exception as e:
+        except QiskitError as e:
             error_msg = str(e)
             success = False
 
