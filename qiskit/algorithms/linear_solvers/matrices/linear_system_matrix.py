@@ -14,10 +14,94 @@
 from abc import ABC, abstractmethod
 
 from qiskit import QuantumCircuit
+from qiskit.circuit.library import BlueprintCircuit
 
 
-class LinearSystemMatrix(ABC):
-    """An abstract class for linear system matrices in Qiskit.(Placeholder)"""
+class LinearSystemMatrix(BlueprintCircuit, ABC):
+    """Base class for linear system matrices."""
+
+    def __init__(self, num_state_qubits: int, tolerance: float, evo_time: float,
+                 name: str = 'ls_matrix') -> None:
+        """Create a new linear system matrix circuit.
+
+        Args:
+            num_state_qubits: the number of qubits where the unitary acts.
+            tolerance: the accuracy desired for the approximation
+            evo_time: the time of the Hamiltonian simulation
+            name: The name of the object.
+        """
+        super().__init__(name=name)
+
+        # define internal parameters
+        self._num_state_qubits = None
+        self._tolerance = None
+        self._evo_time = None
+
+        # store parameters
+        self.num_state_qubits = num_state_qubits
+        self.tolerance = tolerance
+        self.evo_time = evo_time
+
+    @property
+    def num_state_qubits(self) -> int:
+        r"""The number of state qubits representing the state :math:`|x\rangle`.
+
+        Returns:
+            The number of state qubits.
+        """
+        return self._num_state_qubits
+
+    @num_state_qubits.setter
+    def num_state_qubits(self, num_state_qubits: int) -> None:
+        """Set the number of state qubits.
+
+        Note that this may change the underlying quantum register, if the number of state qubits
+        changes.
+
+        Args:
+            num_state_qubits: The new number of qubits.
+        """
+        if num_state_qubits != self._num_state_qubits:
+            self._invalidate()
+            self._num_state_qubits = num_state_qubits
+            self._reset_registers(num_state_qubits)
+
+    @property
+    def tolerance(self) -> float:
+        """Return the error tolerance"""
+        return self._tolerance
+
+    @tolerance.setter
+    def tolerance(self, tolerance: float) -> None:
+        """Set the error tolerance
+        Args:
+            tolerance: The new error tolerance.
+        """
+        self._tolerance = tolerance
+
+    @property
+    def evo_time(self) -> float:
+        """Return the time of the evolution."""
+        return self._evo_time
+
+    @evo_time.setter
+    def evo_time(self, evo_time: float) -> None:
+        """Set the time of the evolution.
+
+        Args:
+            evo_time: The new time of the evolution.
+        """
+        self._evo_time = evo_time
+
+    @abstractmethod
+    def _reset_registers(self, num_state_qubits: int) -> None:
+        """Reset the registers according to the new number of state qubits.
+
+        Args:
+            num_state_qubits: The new number of qubits.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
