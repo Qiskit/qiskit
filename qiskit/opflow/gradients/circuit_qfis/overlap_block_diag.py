@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The module for Quantum the Fisher Information."""
+"""The module for the Quantum Fisher Information."""
 
 from typing import List, Union
 
 import numpy as np
 from scipy.linalg import block_diag
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.utils.arithmetic import triu_to_dense
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -54,7 +55,7 @@ class OverlapBlockDiag(CircuitQFI):
         Raises:
             NotImplementedError: If ``operator`` is neither ``CircuitOp`` nor ``CircuitStateFn``.
         """
-        if not isinstance(operator, (CircuitStateFn)):
+        if not isinstance(operator, (CircuitOp, CircuitStateFn)):
             raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
         return self._block_diag_approx(operator=operator, params=params)
 
@@ -146,15 +147,14 @@ class OverlapBlockDiag(CircuitQFI):
             for i, p_i in enumerate(params):
                 generator_i = generators[p_i]
                 param_expr_i = get_parameter_expression(circuit, p_i)
-
-                for j, p_j in enumerate(params):
+                for j, p_j in enumerate(params[i:], i):
                     if i == j:
                         block[i][i] = ListOp([single_terms[i]], combo_fn=lambda x: 1 - x[0] ** 2)
                         if isinstance(param_expr_i, ParameterExpression) and not isinstance(
                                 param_expr_i, Parameter):
                             expr_grad_i = DerivativeBase.parameter_expression_grad(
                                 param_expr_i, p_i)
-                            block[i][j] *= (expr_grad_i) * (expr_grad_i)
+                            block[i][i] *= expr_grad_i * expr_grad_i
                         continue
 
                     generator_j = generators[p_j]
@@ -174,9 +174,11 @@ class OverlapBlockDiag(CircuitQFI):
                         expr_grad_j = DerivativeBase.parameter_expression_grad(param_expr_j, p_j)
                         block[i][j] *= expr_grad_j
 
-            wrapped_block = ListOp([ListOp(row) for row in block])
+            wrapped_block = ListOp([ListOp([
+                block[i][j]
+                for j in range(i, len(params))]) for i in range(len(params))],
+                                   combo_fn=triu_to_dense)
             blocks.append(wrapped_block)
 
-        block_diagonal_qfi = ListOp(oplist=blocks,
-                                    combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])
-        return block_diagonal_qfi
+        return ListOp(oplist=blocks,
+                      combo_fn=lambda x: np.real(block_diag(*x))[:, perm][perm, :])

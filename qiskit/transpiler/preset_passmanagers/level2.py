@@ -206,7 +206,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt, do_while=_opt_control)
+    pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if scheduling_method:
         pm2.append(_scheduling)
 
