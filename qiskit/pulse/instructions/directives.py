@@ -60,13 +60,13 @@ class RelativeBarrier(Directive):
 class Call(Directive):
     """Pulse ``Call`` directive.
 
-    This instruction wraps other instructions when ``pulse.call`` function is
-    used in the pulse builder context. Note that this is not an user-facing instruction,
-    but implicitly applied to create a better program representation for compiler.
-
+    This instruction wraps another program when ``pulse.call`` function is
+    used in the pulse builder context. Note that this instruction is not exposed to users.
+    This is implicitly applied to create a better target code in the Qiskit compiler.
     This instruction clearly indicates the attached schedule is a subroutine
-    that is defined outside of the current scope. This instruction benefits the compiler
-    to reuse the defined subroutines rather than redefining it multiple times.
+    that is defined outside of the current scope, i.e. no need to redefine programs
+    within the current scope.
+
     The metadata attached to the subroutine is kept.
     """
 
@@ -74,10 +74,10 @@ class Call(Directive):
     def __init__(self, subroutine, name: Optional[str] = None):
         """Create a new call directive with subroutine.
 
-        Note that the subroutine will not be further optimized or scheduled because
-        this is predefined program outside the scope of current program.
-        We can assign arbitrary parameter to the subroutine because we can manage
-        parameter values in individual subroutine with unique Parameter objects.
+        Note that no further optimization or transformation are performed between
+        subroutines because they are externally defined programs.
+        However we can assign arbitrary parameter to subroutines,
+        given these parameter values are managed by unique parameter objects.
 
         Args:
             subroutine (Schedule): A program to wrap with call instruction.
