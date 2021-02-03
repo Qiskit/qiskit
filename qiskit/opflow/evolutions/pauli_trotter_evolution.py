@@ -130,7 +130,8 @@ class PauliTrotterEvolution(EvolutionBase):
                 trotterized = self.trotter.convert(new_primitive)
                 circuit_no_identities = self._recursive_convert(trotterized)
                 # Set the global phase of the QuantumCircuit to account for removed identity terms.
-                circuit_no_identities.primitive.global_phase = -sum(identity_phases)  # type: ignore
+                global_phase = -sum(identity_phases) * operator.primitive.coeff
+                circuit_no_identities.primitive.global_phase = global_phase
                 return circuit_no_identities
             elif isinstance(operator.primitive, PauliOp):
                 return self.evolution_for_pauli(operator.primitive)
