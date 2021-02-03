@@ -719,8 +719,11 @@ class QuantumCircuit:
             dest._parameter_table = joint_table
         else:
             # just append new parameters
-            for instr, _, _ in mapped_instrs:
-                dest._update_parameter_table(instr)
+            for param, gates in other._parameter_table.items():
+                if param in dest._parameter_table.keys():
+                    dest._parameter_table[param].append(gates)
+                else:
+                    dest._parameter_table[param] = gates
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
