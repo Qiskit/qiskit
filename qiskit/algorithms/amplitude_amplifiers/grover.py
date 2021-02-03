@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,10 +20,8 @@ import math
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import GroverOperator
 from qiskit.providers import Backend
 from qiskit.providers import BaseBackend
-from qiskit.quantum_info import Statevector
 
 from qiskit.utils import QuantumInstance
 from qiskit.quantum_info import partial_trace
@@ -302,40 +300,6 @@ class Grover(AmplitudeAmplifier):
             qc.measure(problem.objective_qubits, measurement_cr)
 
         return qc
-
-
-def _construct_grover_operator(oracle, state_preparation, mct_mode):
-    # check the type of state_preparation
-    if not (isinstance(state_preparation, QuantumCircuit) or state_preparation is None):
-        raise TypeError('Unsupported type "{}" of state_preparation'.format(
-            type(state_preparation)))
-
-    # check to oracle type
-    reflection_qubits = None
-    if not isinstance(oracle, (QuantumCircuit, Statevector)):
-        raise TypeError('Unsupported type "{}" of oracle'.format(type(oracle)))
-
-    grover_operator = GroverOperator(oracle=oracle,
-                                     state_preparation=state_preparation,
-                                     reflection_qubits=reflection_qubits,
-                                     mcx_mode=mct_mode)
-    return grover_operator
-
-
-def _check_is_good_state(is_good_state):
-    """Check whether a provided is_good_state is one of the supported types or not"""
-    is_compatible = False
-    if callable(is_good_state):
-        is_compatible = True
-    if isinstance(is_good_state, list):
-        if all(isinstance(good_bitstr, str) for good_bitstr in is_good_state) or \
-           all(isinstance(good_index, int) for good_index in is_good_state):
-            is_compatible = True
-    if isinstance(is_good_state, Statevector):
-        is_compatible = True
-
-    if not is_compatible:
-        raise TypeError('Unsupported type "{}" of is_good_state'.format(type(is_good_state)))
 
 
 class GroverResult(AmplitudeAmplifierResult):

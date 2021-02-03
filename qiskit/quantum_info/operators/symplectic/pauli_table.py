@@ -137,7 +137,7 @@ class PauliTable(BaseOperator):
             can share the same underlying array.
         """
         if isinstance(data, (np.ndarray, list)):
-            self._array = np.asarray(data, dtype=np.bool)
+            self._array = np.asarray(data, dtype=bool)
         elif isinstance(data, str):
             # If input is a single Pauli string we convert to table
             self._array = PauliTable._from_label(data)
@@ -151,7 +151,7 @@ class PauliTable(BaseOperator):
             if data.num_qubits is None:
                 raise QiskitError(
                     '{} is not an N-qubit identity'.format(data))
-            self._array = np.zeros((1, 2 * data.num_qubits), dtype=np.bool)
+            self._array = np.zeros((1, 2 * data.num_qubits), dtype=bool)
         else:
             raise QiskitError("Invalid input data for PauliTable.")
 
@@ -242,7 +242,7 @@ class PauliTable(BaseOperator):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.int)):
+        if isinstance(key, int):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -659,7 +659,7 @@ class PauliTable(BaseOperator):
 
         # Pad other with identity and then add
         padded = PauliTable(
-            np.zeros((1, 2 * self.num_qubits), dtype=np.bool))
+            np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
         return PauliTable(np.vstack((self._array, padded._array)))
 
@@ -821,7 +821,7 @@ class PauliTable(BaseOperator):
             raise QiskitError("Input Pauli list is empty.")
         # Get size from first Pauli
         first = cls._from_label(labels[0])
-        array = np.zeros((n_paulis, len(first)), dtype=np.bool)
+        array = np.zeros((n_paulis, len(first)), dtype=bool)
         array[0] = first
         for i in range(1, n_paulis):
             array[i] = cls._from_label(labels[i])
@@ -911,7 +911,7 @@ class PauliTable(BaseOperator):
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
         dim = 2 ** self.num_qubits
-        ret = np.zeros((self.size, dim, dim), dtype=np.complex)
+        ret = np.zeros((self.size, dim, dim), dtype=complex)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i])
         return ret
@@ -924,7 +924,7 @@ class PauliTable(BaseOperator):
             # stabilizer strings
             label = label[1:]
         num_qubits = len(label)
-        symp = np.zeros(2 * num_qubits, dtype=np.bool)
+        symp = np.zeros(2 * num_qubits, dtype=bool)
         xs = symp[0:num_qubits]
         zs = symp[num_qubits:2*num_qubits]
         for i, char in enumerate(label):
@@ -943,7 +943,7 @@ class PauliTable(BaseOperator):
         # Cast in symplectic representation
         # This should avoid a copy if the pauli is already a row
         # in the symplectic table
-        symp = np.asarray(pauli, dtype=np.bool)
+        symp = np.asarray(pauli, dtype=bool)
         num_qubits = symp.size // 2
         x = symp[0:num_qubits]
         z = symp[num_qubits:2*num_qubits]
@@ -981,7 +981,7 @@ class PauliTable(BaseOperator):
             i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
             return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
 
-        symp = np.asarray(pauli, dtype=np.bool)
+        symp = np.asarray(pauli, dtype=bool)
         num_qubits = symp.size // 2
         x = symp[0:num_qubits]
         z = symp[num_qubits:2*num_qubits]
