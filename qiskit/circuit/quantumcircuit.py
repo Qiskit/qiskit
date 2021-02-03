@@ -1891,7 +1891,7 @@ class QuantumCircuit:
 
         if isinstance(params, dict):
             # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-            unrolled_param_dict = self._unroll_param_dict(param_dict)
+            unrolled_param_dict = self._unroll_param_dict(params)
 
             # check that all param_dict items are in the _parameter_table for this circuit
             params_not_in_circuit = [param_key for param_key in unrolled_param_dict
