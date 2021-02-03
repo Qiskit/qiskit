@@ -94,5 +94,15 @@ class TestEquivalenceChecker(QiskitTestCase):
 
         self.verify_result(checkers, circ1, circ2, False, None, 'equal')
 
+    def test_error_in_aer_checker(self):
+        '''Test error messages coming from Aer'''
+        checkers = [
+            UnitaryEquivalenceChecker('aer', 'unitary_aer'),
+            ]
+
+        circ = QuantumCircuit(40)
+        self.verify_result(checkers, circ, circ, False, None, 'equal')
+        
+
 if __name__ == '__main__':
     unittest.main()

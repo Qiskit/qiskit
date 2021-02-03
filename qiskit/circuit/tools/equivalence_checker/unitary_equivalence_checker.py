@@ -50,14 +50,17 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 op = Operator(circ)
             else:
                 backend_res = self.backend.run(assemble(circ), shots=1, **self.backend_options).result()
-                op = backend_res.get_unitary(circ)
+                if backend_res.results[0].success:
+                    op = backend_res.get_unitary(circ)
+                else:
+                    raise Exception(backend_res.results[0].status)
 
             if phase == 'equal':
                 ignore_phase = False
             elif phase == 'up_to_global':
                 ignore_phase = True
             else:
-                raise('Unrecognized phase criterion: ' + str(phase))
+                raise Exception('Unrecognized phase criterion: ' + str(phase))
 
             # TODO: This can be made more efficient, because when checking whether
             # a unitary matrix is the identity, it suffices to check only the diagonal
