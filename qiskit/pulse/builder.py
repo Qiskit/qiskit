@@ -433,9 +433,8 @@ class _PulseBuilder():
             self._lazy_circuit = self.new_circuit()
             self.call_schedule(self._compile_circuit(lazy_circuit))
 
-    def _compile_circuit(self, circuit):
-        """Take a QuantumCircuit and append the output pulse schedule
-        to the builder's context schedule."""
+    def _compile_circuit(self, circuit) -> Schedule:
+        """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
         import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
         transpiled_circuit = compiler.transpile(circuit,
