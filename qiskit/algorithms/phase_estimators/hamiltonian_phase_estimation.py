@@ -65,9 +65,8 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
             hamiltonian: a Hamiltonian or Hermitian operator
             evolution: An evolution object that generates a unitary from `hamiltonian`.
             state_preparation: The circuit that prepares the state whose eigenphase will be
-                                 measured.  If this parameter is omitted, no preparation circuit
-                                 will be run and input state will be the all-zero state in the
-                                 computational basis.
+                measured. If this parameter is omitted, no preparation circuit will be run and
+                input state will be the all-zero state in the computational basis.
             bound: An upper bound on the absolute value of the eigenvalues of
                 `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
                 then a bound will be computed.
