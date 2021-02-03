@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Modified add calibration so that If a schedule is added as a calibration, 
-    and has a parameter which is not in the gate, it can be assigned 
+    Modified :py:meth:`~qiskit.QuantumCircuit.add_calibration` so that schedule
+    parameters can be assigned even if they don't appear in the circuit,
     via circ.assign_parameter. See issue #5524  
