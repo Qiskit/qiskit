@@ -47,7 +47,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
 
     [1]: Quantum phase estimation of multiple eigenvalues for small-scale (noisy) experiments
          T.E. O'Brien, B. Tarasinski, B.M. Terhal
-         https://arxiv.org/abs/1809.09697
+         `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
     """
     def __init__(self,
                  num_evaluation_qubits: int,
