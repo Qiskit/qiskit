@@ -312,19 +312,19 @@ class BasePauli(BaseOperator):
     @staticmethod
     def _from_array(z, x, phase=0):
         """Convert array data to BasePauli data."""
-        if isinstance(z, np.ndarray) and z.dtype == np.bool:
+        if isinstance(z, np.ndarray) and z.dtype == bool:
             base_z = z
         else:
-            base_z = np.asarray(z, dtype=np.bool)
+            base_z = np.asarray(z, dtype=bool)
         if base_z.ndim == 1:
             base_z = base_z.reshape((1, base_z.size))
         elif base_z.ndim != 2:
             raise QiskitError("Invalid Pauli z vector shape.")
 
-        if isinstance(x, np.ndarray) and x.dtype == np.bool:
+        if isinstance(x, np.ndarray) and x.dtype == bool:
             base_x = x
         else:
-            base_x = np.asarray(x, dtype=np.bool)
+            base_x = np.asarray(x, dtype=bool)
         if base_x.ndim == 1:
             base_x = base_x.reshape((1, base_x.size))
         elif base_x.ndim != 2:
@@ -335,7 +335,7 @@ class BasePauli(BaseOperator):
 
         # Convert group phase convention to internal ZX-phase convertion.
         base_phase = np.mod(np.sum(np.logical_and(base_x, base_z),
-                                   axis=1, dtype=np.int) + phase, 4)
+                                   axis=1, dtype=int) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
