@@ -82,7 +82,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
     in order (based on reverse_bits) and ops is a list
-    of DAG nodes which type is "operation".
+    of DAG nodes whose type is "operation".
 
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
@@ -121,12 +121,17 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         qregs.reverse()
         cregs.reverse()
 
+    # Optionally remove all idle wires and instructions that are on them and
+    # on them only.
     if not idle_wires:
-        for wire in dag.idle_wires(ignore=['barrier']):
+        for wire in dag.idle_wires(ignore=['barrier', 'delay']):
             if wire in qregs:
                 qregs.remove(wire)
             if wire in cregs:
                 cregs.remove(wire)
+
+    ops = [[op for op in layer if any(q in qregs for q in op.qargs)]
+           for layer in ops]
 
     return qregs, cregs, ops
 

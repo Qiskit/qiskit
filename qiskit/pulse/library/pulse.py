@@ -14,14 +14,10 @@
 to the device.
 """
 import warnings
-
-from typing import Dict, Optional, Any, Tuple
 from abc import ABC, abstractmethod
-
-import numpy as np
+from typing import Dict, Optional, Any, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.exceptions import PulseError
 
 
 class Pulse(ABC):
@@ -30,10 +26,10 @@ class Pulse(ABC):
     """
 
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError('Pulse duration should be integer.')
-        self.duration = int(duration)
+    def __init__(self,
+                 duration: Union[int, ParameterExpression],
+                 name: Optional[str] = None):
+        self.duration = duration
         self.name = name
 
     @property
