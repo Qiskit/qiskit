@@ -19,9 +19,8 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _append_z, _append_x, _append_y, _append_h, _append_s, _append_sdg, _append_v, _append_w,
+    _append_z, _append_x, _append_h, _append_s, _append_v, _append_w,
     _append_cx, _append_swap)
-from qiskit.quantum_info.operators.symplectic import PauliTable
 
 
 def decompose_clifford(clifford):
@@ -469,7 +468,7 @@ def decompose_clifford_greedy(clifford):
             cost = _compute_greedy_cost(list_pairs)
             list_greedy_cost.append([cost, qubit])
 
-        min_cost, min_qubit = (sorted(list_greedy_cost))[0]
+        _, min_qubit = (sorted(list_greedy_cost))[0]
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
         cliff_ox = clifford_cpy.copy()
