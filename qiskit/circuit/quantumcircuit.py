@@ -707,10 +707,16 @@ class QuantumCircuit:
             dest._data += mapped_instrs
 
         if front:
-            # rebuild parameter table
-            dest._parameter_table.clear()
-            for instr, _, _ in dest._data:
-                dest._update_parameter_table(instr)
+            # build new table in the right order
+            joint_table = copy.copy(other._parameter_table)
+
+            for param, gates in dest._parameter_table.items():
+                if param in joint_table.keys():
+                    joint_table[param].append(gates)
+                else:
+                    joint_table[param] = gates
+
+            dest._parameter_table = joint_table
         else:
             # just append new parameters
             for instr, _, _ in mapped_instrs:
