@@ -16,7 +16,7 @@ features:
       print(circuit.parameters)  # ParameterView([x, y])
 
       bound = circuit.bind_parameters([1, 2])
-deprecated:
+deprecations:
   - |
     The ``QuantumCircuit.parameters`` method returns a sorted object instead of set.
     All set methods on the return object are still available, but deprecated.
