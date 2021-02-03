@@ -19,9 +19,9 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Gate, Parameter
+from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler.assemble import assemble
+from qiskit.compiler.assembler import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
@@ -113,6 +113,11 @@ class TestCircuitAssembler(QiskitTestCase):
         backend = FakeYorktown()
         self.assertRaises(QiskitError, assemble, backend, shots=1024000)
 
+    def test_shots_not_of_type_int(self):
+        """Test assembling with shots having type other than int"""
+        backend = FakeYorktown()
+        self.assertRaises(QiskitError, assemble, backend, shots="1024")
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         backend = FakeYorktown()
@@ -140,6 +145,25 @@ class TestCircuitAssembler(QiskitTestCase):
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
 
+    def test_assemble_meas_level_meas_return(self):
+        """Test assembling a circuit schedule with `meas_level`."""
+        qobj = assemble(self.circ,
+                        meas_level=1,
+                        meas_return='single')
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 1)
+        self.assertEqual(qobj.config.meas_return, 'single')
+
+        # no meas_level set
+        qobj = assemble(self.circ)
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.config.meas_level, 2)
+        self.assertEqual(hasattr(qobj.config, 'meas_return'), False)
+
     def test_assemble_backend_rep_delays(self):
         """Check that rep_delay is properly set from backend values."""
         backend = FakeYorktown()
@@ -150,6 +174,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'default_rep_delay', default_rep_delay)
 
         # dynamic rep rates off
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -168,6 +193,7 @@ class TestCircuitAssembler(QiskitTestCase):
         setattr(backend_config, 'rep_delay_range', rep_delay_range)
 
         # dynamic rep rates off (no default so shouldn't be in qobj config)
+        setattr(backend_config, 'dynamic_reprate_enabled', False)
         qobj = assemble(self.circ, backend, rep_delay=rep_delay)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
@@ -203,6 +229,30 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])
         self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
+
+    def test_assemble_unroll_parametervector(self):
+        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        pv1 = ParameterVector('pv1', 3)
+        pv2 = ParameterVector('pv2', 3)
+        qc = QuantumCircuit(2, 2)
+        for i in range(3):
+            qc.rx(pv1[i], 0)
+            qc.ry(pv2[i], 1)
+        qc.barrier()
+        qc.measure([0, 1], [0, 1])
+
+        qc.bind_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
+
+        qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
+        validate_qobj_against_schema(qobj)
+
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 0.100000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[1].params[0], 0.400000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[2].params[0], 0.200000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[3].params[0], 0.500000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 0.300000000000000)
+        self.assertEqual(qobj.experiments[0].instructions[5].params[0], 0.600000000000000)
 
     def test_measure_to_registers_when_conditionals(self):
         """Verify assemble_circuits maps all measure ops on to a register slot
@@ -524,6 +574,25 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
         self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
 
+    def test_assemble_adds_circuit_metadata_to_experiment_header(self):
+        """Verify that any circuit metadata is added to the exeriment header."""
+        circ = QuantumCircuit(2, metadata=dict(experiment_type="gst", execution_number='1234'))
+        qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
+        self.assertEqual(qobj.experiments[0].header.metadata,
+                         {'experiment_type': 'gst',
+                          'execution_number': '1234'})
+
+    def test_pulse_gates_delay_only(self):
+        """Test that a single delay gate is translated to an instruction."""
+        circ = QuantumCircuit(2)
+        circ.append(Gate('test', 1, []), [0])
+        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+        circ.add_calibration('test', [0], test_sched)
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
+        self.assertEqual(qobj.config.calibrations.gates[0].instructions[1].to_dict(),
+                         {"name": "delay", "t0": 64, "ch": "d0", "duration": 160})
+
 
 class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
@@ -562,13 +631,23 @@ class TestPulseAssembler(QiskitTestCase):
             'backend_version': '0.0.0'
         }
 
+    def test_assemble_adds_schedule_metadata_to_experiment_header(self):
+        """Verify that any circuit metadata is added to the exeriment header."""
+        self.schedule.metadata = {'experiment_type': 'gst', 'execution_number': '1234'}
+        qobj = assemble(self.schedule, shots=100, qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[])
+        self.assertEqual(qobj.experiments[0].header.metadata,
+                         {'experiment_type': 'gst',
+                          'execution_number': '1234'})
+
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
         schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
         schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
@@ -812,16 +891,13 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
-        orig_schedule = self.schedule
-        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
-
-        orig_qobj = assemble(orig_schedule, self.backend)
-        validate_qobj_against_schema(orig_qobj)
+        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
+        delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
-        validate_qobj_against_schema(delay_qobj)
 
-        self.assertEqual(orig_qobj.experiments[0].to_dict(),
-                         delay_qobj.experiments[0].to_dict())
+        validate_qobj_against_schema(delay_qobj)
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
+        self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
@@ -1292,6 +1368,7 @@ class TestLogAssembler(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))

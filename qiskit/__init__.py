@@ -21,9 +21,6 @@ import sys
 import warnings
 import os
 
-# First, check for required Python and API version
-from . import util
-
 # qiskit errors operator
 from qiskit.exceptions import QiskitError
 
@@ -76,11 +73,18 @@ except ImportError:
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute import execute  # noqa
+from qiskit.execute_function import execute  # noqa
 from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
 
 from .version import __version__  # noqa
-from .version import _get_qiskit_versions  # noqa
+from .version import QiskitVersion  # noqa
 
 
-__qiskit_version__ = _get_qiskit_versions()
+__qiskit_version__ = QiskitVersion()
+
+
+if sys.version_info[0] == 3 and sys.version_info[1] == 6:
+    warnings.warn(
+        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
+        "Support for running Qiskit with Python 3.6 will be removed in a "
+        "future release.", DeprecationWarning)

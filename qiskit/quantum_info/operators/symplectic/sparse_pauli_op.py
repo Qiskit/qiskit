@@ -58,7 +58,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         else:
             table = PauliTable(data)
             if coeffs is None:
-                coeffs = np.ones(table.size, dtype=np.complex)
+                coeffs = np.ones(table.size, dtype=complex)
         # Initialize PauliTable
         self._table = table
 
@@ -70,6 +70,11 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
                                                            self._table.size))
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     def __repr__(self):
         prefix = 'SparsePauliOp('
@@ -123,7 +128,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.int)):
+        if isinstance(key, int):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
@@ -216,7 +221,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
             other = SparsePauliOp(other)
 
         # Validate composition dimensions and qargs match
-        self._get_compose_dims(other, qargs, front)
+        self._op_shape.compose(other._op_shape, qargs, front)
 
         # Implement composition of the Pauli table
         x1, x2 = PauliTable._block_stack(self.table.X, other.table.X)
@@ -326,7 +331,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         table = self.table._add(other.table, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
@@ -350,7 +355,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
-            table = np.zeros((1, 2 * self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2 * self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
             return SparsePauliOp(table, coeffs)
         # Otherwise we just update the phases
@@ -380,7 +385,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
 
         table, indexes = np.unique(self.table.array,
                                    return_inverse=True, axis=0)
-        coeffs = np.zeros(len(table), dtype=np.complex)
+        coeffs = np.zeros(len(table), dtype=complex)
         for i, val in zip(indexes, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
@@ -392,7 +397,7 @@ class SparsePauliOp(BaseOperator, TolerancesMixin):
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if coeffs.size == 0:
-            table = np.zeros((1, 2*self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2*self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
         return SparsePauliOp(table, coeffs)
 

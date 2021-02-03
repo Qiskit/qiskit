@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
@@ -102,34 +102,6 @@ class Waveform(Pulse):
                           ) -> 'Waveform':
         # Waveforms don't accept parameters
         return self
-
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             draw_title: bool = False):
-        """Plot the interpolated envelope of pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scale: Relative visual scaling of waveform amplitudes.
-            interactive: When set true show the circuit in a new window.
-                (This depends on the matplotlib backend being used.)
-            draw_title: Add a title to the plot when set to ``True``.
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        # pylint: disable=invalid-name, cyclic-import
-        from qiskit import visualization
-
-        return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
-                                          interp_method=interp_method, scale=scale,
-                                          interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.samples.shape == other.samples.shape and \
