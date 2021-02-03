@@ -24,6 +24,8 @@ import warnings
 from collections import defaultdict
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
+import numpy as np
+
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -521,7 +523,7 @@ class Schedule(abc.ABC):
         Raises:
             PulseError: If timeslots overlap or an invalid start time is provided.
         """
-        if not isinstance(time, int):
+        if not np.issubdtype(type(time), np.integer):
             raise PulseError("Schedule start time must be an integer.")
 
         other_timeslots = _get_timeslots(schedule)
