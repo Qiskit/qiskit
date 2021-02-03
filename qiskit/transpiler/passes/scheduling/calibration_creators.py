@@ -152,7 +152,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         """
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]
-        
+
         if not self._inst_map.has('cx', qubits):
             raise QiskitError('This transpilation pass requires the backend to support cx '
                               'between qubits %i and %i.' % (q1, q2))
@@ -197,15 +197,29 @@ class RZXCalibrationBuilder(CalibrationCreator):
         # Stretch/compress the CR gates and compensation tones
         cr1 = self.rescale_cr_inst(crs[0][1], theta)
         cr2 = self.rescale_cr_inst(crs[1][1], theta)
-        comp1 = self.rescale_cr_inst(comp_tones[0][1], theta)
-        comp2 = self.rescale_cr_inst(comp_tones[1][1], theta)
 
+        if len(comp_tones) == 0:
+            comp1, comp2 = None, None
+        elif len(comp_tones) == 2:
+            comp1 = self.rescale_cr_inst(comp_tones[0][1], theta)
+            comp2 = self.rescale_cr_inst(comp_tones[1][1], theta)
+        else:
+            raise QiskitError('CX must have either 0 or 2 rotary tones between qubits %i and %i '
+                              'but %i were found.' % (control, target, len(comp_tones)))
+
+        # Build the schedule for the RZXGate
         rzx_theta = rzx_theta.insert(0, cr1)
-        rzx_theta = rzx_theta.insert(0, comp1)
+
+        if comp1 is not None:
+            rzx_theta = rzx_theta.insert(0, comp1)
+
         rzx_theta = rzx_theta.insert(comp1.duration, echo_x)
         time = comp1.duration + echo_x.duration
         rzx_theta = rzx_theta.insert(time, cr2)
-        rzx_theta = rzx_theta.insert(time, comp2)
+
+        if comp2 is not None:
+            rzx_theta = rzx_theta.insert(time, comp2)
+
         time = 2*comp1.duration + echo_x.duration
         rzx_theta = rzx_theta.insert(time, echo_x)
 
