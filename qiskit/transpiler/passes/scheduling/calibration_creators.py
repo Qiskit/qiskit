@@ -147,10 +147,16 @@ class RZXCalibrationBuilder(CalibrationCreator):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
-            QiskitError: if the control and target qubits cannot be identified.
+            QiskitError: if the control and target qubits cannot be identified or the backend
+                does not support cx between the qubits.
         """
         theta = params[0]
         q1, q2 = qubits[0], qubits[1]
+        
+        if not self._inst_map.has('cx', qubits):
+            raise QiskitError('This transpilation pass requires the backend to support cx '
+                              'between qubits %i and %i.' % (q1, q2))
+
         cx_sched = self._inst_map.get('cx', qubits=(q1, q2))
         rzx_theta = Schedule(name='rzx(%.3f)' % theta)
 
