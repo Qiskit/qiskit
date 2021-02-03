@@ -70,11 +70,14 @@ class ASAPSchedule(TransformationPass):
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time, unit=time_unit)
 
-            new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
             duration = self.durations.get(node.op, node.qargs, unit=time_unit)
+
             # set duration for each instruction (tricky but necessary)
-            new_node.op.duration = duration
-            new_node.op.unit = time_unit
+            new_op = node.op.copy()  # need different op instance to store duration
+            new_op.duration = duration
+            new_op.unit = time_unit
+
+            new_dag.apply_operation_back(new_op, node.qargs, node.cargs, node.condition)
 
             stop_time = start_time + duration
             # update time table
