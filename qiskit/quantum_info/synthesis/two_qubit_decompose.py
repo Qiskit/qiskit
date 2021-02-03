@@ -32,6 +32,7 @@ import scipy.linalg as la
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.tools import pi_check
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -216,6 +217,7 @@ class TwoQubitWeylDecomposition:
     def __repr__(self):
         # FIXME: this is worth making prettier since it's very useful for debugging
         return ("{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
+            pi_check(self.global_phase),
             np.array_str(self.K1l),
             np.array_str(self.K1r),
             self.a, self.b, self.c,
