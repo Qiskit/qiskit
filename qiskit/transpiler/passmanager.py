@@ -23,6 +23,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
 
+
 class PassManager:
     """Manager for a set of Passes and their scheduling during transpilation."""
 
