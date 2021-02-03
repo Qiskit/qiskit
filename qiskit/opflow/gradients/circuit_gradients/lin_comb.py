@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,14 +13,13 @@
 """The module to compute the state gradient with the linear combination method."""
 
 from collections.abc import Iterable
-import warnings
 from copy import deepcopy
 from functools import partial
 from itertools import product
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction, Qubit
+from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
                             ParameterExpression, Parameter)
 from qiskit.circuit.parametertable import ParameterTable
@@ -378,49 +377,6 @@ class LinComb(CircuitGradient):
             return coeffs_gates
 
         raise TypeError('Unrecognized parametrized gate, {}'.format(gate))
-
-    @staticmethod
-    def insert_gate(circuit: QuantumCircuit,
-                    reference_gate: Gate,
-                    gate_to_insert: Instruction,
-                    qubits: Optional[List[Qubit]] = None,
-                    additional_qubits: Optional[Tuple[List[Qubit], List[Qubit]]] = None,
-                    after: bool = False):
-        """Insert a gate into the circuit.
-
-        Args:
-            circuit: The circuit onto which the gate is added.
-            reference_gate: A gate instance before or after which a gate is inserted.
-            gate_to_insert: The gate to be inserted.
-            qubits: The qubits on which the gate is inserted. If None, the qubits of the
-                reference_gate are used.
-            additional_qubits: If qubits is None and the qubits of the reference_gate are
-                used, this can be used to specify additional qubits before (first list in
-                tuple) or after (second list in tuple) the qubits.
-            after: If the gate_to_insert should be inserted after the reference_gate set True.
-
-        Raises:
-            OpflowError: Gate insertion fail
-        """
-        warnings.warn('The LinComb.insert_gate method is deprecated as of Qiskit Terra '
-                      '0.17.0 and will be removed no earlier than 3 months after the release.',
-                      DeprecationWarning, stacklevel=2)
-
-        if isinstance(gate_to_insert, IGate):
-            return
-        else:
-            for i, op in enumerate(circuit.data):
-                if op[0] == reference_gate:
-                    qubits = qubits or op[1]
-                    if additional_qubits:
-                        qubits = additional_qubits[0] + qubits + additional_qubits[1]
-                    if after:
-                        insertion_index = i + 1
-                    else:
-                        insertion_index = i
-                    circuit.data.insert(insertion_index, (gate_to_insert, qubits, []))
-                    return
-            raise OpflowError('Could not insert the controlled gate, something went wrong!')
 
     @staticmethod
     def apply_grad_gate(circuit, gate, param_index, grad_gate, grad_coeff, qr_superpos,
