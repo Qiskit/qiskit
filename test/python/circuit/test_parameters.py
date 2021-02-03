@@ -362,6 +362,10 @@ class TestParameters(QiskitTestCase):
 
         assigned_circ = circ.assign_parameters({alpha: 0.5})
         self.assertTrue(((0,), (0.5, )) in assigned_circ.calibrations['x'])
+        assigned_sched = assigned_circ.calibrations['x'][((0,), (0.5, ))]
+        self.assertEqual(assigned_sched.instructions[0][1].phase, 0.5)
+        qobj = assemble(assigned_circ)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 0.5)
 
     def test_calibration_assignment_doesnt_mutate(self):
         """That that assignment doesn't mutate the original circuit."""
