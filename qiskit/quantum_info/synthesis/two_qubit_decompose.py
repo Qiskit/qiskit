@@ -216,7 +216,7 @@ class TwoQubitWeylDecomposition:
 
     def __repr__(self):
         # FIXME: this is worth making prettier since it's very useful for debugging
-        return ("{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
+        return ("{}\n{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
             pi_check(self.global_phase),
             np.array_str(self.K1l),
             np.array_str(self.K1r),
