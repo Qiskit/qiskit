@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2020, 2021
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,7 +29,8 @@ def decompose_clifford(clifford):
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
     from reference [1]. For N > 3 qubits this is done using the general
-    non-optimal compilation routine from reference [2].
+    non-optimal compilation routine from reference [3],
+    which yields better CX cost compared to [2].
 
     Args:
         clifford (Clifford): a clifford operator.
@@ -45,13 +46,16 @@ def decompose_clifford(clifford):
         2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+
+        3. Sergey Bravyi, Shaohan Hu, Dmitri Maslov, Ruslan Shaydulin,
+           *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*
     """
     num_qubits = clifford.num_qubits
 
     if num_qubits <= 3:
         return decompose_clifford_bm(clifford)
 
-    return decompose_clifford_ag(clifford)
+    return decompose_clifford_greedy(clifford)
 
 
 # ---------------------------------------------------------------------
@@ -417,7 +421,7 @@ def _set_row_z_zero(clifford, circuit, qubit):
         circuit.h(qubit)
 
 # ---------------------------------------------------------------------
-# Synthesis based on Bravyi's greedy clifford compiler
+# Synthesis based on Bravyi et. al. greedy clifford compiler
 # ---------------------------------------------------------------------
 
 def decompose_clifford_greedy(clifford):
@@ -428,13 +432,18 @@ def decompose_clifford_greedy(clifford):
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
+
+    Raises:
+        QiskitError: if symplectic Gaussian elimination fails.
     """
 
     num_qubits = clifford.num_qubits
-    circ = QuantumCircuit(num_qubits)
+    circ = QuantumCircuit(num_qubits, name=str(clifford))
     qubit_list = list(range(num_qubits))
     clifford_cpy = clifford.copy()
 
+    # Reducing the original Clifford to identity
+    # via symplectic Gaussian elimination
     while len(qubit_list) > 0:
         clifford_cpy_inv = clifford_cpy.adjoint()
 
@@ -451,6 +460,7 @@ def decompose_clifford_greedy(clifford):
             list_pairs = []
             pauli_count = 0
 
+            # Compute the CNOT cost in order to find the qubit with the minimal cost
             for i in qubit_list:
                 typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, i)
                 list_pairs.append(typeq)
@@ -460,6 +470,7 @@ def decompose_clifford_greedy(clifford):
 
         min_cost, min_qubit = (sorted(list_greedy_cost))[0]
 
+        # Gaussian elimination step for the qubit with minimal CNOT cost
         cliff_ox = clifford_cpy.copy()
         _append_x(cliff_ox, min_qubit)
         cliff_ox = cliff_ox.compose(clifford_cpy_inv)
@@ -468,12 +479,16 @@ def decompose_clifford_greedy(clifford):
         _append_z(cliff_oz, min_qubit)
         cliff_oz = cliff_oz.compose(clifford_cpy_inv)
 
-        decouple_circ, decouple_cliff = _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits)
+        # Compute the decoupling operator of cliff_ox and cliff_oz
+        decouple_circ, decouple_cliff = _calc_decoupling(cliff_ox, cliff_oz, qubit_list,
+                                                         min_qubit, num_qubits)
         circ = circ.compose(decouple_circ)
 
+        # Now the clifford acts trivially on min_qubit
         clifford_cpy = decouple_cliff.adjoint().compose(clifford_cpy)
         qubit_list.remove(min_qubit)
 
+    # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
         stab = clifford_cpy.stabilizer.phase[qubit]
         destab = clifford_cpy.destabilizer.phase[qubit]
@@ -484,33 +499,39 @@ def decompose_clifford_greedy(clifford):
         elif destab and not stab:
             circ.z(qubit)
 
-    return(circ)
+    return circ
 
 
 # ---------------------------------------------------------------------
-# Helper functions for Bravyi's greedy clifford compiler
+# Helper functions for Bravyi et. al. greedy clifford compiler
 # ---------------------------------------------------------------------
-# Global arrays
-A = [[[False, True], [True, True]],
-     [[False, True], [True, False]],
-     [[True, True], [False, True]],
-     [[True, True], [True, False]],
-     [[True, False], [False, True]],
-     [[True, False], [True, True]]] #['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
-B = [[[True, False], [True, False]],
-     [[False, True], [False, True]],
-     [[True, True], [True, True]]] #['XX', 'YY', 'ZZ']
-C = [[[True, False], [False, False]],
-     [[False, True], [False, False]],
-     [[True, True], [False, False]]] #['XI', 'YI', 'ZI']
-D = [[[False, False], [False, True]],
-     [[False, False], [True, False]],
-     [[False, False], [True, True]]] #['IX', 'IY', 'IZ']
-E = [[[False, False], [False, False]]] #['II']
+
+# Global arrays of the 16 pairs of Pauli operators
+# divided into 5 equivalence classes under the action of single-qubit Cliffords
+A_class = [[[False, True], [True, True]],
+           [[False, True], [True, False]],
+           [[True, True], [False, True]],
+           [[True, True], [True, False]],
+           [[True, False], [False, True]],
+           [[True, False], [True, True]]]  #['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
+
+B_class = [[[True, False], [True, False]],
+           [[False, True], [False, True]],
+           [[True, True], [True, True]]]  #['XX', 'YY', 'ZZ']
+
+C_class = [[[True, False], [False, False]],
+           [[False, True], [False, False]],
+           [[True, True], [False, False]]]  #['XI', 'YI', 'ZI']
+
+D_class = [[[False, False], [False, True]],
+           [[False, False], [True, False]],
+           [[False, False], [True, True]]]  #['IX', 'IY', 'IZ']
+
+E_class = [[[False, False], [False, False]]]  #['II']
 
 
 def _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit):
-    """Converts a pair of Ox and Oz Cliffords to a type"""
+    """Converts a pair of Ox and Oz Cliffords into a type"""
 
     type_ox = [cliff_ox.destabilizer.phase[qubit], cliff_ox.stabilizer.phase[qubit]]
     type_oz = [cliff_oz.destabilizer.phase[qubit], cliff_oz.stabilizer.phase[qubit]]
@@ -518,39 +539,39 @@ def _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit):
 
 
 def _compute_greedy_cost(list_pairs):
-    """ Compute the CNOT cost of one layer of the algorithm"""
+    """Compute the CNOT cost of one step of the algorithm"""
 
     A_num = 0
     B_num = 0
     C_num = 0
     D_num = 0
-    E_num = 0
 
     for pair in list_pairs:
-        if pair in A:
+        if pair in A_class:
             A_num += 1
-        elif pair in B:
+        elif pair in B_class:
             B_num += 1
-        elif pair in C:
+        elif pair in C_class:
             C_num += 1
-        elif pair in D:
+        elif pair in D_class:
             D_num += 1
-        elif pair in E:
-            E_num += 1
 
-    #print (A_num, B_num, C_num, D_num)
-    assert ((A_num % 2) == 1)
+    if (A_num % 2) == 0:
+        raise QiskitError("Symplectic Gaussian elimination fails.")
+
+    # Calculate the CNOT cost
     cost = 3 * (A_num - 1) / 2 + (B_num + 1) * (B_num > 0) + C_num + D_num
-    if list_pairs[0] not in A:  # additional SWAP
+    if list_pairs[0] not in A_class:  # additional SWAP
         cost += 3
 
-    return(cost)
+    return cost
 
 
 def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
     """Calculate a decoupling operator D:
-    D^{-1} * ox * D = x1
-    D^{-1} * oz * D = z1
+    D^{-1} * Ox * D = x1
+    D^{-1} * Oz * D = z1
+    and reduce the clifford such that it will act trivially on qubit0
     """
 
     circ = QuantumCircuit(num_qubits)
@@ -558,40 +579,42 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
     num_qubits = decouple_cliff.num_qubits
     decouple_cliff.table.phase = np.zeros(2 * num_qubits)
 
-    qubit0 = min_qubit
+    qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
 
-    # 1-qubit gates
+    # Reduce the pair of Paulis to a representative in the equivalence class
+    # ['XZ', 'XX', 'XI', 'IZ', 'II']
+    # by adding single-qubit gates
     for qubit in qubit_list:
 
         typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
 
         if typeq in [[[True, True], [False, False]],
                      [[True, True], [True, True]],
-                     [[True, True], [True, False]]]: #["YI", "YY", "YZ"]:
+                     [[True, True], [True, False]]]:  #["YI", "YY", "YZ"]:
             circ.s(qubit)
             _append_s(decouple_cliff, qubit)
 
         elif typeq in [[[True, False], [False, False]],
                        [[True, False], [True, False]],
                        [[True, False], [False, True]],
-                       [[False, False], [False, True]]]: #["ZI", "IX", "ZZ", "ZX"]:
+                       [[False, False], [False, True]]]:  #["ZI", "IX", "ZZ", "ZX"]
             circ.h(qubit)
             _append_h(decouple_cliff, qubit)
 
         elif typeq in [[[False, False], [True, True]],
-                       [[True, False], [True, True]]]: #["IY", "ZY"]:
+                       [[True, False], [True, True]]]:  #["IY", "ZY"]
             circ.s(qubit)
             circ.h(qubit)
             _append_s(decouple_cliff, qubit)
             _append_h(decouple_cliff, qubit)
 
-        elif typeq == [[True, True], [False, True]]: #"YX":
+        elif typeq == [[True, True], [False, True]]:  #"YX"
             circ.h(qubit)
             circ.s(qubit)
             _append_h(decouple_cliff, qubit)
             _append_s(decouple_cliff, qubit)
 
-        elif typeq == [[False, True], [True, True]]: #"XY":
+        elif typeq == [[False, True], [True, True]]:  #"XY"
             circ.s(qubit)
             circ.h(qubit)
             circ.s(qubit)
@@ -599,7 +622,8 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
             _append_h(decouple_cliff, qubit)
             _append_s(decouple_cliff, qubit)
 
-    # 2-qubit gates
+    # Reducing each pair of Paulis (except of qubit0) to 'II'
+    # by adding two-qubit gates and single-qubit gates
     A_qubits = []
     B_qubits = []
     C_qubits = []
@@ -607,71 +631,72 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
 
     for qubit in qubit_list:
         typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
-        if typeq in A:
+        if typeq in A_class:
             A_qubits.append(qubit)
-        elif typeq in B:
+        elif typeq in B_class:
             B_qubits.append(qubit)
-        elif typeq in C:
+        elif typeq in C_class:
             C_qubits.append(qubit)
-        elif typeq in D:
+        elif typeq in D_class:
             D_qubits.append(qubit)
 
-    #print (A_qubits, B_qubits, C_qubits, D_qubits)
-    assert (len(A_qubits) % 2 == 1)
+    if len(A_qubits) % 2 != 1:
+        raise QiskitError("Symplectic Gaussian elimination fails.")
 
-    if qubit0 not in A_qubits:
-        #print (qubit0, A_qubits, B_qubits, C_qubits, D_qubits)
-        #print ("SWAP")
-        circ.swap(qubit0, A_qubits[0])
-        _append_swap(decouple_cliff, qubit0, A_qubits[0])
+    if qubit0 not in A_qubits:  # SWAP qubit0 and qubitA
+        qubitA = A_qubits[0]
+        circ.swap(qubit0, qubitA)
+        _append_swap(decouple_cliff, qubit0, qubitA)
         if qubit0 in B_qubits:
             B_qubits.remove(qubit0)
-            B_qubits.append(A_qubits[0])
-            A_qubits.remove(A_qubits[0])
+            B_qubits.append(qubitA)
+            A_qubits.remove(qubitA)
             A_qubits.append(qubit0)
         elif qubit0 in C_qubits:
             C_qubits.remove(qubit0)
-            C_qubits.append(A_qubits[0])
-            A_qubits.remove(A_qubits[0])
+            C_qubits.append(qubitA)
+            A_qubits.remove(qubitA)
             A_qubits.append(qubit0)
         elif qubit0 in D_qubits:
             D_qubits.remove(qubit0)
-            D_qubits.append(A_qubits[0])
-            A_qubits.remove(A_qubits[0])
+            D_qubits.append(qubitA)
+            A_qubits.remove(qubitA)
             A_qubits.append(qubit0)
         else:
-            A_qubits.remove(A_qubits[0])
+            A_qubits.remove(qubitA)
             A_qubits.append(qubit0)
 
+    # Reduce pairs in Class C to 'II'
     for qubit in C_qubits:
-        #print ("in C")
         circ.cx(qubit0, qubit)
         _append_cx(decouple_cliff, qubit0, qubit)
 
+    # Reduce pairs in Class D to 'II'
     for qubit in D_qubits:
-        #print ("in D")
         circ.cx(qubit, qubit0)
         _append_cx(decouple_cliff, qubit, qubit0)
 
+    # Reduce pairs in Class B to 'II'
     if len(B_qubits) > 1:
         for qubit in B_qubits[1:]:
-            circ.cx(B_qubits[0], qubit)
-            _append_cx(decouple_cliff, B_qubits[0], qubit)
+            qubitB = B_qubits[0]
+            circ.cx(qubitB, qubit)
+            _append_cx(decouple_cliff, qubitB, qubit)
 
     if len(B_qubits) > 0:
-        #print ("in B")
-        circ.cx(qubit0, B_qubits[0])
-        circ.h(B_qubits[0])
-        circ.cx(B_qubits[0], qubit0)
-        _append_cx(decouple_cliff, qubit0, B_qubits[0])
-        _append_h(decouple_cliff, B_qubits[0])
-        _append_cx(decouple_cliff, B_qubits[0], qubit0)
+        qubitB = B_qubits[0]
+        circ.cx(qubit0, qubitB)
+        circ.h(qubitB)
+        circ.cx(qubitB, qubit0)
+        _append_cx(decouple_cliff, qubit0, qubitB)
+        _append_h(decouple_cliff, qubitB)
+        _append_cx(decouple_cliff, qubitB, qubit0)
 
+    # Reduce pairs in Class A (except of qubit0) to 'II'
     Alen = int((len(A_qubits) - 1) / 2)
     if Alen > 0:
         A_qubits.remove(qubit0)
     for qubit in range(Alen):
-        #print ("in A", qubit0, A_qubits)
         circ.cx(A_qubits[2 * qubit + 1], A_qubits[2 * qubit])
         circ.cx(A_qubits[2 * qubit], qubit0)
         circ.cx(qubit0, A_qubits[2 * qubit + 1])
@@ -679,4 +704,4 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
         _append_cx(decouple_cliff, A_qubits[2 * qubit], qubit0)
         _append_cx(decouple_cliff, qubit0, A_qubits[2 * qubit + 1])
 
-    return(circ, decouple_cliff)
+    return circ, decouple_cliff
