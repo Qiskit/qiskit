@@ -110,7 +110,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             # a unitary matrix is the identity, it suffices to check only the diagonal
             equivalent = is_identity_matrix(op, ignore_phase)
                 
-        except QiskitError as e:
+        except Exception as e:
             error_msg = str(e)
             success = False
 
