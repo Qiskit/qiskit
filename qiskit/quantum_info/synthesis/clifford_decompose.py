@@ -420,6 +420,7 @@ def _set_row_z_zero(clifford, circuit, qubit):
         _append_h(clifford, qubit)
         circuit.h(qubit)
 
+
 # ---------------------------------------------------------------------
 # Synthesis based on Bravyi et. al. greedy clifford compiler
 # ---------------------------------------------------------------------
@@ -513,21 +514,21 @@ A_class = [[[False, True], [True, True]],
            [[True, True], [False, True]],
            [[True, True], [True, False]],
            [[True, False], [False, True]],
-           [[True, False], [True, True]]]  #['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
+           [[True, False], [True, True]]]  # ['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
 
 B_class = [[[True, False], [True, False]],
            [[False, True], [False, True]],
-           [[True, True], [True, True]]]  #['XX', 'YY', 'ZZ']
+           [[True, True], [True, True]]]  # ['XX', 'YY', 'ZZ']
 
 C_class = [[[True, False], [False, False]],
            [[False, True], [False, False]],
-           [[True, True], [False, False]]]  #['XI', 'YI', 'ZI']
+           [[True, True], [False, False]]]  # ['XI', 'YI', 'ZI']
 
 D_class = [[[False, False], [False, True]],
            [[False, False], [True, False]],
-           [[False, False], [True, True]]]  #['IX', 'IY', 'IZ']
+           [[False, False], [True, True]]]  # ['IX', 'IY', 'IZ']
 
-E_class = [[[False, False], [False, False]]]  #['II']
+E_class = [[[False, False], [False, False]]]  # ['II']
 
 
 def _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit):
@@ -590,31 +591,31 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
 
         if typeq in [[[True, True], [False, False]],
                      [[True, True], [True, True]],
-                     [[True, True], [True, False]]]:  #["YI", "YY", "YZ"]:
+                     [[True, True], [True, False]]]:  # ["YI", "YY", "YZ"]:
             circ.s(qubit)
             _append_s(decouple_cliff, qubit)
 
         elif typeq in [[[True, False], [False, False]],
                        [[True, False], [True, False]],
                        [[True, False], [False, True]],
-                       [[False, False], [False, True]]]:  #["ZI", "IX", "ZZ", "ZX"]
+                       [[False, False], [False, True]]]:  # ["ZI", "IX", "ZZ", "ZX"]
             circ.h(qubit)
             _append_h(decouple_cliff, qubit)
 
         elif typeq in [[[False, False], [True, True]],
-                       [[True, False], [True, True]]]:  #["IY", "ZY"]
+                       [[True, False], [True, True]]]:  # ["IY", "ZY"]
             circ.s(qubit)
             circ.h(qubit)
             _append_s(decouple_cliff, qubit)
             _append_h(decouple_cliff, qubit)
 
-        elif typeq == [[True, True], [False, True]]:  #"YX"
+        elif typeq == [[True, True], [False, True]]:  # "YX"
             circ.h(qubit)
             circ.s(qubit)
             _append_h(decouple_cliff, qubit)
             _append_s(decouple_cliff, qubit)
 
-        elif typeq == [[False, True], [True, True]]:  #"XY"
+        elif typeq == [[False, True], [True, True]]:  # "XY"
             circ.s(qubit)
             circ.h(qubit)
             circ.s(qubit)
