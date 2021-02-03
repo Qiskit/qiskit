@@ -33,3 +33,7 @@ class BackendNotSet(PulseError):
 
 class NoActiveBuilder(PulseError):
     """Raised if no builder context is active."""
+
+
+class UnassignedDurationError(PulseError):
+    """Raised if instruction duration is unassigned."""

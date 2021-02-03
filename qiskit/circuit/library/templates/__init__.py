@@ -65,6 +65,7 @@ from .nct.template_nct_9d_8 import template_nct_9d_8
 from .nct.template_nct_9d_9 import template_nct_9d_9
 from .nct.template_nct_9d_10 import template_nct_9d_10
 
+
 from .rzx.rzx_yz import rzx_yz
 from .rzx.rzx_xz import rzx_xz
 from .rzx.rzx_cy import rzx_cy
@@ -72,3 +73,18 @@ from .rzx.rzx_zz1 import rzx_zz1
 from .rzx.rzx_zz2 import rzx_zz2
 from .rzx.rzx_zz3 import rzx_zz3
 from .rzx_templates import rzx_templates
+
+from .clifford.clifford_2_1 import clifford_2_1
+from .clifford.clifford_2_2 import clifford_2_2
+from .clifford.clifford_2_3 import clifford_2_3
+from .clifford.clifford_3_1 import clifford_3_1
+from .clifford.clifford_4_1 import clifford_4_1
+from .clifford.clifford_4_2 import clifford_4_2
+from .clifford.clifford_5_1 import clifford_5_1
+from .clifford.clifford_6_1 import clifford_6_1
+from .clifford.clifford_6_2 import clifford_6_2
+from .clifford.clifford_6_3 import clifford_6_3
+from .clifford.clifford_6_4 import clifford_6_4
+from .clifford.clifford_6_5 import clifford_6_5
+from .clifford.clifford_8_1 import clifford_8_1
+from .clifford.clifford_8_2 import clifford_8_2
