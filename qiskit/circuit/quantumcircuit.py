@@ -1225,12 +1225,7 @@ class QuantumCircuit:
         if self.width() > 70 or self.size() > 100 or self.depth() > 30:
             print(self.__repr__())
             return
-        from IPython.display import display
-        from qiskit.visualization import HAS_MATPLOTLIB
-        if HAS_MATPLOTLIB:
-            display(self.draw('mpl'))
-        else:
-            display(self.draw('text'))
+        display(self.draw())
 
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
