@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Model for Equivalence Checker Results."""
+
 from abc import ABC, abstractmethod
-from inspect import signature
 from time import time
 
 
@@ -28,18 +29,19 @@ class EquivalenceCheckerResult:
         time_taken (float): run time of the equivalence checker.
         Additional attributes can be added by the individual checkers.
     """
-    
+
     def __init__(self, success, equivalent, error_msg):
         self.success = success
         self.equivalent = equivalent
         self.error_msg = error_msg
 
+
 class BaseEquivalenceChecker(ABC):
     """Abstract circuit equivalence checker base class."""
-    
+
     def __init__(self, name):
         self.name = name
-    
+
     def run(self, circ1, circ2, **kwargs):
         """
         Check if the circuits are equivalent.
@@ -50,11 +52,11 @@ class BaseEquivalenceChecker(ABC):
         Returns:
             EquivalenceCheckerResult: result of the equivalence check.
         """
-        start = time()        
+        start = time()
         res = self._run_checker(circ1, circ2, **kwargs)
         time_taken = time() - start
         res.time_taken = time_taken
-        
+
         return res
 
     @abstractmethod

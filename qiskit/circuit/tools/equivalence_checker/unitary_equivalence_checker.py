@@ -10,8 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""UnitaryEquivalenceChecker class"""
+
 from qiskit.exceptions import QiskitError
 from .base_equivalence_checker import BaseEquivalenceChecker, EquivalenceCheckerResult
+
 
 class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     """
@@ -22,7 +25,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     by the Aer simulator, or by an external (non-Qiskit) simulator.
     The comparison can either ignore or not ignore global phase.
     """
-    
+
     def __init__(self, simulator, name='unitary', external_backend=None, **backend_options):
         """
         Args:
@@ -38,7 +41,7 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                 If `simulator` is 'aer' but Aer is not installed.
                 If `simulator` ia different from 'quantum_info', 'aer', 'external'.
         """
-        
+
         super().__init__(name)
         self.simulator = simulator
         self.backend_options = backend_options
@@ -56,13 +59,15 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             self.backend = None
         else:
             raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
-    
+
+    # pylint: disable=arguments-differ
     def _run_checker(self, circ1, circ2, phase):
         """
         Check if circuits are equivalent.
 
         Args:
-            circ1, circ2 (QuantumCircuit): Circuits to check.
+            circ1 (QuantumCircuit): First circuit to check.
+            circ2 (QuantumCircuit): Second circuit to check.
             phase (str): Options are 'global' - ignoring global phase;
                 or 'equal' - not ignoring global phase.
 
@@ -75,12 +80,12 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
                     or circuits are too large).
                 If `phase` is not one of 'equal', 'global'.
         """
-        
+
         # importing here to avoid circular imports
         from qiskit.quantum_info.operators import Operator
         from qiskit.quantum_info.operators.predicates import is_identity_matrix
         from qiskit.compiler import transpile, assemble
-        
+
         equivalent = None
         success = True
         error_msg = None
@@ -93,7 +98,8 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             if self.simulator == 'quantum_info':
                 op = Operator(circ)
             else:
-                backend_res = self.backend.run(assemble(circ), shots=1, **self.backend_options).result()
+                backend_res = self.backend.run(assemble(circ), shots=1,
+                                               **self.backend_options).result()
                 if backend_res.results[0].success:
                     op = backend_res.get_unitary(circ)
                 else:
@@ -109,9 +115,13 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             # TODO: This can be made more efficient, because when checking whether
             # a unitary matrix is the identity, it suffices to check only the diagonal
             equivalent = is_identity_matrix(op, ignore_phase)
-                
-        except Exception as e:
-            error_msg = str(e)
+
+        # The broad class of Exception is required,
+        # for example when the circuit is large,
+        # then the error comes from a non-Qiskit package.
+        # pylint: disable=broad-except
+        except Exception as exc:
+            error_msg = str(exc)
             success = False
 
         return EquivalenceCheckerResult(success, equivalent, error_msg)
