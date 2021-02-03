@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Pulse :py:class:`~qiskit.pulse.instructions.Call` instruction is added.
+    This instruction is a compiler directive and not exposed to end users.
+    The logic of the pulse builder is updated to store a call instruction when py:func:`pulse.call`
+    function is used with ``target``, i.e. ``QuantumCircuit`` or ``Schedule``.
+    Now this function saves the ``target`` as a call instruction rather than simply appending
+    its schedule to the context. This representation explicitly describes
+    the ``target`` is defined outside of the current scope, or as a subroutine.
+    No further schedule transforms are applied between subroutines and stored programs
+    are kept as-is. For example,
+
+    .. code-block:: python
+
+      xcirc = QuantumCircuit(1)
+      xcirc.x(0)
+
+      with pulse.build(backend) as sched:
+        pulse.call(xcirc)
+        pulse.call(xcirc)
+
+    the ``xcirc`` is called as an individual subroutine, thus these programs are not
+    merged within the bulder context thourgh consecutive x gates forms an identity.
+    The :py:class:`~qiskit.pulse.instructions.Call` instruction benefits a Qiskit compiler
+    to generate a cleaner target code. This instruction doesn't affect the underlying
+    program execution.
