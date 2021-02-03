@@ -59,9 +59,8 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
                                                   BaseBackend, Backend]] = None) -> None:
         """
         Args:
-            num_evaluation_qubits: The number of qubits used in estimating the phase. The
-                                   phase will be estimated as a binary string with this many
-                                   bits.
+            num_evaluation_qubits: The number of qubits used in estimating the phase. The phase
+                will be estimated as a binary string with this many bits.
             hamiltonian: a Hamiltonian or Hermitian operator
             evolution: An evolution object that generates a unitary from `hamiltonian`.
             state_preparation: The circuit that prepares the state whose eigenphase will be
