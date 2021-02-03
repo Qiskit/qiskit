@@ -1225,6 +1225,7 @@ class QuantumCircuit:
         if self.width() > 50 or self.size() > 50 or self.depth() > 20:
             print(self.__repr__())
             return
+        from IPython.display import display
         display(self.draw())
 
     def draw(self, output=None, scale=None, filename=None, style=None,
