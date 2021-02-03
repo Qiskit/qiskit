@@ -16,7 +16,7 @@ Convenience function to load RZXGate based templates.
 
 from typing import List
 
-from .rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
+from qiskit.circuit.library.templates.rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
 
 
 def rzx_templates(template_list: List[str] = None):
