@@ -80,8 +80,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest('Use PauliTrotterEvolution, second phase'):
             self.assertAlmostEqual(phases[1], -1.484, delta=0.001)
 
-    def test_water_hamiltonian(self):
-        """Test water hamiltonian"""
+    def test_H2_hamiltonian(self):
+        """Test H2 hamiltonian"""
         hamiltonian = (-1.0523732457728587 * (I ^ I)) + (0.3979374248431802 * (I ^ Z)) \
             + (-0.3979374248431802 * (Z ^ I)) + (-0.011280104256235324 * (Z ^ Z)) \
             + (0.18093119978423147 * (X ^ X))
