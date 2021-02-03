@@ -45,14 +45,6 @@ class AerPauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        # TODO: implement direct way
-        if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, PauliSumOp)
-                and operator.is_measurement
-        ):
-            operator = ~OperatorStateFn(operator.primitive.to_pauli_op(), coeff=operator.coeff)
-
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             return self._replace_pauli_sums(operator.primitive) * operator.coeff
         elif isinstance(operator, ListOp):
@@ -75,9 +67,10 @@ class AerPauliExpectation(ExpectationBase):
         # measurement, and not simply a
         # circuit to replace with a DictStateFn
 
-        # TODO: implement direct way
         if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
+            paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
 
         # Change to Pauli representation if necessary
         if not {'Pauli'} == operator.primitive_strings():

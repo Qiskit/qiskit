@@ -290,7 +290,7 @@ class Pauli(BasePauli):
     def __getitem__(self, qubits):
         """Return the unsigned Pauli group Pauli for subset of qubits."""
         # Set group phase to 0 so returned Pauli is always +1 coeff
-        if isinstance(qubits, (int, np.int)):
+        if isinstance(qubits, int):
             qubits = [qubits]
         return Pauli((self.z[qubits], self.x[qubits]))
 
@@ -316,7 +316,7 @@ class Pauli(BasePauli):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(qubits, (int, np.int)):
+        if isinstance(qubits, int):
             qubits = [qubits]
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
@@ -346,9 +346,9 @@ class Pauli(BasePauli):
 
         # Initialize empty operator
         ret_qubits = self.num_qubits + value.num_qubits
-        ret = Pauli((np.zeros(ret_qubits, dtype=np.bool),
-                     np.zeros(ret_qubits, dtype=np.bool)))
-        if isinstance(qubits, (int, np.int)):
+        ret = Pauli((np.zeros(ret_qubits, dtype=bool),
+                     np.zeros(ret_qubits, dtype=bool)))
+        if isinstance(qubits, int):
             if value.num_qubits == 1:
                 qubits = [qubits]
             else:
@@ -618,9 +618,9 @@ class Pauli(BasePauli):
 
         # Convert to Symplectic representation
         num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=np.bool)
-        base_x = np.zeros((1, num_qubits), dtype=np.bool)
-        base_phase = np.array([phase], dtype=np.int)
+        base_z = np.zeros((1, num_qubits), dtype=bool)
+        base_x = np.zeros((1, num_qubits), dtype=bool)
+        base_phase = np.array([phase], dtype=int)
         for i, char in enumerate(pauli):
             if char == 'X':
                 base_x[0, num_qubits - 1 - i] = True
@@ -637,8 +637,8 @@ class Pauli(BasePauli):
         """Convert a ScalarOp to BasePauli data."""
         if op.num_qubits is None:
             raise QiskitError('{} is not an N-qubit identity'.format(op))
-        base_z = np.zeros((1, op.num_qubits), dtype=np.bool)
-        base_x = np.zeros((1, op.num_qubits), dtype=np.bool)
+        base_z = np.zeros((1, op.num_qubits), dtype=bool)
+        base_x = np.zeros((1, op.num_qubits), dtype=bool)
         base_phase = np.mod(
             cls._phase_from_complex(op.coeff) +
             np.sum(np.logical_and(base_z, base_x), axis=1), 4)
@@ -676,9 +676,9 @@ class Pauli(BasePauli):
 
         # Initialize identity Pauli
         ret = Pauli(
-            BasePauli(np.zeros((1, instr.num_qubits), dtype=np.bool),
-                      np.zeros((1, instr.num_qubits), dtype=np.bool),
-                      np.zeros(1, dtype=np.int)))
+            BasePauli(np.zeros((1, instr.num_qubits), dtype=bool),
+                      np.zeros((1, instr.num_qubits), dtype=bool),
+                      np.zeros(1, dtype=int)))
 
         # Add circuit global phase if specified
         if instr.global_phase:
@@ -726,7 +726,7 @@ class Pauli(BasePauli):
     def _make_np_bool(arr):
         if not isinstance(arr, (list, np.ndarray, tuple)):
             arr = [arr]
-        arr = np.asarray(arr).astype(np.bool)
+        arr = np.asarray(arr).astype(bool)
         return arr
 
     @staticmethod
@@ -1007,8 +1007,8 @@ class Pauli(BasePauli):
             Pauli: single qubit pauli
         """
         tmp = Pauli(pauli_label)
-        ret = Pauli((np.zeros(num_qubits, dtype=np.bool),
-                     np.zeros(num_qubits, dtype=np.bool)))
+        ret = Pauli((np.zeros(num_qubits, dtype=bool),
+                     np.zeros(num_qubits, dtype=bool)))
         ret.x[index] = tmp.x[0]
         ret.z[index] = tmp.z[0]
         ret.phase = tmp.phase
