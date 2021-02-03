@@ -61,7 +61,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase
                 will be estimated as a binary string with this many bits.
-            hamiltonian: a Hamiltonian or Hermitian operator
+            hamiltonian: a Hermitian operator.
             evolution: An evolution object that generates a unitary from `hamiltonian`.
             state_preparation: The circuit that prepares the state whose eigenphase will be
                 measured. If this parameter is omitted, no preparation circuit will be run and
@@ -80,6 +80,12 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         self._bound = bound
 
         # The term propto the identity is removed from hamiltonian.
+        # This is done for three reasons:
+        # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
+        #    cases.
+        # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
+        # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
+        #   occupies more of the range of values representable by the qubit register.
         # The coefficient of this term will be added to the eigenvalues.
         id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
         self._hamiltonian = hamiltonian_no_id
