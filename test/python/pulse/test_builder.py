@@ -205,16 +205,18 @@ class TestContexts(TestBuilder):
 
         Tests that two cx gates are optimized away with higher optimization level.
         """
+        twice_cx_qc = circuit.QuantumCircuit(2)
+        twice_cx_qc.cx(0, 1)
+        twice_cx_qc.cx(0, 1)
+
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=0):
-                pulse.cx(0, 1)
-                pulse.cx(0, 1)
+                builder.call(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=3):
-                pulse.cx(0, 1)
-                pulse.cx(0, 1)
+                builder.call(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
