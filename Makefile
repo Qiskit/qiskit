@@ -48,6 +48,7 @@ lint:
 	pylint -rn qiskit test
 	tools/verify_headers.py qiskit test tools
 	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
+	python tools/find_optional_imports.py
 
 style:
 	pycodestyle --max-line-length=100 qiskit test
