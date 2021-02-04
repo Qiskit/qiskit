@@ -80,6 +80,8 @@ class Call(Directive):
 
         Args:
             subroutine (Schedule): A program to wrap with call instruction.
+            name: Unique ID of this subroutine. If not provided, this is generated based on
+                the hash of instructions of the subroutine.
         """
         if name is None:
             name = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
@@ -100,12 +102,13 @@ class Call(Directive):
         """Duration of this instruction."""
         return self.operands[0].duration
 
+    # pylint: disable=missing-return-type-doc
     @property
     def subroutine(self):
         """Return attached subroutine.
 
         Returns:
-            (Schedule): Attached schedule.
+            schedule (Schedule): Attached schedule.
         """
         return self.operands[0]
 

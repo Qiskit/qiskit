@@ -426,18 +426,16 @@ class _PulseBuilder():
         The circuit is converted into a schedule and appended to the context schedule as-is.
         """
         if self._lazy_circuit:
-            import qiskit.compiler as compiler  # pylint: disable=cyclic-import
-
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self.new_circuit()
             self.call_schedule(self._compile_circuit(lazy_circuit))
 
-    def _compile_circuit(self, circuit) -> Schedule:
+    def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
         import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
-        transpiled_circuit = compiler.transpile(circuit,
+        transpiled_circuit = compiler.transpile(circ,
                                                 self.backend,
                                                 **self.transpiler_settings)
         sched = compiler.schedule(transpiled_circuit,

@@ -2,8 +2,10 @@
 deprecations:
   - |
     Following builder functions are deprecated.
+
       - :py:func:`~qiskit.pulse.call_circuit`
       - :py:func:`~qiskit.pulse.call_schedule`
+
     These functions are unified into :py:func:`~qiskit.pulse.call`.
     Calling :py:meth:`Schedule.flatten` method is also deprecated.
     Please use :py:func:`~qiskit.pulse.transforms.flatten` instead.
