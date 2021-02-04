@@ -35,7 +35,7 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         # define internal parameters
         self._num_state_qubits = None
         self._tolerance = None
-        self._evo_time = None
+        self._evo_time = None # makes sure the eigenvalues are contained in [0,1)
 
         # store parameters
         self.num_state_qubits = num_state_qubits
@@ -83,6 +83,25 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
     def evo_time(self) -> float:
         """Return the time of the evolution."""
         return self._evo_time
+
+    @evo_time.setter
+    def evo_time(self, evo_time: float) -> None:
+        """Set the time of the evolution.
+
+        Args:
+            evo_time: The new time of the evolution.
+        """
+        self._evo_time = evo_time
+
+    @property
+    def eigs_bounds(self) -> [float, float]:
+        """Return lower and upper bounds on the eigenvalues of the matrix."""
+        return None
+
+    @property
+    def condition_bounds(self) -> [float, float]:
+        """Return lower and upper bounds on the condition number of the matrix."""
+        return None
 
     @evo_time.setter
     def evo_time(self, evo_time: float) -> None:

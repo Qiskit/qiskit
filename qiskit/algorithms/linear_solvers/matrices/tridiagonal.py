@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
-
 import numpy as np
 from scipy.sparse import diags
 
@@ -39,7 +38,7 @@ class Tridiagonal(LinearSystemMatrix):
         self._main_entry = None
         self._off_diag = None
         self._tolerance = None
-        self._evo_time = None
+        self._evo_time = None  # makes sure the eigenvalues are contained in [0,1)
         self._trotter = None
 
         # store parameters
@@ -106,7 +105,7 @@ class Tridiagonal(LinearSystemMatrix):
 
     @tolerance.setter
     def tolerance(self, tolerance: float) -> None:
-        """Set the error tolerance
+        """Set the error tolerance.
         Args:
             tolerance: The new error tolerance.
         """
@@ -127,9 +126,44 @@ class Tridiagonal(LinearSystemMatrix):
         """
         self._evo_time = evo_time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
-        self._trotter = min(self.num_state_qubits + 1,
+        self.trotter = min(self.num_state_qubits + 1,
                             int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3)
                                                 / 2 / self.tolerance))))
+
+    @property
+    def trotter(self) -> int:
+        """Return the number of trotter steps."""
+        return self._trotter
+
+    @trotter.setter
+    def trotter(self, trotter: int) -> None:
+        """Set the number of trotter steps.
+        Args:
+            trotter: The new number of trotter steps.
+        """
+        self._trotter = trotter
+
+    @property
+    def matrix(self) -> np.ndarray:
+        """Return the matrix."""
+        matrix = diags([self.off_diag, self.main_entry, self.off_diag], [-1, 0, 1],
+                       shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
+        return matrix
+
+    @property
+    def eigs_bounds(self) -> [float, float]:
+        """Return lower and upper bounds on the eigenvalues of the matrix."""
+        matrix_array = self.matrix
+        lambda_max = max(np.abs(np.linalg.eigvals(matrix_array)))
+        lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
+        return [lambda_min, lambda_max]
+
+    @property
+    def condition_bounds(self) -> [float, float]:
+        """Return lower and upper bounds on the condition number of the matrix."""
+        matrix_array = self.matrix
+        kappa = np.linalg.cond(matrix_array)
+        return [kappa, kappa]
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
@@ -168,12 +202,6 @@ class Tridiagonal(LinearSystemMatrix):
         self._check_configuration()
 
         self.compose(self.power(1), inplace=True)
-
-    def matrix(self) -> np.ndarray:
-        """Return the matrix."""
-        matrix = diags([self.off_diag, self.main_entry, self.off_diag], [-1, 0, 1],
-                       shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits)).toarray()
-        return matrix
 
     def _cn_gate(self, controls: int, ancilla: int, phi: float, ulambda: float, theta: float) \
             -> QuantumCircuit:

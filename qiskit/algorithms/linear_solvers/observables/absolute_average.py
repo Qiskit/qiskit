@@ -82,7 +82,4 @@ class AbsoluteAverage(LinearSystemObservable):
         Returns:
             The value of the observable.
         """
-        result = 0
-        for xi in solution:
-            result += xi
-        return np.abs(result) / len(solution)
+        return np.abs(np.mean(solution))

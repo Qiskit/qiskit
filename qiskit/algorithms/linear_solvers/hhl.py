@@ -219,7 +219,7 @@ class HHL(LinearSolver):
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
             matrix_circuit = matrix
-            matrix_array = matrix.matrix()
+            matrix_array = matrix.matrix
         elif isinstance(matrix, np.ndarray):
             if matrix.shape[0] != matrix.shape[1]:
                 raise ValueError("Input matrix must be square!")
@@ -235,25 +235,32 @@ class HHL(LinearSolver):
         else:
             raise ValueError("Input matrix type must be either QuantumCircuit or numpy ndarray.")
 
-        lambda_max = max(np.abs(np.linalg.eigvals(matrix_array)))
-        lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
-        kappa = np.linalg.cond(matrix_array)
-        # Update the number of qubits required to represent the eigenvalues
-        nl = max(nb + 1, int(np.log2(lambda_max / lambda_min)) + 1)
-
-        # Constant from the representation of eigenvalues
-        delta = self._get_delta(nl, lambda_min, lambda_max)
-
-        # Update evolution time
-        evo_time = 2 * np.pi * delta / lambda_min
+        # Set the tolerance for the matrix approximation
         matrix_circuit.tolerance = self._epsilon_a
-        matrix_circuit.evo_time = evo_time
+
+        # check if the matrix can calculate the condition number and store the upper bound
+        if hasattr(matrix, "condition_bounds"):
+            kappa = matrix.condition_bounds[1]
+        else:
+            kappa = 1
+        # Update the number of qubits required to represent the eigenvalues
+        nl = max(nb + 1, int(np.log2(kappa)) + 1)
+
+        # check if the matrix can calculate bounds for the eigenvalues
+        if hasattr(matrix, "eigs_bounds"):
+            lambda_min, lambda_max = matrix.eigs_bounds
+            # Constant so that the minimum eigenvalue is represented exactly, since it contributes
+            # the most to the solution of the system
+            delta = self._get_delta(nl, lambda_min, lambda_max)
+            # Update evolution time
+            matrix_circuit.evo_time = 2 * np.pi * delta / lambda_min
+        else:
+            delta = 1
 
         if self._exact_inverse:
             inverse_circuit = ExactInverse(nl, delta)
             # Update number of ancilla qubits
             na = matrix_circuit.num_ancillas
-
         else:
             # Calculate breakpoints for the inverse approximation
             num_values = 2 ** nl
@@ -348,7 +355,7 @@ class HHL(LinearSolver):
 
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
-            matrix_array = matrix.matrix()
+            matrix_array = matrix.matrix
         elif isinstance(matrix, np.ndarray):
             matrix_array = matrix
         else:
