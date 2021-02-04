@@ -58,7 +58,7 @@ class PhaseEstimationScale():
         """
         return numpy.pi / self._bound
 
-    def scale_phase(self, phi: float, id_coefficient: float) -> float:
+    def scale_phase(self, phi: float, id_coefficient: float = 0.0) -> float:
         r"""Convert a phase into an eigenvalue.
 
         The input phase `phi` corresponds to the eigenvalue of a unitary obtained by
@@ -86,7 +86,7 @@ class PhaseEstimationScale():
             return (phi - 1) * w + id_coefficient
 
     # pylint: disable=unsubscriptable-object
-    def scale_phases(self, phases: Union[List, Dict], id_coefficient: float) -> Union[Dict, List]:
+    def scale_phases(self, phases: Union[List, Dict], id_coefficient: float = 0.0) -> Union[Dict, List]:
         """Convert a list or dict of phases to eigenvalues.
 
         The values in the list, or keys in the dict, are values of `phi` and
