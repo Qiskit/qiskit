@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators import random
 from qiskit.quantum_info.operators.dihedral import CNOTDihedral
 from qiskit.quantum_info.random import random_cnotdihedral
 
@@ -475,7 +475,7 @@ class TestCNOTDihedral(unittest.TestCase):
         nseed = 999
         for qubit_num in range(1, 5):
             for i in range(samples):
-                pauli = Pauli.random(qubit_num, seed=nseed + i)
+                pauli = random.random_pauli(qubit_num, seed=nseed + i)
                 elem = CNOTDihedral(pauli)
                 value = Operator(pauli)
                 target = Operator(elem)

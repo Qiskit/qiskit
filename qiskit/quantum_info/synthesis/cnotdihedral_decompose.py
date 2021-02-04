@@ -27,8 +27,9 @@ def decompose_cnotdihedral(elem):
         QuantumCircuit: a circuit implementation of the CNOTDihedral element.
 
     References:
-        1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
-           `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
+        1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits
+           with optimal number of two qubit gates*, `Quantum 4(369), 2020
+           <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
            *Scalable randomised benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
@@ -360,7 +361,7 @@ def decompose_cnotdihedral_general(elem):
 
     new_circuit = QuantumCircuit(num_qubits)
 
-    # Do cx and u1 gates to construct all monomials of weight 3
+    # Do cx and phase gates to construct all monomials of weight 3
     for i in range(num_qubits):
         for j in range(i+1, num_qubits):
             for k in range(j+1, num_qubits):
@@ -376,7 +377,7 @@ def decompose_cnotdihedral_general(elem):
                     new_circuit.cx(i, k)
                     new_circuit.cx(j, k)
 
-    # Do cx and u1 gates to construct all monomials of weight 2
+    # Do cx and phase gates to construct all monomials of weight 2
     for i in range(num_qubits):
         for j in range(i+1, num_qubits):
             tpow1 = elem_cpy.poly.get_term([i, j])
@@ -390,7 +391,7 @@ def decompose_cnotdihedral_general(elem):
                 new_circuit.p((tpow * np.pi / 4), [j])
                 new_circuit.cx(i, j)
 
-    # Do u1 gates to construct all monomials of weight 1
+    # Do phase gates to construct all monomials of weight 1
     for i in range(num_qubits):
         tpow1 = elem_cpy.poly.get_term([i])
         tpow2 = new_elem.poly.get_term([i])

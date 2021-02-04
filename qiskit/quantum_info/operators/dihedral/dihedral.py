@@ -55,8 +55,9 @@ class CNOTDihedral(BaseOperator):
     CNOT, T and X.
 
     References:
-        1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
-           `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
+        1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits
+           with optimal number of two qubit gates*, `Quantum 4(369), 2020
+           <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
            *Scalable randomised benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
@@ -112,7 +113,7 @@ class CNOTDihedral(BaseOperator):
 
         # Initialize BaseOperator
         dims = self._num_qubits * (2,)
-        super().__init__(dims, dims)
+        super().__init__(num_qubits=self._num_qubits)
 
         # Validate the CNOTDihedral element
         if validate and not self.is_cnotdihedral():
@@ -265,12 +266,11 @@ class CNOTDihedral(BaseOperator):
 
         Return:
             QuantumCircuit: a circuit implementation of the CNOTDihedral object.
-        Remark:
-            Decompose 1 and 2-qubit CNOTDihedral elements.
 
         References:
-            1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
-               `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
+            1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits
+               with optimal number of two qubit gates*, `Quantum 4(369), 2020
+               <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
             2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
@@ -301,7 +301,7 @@ class CNOTDihedral(BaseOperator):
             circuit = circuit.to_instruction()
 
         # Initialize an identity CNOTDihedral object
-        elem = CNOTDihedral(self.num_qubits)
+        elem = CNOTDihedral(self._num_qubits)
         _append_circuit(elem, circuit)
         return elem
 
@@ -365,7 +365,7 @@ class CNOTDihedral(BaseOperator):
         other.poly.weight_0 = 0  # set global phase
         return other
 
-    def _tensor_product(self, other, reverse=False):
+    def _tensor(self, other, reverse=False):
         """Returns the tensor product operator.
 
          Args:
@@ -429,7 +429,7 @@ class CNOTDihedral(BaseOperator):
              CNOTDihedral: the tensor product operator: self tensor other.
          """
 
-        return self._tensor_product(other, reverse=True)
+        return self._tensor(other, reverse=True)
 
     def expand(self, other):
         """Return the tensor product operator: other tensor self.
@@ -440,7 +440,7 @@ class CNOTDihedral(BaseOperator):
              CNOTDihedral: the tensor product operator: other tensor other.
          """
 
-        return self._tensor_product(other, reverse=False)
+        return self._tensor(other, reverse=False)
 
     def adjoint(self):
         """Return the conjugate transpose of the CNOTDihedral element"""
