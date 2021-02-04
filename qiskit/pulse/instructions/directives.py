@@ -70,7 +70,6 @@ class Call(Directive):
     The metadata attached to the subroutine is kept.
     """
 
-    # note that we cannot type hint for this due to cyclic import
     def __init__(self, subroutine, name: Optional[str] = None):
         """Create a new call directive with subroutine.
 
@@ -83,13 +82,11 @@ class Call(Directive):
             subroutine (Schedule): A program to wrap with call instruction.
         """
         if name is None:
-            routine_id = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
-        else:
-            routine_id = name
+            name = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
 
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),
-                         name=routine_id)
+                         name=name)
 
         if subroutine.is_parameterized():
             for value in subroutine.parameters:
