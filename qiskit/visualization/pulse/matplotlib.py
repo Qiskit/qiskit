@@ -19,12 +19,7 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
-try:
-    from matplotlib import pyplot as plt, gridspec
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
-
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
@@ -286,9 +281,18 @@ class WaveformDrawer:
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
+
+        Raises:
+            ImportError: If matplotlib is not installed
         """
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
+        if not HAS_MATPLOTLIB:
+            raise ImportError("Matplotlib needs to be installed to use "
+                              "WaveformDrawer. It can be installed with "
+                              "'pip install matplotlib'")
+
+        from matplotlib import pyplot as plt
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
@@ -339,7 +343,18 @@ class ScheduleDrawer:
 
         Args:
             style: Style sheet for pulse schedule visualization.
+        Raises:
+            ImportError: If matplotlib is not installed
         """
+        if not HAS_MATPLOTLIB:
+            raise ImportError("Matplotlib needs to be installed to use "
+                              "ScheduleDrawer. It can be installed with "
+                              "'pip install matplotlib'")
+
+        from matplotlib import pyplot as plt
+        self.plt_mod = plt
+        from matplotlib import gridspec
+        self.gridspec_mod = gridspec
         self.style = style or SchedStyle()
 
     def _build_channels(self, schedule: ScheduleComponent,
@@ -509,9 +524,9 @@ class ScheduleDrawer:
             h_waves = (figure.get_size_inches()[1] - h_table)
 
             # create subplots
-            gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
-            tb = plt.subplot(gs[0])
-            ax = plt.subplot(gs[1])
+            gs = self.gridspec_mod.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
+            tb = self.plt_mod.subplot(gs[0])
+            ax = self.plt_mod.subplot(gs[1])
 
             # configure each cell
             tb.axis('off')
@@ -795,7 +810,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
+        figure = self.plt_mod.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
             channels = []
