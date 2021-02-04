@@ -23,16 +23,17 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx, _append_swap)
 
 
-def decompose_clifford(clifford):
+def decompose_clifford(clifford, method=None):
     """Decompose a Clifford operator into a QuantumCircuit.
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
     from reference [1]. For N > 3 qubits this is done using the general
-    non-optimal compilation routine from reference [3],
+    non-optimal greedy compilation routine from reference [3],
     which yields better CX cost compared to [2].
 
     Args:
         clifford (Clifford): a clifford operator.
+        method (str): a synthesis method ('AG' or 'greedy')
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
@@ -50,6 +51,12 @@ def decompose_clifford(clifford):
            *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*
     """
     num_qubits = clifford.num_qubits
+
+    if method == 'AG':
+        return decompose_clifford_ag(clifford)
+
+    if method == 'greedy':
+        return decompose_clifford_greedy(clifford)
 
     if num_qubits <= 3:
         return decompose_clifford_bm(clifford)
@@ -508,30 +515,36 @@ def decompose_clifford_greedy(clifford):
 
 # Global arrays of the 16 pairs of Pauli operators
 # divided into 5 equivalence classes under the action of single-qubit Cliffords
-A_class = [[[False, True], [True, True]],
-           [[False, True], [True, False]],
-           [[True, True], [False, True]],
-           [[True, True], [True, False]],
-           [[True, False], [False, True]],
-           [[True, False], [True, True]]]  # ['XY', 'XZ', 'YX', 'YZ', 'ZX', 'ZY']
 
-B_class = [[[True, False], [True, False]],
-           [[False, True], [False, True]],
-           [[True, True], [True, True]]]  # ['XX', 'YY', 'ZZ']
+# Class A - canonical representative is 'XZ'
+A_class = [[[False, True], [True, True]],  # 'XY'
+           [[False, True], [True, False]],  # 'XZ'
+           [[True, True], [False, True]],  # 'YX'
+           [[True, True], [True, False]],  # 'YZ'
+           [[True, False], [False, True]],  # 'ZX'
+           [[True, False], [True, True]]]  # 'ZY'
 
-C_class = [[[True, False], [False, False]],
-           [[False, True], [False, False]],
-           [[True, True], [False, False]]]  # ['XI', 'YI', 'ZI']
+# Class B - canonical representative is 'XX'
+B_class = [[[True, False], [True, False]],  # 'ZZ'
+           [[False, True], [False, True]],  # 'XX'
+           [[True, True], [True, True]]]  # 'YY'
 
-D_class = [[[False, False], [False, True]],
-           [[False, False], [True, False]],
-           [[False, False], [True, True]]]  # ['IX', 'IY', 'IZ']
+# Class C - canonical representative is 'XI'
+C_class = [[[True, False], [False, False]],  # 'ZI'
+           [[False, True], [False, False]],  # 'XI'
+           [[True, True], [False, False]]]  # 'YI'
 
-E_class = [[[False, False], [False, False]]]  # ['II']
+# Class D - canonical representative is 'IZ'
+D_class = [[[False, False], [False, True]],  # 'IX'
+           [[False, False], [True, False]],  # 'IZ'
+           [[False, False], [True, True]]]  # 'IY'
+
+# Class E - only 'II'
+E_class = [[[False, False], [False, False]]]  # 'II'
 
 
 def _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit):
-    """Converts a pair of Ox and Oz Cliffords into a type"""
+    """Converts a pair of Paulis Ox and Oz into a type"""
 
     type_ox = [cliff_ox.destabilizer.phase[qubit], cliff_ox.stabilizer.phase[qubit]]
     type_oz = [cliff_oz.destabilizer.phase[qubit], cliff_oz.stabilizer.phase[qubit]]
@@ -571,50 +584,53 @@ def _calc_decoupling(cliff_ox, cliff_oz, qubit_list, min_qubit, num_qubits):
     """Calculate a decoupling operator D:
     D^{-1} * Ox * D = x1
     D^{-1} * Oz * D = z1
-    and reduce the clifford such that it will act trivially on qubit0
+    and reduce the clifford such that it will act trivially on min_qubit
     """
 
     circ = QuantumCircuit(num_qubits)
+
+    # decouple_cliff is initialized to an identity clifford
     decouple_cliff = cliff_ox.copy()
     num_qubits = decouple_cliff.num_qubits
     decouple_cliff.table.phase = np.zeros(2 * num_qubits)
+    if (decouple_cliff.table.array != np.eye(2 * num_qubits)).any():
+        raise QiskitError("Symplectic Gaussian elimination fails.")
 
     qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
 
     # Reduce the pair of Paulis to a representative in the equivalence class
-    # ['XZ', 'XX', 'XI', 'IZ', 'II']
-    # by adding single-qubit gates
+    # ['XZ', 'XX', 'XI', 'IZ', 'II'] by adding single-qubit gates
     for qubit in qubit_list:
 
         typeq = _from_pair_cliffs_to_type(cliff_ox, cliff_oz, qubit)
 
-        if typeq in [[[True, True], [False, False]],
-                     [[True, True], [True, True]],
-                     [[True, True], [True, False]]]:  # ["YI", "YY", "YZ"]:
+        if typeq in [[[True, True], [False, False]],  # 'YI'
+                     [[True, True], [True, True]],  # 'YY'
+                     [[True, True], [True, False]]]:  # 'YZ':
             circ.s(qubit)
             _append_s(decouple_cliff, qubit)
 
-        elif typeq in [[[True, False], [False, False]],
-                       [[True, False], [True, False]],
-                       [[True, False], [False, True]],
-                       [[False, False], [False, True]]]:  # ["ZI", "IX", "ZZ", "ZX"]
+        elif typeq in [[[True, False], [False, False]],  # 'ZI'
+                       [[True, False], [True, False]],   # 'ZZ'
+                       [[True, False], [False, True]],  # 'ZX'
+                       [[False, False], [False, True]]]:  # 'IX'
             circ.h(qubit)
             _append_h(decouple_cliff, qubit)
 
-        elif typeq in [[[False, False], [True, True]],
-                       [[True, False], [True, True]]]:  # ["IY", "ZY"]
+        elif typeq in [[[False, False], [True, True]],  # 'IY'
+                       [[True, False], [True, True]]]:  # 'ZY'
             circ.s(qubit)
             circ.h(qubit)
             _append_s(decouple_cliff, qubit)
             _append_h(decouple_cliff, qubit)
 
-        elif typeq == [[True, True], [False, True]]:  # "YX"
+        elif typeq == [[True, True], [False, True]]:  # 'YX'
             circ.h(qubit)
             circ.s(qubit)
             _append_h(decouple_cliff, qubit)
             _append_s(decouple_cliff, qubit)
 
-        elif typeq == [[False, True], [True, True]]:  # "XY"
+        elif typeq == [[False, True], [True, True]]:  # 'XY'
             circ.s(qubit)
             circ.h(qubit)
             circ.s(qubit)
