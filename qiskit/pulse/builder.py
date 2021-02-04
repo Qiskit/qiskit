@@ -1676,13 +1676,13 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within the currently active builder context.
-    
+
     .. note::
         The ``target`` program is implicitly wrapped by the ``Call`` instruction.
         This instruction defines a subroutine that is created outside of the current scope.
         Thus further optimizations, i.e. consecutive gate fusion and scheduling,
         are not performed between subroutines.
-    
+
     Examples:
 
     .. jupyter-execute::
