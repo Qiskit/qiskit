@@ -61,7 +61,14 @@ class CalibrationCreator(TransformationPass):
 class RZXCalibrationBuilder(CalibrationCreator):
     """
     Creates calibrations for RZXGate(theta) by stretching and compressing
-    Gaussian square pulses.
+    Gaussian square pulses in the CX gate. This is done by retrieving (for a given pair of
+    qubits) the CX schedule in the instruction schedule map of the backend defaults.
+    The CX schdule must be an echoed cross-resonance gate optionally with rotary tones.
+    The cross-resonance drive tones and rotary pulses must be Gaussian square pulses.
+    The width of the Gaussian square pulse is adjusted so as to match the desired rotation angle.
+    If the rotation angle is small such that the width disapears then the amplitude of the
+    zero width Gaussian square pulse (i.e. a Gaussian) is reduced to reach the target rotation
+    angle.
     """
 
     def __init__(self, backend: basebackend):
