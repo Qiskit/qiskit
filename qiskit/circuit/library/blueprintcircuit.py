@@ -59,7 +59,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _build(self) -> None:
         """Build the circuit."""
         # do not build the circuit if _data is already populated
-        if self._data:
+        if self._data is not None:
             return
 
         self._data = []
@@ -120,6 +120,16 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().size()
+
+    def to_instruction(self, parameter_map=None):
+        if self._data is None:
+            self._build()
+        return super().to_instruction(parameter_map)
+
+    def to_gate(self, parameter_map=None, label=None):
+        if self._data is None:
+            self._build()
+        return super().to_gate(parameter_map, label=label)
 
     def depth(self):
         if self._data is None:

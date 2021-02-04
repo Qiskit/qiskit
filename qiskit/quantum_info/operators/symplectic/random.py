@@ -16,9 +16,37 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
+from .pauli import Pauli
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
 from .pauli_table import PauliTable
+
+
+def random_pauli(num_qubits, group_phase=False, seed=None):
+    """Return a random Pauli.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        group_phase (bool): Optional. If True generate random phase.
+                            Otherwise the phase will be set so that the
+                            Pauli coefficient is +1 (default: False).
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
+
+    Returns:
+        Pauli: a random Pauli
+    """
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = default_rng(seed)
+    z = rng.integers(2, size=num_qubits, dtype=bool)
+    x = rng.integers(2, size=num_qubits, dtype=bool)
+    phase = rng.integers(4) if group_phase else 0
+    pauli = Pauli((z, x, phase))
+    return pauli
 
 
 def random_pauli_table(num_qubits, size=1, seed=None):
@@ -40,7 +68,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     else:
         rng = default_rng(seed)
 
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
     return PauliTable(table)
 
 
@@ -63,8 +91,8 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     else:
         rng = default_rng(seed)
 
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
-    phase = rng.integers(2, size=size).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
+    phase = rng.integers(2, size=size).astype(bool)
     return StabilizerTable(table, phase)
 
 
@@ -131,10 +159,10 @@ def random_clifford(num_qubits, seed=None):
     table[lhs_inds, :] = table[rhs_inds, :]
 
     # Apply table
-    table = np.mod(np.matmul(table1, table), 2).astype(np.bool)
+    table = np.mod(np.matmul(table1, table), 2).astype(bool)
 
     # Generate random phases
-    phase = rng.integers(2, size=2 * num_qubits).astype(np.bool)
+    phase = rng.integers(2, size=2 * num_qubits).astype(bool)
     return Clifford(StabilizerTable(table, phase))
 
 
@@ -145,7 +173,7 @@ def _sample_qmallows(n, rng=None):
         rng = np.random.default_rng()
 
     # Hadmard layer
-    had = np.zeros(n, dtype=np.bool)
+    had = np.zeros(n, dtype=bool)
 
     # Permutation layer
     perm = np.zeros(n, dtype=int)

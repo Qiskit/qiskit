@@ -16,10 +16,10 @@
 import copy
 from typing import Any, Dict, List
 
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.schedule import ParameterizedSchedule
 
 
 class MeasurementKernel:
@@ -202,7 +202,7 @@ class PulseDefaults:
         self.converter = QobjToInstructionConverter(pulse_library)
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
+            schedule = Schedule(*pulse_insts, name=inst.name)
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
         if meas_kernel is not None:

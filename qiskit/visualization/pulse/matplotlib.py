@@ -30,7 +30,7 @@ from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
-from qiskit.pulse import (Waveform, SamplePulse, Snapshot, Play,
+from qiskit.pulse import (Waveform, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
@@ -232,7 +232,7 @@ class EventsOutputChannels:
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
                     command = command.get_waveform()
-                if isinstance(command, (Waveform, SamplePulse)):
+                if isinstance(command, Waveform):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
                     self._labels[time] = (tf, command)

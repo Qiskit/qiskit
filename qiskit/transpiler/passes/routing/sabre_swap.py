@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import copy
+from copy import copy, deepcopy
 from itertools import cycle
 import numpy as np
 
@@ -118,7 +118,14 @@ class SabreSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+
+        # Assume bidirectional couplings, fixing gate direction is easy later.
+        if coupling_map.is_symmetric:
+            self.coupling_map = coupling_map
+        else:
+            self.coupling_map = deepcopy(coupling_map)
+            self.coupling_map.make_symmetric()
+
         self.heuristic = heuristic
         self.seed = seed
         self.applied_gates = None
@@ -146,9 +153,6 @@ class SabreSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = dag._copy_circuit_metadata()
 
-        # Assume bidirectional couplings, fixing gate direction is easy later.
-        self.coupling_map.make_symmetric()
-
         canonical_register = dag.qregs['q']
         current_layout = Layout.generate_trivial_layout(canonical_register)
 
@@ -167,8 +171,8 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    physical_qubits = (current_layout[v0], current_layout[v1])
-                    if physical_qubits in self.coupling_map.get_edges():
+                    if self.coupling_map.graph.has_edge(current_layout[v0],
+                                                        current_layout[v1]):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
                     execute_gate_list.append(node)
@@ -348,6 +352,6 @@ def _transform_gate_for_layout(op_node, layout):
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs
     mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
-    mapped_op_node.qargs = mapped_op_node.op.qargs = list(mapped_qargs)
+    mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node
