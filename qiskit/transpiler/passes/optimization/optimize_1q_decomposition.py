@@ -19,6 +19,8 @@ import numpy as np
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.circuit import ParameterExpression
 from qiskit.converters import circuit_to_dag
 
 LOG = logging.getLogger(__name__)
@@ -70,14 +72,20 @@ class Optimize1qGatesDecomposition(TransformationPass):
         runs = dag.collect_1q_runs()
         identity_matrix = np.eye(2)
         for run in runs:
-            # Don't try to optimize a single 1q gate
+            single_u3 = False
+            # Don't try to optimize a single 1q gate, except for U3
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
                 if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
                                                       identity_matrix):
                     dag.remove_op_node(run[0])
-                continue
+                    continue
+                if (isinstance(run[0].op, U3Gate) and not isinstance(params[0], ParameterExpression)
+                        and (np.isclose(params[0], [0, np.pi/2], atol=1e-12, rtol=1e-12).any())):
+                    single_u3 = True
+                else:
+                    continue
 
             new_circs = []
             operator = Operator(run[0].op)
@@ -87,7 +95,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if len(run) > len(new_circ):
+                if len(run) > len(new_circ) or single_u3:
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run

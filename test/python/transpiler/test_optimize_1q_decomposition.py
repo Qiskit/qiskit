@@ -364,19 +364,17 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         self.assertEqual(expected, result)
 
     def test_optimize_u_to_p_sx_p(self):
-        """U(pi/2, 0, pi/4) ->  p(-pi/4)-sx-p(p/2). Basis [p, sx, cx]."""
+        """U(pi/2, 0, pi/4) ->  p(-pi/4)-sx-p(p/2). Basis [p, sx]."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.append(UGate(np.pi / 2, 0, np.pi / 4), [qr[0]])
-        circuit.cx(0, 1)
 
         expected = QuantumCircuit(qr, global_phase=-np.pi/4)
         expected.append(PhaseGate(-np.pi / 4), [qr[0]])
         expected.append(SXGate(), [qr[0]])
         expected.append(PhaseGate(np.pi / 2), [qr[0]])
-        expected.cx(0, 1)
 
-        basis = ['p', 'sx', 'cx']
+        basis = ['p', 'sx']
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
@@ -389,10 +387,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.append(U3Gate(0, 0, np.pi / 4), [qr[0]])
-        circuit.append(U3Gate(0, 0, np.pi / 2), [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(3 * np.pi / 4), [qr[0]])
+        expected.append(U1Gate(np.pi / 4), [qr[0]])
 
         basis = ['u1', 'u2', 'u3']
         passmanager = PassManager()
@@ -407,10 +404,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.append(U3Gate(np.pi / 2, 0, np.pi / 4), [qr[0]])
-        circuit.append(U3Gate(0, 0, np.pi / 4), [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.append(U2Gate(np.pi / 4, np.pi / 4), [qr[0]])
+        expected.append(U2Gate(0, np.pi / 4), [qr[0]])
 
         basis = ['u1', 'u2', 'u3']
         passmanager = PassManager()
