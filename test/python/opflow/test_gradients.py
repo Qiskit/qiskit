@@ -70,6 +70,7 @@ def _sample_most_likely(state_vector):
             k >>= 1
         return x
 
+
 @ddt
 class TestGradients(QiskitOpflowTestCase):
     """ Test Qiskit Gradient Framework """
