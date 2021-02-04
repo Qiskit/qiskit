@@ -24,6 +24,14 @@ from qiskit.circuit.tools import UnitaryEquivalenceChecker
 class TestEquivalenceChecker(QiskitTestCase):
     """Test equivalence checker"""
 
+    def setUp(self) -> None:
+        super().setUp()
+        try:
+            from qiskit import Aer
+            self.aer_installed = True
+        except ImportError:
+            self.aer_installed = False
+
     def verify_result(self, checkers, circ1, circ2,
                       success, equivalent,
                       phase):
@@ -41,9 +49,10 @@ class TestEquivalenceChecker(QiskitTestCase):
     def test_equivalence_checkers_equal_phase(self):
         """Test equivalence chekcers for valid circuits, requiring equal phase"""
         checkers = [
-            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi'),
-            UnitaryEquivalenceChecker('aer', 'unitary_aer'),
+            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi')
             ]
+        if self.aer_installed:
+            checkers.append(UnitaryEquivalenceChecker('aer', 'unitary_aer'))
 
         circ1 = QuantumCircuit(2)
         circ1.cx(0, 1)
@@ -63,9 +72,10 @@ class TestEquivalenceChecker(QiskitTestCase):
     def test_equivalence_checkers_up_to_global_phase(self):
         """Test equivalence chekcers for valid circuits, requiring up-to-global phase"""
         checkers = [
-            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi'),
-            UnitaryEquivalenceChecker('aer', 'unitary_aer'),
+            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi')
             ]
+        if self.aer_installed:
+            checkers.append(UnitaryEquivalenceChecker('aer', 'unitary_aer'))
 
         circ1 = QuantumCircuit(1)
         circ1.x(0)
@@ -83,9 +93,10 @@ class TestEquivalenceChecker(QiskitTestCase):
     def test_error_in_unitary_checker(self):
         """Test error messages for invalid circuits"""
         checkers = [
-            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi'),
-            UnitaryEquivalenceChecker('aer', 'unitary_aer'),
+            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi')
             ]
+        if self.aer_installed:
+            checkers.append(UnitaryEquivalenceChecker('aer', 'unitary_aer'))
 
         circ1 = QuantumCircuit(1, 1)
         circ1.measure(0, 0)
@@ -102,9 +113,10 @@ class TestEquivalenceChecker(QiskitTestCase):
     def test_error_in_large_circuits(self):
         """Test error messages for large circuits"""
         checkers = [
-            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi'),
-            UnitaryEquivalenceChecker('aer', 'unitary_aer'),
+            UnitaryEquivalenceChecker('quantum_info', 'unitary_qi')
             ]
+        if self.aer_installed:
+            checkers.append(UnitaryEquivalenceChecker('aer', 'unitary_aer'))
 
         circ = QuantumCircuit(40)
         self.verify_result(checkers, circ, circ, False, None, 'equal')
