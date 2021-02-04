@@ -300,6 +300,7 @@ class TestParameters(QiskitTestCase):
         """Verify binding parameters which are not present in the circuit raises an error."""
         x = Parameter('x')
         y = Parameter('y')
+        z = ParameterVector('z', 3)
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
 
@@ -309,9 +310,12 @@ class TestParameters(QiskitTestCase):
             with self.subTest(assign_fun=assign_fun):
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
-
                 qc.p(x, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1, y: 2})
+                qc.p(z[1], qr[0])
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {z: [3, 4, 5]})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {'a_str': 6})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {None: 7})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
