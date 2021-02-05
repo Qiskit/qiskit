@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix a bug in the ``PauliTwoDesign`` circuit, where calling ``assign_parameters``
+    would add a new layer of RY gates at the front of the circuit.
