@@ -196,11 +196,11 @@ class StabilizerTable(PauliTable):
 
         # Initialize the phase vector
         if phase is None or phase is False:
-            self._phase = np.zeros(self.size, dtype=np.bool)
+            self._phase = np.zeros(self.size, dtype=bool)
         elif phase is True:
-            self._phase = np.ones(self.size, dtype=np.bool)
+            self._phase = np.ones(self.size, dtype=bool)
         else:
-            self._phase = np.asarray(phase, dtype=np.bool)
+            self._phase = np.asarray(phase, dtype=bool)
             if self._phase.shape != (self.size, ):
                 raise QiskitError("Phase vector is incorrect shape.")
 
@@ -604,7 +604,7 @@ class StabilizerTable(PauliTable):
             minus = (x1 & z2 & (x2 | z1)) | (~x1 & x2 & z1 & ~z2)
         else:
             minus = (x2 & z1 & (x1 | z2)) | (~x2 & x1 & z2 & ~z1)
-        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=np.bool)
+        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=bool)
         phase = phase_shift ^ phase1 ^ phase2
         return StabilizerTable(pauli, phase)
 
@@ -681,7 +681,7 @@ class StabilizerTable(PauliTable):
 
         # Pad other with identity and then add
         padded = StabilizerTable(
-            np.zeros((1, 2 * self.num_qubits), dtype=np.bool))
+            np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
 
         return StabilizerTable(
@@ -705,13 +705,13 @@ class StabilizerTable(PauliTable):
             QiskitError: if other is not in (False, True, 1, -1).
         """
         # Numeric (integer) value case
-        if not isinstance(other, (bool, np.bool)) and other not in [1, -1]:
+        if not isinstance(other, bool) and other not in [1, -1]:
             raise QiskitError(
                 "Can only multiply a Stabilizer value by +1 or -1 phase.")
 
         # We have to be careful we don't cast True <-> +1 when
         # we store -1 phase as boolen True value
-        if (isinstance(other, (bool, np.bool)) and other) or other == -1:
+        if (isinstance(other, bool) and other) or other == -1:
             ret = self.copy()
             ret._phase ^= True
             return ret
@@ -795,8 +795,8 @@ class StabilizerTable(PauliTable):
             raise QiskitError("Input Pauli list is empty.")
         # Get size from first Pauli
         pauli, phase = cls._from_label(labels[0])
-        table = np.zeros((n_paulis, len(pauli)), dtype=np.bool)
-        phases = np.zeros(n_paulis, dtype=np.bool)
+        table = np.zeros((n_paulis, len(pauli)), dtype=bool)
+        phases = np.zeros(n_paulis, dtype=bool)
         table[0], phases[0] = pauli, phase
         for i in range(1, n_paulis):
             table[i], phases[i] = cls._from_label(labels[i])
