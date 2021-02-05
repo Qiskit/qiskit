@@ -26,8 +26,6 @@ from .linear_solver import LinearSolver, LinearSolverResult
 from .observables.linear_system_observable import LinearSystemObservable
 
 
-# logger = logging.getLogger(__name__)
-
 class HHL(LinearSolver):
     """The HHL algorithm to solve systems of linear equations"""
 
@@ -331,10 +329,13 @@ class HHL(LinearSolver):
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
             vector: The vector specifying the right hand side of the equation in Ax=b.
-            observable: Information to be extracted from the solution.
-                Default is `EuclideanNorm`
-            observable_circuit: Circuit to be applied to the solution to extract information.
-            post_processing: Function to compute the value of the observable.
+            observable: Optional information to be extracted from the solution.
+                Default is the probability of success of the algorithm.
+            observable_circuit: Optional circuit to be applied to the solution to extract
+             information.
+                Default is `None`.
+            post_processing: Optional function to compute the value of the observable.
+                Default is the raw value of measuring the observable.
 
         Returns:
             The result of the linear system.

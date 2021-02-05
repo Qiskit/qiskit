@@ -49,9 +49,13 @@ class LinearSolverResult(AlgorithmResult):
         return self._observable
 
     @observable.setter
-    def observable(self, observable: Optional[Union[float, List[float]]]) -> None:
-        if self._observable is None or observable != self._observable:
-            self._observable = observable
+    def observable(self, observable: Union[float, List[float]]) -> None:
+        """Set the value(s) of the observable(s).
+
+        Args:
+            observable: The new value(s) of the observable(s).
+        """
+        self._observable = observable
 
     @property
     def state(self) -> Union[QuantumCircuit, np.ndarray]:
@@ -60,8 +64,12 @@ class LinearSolverResult(AlgorithmResult):
 
     @state.setter
     def state(self, state: Union[QuantumCircuit, np.ndarray]) -> None:
-        if self._state is None or state != self._state:
-            self._state = state
+        """Set the solution state as either the circuit that prepares it or as a vector.
+
+        Args:
+            state: The new solution state.
+        """
+        self._state = state
 
     @property
     def euclidean_norm(self) -> float:
@@ -70,8 +78,12 @@ class LinearSolverResult(AlgorithmResult):
 
     @euclidean_norm.setter
     def euclidean_norm(self, norm: float) -> None:
-        if self._euclidean_norm is None or norm != self._euclidean_norm:
-            self._euclidean_norm = norm
+        """Set the euclidean norm of the solution.
+
+        Args:
+            norm: The new euclidean norm of the solution.
+        """
+        self._euclidean_norm = norm
 
     @property
     def circuit_results(self) -> Union[List[float], List[Result]]:
@@ -100,10 +112,13 @@ class LinearSolver(ABC):
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
             vector: The vector specifying the right hand side of the equation in Ax=b.
-            observable: Information to be extracted from the solution.
-                Default is `EuclideanNorm`
-            observable_circuit: Circuit to be applied to the solution to extract information.
-            post_processing: Function to compute the value of the observable.
+            observable: Optional information to be extracted from the solution.
+                Default is the probability of success of the algorithm.
+            observable_circuit: Optional circuit to be applied to the solution to extract
+             information.
+                Default is `None`.
+            post_processing: Optional function to compute the value of the observable.
+                Default is the raw value of measuring the observable.
 
         Returns:
             The result of the linear system.
