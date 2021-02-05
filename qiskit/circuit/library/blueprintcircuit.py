@@ -90,7 +90,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().data
 
-    def qasm(self, formatted=False, filename=None):
+    def qasm(self, formatted=False, filename=None, encoding='utf-8'):
         if self._data is None:
             self._build()
         return super().qasm(formatted, filename)
