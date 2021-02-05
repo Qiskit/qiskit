@@ -25,39 +25,10 @@ from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.visualization.array import _matrix_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
-from .matplotlib import HAS_MATPLOTLIB, HAS_IPYTHON
-
-if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-    from matplotlib.patches import FancyArrowPatch
-    from matplotlib.patches import Circle
-    import matplotlib.colors as mcolors
-    from matplotlib.colors import Normalize, LightSource
-    import matplotlib.gridspec as gridspec
-    from mpl_toolkits.mplot3d import proj3d
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.visualization.exceptions import VisualizationError
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
-    from qiskit.circuit.tools.pi_check import pi_check
-
-
-if HAS_MATPLOTLIB:
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
-
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
-
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({'rho': 'state'})
@@ -1202,15 +1173,16 @@ def state_drawer(state,
     if output == 'markdown_source':
         return _repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix)
     if output == 'markdown':
-        if HAS_IPYTHON:
+        try:
             from IPython.display import Markdown
+        except ImportError:
+            raise ImportError('IPython is not installed, to install run:'
+                              '"pip install ipython".')
+        else:
             return Markdown(_repr_state_markdown(state,
                                                  max_size=max_size,
                                                  dims=dims,
                                                  prefix=prefix))
-        else:
-            raise ImportError('IPython is not installed, to install run:'
-                              '"pip install ipython".')
     if output == 'latex_source':
         return _repr_state_latex(state, max_size)
     if output == 'qsphere':

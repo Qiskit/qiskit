@@ -31,12 +31,6 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-try:
-    from IPython.display import Markdown
-    HAS_IPYTHON = True
-except ImportError:
-    HAS_IPYTHON = False
-
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
