@@ -270,8 +270,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(q[2]), 2400)
         self.assertEqual(sc.qubit_start_time(*q), 300)
         self.assertEqual(sc.qubit_stop_time(*q), 2400)
-<<<<<<< HEAD
-=======
 
     def test_change_dt_in_transpile(self):
         qc = QuantumCircuit(1, 1)
@@ -305,4 +303,3 @@ class TestScheduledCircuit(QiskitTestCase):
                        scheduling_method=scheduling_method)
         cxs = [inst for inst, _, _ in sc.data if inst.name == 'cx']
         self.assertNotEqual(cxs[0].duration, cxs[1].duration)
->>>>>>> d9756ac6f... Fix incorrect durations in scheduled circuit (#5778)
