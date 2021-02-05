@@ -26,6 +26,8 @@ from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.barrier import Barrier
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Pauli(BasePauli):
@@ -1045,3 +1047,7 @@ def _phase_from_label(label):
     if label not in phases:
         raise QiskitError("Invalid Pauli phase label '{}'".format(label))
     return phases.get(label)
+
+
+# Update docstrings for API docs
+generate_apidocs(Pauli)

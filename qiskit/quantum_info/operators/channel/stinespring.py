@@ -27,6 +27,8 @@ from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_stinespring
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Stinespring(QuantumChannel):
@@ -281,3 +283,7 @@ class Stinespring(QuantumChannel):
             stine_r = num * self._data[1]
         ret._data = (stine_l, stine_r)
         return ret
+
+
+# Update docstrings for API docs
+generate_apidocs(Stinespring)

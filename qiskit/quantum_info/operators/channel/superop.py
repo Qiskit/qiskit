@@ -26,6 +26,8 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.transformations import _to_superop
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class SuperOp(QuantumChannel):
@@ -353,3 +355,7 @@ class SuperOp(QuantumChannel):
                 else:
                     new_qargs = [qargs[tup.index] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
+
+
+# Update docstrings for API docs
+generate_apidocs(SuperOp)

@@ -25,6 +25,7 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class Clifford(BaseOperator):
@@ -520,3 +521,7 @@ class Clifford(BaseOperator):
         padded.table.phase[inds] = clifford.table.phase
 
         return padded
+
+
+# Update docstrings for API docs
+generate_apidocs(Clifford)

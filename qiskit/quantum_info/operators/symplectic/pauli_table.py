@@ -21,6 +21,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class PauliTable(BaseOperator):
@@ -1062,3 +1063,7 @@ class PauliTable(BaseOperator):
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(PauliTable)

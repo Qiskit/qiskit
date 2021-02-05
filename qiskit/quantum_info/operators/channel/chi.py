@@ -26,6 +26,8 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_chi
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Chi(QuantumChannel):
@@ -174,3 +176,7 @@ class Chi(QuantumChannel):
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)
         return ret
+
+
+# Update docstrings for API docs
+generate_apidocs(Chi)

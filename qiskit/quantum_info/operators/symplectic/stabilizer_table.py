@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class StabilizerTable(PauliTable):
@@ -1039,3 +1040,7 @@ class StabilizerTable(PauliTable):
                                            self.obj.phase[key],
                                            sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(StabilizerTable)

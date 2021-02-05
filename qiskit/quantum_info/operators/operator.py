@@ -26,6 +26,8 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.linear_op import LinearOp
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Operator(LinearOp):
@@ -484,3 +486,7 @@ class Operator(LinearOp):
                 else:
                     new_qargs = [qargs[tup.index] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
+
+
+# Update docstrings for API docs
+generate_apidocs(Operator)

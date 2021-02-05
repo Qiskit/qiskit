@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class SparsePauliOp(LinearOp):
@@ -484,3 +485,7 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(SparsePauliOp)

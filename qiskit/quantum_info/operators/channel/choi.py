@@ -27,6 +27,8 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Choi(QuantumChannel):
@@ -201,3 +203,7 @@ class Choi(QuantumChannel):
                                       shape1=a._bipartite_shape,
                                       shape2=b._bipartite_shape)
         return ret
+
+
+# Update docstrings for API docs
+generate_apidocs(Choi)

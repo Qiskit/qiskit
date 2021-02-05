@@ -28,6 +28,8 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
+from qiskit.quantum_info.operators.mixins import generate_apidocs
+
 
 
 class Kraus(QuantumChannel):
@@ -325,3 +327,7 @@ class Kraus(QuantumChannel):
             kraus_r = [val * k for k in self._data[1]]
         ret._data = (kraus_l, kraus_r)
         return ret
+
+
+# Update docstrings for API docs
+generate_apidocs(Kraus)

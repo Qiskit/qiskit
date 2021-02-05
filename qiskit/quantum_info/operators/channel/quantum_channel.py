@@ -119,11 +119,11 @@ class QuantumChannel(LinearOp):
             n (float): the power exponent.
 
         Returns:
-            {cls}: the channel :math:`\mathcal{{E}} ^n`.
+            CLASS: the channel :math:`\mathcal{{E}} ^n`.
 
         Raises:
             QiskitError: if the input and output dimensions of the
-                         {cls} are not equal.
+                         CLASS are not equal.
 
         .. note::
             For non-positive or non-integer exponents the power is
@@ -132,7 +132,7 @@ class QuantumChannel(LinearOp):
             ie. for a channel :math:`\mathcal{{E}}`, the SuperOp of
             the powered channel :math:`\mathcal{{E}}^\n` is
             :math:`S_{{\mathcal{{E}}^n}} = S_{{\mathcal{{E}}}}^n`.
-        """.format(cls=type(self).__name__)
+        """
         if n > 0 and isinstance(n, Integral):
             return super().power(n)
 
