@@ -102,7 +102,7 @@ class CheckDecompositions(QiskitTestCase):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
         decomp = TwoQubitWeylDecomposition(target_unitary)
-        op = Operator(np.eye(4))
+        op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
         for u, qs in (
                 (decomp.K2r, [0]),
                 (decomp.K2l, [1]),
@@ -112,24 +112,16 @@ class CheckDecompositions(QiskitTestCase):
         ):
             op = op.compose(u, qs)
         decomp_unitary = op.data
-        target_unitary *= la.det(target_unitary) ** (-0.25)
-        decomp_unitary *= la.det(decomp_unitary) ** (-0.25)
-        maxdists = [np.max(np.abs(target_unitary + phase * decomp_unitary))
-                    for phase in [1, 1j, -1, -1j]]
-        maxdist = np.min(maxdists)
+        maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
 
     def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
         """Check exact decomposition for a particular target"""
         decomp_circuit = decomposer(target_unitary)
-        result = execute(decomp_circuit, UnitarySimulatorPy()).result()
+        result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
         decomp_unitary = result.get_unitary()
-        target_unitary *= la.det(target_unitary) ** (-0.25)
-        decomp_unitary *= la.det(decomp_unitary) ** (-0.25)
-        maxdists = [np.max(np.abs(target_unitary + phase * decomp_unitary))
-                    for phase in [1, 1j, -1, -1j]]
-        maxdist = np.min(maxdists)
+        maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
 
