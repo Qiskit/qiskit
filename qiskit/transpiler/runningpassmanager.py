@@ -75,6 +75,7 @@ class RunningPassManager:
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
+        # attaches the property set to the controller so it has access to it.
         if isinstance(passes, ConditionalController):
             passes.condition = partial(passes.condition, self.fenced_property_set)
             self.working_list.append(passes)
