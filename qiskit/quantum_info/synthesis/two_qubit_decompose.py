@@ -422,9 +422,11 @@ class TwoQubitBasisDecomposer():
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target, basis_fidelity=None):
+    def __call__(self, target, basis_fidelity=None, num_basis_uses=None):
         """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite fidelity.
+
+        You can force a particular approximation by passing num_basis_uses.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
         if hasattr(target, 'to_operator'):
@@ -449,6 +451,8 @@ class TwoQubitBasisDecomposer():
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
         best_nbasis = np.argmax(expected_fidelities)
+        if num_basis_uses is not None:
+            best_nbasis = num_basis_uses
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
         decomposition_euler = [self._decomposer1q(x) for x in decomposition]
 
