@@ -308,7 +308,7 @@ def _bloch_multivector_data(state):
     bloch_data = []
     for i in range(num):
         if num > 1:
-            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=np.bool)).insert(
+            paulis = PauliTable(np.zeros((3, 2 * (num-1)), dtype=bool)).insert(
                 i, pauli_singles, qubit=True)
         else:
             paulis = pauli_singles

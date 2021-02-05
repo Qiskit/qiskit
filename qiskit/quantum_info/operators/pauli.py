@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 def _make_np_bool(arr):
     if not isinstance(arr, (list, np.ndarray, tuple)):
         arr = [arr]
-    arr = np.asarray(arr).astype(np.bool)
+    arr = np.asarray(arr).astype(bool)
     return arr
 
 
@@ -104,8 +104,8 @@ class Pauli:
         Raises:
             QiskitError: invalid character in the label
         """
-        z = np.zeros(len(label), dtype=np.bool)
-        x = np.zeros(len(label), dtype=np.bool)
+        z = np.zeros(len(label), dtype=bool)
+        x = np.zeros(len(label), dtype=bool)
         for i, char in enumerate(label):
             if char == 'X':
                 x[-i - 1] = True
@@ -460,8 +460,8 @@ class Pauli:
             Pauli: the random pauli
         """
         rng = np.random.default_rng(seed)
-        z = rng.integers(2, size=num_qubits).astype(np.bool)
-        x = rng.integers(2, size=num_qubits).astype(np.bool)
+        z = rng.integers(2, size=num_qubits).astype(bool)
+        x = rng.integers(2, size=num_qubits).astype(bool)
         return cls(z, x)
 
     @classmethod
@@ -478,8 +478,8 @@ class Pauli:
             Pauli: single qubit pauli
         """
         tmp = Pauli.from_label(pauli_label)
-        z = np.zeros(num_qubits, dtype=np.bool)
-        x = np.zeros(num_qubits, dtype=np.bool)
+        z = np.zeros(num_qubits, dtype=bool)
+        x = np.zeros(num_qubits, dtype=bool)
 
         z[index] = tmp.z[0]
         x[index] = tmp.x[0]
@@ -549,8 +549,8 @@ def pauli_group(number_of_qubits, case='weight'):
         elif case == 'tensor':
             # the Pauli set is in tensor order II IX IY IZ XI ...
             for k in range(4 ** number_of_qubits):
-                z = np.zeros(number_of_qubits, dtype=np.bool)
-                x = np.zeros(number_of_qubits, dtype=np.bool)
+                z = np.zeros(number_of_qubits, dtype=bool)
+                x = np.zeros(number_of_qubits, dtype=bool)
                 # looping over all the qubits
                 for j in range(number_of_qubits):
                     # making the Pauli for each j fill it in from the
