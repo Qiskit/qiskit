@@ -911,7 +911,7 @@ class PauliTable(BaseOperator):
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
         dim = 2 ** self.num_qubits
-        ret = np.zeros((self.size, dim, dim), dtype=np.complex)
+        ret = np.zeros((self.size, dim, dim), dtype=complex)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i])
         return ret

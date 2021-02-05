@@ -478,8 +478,8 @@ class Pauli:
             Pauli: single qubit pauli
         """
         tmp = Pauli.from_label(pauli_label)
-        z = np.zeros(num_qubits, dtype=np.bool)
-        x = np.zeros(num_qubits, dtype=np.bool)
+        z = np.zeros(num_qubits, dtype=bool)
+        x = np.zeros(num_qubits, dtype=bool)
 
         z[index] = tmp.z[0]
         x[index] = tmp.x[0]
