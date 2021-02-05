@@ -15,14 +15,12 @@ import os
 import subprocess
 import sys
 
-os.environ['QISKIT_SUPPRESS_PACKAGING_WARNINGS'] = 'Y'
-
-import qiskit
-
 
 def main():
     optional_imports = ['networkx', 'sympy', 'pydot', 'ipywidgets',
-                        'scipy.stats']
+                        'scipy.stats', 'matplotlib', 'qiskit.providers.aer',
+                        'qiskit.providers.ibmq', 'qiskit.ignis',
+                        'qiskit.aqua']
 
     modules_imported = []
     for mod in optional_imports:
