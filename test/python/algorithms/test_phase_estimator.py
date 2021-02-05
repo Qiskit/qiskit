@@ -154,10 +154,12 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
 
     # pylint: disable=invalid-name
     def one_phase(self, unitary_circuit, state_preparation=None, n_eval_qubits=6,
-                  backend=qiskit.BasicAer.get_backend('qasm_simulator')):
+                  backend=None):
         """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
         `state_preparation`. Return the bit string with the largest amplitude.
         """
+        if backend is None:
+            backend = qiskit.BasicAer.get_backend('qasm_simulator')
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         p_est = PhaseEstimation(num_evaluation_qubits=n_eval_qubits,
                                 unitary=unitary_circuit,
