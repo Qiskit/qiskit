@@ -201,6 +201,9 @@ class HHL(LinearSolver):
 
         Returns:
             QuantumCircuit: the QuantumCircuit object for the constructed circuit
+
+        Raises:
+            ValueError: If the input is not in the correct format.
         """
         # State preparation circuit - default is qiskit
         if isinstance(vector, QuantumCircuit):
@@ -210,8 +213,6 @@ class HHL(LinearSolver):
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb).initialize(vector / np.linalg.norm(vector),
                                                            list(range(nb)))
-        else:
-            raise ValueError("Input vector type must be either QuantumCircuit or numpy ndarray.")
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
@@ -219,7 +220,6 @@ class HHL(LinearSolver):
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
             matrix_circuit = matrix
-            matrix_array = matrix.matrix
         elif isinstance(matrix, np.ndarray):
             if matrix.shape[0] != matrix.shape[1]:
                 raise ValueError("Input matrix must be square!")
@@ -230,10 +230,6 @@ class HHL(LinearSolver):
             if matrix.shape[0] != 2 ** vector_circuit.num_qubits:
                 raise ValueError("Input vector dimension does not match input "
                                  "matrix dimension!")
-            matrix_array = matrix
-            # TODO add message not yet supported - check matrixOp & then call evolution
-        else:
-            raise ValueError("Input matrix type must be either QuantumCircuit or numpy ndarray.")
 
         # Set the tolerance for the matrix approximation
         matrix_circuit.tolerance = self._epsilon_a
@@ -342,24 +338,12 @@ class HHL(LinearSolver):
 
         Returns:
             The result of the linear system.
-
-        Raises:
-            ValueError: If the input is not in the correct format.
         """
-        if isinstance(vector, QuantumCircuit):
-            nb = vector.num_qubits
-        elif isinstance(vector, np.ndarray):
-            nb = int(np.log2(len(vector)))
-        else:
-            raise ValueError("Input vector type must be either QuantumCircuit or numpy ndarray.")
-
         # Hamiltonian simulation circuit - default is Trotterization
         if isinstance(matrix, QuantumCircuit):
             matrix_array = matrix.matrix
         elif isinstance(matrix, np.ndarray):
             matrix_array = matrix
-        else:
-            raise ValueError("Input matrix type must be either QuantumCircuit or numpy ndarray.")
 
         lambda_min = min(np.abs(np.linalg.eigvals(matrix_array)))
 
@@ -368,6 +352,6 @@ class HHL(LinearSolver):
         solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
         # The post-rotating gates have already been applied
         solution.observable, solution.circuit_results = \
-            self._calculate_observable(solution.state, observable, observable_circuit, post_processing,
-                                       lambda_min)
+            self._calculate_observable(solution.state, observable, observable_circuit,
+                                       post_processing, lambda_min)
         return solution

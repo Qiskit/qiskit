@@ -127,8 +127,8 @@ class Tridiagonal(LinearSystemMatrix):
         self._evo_time = evo_time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
         self.trotter = min(self.num_state_qubits + 1,
-                            int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3)
-                                                / 2 / self.tolerance))))
+                           int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3)
+                                               / 2 / self.tolerance))))
 
     @property
     def trotter(self) -> int:

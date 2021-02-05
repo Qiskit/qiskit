@@ -63,7 +63,8 @@ class LinearSystemObservable(ABC):
 
     @abstractmethod
     def evaluate_classically(self, solution: np.array) -> float:
-        """Evaluates the given observable on the solution to the linear system.
+        """Calculates the analytical value of the given observable from the solution vector to the
+         linear system.
 
         Args:
             solution: The solution to the system as a numpy array.
