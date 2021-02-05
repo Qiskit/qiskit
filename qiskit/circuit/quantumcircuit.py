@@ -19,6 +19,7 @@ import itertools
 import sys
 import warnings
 import numbers
+import codecs
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
@@ -1131,12 +1132,13 @@ class QuantumCircuit:
 
         return qasm_string
 
-    def qasm(self, formatted=False, filename=None):
+    def qasm(self, formatted=False, filename=None, encoding='utf-8'):
         """Return OpenQASM string.
 
         Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
+            encoding (str): Specifies the encoding which is to be used for the file.
 
         Returns:
             str: If formatted=False.
@@ -1208,7 +1210,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
 
         if filename:
-            with open(filename, 'w+') as file:
+            with codecs.open(filename, 'w+', encoding) as file:
                 file.write(string_temp)
             file.close()
 
