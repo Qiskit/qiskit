@@ -1901,6 +1901,18 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.barrier(qr[1], qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_text_barrier_delay(self):
+        """idle_wires should ignore delay"""
+        expected = '\n'.join(["         ┌───┐ ░  ",
+                              "qr_1: |0>┤ H ├─░──",
+                              "         └───┘ ░  "])
+        qr = QuantumRegister(4, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
+        circuit.barrier()
+        circuit.delay(100, qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
 
 class TestTextNonRational(QiskitTestCase):
     """ non-rational numbers are correctly represented """

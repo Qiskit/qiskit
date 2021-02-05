@@ -12,8 +12,7 @@
 
 """Simultaneous Perturbation Stochastic Approximation optimizer."""
 
-import warnings
-from typing import Optional, List, Callable
+from typing import List, Callable
 import logging
 
 import numpy as np
@@ -70,8 +69,7 @@ class SPSA(Optimizer):
                  c2: float = 0.602,
                  c3: float = 0.101,
                  c4: float = 0,
-                 skip_calibration: bool = False,
-                 max_trials: Optional[int] = None) -> None:
+                 skip_calibration: bool = False) -> None:
         """
         Args:
             maxiter: Maximum number of iterations to perform.
@@ -84,17 +82,10 @@ class SPSA(Optimizer):
             c3: The gamma in the paper, and it is used to adjust c (c1) at each iteration.
             c4: The parameter used to control a as well.
             skip_calibration: Skip calibration and use provided c(s) as is.
-            max_trials: Deprecated, use maxiter.
         """
         validate_min('save_steps', save_steps, 1)
         validate_min('last_avg', last_avg, 1)
         super().__init__()
-        if max_trials is not None:
-            warnings.warn('The max_trials parameter is deprecated as of '
-                          '0.8.0 and will be removed no sooner than 3 months after the release. '
-                          'You should use maxiter instead.',
-                          DeprecationWarning)
-            maxiter = max_trials
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
