@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,10 +13,8 @@
 """The module for Quantum the Fisher Information."""
 
 from typing import List, Union
-import warnings
 
 import numpy as np
-from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
 
@@ -26,7 +24,6 @@ from ...operator_globals import I, Z, Y
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb
-from ...exceptions import OpflowError
 from .circuit_qfi import CircuitQFI
 
 
@@ -168,35 +165,3 @@ class LinCombFull(CircuitQFI):
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI
         return ListOp(qfi_operators, combo_fn=triu_to_dense)
-
-    @staticmethod
-    def trim_circuit(circuit: QuantumCircuit,
-                     reference_gate: Gate) -> QuantumCircuit:
-        """Trim the given quantum circuit before the reference gate.
-
-        Args:
-            circuit: The circuit to be trimmed.
-            reference_gate: The gate where the circuit is supposed to be trimmed.
-
-        Returns:
-            The trimmed circuit.
-
-        Raises:
-            OpflowError: If the reference gate is not part of the given circuit.
-        """
-        warnings.warn('The LinCombFull.trim_circuit method is deprecated as of Qiskit Terra '
-                      '0.17.0 and will be removed no earlier than 3 months after the release.',
-                      DeprecationWarning, stacklevel=2)
-
-        parameterized_gates = []
-        for _, elements in circuit._parameter_table.items():
-            for element in elements:
-                parameterized_gates.append(element[0])
-
-        for i, op in enumerate(circuit.data):
-            if op[0] == reference_gate:
-                trimmed_circuit = QuantumCircuit(*circuit.qregs)
-                trimmed_circuit.data = circuit.data[:i]
-                return trimmed_circuit
-
-        raise OpflowError('The reference gate is not in the given quantum circuit.')
