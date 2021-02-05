@@ -19,7 +19,6 @@ import itertools
 import sys
 import warnings
 import numbers
-import codecs
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
@@ -1210,7 +1209,7 @@ class QuantumCircuit:
             gate._qasm_def_written = False
 
         if filename:
-            with codecs.open(filename, 'w+', encoding) as file:
+            with open(filename, 'w+', encoding=encoding) as file:
                 file.write(string_temp)
             file.close()
 
