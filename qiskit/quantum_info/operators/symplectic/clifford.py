@@ -114,7 +114,7 @@ class Clifford(BaseOperator):
             if not data.is_unitary() or set(data._input_dims) != {2}:
                 raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
-                np.eye(2 * len(data._input_dims), dtype=np.bool))
+                np.eye(2 * len(data._input_dims), dtype=bool))
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
@@ -435,7 +435,7 @@ class Clifford(BaseOperator):
             raise QiskitError('Label contains invalid characters.')
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
-        op = Clifford(np.eye(2 * num_qubits, dtype=np.bool))
+        op = Clifford(np.eye(2 * num_qubits, dtype=bool))
         for qubit, char in enumerate(reversed(label)):
             _append_circuit(op, label_gates[char], qargs=[qubit])
         return op
@@ -455,10 +455,10 @@ class Clifford(BaseOperator):
         if mat.shape != (2 * dim, 2 * dim):
             return False
 
-        one = np.eye(dim, dtype=np.int)
-        zero = np.zeros((dim, dim), dtype=np.int)
+        one = np.eye(dim, dtype=int)
+        zero = np.zeros((dim, dim), dtype=int)
         seye = np.block([[zero, one], [one, zero]])
-        arr = mat.astype(np.int)
+        arr = mat.astype(int)
         return np.array_equal(np.mod(arr.T.dot(seye).dot(arr), 2), seye)
 
     @staticmethod
@@ -486,7 +486,7 @@ class Clifford(BaseOperator):
         if method in ['C', 'T']:
             # Apply conjugate
             ret.table.phase ^= np.mod(np.sum(
-                ret.table.X & ret.table.Z, axis=1), 2).astype(np.bool)
+                ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
         return ret
 
     def _tensor_product(self, other, reverse=False):
@@ -527,7 +527,7 @@ class Clifford(BaseOperator):
             return clifford
 
         padded = Clifford(StabilizerTable(
-            np.eye(2 * self.num_qubits, dtype=np.bool)), validate=False)
+            np.eye(2 * self.num_qubits, dtype=bool)), validate=False)
 
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
@@ -566,7 +566,7 @@ class Clifford(BaseOperator):
         phase = np.mod(array2.dot(phase1) + phase2, 2)
 
         # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=np.int)
+        ifacts = np.zeros(2 * num_qubits, dtype=int)
 
         for k in range(2 * num_qubits):
 
