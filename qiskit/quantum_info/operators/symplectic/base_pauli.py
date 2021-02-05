@@ -62,6 +62,12 @@ class BasePauli(BaseOperator, MultiplyMixin):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
+    def tensor(self, other):
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
         z = np.hstack([a._stack(b._z, a._num_paulis), a._z])
@@ -70,7 +76,7 @@ class BasePauli(BaseOperator, MultiplyMixin):
         return BasePauli(z, x, phase)
 
     # pylint: disable=arguments-differ
-    def _compose(self, other, qargs=None, front=False, inplace=False):
+    def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition of Paulis.
 
         Args:
@@ -226,8 +232,8 @@ class BasePauli(BaseOperator, MultiplyMixin):
 
         # Evolve via Pauli
         if isinstance(other, BasePauli):
-            ret = self._compose(other.adjoint(), qargs=qargs)
-            ret = ret._compose(other, front=True, qargs=qargs)
+            ret = self.compose(other.adjoint(), qargs=qargs)
+            ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
@@ -238,7 +244,7 @@ class BasePauli(BaseOperator, MultiplyMixin):
     # ---------------------------------------------------------------------
 
     def __imul__(self, other):
-        return self._compose(other, front=True, inplace=True)
+        return self.compose(other, front=True, inplace=True)
 
     def __neg__(self):
         ret = copy.copy(self)

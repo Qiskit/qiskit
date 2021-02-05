@@ -159,7 +159,7 @@ class Choi(QuantumChannel):
         ret._data = np.reshape(data, (d_in * d_out, d_in * d_out))
         return ret
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         if qargs is not None:
             return Choi(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -183,12 +183,18 @@ class Choi(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
+    def tensor(self, other):
+        if not isinstance(other, Choi):
+            other = Choi(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Choi):
+            other = Choi(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, Choi):
-            a = Choi(a)
-        if not isinstance(b, Choi):
-            b = Choi(b)
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = _bipartite_tensor(a._data, b.data,

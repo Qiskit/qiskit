@@ -565,7 +565,37 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().compose(other, qargs=qargs, front=front)
+        if not isinstance(other, StabilizerTable):
+            other = StabilizerTable(other)
+        if qargs is None and other.num_qubits != self.num_qubits:
+            raise QiskitError("other StabilizerTable must be on the same number of qubits.")
+        if qargs and other.num_qubits != len(qargs):
+            raise QiskitError("Number of qubits in the other StabilizerTable does not match qargs.")
+
+        # Stack X and Z blocks for output size
+        x1, x2 = self._block_stack(self.X, other.X)
+        z1, z2 = self._block_stack(self.Z, other.Z)
+        phase1, phase2 = self._block_stack(self.phase, other.phase)
+
+        if qargs is not None:
+            ret_x, ret_z = x1.copy(), z1.copy()
+            x1 = x1[:, qargs]
+            z1 = z1[:, qargs]
+            ret_x[:, qargs] = x1 ^ x2
+            ret_z[:, qargs] = z1 ^ z2
+            pauli = np.hstack([ret_x, ret_z])
+        else:
+            pauli = np.hstack((x1 ^ x2, z1 ^ z2))
+
+        # We pick up a minus sign for products:
+        # Y.Y = -I, X.Y = -Z, Y.Z = -X, Z.X = -Y
+        if front:
+            minus = (x1 & z2 & (x2 | z1)) | (~x1 & x2 & z1 & ~z2)
+        else:
+            minus = (x2 & z1 & (x1 | z2)) | (~x2 & x1 & z2 & ~z1)
+        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=bool)
+        phase = phase_shift ^ phase1 ^ phase2
+        return StabilizerTable(pauli, phase)
 
     def dot(self, other, qargs=None):
         """Return the dot output product of two tables.
@@ -609,47 +639,10 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().dot(other, qargs=qargs)
-
-    def _compose(self, other, qargs=None, front=False):
-        if not isinstance(other, StabilizerTable):
-            other = StabilizerTable(other)
-        if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError("other StabilizerTable must be on the same number of qubits.")
-        if qargs and other.num_qubits != len(qargs):
-            raise QiskitError("Number of qubits in the other StabilizerTable does not match qargs.")
-
-        # Stack X and Z blocks for output size
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        phase1, phase2 = self._block_stack(self.phase, other.phase)
-
-        if qargs is not None:
-            ret_x, ret_z = x1.copy(), z1.copy()
-            x1 = x1[:, qargs]
-            z1 = z1[:, qargs]
-            ret_x[:, qargs] = x1 ^ x2
-            ret_z[:, qargs] = z1 ^ z2
-            pauli = np.hstack([ret_x, ret_z])
-        else:
-            pauli = np.hstack((x1 ^ x2, z1 ^ z2))
-
-        # We pick up a minus sign for products:
-        # Y.Y = -I, X.Y = -Z, Y.Z = -X, Z.X = -Y
-        if front:
-            minus = (x1 & z2 & (x2 | z1)) | (~x1 & x2 & z1 & ~z2)
-        else:
-            minus = (x2 & z1 & (x1 | z2)) | (~x2 & x1 & z2 & ~z1)
-        phase_shift = np.array(np.sum(minus, axis=1) % 2, dtype=bool)
-        phase = phase_shift ^ phase1 ^ phase2
-        return StabilizerTable(pauli, phase)
+        super().dot(other, qargs=qargs)
 
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, StabilizerTable):
-            a = StabilizerTable(a)
-        if not isinstance(b, StabilizerTable):
-            b = StabilizerTable(b)
         pauli = super()._tensor(a, b)
         phase1, phase2 = a._block_stack(a.phase, b.phase)
         phase = np.logical_xor(phase1, phase2)

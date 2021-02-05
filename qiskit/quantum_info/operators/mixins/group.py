@@ -37,12 +37,14 @@ class GroupMixin(ABC):
         - ``*``, ``__mul__`` -> :meth:`dot`
         - ``@``, ``__matmul__`` -> :meth:`compose`
         - ``**``, ``__pow__`` -> :meth:`power`
+        - ``^``, ``__xor__`` -> `:meth:`tensor`
 
     The following abstract methods must be implemented by subclasses
     using this mixin
 
-        - ``_compose(self, other, qargs=None, inplace=False)``
-        - ``_tensor(cls, a, b)``
+        - ``compose(self, other, qargs=None, inplace=False)``
+        - ``tensor(self, other)``
+        - ``expand(self, other)``
     """
 
     def __mul__(self, other):
@@ -57,15 +59,16 @@ class GroupMixin(ABC):
     def __xor__(self, other):
         return self.tensor(other)
 
+    @abstractmethod
     def tensor(self, other):
-        r"""Return the tensor product with another {cls}.
+        r"""Return the tensor product with another CLASS.
 
         Args:
-            other ({cls}): a {cls} object.
+            other (CLASS): a CLASS object.
 
         Returns:
-            {cls}: the tensor product :math:`a \otimes b`, where :math:`a`
-                   is the current {cls}, and :math:`b` is the other {cls}.
+            CLASS: the tensor product :math:`a \otimes b`, where :math:`a`
+                   is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note::
             The tensor product can be obtained using the ``^`` binary operator.
@@ -74,30 +77,30 @@ class GroupMixin(ABC):
         .. note:
             Tensor uses reversed operator ordering to :meth:`expand`.
             For two operators of the same type ``a.tensor(b) = b.expand(a)``.
-        """.format(cls=type(self).__name__)
-        return self._tensor(self, other)
+        """
 
+    @abstractmethod
     def expand(self, other):
-        r"""Return the reverse-order tensor product with another {cls}.
+        r"""Return the reverse-order tensor product with another CLASS.
 
         Args:
-            other ({cls}): a {cls} object.
+            other (CLASS): a CLASS object.
 
         Returns:
-            {cls}: the tensor product :math:`b \otimes a`, where :math:`a`
-                   is the current {cls}, and :math:`b` is the other {cls}.
+            CLASS: the tensor product :math:`b \otimes a`, where :math:`a`
+                   is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note:
             Expand is the opposite operator ordering to :meth:`tensor`.
             For two operators of the same type ``a.expand(b) = b.tensor(a)``.
-        """.format(cls=type(self).__name__)
-        return self._tensor(other, self)
+        """
 
+    @abstractmethod
     def compose(self, other, qargs=None, front=False):
-        """Return the operator composition with another {cls}.
+        """Return the operator composition with another CLASS.
 
         Args:
-            other ({cls}): a {cls} object.
+            other (CLASS): a CLASS object.
             qargs (list or None): Optional, a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
@@ -105,7 +108,7 @@ class GroupMixin(ABC):
                           instead of left multiplication [default: False].
 
         Returns:
-            {cls}: The composed {cls}.
+            CLASS: The composed CLASS.
 
         Raises:
             QiskitError: if other cannot be converted to an operator, or has
@@ -116,29 +119,26 @@ class GroupMixin(ABC):
             matrix operators. That is that ``A @ B`` is equal to ``B * A``.
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
-        """.format(cls=type(self).__name__)
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
-        return self._compose(other, qargs=qargs, front=front)
+        """
 
     def dot(self, other, qargs=None):
         """Return the right multiplied operator self * other.
 
         Args:
-            other ({cls}): an operator object.
+            other (CLASS): an operator object.
             qargs (list or None): Optional, a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
 
         Returns:
-            {cls}: The operator self * other.
+            CLASS: The operator self * other.
 
         .. note::
             The dot product can be obtained using the ``*`` binary operator.
             Hence ``a.dot(b)`` is equivalent to ``a * b``. Left operator
             multiplication can be obtained using the :meth:`compose` method.
 
-        """.format(cls=type(self).__name__)
+        """
         return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n):
@@ -148,12 +148,12 @@ class GroupMixin(ABC):
             n (int): the number of times to compose with self (n>0).
 
         Returns:
-            {cls}: the n-times composed operator.
+            CLASS: the n-times composed operator.
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
                          are not equal, or the power is not a positive integer.
-        """.format(cls=type(self).__name__)
+        """
         # NOTE: if a subclass can have negative or non-integer powers
         # this method should be overridden in that class.
         if not isinstance(n, Integral) or n < 1:
@@ -162,33 +162,3 @@ class GroupMixin(ABC):
         for _ in range(1, n):
             ret = ret.dot(self)
         return ret
-
-    @classmethod
-    @abstractmethod
-    def _tensor(cls, a, b):
-        """Return the tensor product a ⊗ b.
-
-        Args:
-            a ({cls}): an operator object.
-            b ({cls}): an operator object.
-
-        Returns:
-            {cls}: the tensor product a ⊗ b.
-        """.format(cls=cls.__name__)
-
-    @abstractmethod
-    def _compose(self, other, qargs=None, front=False):
-        """Return the dot product a * b
-
-        Args:
-            a ({cls}): an operator object.
-            b ({cls}): an operator object.
-            qargs (list or None): Optional, a list of subsystem positions to
-                                  apply other on. If None apply on all
-                                  subsystems (default: None).
-            Returns:
-                {cls}: The operator self @ other.
-
-        Returns:
-            {cls}: The operator a.compose(b)
-        """.format(cls=type(self).__name__)

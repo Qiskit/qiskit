@@ -168,7 +168,7 @@ class SparsePauliOp(LinearOp):
         ret._coeffs = ret._coeffs.conj()
         return ret
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         # pylint: disable=invalid-name
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
@@ -206,12 +206,18 @@ class SparsePauliOp(LinearOp):
         coeffs *= (-1j) ** np.array(np.sum(minus_i, axis=1), dtype=int)
         return SparsePauliOp(table, coeffs)
 
+    def tensor(self, other):
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, SparsePauliOp):
+            other = SparsePauliOp(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, SparsePauliOp):
-            a = SparsePauliOp(a)
-        if not isinstance(b, SparsePauliOp):
-            b = SparsePauliOp(b)
         table = a.table.tensor(b.table)
         coeffs = np.kron(a.coeffs, b.coeffs)
         return SparsePauliOp(table, coeffs)

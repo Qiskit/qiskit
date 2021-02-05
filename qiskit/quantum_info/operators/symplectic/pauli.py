@@ -456,10 +456,10 @@ class Pauli(BasePauli):
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Pauli):
             other = Pauli(other)
-        return Pauli(super()._compose(other,
-                                      qargs=qargs,
-                                      front=front,
-                                      inplace=inplace))
+        return Pauli(super().compose(other,
+                                     qargs=qargs,
+                                     front=front,
+                                     inplace=inplace))
 
     # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
@@ -485,12 +485,12 @@ class Pauli(BasePauli):
     def tensor(self, other):
         if not isinstance(other, Pauli):
             other = Pauli(other)
-        return Pauli(super()._tensor(self, other))
+        return Pauli(super().tensor(other))
 
     def expand(self, other):
         if not isinstance(other, Pauli):
             other = Pauli(other)
-        return Pauli(super()._tensor(other, self))
+        return Pauli(super().expand(other))
 
     def _multiply(self, other):
         return Pauli(super()._multiply(other))

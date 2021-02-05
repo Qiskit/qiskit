@@ -150,7 +150,7 @@ class Chi(QuantumChannel):
     def adjoint(self):
         return Chi(Choi(self).adjoint())
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         if qargs is not None:
             return Chi(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -158,12 +158,18 @@ class Chi(QuantumChannel):
         # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))
 
+    def tensor(self, other):
+        if not isinstance(other, Chi):
+            other = Chi(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Chi):
+            other = Chi(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, Chi):
-            a = Chi(a)
-        if not isinstance(b, Chi):
-            b = Chi(b)
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)

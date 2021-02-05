@@ -186,7 +186,7 @@ class Stinespring(QuantumChannel):
         ret._data = (stine[0], stine[1])
         return ret
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         if qargs is not None:
             return Stinespring(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -194,12 +194,18 @@ class Stinespring(QuantumChannel):
         # superoperator to avoid unnecessary representation conversions
         return Stinespring(Kraus(self).compose(other, front=front))
 
+    def tensor(self, other):
+        if not isinstance(other, Stinespring):
+            other = Stinespring(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Stinespring):
+            other = Stinespring(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, Stinespring):
-            a = Stinespring(a)
-        if not isinstance(b, Stinespring):
-            b = Stinespring(b)
         # Tensor Stinespring ops
         sa_l, sa_r = a._data
         sb_l, sb_r = b._data

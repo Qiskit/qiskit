@@ -42,11 +42,11 @@ class MultiplyMixin(ABC):
 
     @abstractmethod
     def _multiply(self, other):
-        """Return the {cls} other * self.
+        """Return the CLASS other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            {cls}: the {cls} other * self.
-        """.format(cls=type(self).__name__)
+            CLASS: the CLASS other * self.
+        """

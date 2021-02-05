@@ -151,12 +151,18 @@ class SuperOp(QuantumChannel):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
+    def tensor(self, other):
+        if not isinstance(other, SuperOp):
+            other = SuperOp(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, SuperOp):
+            other = SuperOp(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, SuperOp):
-            a = SuperOp(a)
-        if not isinstance(b, SuperOp):
-            b = SuperOp(b)
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = _bipartite_tensor(a._data, b.data,
@@ -164,7 +170,7 @@ class SuperOp(QuantumChannel):
                                       shape2=b._bipartite_shape)
         return ret
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         # Validate dimensions are compatible and return the composed

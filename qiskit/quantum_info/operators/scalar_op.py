@@ -91,24 +91,10 @@ class ScalarOp(LinearOp):
                         input_dims=self.input_dims(),
                         output_dims=self.output_dims())
 
-    @classmethod
-    def _tensor(cls, a, b):
-        if not isinstance(a, BaseOperator):
-            a = Operator(a)
-        if not isinstance(b, BaseOperator):
-            b = Operator(b)
-        if isinstance(a, ScalarOp):
-            if isinstance(b, ScalarOp):
-                ret = copy.copy(b)
-                ret._coeff = a.coeff * b.coeff
-                ret._op_shape = a._op_shape.tensor(b._op_shape)
-                return ret
-            else:
-                return b.expand(a)
-        else:
-            return a.tensor(b)
+    def compose(self, other, qargs=None, front=False):
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
 
-    def _compose(self, other, qargs=None, front=False):
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -156,6 +142,30 @@ class ScalarOp(LinearOp):
         ret = self.copy()
         ret._coeff = self.coeff ** n
         return ret
+
+    def tensor(self, other):
+        if not isinstance(other, BaseOperator):
+            other = Operator(other)
+
+        if isinstance(other, ScalarOp):
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.tensor(other._op_shape)
+            return ret
+
+        return other.expand(self)
+
+    def expand(self, other):
+        if not isinstance(other, BaseOperator):
+            other = Operator(other)
+
+        if isinstance(other, ScalarOp):
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.expand(other._op_shape)
+            return ret
+
+        return other.tensor(self)
 
     def _add(self, other, qargs=None):
         """Return the operator self + other.

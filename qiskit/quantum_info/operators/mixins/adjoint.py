@@ -35,13 +35,13 @@ class AdjointMixin(ABC):
     """
 
     def adjoint(self):
-        """Return the adjoint of the {cls}.""".format(cls=type(self).__name__)
+        """Return the adjoint of the CLASS."""
         return self.conjugate().transpose()
 
     @abstractmethod
     def conjugate(self):
-        """Return the conjugate of the {cls}.""".format(cls=type(self).__name__)
+        """Return the conjugate of the CLASS."""
 
     @abstractmethod
     def transpose(self):
-        """Return the transpose of the {cls}.""".format(cls=type(self).__name__)
+        """Return the transpose of the CLASS."""

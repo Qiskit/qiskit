@@ -222,13 +222,18 @@ class Clifford(BaseOperator):
     def transpose(self):
         return Clifford._conjugate_transpose(self, 'T')
 
+    def tensor(self, other):
+        if not isinstance(other, Clifford):
+            other = Clifford(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Clifford):
+            other = Clifford(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, Clifford):
-            a = Clifford(a)
-        if not isinstance(b, Clifford):
-            b = Clifford(b)
-
         # Pad stabilizers and destabilizers
         destab = (b.destabilizer.expand(a.num_qubits * 'I') +
                   a.destabilizer.tensor(b.num_qubits * 'I'))
@@ -238,7 +243,7 @@ class Clifford(BaseOperator):
         # Add the padded table
         return Clifford(destab + stab, validate=False)
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         # If other is a QuantumCircuit we can more efficiently compose
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first

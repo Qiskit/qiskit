@@ -216,8 +216,7 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def _compose(self, other, qargs=None, front=False):
-        """Return the composed operator."""
+    def compose(self, other, qargs=None, front=False):
         if not isinstance(other, Operator):
             other = Operator(other)
 
@@ -284,12 +283,18 @@ class Operator(LinearOp):
         ret._data = np.linalg.matrix_power(self.data, n)
         return ret
 
+    def tensor(self, other):
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, Operator):
-            a = Operator(a)
-        if not isinstance(b, Operator):
-            b = Operator(b)
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a.data, b.data)

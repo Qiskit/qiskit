@@ -155,7 +155,7 @@ class PTM(QuantumChannel):
     def adjoint(self):
         return PTM(SuperOp(self).adjoint())
 
-    def _compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         if qargs is not None:
             return PTM(
                 SuperOp(self).compose(other, qargs=qargs, front=front))
@@ -174,12 +174,18 @@ class PTM(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
+    def tensor(self, other):
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        return self._tensor(other, self)
+
     @classmethod
     def _tensor(cls, a, b):
-        if not isinstance(a, PTM):
-            a = PTM(a)
-        if not isinstance(b, PTM):
-            b = PTM(b)
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)

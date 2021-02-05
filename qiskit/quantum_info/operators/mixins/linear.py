@@ -47,16 +47,16 @@ class LinearMixin(MultiplyMixin, ABC):
 
     @abstractmethod
     def _add(self, other, qargs=None):
-        """Return the linear operator self + other.
+        """Return the CLASS self + other.
 
         If ``qargs`` are specified the other operator will be added
         assuming it is identity on all other subsystems.
 
         Args:
-            other ({cls}): an operator object.
+            other (CLASS): an operator object.
             qargs (None or list): optional subsystems to add on
                                   (Default: None)
 
         Returns:
-            {cls}: the {cls} self + other.
-        """.format(cls=type(self).__name__)
+            CLASS: the CLASS self + other.
+        """
