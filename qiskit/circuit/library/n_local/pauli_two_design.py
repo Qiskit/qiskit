@@ -16,7 +16,6 @@ from typing import Optional
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RYGate
 
 
 from .two_local import TwoLocal
@@ -69,6 +68,8 @@ class PauliTwoDesign(TwoLocal):
 
     def __init__(self, num_qubits: Optional[int] = None, reps: int = 3,
                  seed: Optional[int] = None, insert_barriers: bool = False):
+        from qiskit.circuit.library import RYGate  # pylint: disable=cyclic-import
+
         # store a random number generator
         self._seed = seed
         self._rng = np.random.default_rng(seed)
