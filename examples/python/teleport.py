@@ -37,7 +37,7 @@ c2 = ClassicalRegister(1, "c2")
 qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
 
 # Prepare an initial state
-qc.u3(0.3, 0.2, 0.1, q[0])
+qc.u(0.3, 0.2, 0.1, q[0])
 
 # Prepare a Bell pair
 qc.h(q[1])

@@ -44,6 +44,48 @@ class TestPulseParameters(QiskitTestCase):
 
         self.backend = FakeAlmaden()
 
+    def test_parameter_attribute_channel(self):
+        """Test the ``parameter`` attributes."""
+        chan = DriveChannel(self.qubit*self.alpha)
+        self.assertTrue(chan.is_parameterized())
+        self.assertEqual(chan.parameters, {self.qubit, self.alpha})
+        chan = chan.assign(self.qubit, self.alpha)
+        self.assertEqual(chan.parameters, {self.alpha})
+        chan = chan.assign(self.alpha, self.beta)
+        self.assertEqual(chan.parameters, {self.beta})
+        chan = chan.assign(self.beta, 1)
+        self.assertFalse(chan.is_parameterized())
+
+    def test_parameter_attribute_instruction(self):
+        """Test the ``parameter`` attributes."""
+        inst = pulse.ShiftFrequency(self.alpha*self.qubit,
+                                    DriveChannel(self.qubit))
+        self.assertTrue(inst.is_parameterized())
+        self.assertEqual(inst.parameters, {self.alpha, self.qubit})
+        inst.assign_parameters({self.alpha: self.qubit})
+        self.assertEqual(inst.parameters, {self.qubit})
+        inst.assign_parameters({self.qubit: 1})
+        self.assertFalse(inst.is_parameterized())
+        self.assertEqual(inst.parameters, set())
+
+    def test_parameter_attribute_schedule(self):
+        """Test the ``parameter`` attributes."""
+        schedule = pulse.Schedule()
+        self.assertFalse(schedule.is_parameterized())
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
+        self.assertEqual(schedule.parameters, {self.alpha})
+        schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0))
+        self.assertEqual(schedule.parameters, {self.alpha, self.gamma})
+        schedule += pulse.SetPhase(self.phi, DriveChannel(1))
+        self.assertTrue(schedule.is_parameterized())
+        self.assertEqual(schedule.parameters, {self.alpha, self.gamma, self.phi})
+        schedule.assign_parameters({self.phi: self.alpha, self.gamma: self.shift})
+        self.assertEqual(schedule.parameters, {self.alpha})
+        schedule.assign_parameters({self.alpha: self.beta})
+        self.assertEqual(schedule.parameters, {self.beta})
+        schedule.assign_parameters({self.beta: 10})
+        self.assertFalse(schedule.is_parameterized())
+
     def test_straight_schedule_bind(self):
         """Nothing fancy, 1:1 mapping."""
         schedule = pulse.Schedule()
@@ -109,6 +151,16 @@ class TestPulseParameters(QiskitTestCase):
         schedule.assign_parameters({self.beta: self.freq / 2})
         self.assertEqual(float(schedule.instructions[0][1].frequency), self.freq)
 
+    def test_substitution_with_existing(self):
+        """Test that substituting one parameter with an existing parameter works."""
+        schedule = pulse.Schedule()
+        schedule += pulse.SetFrequency(self.alpha, DriveChannel(self.qubit))
+
+        schedule.assign_parameters({self.alpha: 1e9*self.qubit})
+        self.assertEqual(schedule.instructions[0][1].frequency, 1e9*self.qubit)
+        schedule.assign_parameters({self.qubit: 2})
+        self.assertEqual(float(schedule.instructions[0][1].frequency), 2e9)
+
     def test_channels(self):
         """Test that channel indices can also be parameterized and assigned."""
         schedule = pulse.Schedule()
@@ -128,32 +180,32 @@ class TestPulseParameters(QiskitTestCase):
     def test_overlapping_pulses(self):
         """Test that an error is still raised when overlapping instructions are assigned."""
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(self.qubit))
         with self.assertRaises(PulseError):
-            schedule |= pulse.Play(pulse.SamplePulse([0.5, 0.5, 0.5, 0.5]),
+            schedule |= pulse.Play(pulse.Waveform([0.5, 0.5, 0.5, 0.5]),
                                    DriveChannel(self.qubit))
 
     def test_overlapping_on_assignment(self):
         """Test that assignment will catch against existing instructions."""
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(1))
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(1))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(self.qubit))
         with self.assertRaises(PulseError):
             schedule.assign_parameters({self.qubit: 1})
 
     def test_overlapping_on_expression_assigment_to_zero(self):
         """Test constant*zero expression conflict."""
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(2*self.qubit))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(2*self.qubit))
         with self.assertRaises(PulseError):
             schedule.assign_parameters({self.qubit: 0})
 
     def test_merging_upon_assignment(self):
         """Test that schedule can match instructions on a channel."""
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(1))
-        schedule = schedule.insert(4, pulse.Play(pulse.SamplePulse([1, 1, 1, 1]),
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(1))
+        schedule = schedule.insert(4, pulse.Play(pulse.Waveform([1, 1, 1, 1]),
                                                  DriveChannel(self.qubit)))
         schedule.assign_parameters({self.qubit: 1})
         self.assertEqual(schedule.ch_duration(DriveChannel(1)), 8)
@@ -163,8 +215,8 @@ class TestPulseParameters(QiskitTestCase):
         """Test that assigning one qubit then another raises error when overlapping."""
         qubit2 = Parameter('q2')
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(qubit2))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), DriveChannel(qubit2))
         schedule.assign_parameters({qubit2: 2})
         with self.assertRaises(PulseError):
             schedule.assign_parameters({self.qubit: 2})
@@ -210,3 +262,80 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.Play(waveform, DriveChannel(0))
         with self.assertRaises(PulseError):
             waveform.assign_parameters({self.amp: 0.6})
+
+    def test_get_parameter(self):
+        """Test that get parameter by name."""
+        param1 = Parameter('amp')
+        param2 = Parameter('amp')
+
+        schedule = pulse.Schedule()
+        waveform1 = pulse.library.Constant(duration=1280, amp=param1)
+        waveform2 = pulse.library.Constant(duration=1280, amp=param2)
+        schedule += pulse.Play(waveform1, DriveChannel(0))
+        schedule += pulse.Play(waveform2, DriveChannel(1))
+
+        self.assertEqual(len(schedule.get_parameters('amp')), 2)
+
+
+class TestParameterDuration(QiskitTestCase):
+    """Tests parametrization of instruction duration."""
+
+    def test_pulse_duration(self):
+        """Test parametrization of pulse duration."""
+        dur = Parameter('dur')
+
+        test_pulse = pulse.Gaussian(dur, 0.1, dur/4)
+        ref_pulse = pulse.Gaussian(160, 0.1, 40)
+
+        self.assertEqual(test_pulse.assign_parameters({dur: 160}), ref_pulse)
+
+    def test_play_duration(self):
+        """Test parametrization of play instruction duration."""
+        dur = Parameter('dur')
+        ch = pulse.DriveChannel(0)
+
+        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur/4), ch)
+        test_play.assign_parameters({dur: 160})
+
+        self.assertEqual(test_play.duration, 160)
+
+    def test_delay_duration(self):
+        """Test parametrization of delay duration."""
+        dur = Parameter('dur')
+        ch = pulse.DriveChannel(0)
+
+        test_delay = pulse.Delay(dur, ch)
+        test_delay.assign_parameters({dur: 300})
+
+        self.assertEqual(test_delay.duration, 300)
+
+    def test_acquire_duration(self):
+        """Test parametrization of acquire duration."""
+        dur = Parameter('dur')
+        ch = pulse.AcquireChannel(0)
+        mem_slot = pulse.MemorySlot(0)
+
+        test_acquire = pulse.Acquire(dur, ch, mem_slot=mem_slot)
+        test_acquire.assign_parameters({dur: 300})
+
+        self.assertEqual(test_acquire.duration, 300)
+
+    def test_is_parameterized(self):
+        """Test is parameterized method for parameter duration."""
+        dur = Parameter('dur')
+        ch = pulse.DriveChannel(0)
+
+        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur/4), ch)
+
+        self.assertEqual(test_play.is_parameterized(), True)
+
+    def test_cannot_build_schedule(self):
+        """Test we cannot build schedule with parameterized instructions"""
+        dur = Parameter('dur')
+        ch = pulse.DriveChannel(0)
+
+        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur/4), ch)
+
+        sched = pulse.Schedule()
+        with self.assertRaises(pulse.exceptions.UnassignedDurationError):
+            sched.insert(0, test_play)

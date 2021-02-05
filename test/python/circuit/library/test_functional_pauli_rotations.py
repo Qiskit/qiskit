@@ -31,8 +31,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
     def assertFunctionIsCorrect(self, function_circuit, reference):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
-        num_state_qubits = function_circuit.num_state_qubits
-        num_ancilla_qubits = function_circuit.num_ancilla_qubits
+        num_state_qubits = function_circuit.num_qubits - function_circuit.num_ancillas - 1
+        num_ancilla_qubits = function_circuit.num_ancillas
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
@@ -61,6 +61,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
     @data(([1, 0.1], 3),
           ([0, 0.4, 2], 2),
+          ([1, 0.5, 0.2, -0.2, 0.4, 2.5], 5),
           )
     @unpack
     def test_polynomial_function(self, coeffs, num_state_qubits):

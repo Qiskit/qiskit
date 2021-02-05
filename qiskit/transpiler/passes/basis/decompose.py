@@ -46,12 +46,12 @@ class Decompose(TransformationPass):
             # opaque or built-in gates are not decomposable
             if not node.op.definition:
                 continue
-            if node.op.definition.global_phase:
-                dag.global_phase += node.op.definition.global_phase
             # TODO: allow choosing among multiple decomposition rules
             rule = node.op.definition.data
 
-            if len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
+            if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+                if node.op.definition.global_phase:
+                    dag.global_phase += node.op.definition.global_phase
                 dag.substitute_node(node, rule[0][0], inplace=True)
             else:
                 decomposition = circuit_to_dag(node.op.definition)

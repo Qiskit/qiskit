@@ -16,18 +16,18 @@
 import warnings
 from collections import defaultdict
 from typing import Callable
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Union
 
 import numpy as np
 
-from qiskit.pulse import channels as chans, exceptions, instructions, interfaces
+from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 
-def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
+def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
@@ -117,6 +117,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
 
     def get_max_calibration_duration(inst_map, cal_gate):
         """Return the time needed to allow for readout discrimination calibration pulses."""
+        # TODO (qiskit-terra #5472): fix behavior of this.
         max_calibration_duration = 0
         for qubits in inst_map.qubits_with_instruction(cal_gate):
             cmd = inst_map.get(cal_gate, qubits, np.pi, 0, np.pi)
@@ -141,7 +142,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for sched_idx, schedule in enumerate(schedules):
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
         stop_time = schedule.stop_time
 
         if align_all:
@@ -178,7 +179,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     return new_schedules
 
 
-def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
+def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
                           meas_map: List[List[int]]
                           ) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
@@ -194,7 +195,7 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
     Returns:
         A ``Schedule`` with the additional acquisition instructions.
     """
-    new_schedule = Schedule(name=schedule.name)
+    new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
@@ -293,7 +294,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     new_schedules = []
 
     for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
 
         for time, inst in schedule.instructions:
             if isinstance(inst, instructions.Play):
@@ -317,7 +318,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
 
 
 def _push_left_append(this: Schedule,
-                      other: interfaces.ScheduleComponent,
+                      other: Union['Schedule', instructions.Instruction],
                       ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
@@ -366,8 +367,8 @@ def align_left(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def _push_right_prepend(this: interfaces.ScheduleComponent,
-                        other: interfaces.ScheduleComponent,
+def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
+                        other: Union['Schedule', instructions.Instruction],
                         ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the latest possible time
     such that ``other`` ends before it overlaps with any of ``this``.
@@ -452,10 +453,11 @@ def align_equispaced(schedule: Schedule,
     Notes:
         This context is convenient for writing PDD or Hahn echo sequence for example.
     """
-    if duration and duration < schedule.duration:
+    total_duration = sum([child.duration for _, child in schedule._children])
+    if duration and duration < total_duration:
         return schedule
-    else:
-        total_delay = duration - schedule.duration
+
+    total_delay = duration - total_duration
 
     if len(schedule._children) > 1:
         # Calculate the interval in between sub-schedules.

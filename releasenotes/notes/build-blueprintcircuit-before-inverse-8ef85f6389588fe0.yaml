@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Calling inverse or compose on a ``BlueprintCircuit`` could fail
-    if ``_data`` was not yet populated. This has been fixed by asserting
-    a call on ``_build`` method.

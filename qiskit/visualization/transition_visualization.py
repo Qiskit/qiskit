@@ -209,18 +209,17 @@ def visualize_transition(circuit,
             list_of_circuit_gates.append(gates[gate[0].name])
         else:
             theta = gate[0].params[0]
-            rad = np.deg2rad(theta)
             if gate[0].name == 'rx':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [1, 0, 0])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [1, 0, 0])
                 list_of_circuit_gates.append(('rx:'+str(theta), quaternion, '#16a085'))
             elif gate[0].name == 'ry':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 1, 0])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 1, 0])
                 list_of_circuit_gates.append(('ry:'+str(theta), quaternion, '#27ae60'))
             elif gate[0].name == 'rz':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
                 list_of_circuit_gates.append(('rz:'+str(theta), quaternion, '#2980b9'))
             elif gate[0].name == 'u1':
-                quaternion = _Quaternion.from_axisangle(rad / frames_per_gate, [0, 0, 1])
+                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
                 list_of_circuit_gates.append(('u1:'+str(theta), quaternion, '#f1c40f'))
 
     if len(list_of_circuit_gates) == 0:

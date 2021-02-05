@@ -51,15 +51,15 @@ from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.rxx import RXXGate
 from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate
+from qiskit.circuit.library.standard_gates.u import CUGate
 from qiskit.circuit.library.standard_gates.u1 import CU1Gate
 from qiskit.circuit.library.standard_gates.u3 import CU3Gate
 from qiskit.circuit.library.standard_gates.h import CHGate
 from qiskit.circuit.library.standard_gates.rx import CRXGate
 from qiskit.circuit.library.standard_gates.ry import CRYGate
 from qiskit.circuit.library.standard_gates.rz import CRZGate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate
 from qiskit.circuit.library.standard_gates.sx import CSXGate
-from qiskit.circuit.library.standard_gates.u import CUGate
 
 
 def ast_to_dag(ast):

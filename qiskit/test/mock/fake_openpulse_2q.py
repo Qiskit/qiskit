@@ -126,22 +126,52 @@ class FakeOpenPulse2Q(FakeBackend):
             'buffer': 10,
             'pulse_library': [
                 {
-                    'name': 'test_pulse_1',
-                    'samples': [[0.0, 0.0], [0.0, 0.1]]
+                    'name': 'x90p_d0',
+                    'samples': 2 * [0.1+0j]
                 },
                 {
-                    'name': 'test_pulse_2',
-                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]
+                    'name': 'x90p_d1',
+                    'samples': 2 * [0.1+0j]
                 },
                 {
-                    'name': 'test_pulse_3',
-                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+                    'name': 'x90m_d0',
+                    'samples': 2 * [-0.1+0j]
                 },
                 {
-                    'name': 'test_pulse_4',
-                    'samples': 7 * [
-                        [0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]
-                    ]
+                    'name': 'x90m_d1',
+                    'samples': 2 * [-0.1+0j]
+                },
+                {
+                    'name': 'y90p_d0',
+                    'samples': 2 * [0.1j]
+                },
+                {
+                    'name': 'y90p_d1',
+                    'samples': 2 * [0.1j]
+                },
+                {
+                    'name': 'xp_d0',
+                    'samples': 2 * [0.2 + 0j]
+                },
+                {
+                    'name': 'ym_d0',
+                    'samples': 2 * [-0.2j]
+                },
+                {
+                    'name': 'cr90p_u0',
+                    'samples': 9 * [0.1 + 0j]
+                },
+                {
+                    'name': 'cr90m_u0',
+                    'samples': 9 * [-0.1 + 0j]
+                },
+                {
+                    'name': 'measure_m0',
+                    'samples': 10 * [0.1 + 0j]
+                },
+                {
+                    'name': 'measure_m1',
+                    'samples': 10 * [0.1 + 0j]
                 }
             ],
             'cmd_def': [
@@ -149,91 +179,130 @@ class FakeOpenPulse2Q(FakeBackend):
                     'name': 'u1',
                     'qubits': [0],
                     'sequence': [
-                        PulseQobjInstruction(name='fc', ch='d0',
-                                             t0=0, phase='-P0').to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=0,
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u1',
                     'qubits': [1],
                     'sequence': [
-                        PulseQobjInstruction(name='fc', ch='d1',
-                                             t0=0, phase='-P0').to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=0,
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u2',
                     'qubits': [0],
                     'sequence': [
-                        PulseQobjInstruction(name='fc', ch='d0',
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
                                              t0=0,
                                              phase='-P1').to_dict(),
-                        PulseQobjInstruction(name='test_pulse_4', ch='d0',
+                        PulseQobjInstruction(name='y90p_d0',
+                                             ch='d0',
                                              t0=0).to_dict(),
-                        PulseQobjInstruction(name='fc', ch='d0', t0=0,
-                                             phase='-P0').to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=2,
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u2',
                     'qubits': [1],
                     'sequence': [
-                        PulseQobjInstruction(name='fc', ch='d1', t0=0,
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=0,
                                              phase='-P1').to_dict(),
-                        PulseQobjInstruction(name='test_pulse_4',
-                                             ch='d1', t0=0).to_dict(),
-                        PulseQobjInstruction(name='fc', ch='d1',
-                                             t0=0, phase='-P0').to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='y90p_d1',
+                                             ch='d1',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=2,
+                                             phase='-P0').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u3',
                     'qubits': [0],
                     'sequence': [
-                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
-                                             t0=0).to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=0,
+                                             phase='-P2').to_dict(),
+                        PulseQobjInstruction(name='x90p_d0',
+                                             ch='d0',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=2,
+                                             phase='-P0').to_dict(),
+                        PulseQobjInstruction(name='x90m_d0',
+                                             ch='d0',
+                                             t0=2).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=4,
+                                             phase='-P1').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'u3',
                     'qubits': [1],
                     'sequence': [
-                        PulseQobjInstruction(name='test_pulse_3', ch='d1',
-                                             t0=0).to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=0,
+                                             phase='-P2').to_dict(),
+                        PulseQobjInstruction(name='x90p_d1',
+                                             ch='d1',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=2,
+                                             phase='-P0').to_dict(),
+                        PulseQobjInstruction(name='x90m_d1',
+                                             ch='d1',
+                                             t0=2).to_dict(),
+                        PulseQobjInstruction(name='fc',
+                                             ch='d1',
+                                             t0=4,
+                                             phase='-P1').to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'cx',
                     'qubits': [0, 1],
                     'sequence': [
-                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
+                        PulseQobjInstruction(name='fc',
+                                             ch='d0',
+                                             t0=0,
+                                             phase=1.57).to_dict(),
+                        PulseQobjInstruction(name='ym_d0',
+                                             ch='d0',
                                              t0=0).to_dict(),
-                        PulseQobjInstruction(name='test_pulse_2', ch='u0',
-                                             t0=10).to_dict(),
-                        PulseQobjInstruction(name='test_pulse_1', ch='d1',
-                                             t0=20).to_dict(),
-                        PulseQobjInstruction(name='fc', ch='d1',
-                                             t0=20, phase=2.1).to_dict()
-                    ]}).to_dict(),
-                Command.from_dict({
-                    'name': 'ParametrizedGate',
-                    'qubits': [0, 1],
-                    'sequence': [
-                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
+                        PulseQobjInstruction(name='xp_d0',
+                                             ch='d0',
+                                             t0=11).to_dict(),
+                        PulseQobjInstruction(name='x90p_d1',
+                                             ch='d1',
                                              t0=0).to_dict(),
-                        PulseQobjInstruction(name='test_pulse_2', ch='u0',
-                                             t0=10).to_dict(),
-                        PulseQobjInstruction(name='test_pulse_1', ch='d1',
-                                             t0=20).to_dict(),
-                        PulseQobjInstruction(name='fc', ch='d1',
-                                             t0=20, phase=2.1).to_dict()
-                    ]}).to_dict(),
+                        PulseQobjInstruction(name='cr90p_u0',
+                                             ch='u0',
+                                             t0=2).to_dict(),
+                        PulseQobjInstruction(name='cr90m_u0',
+                                             ch='u0',
+                                             t0=13).to_dict()]}).to_dict(),
                 Command.from_dict({
                     'name': 'measure',
                     'qubits': [0, 1],
                     'sequence': [
-                        PulseQobjInstruction(name='test_pulse_1', ch='m0',
+                        PulseQobjInstruction(name='measure_m0',
+                                             ch='m0',
                                              t0=0).to_dict(),
-                        PulseQobjInstruction(name='test_pulse_1', ch='m1',
+                        PulseQobjInstruction(name='measure_m1',
+                                             ch='m1',
                                              t0=0).to_dict(),
-                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
+                        PulseQobjInstruction(name='acquire',
+                                             duration=10,
+                                             t0=0,
                                              qubits=[0, 1],
-                                             memory_slot=[0, 1]).to_dict()
-                    ]}).to_dict()
+                                             memory_slot=[0, 1]).to_dict()]}).to_dict()
             ]
         })
 

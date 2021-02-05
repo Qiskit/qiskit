@@ -36,7 +36,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.3.0
+            pip install cibuildwheel==1.7.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -68,7 +68,7 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -80,7 +80,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.3.0
+          pip install cibuildwheel==1.7.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -105,12 +105,14 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.3.0
+            pip install cibuildwheel==1.7.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -124,7 +126,7 @@ stages:
     dependsOn: []
     jobs:
     - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -146,6 +148,14 @@ stages:
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
           displayName: Cache pip
         - bash: |
             set -e
@@ -154,7 +164,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -192,7 +202,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'Lint'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -220,7 +230,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
+            pip install "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -229,10 +239,11 @@ stages:
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
             tools/verify_headers.py qiskit test
+            python tools/find_optional_imports.py
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python37:
@@ -278,7 +289,7 @@ stages:
             Parallel: true
             ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       strategy:
         matrix:
           Python37:
@@ -301,6 +312,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -308,7 +327,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
+            pip install "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -348,7 +367,7 @@ stages:
     condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Tests'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       strategy:
         matrix:
           Python36:
@@ -357,9 +376,10 @@ stages:
             python.version: '3.7'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
@@ -368,13 +388,12 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -382,7 +401,7 @@ stages:
             source test-job/Scripts/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -419,13 +438,15 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Windows Python $(python.version)'
     - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
           Python36:
             python.version: '3.6'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -444,6 +465,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -451,7 +480,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -489,13 +518,15 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
+      pool: {vmImage: 'macOS-latest'}
       strategy:
         matrix:
           Python36:
             python.version: '3.6'
           Python38:
             python.version: '3.8'
+          Python39:
+            python.version: '3.9'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -514,6 +545,14 @@ stages:
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
+        - task: Cache@2
+          inputs:
+            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              stestr | "$(Agent.OS)" | "$(python.version)"
+              stestr | "$(Agent.OS)"
+              stestr
+            path: .stestr
         - bash: |
             set -e
             python -m pip install --upgrade pip setuptools wheel virtualenv
@@ -521,7 +560,6 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -566,6 +604,7 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_CELL_TIMEOUT: 300
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -585,7 +624,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
