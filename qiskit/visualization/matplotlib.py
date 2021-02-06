@@ -825,8 +825,7 @@ class MatplotlibDrawer:
                 else:
                     param_width = 0.0
 
-                if (op.name == 'cu1' or op.name == 'cp'
-                        or op.name == 'rzz' or base_name == 'rzz'):
+                if op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
                     if op.name == 'cu1':
                         tname = 'U1'
                     elif op.name == 'cp':
@@ -997,14 +996,13 @@ class MatplotlibDrawer:
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
                 # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
-                elif (op.name == 'cu1' or op.name == 'cp'
-                      or op.name == 'rzz' or base_name == 'rzz'):
+                elif op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
                     num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     if op.name != 'rzz':
                         self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                             q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
-                    if op.name != 'cu1' and op.name != 'cp':
+                    if op.name not in ['cu1', 'cp']:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     if op.name == 'cu1':
                         stext = self._style['disptex']['u1']
