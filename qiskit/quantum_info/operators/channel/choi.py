@@ -30,7 +30,6 @@ from qiskit.quantum_info.operators.channel.transformations import _bipartite_ten
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Choi(QuantumChannel):
     r"""Choi-matrix representation of a Quantum Channel.
 

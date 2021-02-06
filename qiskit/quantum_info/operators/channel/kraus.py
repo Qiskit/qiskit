@@ -31,7 +31,6 @@ from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Kraus(QuantumChannel):
     r"""Kraus representation of a quantum channel.
 

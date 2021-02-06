@@ -30,7 +30,6 @@ from qiskit.quantum_info.operators.channel.transformations import _to_stinesprin
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Stinespring(QuantumChannel):
     r"""Stinespring representation of a quantum channel.
 

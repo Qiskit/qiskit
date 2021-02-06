@@ -29,7 +29,6 @@ from qiskit.quantum_info.operators.channel.transformations import _bipartite_ten
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class SuperOp(QuantumChannel):
     r"""Superoperator representation of a quantum channel.
 

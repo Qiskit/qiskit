@@ -25,7 +25,6 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class ScalarOp(LinearOp):
     """Scalar identity operator class.
 

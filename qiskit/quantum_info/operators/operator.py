@@ -29,7 +29,6 @@ from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Operator(LinearOp):
     r"""Matrix operator class
 

@@ -29,7 +29,6 @@ from qiskit.circuit.barrier import Barrier
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Pauli(BasePauli):
     r"""N-qubit Pauli operator.
 

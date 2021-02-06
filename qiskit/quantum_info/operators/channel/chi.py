@@ -29,7 +29,6 @@ from qiskit.quantum_info.operators.channel.transformations import _to_chi
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class Chi(QuantumChannel):
     r"""Pauli basis Chi-matrix representation of a quantum channel.
 

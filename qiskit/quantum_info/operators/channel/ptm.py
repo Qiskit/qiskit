@@ -28,7 +28,6 @@ from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-
 class PTM(QuantumChannel):
     r"""Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 
