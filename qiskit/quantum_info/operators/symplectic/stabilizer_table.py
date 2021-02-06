@@ -19,10 +19,10 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class StabilizerTable(PauliTable):
+class StabilizerTable(PauliTable, AdjointMixin):
     r"""Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**

@@ -21,10 +21,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.mixins import MultiplyMixin
+from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
 
 
-class BasePauli(BaseOperator, MultiplyMixin):
+class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     r"""Symplectic representation of a list of N-qubit Paulis.
 
     Base class for Pauli and PauliList.

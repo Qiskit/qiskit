@@ -25,10 +25,10 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
-from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class Clifford(BaseOperator):
+class Clifford(BaseOperator, AdjointMixin):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
