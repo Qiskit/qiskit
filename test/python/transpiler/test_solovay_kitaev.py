@@ -18,8 +18,6 @@ import math
 import numpy as np
 import scipy
 
-from hypothesis import given
-import hypothesis.strategies as st
 from scipy.optimize import minimize
 from ddt import ddt, data, unpack
 
@@ -29,7 +27,6 @@ from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate,
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 
@@ -162,14 +159,6 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(is_so3_matrix(actual_result[0].product))
         self.assertTrue(is_so3_matrix(actual_result[1].product))
 
-    @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
-                     st.integers(min_value=0, max_value=4)))
-    def test_commutator_decompose_returns_tuple_of_two_so3_gatesequences_2(self, u_so3: np.ndarray):
-        """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
-        actual_result = commutator_decompose(u_so3)
-        self.assertTrue(is_so3_matrix(actual_result[0].product))
-        self.assertTrue(is_so3_matrix(actual_result[1].product))
-
     @data(
         [_generate_x_rotation(0.1)],
         [_generate_y_rotation(0.2)],
@@ -188,8 +177,14 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(are_almost_equal_so3_matrices(
             actual_commutator, u_so3))
 
-    @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
-                     st.integers(min_value=0, max_value=4)))
+    @data(
+        [_generate_x_rotation(0.1)],
+        [_generate_y_rotation(0.2)],
+        [_generate_z_rotation(0.3)],
+        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
+        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
+    )
+    @unpack
     def test_commutator_decompose_returns_tuple_whose_commutator_equals_input_2(self, u_so3):
         """Test that ``commutator_decompose`` exactly decomposes the input."""
         actual_result = commutator_decompose(u_so3)
@@ -200,8 +195,14 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertTrue(are_almost_equal_so3_matrices(
             actual_commutator, u_so3))
 
-    @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
-                     st.integers(min_value=0, max_value=4)))
+    @data(
+        [_generate_x_rotation(0.1)],
+        [_generate_y_rotation(0.2)],
+        [_generate_z_rotation(0.3)],
+        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
+        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
+    )
+    @unpack
     def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a X-rotation as first element."""
         actual_result = commutator_decompose(u_so3)
@@ -213,8 +214,14 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertAlmostEqual(actual[1][0], 0.0)
         self.assertAlmostEqual(actual[2][0], 0.0)
 
-    @given(st.builds(_build_rotation, st.floats(max_value=2*math.pi, min_value=0),
-                     st.integers(min_value=0, max_value=4)))
+    @data(
+        [_generate_x_rotation(0.1)],
+        [_generate_y_rotation(0.2)],
+        [_generate_z_rotation(0.3)],
+        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
+        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
+    )
+    @unpack
     def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3):
         """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
         actual_result = commutator_decompose(u_so3)
@@ -287,21 +294,6 @@ class TestSolovayKitaev(QiskitTestCase):
 
         self.assertTrue(circuit == decomposed_circuit)
 
-    @data(2, 3, 4, 5)
-    def test_solovay_kitaev_on_qft_without_h_in_basic_gates_does_not_return_qft(self, nr_qubits):
-        """Test that ``SolovayKitaevDecomposition`` does not return a QFT-circuit when
-        it approximates the QFT-circuit and the basic gates do not contain H-gate and inverse"""
-        circuit = QFT(nr_qubits, 0)
-        basic_gates = [TGate(), SGate(), gates.IGate(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(4, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-
-        self.assertFalse(circuit == decomposed_circuit)
-
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
         circuit = QuantumCircuit(1)
@@ -319,31 +311,6 @@ class TestSolovayKitaev(QiskitTestCase):
         reference.h(0)
 
         self.assertEqual(discretized, reference)
-
-    @data(2, 3, 4, 5)
-    def test_solovay_kitaev_converges(self, depth: int):
-        """Test that the SolovayKitaevDecomposition returns a circuit closer to the input gate
-        when the depth increaes. """
-
-        circuit = QuantumCircuit(1)
-        circuit.rx(0.8, 0)
-
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(depth, basic_gates, 3)
-        synth_plus_one = SolovayKitaevDecomposition(depth+1, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-
-        dag_plus_one = circuit_to_dag(circuit)
-        decomposed_dag_plus_one = synth_plus_one.run(dag_plus_one)
-        decomposed_circuit_plus_one = dag_to_circuit(decomposed_dag_plus_one)
-
-        self.assertLess(distance(Operator(circuit).data,
-                                 Operator(decomposed_circuit_plus_one).data),
-                        distance(Operator(circuit).data, Operator(decomposed_circuit).data))
 
 
 @ddt
