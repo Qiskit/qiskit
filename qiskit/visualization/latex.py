@@ -292,8 +292,8 @@ class QCircuitImage:
         for layer in self.ops:
             column_width = 1
             for nd in layer:
-                if nd.name in ['cu1', 'rzz']:
-                    column_width = 2
+                if nd.name in ['cu1', 'cp', 'rzz']:
+                    column_width = 3
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -382,7 +382,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cp', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
@@ -661,7 +661,7 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
@@ -670,11 +670,12 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (nm[1:], self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                # this is because this gate takes up 2 columns,
+                                # this is because this gate takes up 3 columns,
                                 # and we have just written to the next column
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
@@ -697,7 +698,7 @@ class QCircuitImage:
                                     "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -747,7 +748,7 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
@@ -756,9 +757,10 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (nm[1:], self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \

@@ -1038,9 +1038,10 @@ class TextDrawing():
             if base_gate.name == 'z':
                 # cz
                 gates.append(Bullet(conditional=conditional))
-            elif base_gate.name == 'u1':
+            elif base_gate.name == 'u1' or base_gate.name == 'p':
                 # cu1
-                connection_label = TextDrawing.params_for_label(instruction)[0]
+                connection_label = "%s(%s)" % (base_gate.name,
+                                               TextDrawing.params_for_label(instruction)[0])
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == 'swap':
                 # cswap
