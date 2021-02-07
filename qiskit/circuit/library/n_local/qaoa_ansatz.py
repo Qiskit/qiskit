@@ -12,7 +12,7 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=R0401
-from typing import Optional, cast, Set
+from typing import Optional, cast, Set, List, Tuple
 
 import numpy as np
 
@@ -124,6 +124,17 @@ class QAOAAnsatz(BlueprintCircuit):
         self._build()
         return super().parameters
 
+    @property
+    def parameter_bounds(self) -> List[Tuple[float, float]]:
+        """Parameter bounds.
+
+        Returns: A list of pairs indicating the bounds, as (lower, upper). None indicates
+            an unbounded parameter in the corresponding direction. If None is returned, problem is
+            fully unbounded or is not built yet.
+        """
+
+        return self._bounds
+
     def _calculate_parameters(self):
         """Calculated internal parameters of the circuit to be built."""
         from qiskit.opflow import OperatorBase
@@ -148,6 +159,7 @@ class QAOAAnsatz(BlueprintCircuit):
         # local imports to avoid circular imports
         from qiskit.opflow import CircuitStateFn
         from qiskit.opflow import CircuitOp, EvolutionFactory
+        from qiskit.opflow import OperatorBase
 
         circuit_op = CircuitStateFn(self.initial_state)
 
@@ -156,7 +168,6 @@ class QAOAAnsatz(BlueprintCircuit):
             # the first [:self._reps] parameters are used for the cost operator,
             # so we apply them here
             circuit_op = (self._cost_operator * parameters[idx]).exp_i().compose(circuit_op)
-            from qiskit.opflow import OperatorBase
             mixer = self.mixer_operator
             if isinstance(mixer, OperatorBase):
                 mixer = cast(OperatorBase, mixer)
