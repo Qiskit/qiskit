@@ -1804,7 +1804,14 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return self._parameter_table.get_keys()
+        # parameters from gates
+        params = self._parameter_table.get_keys()
+
+        # parameters in global phase
+        if isinstance(self.global_phase, ParameterExpression):
+            params.update(self.global_phase.parameters)
+
+        return params
 
     @property
     def num_parameters(self):
@@ -1880,7 +1887,7 @@ class QuantumCircuit:
 
         # check that all param_dict items are in the _parameter_table for this circuit
         params_not_in_circuit = [param_key for param_key in unrolled_param_dict
-                                 if param_key not in self._parameter_table.keys()]
+                                 if param_key not in self.parameters]
         if len(params_not_in_circuit) > 0:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 ', '.join(map(str, params_not_in_circuit))))
@@ -1934,25 +1941,27 @@ class QuantumCircuit:
             value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
                 replace instances of ``parameter``.
         """
-        for instr, param_index in self._parameter_table[parameter]:
-            new_param = instr.params[param_index].assign(parameter, value)
-            # if fully bound, validate
-            if len(new_param.parameters) == 0:
-                instr.params[param_index] = instr.validate_parameter(new_param)
-            else:
-                instr.params[param_index] = new_param
-
-            self._rebind_definition(instr, parameter, value)
-
-        if isinstance(value, ParameterExpression):
-            entry = self._parameter_table.pop(parameter)
-            for new_parameter in value.parameters:
-                if new_parameter in self._parameter_table:
-                    self._parameter_table[new_parameter].extend(entry)
+        # parameter might be in global phase only
+        if parameter in self._parameter_table.keys():
+            for instr, param_index in self._parameter_table[parameter]:
+                new_param = instr.params[param_index].assign(parameter, value)
+                # if fully bound, validate
+                if len(new_param.parameters) == 0:
+                    instr.params[param_index] = instr.validate_parameter(new_param)
                 else:
-                    self._parameter_table[new_parameter] = entry
-        else:
-            del self._parameter_table[parameter]  # clear evaluated expressions
+                    instr.params[param_index] = new_param
+
+                self._rebind_definition(instr, parameter, value)
+
+            if isinstance(value, ParameterExpression):
+                entry = self._parameter_table.pop(parameter)
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        self._parameter_table[new_parameter].extend(entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
+            else:
+                del self._parameter_table[parameter]  # clear evaluated expressions
 
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
