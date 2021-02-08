@@ -1,9 +1,10 @@
 ---
 features:
   - |
-    This PR introduces a new transpiler pass capable of generating calibrations
-    and adding them to a quantum circuit. In this PR we introduce the
-    RZXCalibrationBuilder which takes calibrated CNOT gates and creates the
+    Introduced a new transpiler pass capable of generating calibrations
+    and adding them to a quantum circuit. The
+    :py:class:`~qiskit.transpiler.passes.RZXCalibrationBuilder` takes calibrated
+    CNOT gates and creates the
     calibrations for RZXGates with an arbitrary rotation angle. The schedules
     are created by stretching and compressing the GaussianSquare pulses of the
     echoed-cross resonance gates. Furthermore, we added templates so that users
