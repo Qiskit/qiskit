@@ -548,7 +548,7 @@ def inline_subroutines(program: Schedule) -> Schedule:
     for t0, inst in program.instructions:
         if isinstance(inst, instructions.Call):
             # bind parameter
-            if inst.is_parameterized():
+            if bool(inst.arguments):
                 subroutine = deepcopy(inst.subroutine)
                 subroutine.assign_parameters(value_dict=inst.arguments)
             else:

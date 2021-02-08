@@ -1041,3 +1041,76 @@ class TestSubroutineCall(TestBuilder):
         target = inline_subroutines(schedule)
 
         self.assertEqual(target, reference)
+
+    def test_deepcopying_subroutine(self):
+        """Test if deepcopying the schedule can copy inline subroutine."""
+        from copy import deepcopy
+
+        with pulse.build() as subroutine:
+            pulse.delay(10, pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine)
+
+        copied_prog = deepcopy(main_prog)
+
+        main_call = main_prog.instructions[0][1]
+        copy_call = copied_prog.instructions[0][1]
+
+        self.assertNotEqual(id(main_call), id(copy_call))
+
+    def test_call_with_parameters(self):
+        """Test call subroutine with parameters."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp: 0.1})
+            pulse.call(subroutine, value_dict={amp: 0.3})
+
+        self.assertEqual(main_prog.is_parameterized(), False)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.3)
+
+    def test_call_partly_with_parameters(self):
+        """Test multiple calls partly with parameters then assign."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp: 0.1})
+            pulse.call(subroutine)
+
+        self.assertEqual(main_prog.is_parameterized(), True)
+
+        main_prog.assign_parameters({amp: 0.5})
+        self.assertEqual(main_prog.is_parameterized(), False)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.5)
+
+
+
+
+
+
+
+
+
+
+

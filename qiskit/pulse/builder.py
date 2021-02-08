@@ -464,7 +464,8 @@ class _PulseBuilder():
 
         Args:
             subroutine: target program to append to this context.
-            value_dict:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()

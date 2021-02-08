@@ -13,7 +13,7 @@
 """Call instruction that represents calling a schedule as a subroutine."""
 
 import hashlib
-from typing import Optional, Union, Dict, Tuple, Any
+from typing import Optional, Union, Dict, Tuple, Any, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.instructions import instruction
@@ -112,6 +112,15 @@ class Call(instruction.Instruction):
                 self._parameter_table[param_obj] = assigned_value
 
         return self
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return any([value is None for value in self.arguments.values()])
+
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        return set([key for key, val in self._parameter_table.items() if val is None])
 
     @property
     def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
