@@ -25,8 +25,10 @@ def build_sample_pulse_schedule(number_of_unique_pulses, number_of_channels):
     sched = Schedule()
     for _ in range(number_of_unique_pulses):
         for channel in range(number_of_channels):
-            sched.append(Play(Waveform(rng.random(50)),
-                              DriveChannel(channel)))
+            sched.append(
+                Play(Waveform(rng.random(50)), DriveChannel(channel)),
+                inplace=True,
+            )
     return sched
 
 
@@ -35,8 +37,13 @@ def build_parametric_pulse_schedule(number_of_unique_pulses,
     sched = Schedule()
     for _ in range(number_of_unique_pulses):
         for channel in range(number_of_channels):
-            sched.append(Play(Gaussian(duration=25, sigma=4, amp=0.5j),
-                              DriveChannel(channel)))
+            sched.append(
+                Play(
+                    Gaussian(duration=25, sigma=4, amp=0.5j),
+                    DriveChannel(channel),
+                ),
+                inplace=True,
+            )
     return sched
 
 
@@ -62,9 +69,12 @@ class ScheduleConstructionBench:
         build_parametric_pulse_schedule(unique_pulses, channels)
 
     def time_append_instruction(self, _, __):
-        self.sample_sched.append(self.parametric_sched)
+        self.sample_sched.append(self.parametric_sched, inplace=True)
 
     def time_insert_instruction_left_to_right(self, _, __):
         sched = self.sample_sched.shift(self.parametric_sched.stop_time)
-        sched.insert(self.parametric_sched.start_time,
-                     self.parametric_sched)
+        sched.insert(
+            self.parametric_sched.start_time,
+            self.parametric_sched,
+            inplace=True,
+        )
