@@ -13,6 +13,7 @@
 """ PauliSumOp Class """
 
 import logging
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
@@ -20,6 +21,8 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from ..exceptions import OpflowError
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -36,11 +39,13 @@ class PauliSumOp(PrimitiveOp):
             self,
             primitive: SparsePauliOp,
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+            grouping_type: str = "None",
     ) -> None:
         """
         Args:
             primitive: The SparsePauliOp which defines the behavior of the underlying function.
             coeff: A coefficient multiplying the primitive.
+            grouping_type: The type of grouping. If None, the operator is not grouped.
 
         Raises:
             TypeError: invalid parameters.
@@ -51,13 +56,54 @@ class PauliSumOp(PrimitiveOp):
             )
 
         super().__init__(primitive, coeff=coeff)
+        self._grouping_type = grouping_type
 
     def primitive_strings(self) -> Set[str]:
         return {"SparsePauliOp"}
 
     @property
+    def grouping_type(self) -> str:
+        """
+        Returns: Type of Grouping
+        """
+        return self._grouping_type
+
+    @property
     def num_qubits(self) -> int:
         return self.primitive.num_qubits  # type: ignore
+
+    @property
+    def coeffs(self):
+        """Return the Pauli coefficients."""
+        return self.coeff * self.primitive.coeffs
+
+    def matrix_iter(self, sparse=False):
+        """Return a matrix representation iterator.
+
+        This is a lazy iterator that converts each term in the PauliSumOp
+        into a matrix as it is used. To convert to a single matrix use the
+        :meth:`to_matrix` method.
+
+        Args:
+            sparse (bool): optionally return sparse CSR matrices if True,
+                           otherwise return Numpy array matrices
+                           (Default: False)
+
+        Returns:
+            MatrixIterator: matrix iterator object for the PauliTable.
+        """
+        class MatrixIterator(CustomIterator):
+            """Matrix representation iteration and item access."""
+            def __repr__(self):
+                return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
+
+            def __getitem__(self, key):
+                sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
+                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key],
+                                            sparse=sparse)
+                return sumopcoeff * mat
+
+        return MatrixIterator(self)
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -167,7 +213,7 @@ class PauliSumOp(PrimitiveOp):
             return other.compose(new_self)
         # If self is identity, just return other.
         if not np.any(new_self.primitive.table.array):  # type: ignore
-            return other * new_self.coeff * sum(new_self.coeffs)  # type: ignore
+            return other * new_self.coeff * sum(new_self.primitive.coeffs)  # type: ignore
 
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
@@ -247,36 +293,32 @@ class PauliSumOp(PrimitiveOp):
                 )
 
             if isinstance(front, DictStateFn):
-
-                new_dict = {}  # type: Dict
-                corrected_x_bits = self.primitive.table.X[::-1]  # type: ignore
-                corrected_z_bits = self.primitive.table.Z[::-1]  # type: ignore
-                coeffs = self.primitive.coeffs  # type:ignore
-
+                new_dict = defaultdict(int)
+                corrected_x_bits = self.primitive.table.X
+                corrected_z_bits = self.primitive.table.Z
+                coeffs = self.primitive.coeffs
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
-                    new_str = ["".join(map(str, 1 * bs)) for bs in new_b_str]
+                    new_str = ["".join([str(b) for b in bs]) for bs in new_b_str.astype(int)]
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits), axis=1)
                     y_factor = np.product(
                         np.sqrt(1 - 2 * np.logical_and(corrected_x_bits, corrected_z_bits) + 0j),
                         axis=1,
                     )
                     for i, n_str in enumerate(new_str):
-                        new_dict[n_str] = (
-                            v * z_factor[i] * y_factor[i] * coeffs[i]
-                        ) + new_dict.get(n_str, 0)
-                    return DictStateFn(new_dict, coeff=self.coeff * front.coeff)
+                        new_dict[n_str] += v * z_factor[i] * y_factor[i] * coeffs[i]
+                return DictStateFn(new_dict, coeff=self.coeff * front.coeff)
 
             elif isinstance(front, StateFn) and front.is_measurement:
                 raise ValueError("Operator composed with a measurement is undefined.")
 
             # Composable types with PauliOp
             elif isinstance(front, (PauliSumOp, PauliOp, CircuitOp, CircuitStateFn)):
-                return self.compose(front).eval()  # type: ignore
+                return self.compose(front).eval()
 
         # Covers VectorStateFn and OperatorStateFn
-        return self.to_matrix_op().eval(front.to_matrix_op())  # type: ignore
+        return self.to_matrix_op().eval(front.to_matrix_op())
 
     def exp_i(self) -> OperatorBase:
         """ Return a ``CircuitOp`` equivalent to e^-iH for this operator H. """

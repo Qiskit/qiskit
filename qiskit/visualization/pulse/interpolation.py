@@ -13,7 +13,9 @@
 # pylint: disable=invalid-name
 
 """
-interpolation module for pulse visualization.
+Deprecated.
+
+Interpolation module for pulse visualization.
 """
 from functools import partial
 from typing import Tuple
@@ -26,7 +28,9 @@ def interp1d(time: np.ndarray,
              samples: np.ndarray,
              nop: int, kind: str = 'linear'
              ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Scipy interpolation wrapper.
+    """Deprecated.
+
+    Scipy interpolation wrapper.
 
     Args:
         time: Time vector with length of ``samples`` + 1.
@@ -58,7 +62,9 @@ def step_wise(time: np.ndarray,
               nop: int
               ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # pylint: disable=unused-argument
-    """Keep uniform variation between sample values. No interpolation is applied.
+    """Deprecated.
+
+    Keep uniform variation between sample values. No interpolation is applied.
     Args:
         time: Time vector with length of ``samples`` + 1.
         samples: Complex pulse envelope.
@@ -74,7 +80,9 @@ def step_wise(time: np.ndarray,
 
 
 linear = partial(interp1d, kind='linear')
-linear.__doc__ = """Apply linear interpolation between sampling points.
+linear.__doc__ = """Deprecated.
+
+Apply linear interpolation between sampling points.
 
 Args:
     time: Time vector with length of ``samples`` + 1.
@@ -85,7 +93,9 @@ Returns:
 """
 
 cubic_spline = partial(interp1d, kind='cubic')
-cubic_spline.__doc__ = """Apply cubic interpolation between sampling points.
+cubic_spline.__doc__ = """Deprecated.
+
+Apply cubic interpolation between sampling points.
 
 Args:
     time: Time vector with length of ``samples`` + 1.
