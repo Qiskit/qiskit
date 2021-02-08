@@ -217,6 +217,7 @@ from typing import (
 import numpy as np
 
 from qiskit import circuit
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.circuit.library import standard_gates as gates
 from qiskit.pulse import (
     channels as chans,
@@ -450,20 +451,30 @@ class _PulseBuilder():
         """
         self.append_schedule(schedule)
 
-    def call_subroutine(self, subroutine: Union[circuit.QuantumCircuit, Schedule]):
+    def call_subroutine(self,
+                        subroutine: Union[circuit.QuantumCircuit, Schedule],
+                        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None
+                        ):
         """Call a schedule defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
         This is a logic to generate better program representation in the compiler.
         Thus this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
+
+        Args:
+            subroutine: target program to append to this context.
+            value_dict:
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
         if len(subroutine.instructions) > 0:
-            self.append_instruction(instructions.Call(subroutine))
+            call_def = instructions.Call(subroutine)
+            if value_dict:
+                call_def.assign_parameters(value_dict)
+            self.append_instruction(call_def)
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""
@@ -1671,14 +1682,15 @@ def call_circuit(circ: circuit.QuantumCircuit):
     call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule]):
-    """Call the ``target`` within the currently active builder context.
+def call(target: Union[circuit.QuantumCircuit, Schedule],
+         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None):
+    """Call the ``target`` within the currently active builder context with arbitrary
+    parameters which will be assigned to the target program.
 
     .. note::
-        The ``target`` program is implicitly wrapped by the ``Call`` instruction.
-        This instruction defines a subroutine that is created outside of the current scope.
-        Thus further optimizations, i.e. consecutive gate fusion and scheduling,
-        are not performed between subroutines.
+        The ``target`` program is inserted as a ``Call`` instruction.
+        This instruction defines a subroutine. See :class:`~qiskit.pulse.instructions.Call`
+        for more details.
 
     Examples:
 
@@ -1698,8 +1710,25 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
                 pulse.call(sched)
                 pulse.call(qc)
 
+    This function can optionally take parameter dictionary with the parameterized target program.
+
+    .. jupyter-execute::
+
+        from qiskit import circuit, pulse
+
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, {amp: 0.1})
+            pulse.call(subroutine, {amp: 0.3})
+
     Args:
         target: Target circuit or pulse schedule to call.
+        value_dict: A mapping from Parameters to either numeric values or another
+            Parameter expression.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
@@ -1708,7 +1737,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
 
-    _active_builder().call_subroutine(target)
+    _active_builder().call_subroutine(target, value_dict)
 
 
 # Directives
