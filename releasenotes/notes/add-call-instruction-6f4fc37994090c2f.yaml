@@ -32,7 +32,7 @@ features:
         pulse.call(xcirc)
 
     the ``xcirc`` is called as an individual subroutine, thus these programs are not
-    merged within the bulder context thourgh consecutive x gates forms an identity.
+    merged within the builder context through consecutive x gates forms an identity.
     The :py:class:`~qiskit.pulse.instructions.Call` instruction benefits a Qiskit compiler
     to generate a cleaner target code. This instruction doesn't affect the underlying
     program execution.
