@@ -23,11 +23,12 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
 
-class Clifford(BaseOperator):
+class Clifford(BaseOperator, AdjointMixin):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
@@ -214,44 +215,38 @@ class Clifford(BaseOperator):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        """Return the conjugate of the Clifford."""
         return Clifford._conjugate_transpose(self, 'C')
 
     def adjoint(self):
-        """Return the conjugate transpose of the Clifford"""
         return Clifford._conjugate_transpose(self, 'A')
 
     def transpose(self):
-        """Return the transpose of the Clifford."""
         return Clifford._conjugate_transpose(self, 'T')
 
+    def tensor(self, other):
+        if not isinstance(other, Clifford):
+            other = Clifford(other)
+        return self._tensor(self, other)
+
+    def expand(self, other):
+        if not isinstance(other, Clifford):
+            other = Clifford(other)
+        return self._tensor(other, self)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        # Pad stabilizers and destabilizers
+        destab = (b.destabilizer.expand(a.num_qubits * 'I') +
+                  a.destabilizer.tensor(b.num_qubits * 'I'))
+        stab = (b.stabilizer.expand(a.num_qubits * 'I') +
+                a.stabilizer.tensor(b.num_qubits * 'I'))
+
+        # Add the padded table
+        return Clifford(destab + stab, validate=False)
+
     def compose(self, other, qargs=None, front=False):
-        """Return the composed operator.
-
-        Args:
-            other (Clifford): an operator object.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            Clifford: The operator self @ other.
-
-        Raise:
-            QiskitError: if operators have incompatible dimensions for
-                         composition.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
-
         # If other is a QuantumCircuit we can more efficiently compose
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first
@@ -269,47 +264,65 @@ class Clifford(BaseOperator):
 
         # Pad other with identities if composeing on subsystem
         other = self._pad_with_identity(other, qargs)
-        return self._compose_clifford(other, front=front)
 
-    def dot(self, other, qargs=None):
-        """Return the right multiplied operator self * other.
+        if front:
+            table1 = self.table
+            table2 = other.table
+        else:
+            table1 = other.table
+            table2 = self.table
 
-        Args:
-            other (Clifford): an operator object.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
+        num_qubits = self.num_qubits
 
-        Returns:
-            Clifford: The operator self * other.
+        array1 = table1.array.astype(int)
+        phase1 = table1.phase.astype(int)
 
-        Raises:
-            QiskitError: if operators have incompatible dimensions for
-                         composition.
-        """
-        return super().dot(other, qargs=qargs)
+        array2 = table2.array.astype(int)
+        phase2 = table2.phase.astype(int)
 
-    def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
+        # Update Pauli table
+        pauli = StabilizerTable(array2.dot(array1) % 2)
 
-        Args:
-            other (Clifford): a operator subclass object.
+        # Add phases
+        phase = np.mod(array2.dot(phase1) + phase2, 2)
 
-        Returns:
-            Clifford: the tensor product operator self ⊗ other.
-        """
-        return self._tensor_product(other, reverse=False)
+        # Correcting for phase due to Pauli multiplication
+        ifacts = np.zeros(2 * num_qubits, dtype=np.int)
 
-    def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
+        for k in range(2 * num_qubits):
 
-        Args:
-            other (Clifford): an operator object.
+            row2 = array2[k]
+            x2 = table2.X[k]
+            z2 = table2.Z[k]
 
-        Returns:
-            Clifford: the tensor product operator other ⊗ self.
-        """
-        return self._tensor_product(other, reverse=True)
+            # Adding a factor of i for each Y in the image of an operator under the
+            # first operation, since Y=iXZ
+
+            ifacts[k] += np.sum(x2 & z2)
+
+            # Adding factors of i due to qubit-wise Pauli multiplication
+
+            for j in range(num_qubits):
+                x = 0
+                z = 0
+                for i in range(2 * num_qubits):
+                    if row2[i]:
+                        x1 = array1[i, j]
+                        z1 = array1[i, j + num_qubits]
+                        if (x | z) & (x1 | z1):
+                            val = np.mod(np.abs(3 * z1 - x1) - np.abs(3 * z - x) - 1, 3)
+                            if val == 0:
+                                ifacts[k] += 1
+                            elif val == 1:
+                                ifacts[k] -= 1
+                        x = np.mod(x + x1, 2)
+                        z = np.mod(z + z1, 2)
+
+        p = np.mod(ifacts, 4) // 2
+
+        phase = np.mod(phase + p, 2)
+
+        return Clifford(StabilizerTable(pauli, phase), validate=False)
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -490,38 +503,6 @@ class Clifford(BaseOperator):
                 ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
         return ret
 
-    def _tensor_product(self, other, reverse=False):
-        """Return the tensor product operator.
-
-        Args:
-            other (Clifford): another Clifford operator.
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False].
-        Returns:
-            Clifford: the tensor product operator.
-
-        Raises:
-            QiskitError: if other cannot be converted into an Clifford.
-        """
-        if not isinstance(other, Clifford):
-            other = Clifford(other)
-
-        if reverse:
-            cliff0 = self
-            cliff1 = other
-        else:
-            cliff0 = other
-            cliff1 = self
-
-        # Pad stabilizers and destabilizers
-        destab = (cliff0.destabilizer.expand(cliff1.num_qubits * 'I') +
-                  cliff1.destabilizer.tensor(cliff0.num_qubits * 'I'))
-        stab = (cliff0.stabilizer.expand(cliff1.num_qubits * 'I') +
-                cliff1.stabilizer.tensor(cliff0.num_qubits * 'I'))
-
-        # Add the padded table
-        return Clifford(destab + stab, validate=False)
-
     def _pad_with_identity(self, clifford, qargs):
         """Pad Clifford with identities on other subsystems."""
         if qargs is None:
@@ -543,63 +524,6 @@ class Clifford(BaseOperator):
 
         return padded
 
-    def _compose_clifford(self, other, front=False):
-        """Return the composition channel assume other is Clifford of same size as self."""
-        if front:
-            table1 = self.table
-            table2 = other.table
-        else:
-            table1 = other.table
-            table2 = self.table
 
-        num_qubits = self.num_qubits
-
-        array1 = table1.array.astype(int)
-        phase1 = table1.phase.astype(int)
-
-        array2 = table2.array.astype(int)
-        phase2 = table2.phase.astype(int)
-
-        # Update Pauli table
-        pauli = StabilizerTable(array2.dot(array1) % 2)
-
-        # Add phases
-        phase = np.mod(array2.dot(phase1) + phase2, 2)
-
-        # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=int)
-
-        for k in range(2 * num_qubits):
-
-            row2 = array2[k]
-            x2 = table2.X[k]
-            z2 = table2.Z[k]
-
-            # Adding a factor of i for each Y in the image of an operator under the
-            # first operation, since Y=iXZ
-
-            ifacts[k] += np.sum(x2 & z2)
-
-            # Adding factors of i due to qubit-wise Pauli multiplication
-
-            for j in range(num_qubits):
-                x = 0
-                z = 0
-                for i in range(2 * num_qubits):
-                    if row2[i]:
-                        x1 = array1[i, j]
-                        z1 = array1[i, j + num_qubits]
-                        if (x | z) & (x1 | z1):
-                            val = np.mod(np.abs(3 * z1 - x1) - np.abs(3 * z - x) - 1, 3)
-                            if val == 0:
-                                ifacts[k] += 1
-                            elif val == 1:
-                                ifacts[k] -= 1
-                        x = np.mod(x + x1, 2)
-                        z = np.mod(z + z1, 2)
-
-        p = np.mod(ifacts, 4) // 2
-
-        phase = np.mod(phase + p, 2)
-
-        return Clifford(StabilizerTable(pauli, phase), validate=False)
+# Update docstrings for API docs
+generate_apidocs(Clifford)
