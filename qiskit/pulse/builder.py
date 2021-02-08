@@ -418,13 +418,10 @@ class _PulseBuilder():
         self.context_schedule.append(instruction, inplace=True)
 
     def _compile_lazy_circuit(self):
-        """Call a QuantumCircuit and append the output pulse schedule
+        """Call a context QuantumCircuit (lazy circuit) and append the output pulse schedule
         to the builder's context schedule.
 
-        Lazy circuit is not regarded as a subroutine though the circuit composed of
-        externally defined gate instructions, i.e. instruction schedule map.
-        These are just instructions and not a callable subroutine.
-        The circuit is converted into a schedule and appended to the context schedule as-is.
+        Note that the lazy circuit is not stored as a call instruction.
         """
         if self._lazy_circuit:
             lazy_circuit = self._lazy_circuit
@@ -448,6 +445,7 @@ class _PulseBuilder():
         """Call a schedule and append to the builder's context schedule.
 
         The schedule is just appended to the context schedule as-is.
+        Use :meth:`~call_subroutine` method to define the schedule as a subroutine.
         """
         self.append_schedule(schedule)
 
