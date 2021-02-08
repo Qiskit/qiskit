@@ -1809,7 +1809,7 @@ class QuantumCircuit:
 
         # parameters in global phase
         if isinstance(self.global_phase, ParameterExpression):
-            params.update(self.global_phase.parameters)
+            return params.union(self.global_phase.parameters)
 
         return params
 
