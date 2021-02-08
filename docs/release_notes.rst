@@ -22,6 +22,79 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.5
+*************
+
+Terra 0.16.4
+============
+
+.. _Release Notes_0.16.4_Prelude:
+
+Prelude
+-------
+
+This release is a bugfix release that primarily fixes compatibility with numpy
+1.20.0. This numpy release deprecated their local aliases for Python's numeric
+types (``np.int`` -> ``int``, ``np.float`` -> ``float``, etc.) and the usage of
+these aliases in Qiskit resulted in a large number of deprecation warnings being
+emitted. This release fixes this so you can run Qiskit with numpy 1.20.0 without
+those deprecation warnings.
+
+Aer 0.7.4
+=========
+
+.. _Release Notes_Aer_0.7.4_Bug Fixes:
+
+Bug Fixes
+----------
+
+Fixes compatibility with numpy 1.20.0. This numpy release deprecated their local
+aliases for Python's numeric types (``np.int`` -> ``int``,
+``np.float`` -> ``float``, etc.) and the usage of these aliases in Qiskit Aer
+resulted in a large number of deprecation warnings being emitted. This release
+fixes this so you can run Qiskit Aer with numpy 1.20.0 without those deprecation
+warnings.
+
+Ignis 0.5.2
+===========
+
+.. _Release Notes_Ignis_0.5.2_Prelude:
+
+Prelude
+-------
+
+This release is a bugfix release that primarily fixes compatibility with numpy
+1.20.0. It is also the first release to include support for Python 3.9. Earlier
+releases (including 0.5.0 and 0.5.1) worked with Python 3.9 but did not
+indicate this in the package metadata, and there was no upstream testing for
+those releases. This release fixes that and was tested on Python 3.9 (in
+addition to 3.6, 3.7, and 3.8).
+
+.. _Release Notes_Ignis_0.5.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- `networkx <https://networkx.org/>`__ is explicitly listed as a dependency
+  now. It previously was an implicit dependency as it was required for the
+  :mod:`qiskit.ignis.verification.topological_codes` module but was not
+  correctly listed as a depdendency as qiskit-terra also requires networkx
+  and is also a depdency of ignis so it would always be installed in practice.
+  However, it is necessary to list it as a requirement for future releases
+  of qiskit-terra that will not require networkx. It's also important to
+  correctly list the dependencies of ignis in case there were a future
+  incompatibility between version requirements.
+
+Aqua 0.8.2
+==========
+
+
+IBM Q Provider 0.11.1
+=====================
+
+No change
+
+*************
 Qiskit 0.23.4
 *************
 
