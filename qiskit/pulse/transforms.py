@@ -15,6 +15,7 @@
 """
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from typing import Callable
 from typing import List, Optional, Iterable, Union
 
@@ -531,13 +532,30 @@ def flatten(program: ScheduleComponent) -> ScheduleComponent:
                         metadata=program.metadata)
 
 
-def inline_subroutines(program: Schedule):
-    """Recursively removes the call instruction and inlines the attached instructions."""
+def inline_subroutines(program: Schedule) -> Schedule:
+    """Recursively remove the call instruction and inlines the attached instructions.
+
+    Assigned parameter values, which are stored in the parameter table, are also applied.
+    The subroutine is copied before the parameter assignment to avoid mutation problem.
+
+    Args:
+        program: A program which may contain the subroutine, i.e. ``Call`` instruction.
+
+    Returns:
+        A schedule without subroutine.
+    """
     schedule = Schedule(name=program.name, metadata=program.metadata)
     for t0, inst in program.instructions:
         if isinstance(inst, instructions.Call):
-            sub_sched = inline_subroutines(inst.subroutine)
-            schedule.insert(t0, sub_sched, inplace=True)
+            # bind parameter
+            if inst.is_parameterized():
+                subroutine = deepcopy(inst.subroutine)
+                subroutine.assign_parameters(value_dict=inst.arguments)
+            else:
+                subroutine = inst.subroutine
+            # recursively inline the program
+            inline_schedule = inline_subroutines(subroutine)
+            schedule.insert(t0, inline_schedule, inplace=True)
         else:
             schedule.insert(t0, inst, inplace=True)
     return schedule
