@@ -33,6 +33,6 @@ features:
 
     the ``xcirc`` is called as an individual subroutine, thus these programs are not
     merged within the builder context through consecutive x gates forms an identity.
-    The :py:class:`~qiskit.pulse.instructions.Call` instruction benefits a Qiskit compiler
-    to generate a cleaner target code. This instruction doesn't affect the underlying
+    The :py:class:`~qiskit.pulse.instructions.Call` instruction helps the Qiskit compiler
+    to produce a cleaner and more reusable program representation. It does not affect the underlying
     program execution.
