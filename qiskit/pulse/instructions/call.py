@@ -120,7 +120,7 @@ class Call(instruction.Instruction):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
-        return set([key for key, val in self._parameter_table.items() if val is None])
+        return set(key for key, val in self._parameter_table.items() if val is None)
 
     @property
     def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
