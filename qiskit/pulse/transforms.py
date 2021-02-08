@@ -522,7 +522,7 @@ def align_func(schedule: Schedule,
 
 
 def flatten(program: ScheduleComponent) -> ScheduleComponent:
-    """Flatten any called nodes into a Schedule tree with no nested children."""
+    """Flatten(inline) any called nodes into a Schedule tree with no nested children."""
     if isinstance(program, instructions.Instruction):
         return program
     else:
