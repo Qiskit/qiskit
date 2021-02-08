@@ -85,8 +85,8 @@ class Call(instruction.Instruction):
         Args:
             operands: List of operands associated with this instruction.
         """
-        if self.subroutine.is_parameterized():
-            for value in self.subroutine.parameters:
+        if operands[0].is_parameterized():
+            for value in operands[0].parameters:
                 self._parameter_table[value] = None
 
     def assign_parameters(self,
