@@ -172,6 +172,8 @@ class SuperOp(QuantumChannel):
         return ret
 
     def compose(self, other, qargs=None, front=False):
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         # Validate dimensions are compatible and return the composed

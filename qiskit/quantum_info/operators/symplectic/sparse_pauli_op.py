@@ -171,6 +171,9 @@ class SparsePauliOp(LinearOp):
 
     def compose(self, other, qargs=None, front=False):
         # pylint: disable=invalid-name
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
 

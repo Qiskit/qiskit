@@ -188,6 +188,8 @@ class Stinespring(QuantumChannel):
         return ret
 
     def compose(self, other, qargs=None, front=False):
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
             return Stinespring(
                 SuperOp(self).compose(other, qargs=qargs, front=front))

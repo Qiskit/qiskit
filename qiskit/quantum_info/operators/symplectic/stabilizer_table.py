@@ -487,7 +487,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().tensor(other)
+        if not isinstance(other, StabilizerTable):
+            other = StabilizerTable(other)
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -517,7 +519,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().expand(other)
+        if not isinstance(other, StabilizerTable):
+            other = StabilizerTable(other)
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=False):
         """Return the compose output product of two tables.
@@ -566,6 +570,8 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -640,7 +646,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        super().dot(other, qargs=qargs)
+        return self.compose(other, qargs=qargs, front=True)
 
     @classmethod
     def _tensor(cls, a, b):

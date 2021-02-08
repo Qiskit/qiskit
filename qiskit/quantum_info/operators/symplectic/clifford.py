@@ -245,6 +245,8 @@ class Clifford(BaseOperator, AdjointMixin):
         return Clifford(destab + stab, validate=False)
 
     def compose(self, other, qargs=None, front=False):
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         # If other is a QuantumCircuit we can more efficiently compose
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first

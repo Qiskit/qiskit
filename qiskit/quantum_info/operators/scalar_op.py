@@ -95,7 +95,6 @@ class ScalarOp(LinearOp):
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
-
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 

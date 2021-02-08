@@ -574,6 +574,8 @@ class PauliTable(BaseOperator, AdjointMixin):
             QiskitError: if other cannot be converted to a PauliTable.
         """
         # pylint: disable=unused-argument
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -624,7 +626,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        return super().dot(other, qargs=qargs)
+        return self.compose(other, qargs=qargs, front=True)
 
     @classmethod
     def _tensor(cls, a, b):

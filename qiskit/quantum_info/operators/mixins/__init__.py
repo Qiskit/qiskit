@@ -48,4 +48,5 @@ def generate_apidocs(cls):
     _replace_name(AdjointMixin, ('transpose', 'conjugate', 'adjoint'))
     _replace_name(MultiplyMixin, ('_multiply',))
     _replace_name(LinearMixin, ('_add',))
+    _replace_name(TolerancesMixin, ('atol', 'rtol'))
     return cls
