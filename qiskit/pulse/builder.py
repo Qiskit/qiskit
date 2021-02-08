@@ -1667,7 +1667,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
         Circuit to call.
     """
     warnings.warn('``call_circuit`` is being deprecated. '
-                  '``call`` function can take both schedule and circuit.', DeprecationWarning)
+                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
 
     call(circ)
 
