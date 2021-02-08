@@ -18,7 +18,7 @@ from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
-from qiskit.pulse.transforms import remove_subroutines
+from qiskit.pulse.transforms import inline_subroutines
 from qiskit.test.mock import FakeAlmaden
 
 
@@ -308,13 +308,13 @@ class TestPulseParameters(QiskitTestCase):
         program_layer1 = pulse.Schedule()
         program_layer1 += pulse.instructions.Call(program_layer0)
         target = program_layer1.assign_parameters({param1: 0.1})
-        self.assertEqual(remove_subroutines(target), reference)
+        self.assertEqual(inline_subroutines(target), reference)
 
         # to nested call instruction
         program_layer2 = pulse.Schedule()
         program_layer2 += pulse.instructions.Call(program_layer1)
         target = program_layer2.assign_parameters({param1: 0.1})
-        self.assertEqual(remove_subroutines(target), reference)
+        self.assertEqual(inline_subroutines(target), reference)
 
 
 class TestParameterDuration(QiskitTestCase):

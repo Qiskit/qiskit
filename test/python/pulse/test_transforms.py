@@ -881,7 +881,7 @@ class TestRemoveSubroutines(QiskitTestCase):
         main_program.insert(0, pulse.Delay(10, d0), inplace=True)
         main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
 
-        target = transforms.remove_subroutines(main_program)
+        target = transforms.inline_subroutines(main_program)
 
         reference = pulse.Schedule()
         reference.insert(0, pulse.Delay(10, d0), inplace=True)

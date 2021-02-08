@@ -522,7 +522,7 @@ def align_func(schedule: Schedule,
 
 
 def flatten(program: ScheduleComponent) -> ScheduleComponent:
-    """Flatten(inline) any called nodes into a Schedule tree with no nested children."""
+    """Flatten (inline) any called nodes into a Schedule tree with no nested children."""
     if isinstance(program, instructions.Instruction):
         return program
     else:
@@ -531,12 +531,12 @@ def flatten(program: ScheduleComponent) -> ScheduleComponent:
                         metadata=program.metadata)
 
 
-def remove_subroutines(program: Schedule):
-    """Recursively removes the call instruction."""
+def inline_subroutines(program: Schedule):
+    """Recursively removes the call instruction and inlines the attached instructions."""
     schedule = Schedule(name=program.name, metadata=program.metadata)
     for t0, inst in program.instructions:
         if isinstance(inst, instructions.Call):
-            sub_sched = remove_subroutines(inst.subroutine)
+            sub_sched = inline_subroutines(inst.subroutine)
             schedule.insert(t0, sub_sched, inplace=True)
         else:
             schedule.insert(t0, inst, inplace=True)

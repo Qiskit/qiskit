@@ -19,7 +19,7 @@ import numpy as np
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.transforms import remove_subroutines
+from qiskit.pulse.transforms import inline_subroutines
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
@@ -1017,7 +1017,7 @@ class TestSubroutineCall(TestBuilder):
             pulse.call(subprogram)
             pulse.call(subprogram)
 
-        self.assertNotEqual(len(remove_subroutines(schedule).instructions), 0)
+        self.assertNotEqual(len(inline_subroutines(schedule).instructions), 0)
 
     def test_subroutine_not_transformed(self):
         """Test called schedule is not transformed."""
@@ -1038,6 +1038,6 @@ class TestSubroutineCall(TestBuilder):
         reference.insert(10, pulse.Delay(30, d0), inplace=True)
         reference.insert(20, pulse.Delay(10, d1), inplace=True)
 
-        target = remove_subroutines(schedule)
+        target = inline_subroutines(schedule)
 
         self.assertEqual(target, reference)
