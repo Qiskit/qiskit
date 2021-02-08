@@ -262,7 +262,7 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
+            rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -286,7 +286,7 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
+            rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -331,7 +331,7 @@ class SparsePauliOp(LinearOp):
             obj (Operator): an N-qubit operator.
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
+            rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
