@@ -194,11 +194,11 @@ class TestPlay(QiskitTestCase):
     def test_play(self):
         """Test basic play instruction."""
         duration = 4
-        pulse = library.Waveform([1.0] * duration, name='test')
-        play = instructions.Play(pulse, channels.DriveChannel(1))
+        pulse_op = library.Waveform([1.0] * duration, name='test')
+        play = instructions.Play(pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, pulse.name)
+        self.assertEqual(play.name, pulse_op.name)
         self.assertEqual(play.duration, duration)
         self.assertEqual(repr(play),
                          "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
