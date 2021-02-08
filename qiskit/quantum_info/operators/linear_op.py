@@ -17,9 +17,13 @@ Abstract LinearOperator class.
 from abc import ABC
 
 from .base_operator import BaseOperator
-from .mixins import LinearMixin, TolerancesMixin
+from .mixins import LinearMixin, AdjointMixin, TolerancesMixin
 
 
 # pylint: disable = abstract-method
-class LinearOp(BaseOperator, LinearMixin, TolerancesMixin, ABC):
+class LinearOp(BaseOperator,
+               AdjointMixin,
+               LinearMixin,
+               TolerancesMixin,
+               ABC):
     """Abstract linear operator base class. """
