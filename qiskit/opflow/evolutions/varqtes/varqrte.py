@@ -77,7 +77,9 @@ class VarQRTE(VarQTE):
             if self._get_error:
                 # Get the error for the current step
                 e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
-                error += dt * np.round(e_t, 8)
+                error += dt * e_t
+                print('dt', dt)
+                print('et', e_t)
                 print('Error', np.round(error, 3),  'after', j, ' time steps.')
 
             # TODO enable the use of arbitrary ODE solvers

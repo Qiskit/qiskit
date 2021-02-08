@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,31 +13,36 @@
 """The module to compute the state gradient with the linear combination method."""
 
 from collections.abc import Iterable
-import warnings
 from copy import deepcopy
 from functools import partial
 from itertools import product
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from qiskit.aqua.aqua_globals import AquaError
-from qiskit.aqua.operators import OperatorBase, ListOp, ComposedOp, SummedOp, PauliOp
-from qiskit.aqua.operators.operator_globals import I, Y, Z, One, Zero
-from qiskit.aqua.operators.primitive_ops.primitive_op import PrimitiveOp
-from qiskit.aqua.operators.state_fns import StateFn, CircuitStateFn, DictStateFn, VectorStateFn
-from qiskit.circuit import Gate, Instruction, Qubit
+from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, ParameterVector,
                             ParameterExpression, Parameter)
 from qiskit.circuit.parametertable import ParameterTable
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.library import SGate, SdgGate
+from qiskit.circuit.library import SGate, SdgGate, XGate
 from qiskit.circuit.library.standard_gates import (CXGate, CYGate, CZGate,
                                                    IGate, RXGate, RXXGate,
                                                    RYGate, RYYGate, RZGate,
                                                    RZXGate, RZZGate, PhaseGate,
-                                                   UGate, ZGate, XGate)
+                                                   UGate, ZGate)
 from qiskit.quantum_info import partial_trace
 
+from ...operator_base import OperatorBase
+from ...list_ops.list_op import ListOp
+from ...list_ops.composed_op import ComposedOp
+from ...list_ops.summed_op import SummedOp
+from ...operator_globals import Z, I, One, Zero, Y
+from ...primitive_ops.primitive_op import PrimitiveOp
+from ...state_fns.state_fn import StateFn
+from ...state_fns.circuit_state_fn import CircuitStateFn
+from ...state_fns.dict_state_fn import DictStateFn
+from ...state_fns.vector_state_fn import VectorStateFn
+from ...exceptions import OpflowError
 from .circuit_gradient import CircuitGradient
 
 
@@ -49,32 +54,33 @@ class LinComb(CircuitGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: OperatorBase,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression],
-                                       Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]]]]
-                = None,
+                params: Union[ParameterExpression, ParameterVector,
+                              List[ParameterExpression],
+                              Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]]]
                 ) -> OperatorBase:
         """Convert ``operator`` into an operator that represents the gradient w.r.t. ``params``.
 
         Args:
             operator: The operator we are taking the gradient of: ⟨ψ(ω)|O(θ)|ψ(ω)〉
             params: The parameters we are taking the gradient wrt: ω
-                If a ``ParameterExpression``, ``ParameterVector`` or ``List[ParameterExpression]``
-                is given, then the 1st order derivative of the operator is calculated.
-                If a ``Tuple[ParameterExpression, ParameterExpression]`` or
-                ``List[Tuple[ParameterExpression, ParameterExpression]]``
-                is given, then the 2nd order derivative of the operator is calculated.
-
+                    If a ParameterExpression, ParameterVector or List[ParameterExpression] is given,
+                    then the 1st order derivative of the operator is calculated.
+                    If a Tuple[ParameterExpression, ParameterExpression] or
+                    List[Tuple[ParameterExpression, ParameterExpression]]
+                    is given, then the 2nd order derivative of the operator is calculated.
 
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         """
+
         return self._prepare_operator(operator, params)
 
+    # pylint: disable=too-many-return-statements
     # pylint: disable=too-many-return-statements
     def _prepare_operator(self,
                           operator: OperatorBase,
@@ -148,7 +154,7 @@ class LinComb(CircuitGradient):
                                                     meas_op=(4 * ~StateFn(Z ^ I) ^ operator[0]),
                                                     target_params=params)  # type: ignore
                     else:
-                        raise AquaError('The linear combination gradient does only support the '
+                        raise OpflowError('The linear combination gradient does only support the '
                                         'computation of 1st gradients and 2nd order gradients.')
                 else:
                     state_op = deepcopy(operator)
@@ -174,7 +180,7 @@ class LinComb(CircuitGradient):
                                         meas_op=(4 * ~StateFn(Z ^ I) ^ operator[0]),
                                         target_params=params))
 
-                    raise AquaError(
+                    raise  OpflowError(
                         'The linear combination gradient does only support the computation '
                         'of 1st gradients and 2nd order gradients.')
             else:
@@ -194,12 +200,13 @@ class LinComb(CircuitGradient):
                                                           for param in params)):
                     return self._hessian_states(operator, target_params=params)  # type: ignore
                 else:
-                    raise AquaError(
+                    raise OpflowError(
                         'The linear combination gradient does only support the computation '
                         'of 1st gradients and 2nd order gradients.')
         elif isinstance(operator, PrimitiveOp):
             return operator
         return operator
+
 
     @staticmethod
     def _grad_combo_fn(x, state_op):
@@ -287,14 +294,18 @@ class LinComb(CircuitGradient):
         Suppose U takes multiple parameters, i.e., U(theta^0, ... theta^k).
         The returned coefficients and gates are ordered accordingly.
         Only parameterized Qiskit gates are supported.
+
         Args:
             gate: The gate for which the derivative is being computed.
+
            Returns:
                 The coefficients and the gates used for the metric computation for each parameter of
                 the respective gates.
                 [([a^0], [V^0]) ..., ([a^k], [V^k])]
+
+
         Raises:
-            AquaError: If the input gate is controlled by another state but '|1>^{\otimes k}'
+            OpflowError: If the input gate is controlled by another state but '|1>^{\otimes k}'
             TypeError: If the input gate is not a supported parametrized gate.
         """
 
@@ -345,7 +356,7 @@ class LinComb(CircuitGradient):
         if isinstance(gate, ControlledGate):
             # TODO support arbitrary control states
             if gate.ctrl_state != 2 ** gate.num_ctrl_qubits - 1:
-                raise AquaError(
+                raise OpflowError(
                     'Function only support controlled gates with control state `1` on all control '
                     'qubits.')
 
@@ -378,47 +389,6 @@ class LinComb(CircuitGradient):
             return coeffs_gates
 
         raise TypeError('Unrecognized parametrized gate, {}'.format(gate))
-
-    @staticmethod
-    def insert_gate(circuit: QuantumCircuit,
-                    reference_gate: Gate,
-                    gate_to_insert: Instruction,
-                    qubits: Optional[List[Qubit]] = None,
-                    additional_qubits: Optional[Tuple[List[Qubit], List[Qubit]]] = None,
-                    after: bool = False):
-        """Insert a gate into the circuit.
-        Args:
-            circuit: The circuit onto which the gate is added.
-            reference_gate: A gate instance before or after which a gate is inserted.
-            gate_to_insert: The gate to be inserted.
-            qubits: The qubits on which the gate is inserted. If None, the qubits of the
-                reference_gate are used.
-            additional_qubits: If qubits is None and the qubits of the reference_gate are
-                used, this can be used to specify additional qubits before (first list in
-                tuple) or after (second list in tuple) the qubits.
-            after: If the gate_to_insert should be inserted after the reference_gate set True.
-        Raises:
-            AquaError: Gate insertion fail
-        """
-        warnings.warn('The LinComb.insert_gate method is deprecated as of Qiskit Terra '
-                      '0.17.0 and will be removed no earlier than 3 months after the release.',
-                      DeprecationWarning, stacklevel=2)
-
-        if isinstance(gate_to_insert, IGate):
-            return
-        else:
-            for i, op in enumerate(circuit.data):
-                if op[0] == reference_gate:
-                    qubits = qubits or op[1]
-                    if additional_qubits:
-                        qubits = additional_qubits[0] + qubits + additional_qubits[1]
-                    if after:
-                        insertion_index = i + 1
-                    else:
-                        insertion_index = i
-                    circuit.data.insert(insertion_index, (gate_to_insert, qubits, []))
-                    return
-            raise AquaError('Could not insert the controlled gate, something went wrong!')
 
     @staticmethod
     def apply_grad_gate(circuit, gate, param_index, grad_gate, grad_coeff, qr_superpos,
@@ -462,7 +432,6 @@ class LinComb(CircuitGradient):
                 break
         if gate_idx is None:
             raise RuntimeError('The specified gate could not be found in the circuit data.')
-
 
         # initialize replacement instructions
         replacement = []
@@ -521,7 +490,7 @@ class LinComb(CircuitGradient):
         # replace the parameter we compute the derivative of with the replacement
         # TODO can this be done more efficiently?
         if trim_after_grad_gate:  # remove everything after the gradient gate
-            out._data[gate_idx:gate_idx + 1] = replacement
+            out._data[gate_idx:] = replacement
             # reset parameter table
             table = ParameterTable()
             for op, _, _ in out._data:
@@ -562,9 +531,6 @@ class LinComb(CircuitGradient):
             TypeError: If the operators is of unsupported type.
         """
         qr_superpos = QuantumRegister(1)
-        # TODO remove
-        bind_param_dict = dict(zip(state_op.primitive.ordered_parameters,
-                                   [1.0471975511965976, -1.0471975511965976, 1.5707963267948966, 0.6283185307179586, 0.7853981633974483, -0.4487989505128276, 0.39269908169872414, 0.3490658503988659]))
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
         phase_fix = False
@@ -661,6 +627,7 @@ class LinComb(CircuitGradient):
 
         return ListOp(oplist) if len(oplist) > 1 else oplist[0]
 
+
     def _hessian_states(self,
                         state_op: StateFn,
                         meas_op: Optional[OperatorBase] = None,
@@ -675,6 +642,7 @@ class LinComb(CircuitGradient):
             state_op: The operator representing the quantum state for which we compute the Hessian.
             meas_op: The operator representing the observable for which we compute the gradient.
             target_params: The parameters we are computing the Hessian wrt: ω
+
         Returns:
             Operators which give the Hessian. If a parameter appears multiple times, one circuit is
             created per parameterized gates to compute the product rule.
@@ -683,7 +651,6 @@ class LinComb(CircuitGradient):
             AquaError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is of unsupported type.
         """
-
         if not isinstance(target_params, list):
             target_params = [target_params]
 
@@ -696,12 +663,9 @@ class LinComb(CircuitGradient):
         qr_add1 = QuantumRegister(1, 's1')
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_add0, qr_add1)
 
-        # add Hadamards
+        # add hadamards
         state_qc.h(qr_add0)
         state_qc.h(qr_add1)
-        if not isinstance(meas_op, bool) and np.iscomplex(meas_op._coeff):
-            state_qc.s(qr_add1)
-            meas_op._coeff /= 1j
 
         # compose with the original circuit
         state_qc.compose(state_op.primitive, inplace=True)

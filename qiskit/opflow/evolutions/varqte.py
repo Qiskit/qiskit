@@ -232,6 +232,7 @@ class VarQTE(EvolutionBase):
             self._init_grad_objects()
 
         nat_grad_result = np.real(self._nat_grad.assign_parameters(param_dict).eval())
+        print('nat grad result', nat_grad_result)
         # Get the gradient of <H> w.r.t. the variational parameters
         grad_res = self._grad.assign_parameters(param_dict).eval()
         # Get the QFI/4

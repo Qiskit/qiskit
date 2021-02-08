@@ -114,11 +114,15 @@ class NaturalGradient(GradientBase):
                 nat_grad = NaturalGradient._regularized_sle_solver(
                     a, c, regularization=self.regularization)
             else:
-                try:
-                    # Try to solve the system of linear equations Ax = C.
-                    nat_grad = np.linalg.solve(a, c)
-                except np.linalg.LinAlgError:  # singular matrix
-                    nat_grad = np.linalg.lstsq(a, c)[0]
+                nat_grad = np.linalg.lstsq(a, c)[0]
+                # try:
+                #     # Try to solve the system of linear equations Ax = C.
+                #     nat_grad = np.linalg.solve(a, c)
+                # except np.linalg.LinAlgError:  # singular matrix
+                #     nat_grad = np.linalg.lstsq(a, c)[0]
+                if np.linalg.norm(np.im(nat_grad)) > 1e-8:
+                    raise Warning('Norm of the imaginary part of the natural gradient is bigger '
+                                  '1e-8.')
             return np.real(nat_grad)
         # Define the ListOp which combines the gradient and the QFI according to the combination
         # function defined above.
