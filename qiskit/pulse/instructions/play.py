@@ -13,7 +13,7 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import PulseChannel
@@ -74,6 +74,22 @@ class Play(Instruction):
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.pulse.duration
+
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
+        """A helper method to initialize parameter table.
+
+        Args:
+            operands: List of operands associated with this instruction.
+        """
+        super()._initialize_parameter_table(operands)
+
+        if self.pulse.is_parameterized():
+            for value in self.pulse.parameters.values():
+                if isinstance(value, ParameterExpression):
+                    for param in value.parameters:
+                        # Table maps parameter to operand index, 0 for ``pulse``
+                        self._parameter_table[param].append(0)
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]

@@ -453,11 +453,10 @@ class _PulseBuilder():
     def call_subroutine(self, subroutine: Union[circuit.QuantumCircuit, Schedule]):
         """Call a schedule defined outside of the current scope.
 
-        The schedule is appended as a call instruction which is a compiler directive.
-        This instruction clears up the ``subroutine`` is defined outside of the scope and
-        tells the Qiskit compiler that the compiler can keep the context of subroutine by
-        referring to the program instead of redefining the underlying instructions
-        within the current scope.
+        The ``subroutine`` is appended to the context schedule as a call instruction.
+        This is a logic to generate better program representation in the compiler.
+        Thus this doesn't affect execution of inline subroutines.
+        See :class:`~pulse.instructions.Call` for more details.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()

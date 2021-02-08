@@ -1,0 +1,119 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Call instruction that represents calling a schedule as a subroutine."""
+
+import hashlib
+from typing import Optional, Union, Dict, Tuple, Any
+
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.instructions import instruction
+
+# TODO This instruction should support ScheduleBlock when it's ready.
+
+
+class Call(instruction.Instruction):
+    """Pulse ``Call`` instruction.
+
+    This instruction represents a call to a referenced pulse subroutine (schedule).
+    Note that this instruction is not exposed to end users.
+    The ``Call`` instruction is created with a target subroutine and it behaves as a
+    standard pulse instruction within the ``Schedule``. No physical operation to
+    a quantum processor is triggered by this instruction. On the other hand,
+    this instruction provides a set of inline function (subroutine) and
+    parameters to the compiler, and the compiler can use these information to generate
+    better program representation, especially, when the inline function is used multiple times
+    within the main program.
+    """
+
+    def __init__(self, subroutine, name: Optional[str] = None):
+        """Define new subroutine.
+
+        .. note:: Inline subroutine is mutable. This requires special care for modification.
+
+        Args:
+            subroutine (Schedule): A program subroutine to be referred to.
+            name: Unique ID of this subroutine. If not provided, this is generated based on
+                the hash of instructions of the subroutine.
+        """
+        if name is None:
+            name = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
+
+        super().__init__((subroutine,), None,
+                         channels=tuple(subroutine.channels),
+                         name=name)
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        return self.operands[0].duration
+
+    # pylint: disable=missing-return-type-doc
+    @property
+    def subroutine(self):
+        """Return attached subroutine.
+
+        Returns:
+            schedule (Schedule): Attached schedule.
+        """
+        return self.operands[0]
+
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
+        """A helper method to initialize parameter table.
+
+        The behavior of the parameter table of the ``Call`` instruction is slightly different from
+        other instructions. The actual parameter mapper object is defined only in the
+        subroutine, thus the call instruction doesn't have operand of ``ParameterExpression`` type.
+        The parameter table is defined as a mapping of parameter objects to assigned values,
+        whereas the standard instruction stores the mapping to the operand tuple index.
+
+        Note that this instruction doesn't immediately bind parameter values when the
+        :meth:`assign_parameters` method is called with the parameter dictionary.
+        Instead, this instruction separately keeps the parameter values from the subroutine.
+        This logic enables the compiler to reuse the subroutine with different parameters.
+
+        Args:
+            operands: List of operands associated with this instruction.
+        """
+        if self.subroutine.is_parameterized():
+            for value in self.subroutine.parameters:
+                self._parameter_table[value] = None
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Call':
+        """Store parameters which will be later assigned to the subroutine.
+
+        Parameter values are not immediately assigned. The subroutine with parameters
+        assigned according to the populated parameter table will be generated only when
+        :func:`~qiskit.pulse.transforms.inline_subroutines` function is applied to this
+        instruction. Note that parameter assignment creates a copy of subroutine to avoid
+        the mutation problem.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            Self with updated parameters.
+        """
+        for param_obj, assigned_value in value_dict.items():
+            if param_obj in self._parameter_table:
+                self._parameter_table[param_obj] = assigned_value
+
+        return self
+
+    @property
+    def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
+        """Parameters dictionary which determine the subroutine behavior."""
+        return self._parameter_table

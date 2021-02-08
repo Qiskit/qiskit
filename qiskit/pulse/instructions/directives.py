@@ -11,12 +11,10 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
-import hashlib
 
 from abc import ABC
-from typing import Optional, Union, Dict
+from typing import Optional
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
 
@@ -55,66 +53,3 @@ class RelativeBarrier(Directive):
         """Verify two barriers are equivalent."""
         return (isinstance(other, type(self)) and
                 set(self.channels) == set(other.channels))
-
-
-class Call(Directive):
-    """Pulse ``Call`` directive.
-
-    This instruction wraps another program when ``pulse.call`` function is
-    used in the pulse builder context. Note that this instruction is not exposed to users.
-    This is implicitly applied to create a better target code in the Qiskit compiler.
-    This instruction clearly indicates the attached schedule is a subroutine
-    that is defined outside of the current scope, i.e. no need to redefine programs
-    within the current scope.
-
-    The metadata attached to the subroutine is kept.
-    """
-
-    def __init__(self, subroutine, name: Optional[str] = None):
-        """Create a new call directive with subroutine.
-
-        Note that no further optimization or transformation are performed between
-        subroutines because they are externally defined programs.
-        However we can assign arbitrary parameter to subroutines,
-        given these parameter values are managed by unique parameter objects.
-
-        Args:
-            subroutine (Schedule): A program to wrap with call instruction.
-            name: Unique ID of this subroutine. If not provided, this is generated based on
-                the hash of instructions of the subroutine.
-        """
-        if name is None:
-            name = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
-
-        super().__init__((subroutine,), None,
-                         channels=tuple(subroutine.channels),
-                         name=name)
-
-        if subroutine.is_parameterized():
-            for value in subroutine.parameters:
-                if isinstance(value, ParameterExpression):
-                    for param in value.parameters:
-                        # Table maps parameter to operand index, 0 for ``subroutine``
-                        self._parameter_table[param].append(0)
-
-    @property
-    def duration(self) -> Union[int, ParameterExpression]:
-        """Duration of this instruction."""
-        return self.operands[0].duration
-
-    # pylint: disable=missing-return-type-doc
-    @property
-    def subroutine(self):
-        """Return attached subroutine.
-
-        Returns:
-            schedule (Schedule): Attached schedule.
-        """
-        return self.operands[0]
-
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Call':
-        assigned_subroutine = self.subroutine.assign_parameters(value_dict)
-        self._operands = (assigned_subroutine, )
-        return self
