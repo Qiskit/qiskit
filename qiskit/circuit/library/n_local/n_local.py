@@ -857,7 +857,7 @@ class NLocal(BlueprintCircuit):
         for i, (block, ent) in enumerate(zip(blocks, entanglements)):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
