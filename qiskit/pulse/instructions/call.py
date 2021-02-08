@@ -97,8 +97,8 @@ class Call(instruction.Instruction):
         Parameter values are not immediately assigned. The subroutine with parameters
         assigned according to the populated parameter table will be generated only when
         :func:`~qiskit.pulse.transforms.inline_subroutines` function is applied to this
-        instruction. Note that parameter assignment creates a copy of subroutine to avoid
-        the mutation problem.
+        instruction. Note that parameter assignment logic creates a copy of subroutine
+        to avoid the mutation problem.
 
         Args:
             value_dict: A mapping from Parameters to either numeric values or another

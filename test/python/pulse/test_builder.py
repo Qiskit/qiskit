@@ -1103,14 +1103,3 @@ class TestSubroutineCall(TestBuilder):
 
         self.assertEqual(play_0.pulse.amp, 0.1)
         self.assertEqual(play_1.pulse.amp, 0.5)
-
-
-
-
-
-
-
-
-
-
-
