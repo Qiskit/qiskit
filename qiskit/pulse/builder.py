@@ -1621,7 +1621,7 @@ def call_schedule(schedule: Schedule):
         Schedule to call.
     """
     warnings.warn('``call_schedule`` is being deprecated. '
-                  '``call`` function can take both schedule and circuit.', DeprecationWarning)
+                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
 
     call(schedule)
 
