@@ -363,6 +363,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_remove_final_measurements_5802(self):
+        """Test remove_final_measurements removes classical bits
+        https://github.com/Qiskit/qiskit-terra/issues/5802.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
+
+        self.assertEqual(circuit.cregs, [])
+        self.assertEqual(circuit.clbits, [])
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
