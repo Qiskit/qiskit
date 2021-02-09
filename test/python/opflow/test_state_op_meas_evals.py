@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,import-error
+
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
@@ -63,7 +65,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         """Test that the coefficients in SummedOp and states are correctly used."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -89,7 +91,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -103,7 +105,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
