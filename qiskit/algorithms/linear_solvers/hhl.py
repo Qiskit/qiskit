@@ -12,7 +12,7 @@
 
 
 """The HHL algorithm."""
-
+import warnings
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
@@ -131,6 +131,11 @@ class HHL(LinearSolver):
             observable_circuit = observable.observable_circuit(nb)
             post_processing = observable.post_processing
             observable = observable.observable(nb)
+            # Warning if post_processing or observable_circuit are not None
+            if observable_circuit is not None or post_processing is not None:
+                warnings.warn("observable_circuit and post_processing are taken from the "
+                              "LinearSystemObservable, but arguments for at least one of these "
+                              "were given.")
 
         # Create the Operators Zero and One
         zero_op = ((I + Z) / 2)
@@ -279,7 +284,7 @@ class HHL(LinearSolver):
                     breakpoints.append(num_values - 1)
 
             reciprocal_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree,
-                                                 breakpoints, nl)
+                                                    breakpoints, nl)
             na = max(matrix_circuit.num_ancillas, reciprocal_circuit.num_ancillas)
 
         # Initialise the quantum registers
