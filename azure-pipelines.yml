@@ -163,8 +163,8 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt .
-            pip install "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U -c constraints.txt .
+            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -229,8 +229,8 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-aer" -c constraints.txt
+            pip install -U -c constraints.txt -e .
+            pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -326,8 +326,8 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-aer" -c constraints.txt
+            pip install -U -c constraints.txt -e .
+            pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -399,7 +399,7 @@ stages:
             python -m pip install --upgrade pip setuptools wheel virtualenv
             virtualenv test-job
             source test-job/Scripts/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
@@ -479,8 +479,8 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U -c constraints.txt -e .
+            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -559,7 +559,7 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
+            pip install -U -c constraints.txt -e .
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -623,8 +623,8 @@ stages:
             git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install -U -c constraints.txt -e .
+            pip install -U "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
@@ -672,8 +672,8 @@ stages:
             set -e
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "matplotlib<3.3.0" pylatexenc pillow
+            pip install -U -c constraints.txt -e .
+            pip install -U "matplotlib<3.3.0" pylatexenc pillow
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
