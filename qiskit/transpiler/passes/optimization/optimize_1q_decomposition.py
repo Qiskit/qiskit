@@ -13,6 +13,7 @@
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
 import logging
+import copy
 
 import numpy as np
 
@@ -42,20 +43,22 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if basis:
             self.basis = []
             basis_set = set(basis)
-            basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
-            for basis_name, gates in basis_gates.items():
+            euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+            for euler_basis_name, gates in euler_basis_gates.items():
                 if set(gates).issubset(basis_set):
-                    for base in self.basis:
+                    basis_copy = copy.copy(self.basis)
+                    for base in basis_copy:
                         # check if gates are a superset of another basis
                         # and if so, remove that basis
-                        if set(basis_gates[base.basis]).issubset(set(gates)):
+                        if set(euler_basis_gates[base.basis]).issubset(set(gates)):
                             self.basis.remove(base)
                         # check if the gates are a subset of another basis
-                        elif set(gates).issubset(set(basis_gates[base.basis])):
+                        elif set(gates).issubset(set(euler_basis_gates[base.basis])):
                             break
                     # if not a subset, add it to the list
                     else:
-                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
+                        self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(
+                            euler_basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.

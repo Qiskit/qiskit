@@ -73,9 +73,7 @@ class OneQubitEulerDecomposer:
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U321'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma} U_1(\phi+\lambda)`
-            :math:`e^{i\gamma} U_2(\phi,\lambda)`
-            :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
+          - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
