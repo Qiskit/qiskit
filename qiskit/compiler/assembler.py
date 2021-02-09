@@ -384,7 +384,6 @@ def _parse_rep_delay(rep_delay: float,
     if rep_delay is not None:
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
-            #  pylint: disable=E1136
             if len(rep_delay_range) != 2:
                 raise SchemaValidationError(
                     "Backend rep_delay_range {} must be a list with two entries.".format(

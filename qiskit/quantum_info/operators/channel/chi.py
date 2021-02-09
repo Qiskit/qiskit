@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unpacking-non-sequence
 
 """
 Chi-matrix representation of a Quantum Channel.

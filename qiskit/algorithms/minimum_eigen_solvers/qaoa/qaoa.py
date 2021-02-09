@@ -31,8 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=invalid-name
-# disable check for operator setter because of pylint bug
-# pylint: disable=no-member
 
 
 class QAOA(VQE):

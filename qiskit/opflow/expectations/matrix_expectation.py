@@ -23,8 +23,6 @@ from ..state_fns.operator_state_fn import OperatorStateFn
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
 class MatrixExpectation(ExpectationBase):
     """ An Expectation converter which converts Operator measurements to be matrix-based so they
     can be evaluated by matrix multiplication. """

@@ -134,7 +134,6 @@ class Grover:
                  rotation_counts: Optional[List[int]] = None,
                  mct_mode: Optional[str] = None,
                  ) -> None:
-        # pylint: disable=line-too-long
         r"""
         Args:
             oracle: The oracle to flip the phase of good states, :math:`\mathcal{S}_f`.
