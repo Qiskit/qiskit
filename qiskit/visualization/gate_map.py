@@ -18,14 +18,6 @@ from qiskit.exceptions import QiskitError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
-if HAS_MATPLOTLIB:
-    import matplotlib
-    from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
-    import matplotlib.patches as mpatches
-    import matplotlib.gridspec as gridspec
-    from matplotlib import ticker
-
 
 class _GraphDist():
     """Transform the circles properly for non-square axes.
@@ -120,6 +112,9 @@ def plot_gate_map(backend, figsize=None,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
         raise QiskitError('Requires a device backend, not simulator.')
@@ -436,6 +431,14 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     except ImportError:
         raise ImportError('Must have seaborn installed to use plot_error_map. '
                           'To install, run "pip install seaborn".')
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, '
+                          'run "pip install matplotlib".')
+    import matplotlib
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.gridspec as gridspec
+    from matplotlib import ticker
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
