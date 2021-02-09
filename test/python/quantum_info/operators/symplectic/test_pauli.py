@@ -308,18 +308,6 @@ class TestPauli(QiskitTestCase):
         op = Pauli(label)
         self.assertTrue(op ** 2, iden)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        op = Pauli('YXZ')
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, op.power, 0.5)
-
-    def test_add_except(self):
-        """Test add method raises exceptions."""
-        P1 = Pauli('X')
-        P2 = Pauli('Z')
-        self.assertRaises(NotImplementedError, P1._add, P2)
-
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):
         """Test multiply method."""
