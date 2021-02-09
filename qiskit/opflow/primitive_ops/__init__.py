@@ -56,4 +56,5 @@ __all__ = ['PrimitiveOp',
            'PauliOp',
            'MatrixOp',
            'CircuitOp',
-           'PauliSumOp']
+           'PauliSumOp',
+           ]
