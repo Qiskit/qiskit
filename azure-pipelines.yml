@@ -236,7 +236,7 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
-            pycodestyle --max-line-length=100 qiskit test
+            pycodestyle qiskit test
             pylint -rn qiskit test
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
