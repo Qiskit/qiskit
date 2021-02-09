@@ -26,6 +26,7 @@ from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.barrier import Barrier
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
 class Pauli(BasePauli):
@@ -426,46 +427,30 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    def tensor(self, other):
-        """Return the tensor product Pauli self ⊗ other.
-
-        Args:
-            other (Pauli): another Pauli.
-
-        Returns:
-            Pauli: the tensor product Pauli.
-        """
-        if not isinstance(other, Pauli):
-            other = Pauli(other)
-        return Pauli(super().tensor(other))
-
-    def expand(self, other):
-        """Return the tensor product Pauli other ⊗ self.
-
-        Args:
-            other (Pauli): another Pauli.
-
-        Returns:
-            Pauli: the tensor product Pauli.
-        """
-        if not isinstance(other, Pauli):
-            other = Pauli(other)
-        return Pauli(super().expand(other))
-
+    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
-        """Return the composed Pauli self∘other.
+        """Return the operator composition with another Pauli.
 
         Args:
-            other (Pauli): another Pauli.
-            qargs (None or list): qubits to apply dot product on (default: None).
-            front (bool): If True use `dot` composition method (default: False).
+            other (Pauli): a Pauli object.
+            qargs (list or None): Optional, qubits to apply dot product
+                                  on (default: None).
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
             inplace (bool): If True update in-place (default: False).
 
         Returns:
-            Pauli: the output Pauli.
+            Pauli: The composed Pauli.
 
         Raises:
-            QiskitError: if other cannot be converted to a Pauli.
+            QiskitError: if other cannot be converted to an operator, or has
+                         incompatible dimensions for specified subsystems.
+
+        .. note::
+            Composition (``@``) is defined as `left` matrix multiplication for
+            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
+            Setting ``front=True`` returns `right` matrix multiplication
+            ``A * B`` and is equivalent to the :meth:`dot` method.
         """
         # pylint: disable=unused-argument
         if qargs is None:
@@ -477,50 +462,51 @@ class Pauli(BasePauli):
                                      front=front,
                                      inplace=inplace))
 
+    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
-        """Return the dot product Pauli self∘other.
+        """Return the right multiplied operator self * other.
 
         Args:
-            other (Pauli): another Pauli.
-            qargs (None or list): qubits to apply dot product on (default: None).
+            other (Pauli): an operator object.
+            qargs (list or None): Optional, qubits to apply dot product
+                                  on (default: None).
             inplace (bool): If True update in-place (default: False).
 
         Returns:
-            Pauli: the dot outer product table.
+            Pauli: The operator self * other.
 
-        Raises:
-            QiskitError: if other cannot be converted to a Pauli.
+        .. note::
+            The dot product can be obtained using the ``*`` binary operator.
+            Hence ``a.dot(b)`` is equivalent to ``a * b``. Left operator
+            multiplication can be obtained using the :meth:`compose` method.
+
         """
-        return Pauli(super().dot(other, qargs=qargs, inplace=inplace))
+        return self.compose(other, qargs=qargs, front=True, inplace=inplace)
+
+    def tensor(self, other):
+        if not isinstance(other, Pauli):
+            other = Pauli(other)
+        return Pauli(super().tensor(other))
+
+    def expand(self, other):
+        if not isinstance(other, Pauli):
+            other = Pauli(other)
+        return Pauli(super().expand(other))
 
     def _multiply(self, other):
-        """Multiply Pauli by a phase.
-
-        Args:
-            other (complex): a complex number in [1, -1j, -1, 1j]
-
-        Returns:
-            Pauli: the Pauli other * self.
-
-        Raises:
-            QiskitError: if the phase is not in the set [1, -1j, -1, 1j].
-        """
         return Pauli(super()._multiply(other))
 
     def conjugate(self):
-        """Return the conjugated Pauli."""
         return Pauli(super().conjugate())
 
     def transpose(self):
-        """Return the transposed Pauli."""
         return Pauli(super().transpose())
 
     def adjoint(self):
-        """Return the adjoint Pauli."""
         return Pauli(super().adjoint())
 
     def inverse(self):
-        """Return the inverse Pauli."""
+        """Return the inverse of the Pauli."""
         return Pauli(super().adjoint())
 
     # ---------------------------------------------------------------------
@@ -1060,3 +1046,7 @@ def _phase_from_label(label):
     if label not in phases:
         raise QiskitError("Invalid Pauli phase label '{}'".format(label))
     return phases.get(label)
+
+
+# Update docstrings for API docs
+generate_apidocs(Pauli)
