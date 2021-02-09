@@ -12,7 +12,6 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-import warnings
 from typing import Dict, Optional, Tuple, List, Callable
 import logging
 import numpy as np
@@ -48,8 +47,7 @@ class GSLS(Optimizer):
                  step_size_multiplier: float = 0.4,
                  armijo_parameter: float = 1.0e-1,
                  min_gradient_norm: float = 1e-8,
-                 max_failed_rejection_sampling: int = 50,
-                 max_iter: Optional[int] = None) -> None:
+                 max_failed_rejection_sampling: int = 50) -> None:
         """
         Args:
             maxiter: Maximum number of iterations.
@@ -67,15 +65,8 @@ class GSLS(Optimizer):
             min_gradient_norm: If the gradient norm is below this threshold, the algorithm stops.
             max_failed_rejection_sampling: Maximum number of attempts to sample points within
                 bounds.
-            max_iter: Deprecated, use maxiter.
         """
         super().__init__()
-        if max_iter is not None:
-            warnings.warn('The max_iter parameter is deprecated as of '
-                          '0.8.0 and will be removed no sooner than 3 months after the release. '
-                          'You should use maxiter instead.',
-                          DeprecationWarning)
-            maxiter = max_iter
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v

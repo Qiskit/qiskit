@@ -12,16 +12,17 @@
 """
 Symplectic Stabilizer Table Class
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name, abstract-method, useless-super-delegation
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class StabilizerTable(PauliTable):
+class StabilizerTable(PauliTable, AdjointMixin):
     r"""Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
@@ -488,11 +489,7 @@ class StabilizerTable(PauliTable):
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
-        pauli = super().tensor(other)
-        phase1, phase2 = self._block_stack(self.phase, other.phase)
-
-        phase = np.logical_xor(phase1, phase2)
-        return StabilizerTable(pauli, phase)
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -524,10 +521,7 @@ class StabilizerTable(PauliTable):
         """
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
-        pauli = super().expand(other)
-        phase1, phase2 = self._block_stack(self.phase, other.phase)
-        phase = np.logical_xor(phase1, phase2)
-        return StabilizerTable(pauli, phase)
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=False):
         """Return the compose output product of two tables.
@@ -576,6 +570,8 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -650,7 +646,14 @@ class StabilizerTable(PauliTable):
         Raises:
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
-        return super().dot(other, qargs=qargs)
+        return self.compose(other, qargs=qargs, front=True)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        pauli = super()._tensor(a, b)
+        phase1, phase2 = a._block_stack(a.phase, b.phase)
+        phase = np.logical_xor(phase1, phase2)
+        return StabilizerTable(pauli, phase)
 
     def _add(self, other, qargs=None):
         """Append with another StabilizerTable.
@@ -1043,3 +1046,7 @@ class StabilizerTable(PauliTable):
                                            self.obj.phase[key],
                                            sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(StabilizerTable)
