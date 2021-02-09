@@ -79,19 +79,19 @@ class QAOAAnsatz(BlueprintCircuit):
                                      "of the circuit, needs to be >= 1 but has value {}"
                                      .format(self._reps))
 
-        if self._initial_state is not None and self._initial_state.num_qubits != self._num_qubits:
+        if self.initial_state is not None and self.initial_state.num_qubits != self._num_qubits:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits of the initial state {} does not match "
                                      "the number of qubits of the cost operator {}"
-                                     .format(self._initial_state.num_qubits, self._num_qubits))
+                                     .format(self.initial_state.num_qubits, self._num_qubits))
 
-        if self._mixer is not None and self._mixer.num_qubits != self._num_qubits:
+        if self.mixer_operator is not None and self.mixer_operator.num_qubits != self._num_qubits:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits of the mixer {} does not match "
                                      "the number of qubits of the cost operator {}"
-                                     .format(self._mixer.num_qubits, self._num_qubits))
+                                     .format(self.mixer_operator.num_qubits, self._num_qubits))
 
         return valid
 
@@ -102,6 +102,7 @@ class QAOAAnsatz(BlueprintCircuit):
 
         self._check_configuration()
         self._data = []
+        self._qregs = []
 
         # calculate bounds, num_parameters, mixer
         self._calculate_parameters()
@@ -223,11 +224,17 @@ class QAOAAnsatz(BlueprintCircuit):
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:
         """Returns an optional initial state as a circuit"""
+        if self._initial_state is not None:
+            return self._initial_state
+
         # if no initial state is passed and we know the number of qubits, then initialize it.
-        if self._initial_state is None and self._num_qubits is not None:
-            self._initial_state = QuantumCircuit(self._num_qubits)
-            self._initial_state.h(range(self._num_qubits))
-        return self._initial_state
+        if self._num_qubits is not None:
+            initial_state = QuantumCircuit(self._num_qubits)
+            initial_state.h(range(self._num_qubits))
+            return initial_state
+
+        # otherwise we cannot provide a default
+        return None
 
     @initial_state.setter
     def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
@@ -245,16 +252,22 @@ class QAOAAnsatz(BlueprintCircuit):
         Returns:
             OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
         """
-        if self._mixer is None and self._num_qubits is not None:
+        if self._mixer is not None:
+            return self._mixer
+
+        # if no mixer is passed and we know the number of qubits, then initialize it.
+        if self._num_qubits is not None:
             # local imports to avoid circular imports
             from qiskit.opflow import I, X
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
                            for left in range(self._num_qubits)]
-            self._mixer = sum(mixer_terms)
+            mixer = sum(mixer_terms)
+            return mixer
 
-        return self._mixer
+        # otherwise we cannot provide a default
+        return None
 
     @mixer_operator.setter
     def mixer_operator(self, mixer_operator) -> None:

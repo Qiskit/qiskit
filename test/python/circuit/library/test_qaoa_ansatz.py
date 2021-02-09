@@ -83,3 +83,16 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
         self.assertRaises(AttributeError, lambda: circuit.parameters)
+
+    def test_rebuild(self):
+        """Test how a circuit can be rebuilt."""
+        circuit = QAOAAnsatz(cost_operator=Z ^ I)  # circuit with 2 qubits
+        # force circuit to be built
+        _ = circuit.parameters
+
+        circuit.cost_operator = Z  # now it only has 1 qubit
+        circuit.reps = 5  # and now 5 repetitions
+        # rebuild the circuit
+        _ = circuit.parameters
+        self.assertEqual(1, circuit.num_qubits)
+        self.assertEqual(10, circuit.num_parameters)
