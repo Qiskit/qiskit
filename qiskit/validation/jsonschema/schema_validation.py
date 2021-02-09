@@ -14,14 +14,11 @@
 
 import json
 import os
-import logging
 import warnings
 
 import jsonschema
 
 from .exceptions import SchemaValidationError, _SummaryValidationError
-
-logger = logging.getLogger(__name__)
 
 
 _DEFAULT_SCHEMA_PATHS = {

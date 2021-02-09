@@ -13,7 +13,6 @@
 """ The Quantum Approximate Optimization Algorithm. """
 
 from typing import List, Callable, Optional, Union
-import logging
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -26,9 +25,6 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.quantum_instance import QuantumInstance
 from .var_form import QAOAVarForm
 from ..vqe import VQE
-
-logger = logging.getLogger(__name__)
-
 
 # pylint: disable=invalid-name
 # disable check for operator setter because of pylint bug
