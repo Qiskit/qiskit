@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -30,6 +31,7 @@ class QAOAAnsatz(BlueprintCircuit):
         [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
             `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
+
     def __init__(self,
                  cost_operator=None,
                  reps: int = 1,
@@ -53,16 +55,18 @@ class QAOAAnsatz(BlueprintCircuit):
             name (str): A name of the circuit, default 'qaoa'
         """
         super().__init__(name=name)
-        self._cost_operator = cost_operator
+
+        self._cost_operator = None
         self._reps = reps
         self._initial_state = initial_state
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._num_qubits = cost_operator.num_qubits if cost_operator else None
         self._num_parameters = 0
         self._bounds = None
-        self._data = None
+
+        # store cost operator and set the registers if the operator is not None
+        self.cost_operator = cost_operator
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
@@ -79,19 +83,19 @@ class QAOAAnsatz(BlueprintCircuit):
                                      "of the circuit, needs to be >= 1 but has value {}"
                                      .format(self._reps))
 
-        if self.initial_state is not None and self.initial_state.num_qubits != self._num_qubits:
+        if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits of the initial state {} does not match "
                                      "the number of qubits of the cost operator {}"
-                                     .format(self.initial_state.num_qubits, self._num_qubits))
+                                     .format(self.initial_state.num_qubits, self.num_qubits))
 
-        if self.mixer_operator is not None and self.mixer_operator.num_qubits != self._num_qubits:
+        if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits of the mixer {} does not match "
                                      "the number of qubits of the cost operator {}"
-                                     .format(self.mixer_operator.num_qubits, self._num_qubits))
+                                     .format(self.mixer_operator.num_qubits, self.num_qubits))
 
         return valid
 
@@ -102,7 +106,6 @@ class QAOAAnsatz(BlueprintCircuit):
 
         self._check_configuration()
         self._data = []
-        self._qregs = []
 
         # calculate bounds, num_parameters, mixer
         self._calculate_parameters()
@@ -112,8 +115,16 @@ class QAOAAnsatz(BlueprintCircuit):
         circuit = self._construct_circuit(param_vector)
 
         # append(replace) the circuit to this
-        self.add_register(circuit.num_qubits)
         self.compose(circuit, inplace=True)
+
+    def _reset_registers(self, num_qubits):
+        """Set the registers and qubits to the new size."""
+        self._qregs = []
+        self._qubits = []
+
+        if num_qubits > 0:
+            qr = QuantumRegister(num_qubits, 'q')
+            self.add_register(qr)
 
     @property
     def parameters(self) -> Set[Parameter]:
@@ -207,8 +218,10 @@ class QAOAAnsatz(BlueprintCircuit):
             cost_operator (OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
-        self._num_qubits = cost_operator.num_qubits if cost_operator else None
         self._invalidate()
+
+        num_qubits = cost_operator.num_qubits if cost_operator else None
+        self._reset_registers(num_qubits)
 
     @property
     def reps(self) -> int:
@@ -228,9 +241,9 @@ class QAOAAnsatz(BlueprintCircuit):
             return self._initial_state
 
         # if no initial state is passed and we know the number of qubits, then initialize it.
-        if self._num_qubits is not None:
-            initial_state = QuantumCircuit(self._num_qubits)
-            initial_state.h(range(self._num_qubits))
+        if self.num_qubits > 0:
+            initial_state = QuantumCircuit(self.num_qubits)
+            initial_state.h(range(self.num_qubits))
             return initial_state
 
         # otherwise we cannot provide a default
@@ -256,13 +269,13 @@ class QAOAAnsatz(BlueprintCircuit):
             return self._mixer
 
         # if no mixer is passed and we know the number of qubits, then initialize it.
-        if self._num_qubits is not None:
+        if self.num_qubits > 0:
             # local imports to avoid circular imports
             from qiskit.opflow import I, X
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
-            mixer_terms = [(I ^ left) ^ X ^ (I ^ (self._num_qubits - left - 1))
-                           for left in range(self._num_qubits)]
+            mixer_terms = [(I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
+                           for left in range(self.num_qubits)]
             mixer = sum(mixer_terms)
             return mixer
 
