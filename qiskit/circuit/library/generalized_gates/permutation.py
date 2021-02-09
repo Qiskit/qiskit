@@ -75,9 +75,19 @@ class Permutation(QuantumCircuit):
         inner = QuantumCircuit(num_qubits, name=name)
 
         super().__init__(num_qubits, name=name)
-        for i in range(num_qubits):
-            if (pattern[i] != -1) and (pattern[i] != i):
-                inner.swap(i, int(pattern[i]))
-                pattern[pattern[i]] = -1
+        for i, j in _get_ordered_swap(pattern):
+            inner.swap(i, j)
+
         all_qubits = self.qubits
         self.append(inner, all_qubits)
+
+
+def _get_ordered_swap(permutation_in):
+    permutation = list(permutation_in[:])
+    swap_list = []
+    for i, val in enumerate(permutation):
+        if val != i:
+            j = permutation.index(i)
+            swap_list.append((i, j))
+            permutation[i], permutation[j] = permutation[j], permutation[i]
+    return swap_list[::-1]
