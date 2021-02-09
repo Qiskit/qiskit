@@ -572,7 +572,7 @@ class TestPauliTableOperator(QiskitTestCase):
 
         value = pauli1.expand(pauli2)
         target = PauliTable.from_labels(
-            [j + i for i in labels1 for j in labels2])
+            [j + i for j in labels2 for i in labels1])
         self.assertEqual(value, target)
 
     def test_compose_1q(self):
