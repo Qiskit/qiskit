@@ -404,7 +404,7 @@ def _tp_condition(channel):
         if not isinstance(channel, Choi):
             channel = Choi(channel)
         choi = channel.data
-        dims = tuple(np.sqrt(choi.shape).astype(np.int))
+        dims = tuple(np.sqrt(choi.shape).astype(int))
         shape = dims + dims
         tr_choi = np.trace(np.reshape(choi, shape), axis1=1, axis2=3)
     else:

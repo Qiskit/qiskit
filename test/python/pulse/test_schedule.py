@@ -390,6 +390,13 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 
+    def test_numpy_integer_input(self):
+        """Test that mixed integer duration types can build a schedule (#5754)."""
+        sched = Schedule()
+        sched += Delay(np.int32(25), DriveChannel(0))
+        sched += Play(Constant(duration=30, amp=0.1), DriveChannel(0))
+        self.assertEqual(sched.duration, 55)
+
     def test_negative_time_raises(self):
         """Test that a negative time will raise an error."""
         sched = Schedule()
