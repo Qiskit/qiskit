@@ -19,8 +19,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Result
-
-from qiskit.aqua.algorithms import AlgorithmResult
+from qiskit.algorithms import AlgorithmResult
 from .observables.linear_system_observable import LinearSystemObservable
 
 
