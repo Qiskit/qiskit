@@ -12,7 +12,7 @@
 """
 Symplectic Pauli Table Class
 """
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, useless-super-delegation
 
 import numpy as np
 
@@ -21,9 +21,10 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class PauliTable(BaseOperator):
+class PauliTable(BaseOperator, AdjointMixin):
     r"""Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
@@ -509,9 +510,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x2, x1, z2, z1]))
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -542,9 +541,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x1, x2, z1, z2]))
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -631,6 +628,12 @@ class PauliTable(BaseOperator):
         """
         return self.compose(other, qargs=qargs, front=True)
 
+    @classmethod
+    def _tensor(cls, a, b):
+        x1, x2 = a._block_stack(a.X, b.X)
+        z1, z2 = a._block_stack(a.Z, b.Z)
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
+
     def _add(self, other, qargs=None):
         """Append with another PauliTable.
 
@@ -662,6 +665,10 @@ class PauliTable(BaseOperator):
             np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
         return PauliTable(np.vstack((self._array, padded._array)))
+
+    def __add__(self, other):
+        qargs = getattr(other, 'qargs', None)
+        return self._add(other, qargs=qargs)
 
     def conjugate(self):
         """Not implemented."""
@@ -1058,3 +1065,7 @@ class PauliTable(BaseOperator):
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(PauliTable)
