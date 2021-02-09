@@ -101,7 +101,7 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             try:
-                from qiskit_aer
+                import qiskit_aer
                 self.aer = qiskit_aer.Aer
             except ImportError:
                 return False
@@ -128,7 +128,7 @@ class IBMQWrapper:
     def __bool__(self):
         if self.ibmq is None:
             try:
-                from qiskit_ibmq_provider as ibmq
+                import qiskit_ibmq_provider as ibmq
                 self.ibmq = ibmq.IBMQ
             except ImportError:
                 return False
@@ -137,7 +137,7 @@ class IBMQWrapper:
     def __getattr__(self, attr):
         if not self.ibmq:
             try:
-                from qiskit_ibmq_provider as ibmq
+                import qiskit_ibmq_provider as ibmq
                 self.ibmq = ibmq.IBMQ
             except ImportError as exc:
                 raise ImportError('Could not import the IBMQ provider from the '
