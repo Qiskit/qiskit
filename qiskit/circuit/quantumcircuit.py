@@ -1749,6 +1749,8 @@ class QuantumCircuit:
             inst.condition = node.condition
             circ.append(inst, qubits, clbits)
 
+        circ.clbits.clear()
+
         if not inplace:
             return circ
         else:
