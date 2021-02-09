@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,16 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Amplitude Amplifiers Package """
+"""
+Abstract LinearOperator class.
+"""
 
-from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
-from .amplification_problem import AmplificationProblem
-from .grover import Grover, GroverResult
+from abc import ABC
 
-__all__ = [
-    'AmplitudeAmplifier',
-    'AmplitudeAmplifierResult',
-    'AmplificationProblem',
-    'Grover',
-    'GroverResult'
-]
+from .base_operator import BaseOperator
+from .mixins import LinearMixin, AdjointMixin, TolerancesMixin
+
+
+# pylint: disable = abstract-method
+class LinearOp(BaseOperator,
+               AdjointMixin,
+               LinearMixin,
+               TolerancesMixin,
+               ABC):
+    """Abstract linear operator base class. """
