@@ -20,8 +20,8 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.opflow import Z, I, StateFn, TensoredOp
-from .exact_inverse import ExactInverse
 from .linear_solver import LinearSolver, LinearSolverResult
 from .observables.linear_system_observable import LinearSystemObservable
 
@@ -53,8 +53,8 @@ class HHL(LinearSolver):
         self._epsilon_s = epsilon / 3  # state preparation
         self._epsilon_a = epsilon / 6  # hamiltonian simulation
 
-        # For now the default inverse implementation is exact
-        self._exact_inverse = True
+        # For now the default reciprocal implementation is exact
+        self._exact_reciprocal = True
 
     def _get_delta(self, n_l: int, lambda_min: float, lambda_max: float) -> float:
         """Calculates the scaling factor to represent exactly lambda_min on nl binary digits.
@@ -251,12 +251,12 @@ class HHL(LinearSolver):
         else:
             delta = 1
 
-        if self._exact_inverse:
-            inverse_circuit = ExactInverse(nl, delta)
+        if self._exact_reciprocal:
+            reciprocal_circuit = ExactReciprocal(nl, delta)
             # Update number of ancilla qubits
             na = matrix_circuit.num_ancillas
         else:
-            # Calculate breakpoints for the inverse approximation
+            # Calculate breakpoints for the reciprocal approximation
             num_values = 2 ** nl
             constant = delta
             a = int(round(num_values ** (2 / 3)))  # pylint: disable=invalid-name
@@ -278,9 +278,9 @@ class HHL(LinearSolver):
                 if i == num_intervals - 1:
                     breakpoints.append(num_values - 1)
 
-            inverse_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree,
+            reciprocal_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree,
                                                  breakpoints, nl)
-            na = max(matrix_circuit.num_ancillas, inverse_circuit.num_ancillas)
+            na = max(matrix_circuit.num_ancillas, reciprocal_circuit.num_ancillas)
 
         # Initialise the quantum registers
         qb = QuantumRegister(nb)  # right hand side and solution
@@ -303,11 +303,11 @@ class HHL(LinearSolver):
         else:
             qc.append(phase_estimation, ql[:] + qb[:])
         # Conditioned rotation
-        if self._exact_inverse:
-            qc.append(inverse_circuit, ql[::-1] + [qf[0]])
+        if self._exact_reciprocal:
+            qc.append(reciprocal_circuit, ql[::-1] + [qf[0]])
         else:
-            qc.append(inverse_circuit.to_instruction(), ql[:] + [qf[0]] +
-                      qa[:inverse_circuit.num_ancillas])
+            qc.append(reciprocal_circuit.to_instruction(), ql[:] + [qf[0]] +
+                      qa[:reciprocal_circuit.num_ancillas])
         # QPE inverse
         if na > 0:
             qc.append(phase_estimation.inverse(), ql[:] + qb[:] +

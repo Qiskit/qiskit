@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Exact inverse rotation."""
+"""Exact reciprocal rotation."""
 
 from math import isclose
 import numpy as np
@@ -17,8 +17,8 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions.quantum_initializer import UCRYGate
 
 
-class ExactInverse(QuantumCircuit):
-    r"""Exact inverse
+class ExactReciprocal(QuantumCircuit):
+    r"""Exact reciprocal
     .. math::
 
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
@@ -28,7 +28,7 @@ class ExactInverse(QuantumCircuit):
         r"""
         Args:
             num_state_qubits: The number of qubits representing the value to invert.
-            scaling: Scaling factor of the inverse function, i.e. to compute
+            scaling: Scaling factor of the reciprocal function, i.e. to compute
              ::math:: `scaling / x`.
             name: The name of the object.
         """
