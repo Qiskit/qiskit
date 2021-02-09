@@ -12,7 +12,6 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-import hashlib
 from typing import Optional, Union, Dict, Tuple, Any, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -34,6 +33,8 @@ class Call(instruction.Instruction):
     better program representation, especially, when the inline function is used multiple times
     within the main program.
     """
+    # Prefix to use for auto naming.
+    prefix = 'subroutine-'
 
     def __init__(self, subroutine, name: Optional[str] = None):
         """Define new subroutine.
@@ -46,7 +47,7 @@ class Call(instruction.Instruction):
                 the hash of instructions of the subroutine.
         """
         if name is None:
-            name = hashlib.md5(str(subroutine.instructions).encode('utf-8')).hexdigest()
+            name = self.prefix + subroutine.name
 
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),

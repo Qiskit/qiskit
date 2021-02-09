@@ -41,6 +41,9 @@ Interval = Tuple[int, int]
 TimeSlots = Dict[Channel, List[Tuple[int, int]]]
 """List of timeslots occupied by instructions for each channel."""
 
+ScheduleComponentType = Union['Schedule', Instruction]
+"""An element that composes a pulse schedule."""
+
 
 class Schedule(abc.ABC):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
