@@ -83,8 +83,8 @@ class OverlapDiag(CircuitQFI):
 
         """
 
-        if not isinstance(operator, CircuitStateFn):
-            raise NotImplementedError('operator must be a CircuitStateFn')
+        if not isinstance(operator, (CircuitOp, CircuitStateFn)):
+            raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
 
         # If a single parameter is given wrap it into a list.
         if isinstance(params, ParameterExpression):
