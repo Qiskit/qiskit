@@ -70,6 +70,7 @@ class Gradient(GradientBase):
         # Preprocessing
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+        # cleaned_op = self._factor_coeffs_out_of_composed_op(operator)
         return self.get_gradient(cleaned_op, param)
 
     # pylint: disable=too-many-return-statements

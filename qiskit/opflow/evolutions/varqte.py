@@ -93,11 +93,12 @@ class VarQTE(EvolutionBase):
             if not os.path.exists(os.path.join(self._snapshot_dir, 'varqte_output.csv')):
                 with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='w') as \
                         csv_file:
-                    fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'e_bound',
-                                  'e_grad']
+                    fieldnames = ['t', 'params', 'num_params', 'num_time_steps']
+                    if self._get_error:
+                        fieldnames.extend(['e_bound', 'e_grad', 'resid'])
                     if fidelity_to_target:
                         fieldnames.extend(['fid_to_targ', 'true_error', 'true_energy',
-                                          'trained_energy'])
+                                           'trained_energy'])
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
         if fidelity_to_target:
@@ -138,14 +139,16 @@ class VarQTE(EvolutionBase):
 
         # VarQRTE
         if np.iscomplex(self._operator.coeff):
-            self._nat_grad = NaturalGradient(grad_method=self._grad_method, qfi_method=self._qfi_method,
-                                   regularization=self._regularization
-                                   ).convert(self._operator * 0.5, self._parameters)
-        # # VarQITE
+            self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+                                             qfi_method=self._qfi_method,
+                                             regularization=self._regularization
+                                            ).convert(self._operator * 0.5, self._parameters)
+        # VarQITE
         else:
-            self._nat_grad = NaturalGradient(grad_method=self._grad_method, qfi_method=self._qfi_method,
-                                   regularization=self._regularization
-                                   ).convert(self._operator * -0.5, self._parameters)
+            self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+                                             qfi_method=self._qfi_method,
+                                             regularization=self._regularization
+                                             ).convert(self._operator * -0.5, self._parameters)
 
         # self._grad = Gradient(self._grad_method, epsilon=self._epsilon).convert(self._operator,
         #                                                                         self._parameters)
@@ -173,9 +176,10 @@ class VarQTE(EvolutionBase):
 
     def _store_params(self,
                       t: int,
-                      e_bound: float,
-                      e_grad: float,
                       params: List,
+                      e_bound: Optional[float] = None,
+                      e_grad: Optional[float] = None,
+                      resid: Optional[float] = None,
                       fidelity_to_target: Optional[float] = None,
                       true_error: Optional[float] = None,
                       true_energy: Optional[float] = None,
@@ -186,6 +190,7 @@ class VarQTE(EvolutionBase):
             t:
             e_bound:
             e_grad:
+            resid: residual ||Adtω-C||
             params:
             fidelity_to_target:
             true_error:
@@ -196,25 +201,44 @@ class VarQTE(EvolutionBase):
 
         """
         with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='a') as csv_file:
-            fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'e_bound', 'e_grad']
+            fieldnames = ['t', 'params', 'num_params', 'num_time_steps']
+            if self._get_error:
+                fieldnames.extend(['e_bound', 'e_grad', 'resid'])
             if fidelity_to_target is not None:
                 fieldnames.extend(['fid_to_targ', 'true_error', 'true_energy', 'trained_energy'])
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             if fidelity_to_target is None:
-                writer.writerow({'t': t, 'params': np.round(params, 4),
-                                 'num_params': len(params),
-                                 'num_time_steps':self._num_time_steps,
-                                 'e_bound': np.round(e_bound, 4),
-                                 'e_grad': np.round(e_grad, 4)})
+                if not self._get_error:
+                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                                     'num_params': len(params),
+                                     'num_time_steps': self._num_time_steps})
+                else:
+                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                                     'num_params': len(params),
+                                     'num_time_steps':self._num_time_steps,
+                                     'e_bound': np.round(e_bound, 4),
+                                     'e_grad': np.round(e_grad, 4),
+                                     'resid': np.round(resid, 4)})
             else:
-                writer.writerow({'t': t, 'params': np.round(params, 4),
-                                 'num_params': len(params), 'num_time_steps': self._num_time_steps,
-                                 'e_bound': np.round(e_bound, 4),
-                                 'e_grad': np.round(e_grad, 4),
-                                 'fid_to_targ': np.round(fidelity_to_target, 4),
-                                 'true_error': np.round(true_error, 4),
-                                 'true_energy': np.round(true_energy, 4),
-                                 'trained_energy': np.round(trained_energy, 4)})
+                if not self._get_error:
+                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                                     'num_params': len(params),
+                                     'num_time_steps': self._num_time_steps,
+                                     'fid_to_targ': np.round(fidelity_to_target, 4),
+                                     'true_error': np.round(true_error, 4),
+                                     'true_energy': np.round(true_energy, 4),
+                                     'trained_energy': np.round(trained_energy, 4)})
+                else:
+                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                                     'num_params': len(params),
+                                     'num_time_steps': self._num_time_steps,
+                                     'e_bound': np.round(e_bound, 4),
+                                     'e_grad': np.round(e_grad, 4),
+                                     'resid': np.round(resid, 4),
+                                     'fid_to_targ': np.round(fidelity_to_target, 4),
+                                     'true_error': np.round(true_error, 4),
+                                     'true_energy': np.round(true_energy, 4),
+                                     'trained_energy': np.round(trained_energy, 4)})
 
     def _propagate(self,
                    param_dict: Dict

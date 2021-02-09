@@ -50,8 +50,12 @@ class VarQRTE(VarQTE):
             time evolution.
 
         """
+        # or len(operator.oplist) != 2
+        if not isinstance(operator, ComposedOp):
+            raise TypeError('Please provide the operator as a ComposedOp consisting of the '
+                            'observable and the state (as CircuitStateFn).')
         if not isinstance(operator[-1], CircuitStateFn):
-            raise TypeError('Please provide the respective Ansatz as a CircuitStateFn.')
+            raise TypeError('Please provide the state as a CircuitStateFn.')
 
         # For VarQRTE we need to add a -i factor to the operator coefficient.
         self._operator = 1j * operator / operator.coeff
@@ -66,6 +70,7 @@ class VarQRTE(VarQTE):
         param_dict = dict(zip(self._parameters, self._parameter_values))
 
         for j in range(self._num_time_steps):
+
             # Get the natural gradient - time derivative of the variational parameters - and
             # the gradient w.r.t. H and the QFI/4.
             nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
@@ -75,6 +80,10 @@ class VarQRTE(VarQTE):
 
             # Evaluate the error bound
             if self._get_error:
+                # Get the residual for McLachlan's Variational Principle
+                resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
+                print('Residual norm', resid)
+
                 # Get the error for the current step
                 e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
                 error += dt * e_t
@@ -86,6 +95,7 @@ class VarQRTE(VarQTE):
             # Propagate the Ansatz parameters step by step using explicit Euler
             self._parameter_values = list(np.add(self._parameter_values, dt *
                                                  np.real(nat_grad_result)))
+            print('param values', self._parameter_values)
 
             # Assign parameter values to parameter items
             param_dict = dict(zip(self._parameters, self._parameter_values))
@@ -98,13 +108,20 @@ class VarQRTE(VarQTE):
                 print('Fidelity', f)
                 print('True error', true_error)
 
-            # If a directory is given save current details
+
+            # Store the current status
             if self._snapshot_dir:
-                if self._init_parameter_values is None:
-                    self._store_params((j + 1) * dt, error, e_t, self._parameter_values)
+                if self._get_error:
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values)
+                    else:
+                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
                 else:
-                    self._store_params((j + 1) * dt, error, e_t, self._parameter_values, f,
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values, f,
                                        true_error, true_energy, trained_energy)
+                    else:
+                        self._store_params((j + 1) * dt, self._parameter_values)
 
         # Return variationally evolved operator
         return self._operator.oplist[-1].assign_parameters(param_dict)

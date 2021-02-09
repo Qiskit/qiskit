@@ -60,7 +60,7 @@ class VarQITE(VarQTE):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = operator / operator.coeff # Remove the time from the operator
-        print('oplist', self._operator.oplist)
+        # print('oplist', self._operator.oplist)
 
         if self._get_error:
             # Compute the norm of the Hamiltonian
@@ -85,10 +85,14 @@ class VarQITE(VarQTE):
                 print('C', np.round(grad_res, 3))
                 print('metric', np.round(metric_res, 3))
 
+
                 if self._get_error:
+                    # Get the residual for McLachlan's Variational Principle
+                    resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) + 0.5 * grad_res)
+                    print('Residual norm', resid)
+
                     # Get the error for the current step
                     e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
-
 
                     # TODO discuss (25) index of time step or time? I think indices
                     print('error before', error)
@@ -129,11 +133,18 @@ class VarQITE(VarQTE):
 
             # Store the current status
             if self._snapshot_dir:
-                if self._init_parameter_values is None:
-                    self._store_params((j + 1) * dt, error, e_t, self._parameter_values)
+                if self._get_error:
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values)
+                    else:
+                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
                 else:
-                    self._store_params((j + 1) * dt, error, e_t, self._parameter_values, f,
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values, f,
                                        true_error, true_energy, trained_energy)
+                    else:
+                        self._store_params((j + 1) * dt, self._parameter_values)
+
 
         # Return variationally evolved operator
         return self._operator[-1].assign_parameters(param_dict)

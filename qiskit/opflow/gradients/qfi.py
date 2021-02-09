@@ -47,7 +47,7 @@ class QFI(QFIBase):
         Returns:
             ListOp[ListOp] where the operator at position k,l corresponds to QFI_kl
         """
-        expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
-        cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
-
+        # expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
+        # cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+        cleaned_op = self._factor_coeffs_out_of_composed_op(operator)
         return self.qfi_method.convert(cleaned_op, params)
