@@ -51,7 +51,7 @@ lint:
 	python tools/find_optional_imports.py
 
 style:
-	pycodestyle --max-line-length=100 qiskit test
+	pycodestyle qiskit test
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.

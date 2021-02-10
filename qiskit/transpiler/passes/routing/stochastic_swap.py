@@ -12,7 +12,7 @@
 
 """Map a DAGCircuit onto a `coupling_map` adding swap gates."""
 
-from logging import getLogger
+import logging
 from math import inf
 from collections import OrderedDict
 import numpy as np
@@ -29,7 +29,7 @@ from .cython.stochastic_swap.utils import nlayout_from_layout
 from .cython.stochastic_swap.swap_trial import swap_trial
 
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class StochasticSwap(TransformationPass):
