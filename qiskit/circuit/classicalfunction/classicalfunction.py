@@ -14,7 +14,7 @@
 
 import ast
 try:
-    from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
+    from tweedledum.passes import xag_synth
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
@@ -115,10 +115,10 @@ class ClassicalFunction(gate.Gate):
             qregs = None
         else:
             qregs = self.qregs
-        return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
+        return tweedledum2qiskit(xag_synth(self._network), name=self.name, qregs=qregs)
 
     def _define(self):
-        """The definition of the classicalfunction is its synthesis"""
+        """The definition of the classical function is its synthesis"""
         self.definition = self.synth()
 
     @property

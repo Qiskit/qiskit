@@ -16,7 +16,7 @@ import unittest
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.logical_expression_oracle import LogicalExpressionOracle
+from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 from qiskit.quantum_info import Operator
 
 EXPRESSION_TEST = "(not v1 or not v2 or not v3) and (v1 or not v2 or v3) and \
@@ -32,33 +32,18 @@ p cnf 3 5
 """
 
 
-class TestLogicalExpressionOracle(QiskitTestCase):
-    """Test library of Dimacs oracle circuits."""
+class TestBooleanExpression(QiskitTestCase):
+    """ """
 
-    def setUp(self):
-        super().setUp()
-        self._expected_le_oracle = QuantumCircuit(4)
-        self._expected_le_oracle.x(3)
-        self._expected_le_oracle.h(3)
-        self._expected_le_oracle.x([0, 2])
-        self._expected_le_oracle.mcx([0, 1, 2], 3)
-        self._expected_le_oracle.x([0, 2])
-        self._expected_le_oracle.cx(1, 3)
-        self._expected_le_oracle.x([0, 1])
-        self._expected_le_oracle.ccx(0, 1, 3)
-        self._expected_le_oracle.x([0, 1])
-        self._expected_le_oracle.cx(2, 3)
-        self._expected_le_oracle.h(3)
-        self._expected_le_oracle.x(3)
-
-    def test_logical_expression_oracle(self):
+    def test_evaluate(self):
         """ Test the constructor of LogicalExpressionOracle"""
-        le_oracle = LogicalExpressionOracle(EXPRESSION_TEST)
+        expression = BooleanExpression(EXPRESSION_TEST)
+        result = expression.evaluate()
         self.assertTrue(Operator(le_oracle).equiv(Operator(self._expected_le_oracle)))
 
     def test_from_dimacs(self):
         """ Test the from_dimacs of LogicalExpressionOracle"""
-        le_oracle = LogicalExpressionOracle.from_dimacs(DIMACS_TEST)
+        le_oracle = BooleanExpression.from_dimacs(DIMACS_TEST)
         self.assertTrue(Operator(le_oracle).equiv(Operator(self._expected_le_oracle)))
 
         with self.assertRaises(ValueError):
@@ -66,7 +51,7 @@ class TestLogicalExpressionOracle(QiskitTestCase):
             error_dimacs1 = """c This is an example DIMACS CNF file
             -1 2 3 0
             """
-            LogicalExpressionOracle.from_dimacs(error_dimacs1)
+            BooleanExpression.from_dimacs(error_dimacs1)
 
         with self.assertRaises(ValueError):
             # Test for a line does not end with "0".
@@ -74,11 +59,11 @@ class TestLogicalExpressionOracle(QiskitTestCase):
             p cnf 3 5
             -1 -2 -3
             """
-            LogicalExpressionOracle.from_dimacs(error_dimacs2)
+            BooleanExpression.from_dimacs(error_dimacs2)
 
     def test_evaluate_bitstring(self):
         """ Test the evaluate_bitstring func"""
-        le_oracle = LogicalExpressionOracle(EXPRESSION_TEST)
+        le_oracle = BooleanExpression(EXPRESSION_TEST)
         self.assertTrue(le_oracle.evaluate_bitstring('101'))
         self.assertFalse(le_oracle.evaluate_bitstring('001'))
 

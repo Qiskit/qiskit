@@ -277,9 +277,6 @@ NCT (Not-CNOT-Toffoli) template circuits
 
 from .standard_gates import *
 from .templates import *
-from ..barrier import Barrier
-from ..measure import Measure
-from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
@@ -337,4 +334,3 @@ from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
-from .logical_expression_oracle import LogicalExpressionOracle
