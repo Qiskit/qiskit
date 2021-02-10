@@ -54,10 +54,19 @@ class Delay(Instruction):
         """Set the duration of this delay."""
         self.params = [duration]
 
-    def to_matrix(self) -> np.ndarray:
+    def __array__(self, dtype=None):
         """Return the identity matrix."""
         return np.array([[1, 0],
-                         [0, 1]], dtype=complex)
+                         [0, 1]], dtype=dtype)
+
+    def to_matrix(self) -> np.ndarray:
+        """Return a Numpy.array for the unitary matrix. This has been
+        added to enable simulation without making delay a full Gate type.
+
+        Returns:
+            np.ndarray: matrix representation.
+        """
+        return self.__array__(dtype=complex)
 
     def __repr__(self):
         """Return the official string representing the delay."""

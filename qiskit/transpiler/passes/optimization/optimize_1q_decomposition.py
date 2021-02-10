@@ -12,16 +12,16 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-from itertools import groupby
 import logging
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+import numpy as np
+
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.converters import circuit_to_dag
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
@@ -36,23 +36,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 and the Euler basis.
         """
         super().__init__()
-        self.euler_basis_names = {
-            'U3': ['u3'],
-            'U': ['u'],
-            'PSX': ['p', 'sx'],
-            'U1X': ['u1', 'rx'],
-            'RR': ['r'],
-            'ZYZ': ['rz', 'ry'],
-            'ZXZ': ['rz', 'rx'],
-            'XYX': ['rx', 'ry']
-        }
         self.basis = None
         if basis:
+            self.basis = []
             basis_set = set(basis)
-            for basis_name, gates in self.euler_basis_names.items():
+            for basis_name, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
                 if set(gates).issubset(basis_set):
-                    self.basis = basis_name
-                    break
+                    self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(basis_name))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -64,41 +54,32 @@ class Optimize1qGatesDecomposition(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         if not self.basis:
-            LOG.info("Skipping pass because no basis is set")
+            logger.info("Skipping pass because no basis is set")
             return dag
-        decomposer = OneQubitEulerDecomposer(self.basis)
-        runs = dag.collect_runs(self.euler_basis_names[self.basis])
-        runs = _split_runs_on_parameters(runs)
+        runs = dag.collect_1q_runs()
+        identity_matrix = np.eye(2)
         for run in runs:
             # Don't try to optimize a single 1q gate
             if len(run) <= 1:
+                params = run[0].op.params
+                # Remove single identity gates
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
+                                                      identity_matrix):
+                    dag.remove_op_node(run[0])
                 continue
-            q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(1)
-            for gate in run:
-                qc.append(gate.op, [q[0]], [])
 
-            operator = Operator(qc)
-            new_circ = decomposer(operator)
-            new_dag = circuit_to_dag(new_circ)
-            dag.substitute_node_with_dag(run[0], new_dag)
-            # Delete the other nodes in the run
-            for current_node in run[1:]:
-                dag.remove_op_node(current_node)
+            new_circs = []
+            operator = Operator(run[0].op)
+            for gate in run[1:]:
+                operator = operator.compose(gate.op)
+            for decomposer in self.basis:
+                new_circs.append(decomposer(operator))
+            if new_circs:
+                new_circ = min(new_circs, key=len)
+                if len(run) > len(new_circ):
+                    new_dag = circuit_to_dag(new_circ)
+                    dag.substitute_node_with_dag(run[0], new_dag)
+                    # Delete the other nodes in the run
+                    for current_node in run[1:]:
+                        dag.remove_op_node(current_node)
         return dag
-
-
-def _split_runs_on_parameters(runs):
-    """Finds runs containing parameterized gates and splits them into sequential
-    runs excluding the parameterized gates.
-    """
-
-    out = []
-    for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized())
-
-        for group_is_parameterized, gates in groups:
-            if not group_is_parameterized:
-                out.append(list(gates))
-
-    return out

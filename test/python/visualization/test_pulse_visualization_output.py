@@ -157,7 +157,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
                                         MemorySlot(1),
                                         RegisterSlot(1)))
         # Check ValueError is not thrown
-        sched.draw(plot_range=(0, 15))
+        pulse_drawer(sched, plot_range=(0, 15))
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.

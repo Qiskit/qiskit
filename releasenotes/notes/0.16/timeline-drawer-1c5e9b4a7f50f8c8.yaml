@@ -4,7 +4,7 @@ features:
     A new visualization function :func:`~qiskit.visualization.timeline_drawer`
     was added to the :mod:`qiskit.visualization` module.
 
-    For Example:
+    For example:
 
     .. jupyter-execute::
 

@@ -14,12 +14,11 @@
 
 import json
 import os
-import logging
+import warnings
+
 import jsonschema
 
 from .exceptions import SchemaValidationError, _SummaryValidationError
-
-logger = logging.getLogger(__name__)
 
 
 _DEFAULT_SCHEMA_PATHS = {
@@ -128,7 +127,12 @@ def validate_json_against_schema(json_dict, schema,
     Raises:
         SchemaValidationError: Raised if validation fails.
     """
-
+    warnings.warn("The jsonschema validation included in qiskit-terra is "
+                  "deprecated and will be removed in a future release. "
+                  "If you're relying on this schema validation you should "
+                  "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                  "validate your payloads with that", DeprecationWarning,
+                  stacklevel=2)
     if isinstance(schema, str):
         schema_name = schema
         schema = _SCHEMAS[schema_name]

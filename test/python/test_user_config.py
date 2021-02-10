@@ -28,19 +28,8 @@ class TestUserConfig(QiskitTestCase):
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)
         config.read_config_file()
-        self.assertEqual({}, config.settings)
-
-    def test_invalid_suppress_packaging_warnings(self):
-        test_config = """
-        [default]
-        suppress_packaging_warnings = 76
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, 'w') as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            self.assertRaises(ValueError, config.read_config_file)
+        self.assertEqual({},
+                         config.settings)
 
     def test_invalid_optimization_level(self):
         test_config = """
@@ -79,7 +68,8 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'circuit_drawer': 'latex'},
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'parallel_enabled': user_config.PARALLEL_DEFAULT},
                              config.settings)
 
     def test_optimization_level_valid(self):
@@ -93,13 +83,28 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'transpile_optimization_level': 1},
-                             config.settings)
+            self.assertEqual(
+                {'transpile_optimization_level': 1,
+                 'parallel_enabled': user_config.PARALLEL_DEFAULT},
+                config.settings)
 
-    def test_valid_suppress_packaging_warnings_false(self):
+    def test_invalid_num_processes(self):
         test_config = """
         [default]
-        suppress_packaging_warnings = false
+        num_processes = -256
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError,
+                              config.read_config_file)
+
+    def test_valid_num_processes(self):
+        test_config = """
+        [default]
+        num_processes = 31
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -107,13 +112,15 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({},
-                             config.settings)
+            self.assertEqual(
+                {'parallel_enabled': user_config.PARALLEL_DEFAULT,
+                 'num_processes': 31},
+                config.settings)
 
-    def test_valid_suppress_packaging_warnings_true(self):
+    def test_valid_parallel(self):
         test_config = """
         [default]
-        suppress_packaging_warnings = true
+        parallel = False
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -121,8 +128,9 @@ class TestUserConfig(QiskitTestCase):
             file.flush()
             config = user_config.UserConfig(self.file_path)
             config.read_config_file()
-            self.assertEqual({'suppress_packaging_warnings': True},
-                             config.settings)
+            self.assertEqual(
+                {'parallel_enabled': False},
+                config.settings)
 
     def test_all_options_valid(self):
         test_config = """
@@ -132,6 +140,8 @@ class TestUserConfig(QiskitTestCase):
         circuit_mpl_style_path = ~:~/.qiskit
         transpile_optimization_level = 3
         suppress_packaging_warnings = true
+        parallel = false
+        num_processes = 15
         """
         self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
@@ -143,5 +153,6 @@ class TestUserConfig(QiskitTestCase):
                               'circuit_mpl_style': 'default',
                               'circuit_mpl_style_path': ['~', '~/.qiskit'],
                               'transpile_optimization_level': 3,
-                              'suppress_packaging_warnings': True},
+                              'num_processes': 15,
+                              'parallel_enabled': False},
                              config.settings)
