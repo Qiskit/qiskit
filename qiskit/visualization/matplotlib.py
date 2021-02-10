@@ -17,7 +17,6 @@
 import collections
 import itertools
 import json
-import logging
 import re
 import os
 from warnings import warn
@@ -37,8 +36,6 @@ from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
-
-logger = logging.getLogger(__name__)
 
 # Default gate width and height
 WID = 0.65
