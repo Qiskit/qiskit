@@ -14,11 +14,12 @@
 Tolerances mixin class.
 """
 
+from abc import ABCMeta
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
-class TolerancesMeta(type):
+class TolerancesMeta(ABCMeta):
     """Metaclass to handle tolerances"""
     def __init__(cls, *args, **kwargs):
         cls._ATOL_DEFAULT = ATOL_DEFAULT
@@ -28,7 +29,7 @@ class TolerancesMeta(type):
 
     @property
     def atol(cls):
-        """The default absolute tolerance parameter for float comparisons."""
+        """Default absolute tolerance parameter for float comparisons."""
         return cls._ATOL_DEFAULT
 
     def _check_value(cls, value, value_name):
@@ -42,18 +43,18 @@ class TolerancesMeta(type):
 
     @atol.setter
     def atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons."""
+        """Set default absolute tolerance parameter for float comparisons."""
         cls._check_value(value, "atol")  # pylint: disable=no-value-for-parameter
         cls._ATOL_DEFAULT = value
 
     @property
     def rtol(cls):
-        """The relative tolerance parameter for float comparisons."""
+        """Default relative tolerance parameter for float comparisons."""
         return cls._RTOL_DEFAULT
 
     @rtol.setter
     def rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons."""
+        """Set default relative tolerance parameter for float comparisons."""
         cls._check_value(value, "rtol")  # pylint: disable=no-value-for-parameter
         cls._RTOL_DEFAULT = value
 
@@ -63,10 +64,10 @@ class TolerancesMixin(metaclass=TolerancesMeta):
 
     @property
     def atol(self):
-        """The default absolute tolerance parameter for float comparisons."""
+        """Default absolute tolerance parameter for float comparisons."""
         return self.__class__.atol
 
     @property
     def rtol(self):
-        """The relative tolerance parameter for float comparisons."""
+        """Default relative tolerance parameter for float comparisons."""
         return self.__class__.rtol
