@@ -15,6 +15,7 @@
 import io
 import sys
 import math
+import warnings
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -1017,6 +1018,34 @@ class TestTranspile(QiskitTestCase):
                         coupling_map=cmap,
                         optimization_level=optimization_level)
         self.assertEqual(circuit.metadata, res.metadata)
+
+    def test_transpile_warns_on_implicit_id_to_delay(self):
+        """Verify we raise a deprecation warning on converting an IGate to a delay."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.i(0)
+        qc.x(0)
+
+        from qiskit.circuit.library.standard_gates import IGate
+        IGate._ID_IMPLICIT_DELAY_WARN_SHOWN = False
+
+        with self.assertWarnsRegex(DeprecationWarning, r'delay'):
+            res = transpile(qc, basis_gates=['x', 'delay'])
+
+        self.assertEqual(res.data[1][0].name, 'delay')
+        self.assertEqual(res.data[1][0].params, [320])
+        self.assertEqual(res.data[1][0].unit, 'dt')
+
+        # Assert warning is raised only once
+        with warnings.catch_warnings(record=True) as w:
+            res = transpile(qc, basis_gates=['x', 'delay'])
+            self.assertEqual(len(w), 0)
+
+        # Assert warning not traised when targeting backend with id
+        with warnings.catch_warnings(record=True) as w:
+            res = transpile(qc, basis_gates=['x', 'id'])
+
+            self.assertEqual(len(w), 0)
 
 
 class StreamHandlerRaiseException(StreamHandler):

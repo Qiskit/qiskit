@@ -282,6 +282,10 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         if not param_gate.definition or not param_gate.definition.data:
             return
 
+        # IGate has a temporary definition for deprecating conversion to delay.
+        if gate_class is IGate:
+            return
+
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 

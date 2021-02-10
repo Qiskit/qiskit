@@ -12,6 +12,8 @@
 
 """Identity gate."""
 
+import warnings
+
 import numpy
 from qiskit.circuit.gate import Gate
 
@@ -39,6 +41,8 @@ class IGate(Gate):
              └───┘
     """
 
+    _ID_IMPLICIT_DELAY_WARN_SHOWN = False
+
     def __init__(self, label=None):
         """Create new Identity gate."""
         super().__init__('id', 1, [], label=label)
@@ -51,3 +55,16 @@ class IGate(Gate):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0],
                             [0, 1]], dtype=dtype)
+
+    def _define(self):
+        if not IGate._ID_IMPLICIT_DELAY_WARN_SHOWN:
+            warnings.warn('Support for implicitly converting IGates to single pulse length '
+                          'Delays has been deprecated and will be removed in a future release. '
+                          'Use the Delay gate or QuantumCircuit.delay instead.',
+                          DeprecationWarning)
+            IGate._ID_IMPLICIT_DELAY_WARN_SHOWN = True
+
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        qc = QuantumCircuit(1)
+        qc.delay(320, 0, unit='dt')
+        self.definition = qc
