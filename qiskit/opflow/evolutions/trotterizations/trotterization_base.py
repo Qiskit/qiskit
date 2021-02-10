@@ -12,15 +12,12 @@
 
 """ Trotterization Algorithm Base """
 
-import logging
 from abc import abstractmethod
 
 from ...operator_base import OperatorBase
 from ..evolution_base import EvolutionBase
 
 # TODO centralize handling of commuting groups
-
-logger = logging.getLogger(__name__)
 
 
 class TrotterizationBase(EvolutionBase):
