@@ -10,9 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliSumOp Class """
+"""PauliSumOp Class """
 
-import logging
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
@@ -28,8 +27,6 @@ from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class PauliSumOp(PrimitiveOp):
