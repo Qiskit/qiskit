@@ -13,7 +13,6 @@
 """ PauliBasisChange Class """
 
 from typing import Optional, Callable, Union, Tuple, cast
-import logging
 from functools import partial, reduce
 import numpy as np
 
@@ -32,8 +31,6 @@ from ..state_fns.state_fn import StateFn
 from ..state_fns.operator_state_fn import OperatorStateFn
 from ..operator_globals import H, S, I
 from .converter_base import ConverterBase
-
-logger = logging.getLogger(__name__)
 
 
 class PauliBasisChange(ConverterBase):

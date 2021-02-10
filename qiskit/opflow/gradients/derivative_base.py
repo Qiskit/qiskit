@@ -12,7 +12,6 @@
 
 """ DerivativeBase Class """
 
-import logging
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -30,8 +29,6 @@ from ..primitive_ops.primitive_op import PrimitiveOp
 from ..state_fns import StateFn, OperatorStateFn
 
 OperatorType = Union[StateFn, PrimitiveOp, ListOp]
-
-logger = logging.getLogger(__name__)
 
 
 class DerivativeBase(ConverterBase):

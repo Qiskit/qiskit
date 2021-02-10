@@ -12,7 +12,6 @@
 
 """ EvolutionOp Class """
 
-import logging
 from typing import List, Optional, Set, Union, cast
 
 import numpy as np
@@ -21,8 +20,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class EvolvedOp(PrimitiveOp):

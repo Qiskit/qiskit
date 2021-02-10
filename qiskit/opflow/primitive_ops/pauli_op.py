@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliOp Class """
+"""PauliOp Class """
 
 from typing import Union, Set, Dict, cast, List, Optional
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -29,7 +28,6 @@ from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 
-logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
 
 
