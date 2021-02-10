@@ -12,7 +12,6 @@
 
 """The n-local circuit class."""
 
-import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
@@ -23,8 +22,6 @@ from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExp
 from qiskit.circuit.parametertable import ParameterTable
 
 from ..blueprintcircuit import BlueprintCircuit
-
-logger = logging.getLogger(__name__)
 
 
 class NLocal(BlueprintCircuit):
@@ -857,7 +854,7 @@ class NLocal(BlueprintCircuit):
         for i, (block, ent) in enumerate(zip(blocks, entanglements)):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 

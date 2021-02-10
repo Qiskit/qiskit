@@ -12,14 +12,10 @@
 
 """ EvolutionFactory Class """
 
-import logging
-
 from ..operator_base import OperatorBase
 from .evolution_base import EvolutionBase
 from .pauli_trotter_evolution import PauliTrotterEvolution
 from .matrix_evolution import MatrixEvolution
-
-logger = logging.getLogger(__name__)
 
 
 class EvolutionFactory:

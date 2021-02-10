@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,import-error
+
 """ Test VQE """
 
 import unittest
@@ -167,7 +169,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test VQE with Aer's statevector_simulator."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -190,7 +192,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test VQE with Aer's qasm_simulator."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -215,7 +217,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
@@ -308,7 +310,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test expectation selection with Aer's qasm_simulator."""
         try:
             # pylint: disable=import-outside-toplevel
-            from qiskit import Aer
+            from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
