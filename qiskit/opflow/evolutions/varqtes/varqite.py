@@ -64,7 +64,8 @@ class VarQITE(VarQTE):
 
         if self._get_error:
             # Compute the norm of the Hamiltonian
-            h_norm = sp.linalg.norm(self._operator.oplist[0].primitive.to_matrix(massive=True))
+            h_norm = np.linalg.norm(self._operator.oplist[0].primitive.to_matrix(massive=True),
+                                    ord=np.infty)
             print('h_norm', h_norm)
 
         # Step size
@@ -98,9 +99,10 @@ class VarQITE(VarQTE):
                     print('error before', error)
                     print('dt', dt)
                     print('et', e_t)
-                    print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
+                    # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
                     error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps
                                                                             - j)
+                    # error += dt * (e_t + 2 * h_norm)
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
 
                     print('Error', np.round(error, 3), 'after', (j+1)*dt)
@@ -212,8 +214,8 @@ class VarQITE(VarQTE):
 
 
 
-        print('Grad error', np.round(np.sqrt(eps_squared), 6))
-        return np.sqrt(eps_squared)
+        print('Grad error - real returned', np.round(np.sqrt(eps_squared), 6))
+        return np.real(np.sqrt(eps_squared))
 
     def _distance_energy(self,
                   time: Union[float, complex],
@@ -254,6 +256,8 @@ class VarQITE(VarQTE):
         act_err = np.sqrt(np.linalg.norm(target_state - trained_state, ord=2))
         # Target Energy
         act_en = self._inner_prod(target_state, np.dot(hermitian_op, target_state))
+        print('actual energy', act_en)
         # Trained Energy
         trained_en = self._inner_prod(trained_state, np.dot(hermitian_op, trained_state))
+        print('trained_en', trained_en)
         return f, act_err, act_en, trained_en

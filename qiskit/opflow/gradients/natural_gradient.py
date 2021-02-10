@@ -117,19 +117,25 @@ class NaturalGradient(GradientBase):
             else:
                 # print('in combo fn A', a)
                 # print('in combo fn c', c)
-                nat_grad = np.linalg.lstsq(a, c, rcond=None)[0]
-                if np.linalg.norm(nat_grad) < 1e-8:
-                    nat_grad = NaturalGradient._regularized_sle_solver(a,
-                                                                       c,
-                                                                       regularization='perturb_diag')
-                    warnings.warn(r'Norm of the natural gradient smaller than $1e^{-8}$ use '
-                                  r' `perturb_diag` regularization.')
-                if np.linalg.norm(nat_grad) > 1e-4:
-                    nat_grad = NaturalGradient._regularized_sle_solver(a,
-                                                                       c,
-                                                                       regularization='ridge')
-                    warnings.warn(r'Norm of the natural gradient bigger than $1e^{3}$ use '
-                                  r' `ridge` regularization.')
+                # nat_grad = np.linalg.lstsq(a, c, rcond=None)[0]
+                # if np.linalg.norm(nat_grad) < 1e-8:
+                #     nat_grad = NaturalGradient._regularized_sle_solver(a,
+                #                                                        c,
+                #                                                        regularization='perturb_diag')
+                #     warnings.warn(r'Norm of the natural gradient smaller than $1e^{-8}$ use '
+                #                   r' `perturb_diag` regularization.')
+                # if np.linalg.norm(nat_grad) > 1e-4:
+                #     nat_grad = NaturalGradient._regularized_sle_solver(a,
+                #                                                        c,
+                #                                                        regularization='ridge')
+                #     warnings.warn(r'Norm of the natural gradient bigger than $1e^{3}$ use '
+                #                   r' `ridge` regularization.')
+                try:
+                    #             # Try to solve the system of linear equations Ax = C.
+                    nat_grad = np.linalg.solve(a, c)
+                except np.linalg.LinAlgError:  # singular matrix
+                    print('Singular matrix lstsq solver required')
+                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c)
 
             return nat_grad
         # Define the ListOp which combines the gradient and the QFI according to the combination
