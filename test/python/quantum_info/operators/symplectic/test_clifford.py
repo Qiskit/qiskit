@@ -110,33 +110,33 @@ class TestCliffordGates(QiskitTestCase):
         """Tests for append of 1-qubit gates"""
 
         target_table = {
-            "i": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "id": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "iden": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "x": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "y": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "z": np.array([[[True, False], [False, True]]], dtype=np.bool),
-            "h": np.array([[[False, True], [True, False]]], dtype=np.bool),
-            "s": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "sdg": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "sinv": np.array([[[True, True], [False, True]]], dtype=np.bool),
-            "v": np.array([[[True, True], [True, False]]], dtype=np.bool),
-            "w": np.array([[[False, True], [True, True]]], dtype=np.bool),
+            "i": np.array([[[True, False], [False, True]]], dtype=bool),
+            "id": np.array([[[True, False], [False, True]]], dtype=bool),
+            "iden": np.array([[[True, False], [False, True]]], dtype=bool),
+            "x": np.array([[[True, False], [False, True]]], dtype=bool),
+            "y": np.array([[[True, False], [False, True]]], dtype=bool),
+            "z": np.array([[[True, False], [False, True]]], dtype=bool),
+            "h": np.array([[[False, True], [True, False]]], dtype=bool),
+            "s": np.array([[[True, True], [False, True]]], dtype=bool),
+            "sdg": np.array([[[True, True], [False, True]]], dtype=bool),
+            "sinv": np.array([[[True, True], [False, True]]], dtype=bool),
+            "v": np.array([[[True, True], [True, False]]], dtype=bool),
+            "w": np.array([[[False, True], [True, True]]], dtype=bool),
         }
 
         target_phase = {
-            "i": np.array([[False, False]], dtype=np.bool),
-            "id": np.array([[False, False]], dtype=np.bool),
-            "iden": np.array([[False, False]], dtype=np.bool),
-            "x": np.array([[False, True]], dtype=np.bool),
-            "y": np.array([[True, True]], dtype=np.bool),
-            "z": np.array([[True, False]], dtype=np.bool),
-            "h": np.array([[False, False]], dtype=np.bool),
-            "s": np.array([[False, False]], dtype=np.bool),
-            "sdg": np.array([[True, False]], dtype=np.bool),
-            "sinv": np.array([[True, False]], dtype=np.bool),
-            "v": np.array([[False, False]], dtype=np.bool),
-            "w": np.array([[False, False]], dtype=np.bool)
+            "i": np.array([[False, False]], dtype=bool),
+            "id": np.array([[False, False]], dtype=bool),
+            "iden": np.array([[False, False]], dtype=bool),
+            "x": np.array([[False, True]], dtype=bool),
+            "y": np.array([[True, True]], dtype=bool),
+            "z": np.array([[True, False]], dtype=bool),
+            "h": np.array([[False, False]], dtype=bool),
+            "s": np.array([[False, False]], dtype=bool),
+            "sdg": np.array([[True, False]], dtype=bool),
+            "sinv": np.array([[True, False]], dtype=bool),
+            "v": np.array([[False, False]], dtype=bool),
+            "w": np.array([[False, False]], dtype=bool)
         }
 
         target_stabilizer = {

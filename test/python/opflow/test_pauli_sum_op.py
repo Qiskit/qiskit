@@ -24,6 +24,7 @@ from qiskit.opflow import (
     DictStateFn,
     H,
     I,
+    One,
     OperatorStateFn,
     PauliSumOp,
     SummedOp,
@@ -33,7 +34,7 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, PauliTable
 
 
 class TestPauliSumOp(QiskitOpflowTestCase):
@@ -61,7 +62,6 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         pauli_sum = X + Y
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
-        self.assertEqual(summed_op, pauli_sum)
 
     def test_mul(self):
         """ multiplication test """
@@ -87,13 +87,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
     def test_adjoint(self):
         """ adjoint test """
         pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZX"), coeffs=[2]), coeff=3)
-        expected = PauliSumOp(SparsePauliOp(Pauli("XYZX")), coeff=-6)
+        expected = PauliSumOp(SparsePauliOp(Pauli("XYZX")), coeff=6)
 
         self.assertEqual(pauli_sum.adjoint(), expected)
 
         pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=3j)
         expected = PauliSumOp(SparsePauliOp(Pauli("XYZY")), coeff=-6j)
         self.assertEqual(pauli_sum.adjoint(), expected)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("X"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Y"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Z"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = (Z ^ Z) + (Y ^ I)
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
 
     def test_equals(self):
         """ equality test """
@@ -164,9 +176,21 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ eval test """
         target0 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval("000")
         target1 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval(Zero ^ 3)
-        expected = DictStateFn({"011": (2 + 3j)})
+        expected = DictStateFn({"011": (3 + 2j)})
         self.assertEqual(target0, expected)
         self.assertEqual(target1, expected)
+
+        phi = 0.5 * ((One + Zero) ^ 2)
+        zero_op = ((Z + I)/2)
+        one_op = ((I - Z)/2)
+        h1 = one_op ^ I
+        h2 = one_op ^ (one_op + zero_op)
+        h2a = one_op ^ one_op
+        h2b = one_op ^ zero_op
+        self.assertEqual((~OperatorStateFn(h1)@phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2)@phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2a)@phi).eval(), 0.25)
+        self.assertEqual((~OperatorStateFn(h2b)@phi).eval(), 0.25)
 
     def test_exp_i(self):
         """ exp_i test """
@@ -228,6 +252,30 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             + 0.18093119978423156 * (X ^ X)
         )
         self.assertEqual(target, expected)
+
+    def test_matrix_iter(self):
+        """Test PauliSumOp dense matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        table = PauliTable.from_labels(labels)
+        coeff = 10
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter()):
+            self.assertTrue(
+                np.array_equal(i, coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
+
+    def test_matrix_iter_sparse(self):
+        """Test PauliSumOp sparse matrix_iter method."""
+        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        coeffs = np.array([1, 2, 3, 4, 5, 6])
+        coeff = 10
+        table = PauliTable.from_labels(labels)
+        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        for idx, i in enumerate(op.matrix_iter(sparse=True)):
+            self.assertTrue(
+                np.array_equal(i.toarray(), coeff * coeffs[idx] *
+                               Pauli(labels[idx]).to_matrix()))
 
 
 if __name__ == "__main__":

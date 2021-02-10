@@ -21,7 +21,7 @@ import numpy as np
 import qiskit.pulse as pulse
 from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler.assemble import assemble
+from qiskit.compiler.assembler import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
@@ -1368,6 +1368,7 @@ class TestLogAssembler(QiskitTestCase):
     def setUp(self):
         super().setUp()
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))
