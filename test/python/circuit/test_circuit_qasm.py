@@ -16,6 +16,8 @@ from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Parameter
+from qiskit.qasm.exceptions import QasmError
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -210,3 +212,11 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
+
+    def test_unbound_circuit_raises(self):
+        """Test circuits with unbound parameters raises."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('θ')
+        qc.rz(theta, 0)
+        with self.assertRaises(QasmError):
+            qc.qasm()

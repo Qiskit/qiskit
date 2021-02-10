@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.optimize import rosen
 import numpy as np
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
                                           POWELL, SLSQP, SPSA, TNC, GSLS)
 
@@ -27,7 +27,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        aqua_globals.random_seed = 52
+        algorithm_globals.random_seed = 52
 
     def _optimize(self, optimizer):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]

@@ -20,11 +20,12 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-class ScalarOp(BaseOperator, TolerancesMixin):
+class ScalarOp(LinearOp):
     """Scalar identity operator class.
 
     This is a symbolic representation of an scalar identity operator on
@@ -64,13 +65,11 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         return self._coeff
 
     def conjugate(self):
-        """Return the conjugate of the operator."""
         ret = self.copy()
         ret._coeff = np.conjugate(self.coeff)
         return ret
 
     def transpose(self):
-        """Return the transpose of the operator."""
         return self.copy()
 
     def is_unitary(self, atol=None, rtol=None):
@@ -93,71 +92,9 @@ class ScalarOp(BaseOperator, TolerancesMixin):
                         input_dims=self.input_dims(),
                         output_dims=self.output_dims())
 
-    def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
-
-        Args:
-            other (BaseOperator): an operator object.
-
-        Returns:
-            ScalarOp: if other is an ScalarOp.
-            BaseOperator: if other is not an ScalarOp.
-        """
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
-        if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
-            ret._coeff = self.coeff * other.coeff
-            ret._op_shape = self._op_shape.tensor(other._op_shape)
-            return ret
-        return other.expand(self)
-
-    def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
-
-        Args:
-            other (BaseOperator): an operator object.
-
-        Returns:
-            ScalarOp: if other is an ScalarOp.
-            BaseOperator: if other is not an ScalarOp.
-        """
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
-        if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
-            ret._coeff = self.coeff * other.coeff
-            ret._op_shape = self._op_shape.expand(other._op_shape)
-            return ret
-        return other.tensor(self)
-
     def compose(self, other, qargs=None, front=False):
-        """Return the composed operator.
-
-        Args:
-            other (BaseOperator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            BaseOperator: The operator self @ other.
-
-        Raises:
-            QiskitError: if other has incompatible dimensions for specified
-                         subsystems.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
-
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -197,18 +134,38 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         """Return the power of the ScalarOp.
 
         Args:
-            n (Number): the exponent for the scalar op.
+            n (float): the exponent for the scalar op.
 
         Returns:
             ScalarOp: the ``coeff ** n`` ScalarOp.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the operator
-                         are not equal, or the power is not a positive integer.
         """
         ret = self.copy()
         ret._coeff = self.coeff ** n
         return ret
+
+    def tensor(self, other):
+        if not isinstance(other, BaseOperator):
+            other = Operator(other)
+
+        if isinstance(other, ScalarOp):
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.tensor(other._op_shape)
+            return ret
+
+        return other.expand(self)
+
+    def expand(self, other):
+        if not isinstance(other, BaseOperator):
+            other = Operator(other)
+
+        if isinstance(other, ScalarOp):
+            ret = copy.copy(self)
+            ret._coeff = self.coeff * other.coeff
+            ret._op_shape = self._op_shape.expand(other._op_shape)
+            return ret
+
+        return other.tensor(self)
 
     def _add(self, other, qargs=None):
         """Return the operator self + other.
@@ -290,3 +247,7 @@ class ScalarOp(BaseOperator, TolerancesMixin):
         if qargs is None:
             return other
         return ScalarOp(current.input_dims()).compose(other, qargs=qargs)
+
+
+# Update docstrings for API docs
+generate_apidocs(ScalarOp)
