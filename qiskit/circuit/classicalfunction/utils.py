@@ -18,6 +18,7 @@ from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, 
 from qiskit.circuit.classicalfunction.exceptions import ClassicalFunctionCompilerError
 
 from tweedledum.ir import WireRef
+from tweedledum.passes import parity_decomp
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate,
@@ -73,7 +74,7 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         equivalent.
     """
     qiskit_qc = QuantumCircuit(tweedledum_circuit.num_qubits())
-    for instruction in tweedledum_circuit:
+    for instruction in parity_decomp(tweedledum_circuit):
         gate = _convert_tweedledum_operator(instruction)
         qubits = [qubit.uid() for qubit in instruction.qubits()]
         qiskit_qc.append(gate, qubits)
