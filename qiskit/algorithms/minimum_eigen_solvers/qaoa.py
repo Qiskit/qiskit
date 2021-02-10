@@ -12,9 +12,7 @@
 
 """ The Quantum Approximate Optimization Algorithm. """
 
-import logging
 from typing import List, Callable, Optional, Union
-
 import numpy as np
 
 from qiskit.algorithms.optimizers import Optimizer
@@ -28,7 +26,9 @@ from qiskit.utils.validation import validate_min
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
-logger = logging.getLogger(__name__)
+# pylint: disable=invalid-name
+# disable check for operator setter because of pylint bug
+# pylint: disable=no-member
 
 
 class QAOA(VQE):

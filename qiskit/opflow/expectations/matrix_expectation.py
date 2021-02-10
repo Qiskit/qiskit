@@ -12,15 +12,12 @@
 
 """ MatrixExpectation Class """
 
-import logging
 from typing import Union
 
 from ..operator_base import OperatorBase
 from .expectation_base import ExpectationBase
 from ..list_ops import ListOp, ComposedOp
 from ..state_fns.operator_state_fn import OperatorStateFn
-
-logger = logging.getLogger(__name__)
 
 
 # pylint: disable=invalid-name

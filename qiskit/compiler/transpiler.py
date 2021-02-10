@@ -39,7 +39,7 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -281,7 +281,7 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
 
 def _log_transpile_time(start_time, end_time):
     log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
+    logger.info(log_msg)
 
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
