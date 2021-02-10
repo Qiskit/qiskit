@@ -205,6 +205,7 @@ N-local circuits
    RealAmplitudes
    EfficientSU2
    ExcitationPreserving
+   QAOAAnsatz
 
 
 Data encoding circuits
@@ -318,6 +319,7 @@ from .n_local import (
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,
+    QAOAAnsatz
 )
 from .data_preparation import (
     PauliFeatureMap,
