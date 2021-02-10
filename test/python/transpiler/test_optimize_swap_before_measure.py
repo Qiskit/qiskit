@@ -142,7 +142,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         """ Cannot optimize when swap is not at the end in all of the successors
             qr0:--X-----m--
                   |     |
-           qr1:--X-[H]-|--
+            qr1:--X-[H]-|--
                         |
             cr0:--------.--
         """
