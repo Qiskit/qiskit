@@ -22,6 +22,7 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
+from qiskit import user_config
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.visualization.array import _matrix_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
@@ -1078,7 +1079,7 @@ def _repr_state_text(state):
 class TextMatrix():
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
-    def __init__(self, state, max_size, dims, prefix):
+    def __init__(self, state, max_size=8, dims=False, prefix=''):
         self.state = state
         self.max_size = max_size
         self.dims = dims
@@ -1109,12 +1110,12 @@ class TextMatrix():
         return self.__str__()
 
 
-# pylint: disable=too-many-return-statements
 def state_drawer(state,
                  output=None,
                  max_size=None,
                  dims=None,
-                 prefix=None
+                 prefix=None,
+                 **drawer_args
                  ):
     """Returns a visualization of the state.
 
@@ -1144,7 +1145,8 @@ def state_drawer(state,
                 elipses elements. For ``text`` drawer, this is the ``threshold``
                 parameter in ``numpy.array2string()``.
             dims (bool): For `text` and `markdown`. Whether to display the
-                dimensions.
+                dimensions. If `None`, will only display if state is not a qubit
+                state.
             prefix (str): For `text` and `markdown`. Text to be displayed before
                 the rest of the state.
 
@@ -1156,10 +1158,27 @@ def state_drawer(state,
             ImportError: when `output` is `markdown` and IPython is not installed.
             ValueError: when `output` is not a valid selection.
     """
-
-    # sort inputs:
-    if output is None:
-        output = 'text'
+    # set 'output'
+    config = user_config.get_config()
+    # Get default 'output' from config file else use text
+    default_output = 'text'
+    if config:
+        default_output = config.get('state_drawer', 'auto')
+        if default_output == 'auto':
+            try:
+                from IPython.display import Markdown
+                default_output = 'markdown'
+            except ImportError:
+                default_output = 'text'
+    if output in [None, 'auto']:
+        output = default_output
+    output = output.lower()
+    # Set 'dims'
+    if dims is None:  # show dims if state is not only qubits
+        if set(state.dims()) == {2}:
+            dims = False
+        else:
+            dims = True
     if prefix is None:
         prefix = ''
     if max_size is None:
@@ -1167,32 +1186,28 @@ def state_drawer(state,
     if isinstance(max_size, int):
         max_size = (max_size, max_size)
 
-    # choose drawing:
-    if output == 'text':
-        return TextMatrix(state, max_size, dims, prefix=prefix)
-    if output == 'markdown_source':
-        return _repr_state_markdown(state, max_size=max_size, dims=dims, prefix=prefix)
+    # Choose drawing backend:
+    # format is {'key': (<drawer-function>, (<drawer-specific-args>))}
+    drawers = {'text': (TextMatrix, (max_size, dims, prefix)),
+               'markdown_source': (_repr_state_markdown, (max_size, dims, prefix)),
+               'qsphere': (plot_state_qsphere, ()),
+               'hinton': (plot_state_hinton, ()),
+               'bloch': (plot_bloch_multivector, ())}
     if output == 'markdown':
         try:
             from IPython.display import Markdown
-        except ImportError:
-            raise ImportError('IPython is not installed, to install run:'
-                              '"pip install ipython".')
+        except ImportError as err:
+            raise ImportError('IPython is not installed, to install run: '
+                              '"pip install ipython", or set output=\'markdown_source\' '
+                              'instead for an ASCII string.') from err
         else:
-            return Markdown(_repr_state_markdown(state,
-                                                 max_size=max_size,
-                                                 dims=dims,
-                                                 prefix=prefix))
-    if output == 'latex_source':
-        return _repr_state_latex(state, max_size)
-    if output == 'qsphere':
-        return plot_state_qsphere(state)
-    if output == 'hinton':
-        return plot_state_hinton(state)
-    if output == 'bloch':
-        return plot_bloch_multivector(state)
-
-    raise ValueError(
-        """'{}' is not a valid option for drawing {} objects. Please choose from:
-        'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton',
-        'bloch'.""".format(output, type(state).__name__))
+            draw_func, args = drawers['markdown_source']
+            return Markdown(draw_func(state, *args))
+    try:
+        draw_func, specific_args = drawers[output]
+        return draw_func(state, *specific_args, **drawer_args)
+    except KeyError as err:
+        raise ValueError(
+            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton',
+            'bloch' or 'auto'.""".format(output, type(state).__name__)) from err

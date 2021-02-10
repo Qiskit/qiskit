@@ -121,7 +121,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         text = self.draw('text', prefix="DensityMatrix(")
         return str(text) + ')'
 
-    def draw(self, output='text', max_size=(16, 16), dims=None, prefix=''):
+    def draw(self, output=None, max_size=(16, 16), dims=None, prefix='', **drawer_args):
         """Returns a visualization of the DensityMatrix.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -142,7 +142,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``markdown``,
                 ``markdown_source``, ``latex_source``, ``qsphere``, ``hinton``,
-                or ``bloch``. Default is `'text`'.
+                or ``bloch``. Default is ``auto``.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
                 and ``markdown`` drawers, this is also the maximum number
@@ -153,6 +153,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 dimensions.
             prefix (str): For `text` and `markdown`. String to be displayed
                 before the data representation.
+            drawer_args: Arguments to be passed directly to the relevant drawer
+                function (`plot_state_qsphere()`, `plot_state_hinton()` or
+                `plot_bloch_multivector()`). See the relevant function under
+                `qiskit.visualization` for that function's documentation.
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
@@ -162,25 +166,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             ValueError: when an invalid output method is selected.
         """
         from qiskit.visualization.state_visualization import state_drawer
-        if dims is None:
-            # only want to display dims if state is not made from qubits
-            if set(self.dims()) == {2}:
-                dims = False
-            else:
-                dims = True
-        output = output.lower()
-        valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
-                         'qsphere', 'hinton', 'bloch']
-        if output in valid_choices:
-            return state_drawer(self, output=output, max_size=max_size, dims=dims, prefix=prefix)
-        else:
-            valid_choices_string = "', '".join(c for c in valid_choices)[:-1]
-            obj_name = type(self).__name__
-            raise ValueError(f"'{output}' is not a valid drawing method for"
-                             f"{obj_name}, choose from '{valid_choices_string}'")
+        return state_drawer(self, output=output, max_size=max_size, dims=dims,
+                            prefix=prefix, **drawer_args)
 
     def _ipython_display_(self):
-        display(self.draw('markdown'))
+        display(self.draw())
 
     @property
     def data(self):
