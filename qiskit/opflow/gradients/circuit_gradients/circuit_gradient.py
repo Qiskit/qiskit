@@ -10,17 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitGradient Class """
+"""CircuitGradient Class """
 
-import logging
 from abc import abstractmethod
 from typing import List, Union, Optional, Tuple
 
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
 
 
 class CircuitGradient(ConverterBase):
