@@ -146,7 +146,7 @@ class BooleanExpression(QuantumCircuit):
         return tweedledum2qiskit(xag_synth(logic_network), name=self.name, qregs=qregs)
 
     def _define(self):
-        """The definition of the classical expression is its synthesis"""
+        """The definition of the boolean expression is its synthesis"""
         self.definition = self.synth()
 
     # @classmethod
