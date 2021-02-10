@@ -937,10 +937,50 @@ class TestGradients(QiskitOpflowTestCase):
                   quantum_instance=q_instance)
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=1)
+
+    def test_vqe2(self):
+        """Test VQE compatibility with gradient"""
+
+        method = 'lin_comb'
+        backend = 'qasm_simulator'
+        q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
+                                     seed_transpiler=2)
+        # Define the Hamiltonian
+        h2_hamiltonian = -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) \
+                         - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        h2_energy = -1.85727503
+
+        # Define the Ansatz
+        wavefunction = QuantumCircuit(2)
+        params = ParameterVector('theta', length=8)
+        itr = iter(params)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+        wavefunction.cx(0, 1)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+
+        # Conjugate Gradient algorithm
+        optimizer = CG(maxiter=1)
+
+        grad = Gradient(grad_method=method)
+
+        # Gradient callable
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
+
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
     @slow_test
-    def test_vqe2(self):
+    def test_vqe3(self):
         """Test VQE with natural gradient"""
 
         method = 'lin_comb'
@@ -978,9 +1018,51 @@ class TestGradients(QiskitOpflowTestCase):
                   quantum_instance=q_instance)
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=1)
+
+
+    def test_vqe4(self):
+        """Test VQE with natural gradient"""
+
+        method = 'lin_comb'
+        backend = 'qasm_simulator'
+        q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
+                                     seed_transpiler=2)
+        # Define the Hamiltonian
+        h2_hamiltonian = -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) \
+                         - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        h2_energy = -1.85727503
+
+        # Define the Ansatz
+        wavefunction = QuantumCircuit(2)
+        params = ParameterVector('theta', length=8)
+        itr = iter(params)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+        wavefunction.cx(0, 1)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+
+        # Conjugate Gradient algorithm
+        optimizer = CG(maxiter=1)
+
+        grad = NaturalGradient(grad_method=method)
+
+        # Gradient callable
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
+
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
-    def test_qaoa(self):
+    @slow_test
+    def test_qaoa1(self):
         """ QAOA test
         qubit_op is computed using max_cut.get_operator(w)
         for
@@ -1001,6 +1083,43 @@ class TestGradients(QiskitOpflowTestCase):
 
         backend = BasicAer.get_backend('statevector_simulator')
         optimizer = CG(maxiter=10)
+        qubit_op = PauliSumOp(SparsePauliOp
+                              ([[False, False, False, False, True, True, False, False],
+                                [False, False, False, False, False, True, True, False],
+                                [False, False, False, False, True, False, False, True],
+                                [False, False, False, False, False, False, True, True]],
+                               coeffs=[0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]), coeff=1.0)
+
+        quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
+        qaoa = QAOA(optimizer, p, mixer=m, gradient=NaturalGradient(),
+                    quantum_instance=quantum_instance)
+
+        result = qaoa.compute_minimum_eigenvalue(qubit_op)
+        x = _sample_most_likely(result.eigenstate)
+        graph_solution = 1 - x
+        self.assertIn(''.join([str(int(i)) for i in graph_solution]), solution)
+
+    def test_qaoa2(self):
+        """ QAOA Natural gradient compatibility
+        qubit_op is computed using max_cut.get_operator(w)
+        for
+            w = np.array([
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0]
+            ])
+
+        """
+
+        seed = 2
+        np.random.seed(2)
+        p = 1
+        m = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
+        solution = {'0101', '1010'}
+
+        backend = BasicAer.get_backend('statevector_simulator')
+        optimizer = CG(maxiter=1)
         qubit_op = PauliSumOp(SparsePauliOp
                               ([[False, False, False, False, True, True, False, False],
                                 [False, False, False, False, False, True, True, False],
