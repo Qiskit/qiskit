@@ -22,7 +22,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.quantum_info.operators.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
