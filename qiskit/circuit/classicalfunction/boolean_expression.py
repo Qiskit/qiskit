@@ -99,13 +99,12 @@ class BooleanExpression(QuantumCircuit):
         self._tweedledum_bool_expression = BoolExpression(expression)
 
         short_expression_for_name = (expression[:10] + '..') if len(expression) > 13 else expression
-        self.name = name or short_expression_for_name
         # super().__init__(self.name,
         #                  num_qubits=sum([qreg.size for qreg in self.qregs]),
         #                  params=[])
         super().__init__(len(self._tweedledum_bool_expression._parameters_signature) +
                          len(self._tweedledum_bool_expression._return_signature),
-                         name=self.name)
+                         name=name or short_expression_for_name)
 
     def evaluate(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
@@ -149,38 +148,19 @@ class BooleanExpression(QuantumCircuit):
         """The definition of the boolean expression is its synthesis"""
         self.definition = self.synth()
 
-    # @classmethod
-    # def from_dimacs(cls, filename: str) -> BooleanExpression:
-    #     """Create a LogicalExpressionOracle from the string in the DIMACS format.
-    #     Args:
-    #         dimacs: The string in the DIMACS format.
-    #
-    #     Returns:
-    #         A quantum circuit (LogicalExpressionOracle) for the input string
-    #
-    #     Raises:
-    #         ValueError: If a string does not have a header of the DIMACS format.
-    #         ValueError: If a line does not endo with '0'
-    #     """
-    #     lines = [
-    #         ll for ll in [
-    #             l.strip().lower() for l in dimacs.strip().split('\n')
-    #         ] if len(ll) > 0 and not ll[0] == 'c'
-    #     ]
-    #
-    #     if not lines[0][:6] == 'p cnf ':
-    #         raise ValueError('Unrecognized dimacs cnf header {}.'.format(lines[0]))
-    #
-    #     def create_var(cnf_tok):
-    #         return ('not v' + cnf_tok[1:]) if cnf_tok[0] == '-' else ('v' + cnf_tok)
-    #
-    #     clauses = []
-    #     for line in lines[1:]:
-    #         toks = line.split()
-    #         if not toks[-1] == '0':
-    #             raise ValueError('Unrecognized dimacs line {}.'.format(line))
-    #
-    #         clauses.append('({})'.format(' or '.join(
-    #             [create_var(t) for t in toks[:-1]]
-    #         )))
-    #     return cls(' and '.join(clauses))
+    @classmethod
+    def from_dimacs_file(cls, filename: str, name=None):
+        """Create a BooleanExpression from the string in the DIMACS format.
+        Args:
+            dimacs: The string in the DIMACS format.
+
+        Returns:
+            A quantum circuit (BooleanExpression) for the input string
+        """
+        from tweedledum.classical import read_dimacs
+        bool_exp_instance = cls.__new__(cls)
+        bool_exp_instance._tweedledum_bool_expression = read_dimacs(filename)
+        super().__init__(len(bool_exp_instance._tweedledum_bool_expression._parameters_signature) +
+                         len(bool_exp_instance._tweedledum_bool_expression._return_signature),
+                         name=name or filename)
+        return bool_exp_instance
