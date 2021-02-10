@@ -30,7 +30,7 @@ Circuit and Pulse Compilation Functions
 
 """
 
-from .assemble import assemble
-from .transpile import transpile
-from .schedule import schedule
-from .sequence import sequence
+from .assembler import assemble
+from .transpiler import transpile
+from .scheduler import schedule
+from .sequencer import sequence

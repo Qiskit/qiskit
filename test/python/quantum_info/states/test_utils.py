@@ -15,14 +15,11 @@
 """Tests utility functions for QuantumState classes."""
 
 import unittest
-import logging
 import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
 from qiskit.quantum_info.states import partial_trace, shannon_entropy
-
-logger = logging.getLogger(__name__)
 
 
 class TestStateUtils(QiskitTestCase):

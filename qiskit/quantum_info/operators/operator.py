@@ -25,11 +25,11 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.linear_op import LinearOp
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-class Operator(BaseOperator, TolerancesMixin):
+class Operator(LinearOp):
     r"""Matrix operator class
 
     This represents a matrix operator :math:`M` that will
@@ -205,14 +205,12 @@ class Operator(BaseOperator, TolerancesMixin):
         return UnitaryGate(self.data)
 
     def conjugate(self):
-        """Return the conjugate of the operator."""
         # Make a shallow copy and update array
         ret = copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
-        """Return the transpose of the operator."""
         # Make a shallow copy and update array
         ret = copy.copy(self)
         ret._data = np.transpose(self._data)
@@ -220,29 +218,6 @@ class Operator(BaseOperator, TolerancesMixin):
         return ret
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composed operator.
-
-        Args:
-            other (Operator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
-
-        Returns:
-            Operator: The operator self @ other.
-
-        Raise:
-            QiskitError: if operators have incompatible dimensions for
-                         composition.
-
-        Additional Information:
-            Composition (``@``) is defined as `left` matrix multiplication for
-            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Operator):
@@ -292,83 +267,40 @@ class Operator(BaseOperator, TolerancesMixin):
         ret._op_shape = new_shape
         return ret
 
-    def dot(self, other, qargs=None):
-        """Return the right multiplied operator self * other.
-
-        Args:
-            other (Operator): an operator object.
-            qargs (list or None): a list of subsystem positions to apply
-                                  other on. If None apply on all
-                                  subsystems [default: None].
-
-        Returns:
-            Operator: The operator self * other.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-                         incompatible dimensions.
-        """
-        return super().dot(other, qargs=qargs)
-
     def power(self, n):
         """Return the matrix power of the operator.
 
         Args:
-            n (int): the power to raise the matrix to.
+            n (float): the power to raise the matrix to.
 
         Returns:
-            BaseOperator: the n-times composed operator.
+            Operator: the resulting operator ``O ** n``.
 
         Raises:
             QiskitError: if the input and output dimensions of the operator
-                         are not equal, or the power is not a positive integer.
+                         are not equal.
         """
-        if not isinstance(n, int):
-            raise QiskitError("Can only take integer powers of Operator.")
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
-        # Override base class power so we can implement more efficiently
-        # using Numpy.matrix_power
         ret = copy.copy(self)
         ret._data = np.linalg.matrix_power(self.data, n)
         return ret
 
     def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
-
-        Args:
-            other (Operator): a operator subclass object.
-
-        Returns:
-            Operator: the tensor product operator self ⊗ other.
-
-        Raises:
-            QiskitError: if other cannot be converted to an operator.
-        """
         if not isinstance(other, Operator):
             other = Operator(other)
-        ret = copy.copy(self)
-        ret._data = np.kron(self._data, other._data)
-        ret._op_shape = self._op_shape.tensor(other._op_shape)
-        return ret
+        return self._tensor(self, other)
 
     def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
-
-        Args:
-            other (Operator): an operator object.
-
-        Returns:
-            Operator: the tensor product operator other ⊗ self.
-
-        Raises:
-            QiskitError: if other cannot be converted to an operator.
-        """
         if not isinstance(other, Operator):
             other = Operator(other)
-        ret = copy.copy(self)
-        ret._data = np.kron(other._data, self._data)
-        ret._op_shape = self._op_shape.expand(other._op_shape)
+        return self._tensor(other, self)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        ret = copy.copy(a)
+        ret._op_shape = a._op_shape.tensor(b._op_shape)
+        ret._data = np.kron(a.data, b.data)
         return ret
 
     def _add(self, other, qargs=None):
@@ -555,3 +487,7 @@ class Operator(BaseOperator, TolerancesMixin):
                 else:
                     new_qargs = [qargs[tup.index] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
+
+
+# Update docstrings for API docs
+generate_apidocs(Operator)

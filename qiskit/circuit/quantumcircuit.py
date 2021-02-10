@@ -83,7 +83,7 @@ class QuantumCircuit:
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
-        global_phase (float): The global phase of the circuit in radians.
+        global_phase (float or ParameterExpression): The global phase of the circuit in radians.
         metadata (dict): Arbitrary key value metadata to associate with the
             circuit. This gets stored as free-form data in a dict in the
             :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
@@ -1748,6 +1748,8 @@ class QuantumCircuit:
             inst.condition = node.condition
             circ.append(inst, qubits, clbits)
 
+        circ.clbits.clear()
+
         if not inplace:
             return circ
         else:
@@ -1804,7 +1806,14 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return self._parameter_table.get_keys()
+        # parameters from gates
+        params = self._parameter_table.get_keys()
+
+        # parameters in global phase
+        if isinstance(self.global_phase, ParameterExpression):
+            return params.union(self.global_phase.parameters)
+
+        return params
 
     @property
     def num_parameters(self):
@@ -1878,10 +1887,12 @@ class QuantumCircuit:
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
-        # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self._parameter_table.keys():
+        # check that all param_dict items are in the _parameter_table for this circuit
+        params_not_in_circuit = [param_key for param_key in unrolled_param_dict
+                                 if param_key not in self.parameters]
+        if len(params_not_in_circuit) > 0:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self._parameter_table]))
+                ', '.join(map(str, params_not_in_circuit))))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -1912,14 +1923,15 @@ class QuantumCircuit:
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
-            if isinstance(param, ParameterExpression):
-                unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError('ParameterVector {} has length {}, which '
                                        'differs from value list {} of '
                                        'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
+            # pass anything else except number through. error checking is done in assign_parameter
+            elif isinstance(param, (ParameterExpression, str)) or param is None:
+                unrolled_value_dict[param] = value
         return unrolled_value_dict
 
     def _assign_parameter(self, parameter, value):
@@ -1931,25 +1943,27 @@ class QuantumCircuit:
             value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
                 replace instances of ``parameter``.
         """
-        for instr, param_index in self._parameter_table[parameter]:
-            new_param = instr.params[param_index].assign(parameter, value)
-            # if fully bound, validate
-            if len(new_param.parameters) == 0:
-                instr.params[param_index] = instr.validate_parameter(new_param)
-            else:
-                instr.params[param_index] = new_param
-
-            self._rebind_definition(instr, parameter, value)
-
-        if isinstance(value, ParameterExpression):
-            entry = self._parameter_table.pop(parameter)
-            for new_parameter in value.parameters:
-                if new_parameter in self._parameter_table:
-                    self._parameter_table[new_parameter].extend(entry)
+        # parameter might be in global phase only
+        if parameter in self._parameter_table.keys():
+            for instr, param_index in self._parameter_table[parameter]:
+                new_param = instr.params[param_index].assign(parameter, value)
+                # if fully bound, validate
+                if len(new_param.parameters) == 0:
+                    instr.params[param_index] = instr.validate_parameter(new_param)
                 else:
-                    self._parameter_table[new_parameter] = entry
-        else:
-            del self._parameter_table[parameter]  # clear evaluated expressions
+                    instr.params[param_index] = new_param
+
+                self._rebind_definition(instr, parameter, value)
+
+            if isinstance(value, ParameterExpression):
+                entry = self._parameter_table.pop(parameter)
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        self._parameter_table[new_parameter].extend(entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
+            else:
+                del self._parameter_table[parameter]  # clear evaluated expressions
 
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
@@ -2473,7 +2487,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_start_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
@@ -2513,7 +2528,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_stop_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_stop_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
