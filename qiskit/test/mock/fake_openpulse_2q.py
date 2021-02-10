@@ -118,7 +118,7 @@ class FakeOpenPulse2Q(FakeBackend):
                     'type': 'control'
                 }
             },
-            processor_type = {
+            processor_type={
                 "family": "Canary",
                 "revision": 1,
                 "segment": "A",
