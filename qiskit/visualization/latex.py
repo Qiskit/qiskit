@@ -20,8 +20,10 @@ import math
 import re
 
 import numpy as np
+from qiskit.circuit import Gate, Instruction
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
@@ -87,15 +89,15 @@ class QCircuitImage:
         self.sum_column_widths = 0
 
         # Variable to hold total circuit width
-        self.sum_row_heights = 0
+        self.sum_wire_heights = 0
 
         # em points of separation between circuit columns
         self.column_separation = 1
 
-        # em points of separation between circuit row
-        self.row_separation = 0
+        # em points of separation between circuit wire
+        self.wire_separation = 0
 
-        # presence of "box" or "target" determines row spacing
+        # presence of "box" or "target" determines wire spacing
         self.has_box = False
         self.has_target = False
         self.layout = layout
@@ -119,6 +121,8 @@ class QCircuitImage:
             self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
         self.global_phase = global_phase
+
+        self._style = DefaultStyle().style
 
     def latex(self):
         """Return LaTeX string representation of circuit.
@@ -160,7 +164,7 @@ class QCircuitImage:
             output.write(r"""
 {\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
         output.write(qcircuit_line %
-                     (self.column_separation, self.row_separation))
+                     (self.column_separation, self.wire_separation))
         for i in range(self.img_width):
             output.write("\t \t")
             for j in range(self.img_depth + 1):
@@ -188,14 +192,14 @@ class QCircuitImage:
 
     def _initialize_latex_array(self):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
-        self.sum_row_heights = self.img_width
-        # choose the most compact row spacing, while not squashing them
+        self.sum_wire_heights = self.img_width
+        # choose the most compact wire spacing, while not squashing them
         if self.has_box:
-            self.row_separation = 0.0
+            self.wire_separation = 0.0
         elif self.has_target:
-            self.row_separation = 0.2
+            self.wire_separation = 0.2
         else:
-            self.row_separation = 1.0
+            self.wire_separation = 1.0
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
              else "\\qw" for _ in range(self.img_depth + 1)]
@@ -242,10 +246,10 @@ class QCircuitImage:
             int: total size of columns in the circuit
         """
         max_column_widths = []
-        # Determine row spacing before image depth
+        # Determine wire spacing before image depth
         for layer in self.ops:
             for op in layer:
-                # useful information for determining row spacing
+                # useful information for determining wire spacing
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                                'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
                                'crz', 'cu3', 'id']
@@ -325,12 +329,12 @@ class QCircuitImage:
         # (i.e. 575cm)
         beamer_limit = 550
 
-        # columns are roughly twice as big as rows
-        aspect_ratio = self.sum_row_heights / self.sum_column_widths
+        # columns are roughly twice as big as wires
+        aspect_ratio = self.sum_wire_heights / self.sum_column_widths
 
         # choose a page margin so circuit is not cropped
         margin_factor = 1.5
-        height = min(self.sum_row_heights * margin_factor, beamer_limit)
+        height = min(self.sum_wire_heights * margin_factor, beamer_limit)
         width = min(self.sum_column_widths * margin_factor, beamer_limit)
 
         # if too large, make it fit
@@ -357,6 +361,37 @@ class QCircuitImage:
             return generate_latex_label(str(param))
         return pi_check(param, output='latex')
 
+    def _get_gate_ctrl_text(self, op):
+        op_label = getattr(op.op, 'label', None)
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
+        ctrl_text = None
+        if base_label:
+            gate_text = base_label
+            ctrl_text = op_label
+        elif op_label and isinstance(op.op, ControlledGate):
+            gate_text = base_name
+            ctrl_text = op_label
+        elif op_label:
+            gate_text = op_label
+        elif base_name:
+            gate_text = base_name
+        else:
+            gate_text = op.name
+
+        if gate_text in self._style['disptex']:
+            gate_text = self._style['disptex'][gate_text]
+            if gate_text[0] != '$' and gate_text[-1] != '$':
+                gate_text = "$\\mathrm{{{}}}$".format(gate_text)
+            elif (gate_text in (op.name, base_name)
+                    and not isinstance(op.op, (Gate, Instruction))):
+                gate_text = gate_text.capitalize()
+        else:
+            gate_text = "$\\mathrm{{{}}}$".format(gate_text)
+
+        ctrl_text = "$\\mathrm{{{}}}$".format(ctrl_text)
+        return gate_text, ctrl_text
+
     def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit.
         """
@@ -373,78 +408,72 @@ class QCircuitImage:
             num_cols_used = 1
 
             for op in layer:
-                if op.condition:
-                    mask = self._get_mask(op.condition[0])
-                    cl_reg = self.clbit_list[self._ffs(mask)]
-                    if_reg = cl_reg.register
-                    pos_2 = self.img_regs[cl_reg]
-                    if_value = format(op.condition[1],
-                                      'b').zfill(self.cregs[if_reg])[::-1]
-                if isinstance(op.op, ControlledGate) and op.name not in [
+                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
+                """if isinstance(op.op, ControlledGate) and op.name not in [
                         'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
                         op.op.base_gate.name.upper()).replace(" ", "\\,")
-                    pos_array = []
+                    wirearray = []
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(qarglist) - num_ctrl_qubits
                     for ctrl in range(len(qarglist)):
-                        pos_array.append(self.img_regs[qarglist[ctrl]])
-                    pos_qargs = pos_array[num_ctrl_qubits:]
-                    ctrl_pos = pos_array[:num_ctrl_qubits]
+                        wirearray.append(self.img_regs[qarglist[ctrl]])
+                    wireqargs = wirearray[num_ctrl_qubits:]
+                    ctrl_pos = wirearray[:num_ctrl_qubits]
                     ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
                     if op.condition:
                         mask = self._get_mask(op.condition[0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
                         if_reg = cl_reg.register
-                        pos_cond = self.img_regs[if_reg[0]]
-                        temp = pos_array + [pos_cond]
+                        wirecond = self.img_regs[if_reg[0]]
+                        temp = wirearray + [wirecond]
                         temp.sort(key=int)
-                        bottom = temp[len(pos_array) - 1]
-                        gap = pos_cond - bottom
+                        bottom = temp[len(wirearray) - 1]
+                        gap = wirecond - bottom
                         creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
                         for i in range(creg_rng):
                             if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                self._latex[pos_cond + i][column] = \
+                                self._latex[wirecond + i][column] = \
                                     "\\control \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
                             else:
-                                self._latex[pos_cond + i][column] = \
+                                self._latex[wirecond + i][column] = \
                                     "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
                     if num_qargs == 1:
                         for index, ctrl_item in enumerate(zip(ctrl_pos, ctrl_state)):
                             pos = ctrl_item[0]
                             cond = ctrl_item[1]
-                            nxt = pos_array[index]
-                            if pos_array[index] > pos_array[-1]:
+                            nxt = wirearray[index]
+                            if wirearray[index] > wirearray[-1]:
                                 nxt -= 1
-                                while nxt not in pos_array:
+                                while nxt not in wirearray:
                                     nxt -= 1
                             else:
                                 nxt += 1
-                                while nxt not in pos_array:
+                                while nxt not in wirearray:
                                     nxt += 1
                             if cond == '0':
                                 self._latex[pos][column] = "\\ctrlo{" + str(
-                                    nxt - pos_array[index]) + "}"
+                                    nxt - wirearray[index]) + "}"
                             elif cond == '1':
                                 self._latex[pos][column] = "\\ctrl{" + str(
-                                    nxt - pos_array[index]) + "}"
+                                    nxt - wirearray[index]) + "}"
                         if name == 'Z':
-                            self._latex[pos_array[-1]][column] = "\\control\\qw"
+                            self._latex[wirearray[-1]][column] = "\\control\\qw"
                         else:
-                            self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
+                            self._latex[wirearray[-1]][column] = "\\gate{%s}" % name
                     else:
-                        pos_start = min(pos_qargs)
-                        pos_stop = max(pos_qargs)
+                        wirestart = min(wireqargs)
+                        wirestop = max(wireqargs)
                         # If any controls appear in the span of the multiqubit
                         # gate just treat the whole thing as a big gate instead
                         # of trying to render the controls separately
-                        if any(ctrl_pos) in range(pos_start, pos_stop):
-                            pos_start = min(pos_array)
-                            pos_stop = max(pos_array)
+                        if any(ctrl_pos) in range(wirestart, wirestop):
+                            wirestart = min(wirearray)
+                            wirestop = max(wirearray)
                             num_qargs = len(qarglist)
                             name = generate_latex_label(
                                 op.name).replace(" ", "\\,")
@@ -453,372 +482,137 @@ class QCircuitImage:
                                 pos = ctrl_item[0]
                                 cond = ctrl_item[1]
                                 if index + 1 >= num_ctrl_qubits:
-                                    if pos_array[index] > pos_stop:
-                                        upper = pos_stop
+                                    if wirearray[index] > wirestop:
+                                        upper = wirestop
                                     else:
-                                        upper = pos_start
+                                        upper = wirestart
                                 else:
-                                    upper = pos_array[index + 1]
+                                    upper = wirearray[index + 1]
 
                                 if cond == '0':
                                     self._latex[pos][column] = "\\ctrlo{" + str(
-                                        upper - pos_array[index]) + "}"
+                                        upper - wirearray[index]) + "}"
                                 elif cond == '1':
                                     self._latex[pos][column] = "\\ctrl{" + str(
-                                        upper - pos_array[index]) + "}"
+                                        upper - wirearray[index]) + "}"
 
-                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                        self._latex[wirestart][column] = ("\\multigate{%s}{%s}" %
                                                           (num_qargs - 1, name))
-                        for pos in range(pos_start + 1, pos_stop + 1):
+                        for pos in range(wirestart + 1, wirestop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
-
-                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                     'save', 'noise']:
-                    nm = generate_latex_label(op.name).replace(" ", "\\,")
+                """
+                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
+                                   'save', 'noise']:
+                    nm = generate_latex_label(gate_text).replace(" ", "\\,")
                     qarglist = op.qargs
 
                     if len(qarglist) == 1:
-                        pos_1 = self.img_regs[qarglist[0]]
+                        wire1 = self.img_regs[qarglist[0]]
 
-                        if op.condition:
-                            self._load_gate(op, pos_1, column)
-                            mask = self._get_mask(op.condition[0])
-                            cl_reg = self.clbit_list[self._ffs(mask)]
-                            if_reg = cl_reg.register
-                            pos_2 = self.img_regs[cl_reg]
-                            gap = pos_2 - pos_1
-                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
-                            for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                    self._latex[pos_2 + i][column] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_2 + i][column] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-
-                        elif nm == "reset":
-                            self._latex[pos_1][column] = (
+                        if nm == "reset":
+                            self._latex[wire1][column] = (
                                 "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                 "rule{.2em}{0em}} \\qw")
                         else:
-                            self._load_gate(op, pos_1, column)
+                            self._build_gate(op, nm, wire1, column)
+
+                        if op.condition:
+                            wire_list = [wire1]
+                            self._add_condition(op, wire_list, column)
 
                     elif len(qarglist) == 2:
                         if isinstance(op.op, ControlledGate):
                             cond = str(op.op.ctrl_state)
-                        pos_1 = self.img_regs[qarglist[0]]
-                        pos_2 = self.img_regs[qarglist[1]]
+                        wire1 = self.img_regs[qarglist[0]]
+                        wire2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
-                            pos_3 = self.img_regs[if_reg[0]]
-                            temp = [pos_1, pos_2, pos_3]
-                            temp.sort(key=int)
-                            bottom = temp[1]
+                            wire_list = [wire1, wire2]
+                            self._add_condition(op, wire_list, column)
 
-                            gap = pos_3 - bottom
-                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
-                            for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                    self._latex[pos_3 + i][column] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_3 + i][column] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
+                        if nm == "swap":
+                            self._latex[wire1][column] = "\\qswap"
+                            self._latex[wire2][column] = \
+                                "\\qswap \\qwx[" + str(wire1 - wire2) + "]"
 
-                            if nm == "cx":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\targ"
-                            elif nm == "cz":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control\\qw"
-                            elif nm == "cy":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\gate{Y}"
-                            elif nm == "ch":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\gate{H}"
-                            elif nm == "swap":
-                                self._latex[pos_1][column] = "\\qswap"
-                                self._latex[pos_2][column] = \
-                                    "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
-                            elif nm == "crz":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control \\qw"
-                                self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\cds{column+1}{%s}\\qw" % "U1"
-                                    #"\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
-                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                # this is because this gate takes up 2 columns,
-                                # and we have just written to the next column
-                                num_cols_used = 3
-                            elif nm == "cu3":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = \
-                                    "\\gate{U_3(%s,%s,%s)}" % \
-                                    (self.parse_params(op.op.params[0]),
-                                     self.parse_params(op.op.params[1]),
-                                     self.parse_params(op.op.params[2]))
-                            elif nm == "rzz":
-                                self._latex[pos_1][column] = "\\ctrl{" + str(
-                                    pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control \\qw"
-                                # Based on the \cds command of the qcircuit package
-                                self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
-                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 3
-                        else:
-                            temp = [pos_1, pos_2]
-                            temp.sort(key=int)
+                        elif isinstance(op.op, ControlledGate) or op.name == 'rzz':
+                            num_cols_used = self._build_single_ctrl_gate(op, nm, cond,
+                                wire1, wire2, column, num_cols_used)
 
-                            if nm == "cx":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\targ"
-                            elif nm == "cz":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control\\qw"
-                            elif nm == "cy":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\gate{Y}"
-                            elif nm == "ch":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\gate{H}"
-                            elif nm == "swap":
-                                self._latex[pos_1][column] = "\\qswap"
-                                self._latex[pos_2][column] = \
-                                    "\\qswap \\qwx[" + str(pos_1 - pos_2) + "]"
-                            elif nm == "crz":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control \\qw"
-                                self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{\\hspace{12pt}U1(%s)}\\qw" % (self.parse_params(op.op.params[0]))
-                                    #"\\cds{0}{%s}\\qw" % "U1"
-                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 3
-                            elif nm == "cu3":
-                                if cond == '0':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrlo{" + str(pos_2 - pos_1) + "}"
-                                elif cond == '1':
-                                    self._latex[pos_1][column] = \
-                                        "\\ctrl{" + str(pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = \
-                                    ("\\gate{U_3(%s,%s,%s)}" %
-                                     (self.parse_params(op.op.params[0]),
-                                      self.parse_params(op.op.params[1]),
-                                      self.parse_params(op.op.params[2])))
-                            elif nm == "rzz":
-                                self._latex[pos_1][column] = "\\ctrl{" + str(
-                                    pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\control \\qw"
-                                # Based on the \cds command of the qcircuit package
-                                self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
-                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 3
-                            else:
-                                start_pos = min([pos_1, pos_2])
-                                stop_pos = max([pos_1, pos_2])
-                                if stop_pos - start_pos >= 2:
-                                    delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
-                                                                      % (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}"
-                                                                      % nm)
-                                else:
-                                    self._latex[start_pos][column] = ("\\multigate{1}{%s}"
-                                                                      % nm)
-                                    self._latex[stop_pos][column] = ("\\ghost{%s}" %
-                                                                     nm)
+                        else:   # 2 qubit multigate
+                            start_pos = min([wire1, wire2])
+                            stop_pos = max([wire1, wire2])
+                            delta = stop_pos - start_pos
+                            self._latex[start_pos][column] = "\\multigate{%s}{%s}" % (delta, nm)
+                            for i_pos in range(start_pos + 1, stop_pos + 1):
+                                self._latex[i_pos][column] = "\\ghost{%s}" % nm
 
                     elif len(qarglist) == 3:
                         if isinstance(op.op, ControlledGate):
                             ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
-                        pos_1 = self.img_regs[qarglist[0]]
-                        pos_2 = self.img_regs[qarglist[1]]
-                        pos_3 = self.img_regs[qarglist[2]]
+                        wire1 = self.img_regs[qarglist[0]]
+                        wire2 = self.img_regs[qarglist[1]]
+                        wire3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
-                            pos_4 = self.img_regs[if_reg[0]]
-                            temp = [pos_1, pos_2, pos_3, pos_4]
-                            temp.sort(key=int)
-                            bottom = temp[2]
+                            #wire4 = self.img_regs[if_reg[0]]
+                            wire_list = [wire1, wire2, wire3]
+                            self._add_condition(op, wire_list, column)
+                            
+                        if nm == "ccx":
+                            if cond_1 == '0':
+                                self._latex[wire1][column] = "\\ctrlo{" + str(
+                                    wire2 - wire1) + "}"
+                            elif cond_1 == '1':
+                                self._latex[wire1][column] = "\\ctrl{" + str(
+                                    wire2 - wire1) + "}"
+                            if cond_2 == '0':
+                                self._latex[wire2][column] = "\\ctrlo{" + str(
+                                    wire3 - wire2) + "}"
+                            elif cond_2 == '1':
+                                self._latex[wire2][column] = "\\ctrl{" + str(
+                                    wire3 - wire2) + "}"
+                            self._latex[wire3][column] = "\\targ"
 
-                            gap = pos_4 - bottom
-                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
-                            for i in range(creg_rng):
-                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
-                                    self._latex[pos_4 + i][column] = \
-                                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-                                else:
-                                    self._latex[pos_4 + i][column] = \
-                                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                                    gap = 1
-
-                            if nm == "ccx":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                if cond_2 == '0':
-                                    self._latex[pos_2][column] = "\\ctrlo{" + str(
-                                        pos_3 - pos_2) + "}"
-                                elif cond_2 == '1':
-                                    self._latex[pos_2][column] = "\\ctrl{" + str(
-                                        pos_3 - pos_2) + "}"
-                                self._latex[pos_3][column] = "\\targ"
-
-                            if nm == "cswap":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\qswap"
-                                self._latex[pos_3][column] = \
-                                    "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                        elif nm == "cswap":
+                            if cond_1 == '0':
+                                self._latex[wire1][column] = "\\ctrlo{" + str(
+                                    wire2 - wire1) + "}"
+                            elif cond_1 == '1':
+                                self._latex[wire1][column] = "\\ctrl{" + str(
+                                    wire2 - wire1) + "}"
+                            self._latex[wire2][column] = "\\qswap"
+                            self._latex[wire3][column] = \
+                                "\\qswap \\qwx[" + str(wire2 - wire3) + "]"
                         else:
-                            if nm == "ccx":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                if cond_2 == '0':
-                                    self._latex[pos_2][column] = "\\ctrlo{" + str(
-                                        pos_3 - pos_2) + "}"
-                                elif cond_2 == '1':
-                                    self._latex[pos_2][column] = "\\ctrl{" + str(
-                                        pos_3 - pos_2) + "}"
-                                self._latex[pos_3][column] = "\\targ"
-
-                            elif nm == "cswap":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\qswap"
-                                self._latex[pos_3][column] = \
-                                    "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                            start_pos = min([wire1, wire2, wire3])
+                            stop_pos = max([wire1, wire2, wire3])
+                            if stop_pos - start_pos >= 3:
+                                delta = stop_pos - start_pos
+                                self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
+                                                                  (delta, nm))
+                                for i_pos in range(start_pos + 1, stop_pos + 1):
+                                    self._latex[i_pos][column] = ("\\ghost{%s}" %
+                                                                  nm)
                             else:
-                                start_pos = min([pos_1, pos_2, pos_3])
-                                stop_pos = max([pos_1, pos_2, pos_3])
-                                if stop_pos - start_pos >= 3:
-                                    delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
-                                                                      (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}" %
-                                                                      nm)
-                                else:
-                                    self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
+                                self._latex[wire1][column] = ("\\multigate{2}{%s}" %
+                                                              nm)
+                                self._latex[wire2][column] = ("\\ghost{%s}" %
+                                                              nm)
+                                self._latex[wire3][column] = ("\\ghost{%s}" %
                                                                   nm)
-                                    self._latex[pos_2][column] = ("\\ghost{%s}" %
-                                                                  nm)
-                                    self._latex[pos_3][column] = ("\\ghost{%s}" %
-                                                                  nm)
-
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[qarglist[0]]]
+                        wirearray = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[qarglist[i]])
-                        pos_start = min(pos_array)
-                        pos_stop = max(pos_array)
-                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                            wirearray.append(self.img_regs[qarglist[i]])
+                        wirestart = min(wirearray)
+                        wirestop = max(wirearray)
+                        self._latex[wirestart][column] = ("\\multigate{%s}{%s}" %
                                                           (nbits - 1, nm))
-                        for pos in range(pos_start + 1, pos_stop + 1):
+                        for pos in range(wirestart + 1, wirestop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % nm)
 
                 elif op.name == "measure":
@@ -831,28 +625,28 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    pos_1 = self.img_regs[op.qargs[0]]
+                    wire1 = self.img_regs[op.qargs[0]]
                     if self.cregbundle:
-                        pos_2 = self.img_regs[self.clbit_list[0]]
-                        cregindex = self.img_regs[op.cargs[0]] - pos_2
+                        wire2 = self.img_regs[self.clbit_list[0]]
+                        cregindex = self.img_regs[op.cargs[0]] - wire2
                         for creg_size in self.cregs.values():
                             if cregindex >= creg_size:
                                 cregindex -= creg_size
-                                pos_2 += 1
+                                wire2 += 1
                             else:
                                 break
                     else:
-                        pos_2 = self.img_regs[op.cargs[0]]
+                        wire2 = self.img_regs[op.cargs[0]]
 
                     try:
-                        self._latex[pos_1][column] = "\\meter"
+                        self._latex[wire1][column] = "\\meter"
                         if self.cregbundle:
-                            self._latex[pos_2][column] = \
+                            self._latex[wire2][column] = \
                                 "\\dstick{" + str(cregindex) + "} " + \
-                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                                "\\cw \\cwx[-" + str(wire2 - wire1) + "]"
                         else:
-                            self._latex[pos_2][column] = \
-                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                            self._latex[wire2][column] = \
+                                "\\cw \\cwx[-" + str(wire2 - wire1) + "]"
                     except Exception as e:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
@@ -914,16 +708,71 @@ class QCircuitImage:
         origin = (mask & (-mask)).bit_length()
         return origin - 1
 
-
-    def _load_gate(self, op, row, col):
-        self._latex[row][col] = "\\gate{%s" % op.name.capitalize()
-        if len(op.op.params) > 0:
-            self._latex[row][col] += "("
+    def _build_gate(self, op, gate_text, wire, col):
+        self._latex[wire][col] = "\\gate{%s" % gate_text
+        if (len(op.op.params) > 0 and not any(
+                [isinstance(param, np.ndarray) for param in op.op.params])):
+            self._latex[wire][col] += "("
             for param in op.op.params:
-                self._latex[row][col] += "%s," % self.parse_params(param)
-            self._latex[row][col] = self._latex[row][col][:-1]
-            self._latex[row][col] += ")"
-        self._latex[row][col] += "}"
+                self._latex[wire][col] += "%s," % self.parse_params(param)
+            self._latex[wire][col] = self._latex[wire][col][:-1]
+            self._latex[wire][col] += ")"
+        self._latex[wire][col] += "}"
+
+    def _build_single_ctrl_gate(self, op, gate_text, cond, wire1, wire2, col, num_cols_used):
+        if cond == '0':
+            self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
+        elif cond == '1':
+            self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
+
+        if op.name == 'cx':
+            self._latex[wire2][col] = "\\targ"
+        elif op.name == 'cz':
+            self._latex[wire2][col] = "\\control\\qw"
+        elif op.name in ['cu1', 'cp', 'rzz']:
+            dname = "\\mathrm{zz}" if op.name == 'rzz' else gate_text
+            self._latex[wire2][col] = "\\control \\qw"
+            self._latex[min(wire1, wire2)][col+1] = \
+                "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                (dname, self.parse_params(op.op.params[0]))
+            self._latex[max(wire1, wire2)][col+1] = "\\qw"
+            num_cols_used = max(num_cols_used, 3)
+        else:
+            self._latex[wire2][col] = "\\gate{%s" % gate_text
+            if (len(op.op.params) > 0 and not any(
+                    [isinstance(param, np.ndarray) for param in op.op.params])):
+                self._latex[wire2][col] += "("
+                for param in op.op.params:
+                    self._latex[wire2][col] += "%s," % self.parse_params(param)
+                self._latex[wire2][col] = self._latex[wire2][col][:-1]
+                self._latex[wire2][col] += ")"
+            self._latex[wire2][col] += "}"
+
+        return num_cols_used
+
+    def _add_condition(self, op, wire_list, col):
+        mask = self._get_mask(op.condition[0])
+        cl_reg = self.clbit_list[self._ffs(mask)]
+        if_reg = cl_reg.register
+        if_value = format(op.condition[1],
+                          'b').zfill(self.cregs[if_reg])[::-1]
+        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+
+        cwire = self.img_regs[if_reg[0]]
+        wire_list.sort(key=int)
+        print(wire_list)
+        bottom = wire_list[-1]
+        gap = cwire - bottom
+
+        for i in range(creg_rng):
+            if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
+                self._latex[cwire + i][col] = \
+                    "\\control \\cw \\cwx[-" + str(gap) + "]"
+                gap = 1
+            else:
+                self._latex[cwire + i][col] = \
+                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                gap = 1
 
 def _get_register_specs(bits):
     """Get the number and size of unique registers from bits list.
