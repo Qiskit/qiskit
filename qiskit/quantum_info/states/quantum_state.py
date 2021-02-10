@@ -21,6 +21,7 @@ import numpy as np
 
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
+from qiskit.utils.deprecation import deprecate_function
 
 
 class QuantumState:
@@ -516,6 +517,14 @@ class QuantumState:
         return np.ravel(new_probs)
 
     # Overloads
+    def __rshift__(self, other):
+        return self.evolve(other)
+
+    @deprecate_function(
+        'Using the `__matmul__` binary operator `psi @ U` as shorthand for'
+        ' `psi.evovle(U)` is deprecated as of version 0.17.0 and will be '
+        ' removed no earlier than 3 months after the release date.'
+        ' Use the `__rshift__` operator `psi >> U` instead.')
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:
