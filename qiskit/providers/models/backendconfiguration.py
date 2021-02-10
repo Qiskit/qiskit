@@ -258,6 +258,11 @@ class QasmBackendConfiguration:
             processor_type (dict): Processor type for this backend. A dictionary of the
                 form ``{"family": <str>, "revision": <number>, segment: <str>}`` such as
                 ``{"family": "Canary", "revision": 1.0, segment: "A"}``.
+
+                - family: Processor family of this backend.
+                - revision: Revision number of this processor.
+                - segment: Segment this processor belongs to within a larger chip.
+
             **kwargs: optional fields
         """
         self._data = {}
