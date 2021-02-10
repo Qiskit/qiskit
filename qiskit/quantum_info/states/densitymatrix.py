@@ -121,7 +121,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         text = self.draw('text', prefix="DensityMatrix(")
         return str(text) + ')'
 
-    def draw(self, output='text', max_size=(16, 16), dims=True, prefix=''):
+    def draw(self, output='text', max_size=(16, 16), dims=None, prefix=''):
         """Returns a visualization of the DensityMatrix.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -162,6 +162,12 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             ValueError: when an invalid output method is selected.
         """
         from qiskit.visualization.state_visualization import state_drawer
+        if dims is None:
+            # only want to display dims if state is not made from qubits
+            if set(self.dims()) == {2}:
+                dims = False
+            else:
+                dims = True
         output = output.lower()
         valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
                          'qsphere', 'hinton', 'bloch']

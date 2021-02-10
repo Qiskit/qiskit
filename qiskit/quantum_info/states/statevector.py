@@ -112,7 +112,7 @@ class Statevector(QuantumState, TolerancesMixin):
         text = self.draw('text', prefix='Statevector(')
         return str(text) + ')'
 
-    def draw(self, output='text', max_size=16, dims=True, prefix=''):
+    def draw(self, output='text', max_size=16, dims=None, prefix=''):
         """Returns a visualization of the Statevector.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -153,6 +153,11 @@ class Statevector(QuantumState, TolerancesMixin):
             ValueError: when an invalid output method is selected.
         """
         from qiskit.visualization.state_visualization import state_drawer
+        if dims is None:
+            if set(self.dims()) == {2}:
+                dims = False
+            else:
+                dims = True
         output = output.lower()
         valid_choices = ['text', 'markdown', 'markdown_source', 'latex_source',
                          'qsphere', 'hinton', 'bloch']
