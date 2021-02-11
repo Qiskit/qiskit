@@ -113,7 +113,6 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             # binary shift, n coefficients in Z_2
             self.shift = np.zeros(self._num_qubits, dtype=np.int8)
 
-
         # Initialize from another CNOTDihedral by sharing the underlying
         # poly, linear and shift
         elif isinstance(data, CNOTDihedral):
@@ -217,7 +216,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     def __eq__(self, other):
         """Test equality."""
         return isinstance(other, CNOTDihedral) and self.poly == other.poly \
-               and (self.linear == other.linear).all() and (self.shift == other.shift).all()
+            and (self.linear == other.linear).all() \
+            and (self.shift == other.shift).all()
 
     def _append_cx(self, i, j):
         """Apply a CX gate to this element.
@@ -357,7 +357,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             elem0 = other
             elem1 = self
 
-        result = CNOTDihedral(num_qubits = elem0.num_qubits + elem1.num_qubits)
+        result = CNOTDihedral(num_qubits=elem0.num_qubits + elem1.num_qubits)
         linear = np.block([[elem0.linear,
                             np.zeros((elem0.num_qubits, elem1.num_qubits), dtype=np.int8)],
                            [np.zeros((elem1.num_qubits, elem0.num_qubits), dtype=np.int8),
@@ -453,6 +453,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                 not (set(self.linear.flatten())).issubset({0, 1}):
             return False
         return True
+
 
 # Update docstrings for API docs
 generate_apidocs(CNOTDihedral)

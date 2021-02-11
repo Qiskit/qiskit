@@ -35,7 +35,7 @@ def random_cnotdihedral_circuit(num_qubits, num_gates, gates='all', seed=None):
             gates = ['i', 'x', 'y', 'z', 't', 'tdg', 's', 'sdg']
         else:
             gates = [
-                'i', 'x', 'y', 'z', 't', 'tdg', 's','sdg', 'cx', 'cz',
+                'i', 'x', 'y', 'z', 't', 'tdg', 's', 'sdg', 'cx', 'cz',
                 'swap'
             ]
 
@@ -139,7 +139,6 @@ class TestCNOTDihedral(unittest.TestCase):
         elem2 = CNOTDihedral(circ2)
         self.assertEqual(elem1, elem2,
                          'Error: 1-qubit identity does not hold')
-
 
     def test_2_qubit_identities(self):
         """Tests identities for 2-qubit gates"""
