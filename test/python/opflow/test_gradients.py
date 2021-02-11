@@ -1020,7 +1020,6 @@ class TestGradients(QiskitOpflowTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=1)
 
-
     def test_vqe4(self):
         """Test VQE with natural gradient"""
 
