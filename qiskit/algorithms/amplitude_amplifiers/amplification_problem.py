@@ -49,30 +49,12 @@ class AmplificationProblem:
                 applied on the measurement outcome of these qubits.
             is_good_state: A function to check whether a string represents a good state.
         """
-        self._oracle = oracle
+        self.oracle = oracle
         self._state_preparation = state_preparation
         self._grover_operator = grover_operator
         self._post_processing = post_processing
         self._objective_qubits = objective_qubits
         self._is_good_state = is_good_state
-
-    @property
-    def oracle(self) -> QuantumCircuit:
-        """Return the oracle.
-
-        Returns:
-            The oracle.
-        """
-        return self._oracle
-
-    @oracle.setter
-    def oracle(self, oracle: QuantumCircuit) -> None:
-        """Set the oracle.
-
-        Args:
-            oracle: The oracle.
-        """
-        self._oracle = oracle
 
     @property
     def state_preparation(self) -> QuantumCircuit:

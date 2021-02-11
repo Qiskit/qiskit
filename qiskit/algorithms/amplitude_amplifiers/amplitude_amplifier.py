@@ -37,66 +37,10 @@ class AmplitudeAmplifier(ABC):
 
 
 class AmplitudeAmplifierResult(AlgorithmResult):
-    """The rmplification result base class."""
+    """The amplification result base class."""
 
     def __init__(self) -> None:
         super().__init__()
-        self._top_measurement = None
-        self._assignment = None
-        self._oracle_evaluation = None
-
-    @property
-    def top_measurement(self) -> Optional[str]:
-        """The most frequently measured output as bitstring.
-
-        Returns:
-            The most frequently measured output state.
-        """
-        return self._top_measurement
-
-    @top_measurement.setter
-    def top_measurement(self, value: str) -> None:
-        """Set the most frequently measured bitstring.
-
-        Args:
-            value: A new value for the top measurement.
-        """
-        self._top_measurement = value
-
-    @property
-    def assignment(self) -> Any:
-        """The post-processed value of the most likely bitstring.
-
-        Returns:
-            The output of the ``post_processing`` function of the respective
-            ``AmplificationProblem``, where the input is the ``top_measurement``. The type
-            is the same as the return type of the post-processing function.
-        """
-        return self._assignment
-
-    @assignment.setter
-    def assignment(self, value: Any) -> None:
-        """Set the value for the assignment.
-
-        Args:
-            value: A new value for the assigment/solution.
-        """
-        self._assignment = value
-
-    @property
-    def oracle_evaluation(self) -> bool:
-        """Whether the classical oracle evaluation of the top measurement was True or False.
-
-        Returns:
-            The classical oracle evaluation of the top measurement.
-        """
-        return self._oracle_evaluation
-
-    @oracle_evaluation.setter
-    def oracle_evaluation(self, value: bool) -> None:
-        """Set the classical oracle evaluation of the top measurement.
-
-        Args:
-            value: A new value for the classical oracle evaluation.
-        """
-        self._oracle_evaluation = value
+        self.top_measurement = None
+        self.assignment = None
+        self.oracle_evaluation = None

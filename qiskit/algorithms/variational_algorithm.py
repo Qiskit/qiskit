@@ -73,10 +73,10 @@ class VariationalAlgorithm:
             logger.info('No optimizer provided, setting it to SLSPQ.')
             optimizer = SLSQP()
 
-        self._optimizer = optimizer
+        self.optimizer = optimizer
         self._gradient = gradient
         self._cost_fn = cost_fn
-        self._initial_point = initial_point
+        self.initial_point = initial_point
         self._var_form = var_form
         self._var_form_params = None
         if var_form is not None:
@@ -117,26 +117,6 @@ class VariationalAlgorithm:
             self._var_form = var_form
         else:
             raise ValueError('Unsupported type "{}" of var_form'.format(type(var_form)))
-
-    @property
-    def optimizer(self) -> Optional[Optimizer]:
-        """ Returns optimizer """
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(self, optimizer: Optimizer):
-        """ Sets optimizer """
-        self._optimizer = optimizer
-
-    @property
-    def initial_point(self) -> Optional[np.ndarray]:
-        """ Returns initial point """
-        return self._initial_point
-
-    @initial_point.setter
-    def initial_point(self, initial_point: np.ndarray):
-        """ Sets initial point """
-        self._initial_point = initial_point
 
     def find_minimum(self,
                      initial_point: Optional[np.ndarray] = None,
@@ -296,58 +276,8 @@ class VariationalResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._optimizer_evals = None
-        self._optimizer_time = None
-        self._optimal_value = None
-        self._optimal_point = None
-        self._optimal_parameters = None
-
-    @property
-    def optimizer_evals(self) -> Optional[int]:
-        """ Returns number of optimizer evaluations """
-        return self._optimizer_evals
-
-    @optimizer_evals.setter
-    def optimizer_evals(self, value: int) -> None:
-        """ Sets number of optimizer evaluations """
-        self._optimizer_evals = value
-
-    @property
-    def optimizer_time(self) -> Optional[float]:
-        """ Returns time taken for optimization """
-        return self._optimizer_time
-
-    @optimizer_time.setter
-    def optimizer_time(self, value: float) -> None:
-        """ Sets time taken for optimization  """
-        self._optimizer_time = value
-
-    @property
-    def optimal_value(self) -> Optional[float]:
-        """ Returns optimal value """
-        return self._optimal_value
-
-    @optimal_value.setter
-    def optimal_value(self, value: int) -> None:
-        """ Sets optimal value """
-        self._optimal_value = value
-
-    @property
-    def optimal_point(self) -> Optional[np.ndarray]:
-        """ Returns optimal point """
-        return self._optimal_point
-
-    @optimal_point.setter
-    def optimal_point(self, value: np.ndarray) -> None:
-        """ Sets optimal point """
-        self._optimal_point = value
-
-    @property
-    def optimal_parameters(self) -> Optional[Dict]:
-        """ Returns the optimal parameters in a dictionary """
-        return self._optimal_parameters
-
-    @optimal_parameters.setter
-    def optimal_parameters(self, value: Dict) -> None:
-        """ Sets optimal parameters """
-        self._optimal_parameters = value
+        self.optimizer_evals = None
+        self.optimizer_time = None
+        self.optimal_value = None
+        self.optimal_point = None
+        self.optimal_parameters = None
