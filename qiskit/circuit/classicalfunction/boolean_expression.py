@@ -12,13 +12,13 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 from .classicalfunction import HAS_TWEEDLEDUM
 from .utils import tweedledum2qiskit
 
 
-class BooleanExpression(QuantumCircuit):
+class BooleanExpression(Gate):
     r"""The Logical Expression Quantum Oracle.
 
     The Logical Expression Oracle, as its name suggests, constructs circuits for any arbitrary
@@ -98,13 +98,11 @@ class BooleanExpression(QuantumCircuit):
         from tweedledum import BoolExpression
         self._tweedledum_bool_expression = BoolExpression(expression)
 
-        short_expression_for_name = (expression[:10] + '..') if len(expression) > 13 else expression
-        # super().__init__(self.name,
-        #                  num_qubits=sum([qreg.size for qreg in self.qregs]),
-        #                  params=[])
-        super().__init__(len(self._tweedledum_bool_expression._parameters_signature) +
+        short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
+        super().__init__(name or short_expr_for_name,
+                         num_qubits=len(self._tweedledum_bool_expression._parameters_signature) +
                          len(self._tweedledum_bool_expression._return_signature),
-                         name=name or short_expression_for_name)
+                         params=[])
 
     def evaluate(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
@@ -133,7 +131,7 @@ class BooleanExpression(QuantumCircuit):
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
-        from tweedledum.passes import xag_synth
+        from tweedledum.passes import pkrm_synth
 
         if registerless:
             qregs = None
@@ -142,25 +140,24 @@ class BooleanExpression(QuantumCircuit):
 
         logic_network = self._tweedledum_bool_expression._logic_network
 
-        return tweedledum2qiskit(xag_synth(logic_network), name=self.name, qregs=qregs)
+        return tweedledum2qiskit(pkrm_synth(logic_network), name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the boolean expression is its synthesis"""
         self.definition = self.synth()
 
     @classmethod
-    def from_dimacs_file(cls, filename: str, name=None):
+    def from_dimacs_file(cls, filename: str):
         """Create a BooleanExpression from the string in the DIMACS format.
         Args:
-            dimacs: The string in the DIMACS format.
+            filename (str): A file in DIMACS format.
 
         Returns:
             A quantum circuit (BooleanExpression) for the input string
         """
-        from tweedledum.classical import read_dimacs
-        bool_exp_instance = cls.__new__(cls)
-        bool_exp_instance._tweedledum_bool_expression = read_dimacs(filename)
-        super().__init__(len(bool_exp_instance._tweedledum_bool_expression._parameters_signature) +
-                         len(bool_exp_instance._tweedledum_bool_expression._return_signature),
-                         name=name or filename)
-        return bool_exp_instance
+        if not HAS_TWEEDLEDUM:
+            raise ImportError("To use the BooleanExpression compiler, tweedledum "
+                              "must be installed. To install tweedledum run "
+                              '"pip install tweedledum".')
+        from tweedledum import BoolExpression
+        return BoolExpression.from_dimacs_file(filename)
