@@ -83,10 +83,10 @@ def _num_to_latex(num, precision=5):
             return "{:.{}f}".format(val, precision).rstrip("0")
 
     # Get string (or None) for common factor between real and imag
-    if common_factor is not None:
-        common_facstring = _proc_value(common_factor)
-    else:
+    if common_factor is None:
         common_facstring = None
+    else:
+        common_facstring = _proc_value(common_factor)
 
     # Get string for real part
     realstring = _proc_value(r)
@@ -143,6 +143,8 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     out_string += "\\begin{bmatrix}\n"
 
     def _elements_to_latex(elements):
+        # Takes a list of elements (a row) and creates a latex
+        # string from it; Each element separated by `&`
         el_string = ""
         for el in elements:
             num_string = _num_to_latex(el, precision=precision)
@@ -151,6 +153,8 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
         return el_string
 
     def _rows_to_latex(rows, max_width):
+        # Takes a list of lists (list of 'rows') and creates a
+        # latex string from it
         row_string = ""
         for r in rows:
             if len(r) <= max_width:
@@ -167,12 +171,15 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
         out_string += _rows_to_latex([matrix], max_width)
 
     elif len(matrix) > max_height:
+        # We need to truncate vertically, so we process the rows at the beginning
+        # and end, and add a line of vertical elipse (dots) characters between them
         out_string += _rows_to_latex(matrix[:max_height//2], max_width)
 
         if max_width >= matrix.shape[1]:
             out_string += "\\vdots & "*matrix.shape[1]
         else:
-            # number of vertical dots preceding and trailing the diagonal dots
+            # In this case we need to add the diagonal dots in line with the column
+            # of horizontal dots
             pre_vdots = max_width//2
             post_vdots = max_width//2 + np.mod(max_width, 2) - 1
             out_string += "\\vdots & "*pre_vdots

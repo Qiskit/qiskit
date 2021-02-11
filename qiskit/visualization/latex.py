@@ -1063,9 +1063,9 @@ def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
     try:
         array = np.asarray(array)
         _ = array[0]+1  # Test first element contains numerical data
-    except Exception:
-        raise ValueError("""array_to_latex can only convert numpy arrays containing numerical data,
-        or types that can be converted to such arrays""")
+    except TypeError as err:
+        raise TypeError("""array_to_latex can only convert numpy arrays containing numerical data,
+        or types that can be converted to such arrays""") from err
 
     if array.ndim <= 2:
         if isinstance(max_size, int):
