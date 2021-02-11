@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -36,7 +36,7 @@ def random_cnotdihedral(num_qubits, seed=None):
     else:
         rng = default_rng(seed)
 
-    elem = CNOTDihedral(num_qubits)
+    elem = CNOTDihedral(num_qubits=num_qubits)
 
     # Random phase polynomial weights
     weight_1 = rng.integers(8, size=num_qubits)

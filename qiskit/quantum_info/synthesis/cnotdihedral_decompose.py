@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -324,7 +324,7 @@ def decompose_cnotdihedral_general(elem):
     for i in range(num_qubits):
         if elem.shift[i]:
             circuit.x(i)
-            elem_cpy.flip(i)
+            elem_cpy._append_x(i)
 
     # Do Gauss elimination on the linear part by adding cx gates
     for i in range(num_qubits):
@@ -335,16 +335,16 @@ def decompose_cnotdihedral_general(elem):
                     circuit.cx(j, i)
                     circuit.cx(i, j)
                     circuit.cx(j, i)
-                    elem_cpy.cnot(j, i)
-                    elem_cpy.cnot(i, j)
-                    elem_cpy.cnot(j, i)
+                    elem_cpy._append_cx(j, i)
+                    elem_cpy._append_cx(i, j)
+                    elem_cpy._append_cx(j, i)
                     break
         # make all the other elements in column i zero
         for j in range(num_qubits):
             if j != i:
                 if elem_cpy.linear[j][i]:
                     circuit.cx(i, j)
-                    elem_cpy.cnot(i, j)
+                    elem_cpy._append_cx(i, j)
 
     if not (elem_cpy.shift == np.zeros(num_qubits)).all() or \
             not (elem_cpy.linear == np.eye(num_qubits)).all():
@@ -366,11 +366,11 @@ def decompose_cnotdihedral_general(elem):
         for j in range(i+1, num_qubits):
             for k in range(j+1, num_qubits):
                 if elem_cpy.poly.get_term([i, j, k]) != 0:
-                    new_elem.cnot(i, k)
-                    new_elem.cnot(j, k)
-                    new_elem.phase(1, k)
-                    new_elem.cnot(i, k)
-                    new_elem.cnot(j, k)
+                    new_elem._append_cx(i, k)
+                    new_elem._append_cx(j, k)
+                    new_elem._append_phase(1, k)
+                    new_elem._append_cx(i, k)
+                    new_elem._append_cx(j, k)
                     new_circuit.cx(i, k)
                     new_circuit.cx(j, k)
                     new_circuit.p((np.pi / 4), [k])
@@ -384,9 +384,9 @@ def decompose_cnotdihedral_general(elem):
             tpow2 = new_elem.poly.get_term([i, j])
             tpow = ((tpow2 - tpow1) / 2) % 4
             if tpow != 0:
-                new_elem.cnot(i, j)
-                new_elem.phase(tpow, j)
-                new_elem.cnot(i, j)
+                new_elem._append_cx(i, j)
+                new_elem._append_phase(tpow, j)
+                new_elem._append_cx(i, j)
                 new_circuit.cx(i, j)
                 new_circuit.p((tpow * np.pi / 4), [j])
                 new_circuit.cx(i, j)
@@ -397,7 +397,7 @@ def decompose_cnotdihedral_general(elem):
         tpow2 = new_elem.poly.get_term([i])
         tpow = (tpow1 - tpow2) % 8
         if tpow != 0:
-            new_elem.phase(tpow, i)
+            new_elem._append_phase(tpow, i)
             new_circuit.p((tpow * np.pi / 4), [i])
 
     if elem.poly != new_elem.poly:

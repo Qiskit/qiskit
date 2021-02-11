@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,11 +27,11 @@ Operators
    Clifford
    ScalarOp
    SparsePauliOp
+   CNOTDihedral
    PauliTable
    StabilizerTable
    pauli_basis
    pauli_group
-   CNOTDihedral
 
 States
 ======
@@ -93,9 +93,9 @@ Random
    random_pauli
    random_clifford
    random_quantum_channel
+   random_cnotdihedral
    random_pauli_table
    random_stabilizer_table
-   random_cnotdihedral
 
 Analysis
 =========

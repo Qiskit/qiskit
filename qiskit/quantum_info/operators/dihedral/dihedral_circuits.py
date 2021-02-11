@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -40,12 +40,28 @@ def _append_circuit(elem, circuit, qargs=None):
     else:
         gate = circuit
 
-    # Handle cx since it is a basic gate, and cannot be decomposed,
-    # so gate.definition = None
+    # Handle cx, cz and id since they are basic gates, and cannot be decomposed,
     if gate.name == 'cx':
         if len(qargs) != 2:
             raise QiskitError("Invalid qubits for 2-qubit gate cx.")
-        elem.cnot(qargs[0], qargs[1])
+        elem._append_cx(qargs[0], qargs[1])
+        return elem
+
+    elif (gate.name == 'cz'):
+        if len(qargs) != 2:
+            raise QiskitError("Invalid qubits for 2-qubit gate cz.")
+        elem._append_phase(7, qargs[1])
+        elem._append_phase(7, qargs[0])
+        elem._append_cx(qargs[1], qargs[0])
+        elem._append_phase(2, qargs[0])
+        elem._append_cx(qargs[1], qargs[0])
+        elem._append_phase(7, qargs[1])
+        elem._append_phase(7, qargs[0])
+        return(elem)
+
+    if gate.name == 'id':
+        if len(qargs) != 1:
+            raise QiskitError("Invalid qubits for 1-qubit gate id.")
         return elem
 
     if gate.definition is None:
@@ -61,44 +77,71 @@ def _append_circuit(elem, circuit, qargs=None):
         if (instr.name == 'x' or gate.name == 'x'):
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate x.")
-            elem.flip(new_qubits[0])
+            elem._append_x(new_qubits[0])
 
         elif (instr.name == 'z' or gate.name == 'z'):
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate z.")
-            elem.phase(4, new_qubits[0])
+            elem._append_phase(4, new_qubits[0])
 
         elif (instr.name == 'y' or gate.name == 'y'):
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate y.")
-            elem.flip(new_qubits[0])
-            elem.phase(4, new_qubits[0])
+            elem._append_x(new_qubits[0])
+            elem._append_phase(4, new_qubits[0])
 
         elif (instr.name == 'p' or gate.name == 'p'):
             if (len(new_qubits) != 1 or len(instr.params) != 1):
                 raise QiskitError("Invalid qubits or params for 1-qubit gate p.")
-            elem.phase(int(4 * instr.params[0] / np.pi), new_qubits[0])
+            elem._append_phase(int(4 * instr.params[0] / np.pi), new_qubits[0])
 
-        elif (instr.name == 'cx' or gate.name == 'cx'):
+        elif (instr.name == 't' or gate.name == 't'):
+            if len(new_qubits) != 1:
+                raise QiskitError("Invalid qubits for 1-qubit gate t.")
+            elem._append_phase(1, new_qubits[0])
+
+        elif (instr.name == 'tdg' or gate.name == 'tdg'):
+            if len(new_qubits) != 1:
+                raise QiskitError("Invalid qubits for 1-qubit gate tdg.")
+            elem._append_phase(7, new_qubits[0])
+
+        elif (instr.name == 's' or gate.name == 's'):
+            if len(new_qubits) != 1:
+                raise QiskitError("Invalid qubits for 1-qubit gate s.")
+            elem._append_phase(2, new_qubits[0])
+
+        elif (instr.name == 'sdg' or gate.name == 'sdg'):
+            if len(new_qubits) != 1:
+                raise QiskitError("Invalid qubits for 1-qubit gate sdg.")
+            elem._append_phase(6, new_qubits[0])
+
+        elif (instr.name == 'cx'):
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cx.")
-            elem.cnot(new_qubits[0], new_qubits[1])
+            elem._append_cx(new_qubits[0], new_qubits[1])
 
-        elif (instr.name == 'cz' or gate.name == 'cz'):
+        elif (instr.name == 'cz'):
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cz.")
-            elem.phase(7, new_qubits[1])
-            elem.phase(7, new_qubits[0])
-            elem.cnot(new_qubits[1], new_qubits[0])
-            elem.phase(2, new_qubits[0])
-            elem.cnot(new_qubits[1], new_qubits[0])
-            elem.phase(7, new_qubits[1])
-            elem.phase(7, new_qubits[0])
+            elem._append_phase(7, new_qubits[1])
+            elem._append_phase(7, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_phase(2, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_phase(7, new_qubits[1])
+            elem._append_phase(7, new_qubits[0])
 
-        elif (instr.name == 'id' or gate.name == 'id'):
+        elif (instr.name == 'swap' or gate.name == 'swap'):
+            if len(new_qubits) != 2:
+                raise QiskitError("Invalid qubits for 2-qubit gate swap.")
+            elem._append_cx(new_qubits[0], new_qubits[1])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_cx(new_qubits[0], new_qubits[1])
+
+        elif (instr.name == 'id'):
             pass
 
         else:
-            raise QiskitError('Not a CNOT-Dihedral gate: {}'.format(gate.name))
+            raise QiskitError('Not a CNOT-Dihedral gate: {}'.format(instr.name))
 
     return elem
