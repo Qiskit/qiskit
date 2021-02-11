@@ -104,6 +104,7 @@ class HHL(LinearSolver):
 
     def _calculate_observable(self, qc: QuantumCircuit,
                               observable: Optional[Union[LinearSystemObservable, BaseOperator,
+                                                         List[LinearSystemObservable],
                                                          List[BaseOperator]]] = None,
                               observable_circuit: Optional[Union[QuantumCircuit,
                                                                  List[QuantumCircuit]]] = None,
@@ -129,7 +130,22 @@ class HHL(LinearSolver):
         nl = qc.qregs[1].size
         na = qc.num_ancillas
 
-        if observable is not None and isinstance(observable, LinearSystemObservable):
+        if observable is not None and isinstance(observable, list):
+            if isinstance(observable[0], LinearSystemObservable):
+                # Warning if post_processing or observable_circuit are not None
+                if observable_circuit is not None or post_processing is not None:
+                    warnings.warn("observable_circuit and post_processing are taken from the "
+                                  "LinearSystemObservable, but arguments for at least one of these "
+                                  "were given.")
+                observable_circuit = []
+                post_processing = []
+                observables_list = []
+                for obs in observable:
+                    observable_circuit.append(obs.observable_circuit(nb))
+                    post_processing.append(obs.post_processing)
+                    observables_list.append(obs.observable(nb))
+                observable = observables_list
+        elif observable is not None and isinstance(observable, LinearSystemObservable):
             # Warning if post_processing or observable_circuit are not None
             if observable_circuit is not None or post_processing is not None:
                 warnings.warn("observable_circuit and post_processing are taken from the "
@@ -151,7 +167,7 @@ class HHL(LinearSolver):
                 qc_temp.append(qc, list(range(qc.num_qubits)))
                 qc_temp.append(circ, list(range(nb)))
                 qcs.append(qc_temp)
-        elif observable_circuit:
+        elif observable_circuit is not None:
             qc.append(observable_circuit, list(range(nb)))
 
         # Update observable to include ancilla and rotation qubit
@@ -326,7 +342,7 @@ class HHL(LinearSolver):
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,
-                                         List[BaseOperator]]] = None,
+                                         List[LinearSystemObservable], List[BaseOperator]]] = None,
               observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \

@@ -101,7 +101,7 @@ class LinearSolver(ABC):
     def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
               vector: Union[np.ndarray, QuantumCircuit],
               observable: Optional[Union[LinearSystemObservable, BaseOperator,
-                                         List[BaseOperator]]] = None,
+                                         List[LinearSystemObservable], List[BaseOperator]]] = None,
               observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
               post_processing: Optional[Callable[[Union[float, List[float]]],
                                                  Union[float, List[float]]]] = None) \
