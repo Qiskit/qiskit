@@ -132,7 +132,7 @@ class PauliSumOp(PrimitiveOp):
 
     def adjoint(self) -> OperatorBase:
         return PauliSumOp(
-            self.primitive.conjugate(), coeff=self.coeff.conjugate()  # type:ignore
+            self.primitive.adjoint(), coeff=self.coeff.conjugate()
         )
 
     def equals(self, other: OperatorBase) -> bool:
