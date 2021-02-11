@@ -62,12 +62,12 @@ class LinearSystemObservable(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def evaluate_classically(self, solution: np.array) -> float:
+    def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
         """Calculates the analytical value of the given observable from the solution vector to the
          linear system.
 
         Args:
-            solution: The solution to the system as a numpy array.
+            solution: The solution to the system as a numpy array or the circuit that prepares it.
 
         Returns:
             The value of the observable.

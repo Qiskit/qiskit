@@ -16,6 +16,7 @@ import logging
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .linear_solver import LinearSolverResult, LinearSolver
@@ -54,14 +55,12 @@ class NumPyLinearSolver(LinearSolver):
 
         Returns:
             The result of the linear system.
-
-        Raises:
-            ValueError: If the input is not in the correct format.
         """
-        # Raise a warning if the matrix or vector are given as a circuit
-        if isinstance(matrix, QuantumCircuit) or isinstance(vector, QuantumCircuit):
-            raise ValueError("The classical algorithm does not accept a QuantumCircuit as an"
-                             " input.")
+        # Check if either matrix or vector are QuantumCircuits and get the array from them
+        if isinstance(vector, QuantumCircuit):
+            vector = Statevector(vector).data
+        if isinstance(matrix, QuantumCircuit):
+            matrix = Operator(matrix).data
 
         solution_vector = np.linalg.solve(matrix, vector)
         solution = LinearSolverResult()

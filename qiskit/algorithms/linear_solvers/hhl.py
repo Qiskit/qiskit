@@ -16,6 +16,7 @@ import warnings
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
+from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
@@ -23,6 +24,7 @@ from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseCheby
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.opflow import Z, I, StateFn, TensoredOp
 from .linear_solver import LinearSolver, LinearSolverResult
+from .matrices.linear_system_matrix import LinearSystemMatrix
 from .observables.linear_system_observable import LinearSystemObservable
 
 
@@ -128,14 +130,14 @@ class HHL(LinearSolver):
         na = qc.num_ancillas
 
         if observable is not None and isinstance(observable, LinearSystemObservable):
-            observable_circuit = observable.observable_circuit(nb)
-            post_processing = observable.post_processing
-            observable = observable.observable(nb)
             # Warning if post_processing or observable_circuit are not None
             if observable_circuit is not None or post_processing is not None:
                 warnings.warn("observable_circuit and post_processing are taken from the "
                               "LinearSystemObservable, but arguments for at least one of these "
                               "were given.")
+            observable_circuit = observable.observable_circuit(nb)
+            post_processing = observable.post_processing
+            observable = observable.observable(nb)
 
         # Create the Operators Zero and One
         zero_op = ((I + Z) / 2)
@@ -346,8 +348,10 @@ class HHL(LinearSolver):
             The result of the linear system.
         """
         # Hamiltonian simulation circuit - default is Trotterization
-        if isinstance(matrix, QuantumCircuit):
+        if isinstance(matrix, LinearSystemMatrix):
             matrix_array = matrix.matrix
+        elif isinstance(matrix, QuantumCircuit):
+            matrix_array = Operator(matrix).data
         elif isinstance(matrix, np.ndarray):
             matrix_array = matrix
 
@@ -356,7 +360,6 @@ class HHL(LinearSolver):
         solution = LinearSolverResult()
         solution.state = self.construct_circuit(matrix, vector)
         solution.euclidean_norm = self._calculate_norm(solution.state, lambda_min)
-        # The post-rotating gates have already been applied
         solution.observable, solution.circuit_results = \
             self._calculate_observable(solution.state, observable, observable_circuit,
                                        post_processing, lambda_min)

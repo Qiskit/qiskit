@@ -17,6 +17,8 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.opflow import I, Z, TensoredOp
+from qiskit.quantum_info import Statevector
+
 from .linear_system_observable import LinearSystemObservable
 
 
@@ -73,13 +75,16 @@ class AbsoluteAverage(LinearSystemObservable):
 
         return np.real(np.sqrt(solution / (2 ** num_qubits)) / scaling)
 
-    def evaluate_classically(self, solution: np.array) -> float:
+    def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.
 
         Args:
-            solution: The solution to the system as a numpy array.
+            solution: The solution to the system as a numpy array or the circuit that prepares it.
 
         Returns:
             The value of the observable.
         """
+        # Check if it is QuantumCircuits and get the array from them
+        if isinstance(solution, QuantumCircuit):
+            solution = Statevector(solution).data
         return np.abs(np.mean(solution))

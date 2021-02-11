@@ -16,6 +16,7 @@ import numpy as np
 from scipy.sparse import diags
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
 from qiskit.opflow import I, Z, TensoredOp
 from .linear_system_observable import LinearSystemObservable
 
@@ -101,15 +102,18 @@ class MatrixFunctional(LinearSystemObservable):
         main_val = solution[0] / (scaling ** 2)
         return np.real(self._main_diag * main_val + self._off_diag * off_val)
 
-    def evaluate_classically(self, solution: np.array) -> float:
+    def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.
 
         Args:
-            solution: The solution to the system as a numpy array.
+            solution: The solution to the system as a numpy array or the circuit that prepares it.
 
         Returns:
             The value of the observable.
         """
+        # Check if it is QuantumCircuits and get the array from them
+        if isinstance(solution, QuantumCircuit):
+            solution = Statevector(solution).data
 
         matrix = diags([self._off_diag, self._main_diag, self._off_diag], [-1, 0, 1],
                        shape=(len(solution), len(solution))).toarray()
