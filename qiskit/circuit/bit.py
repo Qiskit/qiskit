@@ -82,7 +82,7 @@ class Bit:
     def index(self, value):
         """Set bit's index."""
         if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to query index of a new-style Bit.')
+            raise CircuitError('Attmped to set index of a new-style Bit.')
 
         self._index = value
         self._update_hash()
