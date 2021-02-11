@@ -927,7 +927,7 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg='str(statevector)'):
             str(sv)
-        for drawtype in ['text', 'markdown', 'markdown_source', 'latex_source',
+        for drawtype in ['text', 'markdown', 'markdown_source',
                          'qsphere', 'hinton', 'bloch']:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
