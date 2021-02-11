@@ -71,31 +71,38 @@ class VarQRTE(VarQTE):
 
         for j in range(self._num_time_steps):
 
-            # Get the natural gradient - time derivative of the variational parameters - and
-            # the gradient w.r.t. H and the QFI/4.
-            nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            print('Nat grad result', np.round(nat_grad_result, 3))
-            print('grad_res', np.round(grad_res, 3))
-            print('metric ', np.real(np.round(metric_res, 3)))
+            if self._ode_solver is None:
 
-            # Evaluate the error bound
-            if self._get_error:
-                # Get the residual for McLachlan's Variational Principle
-                resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
-                print('Residual norm', resid)
+                # Get the natural gradient - time derivative of the variational parameters - and
+                # the gradient w.r.t. H and the QFI/4.
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+                print('Nat grad result', np.round(nat_grad_result, 3))
+                print('grad_res', np.round(grad_res, 3))
+                print('metric ', np.real(np.round(metric_res, 3)))
 
-                # Get the error for the current step
-                e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
-                error += dt * e_t
-                print('dt', dt)
-                print('et', e_t)
-                print('Error', np.round(error, 3),  'after', j, ' time steps.')
+                # Evaluate the error bound
+                if self._get_error:
+                    # Get the residual for McLachlan's Variational Principle
+                    resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
+                    print('Residual norm', resid)
 
-            # TODO enable the use of arbitrary ODE solvers
-            # Propagate the Ansatz parameters step by step using explicit Euler
-            self._parameter_values = list(np.add(self._parameter_values, dt *
-                                                 np.real(nat_grad_result)))
-            print('param values', self._parameter_values)
+                    # Get the error for the current step
+                    e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
+                    error += dt * e_t
+                    print('dt', dt)
+                    print('et', e_t)
+                    print('Error', np.round(error, 3),  'after', j, ' time steps.')
+
+                # TODO enable the use of arbitrary ODE solvers
+                # Propagate the Ansatz parameters step by step using explicit Euler
+                self._parameter_values = list(np.add(self._parameter_values, dt *
+                                                     np.real(nat_grad_result)))
+                print('param values', self._parameter_values)
+            else:
+                self._ode_solver.step()
+                self._parameter_values = self._ode_solver.y
+                if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
+                    break
 
             # Assign parameter values to parameter items
             param_dict = dict(zip(self._parameters, self._parameter_values))
@@ -107,6 +114,7 @@ class VarQRTE(VarQTE):
                                                                             param_dict)
                 print('Fidelity', f)
                 print('True error', true_error)
+
 
 
             # Store the current status

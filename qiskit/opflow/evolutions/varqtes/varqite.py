@@ -100,12 +100,13 @@ class VarQITE(VarQTE):
                     print('dt', dt)
                     print('et', e_t)
                     # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
-                    error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps
-                                                                            - j)
+                    # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps
+                    #                                                         - j)
+
                     # error += dt * (e_t + 2 * h_norm)
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
 
-                    print('Error', np.round(error, 3), 'after', (j+1)*dt)
+
 
                 # Propagate the Ansatz parameters step by step using explicit Euler
                 # TODO enable the use of arbitrary ODE solvers
@@ -117,8 +118,10 @@ class VarQITE(VarQTE):
                                               nat_grad_result)))
                 print('Params', self._parameter_values)
             else:
-                # TODO if something break
-                # self._ode_solver.step()
+                self._ode_solver.step()
+                self._parameter_values = self._ode_solver.y
+                if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
+                    break
                 pass
 
 
@@ -133,7 +136,11 @@ class VarQITE(VarQTE):
                 print('Fidelity', f)
                 print('True error', true_error)
 
-            # Store the current status
+                error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
+
+            print('Error', np.round(error, 3), 'after', (j + 1) * dt)
+
+                               # Store the current status
             if self._snapshot_dir:
                 if self._get_error:
                     if self._init_parameter_values:
