@@ -60,7 +60,7 @@ class IGate(Gate):
         if not IGate._ID_IMPLICIT_DELAY_WARN_SHOWN:
             warnings.warn('Support for implicitly converting IGates to single pulse length '
                           'Delays has been deprecated and will be removed in a future release. '
-                          'Use the Delay gate or QuantumCircuit.delay instead.',
+                          'Use the Delay instruction or QuantumCircuit.delay instead.',
                           DeprecationWarning)
             IGate._ID_IMPLICIT_DELAY_WARN_SHOWN = True
 

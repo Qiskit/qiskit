@@ -2,5 +2,5 @@
 deprecations:
   - |
     Support for implicitly converting IGates to single pulse length Delays has
-    been deprecated and will be removed in a future release. Use the Delay gate
+    been deprecated and will be removed in a future release. Use the Delay instruction
     or QuantumCircuit.delay instead.
