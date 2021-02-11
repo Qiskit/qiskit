@@ -75,12 +75,21 @@ class RunningPassManager:
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
-
-        self.working_list.append(
-            FlowController.controller_factory(passes,
-                                              self.passmanager_options,
-                                              **flow_controller_conditions))
+        # attaches the property set to the controller so it has access to it.
+        if isinstance(passes, ConditionalController):
+            passes.condition = partial(passes.condition, self.fenced_property_set)
+            self.working_list.append(passes)
+        if isinstance(passes, DoWhileController):
+            if not isinstance(passes.do_while, partial):
+                passes.do_while = partial(passes.do_while, self.fenced_property_set)
+            self.working_list.append(passes)
+        else:
+            flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
+            self.working_list.append(
+                FlowController.controller_factory(passes,
+                                                  self.passmanager_options,
+                                                  **flow_controller_conditions))
+            pass
 
     def _normalize_flow_controller(self, flow_controller):
         for name, param in flow_controller.items():
@@ -295,10 +304,10 @@ class FlowControllerLinear(FlowController):
 class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
 
-    def __init__(self, passes, options, do_while=None,
+    def __init__(self, passes, options=None, do_while=None,
                  **partial_controller):
         self.do_while = do_while
-        self.max_iteration = options['max_iteration']
+        self.max_iteration = options['max_iteration'] if options else 1000
         super().__init__(passes, options, **partial_controller)
 
     def __iter__(self):
@@ -314,7 +323,7 @@ class DoWhileController(FlowController):
 class ConditionalController(FlowController):
     """Implements a set of passes under a certain condition."""
 
-    def __init__(self, passes, options, condition=None,
+    def __init__(self, passes, options=None, condition=None,
                  **partial_controller):
         self.condition = condition
         super().__init__(passes, options, **partial_controller)

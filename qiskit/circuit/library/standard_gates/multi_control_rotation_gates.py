@@ -13,14 +13,11 @@
 Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
-import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.exceptions import QiskitError
-
-logger = logging.getLogger(__name__)
 
 
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):

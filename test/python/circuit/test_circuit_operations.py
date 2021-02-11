@@ -427,6 +427,30 @@ class TestCircuitOperations(QiskitTestCase):
         expected = np.exp(1j * phase * num) * np.identity(2)
         np.testing.assert_array_almost_equal(Operator(qc.repeat(num)).data, expected)
 
+    def test_bind_global_phase(self):
+        """Test binding global phase."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        self.assertEqual(circuit.parameters, {x})
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound.global_phase, 2)
+        self.assertEqual(bound.parameters, set())
+
+    def test_bind_parameter_in_phase_and_gate(self):
+        """Test binding a parameter present in the global phase and the gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1, global_phase=x)
+        circuit.rx(x, 0)
+        self.assertEqual(circuit.parameters, {x})
+
+        ref = QuantumCircuit(1, global_phase=2)
+        ref.rx(2, 0)
+
+        bound = circuit.bind_parameters({x: 2})
+        self.assertEqual(bound, ref)
+        self.assertEqual(bound.parameters, set())
+
     def test_power(self):
         """Test taking the circuit to a power works."""
         qc = QuantumCircuit(2)

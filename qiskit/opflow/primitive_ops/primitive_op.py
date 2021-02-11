@@ -13,7 +13,6 @@
 """ PrimitiveOp Class """
 
 from typing import Optional, Union, Set, List, Dict
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 import scipy.linalg
@@ -24,8 +23,6 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info import Operator as MatrixOperator
 
 from ..operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
 
 
 class PrimitiveOp(OperatorBase):
