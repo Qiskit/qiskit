@@ -45,7 +45,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     and an N binary vector.
 
     The phase polynomial is a polynomial of degree at most 3,
-    in N variables, whose coefficients are in the ring with 8 elements.
+    in N variables, whose coefficients are in the ring Z_8 with 8 elements.
 
     .. jupyter-execute::
         from qiskit import QuantumCircuit
