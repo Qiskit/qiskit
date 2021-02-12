@@ -71,6 +71,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Invalidate the current circuit build."""
         self._data = None
         self._parameter_table = ParameterTable()
+        self.global_phase = 0
 
     @property
     def qregs(self):
