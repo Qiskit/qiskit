@@ -15,14 +15,14 @@
 import time
 import threading
 from IPython import get_ipython
-from IPython.display import display                              # pylint: disable=import-error
-from IPython.core import magic_arguments                         # pylint: disable=import-error
-from IPython.core.magic import (cell_magic, line_magic,          # pylint: disable=import-error
+from IPython.display import display
+from IPython.core import magic_arguments
+from IPython.core.magic import (cell_magic, line_magic,
                                 Magics, magics_class,
                                 register_line_magic)
 
 try:
-    import ipywidgets as widgets                                 # pylint: disable=import-error
+    import ipywidgets as widgets
 except ImportError:
     raise ImportError('These functions  need ipywidgets. '
                       'Run "pip install ipywidgets" before.')
