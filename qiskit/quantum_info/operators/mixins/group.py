@@ -34,7 +34,7 @@ class GroupMixin(ABC):
 
     And the following operator overloads:
 
-        - ``>>``, ``__rshift__`` -> :meth:`compose`
+        - ``&``, ``__and__`` -> :meth:`compose`
         - ``^``, ``__xor__`` -> `:meth:`tensor`
         - ``**``, ``__pow__`` -> :meth:`power`
 
@@ -54,8 +54,8 @@ class GroupMixin(ABC):
         'Using the `__mul__` operator `A * B` as shorthand for'
         ' `A.dot(B)` is deprecated as of version 0.17.0 and will be '
         ' removed no earlier than 3 months after the release date.'
-        ' As an alternative use the compose `__rshift__` operator'
-        ' `A >> B` in place of `A * B` as a replacement.')
+        ' As an alternative use the compose operator `B & A`'
+        ' in place of `A * B` as a replacement.')
     def __mul__(self, other):
         return self.dot(other)
 
@@ -63,11 +63,11 @@ class GroupMixin(ABC):
         'Using the `__matmul__` operator `A @ B` as shorthand for'
         ' `A.compose(B)` is deprecated as of version 0.17.0 and will be '
         ' removed no earlier than 3 months after the release date.'
-        ' Use the `__rshift__` operator `A >> B` instead.')
+        ' Use the `A & B` instead.')
     def __matmul__(self, other):
         return self.compose(other)
 
-    def __rshift__(self, other):
+    def __and__(self, other):
         return self.compose(other)
 
     def __pow__(self, n):
@@ -132,9 +132,9 @@ class GroupMixin(ABC):
                          incompatible dimensions for specified subsystems.
 
         .. note::
-            Composition (``>>``) by default is defined as `left` matrix multiplication for
+            Composition (``&``) by default is defined as `left` matrix multiplication for
             matrix operators, while :meth:`dot` is defined as `right` matrix
-            multiplication. That is that ``A >> B == A.compose(B)`` is equivalent to
+            multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
             ``B.dot(A)`` when ``A`` and ``B`` are the same type.
 
             Setting the ``front=True`` kwarg changes this to `right` matrix

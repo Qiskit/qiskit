@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Adds a ``>>`` (``__rshift__``) binary operator to ``BaseOperator`` subclasses
+    Adds a ``&`` (``__and__``) binary operator to ``BaseOperator`` subclasses
     in the :mod:`qiskit.quantum_info` module. This is shorthand to call the
-    classes ``compose`` method (``A >> B == A.compose(B)``).
+    classes ``compose`` method (``A & B == A.compose(B)``).
 
     Example
 
@@ -11,12 +11,12 @@ features:
     
       import qiskit.quantum_info as qi
 
-      qi.Pauli('X') >> qi.Pauli('Y')
+      qi.Pauli('X') & qi.Pauli('Y')
   - |
-    Adds a ``>>`` (``__rshift__``) binary operator to
+    Adds a ``&`` (``__and__``) binary operator to
     :class:`qiskit.quantum_info.Statevector` and
     :class:`qiskit.quantum_info.DensityMatrix` classes. This is shorthand to
-    call the classes ``evolve`` method (``psi >> U == psi.evolve(U)``).
+    call the classes ``evolve`` method (``psi & U == psi.evolve(U)``).
 
     Example
 
@@ -24,12 +24,12 @@ features:
     
       import qiskit.quantum_info as qi
 
-      qi.Statevector.from_label('0') >> qi.Pauli('X')
+      qi.Statevector.from_label('0') & qi.Pauli('X')
 deprecations:
   - |
     Deprecates using ``@`` (``__matmul__``) for invoking the ``compose`` method
     of ``BaseOperator`` subclasses. The ``compose`` method can instead be
-    invoked using the ``>>`` (``__rshift__``) operator.
+    invoked using the ``&`` (``__and__``) operator.
     
     In the future after the deprecation period is complete ``__matmul__`` will
     be used for invoking the ``dot`` method of operator classes.
@@ -43,4 +43,4 @@ deprecations:
     of the :class:`qiskit.quantum_info.Statevector` and
     :class:`qiskit.quantum_info.DensityMatrix` classes.
     for calling the ``evolve`` method. The ``evolve`` method can
-    instead be invoked using the ``>>`` (``__rshift__``) operator.
+    instead be invoked using the ``&`` (``__and__``) operator.
