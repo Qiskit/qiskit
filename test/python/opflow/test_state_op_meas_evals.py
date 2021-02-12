@@ -25,7 +25,6 @@ from qiskit.opflow import (
 )
 
 
-# pylint: disable=invalid-name
 class TestStateOpMeasEvals(QiskitOpflowTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 

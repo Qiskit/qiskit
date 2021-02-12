@@ -150,7 +150,6 @@ class EvolvedOp(PrimitiveOp):
             ]
 
         prim_mat = -1.j * self.primitive.to_matrix()  # type: ignore
-        # pylint: disable=no-member
         return scipy.linalg.expm(prim_mat) * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
