@@ -47,7 +47,7 @@ def _append_circuit(elem, circuit, qargs=None):
         elem._append_cx(qargs[0], qargs[1])
         return elem
 
-    elif (gate.name == 'cz'):
+    elif gate.name == 'cz':
         if len(qargs) != 2:
             raise QiskitError("Invalid qubits for 2-qubit gate cz.")
         elem._append_phase(7, qargs[1])
@@ -57,7 +57,7 @@ def _append_circuit(elem, circuit, qargs=None):
         elem._append_cx(qargs[1], qargs[0])
         elem._append_phase(7, qargs[1])
         elem._append_phase(7, qargs[0])
-        return(elem)
+        return elem
 
     if gate.name == 'id':
         if len(qargs) != 1:
@@ -115,12 +115,12 @@ def _append_circuit(elem, circuit, qargs=None):
                 raise QiskitError("Invalid qubits for 1-qubit gate sdg.")
             elem._append_phase(6, new_qubits[0])
 
-        elif (instr.name == 'cx'):
+        elif instr.name == 'cx':
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cx.")
             elem._append_cx(new_qubits[0], new_qubits[1])
 
-        elif (instr.name == 'cz'):
+        elif instr.name == 'cz':
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cz.")
             elem._append_phase(7, new_qubits[1])
@@ -138,7 +138,7 @@ def _append_circuit(elem, circuit, qargs=None):
             elem._append_cx(new_qubits[1], new_qubits[0])
             elem._append_cx(new_qubits[0], new_qubits[1])
 
-        elif (instr.name == 'id'):
+        elif instr.name == 'id':
             pass
 
         else:

@@ -96,11 +96,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Initialize a CNOTDihedral operator object.
 
         Args:
-            data: optional, a CNOTDihedral object, or a QuantumCircuit,
-                or ~qiskit.circuit.Instruction, or a ScalarOp or a Pauli operator:
-                operator to initialize.
+            data (CNOTDihedral, or QuantumCircuit, or ~qiskit.circuit.Instruction,
+                or ScalarOp or Pauli): optional, operator to initialize.
             num_qubits (int): optional, initialize an empty CNOTDihedral operator.
             validate (bool): if True, validates the CNOTDihedral element.
+
+        Raises:
+            QiskitError: if the type is invalid.
+            QiskitError: if validate=True and the CNOTDihedral element is invalid.
         """
 
         if num_qubits:
