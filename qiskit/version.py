@@ -109,12 +109,12 @@ class QiskitVersion(Mapping):
         except Exception:
             self._version_dict['qiskit-ignis'] = None
         try:
-            from qiskit_ibmq_provider as ibmq
+            import qiskit_ibmq_provider as ibmq
             self._version_dict['qiskit-ibmq-provider'] = ibmq.__version__
         except Exception:
             self._version_dict['qiskit-ibmq-provider'] = None
         try:
-            from qiskit_aqua as aqua
+            import qiskit_aqua as aqua
             self._version_dict['qiskit-aqua'] = aqua.__version__
         except Exception:
             self._version_dict['qiskit-aqua'] = None
