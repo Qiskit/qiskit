@@ -156,6 +156,7 @@ class Statevector(QuantumState, TolerancesMixin):
         Raises:
             ValueError: when an invalid output method is selected.
         """
+        # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer
         return state_drawer(self, output=output, max_size=max_size, dims=dims,
                             prefix=prefix, **drawer_args)
