@@ -1,0 +1,34 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Build wheels on non-x86
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.7'
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v1.9.0
+        env:
+          CIBW_ARCHS_LINUX: ppc64le s390x
+          CIBW_BEFORE_BUILD: pip install -U Cython
+          CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+          CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
