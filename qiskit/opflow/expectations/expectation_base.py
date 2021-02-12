@@ -12,15 +12,12 @@
 
 """ ExpectationBase Class """
 
-import logging
 from typing import Union
 from abc import abstractmethod
 import numpy as np
 
 from ..operator_base import OperatorBase
 from ..converters import ConverterBase
-
-logger = logging.getLogger(__name__)
 
 
 class ExpectationBase(ConverterBase):

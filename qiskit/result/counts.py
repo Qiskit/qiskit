@@ -97,7 +97,7 @@ class Counts(dict):
                                     'Counts objects with dit strings do not '
                                     'currently support dit string formatting parameters '
                                     'creg_sizes or memory_slots')
-                            int_key = int(bitstring.replace(" ", ""), 2)
+                            int_key = self._remove_space_underscore(bitstring)
                             int_dict[int_key] = value
                             hex_dict[hex(int_key)] = value
                         self.hex_raw = hex_dict
@@ -155,7 +155,7 @@ class Counts(dict):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to hexadecimal')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[hex(int_key)] = value
             return out_dict
 
@@ -176,6 +176,11 @@ class Counts(dict):
                     raise exceptions.QiskitError(
                         'Counts objects with dit strings do not '
                         'currently support conversion to integer')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[int_key] = value
             return out_dict
+
+    @staticmethod
+    def _remove_space_underscore(bitstring):
+        """Removes all spaces and underscores from bitstring"""
+        return int(bitstring.replace(" ", "").replace("_", ""), 2)

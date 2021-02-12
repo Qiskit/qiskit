@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DictToCircuitSum Class """
-
-import logging
+"""DictToCircuitSum Class """
 
 from ..operator_base import OperatorBase
 from ..state_fns.dict_state_fn import DictStateFn
@@ -20,8 +18,6 @@ from ..state_fns.vector_state_fn import VectorStateFn
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..list_ops.list_op import ListOp
 from .converter_base import ConverterBase
-
-logger = logging.getLogger(__name__)
 
 
 class DictToCircuitSum(ConverterBase):

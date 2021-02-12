@@ -87,13 +87,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
     def test_adjoint(self):
         """ adjoint test """
         pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZX"), coeffs=[2]), coeff=3)
-        expected = PauliSumOp(SparsePauliOp(Pauli("XYZX")), coeff=-6)
+        expected = PauliSumOp(SparsePauliOp(Pauli("XYZX")), coeff=6)
 
         self.assertEqual(pauli_sum.adjoint(), expected)
 
         pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=3j)
         expected = PauliSumOp(SparsePauliOp(Pauli("XYZY")), coeff=-6j)
         self.assertEqual(pauli_sum.adjoint(), expected)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("X"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Y"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Z"), coeffs=[1]))
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+
+        pauli_sum = (Z ^ Z) + (Y ^ I)
+        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
 
     def test_equals(self):
         """ equality test """
