@@ -65,7 +65,7 @@ class VarQITE(VarQTE):
         if self._get_error:
             # Compute the norm of the Hamiltonian
             h_norm = np.linalg.norm(self._operator.oplist[0].primitive.to_matrix(massive=True),
-                                    ord=np.infty)
+                                    ord=2)
             print('h_norm', h_norm)
 
         # Step size
@@ -76,6 +76,22 @@ class VarQITE(VarQTE):
 
         # Zip the parameter values to the parameter objects
         param_dict = dict(zip(self._parameters, self._parameter_values))
+
+        if self._ode_solver is not None:
+            def ode_fun(params):
+                param_dict =  dict(zip(self._parameters, params))
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+                e_t, _ = self._error_t(self._operator, nat_grad_result, grad_res,
+                                               metric_res)
+                return e_t ** 2
+
+            def jac_ode_fun(params):
+                param_dict = dict(zip(self._parameters, params))
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+                return np.dot(metric_res, nat_grad_result) + grad_res
+
+            self._ode_solver.fun = ode_fun
+            self._ode_solver.jac = jac_ode_fun
 
         for j in range(self._num_time_steps):
             # Get the natural gradient - time derivative of the variational parameters - and
@@ -93,15 +109,23 @@ class VarQITE(VarQTE):
                     print('Residual norm', resid)
 
                     # Get the error for the current step
-                    e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
+                    e_t, h_squared = self._error_t(self._operator, nat_grad_result, grad_res,
+                                                   metric_res)
+
+                    if np.imag(e_t) > 1e-5:
+                        raise Warning(
+                            'The erro of this step is imaginary. Thus, the SLE underlying '
+                            'McLachlan was not solved well. The residuum of the SLE is ', resid)
 
                     # TODO discuss (25) index of time step or time? I think indices
                     print('error before', error)
                     print('dt', dt)
                     print('et', e_t)
                     # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
-                    # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps
-                    #                                                         - j)
+                    # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps - j - 1)
+
+                    error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
+                                         ) ** (self._num_time_steps - j - 1)
 
                     # error += dt * (e_t + 2 * h_norm)
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
@@ -131,26 +155,33 @@ class VarQITE(VarQTE):
                 # If initial parameter values were set compute the fidelity, the error between the
                 # prepared and the target state, the energy w.r.t. the target state and the energy
                 # w.r.t. the prepared state
-                f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
-                                                                            param_dict)
+                f, true_error, true_energy, trained_energy = \
+                    self._distance_energy((j + 1) * dt, param_dict)
+                if j == 0:
+                    trained_energy_0 = trained_energy
                 print('Fidelity', f)
+                print('Fidelity base true error', 2*np.sin(np.arccos(np.sqrt(f)) / 2 ))
                 print('True error', true_error)
 
-                error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
+                # error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
+                # error += dt * (e_t + 2*h_norm)
+                # error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - trained_energy_0)))
 
-            print('Error', np.round(error, 3), 'after', (j + 1) * dt)
+            print('Error', np.round(error, 6), 'after', (j + 1) * dt)
 
                                # Store the current status
             if self._snapshot_dir:
                 if self._get_error:
-                    if self._init_parameter_values:
-                        self._store_params((j + 1) * dt, self._parameter_values)
+                    if self._init_parameter_values is None:
+                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                                           resid)
                     else:
-                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
+                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                                           resid,  f,  true_error, true_energy, trained_energy)
                 else:
-                    if self._init_parameter_values:
+                    if self._init_parameter_values is None:
                         self._store_params((j + 1) * dt, self._parameter_values, f,
-                                       true_error, true_energy, trained_energy)
+                                            true_error, true_energy, trained_energy)
                     else:
                         self._store_params((j + 1) * dt, self._parameter_values)
 
@@ -221,8 +252,9 @@ class VarQITE(VarQTE):
 
 
 
-        print('Grad error - real returned', np.round(np.sqrt(eps_squared), 6))
-        return np.real(np.sqrt(eps_squared))
+        print('Grad error - real returned', np.sqrt(eps_squared))
+        print('Energy Variance', h_squared - exp **2)
+        return np.sqrt(eps_squared), np.real(h_squared)
 
     def _distance_energy(self,
                   time: Union[float, complex],
@@ -260,7 +292,7 @@ class VarQITE(VarQTE):
         # Fidelity
         f = state_fidelity(target_state, trained_state)
         # Actual error
-        act_err = np.sqrt(np.linalg.norm(target_state - trained_state, ord=2))
+        act_err = np.linalg.norm(target_state - trained_state, ord=2)
         # Target Energy
         act_en = self._inner_prod(target_state, np.dot(hermitian_op, target_state))
         print('actual energy', act_en)

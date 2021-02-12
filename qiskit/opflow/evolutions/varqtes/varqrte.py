@@ -69,6 +69,22 @@ class VarQRTE(VarQTE):
         # Assign parameter values to parameter items
         param_dict = dict(zip(self._parameters, self._parameter_values))
 
+        if self._ode_solver is not None:
+            def ode_fun(params):
+                param_dict =  dict(zip(self._parameters, params))
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+                e_t, _ = self._error_t(self._operator, nat_grad_result, grad_res,
+                                               metric_res)
+                return e_t ** 2
+
+            def jac_ode_fun(params):
+                param_dict =  dict(zip(self._parameters, params))
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+                return np.dot(metric_res, nat_grad_result) - grad_res
+
+            self._ode_solver.fun = ode_fun
+            self._ode_solver.jac = jac_ode_fun
+
         for j in range(self._num_time_steps):
 
             if self._ode_solver is None:
@@ -218,7 +234,7 @@ class VarQRTE(VarQTE):
         # Fidelity
         f = state_fidelity(target_state, trained_state)
         # Actual error
-        act_err = np.sqrt(np.linalg.norm(target_state - trained_state, ord=2))
+        act_err = np.linalg.norm(target_state - trained_state, ord=2)
         # Target Energy
         act_en = self._inner_prod(target_state, np.dot(hermitian_op, target_state))
         # Trained Energy

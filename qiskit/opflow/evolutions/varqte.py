@@ -65,6 +65,7 @@ class VarQTE(EvolutionBase):
                 If regularization is None but the metric is ill-conditioned or singular then
                 a least square solver is used without regularization
             ode_solver: ODE Solver for y'=f(t,y) with parameters - f(callable), jac(callable): df/dy
+                        f to be given as dummy
             snapshot_dir: Directory in to which to store cvs file with parameters,
                 if None (default) then no cvs file is created.
             kwargs (dict): Optional parameters for a CircuitGradient
@@ -221,7 +222,8 @@ class VarQTE(EvolutionBase):
                                      'resid': np.round(resid, 4)})
             else:
                 if not self._get_error:
-                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                    writer.writerow({'t': t,
+                                     'params': np.round(params, 4),
                                      'num_params': len(params),
                                      'num_time_steps': self._num_time_steps,
                                      'fid_to_targ': np.round(fidelity_to_target, 4),
@@ -229,7 +231,8 @@ class VarQTE(EvolutionBase):
                                      'true_energy': np.round(true_energy, 4),
                                      'trained_energy': np.round(trained_energy, 4)})
                 else:
-                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                    writer.writerow({'t': t,
+                                     'params': np.round(params, 4),
                                      'num_params': len(params),
                                      'num_time_steps': self._num_time_steps,
                                      'e_bound': np.round(e_bound, 4),
