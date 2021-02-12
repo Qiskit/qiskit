@@ -14,6 +14,7 @@
 
 import unittest
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
@@ -23,6 +24,7 @@ from qiskit.circuit.library.generalized_gates.permutation import _get_ordered_sw
 from qiskit.quantum_info import Operator
 
 
+@ddt
 class TestPermutationLibrary(QiskitTestCase):
     """Test library of permutation logic quantum circuits."""
 
@@ -40,10 +42,11 @@ class TestPermutationLibrary(QiskitTestCase):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
-    def test_get_ordered_swap(self):
+    @data([4, 5, 10, 20])
+    def test_get_ordered_swap(self, data):
         """Test get_ordered_swap function."""
         np.random.seed(1)
-        for length in range(5, 20, 2):
+        for length in data:
             for _ in range(5):
                 permutation = np.random.permutation(length)
                 swap_list = _get_ordered_swap(permutation)
