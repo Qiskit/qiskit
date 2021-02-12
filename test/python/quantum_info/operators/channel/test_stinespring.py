@@ -310,12 +310,6 @@ class TestStinespring(ChannelTestCase):
         rho_targ = rho_init @ Stinespring(self.depol_stine(1 - p_id3))
         self.assertEqual(rho_init @ chan, rho_targ)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Stinespring(self.depol_stine(0.9))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         # Random input test state
