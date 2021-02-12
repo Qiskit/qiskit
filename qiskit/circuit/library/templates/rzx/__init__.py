@@ -10,10 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing circuit scheduling passes."""
+"""
+A library of template circuits.
 
-from .alap import ALAPSchedule
-from .asap import ASAPSchedule
-from .time_unit_analysis import TimeUnitAnalysis
-from .calibration_creators import CalibrationCreator, RZXCalibrationBuilder
-from .rzx_templates import rzx_templates
+Templates are circuits that compute the identity. They find use
+in circuit optimization where matching part of the template allows the compiler
+to replace the match with the inverse of the remainder from the template.
+"""
+from .rzx_yz import rzx_yz
+from .rzx_xz import rzx_xz
+from .rzx_cy import rzx_cy
+from .rzx_zz1 import rzx_zz1
+from .rzx_zz2 import rzx_zz2
+from .rzx_zz3 import rzx_zz3
