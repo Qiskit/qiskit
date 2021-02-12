@@ -679,8 +679,6 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
 
-    from mpl_toolkits.mplot3d import proj3d
-    from matplotlib.patches import FancyArrowPatch
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
