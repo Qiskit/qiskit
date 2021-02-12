@@ -18,9 +18,6 @@ import sys
 import warnings
 import os
 
-# First, check for required Python and API version
-from . import util
-
 # Extend namespace for backwards compat
 from qiskit import namespace
 new_meta_path = []
