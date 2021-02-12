@@ -18,6 +18,7 @@ from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 from qiskit.quantum_info import Operator
+from ddt import ddt, unpack, data
 
 EXPRESSION_TEST = "(not v1 or not v2 or not v3) and (v1 or not v2 or v3) and \
     (v1 or v2 or not v3) and (v1 or not v2 or not v3) and (not v1 or v2 or v3)"
@@ -31,10 +32,10 @@ p cnf 3 5
 -1 2 3 0
 """
 
-
+@ddt
 class TestBooleanExpression(QiskitTestCase):
     """ """
-
+    @data('x|x')
     def test_evaluate(self):
         """ Test the constructor of LogicalExpressionOracle"""
         expression = BooleanExpression(EXPRESSION_TEST)
