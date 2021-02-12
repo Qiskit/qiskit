@@ -512,7 +512,7 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint:disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
                           ) -> List[List[int]]:
         """Get the entangler map for in the repetition ``rep_num`` and the block ``block_num``.
@@ -715,7 +715,7 @@ class NLocal(BlueprintCircuit):
         # modify the circuit accordingly
         if self._data and front is False:
             if self._insert_barriers and len(self._data) > 0:
-                self.barrier()  # pylint: disable=no-member
+                self.barrier()
 
             if isinstance(entanglement, str):
                 entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
@@ -851,7 +851,7 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for i, (block, ent) in enumerate(zip(blocks, entanglements)):
+        for (block, ent) in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)

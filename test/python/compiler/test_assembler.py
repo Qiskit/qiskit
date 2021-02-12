@@ -19,7 +19,7 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assembler import assemble
 from qiskit.exceptions import QiskitError
@@ -1312,7 +1312,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_unsupported_meas_level(self):
         """Test that assembly raises an error if meas_level is not supported"""
-        # pylint: disable=unused-variable
         backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
         with self.assertRaises(SchemaValidationError):

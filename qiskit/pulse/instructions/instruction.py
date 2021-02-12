@@ -299,7 +299,7 @@ class Instruction(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
-        # pylint: disable=invalid-name, cyclic-import
+        # pylint: disable=cyclic-import
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

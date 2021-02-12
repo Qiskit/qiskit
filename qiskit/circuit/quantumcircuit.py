@@ -2137,12 +2137,12 @@ class QuantumCircuit:
         return self.append(MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit],
                            [])
 
-    def r(self, theta, phi, qubit):  # pylint: disable=invalid-name
+    def r(self, theta, phi, qubit):
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
         return self.append(RGate(theta, phi), [qubit], [])
 
-    def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
+    def rv(self, vx, vy, vz, qubit):
         """Apply :class:`~qiskit.circuit.library.RVGate`."""
         from .library.generalized_gates.rv import RVGate
         return self.append(RVGate(vx, vy, vz), [qubit], [])
@@ -2268,12 +2268,12 @@ class QuantumCircuit:
         from .library.standard_gates.t import TdgGate
         return self.append(TdgGate(), [qubit], [])
 
-    def u(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
+    def u(self, theta, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.UGate`."""
         from .library.standard_gates.u import UGate
         return self.append(UGate(theta, phi, lam), [qubit], [])
 
-    def cu(self, theta, phi, lam, gamma,   # pylint: disable=invalid-name
+    def cu(self, theta, phi, lam, gamma,
            control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CUGate`."""
         from .library.standard_gates.u import CUGate
@@ -2285,7 +2285,7 @@ class QuantumCircuit:
                         'after the release date. You should use the '
                         'QuantumCircuit.p method instead, which acts '
                         'identically.')
-    def u1(self, theta, qubit):  # pylint: disable=invalid-name
+    def u1(self, theta, qubit):
         """Apply :class:`~qiskit.circuit.library.U1Gate`."""
         from .library.standard_gates.u1 import U1Gate
         return self.append(U1Gate(theta), [qubit], [])
@@ -2319,7 +2319,7 @@ class QuantumCircuit:
                         'u(π/2, φ, λ). Alternatively, you can decompose it in'
                         'terms of QuantumCircuit.p and QuantumCircuit.sx: '
                         'u2(φ,λ) = p(π/2+φ) sx p(λ-π/2) (1 pulse on hardware).')
-    def u2(self, phi, lam, qubit):  # pylint: disable=invalid-name
+    def u2(self, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
         return self.append(U2Gate(phi, lam), [qubit], [])
@@ -2329,7 +2329,7 @@ class QuantumCircuit:
                         'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
                         'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
                         'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).')
-    def u3(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
+    def u3(self, theta, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
@@ -2349,7 +2349,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import XGate
         return self.append(XGate(label=label), [qubit], [])
 
-    def cx(self, control_qubit, target_qubit,  # pylint:disable=invalid-name
+    def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
            label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
         from .library.standard_gates.x import CXGate
@@ -2451,14 +2451,14 @@ class QuantumCircuit:
         from .library.standard_gates.z import ZGate
         return self.append(ZGate(), [qubit], [])
 
-    def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+    def cz(self, control_qubit, target_qubit,
            label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CZGate`."""
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
-    def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
+    def pauli(self, pauli_string, qubits):
         """Apply :class:`~qiskit.circuit.library.PauliGate`."""
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         return self.append(PauliGate(pauli_string), qubits, [])
