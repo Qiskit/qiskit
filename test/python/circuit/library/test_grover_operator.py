@@ -106,12 +106,11 @@ class TestGroverOperator(QiskitTestCase):
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
         with self.subTest('circuits match'):
-            expected = QuantumCircuit(*grover_op.qregs)
+            expected = QuantumCircuit(*grover_op.qregs, global_phase=np.pi)
             expected.compose(oracle, inplace=True)
             expected.h(0)  # state_in is H
             expected.compose(zero_reflection, inplace=True)
             expected.h(0)
-
             self.assertEqual(expected, grover_op)
 
     def test_num_mcx_ancillas(self):

@@ -1,7 +1,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,15 +14,12 @@
 """The Adam and AMSGRAD optimizers."""
 
 from typing import Optional, Callable, Tuple, List
-import logging
 import os
 
 import csv
 import numpy as np
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 
@@ -235,7 +232,7 @@ class ADAM(Optimizer):
         super().optimize(num_vars, objective_function, gradient_function,
                          variable_bounds, initial_point)
         if initial_point is None:
-            initial_point = aqua_globals.random.random(num_vars)
+            initial_point = algorithm_globals.random.random(num_vars)
         if gradient_function is None:
             gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
                                                         (objective_function, self._eps))

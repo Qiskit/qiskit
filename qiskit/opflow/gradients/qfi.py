@@ -12,7 +12,7 @@
 
 """The module for Quantum the Fisher Information."""
 
-from typing import List, Union, Optional
+from typing import List, Union
 
 from qiskit.circuit import (ParameterExpression, ParameterVector)
 from ..list_ops.list_op import ListOp
@@ -33,10 +33,10 @@ class QFI(QFIBase):
 
     """
 
+    # pylint: disable=signature-differs
     def convert(self,
                 operator: CircuitStateFn,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression]]] = None
+                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
                 ) -> ListOp:
         r"""
         Args:

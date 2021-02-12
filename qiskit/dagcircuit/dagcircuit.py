@@ -26,6 +26,7 @@ import itertools
 import warnings
 import math
 
+import numpy as np
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -193,6 +194,23 @@ class DAGCircuit:
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
+
+    def add_calibration(self, gate, qubits, schedule, params=None):
+        """Register a low-level, custom pulse definition for the given gate.
+
+        Args:
+            gate (Union[Gate, str]): Gate information.
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            schedule (Schedule): Schedule information.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
+
+        Raises:
+            Exception: if the gate is of type string and params is None.
+        """
+        if isinstance(gate, Gate):
+            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+        else:
+            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
@@ -826,6 +844,20 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
+        # Try to convert to float, but in case of unbound ParameterExpressions
+        # a TypeError will be raise, fallback to normal equality in those
+        # cases
+        try:
+            self_phase = float(self.global_phase)
+            other_phase = float(other.global_phase)
+            if not np.isclose(self_phase, other_phase):
+                return False
+        except TypeError:
+            if self.global_phase != other.global_phase:
+                return False
+        if self.calibrations != other.calibrations:
+            return False
+
         return rx.is_isomorphic_node_match(self._multi_graph,
                                            other._multi_graph,
                                            DAGNode.semantic_eq)
@@ -1384,9 +1416,10 @@ class DAGCircuit:
             return node.type == 'op' and len(node.qargs) == 1 \
                 and len(node.cargs) == 0 and node.condition is None \
                 and not node.op.is_parameterized() \
+                and isinstance(node.op, Gate) \
+                and hasattr(node.op, '__array__')
 
-        group_list = rx.collect_runs(self._multi_graph, filter_fn)
-        return set(tuple(x) for x in group_list)
+        return rx.collect_runs(self._multi_graph, filter_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
