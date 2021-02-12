@@ -33,7 +33,7 @@ from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -59,8 +59,8 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs (list(:class:`Register`) or list(``int``)): The registers to be
-            included in the circuit.
+        regs (list(:class:`Register`) or list(``int``) or list(list(:class:`Bit`))): The
+            registers to be included in the circuit.
 
             * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
               and/or :class:`ClassicalRegister` objects to include in the circuit.
@@ -79,6 +79,9 @@ class QuantumCircuit:
 
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
+
+            * If a list of python lists containing :class:`Bit` objects, a collection of
+              :class:`Bit` s to be added to the circuit.
 
 
         name (str): the name of the quantum circuit. If not set, an
@@ -146,7 +149,7 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None, global_phase=0, metadata=None):
-        if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
+        if any([not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
             try:
@@ -1012,7 +1015,10 @@ class QuantumCircuit:
                                    " with %s." % (regs,))
 
         for register in regs:
-            if register.name in [reg.name for reg in self.qregs + self.cregs]:
+            if (
+                    isinstance(register, Register)
+                    and any(register.name == reg.name for reg in self.qregs + self.cregs)
+            ):
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
 
@@ -1025,8 +1031,28 @@ class QuantumCircuit:
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
                 self._clbits.extend(register)
+            elif isinstance(register, list):
+                self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
+
+    def add_bits(self, bits):
+        """Add Bits to the circuit."""
+        duplicate_bits = set(self.qubits + self.clbits).intersection(bits)
+        if duplicate_bits:
+            raise CircuitError("Attempted to add bits found already in circuit: "
+                               "{}".format(duplicate_bits))
+
+        for bit in bits:
+            if isinstance(bit, AncillaQubit):
+                self._ancillas.append(bit)
+            elif isinstance(bit, Qubit):
+                self._qubits.append(bit)
+            elif isinstance(bit, Clbit):
+                self._clbits.append(bit)
+            else:
+                raise CircuitError("Expected an instance of Qubit, Clbit, or "
+                                   "AncillaQubit, but was passed {}".format(bit))
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
