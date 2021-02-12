@@ -17,6 +17,7 @@ from typing import Optional, Callable, Any, Union, List
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
 from qiskit.quantum_info import Statevector
+from qiskit.circuit.library.phase_oracle import PhaseOracle
 
 
 class AmplificationProblem:
@@ -126,7 +127,10 @@ class AmplificationProblem:
             The indices of the objective qubits as list of integers.
         """
         if self._objective_qubits is None:
-            return list(range(self.oracle.num_qubits))
+            if isinstance(self.oracle, PhaseOracle):
+                return self.oracle.state_qubits
+            else:
+                return list(range(self.oracle.num_qubits))
 
         if isinstance(self._objective_qubits, int):
             return [self._objective_qubits]

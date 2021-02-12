@@ -18,10 +18,11 @@ class PhaseOracle(QuantumCircuit):
 
     def __init__(self, expression: str) -> None:
         self.bit_oracle = BooleanExpression(expression)
+        self.state_qubits = range(self.bit_oracle.num_qubits - 1)   # input qubits for the oracle
 
         # initialize the quantumcircuit
-        qr_state = QuantumRegister(self.bit_oracle.num_qubits - 1, 'q')
-        qr_flag = QuantumRegister(1, 'state')
+        qr_state = QuantumRegister(len(self.state_qubits), 'state')
+        qr_flag = QuantumRegister(1, 'flag')
         super().__init__(qr_state, qr_flag, name='Phase Oracle')
 
         # to convert from the bitflip oracle provided from BooleanExpression to a phase oracle, we
@@ -40,4 +41,4 @@ class PhaseOracle(QuantumCircuit):
         Returns:
             True if the bitstring is a good state, False otherwise.
         """
-        return self.bit_oracle.evaluate(bitstring)
+        return self.bit_oracle.simulate(bitstring)
