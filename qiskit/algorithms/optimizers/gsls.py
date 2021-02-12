@@ -13,13 +13,10 @@
 """Line search with Gaussian-smoothed samples on a sphere."""
 
 from typing import Dict, Optional, Tuple, List, Callable
-import logging
 import numpy as np
 
 from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 
 class GSLS(Optimizer):

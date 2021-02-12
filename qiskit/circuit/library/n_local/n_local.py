@@ -12,7 +12,6 @@
 
 """The n-local circuit class."""
 
-import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
@@ -23,8 +22,6 @@ from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExp
 from qiskit.circuit.parametertable import ParameterTable
 
 from ..blueprintcircuit import BlueprintCircuit
-
-logger = logging.getLogger(__name__)
 
 
 class NLocal(BlueprintCircuit):
