@@ -77,8 +77,8 @@ jobs:
         - CIBW_SKIP="cp27-* cp34-* cp35-* pp*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python {project}/examples/python/stochastic_swap.py"
-      if: tag IS present
+#      if: tag IS present
       script:
         - pip install -U twine importlib-metadata keyring cibuildwheel==1.9.0
         - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
+#        - twine upload wheelhouse/*
