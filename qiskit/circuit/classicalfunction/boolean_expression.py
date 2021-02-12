@@ -95,8 +95,8 @@ class BooleanExpression(Gate):
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
-        from tweedledum import BoolExpression
-        self._tweedledum_bool_expression = BoolExpression(expression)
+        from tweedledum import BoolFunction
+        self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
         super().__init__(name or short_expr_for_name,
