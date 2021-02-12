@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.opflow import I, X, Z
 from qiskit.algorithms.optimizers import SPSA
@@ -38,7 +38,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
-        aqua_globals.random_seed = 0
+        algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -90,7 +90,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
-        aqua_globals.random_seed = 0
+        algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()

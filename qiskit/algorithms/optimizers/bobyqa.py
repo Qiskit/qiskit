@@ -13,12 +13,9 @@
 """Bound Optimization BY Quadratic Approximation (BOBYQA) optimizer."""
 
 
-import logging
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 try:
     import skquant.opt as skq
