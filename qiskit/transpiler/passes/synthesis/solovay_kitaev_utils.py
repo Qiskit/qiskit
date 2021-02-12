@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple
 
 import math
 import numpy as np
-import scipy
+from scipy.optimize import fsolve
 
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.library import IGate
@@ -397,7 +397,7 @@ def solve_decomposition_angle(matrix: np.ndarray) -> float:
         lhs = math.sin(angle / 2)
         return rhs - lhs
 
-    decomposition_angle = scipy.optimize.fsolve(objective, angle)[0]
+    decomposition_angle = fsolve(objective, angle)[0]
     return decomposition_angle
 
 
