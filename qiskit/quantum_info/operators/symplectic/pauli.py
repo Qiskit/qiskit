@@ -12,7 +12,7 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
@@ -146,7 +146,6 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
-    # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
@@ -427,7 +426,6 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the operator composition with another Pauli.
 
@@ -452,7 +450,6 @@ class Pauli(BasePauli):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Pauli):

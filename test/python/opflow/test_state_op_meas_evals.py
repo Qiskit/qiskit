@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,import-error
+
+
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
@@ -23,7 +26,6 @@ from qiskit.opflow import (
 )
 
 
-# pylint: disable=invalid-name
 class TestStateOpMeasEvals(QiskitOpflowTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 

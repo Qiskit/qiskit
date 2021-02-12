@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 _UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
 
+# pylint: disable=no-name-in-module, import-error, unused-import
+
+
 class ProviderCheck:
     """Contains Provider verification info."""
 
@@ -37,7 +40,6 @@ def has_ibmq():
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit.providers.ibmq import IBMQFactory
-            # pylint: disable=syntax-error
             from qiskit.providers.ibmq.accountprovider import AccountProvider
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -104,7 +106,7 @@ def is_ibmq_provider(backend):
         bool: True is IBMQ
     """
     if has_ibmq():
-        # pylint: disable=syntax-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from qiskit.providers.ibmq.accountprovider import AccountProvider
         return isinstance(backend.provider(), AccountProvider)
 

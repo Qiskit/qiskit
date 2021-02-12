@@ -46,7 +46,7 @@ class CustomSolver(RecursiveBacktrackingSolver):
                 return True
         return False
 
-    def getSolution(self,  # pylint: disable=invalid-name
+    def getSolution(self,
                     domains, constraints, vconstraints):
         """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
         if self.call_limit is not None:

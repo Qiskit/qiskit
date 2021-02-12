@@ -145,7 +145,6 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_ryy(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for YY rotation
         """
         ham = Y ^ Y
@@ -165,7 +164,6 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_rzz(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for ZZ rotation
         """
         ham = Z ^ X

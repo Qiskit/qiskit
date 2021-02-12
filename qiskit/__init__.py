@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-order,invalid-name,wrong-import-position
+# pylint: disable=invalid-name,wrong-import-position
 
 
 """Main Qiskit public functionality."""

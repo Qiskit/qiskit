@@ -106,7 +106,7 @@ class UserConfig:
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 'default', 'transpile_optimization_level', fallback=-1)
-            if not transpile_optimization_level == -1:
+            if transpile_optimization_level != -1:
                 if (transpile_optimization_level < 0 or
                         transpile_optimization_level > 3):
                     raise exceptions.QiskitUserConfigError(
@@ -123,7 +123,7 @@ class UserConfig:
             # Parse num_processes
             num_processes = self.config_parser.getint(
                 'default', 'num_processes', fallback=-1)
-            if not num_processes == -1:
+            if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid number of processes. Must be "

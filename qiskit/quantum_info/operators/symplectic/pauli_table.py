@@ -12,7 +12,7 @@
 """
 Symplectic Pauli Table Class
 """
-# pylint: disable=invalid-name, useless-super-delegation
+# pylint: disable=invalid-name
 
 import numpy as np
 
@@ -573,7 +573,6 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, PauliTable):
