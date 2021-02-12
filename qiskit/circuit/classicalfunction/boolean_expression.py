@@ -104,7 +104,7 @@ class BooleanExpression(Gate):
                          len(self._tweedledum_bool_expression._return_signature),
                          params=[])
 
-    def evaluate(self, bitstring: str) -> bool:
+    def simulate(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
 
         This evaluation is done classically.
