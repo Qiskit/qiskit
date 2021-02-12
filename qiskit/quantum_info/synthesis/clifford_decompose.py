@@ -29,11 +29,12 @@ def decompose_clifford(clifford, method=None):
     For N <= 3 qubits this is based on optimal CX cost decomposition
     from reference [1]. For N > 3 qubits this is done using the general
     non-optimal greedy compilation routine from reference [3],
-    which yields better CX cost compared to [2].
+    which typically yields better CX cost compared to the AG method in [2].
 
     Args:
         clifford (Clifford): a clifford operator.
-        method (str): a synthesis method ('AG' or 'greedy')
+        method (str):  Optional, a synthesis method ('AG' or 'greedy').
+             If set this overrides optimal decomposition for N <=3 qubits.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
