@@ -125,14 +125,8 @@ class QCircuitImage:
         self._style = DefaultStyle().style
 
     def latex(self):
-        """Return LaTeX string representation of circuit.
+        """Return LaTeX string representation of circuit."""
 
-        This method uses the LaTeX Qconfig package to create a graphical
-        representation of the circuit.
-
-        Returns:
-            string: for writing to a LaTeX file.
-        """
         self._initialize_latex_array()
         self._build_latex_array()
         header_1 = r"""% \documentclass[preview]{standalone}
@@ -162,7 +156,7 @@ class QCircuitImage:
         output.write(header_2)
         if self.global_phase:
             output.write(r"""
-{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
+{$\mathrm{%s} \mathrm{%s}$}""" % ('global\\,phase:\\,', pi_check(self.global_phase, output='latex')))
         output.write(qcircuit_line %
                      (self.column_separation, self.wire_separation))
         for i in range(self.img_width):
@@ -181,13 +175,14 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self):
+        """Initialize qubit and clbit labels and set wire separation"""
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_wire_heights = self.img_width
         # choose the most compact wire spacing, while not squashing them
         if self.has_box:
-            self.wire_separation = 0.0
-        elif self.has_target:
             self.wire_separation = 0.2
+        elif self.has_target:
+            self.wire_separation = 0.8
         else:
             self.wire_separation = 1.0
         self._latex = [
@@ -229,12 +224,7 @@ class QCircuitImage:
                 self._latex[i][0] = label
 
     def _get_image_depth(self):
-        """Get depth information for the circuit.
-
-        Returns:
-            int: number of columns in the circuit
-            int: total size of columns in the circuit
-        """
+        """Get depth information for the circuit."""
         max_column_widths = []
         # Determine wire spacing before image depth
         for layer in self.ops:
@@ -253,19 +243,16 @@ class QCircuitImage:
 
         for layer in self.ops:
 
-            # store the max width for the layer
             current_max = 0
-
             for op in layer:
-
-                # update current op width
                 arg_str_len = 0
 
                 # the wide gates
                 for arg in op.op.params:
-                    arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
-                                     self._truncate_float, str(arg))
-                    arg_str_len += len(arg_str)
+                    if not any([isinstance(param, np.ndarray) for param in op.op.params]):
+                        arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
+                                         self._truncate_float, str(arg))
+                        arg_str_len += len(arg_str)
 
                 # the width of the column is the max of all the gates in the column
                 current_max = max(arg_str_len, current_max)
@@ -274,14 +261,12 @@ class QCircuitImage:
 
         # wires in the beginning and end
         columns = 2
-
-        # add extra column if needed
         if self.cregbundle and (self.ops and self.ops[0] and
                                 (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             columns += 1
 
-        # all gates take up 1 column except from those with labels (ie cu1)
-        # which take 2 columns
+        # all gates take up 1 column except from those with labels (ie cu1, cp, rzz)
+        # which take 3 columns
         for layer in self.ops:
             column_width = 1
             for nd in layer:
@@ -305,11 +290,8 @@ class QCircuitImage:
         return columns, math.ceil(sum_column_widths)
 
     def _get_beamer_page(self):
-        """Get height, width & scale attributes for the beamer page.
+        """Get height, width & scale attributes for the beamer page."""
 
-        Returns:
-            tuple: (height, width, scale) desirable page attributes
-        """
         # PIL python package limits image size to around a quarter gigabyte
         # this means the beamer image should be limited to < 50000
         # if you want to avoid a "warning" too, set it to < 25000
@@ -392,11 +374,14 @@ class QCircuitImage:
             num_cols_used = 1
 
             for op in layer:
-                #self._latex[0][1] = "\\dstick{\\hspace{12pt}%s}\\qw" % "   "
+                if op.name == "measure":
+                    self._build_measure(op, column)
 
-                gate_text, ctrl_text = self._get_gate_ctrl_text(op)
-                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                   'save', 'noise']:
+                elif op.name in ['barrier', 'snapshot', 'load', 'save', 'noise']:
+                    self._build_barrier(op, column)
+
+                else:
+                    gate_text, ctrl_text = self._get_gate_ctrl_text(op)
                     gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
                     gate_text = self._add_params_to_gate_text(op, gate_text)
 
@@ -415,13 +400,13 @@ class QCircuitImage:
 
                     elif len(wire_list) == 2:
                         if op.name == "swap":
-                            self._add_swap(wire_list, column)
+                            self._build_swap(wire_list, column)
 
                         elif op.name in ['cu1', 'cp', 'rzz']:
-                            num_cols_used = self._add_symmetric_gate(op, op.name, gate_text,
-                                                                     wire_list, column,
-                                                                     num_cols_used)
-                        elif isinstance(op.op, ControlledGate) or op.name == 'rzz':
+                            num_cols_used = self._build_symmetric_gate(op, op.name, gate_text,
+                                                                       wire_list, column,
+                                                                       num_cols_used)
+                        elif isinstance(op.op, ControlledGate):
                             self._build_single_ctrl_gate(op, gate_text, wire_list, column)
 
                         else:
@@ -433,16 +418,6 @@ class QCircuitImage:
                                                                     num_cols_used)
                     else:
                         self._build_multi_gate(gate_text, wire_list, column)
-
-                elif op.name == "measure":
-                    self._build_measure(op, column)
-
-                elif op.name in ['barrier', 'snapshot', 'load', 'save',
-                                 'noise']:
-                    self._build_barrier(op, column)
-
-                else:
-                    raise exceptions.VisualizationError("bad node data")
 
             column += num_cols_used
 
@@ -492,9 +467,9 @@ class QCircuitImage:
             if op.op.base_gate.name in ['swap', 'rzz']:
                 self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
                 if op.op.base_gate.name == 'swap':
-                    self._add_swap(wire_list, col)
+                    self._build_swap(wire_list, col)
                 elif op.op.base_gate.name == 'rzz':
-                    num_cols_used = self._add_symmetric_gate(op, 'rzz', gate_text,
+                    num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
                                                              wire_list, col, num_cols_used)
             else:
                 # If any controls appear in the span of the multiqubit
@@ -509,7 +484,35 @@ class QCircuitImage:
                 self._build_multi_gate(gate_text, wireqargs, col)
         return num_cols_used
 
+    def _build_swap(self, wire_list, col):
+        """Add a swap gate"""
+        wire1 = min(wire_list)
+        wire2 = max(wire_list)
+        self._latex[wire1][col] = "\\qswap"
+        self._latex[wire2][col] = "\\qswap \\qwx[" + str(wire1 - wire2) + "]"
+
+    def _build_symmetric_gate(self, op, op_name, gate_text, wire_list, col, num_cols_used):
+        """Add symmetric gates for cu1, cp, and rzz"""
+        wire1 = min(wire_list)
+        wire2 = max(wire_list)
+        if op_name == 'rzz':
+            gate_text = "\\mathrm{zz}" + "\\,(" \
+                      + "\\mathrm{%s)}" % self.parse_params(op.op.params[0])
+            cond = '1'
+        else:
+            cond = "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
+
+        if cond == '0':
+            self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
+        elif cond == '1':
+            self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
+
+        self._latex[wire2][col] = "\\control \\qw"
+        self._latex[wire1][col+1] = "\\dstick{\\hspace{1.0em}%s}\\qw" % gate_text
+        return max(num_cols_used, 3)
+
     def _build_measure(self, op, col):
+        """Build a meter and the lines to the creg"""
         if op.condition:
             raise exceptions.VisualizationError(
                 "If controlled measures currently not supported.")
@@ -530,8 +533,8 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
             self._latex[wire2][col] = \
-                "\\dstick{" + str(cregindex) + "} " + \
-                "\\cw \\cwx[-" + str(wire2 - wire1) + "]"
+                "\\dstick{\\mathrm{%s}} \\cw \\cwx[-%s]" % \
+                (str(cregindex), str(wire2-wire1))
         else:
             self._latex[wire2][col] = \
                 "\\cw \\cwx[-" + str(wire2 - wire1) + "]"
@@ -539,6 +542,7 @@ class QCircuitImage:
                 "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
 
     def _build_barrier(self, op, col):
+        """Build a partial or full barrier if plot_barriers set"""
         if self.plot_barriers:
             indexes = [self._get_qubit_index(x) for x in op.qargs]
             indexes.sort()
@@ -558,6 +562,7 @@ class QCircuitImage:
             self._latex[pos][col] = "\\qw"
 
     def _add_multi_controls(self, wire_list, ctrlqargs, ctrl_state, col):
+        """Add more than one control to a gate"""
         for index, ctrl_item in enumerate(zip(ctrlqargs, ctrl_state)):
             pos = ctrl_item[0]
             cond = ctrl_item[1]
@@ -578,6 +583,7 @@ class QCircuitImage:
                     nxt - wire_list[index]) + "}"
 
     def _add_params_to_gate_text(self, op, gate_text):
+        """Add the params to the end of the current gate_text"""
         # Must limit to 4 params or may get dimension too large error
         # from xy-pic xymatrix command
         if (len(op.op.params) > 0 and not any(
@@ -591,32 +597,6 @@ class QCircuitImage:
                 gate_text = gate_text[:-1]
             gate_text += "\\mathrm{)}"
         return gate_text
-
-    def _add_swap(self, wire_list, col):
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
-        self._latex[wire1][col] = "\\qswap"
-        self._latex[wire2][col] = "\\qswap \\qwx[" + str(wire1 - wire2) + "]"
-
-    def _add_symmetric_gate(self, op, op_name, gate_text, wire_list, col, num_cols_used):
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
-        if op_name == 'rzz':
-            gate_text = "\\mathrm{zz}" + "\\,(" \
-                      + "\\mathrm{%s)}" % self.parse_params(op.op.params[0])
-            cond = '1'
-        else:
-            cond = "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
-
-        if cond == '0':
-            self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
-        elif cond == '1':
-            self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
-
-        self._latex[wire2][col] = "\\control \\qw"
-        self._latex[wire1][col+1] = "\\dstick{\\hspace{12pt}%s}\\qw" % gate_text
-        self._latex[wire2][col+1] = "\\qw"
-        return max(num_cols_used, 3)
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
@@ -632,14 +612,19 @@ class QCircuitImage:
         gap = cwire - bottom
 
         for i in range(creg_rng):
-            if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
+            if self.cregbundle:
+                # Print the condition value at the bottom
                 self._latex[cwire + i][col] = \
-                    "\\control \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
+                    "\\dstick{\\mathrm{%s}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
             else:
-                self._latex[cwire + i][col] = \
-                    "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
+                if if_value[i] == '1':
+                    self._latex[cwire + i][col] = \
+                        "\\control \\cw \\cwx[-" + str(gap) + "]"
+                    gap = 1
+                else:
+                    self._latex[cwire + i][col] = \
+                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                    gap = 1
 
     def _get_mask(self, creg_name):
         """Get the clbit bit mask"""
@@ -651,8 +636,6 @@ class QCircuitImage:
 
     def parse_params(self, param):
         """Parse parameters."""
-        if isinstance(param, (ParameterExpression, str)):
-            return generate_latex_label(str(param))
         return pi_check(param, output='latex')
 
     def _get_qubit_index(self, qubit):
