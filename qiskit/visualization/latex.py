@@ -155,8 +155,8 @@ class QCircuitImage:
         output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
         if self.global_phase:
-            output.write(r"""
-{$\mathrm{%s} \mathrm{%s}$}""" % ('global\\,phase:\\,', pi_check(self.global_phase, output='latex')))
+            output.write(r"""{$\mathrm{%s} \mathrm{%s}$}"""
+                         % ('global\\,phase:\\,', pi_check(self.global_phase, output='latex')))
         output.write(qcircuit_line %
                      (self.column_separation, self.wire_separation))
         for i in range(self.img_width):
@@ -381,7 +381,7 @@ class QCircuitImage:
                     self._build_barrier(op, column)
 
                 else:
-                    gate_text, ctrl_text = self._get_gate_ctrl_text(op)
+                    gate_text, _ = self._get_gate_ctrl_text(op)
                     gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
                     gate_text = self._add_params_to_gate_text(op, gate_text)
 
@@ -470,7 +470,7 @@ class QCircuitImage:
                     self._build_swap(wire_list, col)
                 elif op.op.base_gate.name == 'rzz':
                     num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
-                                                             wire_list, col, num_cols_used)
+                                                               wire_list, col, num_cols_used)
             else:
                 # If any controls appear in the span of the multiqubit
                 # gate just treat the whole thing as a big gate
@@ -604,12 +604,12 @@ class QCircuitImage:
         cl_reg = self.clbit_list[self._ffs(mask)]
         if_reg = cl_reg.register
         if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])[::-1]
-        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
-
-        cwire = self.img_regs[if_reg[0]]
-        wire_list.sort(key=int)
-        bottom = wire_list[-1]
+        cwire = self.img_regs[if_reg[cl_reg.index]]
+        temp = wire_list + [cwire]
+        temp.sort(key=int)
+        bottom = temp[len(wire_list) - 1]
         gap = cwire - bottom
+        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
 
         for i in range(creg_rng):
             if self.cregbundle:

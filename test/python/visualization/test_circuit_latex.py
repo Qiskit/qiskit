@@ -17,18 +17,17 @@ import math
 import numpy as np
 
 from qiskit.visualization import circuit_drawer
-from .visualization import QiskitVisualizationTestCase
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
-from qiskit.visualization.circuit_visualization import _latex_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from .visualization import QiskitVisualizationTestCase
 
 pi = np.pi
+
 
 class TestLatexSourceGenerator(QiskitVisualizationTestCase):
     """Qiskit latex source generator tests."""
