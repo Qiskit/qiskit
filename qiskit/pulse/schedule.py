@@ -30,7 +30,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-# pylint: disable=cyclic-import, unused-import
+# pylint: disable=cyclic-import
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
@@ -220,7 +220,6 @@ class Schedule(abc.ABC):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    # pylint: disable=arguments-differ
     def shift(self,
               time: int,
               name: Optional[str] = None,
@@ -280,7 +279,6 @@ class Schedule(abc.ABC):
                            orig_time, child in self._children]
         return self
 
-    # pylint: disable=arguments-differ
     def insert(self,
                start_time: int,
                schedule: Union['Schedule', Instruction],
@@ -333,7 +331,6 @@ class Schedule(abc.ABC):
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
 
-    # pylint: disable=arguments-differ
     def append(self, schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False) -> 'Schedule':
@@ -861,7 +858,7 @@ class Schedule(abc.ABC):
             The returned data type depends on the ``plotter``.
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
-        # pylint: disable=invalid-name, cyclic-import, missing-return-type-doc
+        # pylint: disable=cyclic-import, missing-return-type-doc
         from qiskit.visualization import pulse_drawer_v2, SchedStyle
 
         legacy_args = {'dt': dt,

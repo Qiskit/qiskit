@@ -12,7 +12,7 @@
 """
 Clifford operator class.
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=abstract-method
 import re
 import numpy as np
 

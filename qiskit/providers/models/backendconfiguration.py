@@ -305,7 +305,7 @@ class QasmBackendConfiguration:
         # Add pulse properties here because some backends do not
         # fit within the Qasm / Pulse backend partitioning in Qiskit
         if dt is not None:
-            self.dt = dt * 1e-9  # pylint: disable=invalid-name
+            self.dt = dt * 1e-9
         if dtm is not None:
             self.dtm = dtm * 1e-9
 
@@ -548,7 +548,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
 
-        self.dt = dt * 1e-9  # pylint: disable=invalid-name
+        self.dt = dt * 1e-9
         self.dtm = dtm * 1e-9
 
         if channels is not None:
@@ -651,7 +651,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if self.rep_times:
             out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
 
-        out_dict['dt'] *= 1e9  # pylint: disable=invalid-name
+        out_dict['dt'] *= 1e9
         out_dict['dtm'] *= 1e9
 
         if hasattr(self, 'channel_bandwidth'):

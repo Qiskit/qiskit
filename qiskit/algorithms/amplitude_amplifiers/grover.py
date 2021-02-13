@@ -112,7 +112,6 @@ class Grover(AmplitudeAmplifier):
                  sample_from_iterations: bool = False,
                  quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
                  ) -> None:
-        # pylint: disable=line-too-long
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
