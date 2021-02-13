@@ -13,13 +13,10 @@
 """Line search with Gaussian-smoothed samples on a sphere."""
 
 from typing import Dict, Optional, Tuple, List, Callable
-import logging
 import numpy as np
 
 from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 
 class GSLS(Optimizer):
@@ -35,7 +32,7 @@ class GSLS(Optimizer):
                 'step_size_multiplier', 'armijo_parameter',
                 'min_gradient_norm', 'max_failed_rejection_sampling']
 
-    # pylint:disable=unused-argument
+    # pylint: disable=unused-argument
     def __init__(self,
                  maxiter: int = 10000,
                  max_eval: int = 10000,
