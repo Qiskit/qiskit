@@ -54,7 +54,6 @@ class MockBlueprint(BlueprintCircuit):
     def _build(self):
         super()._build()
 
-        # pylint: disable=no-member
         self.rx(Parameter('angle'), 0)
         self.h(self.qubits)
 
