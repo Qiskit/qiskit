@@ -166,7 +166,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                     alpha: float,
                                     kind: str = 'fisher',
                                     apply_post_processing: bool = False) -> Tuple[float, float]:
-        # pylint: disable=wrong-spelling-in-docstring
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',

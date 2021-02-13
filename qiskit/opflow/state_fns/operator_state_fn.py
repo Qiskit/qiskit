@@ -175,7 +175,6 @@ class OperatorStateFn(StateFn):
                 prim_str,
                 self.coeff)
 
-    # pylint: disable=too-many-return-statements
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
