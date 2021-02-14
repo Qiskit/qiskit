@@ -1728,8 +1728,8 @@ def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
         with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1})
-            pulse.call(subroutine, amp=0.3})
+            pulse.call(subroutine, amp=0.1)
+            pulse.call(subroutine, amp=0.3)
 
     Args:
         target: Target circuit or pulse schedule to call.

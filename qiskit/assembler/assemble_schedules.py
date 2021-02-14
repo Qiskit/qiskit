@@ -19,14 +19,13 @@ from typing import Any, Dict, List, Tuple, Union
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, library
-from qiskit.pulse.schedule import ScheduleComponent
+from qiskit.pulse import instructions, transforms, library, schedule
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 
 def assemble_schedules(
-        schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+        schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
         qobj_id: int,
         qobj_header: qobj.QobjHeader,
         run_config: RunConfig) -> qobj.PulseQobj:
@@ -63,7 +62,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-        schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+        schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
         lo_converter: converters.LoConfigConverter,
         run_config: RunConfig
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
