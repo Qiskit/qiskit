@@ -42,7 +42,7 @@ class Call(instruction.Instruction):
                 the hash of instructions of the subroutine.
         """
         if name is None:
-            name = self.prefix + subroutine.name
+            name = f"{self.prefix}_{subroutine.name}"
 
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),
