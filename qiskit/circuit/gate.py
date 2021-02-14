@@ -53,7 +53,7 @@ class Gate(Instruction):
                 exception will be raised when this base class method is called.
         """
         if hasattr(self, '__array__'):
-            # pylint: disable = no-member
+            # pylint: disable=no-member
             return self.__array__(dtype=complex)
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 

@@ -37,8 +37,6 @@ from .variational_forms import VariationalForm
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=invalid-name
-
 
 class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""

@@ -63,8 +63,8 @@ class BaseOperator(GroupMixin, ABC):
         n_qargs = len(qargs)
         if n_qargs not in self._op_shape.num_qargs:
             raise QiskitError(
-                f"qargs does not match the number of operator qargs "
-                "({n_qargs} not in {self._op_shape.num_qargs})")
+                "qargs does not match the number of operator qargs "
+                f"({n_qargs} not in {self._op_shape.num_qargs})")
         ret = copy.copy(self)
         ret._qargs = tuple(qargs)
         return ret

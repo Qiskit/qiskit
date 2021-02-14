@@ -114,7 +114,6 @@ def entropy(state, base=2):
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
     """
-    # pylint: disable=assignment-from-no-return
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
         return 0
