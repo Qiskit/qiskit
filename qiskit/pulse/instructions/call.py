@@ -25,13 +25,8 @@ class Call(instruction.Instruction):
 
     This instruction represents a call to a referenced pulse subroutine (schedule).
     Note that this instruction is not exposed to end users.
-    The ``Call`` instruction is created with a target subroutine and it behaves as a
-    standard pulse instruction within the ``Schedule``. No physical operation to
-    a quantum processor is triggered by this instruction. On the other hand,
-    this instruction provides a set of inline function (subroutine) and
-    parameters to the compiler, and the compiler can use these information to generate
-    better program representation, especially, when the inline function is used multiple times
-    within the main program.
+    The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
+    It enables code reuse both within the pulse representation and hardware (if supported).
     """
     # Prefix to use for auto naming.
     prefix = 'subroutine-'
