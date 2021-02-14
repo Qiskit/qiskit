@@ -11,17 +11,17 @@
 # that they have been altered from the originals.
 
 """Test cases for parameters used in Schedules."""
-import numpy as np
 import unittest
 from copy import deepcopy
 
-from qiskit.test import QiskitTestCase
+import numpy as np
 
 from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
 from qiskit.pulse.transforms import inline_subroutines
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
 
 
