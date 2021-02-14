@@ -11,7 +11,10 @@
 # that they have been altered from the originals.
 
 """Test cases for parameters used in Schedules."""
+import numpy as np
 import unittest
+from copy import deepcopy
+
 from qiskit.test import QiskitTestCase
 
 from qiskit import pulse, assemble
@@ -302,18 +305,40 @@ class TestPulseParameters(QiskitTestCase):
 
         program_layer0 = pulse.Schedule()
         program_layer0 += pulse.Play(waveform, DriveChannel(0))
-        reference = program_layer0.assign_parameters({param1: 0.1})
+        reference = deepcopy(program_layer0).assign_parameters({param1: 0.1})
 
         # to call instruction
         program_layer1 = pulse.Schedule()
         program_layer1 += pulse.instructions.Call(program_layer0)
-        target = program_layer1.assign_parameters({param1: 0.1})
+        target = deepcopy(program_layer1).assign_parameters({param1: 0.1})
         self.assertEqual(inline_subroutines(target), reference)
 
         # to nested call instruction
         program_layer2 = pulse.Schedule()
         program_layer2 += pulse.instructions.Call(program_layer1)
-        target = program_layer2.assign_parameters({param1: 0.1})
+        target = deepcopy(program_layer2).assign_parameters({param1: 0.1})
+        self.assertEqual(inline_subroutines(target), reference)
+
+    def test_assign_parameter_to_subroutine_parameter(self):
+        """Test that assign parameter objects to parameter of subroutine."""
+        param1 = Parameter('amp')
+        waveform = pulse.library.Constant(duration=100, amp=param1)
+
+        param_sub1 = Parameter('amp')
+        param_sub2 = Parameter('phase')
+
+        subroutine = pulse.Schedule()
+        subroutine += pulse.Play(waveform, DriveChannel(0))
+        reference = deepcopy(subroutine).assign_parameters({param1: 0.1 * np.exp(1j * 0.5)})
+
+        main_prog = pulse.Schedule()
+        pdict = {param1: param_sub1 * np.exp(1j * param_sub2)}
+        main_prog += pulse.instructions.Call(subroutine, value_dict=pdict)
+
+        # parameter is overwritten by parameters
+        self.assertEqual(len(main_prog.parameters), 2)
+        target = deepcopy(main_prog).assign_parameters({param_sub1: 0.1, param_sub2: 0.5})
+
         self.assertEqual(inline_subroutines(target), reference)
 
 

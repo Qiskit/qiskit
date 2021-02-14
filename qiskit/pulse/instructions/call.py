@@ -16,6 +16,7 @@ from typing import Optional, Union, Dict, Tuple, Any, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.instructions import instruction
+from qiskit.pulse.utils import format_parameter_value
 
 # TODO This instruction should support ScheduleBlock when it's ready.
 
@@ -41,7 +42,7 @@ class Call(instruction.Instruction):
             subroutine (Schedule): A program subroutine to be referred to.
             value_dict: Mapping of parameter object to assigned value.
             name: Unique ID of this subroutine. If not provided, this is generated based on
-                the number of Call instance call.
+                the subroutine name.
         """
         if name is None:
             name = f"{self.prefix}_{subroutine.name}"
@@ -50,7 +51,7 @@ class Call(instruction.Instruction):
                          channels=tuple(subroutine.channels),
                          name=name)
         if value_dict:
-            self._parameter_table.update(value_dict)
+            self.assign_parameters(value_dict)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
@@ -87,7 +88,7 @@ class Call(instruction.Instruction):
         """
         if operands[0].is_parameterized():
             for value in operands[0].parameters:
-                self._parameter_table[value] = None
+                self._parameter_table[value] = value
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
@@ -109,19 +110,27 @@ class Call(instruction.Instruction):
             Self with updated parameters.
         """
         for param_obj, assigned_value in value_dict.items():
-            if param_obj in self._parameter_table:
-                self._parameter_table[param_obj] = assigned_value
+            for key_obj, value in self._parameter_table.items():
+                # assign value to parameter expression (it can consist of multiple parameters)
+                if param_obj in value.parameters:
+                    new_value = format_parameter_value(value.assign(param_obj, assigned_value))
+                    self._parameter_table[key_obj] = new_value
 
         return self
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any([value is None for value in self.arguments.values()])
+        return any([isinstance(value, ParameterExpression) for value in self.arguments.values()])
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
-        return set(key for key, val in self._parameter_table.items() if val is None)
+        params = set()
+        for value in self._parameter_table.values():
+            if isinstance(value, ParameterExpression):
+                for param in value.parameters:
+                    params.add(param)
+        return params
 
     @property
     def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
