@@ -1101,3 +1101,36 @@ class TestSubroutineCall(TestBuilder):
 
         self.assertEqual(play_0.pulse.amp, 0.1)
         self.assertEqual(play_1.pulse.amp, 0.5)
+
+    def test_call_with_not_existing_parameter(self):
+        """Test call subroutine with parameter not defined."""
+        amp = circuit.Parameter('amp1')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+        with self.assertWarns(UserWarning):
+            with pulse.build() as sched:
+                pulse.call(subroutine, amp=0.1)
+
+        # just ignored
+        self.assertTrue(sched.is_parameterized())
+
+    def test_call_with_common_parameter(self):
+        """Test call subroutine with parameter that is defined multiple times."""
+        amp = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(320, amp, 80), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, amp=0.1)
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.1)

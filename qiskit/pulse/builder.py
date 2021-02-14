@@ -217,7 +217,6 @@ from typing import (
 import numpy as np
 
 from qiskit import circuit
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.circuit.library import standard_gates as gates
 from qiskit.pulse import (
     channels as chans,

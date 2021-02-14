@@ -31,7 +31,7 @@ class Call(instruction.Instruction):
     prefix = 'call'
 
     def __init__(self, subroutine,
-                 value_dict: Dict[ParameterExpression, ParameterValueType],
+                 value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
                  name: Optional[str] = None):
         """Define new subroutine.
 
@@ -49,7 +49,8 @@ class Call(instruction.Instruction):
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),
                          name=name)
-        self._parameter_table.update(value_dict)
+        if value_dict:
+            self._parameter_table.update(value_dict)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
