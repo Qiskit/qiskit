@@ -30,15 +30,18 @@ class Call(instruction.Instruction):
     # Prefix to use for auto naming.
     prefix = 'call'
 
-    def __init__(self, subroutine, name: Optional[str] = None):
+    def __init__(self, subroutine,
+                 value_dict: Dict[ParameterExpression, ParameterValueType],
+                 name: Optional[str] = None):
         """Define new subroutine.
 
         .. note:: Inline subroutine is mutable. This requires special care for modification.
 
         Args:
             subroutine (Schedule): A program subroutine to be referred to.
+            value_dict: Mapping of parameter object to assigned value.
             name: Unique ID of this subroutine. If not provided, this is generated based on
-                the hash of instructions of the subroutine.
+                the number of Call instance call.
         """
         if name is None:
             name = f"{self.prefix}_{subroutine.name}"
@@ -46,6 +49,7 @@ class Call(instruction.Instruction):
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),
                          name=name)
+        self._parameter_table.update(value_dict)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

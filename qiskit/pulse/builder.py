@@ -451,6 +451,7 @@ class _PulseBuilder():
 
     def call_subroutine(self,
                         subroutine: Union[circuit.QuantumCircuit, Schedule],
+                        name: Optional[str] = None,
                         **kw_params):
         """Call a schedule or circuit defined outside of the current scope.
 
@@ -460,21 +461,26 @@ class _PulseBuilder():
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
-            subroutine: target schedule or circuit to append to the current context.
-            kw_params: parameter values to bind to the target subroutine.
+            subroutine: Target schedule or circuit to append to the current context.
+            name: Name of subroutine if defined.
+            kw_params: Parameter values to bind to the target subroutine.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
         if len(subroutine.instructions) > 0:
-            call_def = instructions.Call(subroutine)
-            if kw_params:
-                value_dict = dict()
-                for param_name, assigned_value in kw_params.items():
-                    for param_obj in subroutine.get_parameters(param_name):
+            value_dict = dict()
+            for param_name, assigned_value in kw_params.items():
+                param_objs = subroutine.get_parameters(param_name)
+                if len(param_objs) > 0:
+                    for param_obj in param_objs:
                         value_dict[param_obj] = assigned_value
-                call_def.assign_parameters(value_dict)
+                else:
+                    warnings.warn(f'Parameter {param_name} is not defined in the '
+                                  'target subroutine. Parameter assignment is ignored.',
+                                  UserWarning)
+            call_def = instructions.Call(subroutine, value_dict, name)
 
             self.append_instruction(call_def)
 
