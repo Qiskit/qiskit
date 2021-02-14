@@ -112,7 +112,7 @@ class Call(instruction.Instruction):
         for param_obj, assigned_value in value_dict.items():
             for key_obj, value in self._parameter_table.items():
                 # assign value to parameter expression (it can consist of multiple parameters)
-                if param_obj in value.parameters:
+                if isinstance(value, ParameterExpression) and param_obj in value.parameters:
                     new_value = format_parameter_value(value.assign(param_obj, assigned_value))
                     self._parameter_table[key_obj] = new_value
 
