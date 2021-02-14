@@ -453,15 +453,15 @@ class _PulseBuilder():
                         subroutine: Union[circuit.QuantumCircuit, Schedule],
                         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None
                         ):
-        """Call a schedule defined outside of the current scope.
+        """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
-        This is a logic to generate better program representation in the compiler.
+        This logic generates a convenient program representation in the compiler.
         Thus this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
-            subroutine: target program to append to this context.
+            subroutine: target schedule or circuit to append to the current context.
             value_dict: A mapping from Parameters to either numeric values or another
                 Parameter expression.
         """
