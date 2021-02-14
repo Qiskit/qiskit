@@ -23,10 +23,9 @@ from qiskit.pulse.instructions import instruction
 class Call(instruction.Instruction):
     """Pulse ``Call`` instruction.
 
-    This instruction represents a call to a referenced pulse subroutine (schedule).
-    Note that this instruction is not exposed to end users.
     The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
     It enables code reuse both within the pulse representation and hardware (if supported).
+    Note that this instruction is not exposed to end users.
     """
     # Prefix to use for auto naming.
     prefix = 'call'
@@ -94,7 +93,8 @@ class Call(instruction.Instruction):
         assigned according to the populated parameter table will be generated only when
         :func:`~qiskit.pulse.transforms.inline_subroutines` function is applied to this
         instruction. Note that parameter assignment logic creates a copy of subroutine
-        to avoid the mutation problem.
+        to avoid the mutation problem. This function is usually applied by the Qiskit
+        compiler when the program is submitted to the backend.
 
         Args:
             value_dict: A mapping from Parameters to either numeric values or another
