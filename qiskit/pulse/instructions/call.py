@@ -51,7 +51,7 @@ class Call(instruction.Instruction):
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
-        return self.operands[0].duration
+        return self.subroutine.duration
 
     # pylint: disable=missing-return-type-doc
     @property
