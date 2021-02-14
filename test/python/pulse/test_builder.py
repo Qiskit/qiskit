@@ -1065,8 +1065,8 @@ class TestSubroutineCall(TestBuilder):
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
         with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp: 0.1})
-            pulse.call(subroutine, value_dict={amp: 0.3})
+            pulse.call(subroutine, amp=0.1)
+            pulse.call(subroutine, amp=0.3)
 
         self.assertEqual(main_prog.is_parameterized(), False)
 
@@ -1086,7 +1086,7 @@ class TestSubroutineCall(TestBuilder):
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
         with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp: 0.1})
+            pulse.call(subroutine, amp=0.1)
             pulse.call(subroutine)
 
         self.assertEqual(main_prog.is_parameterized(), True)
