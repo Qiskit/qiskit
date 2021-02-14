@@ -13,7 +13,7 @@
 """
 CNOTDihedral operator class.
 """
-
+# pylint: disable = abstract-method
 import itertools
 import numpy as np
 
@@ -96,8 +96,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Initialize a CNOTDihedral operator object.
 
         Args:
-            data (CNOTDihedral, or QuantumCircuit or ~qiskit.circuit.Instruction):
-                (or ScalarOp or Pauli): Optional, operator to initialize.
+            data (CNOTDihedral or QuantumCircuit or ~qiskit.circuit.Instruction):
+                Optional, operator to initialize.
             num_qubits (int): Optional, initialize an empty CNOTDihedral operator.
             validate (bool): if True, validates the CNOTDihedral element.
 
