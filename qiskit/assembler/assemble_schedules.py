@@ -107,20 +107,20 @@ def _assemble_experiments(
 
     user_pulselib = {}
     experiments = []
-    for idx, schedule in enumerate(compressed_schedules):
+    for idx, sched in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
-            schedule,
+            sched,
             instruction_converter,
             run_config,
             user_pulselib)
 
-        metadata = schedule.metadata
+        metadata = sched.metadata
         if metadata is None:
             metadata = {}
         # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = qobj.QobjExperimentHeader(
             memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
-            name=schedule.name or 'Experiment-%d' % idx,
+            name=sched.name or 'Experiment-%d' % idx,
             metadata=metadata)
 
         experiment = qobj.PulseQobjExperiment(
@@ -155,7 +155,7 @@ def _assemble_experiments(
 
 
 def _assemble_instructions(
-        schedule: pulse.Schedule,
+        sched: pulse.Schedule,
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
         user_pulselib: Dict[str, List[complex]]
@@ -167,7 +167,7 @@ def _assemble_instructions(
     The dictionary is not returned to avoid redundancy.
 
     Args:
-        schedule: Schedule to assemble.
+        sched: Schedule to assemble.
         instruction_converter: A converter instance which can convert PulseInstructions to
                                PulseQobjInstructions.
         run_config: Configuration of the runtime environment.
@@ -181,7 +181,7 @@ def _assemble_instructions(
     qobj_instructions = []
 
     acquire_instruction_map = defaultdict(list)
-    for time, instruction in schedule.instructions:
+    for time, instruction in sched.instructions:
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):
