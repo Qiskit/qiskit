@@ -362,9 +362,6 @@ class QCircuitImage:
         """Returns an array of strings containing \\LaTeX for this circuit.
         """
 
-        qregdata = self.qregs
-        # Rename qregs if necessary
-
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (self.ops and self.ops[0] and

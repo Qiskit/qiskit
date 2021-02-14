@@ -34,7 +34,7 @@ class InstructionDurations:
                  dt: float = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
-        self.dt = dt  # pylint: disable=invalid-name
+        self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
 
@@ -79,7 +79,7 @@ class InstructionDurations:
                 instruction_durations.append(('measure', [q], readout_length, 's'))
 
         try:
-            dt = backend.configuration().dt  # pylint: disable=invalid-name
+            dt = backend.configuration().dt
         except AttributeError:
             dt = None
 

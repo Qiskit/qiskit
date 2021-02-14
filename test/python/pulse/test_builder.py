@@ -25,8 +25,6 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
 
-# pylint: disable=invalid-name
-
 
 class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
@@ -264,9 +262,9 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -280,11 +278,11 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(1e9, d0)
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(
             -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(-1e9, d0)
 
         self.assertEqual(schedule, reference)
 
@@ -420,7 +418,7 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    def test_shift_frequency(self):  # pylint: disable=no-member
+    def test_shift_frequency(self):
         """Test shift frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -428,11 +426,11 @@ class TestInstructions(TestBuilder):
             pulse.shift_frequency(0.1e9, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(0.1e9, d0)  # pylint: disable=no-member
+        reference += instructions.ShiftFrequency(0.1e9, d0)
 
         self.assertEqual(schedule, reference)
 
-    def test_set_phase(self):  # pylint: disable=no-member
+    def test_set_phase(self):
         """Test set phase instruction."""
         d0 = pulse.DriveChannel(0)
 
@@ -440,7 +438,7 @@ class TestInstructions(TestBuilder):
             pulse.set_phase(3.14, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.SetPhase(3.14, d0)  # pylint: disable=no-member
+        reference += instructions.SetPhase(3.14, d0)
 
         self.assertEqual(schedule, reference)
 
