@@ -29,7 +29,7 @@ class Call(instruction.Instruction):
     It enables code reuse both within the pulse representation and hardware (if supported).
     """
     # Prefix to use for auto naming.
-    prefix = 'subroutine-'
+    prefix = 'call'
 
     def __init__(self, subroutine, name: Optional[str] = None):
         """Define new subroutine.
