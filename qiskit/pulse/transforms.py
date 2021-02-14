@@ -529,7 +529,7 @@ def flatten(program: ScheduleComponent) -> ScheduleComponent:
 
 
 def inline_subroutines(program: Schedule) -> Schedule:
-    """Recursively remove the call instruction and inlines the attached instructions.
+    """Recursively remove call instructions and inline the respective subroutine instructions.
 
     Assigned parameter values, which are stored in the parameter table, are also applied.
     The subroutine is copied before the parameter assignment to avoid mutation problem.

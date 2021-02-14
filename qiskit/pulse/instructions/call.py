@@ -25,16 +25,11 @@ class Call(instruction.Instruction):
 
     This instruction represents a call to a referenced pulse subroutine (schedule).
     Note that this instruction is not exposed to end users.
-    The ``Call`` instruction is created with a target subroutine and it behaves as a
-    standard pulse instruction within the ``Schedule``. No physical operation to
-    a quantum processor is triggered by this instruction. On the other hand,
-    this instruction provides a set of inline function (subroutine) and
-    parameters to the compiler, and the compiler can use these information to generate
-    better program representation, especially, when the inline function is used multiple times
-    within the main program.
+    The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
+    It enables code reuse both within the pulse representation and hardware (if supported).
     """
     # Prefix to use for auto naming.
-    prefix = 'subroutine-'
+    prefix = 'call'
 
     def __init__(self, subroutine, name: Optional[str] = None):
         """Define new subroutine.
@@ -47,7 +42,7 @@ class Call(instruction.Instruction):
                 the hash of instructions of the subroutine.
         """
         if name is None:
-            name = self.prefix + subroutine.name
+            name = f"{self.prefix}_{subroutine.name}"
 
         super().__init__((subroutine,), None,
                          channels=tuple(subroutine.channels),
@@ -56,7 +51,7 @@ class Call(instruction.Instruction):
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
-        return self.operands[0].duration
+        return self.subroutine.duration
 
     # pylint: disable=missing-return-type-doc
     @property
