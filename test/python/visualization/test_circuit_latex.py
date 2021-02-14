@@ -387,7 +387,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         filename = self._get_resource_path('test_latex_ghz_to_gate.tex')
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
-        ghz_circuit = QuantumCircuit(3, name='This is a Ctrl-GHZ Circuit')
+        ghz_circuit = QuantumCircuit(3, name='Ctrl-GHZ Circuit')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
@@ -497,7 +497,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.cx(0, 1)
         circuit.ccx(2, 1, 0)
 
-        circuit_drawer(circuit, filename=filename, output='latex_source')
+        circuit_drawer(circuit, filename=filename, output='latex_source', reverse_bits=True)
 
         self.assertEqualToReference(filename)
 

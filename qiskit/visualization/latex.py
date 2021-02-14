@@ -230,16 +230,16 @@ class QCircuitImage:
         for layer in self.ops:
             for op in layer:
                 # useful information for determining wire spacing
-                boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
-                               'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                               'crz', 'cu3', 'id']
-                target_gates = ['cx', 'ccx']
+                boxed_gates = ['u1', 'u2', 'u3', 'u', 'p', 'x', 'y', 'z', 'h',
+                               's', 'sdg', 't', 'tdg', 'sx', 'sxdg', 'rx', 'ry', 'rz',
+                               'ch', 'cy', 'crz', 'cu2', 'cu3', 'cu', 'id']
+                target_gates = ['cx', 'ccx', 'cu1', 'cp', 'rzz']
                 if op.name in boxed_gates:
                     self.has_box = True
-                if op.name in target_gates:
+                elif op.name in target_gates:
                     self.has_target = True
-                if isinstance(op.op, ControlledGate):
-                    self.has_target = True
+                elif isinstance(op.op, ControlledGate):
+                    self.has_box = True
 
         for layer in self.ops:
 
@@ -269,9 +269,10 @@ class QCircuitImage:
         # which take 3 columns
         for layer in self.ops:
             column_width = 1
-            for nd in layer:
-                if nd.name in ['cu1', 'cp', 'rzz']:
-                    column_width = 3
+            for op in layer:
+                if (op.name in ['cu1', 'cp', 'rzz'] or
+                        (hasattr(op.op, 'base_gate') and op.op.base_gate.name == 'rzz')):
+                    column_width = 4
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -418,7 +419,7 @@ class QCircuitImage:
                                                                     num_cols_used)
                     else:
                         self._build_multi_gate(gate_text, wire_list, column)
-
+        
             column += num_cols_used
 
     def _build_multi_gate(self, gate_text, wire_list, col):
@@ -467,7 +468,7 @@ class QCircuitImage:
             if op.op.base_gate.name in ['swap', 'rzz']:
                 self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
                 if op.op.base_gate.name == 'swap':
-                    self._build_swap(wire_list, col)
+                    self._build_swap(wireqargs, col)
                 elif op.op.base_gate.name == 'rzz':
                     num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
                                                                wire_list, col, num_cols_used)
@@ -495,12 +496,7 @@ class QCircuitImage:
         """Add symmetric gates for cu1, cp, and rzz"""
         wire1 = min(wire_list)
         wire2 = max(wire_list)
-        if op_name == 'rzz':
-            gate_text = "\\mathrm{zz}" + "\\,(" \
-                      + "\\mathrm{%s)}" % self.parse_params(op.op.params[0])
-            cond = '1'
-        else:
-            cond = "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
+        cond = '1' if op_name == 'rzz' else "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
 
         if cond == '0':
             self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
@@ -508,8 +504,8 @@ class QCircuitImage:
             self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
 
         self._latex[wire2][col] = "\\control \\qw"
-        self._latex[wire1][col+1] = "\\dstick{\\hspace{1.0em}%s}\\qw" % gate_text
-        return max(num_cols_used, 3)
+        self._latex[wire1][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
+        return max(num_cols_used, 4)
 
     def _build_measure(self, op, col):
         """Build a meter and the lines to the creg"""
@@ -600,11 +596,16 @@ class QCircuitImage:
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
+        # These 3 are computed in order to place the black dots and circles on the bits
+        # cwire - the wire number for the first wire for the condition register
+        # if_value - a bit string for the condition
+        # gap - the number of wires from cwire to the gate qubit
         mask = self._get_mask(op.condition[0])
         cl_reg = self.clbit_list[self._ffs(mask)]
         if_reg = cl_reg.register
-        if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])[::-1]
         cwire = self.img_regs[if_reg[cl_reg.index]]
+
+        if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])[::-1]
         temp = wire_list + [cwire]
         temp.sort(key=int)
         bottom = temp[len(wire_list) - 1]
@@ -636,7 +637,7 @@ class QCircuitImage:
 
     def parse_params(self, param):
         """Parse parameters."""
-        return pi_check(param, output='latex')
+        return pi_check(param, output='latex', ndigits=4)
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit."""
