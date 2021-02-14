@@ -451,8 +451,7 @@ class _PulseBuilder():
 
     def call_subroutine(self,
                         subroutine: Union[circuit.QuantumCircuit, Schedule],
-                        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None
-                        ):
+                        **kw_params):
         """Call a schedule defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
@@ -462,8 +461,7 @@ class _PulseBuilder():
 
         Args:
             subroutine: target program to append to this context.
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            kw_params: parameter values to bind to the target subroutine.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
@@ -471,8 +469,13 @@ class _PulseBuilder():
 
         if len(subroutine.instructions) > 0:
             call_def = instructions.Call(subroutine)
-            if value_dict:
+            if kw_params:
+                value_dict = dict()
+                for param_name, assigned_value in kw_params.items():
+                    for param_obj in subroutine.get_parameters(param_name):
+                        value_dict[param_obj] = assigned_value
                 call_def.assign_parameters(value_dict)
+
             self.append_instruction(call_def)
 
     def new_circuit(self):
@@ -1681,8 +1684,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
     call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule],
-         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None):
+def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
     """Call the ``target`` within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
@@ -1721,13 +1723,12 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
         with pulse.build() as main_prog:
-            pulse.call(subroutine, {amp: 0.1})
-            pulse.call(subroutine, {amp: 0.3})
+            pulse.call(subroutine, amp=0.1})
+            pulse.call(subroutine, amp=0.3})
 
     Args:
         target: Target circuit or pulse schedule to call.
-        value_dict: A mapping from Parameters to either numeric values or another
-            Parameter expression.
+        kw_params: Parameter values to bind to the target subroutine.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
@@ -1736,7 +1737,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
 
-    _active_builder().call_subroutine(target, value_dict)
+    _active_builder().call_subroutine(target, **kw_params)
 
 
 # Directives

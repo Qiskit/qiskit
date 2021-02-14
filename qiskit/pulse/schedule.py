@@ -43,7 +43,7 @@ Interval = Tuple[int, int]
 TimeSlots = Dict[Channel, List[Tuple[int, int]]]
 """List of timeslots occupied by instructions for each channel."""
 
-ScheduleComponentType = Union['Schedule', Instruction]
+ScheduleComponent = Union['Schedule', Instruction]
 """An element that composes a pulse schedule."""
 
 
@@ -58,7 +58,7 @@ class Schedule(abc.ABC):
     prefix = 'sched'
 
     def __init__(self,
-                 *schedules: Union[ScheduleComponentType, Tuple[int, ScheduleComponentType]],
+                 *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None):
         """Create an empty schedule.
@@ -128,7 +128,7 @@ class Schedule(abc.ABC):
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponentType], ...]:
+    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
         """Return the child``NamedValues``s of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -285,7 +285,7 @@ class Schedule(abc.ABC):
     # pylint: disable=arguments-differ
     def insert(self,
                start_time: int,
-               schedule: ScheduleComponentType,
+               schedule: ScheduleComponent,
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'Schedule':
@@ -304,7 +304,7 @@ class Schedule(abc.ABC):
 
     def _mutable_insert(self,
                         start_time: int,
-                        schedule: ScheduleComponentType
+                        schedule: ScheduleComponent
                         ) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
@@ -319,7 +319,7 @@ class Schedule(abc.ABC):
 
     def _immutable_insert(self,
                           start_time: int,
-                          schedule: ScheduleComponentType,
+                          schedule: ScheduleComponent,
                           name: Optional[str] = None,
                           ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -336,7 +336,7 @@ class Schedule(abc.ABC):
         return new_sched
 
     # pylint: disable=arguments-differ
-    def append(self, schedule: ScheduleComponentType,
+    def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None,
                inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
@@ -523,7 +523,7 @@ class Schedule(abc.ABC):
 
     def _add_timeslots(self,
                        time: int,
-                       schedule: ScheduleComponentType) -> None:
+                       schedule: ScheduleComponent) -> None:
         """Update all time tracking within this schedule based on the given schedule.
 
         Args:
@@ -572,7 +572,7 @@ class Schedule(abc.ABC):
 
     def _remove_timeslots(self,
                           time: int,
-                          schedule: ScheduleComponentType):
+                          schedule: ScheduleComponent):
         """Delete the timeslots if present for the respective schedule component.
 
         Args:
@@ -612,8 +612,8 @@ class Schedule(abc.ABC):
 
     def _replace_timeslots(self,
                            time: int,
-                           old: ScheduleComponentType,
-                           new: ScheduleComponentType):
+                           old: ScheduleComponent,
+                           new: ScheduleComponent):
         """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
 
         Args:
@@ -625,8 +625,8 @@ class Schedule(abc.ABC):
         self._add_timeslots(time, new)
 
     def replace(self,
-                old: ScheduleComponentType,
-                new: ScheduleComponentType,
+                old: ScheduleComponent,
+                new: ScheduleComponent,
                 inplace: bool = False,
                 ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
@@ -929,7 +929,7 @@ class Schedule(abc.ABC):
                                plotter=plotter,
                                axis=axis)
 
-    def __eq__(self, other: ScheduleComponentType) -> bool:
+    def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -966,11 +966,11 @@ class Schedule(abc.ABC):
 
         return True
 
-    def __add__(self, other: ScheduleComponentType) -> 'Schedule':
+    def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponentType) -> 'Schedule':
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -1169,7 +1169,7 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
                     " starting time.".format(chan))
 
 
-def _get_timeslots(schedule: ScheduleComponentType) -> TimeSlots:
+def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
     """Generate timeslots from given schedule component.
 
     Args:
