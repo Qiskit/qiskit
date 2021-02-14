@@ -452,15 +452,15 @@ class _PulseBuilder():
     def call_subroutine(self,
                         subroutine: Union[circuit.QuantumCircuit, Schedule],
                         **kw_params):
-        """Call a schedule defined outside of the current scope.
+        """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
-        This is a logic to generate better program representation in the compiler.
+        This logic generates a convenient program representation in the compiler.
         Thus this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
-            subroutine: target program to append to this context.
+            subroutine: target schedule or circuit to append to the current context.
             kw_params: parameter values to bind to the target subroutine.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
