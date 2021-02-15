@@ -163,17 +163,15 @@ class QuantumCircuit:
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
 
-        if name is None:
-            name = self.cls_prefix() + str(self.cls_instances())
-            if sys.platform != "win32" and not is_main_process():
-                name += '-{}'.format(mp.current_process().pid)
-        self._increment_instances()
-
-        if not isinstance(name, str):
+        self._base_name = self.cls_prefix() if name is None else name
+        if not isinstance(self._base_name, str):
             raise CircuitError("The circuit name should be a string "
                                "(or None to auto-generate a name).")
-
-        self.name = name
+        if name is None:
+            self._name_update()
+        else:
+            self.name = name
+        self._increment_instances()
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
@@ -298,6 +296,15 @@ class QuantumCircuit:
     def cls_prefix(cls):
         """Return the prefix to use for auto naming."""
         return cls.prefix
+
+    def _name_update(self):
+        """update name of instance using instance number"""
+        if sys.platform != "win32" and not is_main_process():
+            pid_name = f'-{mp.current_process().pid}'
+        else:
+            pid_name = ''
+
+        self.name = f'{self._base_name}-{self.cls_instances()}{pid_name}'
 
     def has_register(self, register):
         """
@@ -1621,7 +1628,6 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
@@ -1908,7 +1914,12 @@ class QuantumCircuit:
 
         """
         # replace in self or in a copy depending on the value of in_place
-        bound_circuit = self if inplace else self.copy()
+        if inplace:
+            bound_circuit = self
+        else:
+            bound_circuit = self.copy()
+            self._increment_instances()
+            bound_circuit._name_update()
 
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_param_dict = self._unroll_param_dict(param_dict)
