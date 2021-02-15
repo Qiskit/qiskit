@@ -128,7 +128,7 @@ class SparsePauliOp(LinearOp):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
