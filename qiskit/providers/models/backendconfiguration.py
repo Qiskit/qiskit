@@ -765,7 +765,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             for ctrl in range(n_qubits):
                 try:
                     frame_ += self.control((ctrl, qubit))
-                except QiskitError:
+                except BackendConfigurationError:
                     pass
 
             frames.append(frame_)
