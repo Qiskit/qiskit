@@ -12,6 +12,8 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
+from os.path import basename
+
 from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 from .classicalfunction import HAS_TWEEDLEDUM
@@ -100,8 +102,8 @@ class BooleanExpression(Gate):
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
         super().__init__(name or short_expr_for_name,
-                         num_qubits=len(self._tweedledum_bool_expression._parameters_signature) +
-                         len(self._tweedledum_bool_expression._return_signature),
+                         num_qubits=self._tweedledum_bool_expression.num_inputs() +
+                                    self._tweedledum_bool_expression.num_outputs(),
                          params=[])
 
     def simulate(self, bitstring: str) -> bool:
@@ -159,5 +161,13 @@ class BooleanExpression(Gate):
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
-        from tweedledum import BoolExpression
-        return BoolExpression.from_dimacs_file(filename)
+        from tweedledum import BoolFunction
+
+        expr_obj = cls.__new__(cls)
+        expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
+
+        super(BooleanExpression, expr_obj).__init__(
+            name=basename(filename),num_qubits=expr_obj._tweedledum_bool_expression.num_inputs() +
+                                               expr_obj._tweedledum_bool_expression.num_outputs(),
+            params=[])
+        return expr_obj
