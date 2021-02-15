@@ -167,7 +167,7 @@ class Register:
             CircuitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
-        if not isinstance(key, (int, np.int32, np.int64, slice, list)):
+        if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]
