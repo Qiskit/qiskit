@@ -32,9 +32,9 @@ class _GraphDist():
     def dist_real(self):
         """Compute distance.
         """
-        x0, y0 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+        x0, y0 = self.ax.transAxes.transform(
             (0, 0))
-        x1, y1 = self.ax.transAxes.transform(  # pylint: disable=invalid-name
+        x1, y1 = self.ax.transAxes.transform(
             (1, 1))
         value = x1 - x0 if self.x else y1 - y0
         return value
@@ -207,7 +207,7 @@ def plot_gate_map(backend, figsize=None,
         grid_data = mpl_data[num_qubits]
     else:
         if not input_axes:
-            fig, ax = plt.subplots(figsize=(5, 5))  # pylint: disable=invalid-name
+            fig, ax = plt.subplots(figsize=(5, 5))
             ax.axis('off')
             return fig
 
@@ -222,7 +222,7 @@ def plot_gate_map(backend, figsize=None,
             figsize = (9, 3)
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
+        fig, ax = plt.subplots(figsize=figsize)
         ax.axis('off')
 
     # set coloring
@@ -256,8 +256,8 @@ def plot_gate_map(backend, figsize=None,
                                      color=line_color[ind], linewidth=line_width,
                                      zorder=0))
             if plot_directed:
-                dx = x_end - x_start  # pylint: disable=invalid-name
-                dy = y_end - y_start  # pylint: disable=invalid-name
+                dx = x_end - x_start
+                dy = y_end - y_start
                 if is_symmetric:
                     x_arrow = x_start + dx * 0.95
                     y_arrow = -y_start - dy * 0.95

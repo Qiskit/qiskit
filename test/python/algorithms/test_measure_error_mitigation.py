@@ -34,7 +34,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
@@ -86,7 +86,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except ImportError as ex:  # pylint: disable=broad-except
+        except ImportError as ex:
             self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
