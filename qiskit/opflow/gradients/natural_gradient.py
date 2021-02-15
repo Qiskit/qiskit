@@ -107,8 +107,15 @@ class NaturalGradient(GradientBase):
 
         # Define the function which compute the natural gradient from the gradient and the QFI.
         def combo_fn(x):
-            c = np.real(x[0])
-            a = np.real(x[1])
+            c = x[0]
+            a = x[1]
+            if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
+                raise Warning('The imaginary part of the gradient are non-negligible.')
+            if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
+                raise Warning('The imaginary part of the gradient are non-negligible.')
+            c = np.real(c)
+            a = np.real(a)
+
             if self.regularization:
                 # If a regularization method is chosen then use a regularized solver to
                 # construct the natural gradient.
@@ -125,9 +132,10 @@ class NaturalGradient(GradientBase):
                 try:
                     #             # Try to solve the system of linear equations Ax = C.
                     nat_grad = np.linalg.solve(a, c)
+
                 except np.linalg.LinAlgError:  # singular matrix
-                    print('Singular matrix lstsq solver required')
-                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c)
+                    warnings.warn('Singular matrix lstsq solver required')
+                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
 
             return nat_grad
         # Define the ListOp which combines the gradient and the QFI according to the combination

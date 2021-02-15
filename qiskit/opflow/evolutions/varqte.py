@@ -258,12 +258,28 @@ class VarQTE(EvolutionBase):
         if self._grad is None:
             self._init_grad_objects()
 
-        nat_grad_result = np.real(self._nat_grad.assign_parameters(param_dict).eval())
+        nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
         print('nat grad result', nat_grad_result)
         # Get the gradient of <H> w.r.t. the variational parameters
         grad_res = self._grad.assign_parameters(param_dict).eval()
         # Get the QFI/4
         metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
+
+        w, v = np.linalg.eig(metric_res)
+        # if not all(ew >= 0 for ew in w):
+        #     nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-5)
+        #     return nat_grad
+
+        if not all(ew >= -1e-8 for ew in w):
+            raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
+                                                                                'Please use a '
+                                                                                'regularized '
+                                                                                'least-square '
+                                                                                'solver for this '
+                                                                                'problem.')
+        if not all(ew >= 0 for ew in w):
+            w = [max(0, ew) for ew in w]
+            metric_res = v @ np.diag(w) @ np.linalg.inv(v)
         # Get the time derivative of the variational parameters
         # VarQRTE
         # if np.iscomplex(self._operator.coeff):
@@ -275,6 +291,11 @@ class VarQTE(EvolutionBase):
         #     nat_grad_result = np.real(NaturalGradient(regularization=self._regularization
         #                                               ).compute_with_res(metric_res * 4,
         #                                                                  grad_res * (-0.5)))
+        if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
+        if np.any([[np.abs(np.imag(metric_res_item)) > 1e-8 for metric_res_item in metric_res_row]
+                for metric_res_row in metric_res]):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
 
-        return nat_grad_result, grad_res, metric_res
+        return np.real(nat_grad_result), np.real(grad_res), np.real(metric_res)
 

@@ -99,8 +99,8 @@ class VarQITE(VarQTE):
             if self._ode_solver is None:
                 nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
                 # print('nat_grad_result', np.round(nat_grad_result, 3))
-                print('C', np.round(grad_res, 3))
-                print('metric', np.round(metric_res, 3))
+                # print('C', grad_res)
+                # print('metric', metric_res)
 
 
                 if self._get_error:
@@ -122,17 +122,19 @@ class VarQITE(VarQTE):
                     print('error before', error)
                     print('dt', dt)
                     print('et', e_t)
-                    # if j == 0:
-                    #     et_prev = 0
+                    if j == 0:
+                        et_prev = 0
+                        sqrt_h_prev_square = 0
                     # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps - j - 1)
 
                     # TODO Check -1 !!!
-                    error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
-                                         ) ** (self._num_time_steps - j - 1)
-                    # error += dt / 2 * (e_t + et_prev)
-
-                    et_prev = e_t
+                    # error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
+                    #                      ) ** (self._num_time_steps - j - 1)
+                    # error += dt/2 * (e_t * np.exp(2*np.abs(operator.coeff)*np.sqrt(h_squared)) +
+                    #                  et_prev * np.exp(2*np.abs(operator.coeff)*sqrt_h_prev_square))
+                    # et_prev = e_t
+                    # sqrt_h_prev_square = np.sqrt(h_squared)
 
                     # error += dt * (e_t + 2 * h_norm)
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
@@ -167,10 +169,9 @@ class VarQITE(VarQTE):
                 if j == 0:
                     trained_energy_0 = trained_energy
                 print('Fidelity', f)
-                print('Fidelity base true error', 2*np.sin(np.arccos(np.sqrt(f)) / 2 ))
                 print('True error', true_error)
 
-                # error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
+                error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
                 # error += dt * (e_t + 2*h_norm)
                 # error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - trained_energy_0)))
 
@@ -218,22 +219,23 @@ class VarQITE(VarQTE):
             raise TypeError('Currently this error can only be computed for operators given as '
                             'ComposedOps')
         eps_squared = 0
-        print('State', operator.oplist[-1].assign_parameters(dict(zip(self._parameters,
-                                                                 self._parameter_values))).eval())
+        # print('State', operator.oplist[-1].assign_parameters(dict(zip(self._parameters,
+        #                                                          self._parameter_values))).eval())
 
         # print('H^2', (operator.oplist[0].primitive ** 2).eval() * operator.oplist[0].coeff ** 2)
 
         #TODO CircuitSampler
-        # ⟨ψ(ω)|H^2|ψ(ω)〉
-        h_squared = ComposedOp([~StateFn(operator.oplist[0].primitive ** 2) *
+        # ⟨ψ(ω)|H^2|ψ(ω)〉Hermitian
+        h_squared = np.real(ComposedOp([~StateFn(operator.oplist[0].primitive ** 2) *
                                 operator.oplist[0].coeff ** 2,
                                 operator.oplist[-1]]).assign_parameters(dict(zip(self._parameters,
-                                                                 self._parameter_values))).eval()
+                                                                 self._parameter_values))).eval())
         print('h^2', np.round(h_squared, 6))
-        eps_squared += h_squared
+        eps_squared += np.real(h_squared)
 
-        # ⟨ψ(ω) | H | ψ(ω)〉^2
-        exp = operator.assign_parameters(dict(zip(self._parameters, self._parameter_values))).eval()
+        # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
+        exp = np.real(operator.assign_parameters(dict(zip(self._parameters,
+                                                   self._parameter_values))).eval())
         print('exp squared', np.round(exp ** 2, 6))
         eps_squared -= exp ** 2
 
@@ -259,8 +261,12 @@ class VarQITE(VarQTE):
 
 
 
-        print('Grad error', np.sqrt(eps_squared))
+
         print('Energy Variance', h_squared - exp **2)
+        if eps_squared < 0:
+            if np.abs(eps_squared) < 1e-10:
+                eps_squared = 0
+        print('Grad error', np.sqrt(eps_squared))
         return np.sqrt(eps_squared), h_squared
 
     def _distance_energy(self,
