@@ -393,10 +393,7 @@ class QCircuitImage:
                     if op.condition:
                         self._add_condition(op, wire_list, column)
 
-                    if gate_text == "reset":
-                        self._latex[wire_list[0]][column] = "\\ket{0} \\qw"
-
-                    elif len(wire_list) == 1:
+                    if len(wire_list) == 1:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif len(wire_list) == 2:
@@ -419,7 +416,7 @@ class QCircuitImage:
                                                                     num_cols_used)
                     else:
                         self._build_multi_gate(gate_text, wire_list, column)
-        
+
             column += num_cols_used
 
     def _build_multi_gate(self, gate_text, wire_list, col):
