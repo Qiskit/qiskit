@@ -263,7 +263,7 @@ class VarQTE(EvolutionBase):
         # Get the gradient of <H> w.r.t. the variational parameters
         grad_res = self._grad.assign_parameters(param_dict).eval()
         # Get the QFI/4
-        metric_res = np.real(self._metric.assign_parameters(param_dict).eval() * 0.25)
+        metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
         # Get the time derivative of the variational parameters
         # VarQRTE
         # if np.iscomplex(self._operator.coeff):

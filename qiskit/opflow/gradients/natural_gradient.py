@@ -115,21 +115,13 @@ class NaturalGradient(GradientBase):
                 nat_grad = NaturalGradient._regularized_sle_solver(
                     a, c, regularization=self.regularization)
             else:
-                # print('in combo fn A', a)
-                # print('in combo fn c', c)
-                # nat_grad = np.linalg.lstsq(a, c, rcond=None)[0]
-                # if np.linalg.norm(nat_grad) < 1e-8:
-                #     nat_grad = NaturalGradient._regularized_sle_solver(a,
-                #                                                        c,
-                #                                                        regularization='perturb_diag')
-                #     warnings.warn(r'Norm of the natural gradient smaller than $1e^{-8}$ use '
-                #                   r' `perturb_diag` regularization.')
-                # if np.linalg.norm(nat_grad) > 1e-4:
-                #     nat_grad = NaturalGradient._regularized_sle_solver(a,
-                #                                                        c,
-                #                                                        regularization='ridge')
-                #     warnings.warn(r'Norm of the natural gradient bigger than $1e^{3}$ use '
-                #                   r' `ridge` regularization.')
+                w, v = np.linalg.eig(a)
+                if not all(ew >= -1e-8 for ew in w):
+                    raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
+                                  'Please use a regularized least-square solver for this problem.')
+                if not all(ew >= 0 for ew in w):
+                    w = [max(0, ew) for ew in w]
+                    a = v @ np.diag(w) @ np.linalg.inv(v)
                 try:
                     #             # Try to solve the system of linear equations Ax = C.
                     nat_grad = np.linalg.solve(a, c)

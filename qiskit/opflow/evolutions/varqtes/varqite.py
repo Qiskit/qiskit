@@ -114,18 +114,25 @@ class VarQITE(VarQTE):
 
                     if np.imag(e_t) > 1e-5:
                         raise Warning(
-                            'The erro of this step is imaginary. Thus, the SLE underlying '
-                            'McLachlan was not solved well. The residuum of the SLE is ', resid)
+                            'The error of this step is imaginary. Thus, the SLE underlying '
+                            'McLachlan was not solved well. The residuum of the SLE is ', resid,
+                            '. Please use a regularized least square method to resolve this issue.')
 
                     # TODO discuss (25) index of time step or time? I think indices
                     print('error before', error)
                     print('dt', dt)
                     print('et', e_t)
+                    # if j == 0:
+                    #     et_prev = 0
                     # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps - j - 1)
 
+                    # TODO Check -1 !!!
                     error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
                                          ) ** (self._num_time_steps - j - 1)
+                    # error += dt / 2 * (e_t + et_prev)
+
+                    et_prev = e_t
 
                     # error += dt * (e_t + 2 * h_norm)
                     # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
@@ -252,9 +259,9 @@ class VarQITE(VarQTE):
 
 
 
-        print('Grad error - real returned', np.sqrt(eps_squared))
+        print('Grad error', np.sqrt(eps_squared))
         print('Energy Variance', h_squared - exp **2)
-        return np.sqrt(eps_squared), np.real(h_squared)
+        return np.sqrt(eps_squared), h_squared
 
     def _distance_energy(self,
                   time: Union[float, complex],
