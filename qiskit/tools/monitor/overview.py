@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """ A module for viewing the details of all available devices.
 """
@@ -59,7 +58,7 @@ def backend_monitor(backend):
         ImportError: If qiskit-ibmq-provider is not installed
     """
     try:
-        # pylint: disable=import-error,no-name-in-module
+        # pylint: disable=import-error
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError:
         raise ImportError("The IBMQ provider is necessary for this function "

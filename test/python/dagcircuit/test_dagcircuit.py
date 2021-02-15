@@ -21,7 +21,7 @@ import retworkx as rx
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ClassicalRegister, Clbit
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Qubit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Delay
@@ -175,6 +175,68 @@ class TestDagRegisters(QiskitTestCase):
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
+
+    def test_add_qubits_invalid_qubits(self):
+        """Verify we raise if pass not a Qubit."""
+        dag = DAGCircuit()
+
+        with self.assertRaisesRegex(DAGCircuitError, "not a Qubit instance"):
+            dag.add_qubits([Clbit()])
+
+        with self.assertRaisesRegex(DAGCircuitError, "not a Qubit instance"):
+            dag.add_qubits([Qubit(), Clbit(), Qubit()])
+
+    def test_add_qubits_invalid_clbits(self):
+        """Verify we raise if pass not a Clbit."""
+        dag = DAGCircuit()
+
+        with self.assertRaisesRegex(DAGCircuitError, "not a Clbit instance"):
+            dag.add_clbits([Qubit()])
+
+        with self.assertRaisesRegex(DAGCircuitError, "not a Clbit instance"):
+            dag.add_clbits([Clbit(), Qubit(), Clbit()])
+
+    def test_raise_if_bits_already_present(self):
+        """Verify we raise when attempting to add a Bit already in the DAG."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+
+        with self.assertRaisesRegex(DAGCircuitError, "duplicate qubits"):
+            dag.add_qubits(qubits)
+
+        with self.assertRaisesRegex(DAGCircuitError, "duplicate clbits "):
+            dag.add_clbits(clbits)
+
+    def test_raise_if_bits_already_present_from_register(self):
+        """Verify we raise when attempting to add a Bit already in the DAG."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        dag.add_creg(cr)
+        dag.add_qreg(qr)
+
+        with self.assertRaisesRegex(DAGCircuitError, "duplicate qubits"):
+            dag.add_qubits(qr[:])
+
+        with self.assertRaisesRegex(DAGCircuitError, "duplicate clbits "):
+            dag.add_clbits(cr[:])
+
+    def test_addding_individual_bit(self):
+        """Verify we can add a individual bits to a DAG."""
+        qr = QuantumRegister(3, 'qr')
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+
+        new_bit = Qubit()
+
+        dag.add_qubits([new_bit])
+
+        self.assertEqual(dag.qubits, list(qr) + [new_bit])
+        self.assertEqual(list(dag.qregs.values()), [qr])
 
 
 class TestDagApplyOperation(QiskitTestCase):
