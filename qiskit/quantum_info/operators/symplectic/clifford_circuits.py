@@ -12,7 +12,6 @@
 """
 Circuit simulation for the Clifford class.
 """
-# pylint: disable=invalid-name
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
