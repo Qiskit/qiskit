@@ -12,7 +12,6 @@
 """
 Clifford operator class.
 """
-
 import re
 import numpy as np
 
