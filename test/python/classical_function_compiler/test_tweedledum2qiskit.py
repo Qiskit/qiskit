@@ -18,12 +18,16 @@ from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
+from tweedledum.ir import Circuit
+from tweedledum.operators import H, X, T, Tdg
 
 class TestTweedledum2Qiskit(QiskitTestCase):
     """Tests qiskit.transpiler.classicalfunction.utils.tweedledum2qiskit function."""
     def test_x(self):
         """Single uncontrolled X"""
-        tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
+        tweedledum_circuit = Circuit()
+        tweedledum_circuit.apply_operator(X(), [tweedledum_circuit.create_qubit()])
+
         circuit = tweedledum2qiskit(tweedledum_circuit)
 
         expected = QuantumCircuit(1)
@@ -33,10 +37,12 @@ class TestTweedledum2Qiskit(QiskitTestCase):
 
     def test_cx_0_1(self):
         """CX(0, 1)"""
-        tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
-                                                          'qubits': [1],
-                                                          'control_qubits': [0],
-                                                          'control_state': '1'}]}
+        tweedledum_circuit = Circuit()
+        qubits = list()
+        qubits.append(tweedledum_circuit.create_qubit())
+        qubits.append(tweedledum_circuit.create_qubit())
+        tweedledum_circuit.apply_operator(X(), [qubits[0], qubits[1]])
+
         circuit = tweedledum2qiskit(tweedledum_circuit)
 
         expected = QuantumCircuit(2)
@@ -46,10 +52,12 @@ class TestTweedledum2Qiskit(QiskitTestCase):
 
     def test_cx_1_0(self):
         """CX(1, 0)"""
-        tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
-                                                          'qubits': [0],
-                                                          'control_qubits': [1],
-                                                          'control_state': '1'}]}
+        tweedledum_circuit = Circuit()
+        qubits = list()
+        qubits.append(tweedledum_circuit.create_qubit())
+        qubits.append(tweedledum_circuit.create_qubit())
+        tweedledum_circuit.apply_operator(X(), [qubits[1], qubits[0]])
+
         circuit = tweedledum2qiskit(tweedledum_circuit)
 
         expected = QuantumCircuit(2)
@@ -59,11 +67,13 @@ class TestTweedledum2Qiskit(QiskitTestCase):
 
     def test_cx_qreg(self):
         """CX(0, 1) with qregs parameter"""
+        tweedledum_circuit = Circuit()
+        qubits = list()
+        qubits.append(tweedledum_circuit.create_qubit())
+        qubits.append(tweedledum_circuit.create_qubit())
+        tweedledum_circuit.apply_operator(X(), [qubits[1], qubits[0]])
+
         qr = QuantumRegister(2, 'qr')
-        tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
-                                                          'qubits': [0],
-                                                          'control_qubits': [1],
-                                                          'control_state': '1'}]}
         circuit = tweedledum2qiskit(tweedledum_circuit, qregs=[qr])
 
         expected = QuantumCircuit(qr)

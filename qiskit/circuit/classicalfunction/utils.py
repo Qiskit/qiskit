@@ -12,15 +12,11 @@
 
 """Internal utils for Classical Function Compiler"""
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
-    XGate, HGate, U3Gate
-from qiskit.circuit.classicalfunction.exceptions import ClassicalFunctionCompilerError
 
 from tweedledum.ir import WireRef
 from tweedledum.passes import parity_decomp
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate,
     SwapGate, TGate, TdgGate, XGate, YGate, ZGate)
 
@@ -47,15 +43,6 @@ def _convert_tweedledum_operator(op):
         return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
     return base_gate()
 
-    # TODO:
-    # elif instruction.kind() == 'std.p':
-    #     return PhaseGate()
-    # elif instruction.kind() == 'std.rx':
-    #     return RZGate()
-    # elif instruction.kind() == 'std.ry':
-    #     return RZGate()
-    # elif instruction.kind() == 'std.rz':
-    #     return RZGate()
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
     """ Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
@@ -73,7 +60,11 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit
         equivalent.
     """
-    qiskit_qc = QuantumCircuit(tweedledum_circuit.num_qubits())
+    if qregs:
+        qiskit_qc = QuantumCircuit(*qregs, name=name)
+    else:
+        qiskit_qc = QuantumCircuit(tweedledum_circuit.num_qubits(), name=name)
+
     for instruction in parity_decomp(tweedledum_circuit):
         gate = _convert_tweedledum_operator(instruction)
         qubits = [qubit.uid() for qubit in instruction.qubits()]
