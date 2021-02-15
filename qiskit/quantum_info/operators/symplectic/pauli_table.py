@@ -243,7 +243,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -272,7 +272,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
 
         # Row deletion
@@ -307,7 +307,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliTable):
