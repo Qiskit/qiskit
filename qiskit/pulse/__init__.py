@@ -434,6 +434,7 @@ from qiskit.pulse.channels import (
     AcquireChannel,
     ControlChannel,
     DriveChannel,
+    Frame,
     MeasureChannel,
     MemorySlot,
     RegisterSlot,

@@ -181,6 +181,11 @@ class ControlChannel(PulseChannel):
     prefix = 'u'
 
 
+class Frame(PulseChannel):
+    """Channel to manage frames."""
+    prefix = 'f'
+
+
 class AcquireChannel(Channel):
     """Acquire channels are used to collect data."""
     prefix = 'a'

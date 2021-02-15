@@ -756,6 +756,22 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError("This backend - '{}' does not provide channel "
                                             "information.".format(self.backend_name))
 
+    def frames(self) -> List[Channel]:
+        """Gets the frames of the backend"""
+        n_qubits = self.n_qubits
+        frames = []
+        for qubit in range(n_qubits):
+            frame_ = [DriveChannel(qubit)]
+            for ctrl in range(n_qubits):
+                try:
+                    frame_ += self.control((ctrl, qubit))
+                except QiskitError:
+                    pass
+
+            frames.append(frame_)
+
+        return frames
+
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
         Return a list of indices for qubits which are operated on directly by the given ``channel``.

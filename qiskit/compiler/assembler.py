@@ -27,7 +27,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, DriveChannel
 from qiskit.pulse import Schedule
 
 logger = logging.getLogger(__name__)
@@ -301,6 +301,10 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
+    frames = None
+    if hasattr(backend_config, 'frames'):
+        frames = backend_config.frames()
+
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
@@ -326,6 +330,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
                            parametric_pulses=parametric_pulses,
+                           frames=frames,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
