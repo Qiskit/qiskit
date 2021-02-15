@@ -13,9 +13,10 @@
 """Test the blueprint circuit."""
 
 import unittest
+from ddt import ddt, data
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
+from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit, Gate, Instruction
 from qiskit.circuit.library import BlueprintCircuit
 
 
@@ -53,11 +54,11 @@ class MockBlueprint(BlueprintCircuit):
     def _build(self):
         super()._build()
 
-        # pylint: disable=no-member
         self.rx(Parameter('angle'), 0)
         self.h(self.qubits)
 
 
+@ddt
 class TestBlueprintCircuit(QiskitTestCase):
     """Test the blueprint circuit."""
 
@@ -94,6 +95,8 @@ class TestBlueprintCircuit(QiskitTestCase):
         for method in methods:
             with self.subTest(method=method):
                 circuit = MockBlueprint(3)
+                if method == 'qasm':
+                    continue  # raises since parameterized circuits produce invalid qasm 2.0.
                 getattr(circuit, method)()
                 self.assertGreater(len(circuit._data), 0)
 
@@ -115,6 +118,18 @@ class TestBlueprintCircuit(QiskitTestCase):
         reference.x([0, 1, 2])
 
         self.assertEqual(reference, circuit)
+
+    @data('gate', 'instruction')
+    def test_to_gate_and_instruction(self, method):
+        """Test calling to_gate and to_instruction works without calling _build first."""
+        circuit = MockBlueprint(2)
+
+        if method == 'gate':
+            gate = circuit.to_gate()
+            self.assertIsInstance(gate, Gate)
+        else:
+            gate = circuit.to_instruction()
+            self.assertIsInstance(gate, Instruction)
 
 
 if __name__ == '__main__':

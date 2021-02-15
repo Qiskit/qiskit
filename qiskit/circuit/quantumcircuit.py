@@ -24,15 +24,16 @@ from collections import OrderedDict, defaultdict
 from typing import Union
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.util import is_main_process
+from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
+from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -58,8 +59,8 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs (list(:class:`Register`) or list(``int``)): The registers to be
-            included in the circuit.
+        regs (list(:class:`Register`) or list(``int``) or list(list(:class:`Bit`))): The
+            registers to be included in the circuit.
 
             * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
               and/or :class:`ClassicalRegister` objects to include in the circuit.
@@ -79,10 +80,17 @@ class QuantumCircuit:
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
+            * If a list of python lists containing :class:`Bit` objects, a collection of
+              :class:`Bit` s to be added to the circuit.
+
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
-        global_phase (float): The global phase of the circuit in radians.
+        global_phase (float or ParameterExpression): The global phase of the circuit in radians.
+        metadata (dict): Arbitrary key value metadata to associate with the
+            circuit. This gets stored as free-form data in a dict in the
+            :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
+            not be directly used in the circuit.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -140,8 +148,8 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None, global_phase=0):
-        if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
+    def __init__(self, *regs, name=None, global_phase=0, metadata=None):
+        if any([not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs]):
             # check if inputs are integers, but also allow e.g. 2.0
 
             try:
@@ -189,6 +197,9 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = 'dt'
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     @property
     def data(self):
@@ -220,7 +231,7 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations = calibrations
+        self._calibrations = defaultdict(dict, calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -241,6 +252,26 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
+
+    @property
+    def metadata(self):
+        """The user provided metadata associated with the circuit
+
+        The metadata for the circuit is a user provided ``dict`` of metadata
+        for the circuit. It will not be used to influence the execution or
+        operation of the circuit, but it is expected to be passed betweeen
+        all transforms of the circuit (ie transpilation) and that providers will
+        associate any circuit metadata with the results it returns from
+        execution of that circuit.
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Update the circuit metadata"""
+        if not isinstance(metadata, dict) and metadata is not None:
+            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        self._metadata = metadata
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -410,8 +441,7 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps),
-                                       global_phase=reps * self.global_phase)
+                                       name=self.name + '**{}'.format(reps))
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
@@ -681,7 +711,9 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
-        dest._calibrations.update(other.calibrations)
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
 
         dest.global_phase += other.global_phase
 
@@ -983,7 +1015,10 @@ class QuantumCircuit:
                                    " with %s." % (regs,))
 
         for register in regs:
-            if register.name in [reg.name for reg in self.qregs + self.cregs]:
+            if (
+                    isinstance(register, Register)
+                    and any(register.name == reg.name for reg in self.qregs + self.cregs)
+            ):
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
 
@@ -996,8 +1031,28 @@ class QuantumCircuit:
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
                 self._clbits.extend(register)
+            elif isinstance(register, list):
+                self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
+
+    def add_bits(self, bits):
+        """Add Bits to the circuit."""
+        duplicate_bits = set(self.qubits + self.clbits).intersection(bits)
+        if duplicate_bits:
+            raise CircuitError("Attempted to add bits found already in circuit: "
+                               "{}".format(duplicate_bits))
+
+        for bit in bits:
+            if isinstance(bit, AncillaQubit):
+                self._ancillas.append(bit)
+            elif isinstance(bit, Qubit):
+                self._qubits.append(bit)
+            elif isinstance(bit, Clbit):
+                self._clbits.append(bit)
+            else:
+                raise CircuitError("Expected an instance of Qubit, Clbit, or "
+                                   "AncillaQubit, but was passed {}".format(bit))
 
     def _check_dups(self, qubits):
         """Raise exception if list of qubits contains duplicates."""
@@ -1115,7 +1170,10 @@ class QuantumCircuit:
         Raises:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
+            QasmError: If circuit has free parameters.
         """
+        if self.num_parameters > 0:
+            raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
         existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
                                'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
                                'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
@@ -1219,12 +1277,13 @@ class QuantumCircuit:
                 the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
             filename (str): file path to save image to. Defaults to None.
             style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` output type. If a str, it
-                is used as the path to a json file which contains a style dict.
-                The file will be opened, parsed, and then any style elements in the
-                dict will replace the default values in the input dict. A file to
-                be loaded must end in ``.json``, but the name entered here can omit
-                ``.json``. For example, ``style='iqx.json'`` or ``style='iqx'``.
+                This option is only used by the `mpl` output type.
+                If `style` is a str, it is used as the path to a json file
+                which contains a style dict. The file will be opened, parsed, and
+                then any style elements in the dict will replace the default values
+                in the input dict. A file to be loaded must end in ``.json``, but
+                the name entered here can omit ``.json``. For example,
+                ``style='iqx.json'`` or ``style='iqx'``.
                 If `style` is a dict and the ``'name'`` key is set, that name
                 will be used to load a json file, followed by loading the other
                 items in the style dict. For example, ``style={'name': 'iqx'}``.
@@ -1236,7 +1295,7 @@ class QuantumCircuit:
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :ref:`Style Dict Doc <style-dict-doc>` for more
+                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
                 information on the contents.
             interactive (bool): when set to true, show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
@@ -1294,138 +1353,6 @@ class QuantumCircuit:
             VisualizationError: when an invalid output method is selected
             ImportError: when the output methods requires non-installed libraries.
 
-        .. _style-dict-doc:
-
-        **Style Dict Details**
-
-        The style dict kwarg contains numerous options that define the style of the
-        output circuit visualization. The style dict is only used by the `mpl`
-        output. The options available in the style dict are defined below:
-
-        Args:
-            name (str): the name of the style. The name can be set to ``iqx``,
-                ``bw``, ``default``, or the name of a user-created json file. This
-                overrides the setting in the user config file (usually
-                ``~/.qiskit/settings.conf``).
-            textcolor (str): the color code to use for all text not inside a gate.
-                Defaults to ``#000000``
-            subtextcolor (str): the color code to use for subtext. Defaults to
-                ``#000000``
-            linecolor (str): the color code to use for lines. Defaults to
-                ``#000000``
-            creglinecolor (str): the color code to use for classical register
-                lines. Defaults to ``#778899``
-            gatetextcolor (str): the color code to use for gate text. Defaults to
-                ``#000000``
-            gatefacecolor (str): the color code to use for a gate if no color
-                specified in the 'displaycolor' dict. Defaults to ``#BB8BFF``
-            barrierfacecolor (str): the color code to use for barriers. Defaults to
-                ``#BDBDBD``
-            backgroundcolor (str): the color code to use for the background.
-                Defaults to ``#FFFFFF``
-            edgecolor (str): the color code to use for gate edges when using the
-                `bw` style. Defaults to ``#000000``.
-            fontsize (int): the font size to use for text. Defaults to 13.
-            subfontsize (int): the font size to use for subtext. Defaults to 8.
-            showindex (bool): if set to True, show the index numbers at the top.
-                Defaults to False.
-            figwidth (int): the maximum width (in inches) for the output figure.
-                If set to -1, the maximum displayable width will be used.
-                Defaults to -1.
-            dpi (int): the DPI to use for the output image. Defaults to 150.
-            margin (list): a list of margin values to adjust spacing around output
-                image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
-                Defaults to [2.0, 0.1, 0.1, 0.3].
-            creglinestyle (str): The style of line to use for classical registers.
-                Choices are ``solid``, ``doublet``, or any valid matplotlib
-                `linestyle` kwarg value. Defaults to ``doublet``.
-            displaytext (dict): a dictionary of the text to use for certain element
-                types in the output visualization. These items allow the use of
-                LaTeX formatting for gate names. The 'displaytext' dict can contain
-                any number of elements from one to the entire dict above.The default
-                values are (`default.json`)::
-
-                    {
-                        'u1': '$\\mathrm{U}_1$',
-                        'u2': '$\\mathrm{U}_2$',
-                        'u3': '$\\mathrm{U}_3$',
-                        'u': 'U',
-                        'p': 'P',
-                        'id': 'I',
-                        'x': 'X',
-                        'y': 'Y',
-                        'z': 'Z',
-                        'h': 'H',
-                        's': 'S',
-                        'sdg': '$\\mathrm{S}^\\dagger$',
-                        'sx': '$\\sqrt{\\mathrm{X}}$',
-                        'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
-                        't': 'T',
-                        'tdg': '$\\mathrm{T}^\\dagger$',
-                        'dcx': 'Dcx',
-                        'iswap': 'Iswap',
-                        'ms': 'MS',
-                        'r': 'R',
-                        'rx': '$\\mathrm{R}_\\mathrm{X}$',
-                        'ry': '$\\mathrm{R}_\\mathrm{Y}$',
-                        'rz': '$\\mathrm{R}_\\mathrm{Z}$',
-                        'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
-                        'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
-                        'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-                        'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
-                        'reset': '$\\left|0\\right\\rangle$',
-                        'initialize': '$|\\psi\\rangle$'
-                    }
-
-            displaycolor (dict): the color codes to use for each circuit element in
-                the form (gate_color, text_color). Colors can also be entered without
-                the text color, such as 'u1': '#FA74A6', in which case the text color
-                will always be `gatetextcolor`. The `displaycolor` dict can contain
-                any number of elements from one to the entire dict above. The default
-                values are (`default.json`)::
-
-                    {
-                        'u1': ('#FA74A6', '#000000'),
-                        'u2': ('#FA74A6', '#000000'),
-                        'u3': ('#FA74A6', '#000000'),
-                        'id': ('#05BAB6', '#000000'),
-                        'u': ('#BB8BFF', '#000000'),
-                        'p': ('#BB8BFF', '#000000'),
-                        'x': ('#05BAB6', '#000000'),
-                        'y': ('#05BAB6', '#000000'),
-                        'z': ('#05BAB6', '#000000'),
-                        'h': ('#6FA4FF', '#000000'),
-                        'cx': ('#6FA4FF', '#000000'),
-                        'ccx': ('#BB8BFF', '#000000'),
-                        'mcx': ('#BB8BFF', '#000000'),
-                        'mcx_gray': ('#BB8BFF', '#000000),
-                        'cy': ('#6FA4FF', '#000000'),
-                        'cz': ('#6FA4FF', '#000000'),
-                        'swap': ('#6FA4FF', '#000000'),
-                        'cswap': ('#BB8BFF', '#000000'),
-                        'ccswap': ('#BB8BFF', '#000000'),
-                        'dcx': ('#6FA4FF', '#000000'),
-                        'cdcx': ('#BB8BFF', '#000000'),
-                        'ccdcx': ('#BB8BFF', '#000000'),
-                        'iswap': ('#6FA4FF', '#000000'),
-                        's': ('#6FA4FF', '#000000'),
-                        'sdg': ('#6FA4FF', '#000000'),
-                        't': ('#BB8BFF', '#000000'),
-                        'tdg': ('#BB8BFF', '#000000'),
-                        'sx': ('#BB8BFF', '#000000'),
-                        'sxdg': ('#BB8BFF', '#000000')
-                        'r': ('#BB8BFF', '#000000'),
-                        'rx': ('#BB8BFF', '#000000'),
-                        'ry': ('#BB8BFF', '#000000'),
-                        'rz': ('#BB8BFF', '#000000'),
-                        'rxx': ('#BB8BFF', '#000000'),
-                        'ryy': ('#BB8BFF', '#000000'),
-                        'rzx': ('#BB8BFF', '#000000'),
-                        'reset': ('#000000', #FFFFFF'),
-                        'target': ('#FFFFFF, '#FFFFFF'),
-                        'measure': ('#000000', '#FFFFFF'),
-                    }
-
         Example:
             .. jupyter-execute::
 
@@ -1436,7 +1363,7 @@ class QuantumCircuit:
                 qc = QuantumCircuit(q, c)
                 qc.h(q)
                 qc.measure(q, c)
-                qc.draw('mpl', style={'showindex': True})
+                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
         # pylint: disable=cyclic-import
@@ -1847,6 +1774,8 @@ class QuantumCircuit:
             inst.condition = node.condition
             circ.append(inst, qubits, clbits)
 
+        circ.clbits.clear()
+
         if not inplace:
             return circ
         else:
@@ -1888,7 +1817,7 @@ class QuantumCircuit:
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression):
+        if isinstance(angle, ParameterExpression) and angle.parameters:
             self._global_phase = angle
         else:
             # Set the phase to the [-2 * pi, 2 * pi] interval
@@ -1903,7 +1832,14 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return self._parameter_table.get_keys()
+        # parameters from gates
+        params = self._parameter_table.get_keys()
+
+        # parameters in global phase
+        if isinstance(self.global_phase, ParameterExpression):
+            return params.union(self.global_phase.parameters)
+
+        return params
 
     @property
     def num_parameters(self):
@@ -1977,10 +1913,12 @@ class QuantumCircuit:
         # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
-        # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self._parameter_table.keys():
+        # check that all param_dict items are in the _parameter_table for this circuit
+        params_not_in_circuit = [param_key for param_key in unrolled_param_dict
+                                 if param_key not in self.parameters]
+        if len(params_not_in_circuit) > 0:
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self._parameter_table]))
+                ', '.join(map(str, params_not_in_circuit))))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -2011,14 +1949,15 @@ class QuantumCircuit:
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
-            if isinstance(param, ParameterExpression):
-                unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError('ParameterVector {} has length {}, which '
                                        'differs from value list {} of '
                                        'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
+            # pass anything else except number through. error checking is done in assign_parameter
+            elif isinstance(param, (ParameterExpression, str)) or param is None:
+                unrolled_value_dict[param] = value
         return unrolled_value_dict
 
     def _assign_parameter(self, parameter, value):
@@ -2030,22 +1969,27 @@ class QuantumCircuit:
             value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
                 replace instances of ``parameter``.
         """
-        for instr, param_index in self._parameter_table[parameter]:
-            new_param = instr.params[param_index].assign(parameter, value)
-            # if fully bound, validate
-            if len(new_param.parameters) == 0:
-                instr.params[param_index] = instr.validate_parameter(new_param)
+        # parameter might be in global phase only
+        if parameter in self._parameter_table.keys():
+            for instr, param_index in self._parameter_table[parameter]:
+                new_param = instr.params[param_index].assign(parameter, value)
+                # if fully bound, validate
+                if len(new_param.parameters) == 0:
+                    instr.params[param_index] = instr.validate_parameter(new_param)
+                else:
+                    instr.params[param_index] = new_param
+
+                self._rebind_definition(instr, parameter, value)
+
+            if isinstance(value, ParameterExpression):
+                entry = self._parameter_table.pop(parameter)
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        self._parameter_table[new_parameter].extend(entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
             else:
-                instr.params[param_index] = new_param
-
-            self._rebind_definition(instr, parameter, value)
-
-        if isinstance(value, ParameterExpression):
-            entry = self._parameter_table.pop(parameter)
-            for new_parameter in value.parameters:
-                self._parameter_table[new_parameter] = entry
-        else:
-            del self._parameter_table[parameter]  # clear evaluated expressions
+                del self._parameter_table[parameter]  # clear evaluated expressions
 
         if (isinstance(self.global_phase, ParameterExpression) and
                 parameter in self.global_phase.parameters):
@@ -2193,12 +2137,12 @@ class QuantumCircuit:
         return self.append(MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit],
                            [])
 
-    def r(self, theta, phi, qubit):  # pylint: disable=invalid-name
+    def r(self, theta, phi, qubit):
         """Apply :class:`~qiskit.circuit.library.RGate`."""
         from .library.standard_gates.r import RGate
         return self.append(RGate(theta, phi), [qubit], [])
 
-    def rv(self, vx, vy, vz, qubit):  # pylint: disable=invalid-name
+    def rv(self, vx, vy, vz, qubit):
         """Apply :class:`~qiskit.circuit.library.RVGate`."""
         from .library.generalized_gates.rv import RVGate
         return self.append(RVGate(vx, vy, vz), [qubit], [])
@@ -2324,12 +2268,12 @@ class QuantumCircuit:
         from .library.standard_gates.t import TdgGate
         return self.append(TdgGate(), [qubit], [])
 
-    def u(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
+    def u(self, theta, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.UGate`."""
         from .library.standard_gates.u import UGate
         return self.append(UGate(theta, phi, lam), [qubit], [])
 
-    def cu(self, theta, phi, lam, gamma,   # pylint: disable=invalid-name
+    def cu(self, theta, phi, lam, gamma,
            control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CUGate`."""
         from .library.standard_gates.u import CUGate
@@ -2341,7 +2285,7 @@ class QuantumCircuit:
                         'after the release date. You should use the '
                         'QuantumCircuit.p method instead, which acts '
                         'identically.')
-    def u1(self, theta, qubit):  # pylint: disable=invalid-name
+    def u1(self, theta, qubit):
         """Apply :class:`~qiskit.circuit.library.U1Gate`."""
         from .library.standard_gates.u1 import U1Gate
         return self.append(U1Gate(theta), [qubit], [])
@@ -2374,8 +2318,8 @@ class QuantumCircuit:
                         'qubit gate QuantumCircuit.u instead: u2(φ,λ) = '
                         'u(π/2, φ, λ). Alternatively, you can decompose it in'
                         'terms of QuantumCircuit.p and QuantumCircuit.sx: '
-                        'u2(φ,λ) = p(π/2+φ) sx p(π/2+λ) (1 pulse on hardware).')
-    def u2(self, phi, lam, qubit):  # pylint: disable=invalid-name
+                        'u2(φ,λ) = p(π/2+φ) sx p(λ-π/2) (1 pulse on hardware).')
+    def u2(self, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
         return self.append(U2Gate(phi, lam), [qubit], [])
@@ -2385,7 +2329,7 @@ class QuantumCircuit:
                         'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
                         'decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
                         'u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).')
-    def u3(self, theta, phi, lam, qubit):  # pylint: disable=invalid-name
+    def u3(self, theta, phi, lam, qubit):
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
@@ -2405,7 +2349,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import XGate
         return self.append(XGate(label=label), [qubit], [])
 
-    def cx(self, control_qubit, target_qubit,  # pylint:disable=invalid-name
+    def cx(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
            label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
         from .library.standard_gates.x import CXGate
@@ -2507,14 +2451,14 @@ class QuantumCircuit:
         from .library.standard_gates.z import ZGate
         return self.append(ZGate(), [qubit], [])
 
-    def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+    def cz(self, control_qubit, target_qubit,
            label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CZGate`."""
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
-    def pauli(self, pauli_string, qubits):  # pylint: disable=invalid-name
+    def pauli(self, pauli_string, qubits):
         """Apply :class:`~qiskit.circuit.library.PauliGate`."""
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         return self.append(PauliGate(pauli_string), qubits, [])
@@ -2569,7 +2513,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_start_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_start_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
@@ -2609,7 +2554,8 @@ class QuantumCircuit:
             # circuit has only delays, this is kind of scheduled
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
-                    raise CircuitError("qubit_stop_time is defined only for scheduled circuit.")
+                    raise CircuitError("qubit_stop_time undefined. "
+                                       "Circuit must be scheduled first.")
             return 0
 
         qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]

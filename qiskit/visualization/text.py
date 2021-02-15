@@ -543,7 +543,13 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        self.encoding = encoding if encoding else sys.stdout.encoding
+        if encoding:
+            self.encoding = encoding
+        else:
+            if sys.stdout.encoding:
+                self.encoding = sys.stdout.encoding
+            else:
+                self.encoding = 'utf8'
 
     def __str__(self):
         return self.single_string()
@@ -696,7 +702,7 @@ class TextDrawing():
         previous_creg = None
         for bit in self.cregs:
             if self.cregbundle:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 label = '{name}: {initial_value}{size}/'
@@ -1120,7 +1126,7 @@ class Layer:
             self.cregs = []
             previous_creg = None
             for bit in cregs:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 self.cregs.append(bit.register)

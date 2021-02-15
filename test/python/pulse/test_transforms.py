@@ -34,8 +34,6 @@ from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-# pylint: disable=invalid-name
-
 
 class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
@@ -692,6 +690,44 @@ class TestAlignEquispaced(QiskitTestCase):
         reference.insert(20, Delay(10, d0), inplace=True)
         reference.insert(30, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_equispaced_with_multiple_channels_short_duration(self):
+        """Test equispaced context with multiple channels and duration shorter than the total
+        duration."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        sched = pulse.Schedule()
+        sched.append(Delay(10, d0), inplace=True)
+        sched.append(Delay(20, d1), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=20)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(0, Delay(20, d1), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_equispaced_with_multiple_channels_longer_duration(self):
+        """Test equispaced context with multiple channels and duration longer than the total
+        duration."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        sched = pulse.Schedule()
+        sched.append(Delay(10, d0), inplace=True)
+        sched.append(Delay(20, d1), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=30)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(10, Delay(20, d0), inplace=True)
+        reference.insert(0, Delay(10, d1), inplace=True)
+        reference.insert(10, Delay(20, d1), inplace=True)
 
         self.assertEqual(sched, reference)
 

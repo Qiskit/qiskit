@@ -78,10 +78,10 @@ class HamiltonianGate(Gate):
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return matrix for the unitary."""
+        # pylint: disable=unused-argument
         try:
-            # pylint: disable=no-member
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError:
             raise TypeError("Unable to generate Unitary matrix for "

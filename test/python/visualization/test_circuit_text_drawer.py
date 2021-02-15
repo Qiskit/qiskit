@@ -1829,6 +1829,27 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
+    def test_text_conditional_measure(self):
+        """Conditional with measure on same clbit"""
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join(["         ┌───┐┌─┐       ",
+                              "qr_0: |0>┤ H ├┤M├───────",
+                              "         └───┘└╥┘ ┌───┐ ",
+                              "qr_1: |0>──────╫──┤ H ├─",
+                              "               ║ ┌┴─╨─┴┐",
+                              " cr_0: 0 ══════╩═╡     ╞",
+                              "                 │ = 1 │",
+                              " cr_1: 0 ════════╡     ╞",
+                              "                 └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""
@@ -1878,6 +1899,18 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[1])
         circuit.barrier(qr[1], qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
+    def test_text_barrier_delay(self):
+        """idle_wires should ignore delay"""
+        expected = '\n'.join(["         ┌───┐ ░  ",
+                              "qr_1: |0>┤ H ├─░──",
+                              "         └───┘ ░  "])
+        qr = QuantumRegister(4, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
+        circuit.barrier()
+        circuit.delay(100, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
 

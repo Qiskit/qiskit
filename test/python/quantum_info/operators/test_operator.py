@@ -528,8 +528,8 @@ class TestOperator(OperatorTestCase):
         assert_allclose(op12.data, Operator(mat12).data)
 
     def test_power_except(self):
-        """Test power method raises exceptions."""
-        op = Operator(self.rand_matrix(3, 3))
+        """Test power method raises exceptions if not square."""
+        op = Operator(self.rand_matrix(2, 3))
         # Non-integer power raises error
         self.assertRaises(QiskitError, op.power, 0.5)
 

@@ -31,8 +31,8 @@ import uuid
 import time
 from math import log2, sqrt
 import numpy as np
-from qiskit.util import local_hardware_info
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options

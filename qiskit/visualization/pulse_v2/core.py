@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Core module of the pulse drawer.
 
@@ -234,7 +232,8 @@ class DrawerCanvas:
         inst_data = types.PulseInstruction(t0=0,
                                            dt=self.device.dt,
                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
-                                           inst=fake_inst)
+                                           inst=fake_inst,
+                                           is_opaque=program.is_parameterized())
         for gen in self.generator['waveform']:
             obj_generator = partial(gen,
                                     formatter=self.formatter,
