@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=unused-variable
-# pylint: disable=missing-param-doc
-# pylint: disable=missing-type-doc
 
 """
 Multi controlled single-qubit unitary up to diagonal.
