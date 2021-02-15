@@ -27,7 +27,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
-from qiskit.pulse.channels import PulseChannel, DriveChannel
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse import Schedule
 
 logger = logging.getLogger(__name__)
