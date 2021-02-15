@@ -48,6 +48,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     in N variables, whose coefficients are in the ring Z_8 with 8 elements.
 
     .. jupyter-execute::
+
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import CNOTDihedral
 
