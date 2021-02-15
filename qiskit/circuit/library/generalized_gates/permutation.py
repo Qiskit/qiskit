@@ -83,6 +83,10 @@ class Permutation(QuantumCircuit):
 
 
 def _get_ordered_swap(permutation_in):
+    """This attempts to sort the input permutation by iterating through the
+    permutation list and swapping the element with where the actual index occurs and
+    and tracking the swaps.
+    """
     permutation = list(permutation_in[:])
     swap_list = []
     for i, val in enumerate(permutation):
@@ -90,4 +94,5 @@ def _get_ordered_swap(permutation_in):
             j = permutation.index(i)
             swap_list.append((i, j))
             permutation[i], permutation[j] = permutation[j], permutation[i]
-    return swap_list[::-1]
+    swap_list.reverse()
+    return swap_list

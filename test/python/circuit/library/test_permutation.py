@@ -43,17 +43,17 @@ class TestPermutationLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
     @data(4, 5, 10, 20)
-    def test_get_ordered_swap(self, length):
-        """Test get_ordered_swap function."""
+    def test_get_ordered_swap(self, width):
+        """Test get_ordered_swap function produces correct swap list."""
         np.random.seed(1)
         for _ in range(5):
-            permutation = np.random.permutation(length)
+            permutation = np.random.permutation(width)
             swap_list = _get_ordered_swap(permutation)
-            output = list(range(length))
+            output = list(range(width))
             for i, j in swap_list:
                 output[i], output[j] = output[j], output[i]
             self.assertTrue(np.array_equal(permutation, output))
-            self.assertLess(len(swap_list), length)
+            self.assertLess(len(swap_list), width)
 
 
 if __name__ == '__main__':
