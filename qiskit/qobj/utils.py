@@ -59,6 +59,6 @@ def validate_qobj_against_schema(qobj):
         qobj.to_dict(validate=True)
     except JsonSchemaException as err:
         raise SchemaValidationError(
-            f"Qobj validation failed. Specifically path: {err.path} failed to fulfil "
-            f"{err.definition}"
+            f"Qobj validation failed. Specifically path: {err.path}"  # pylint: disable=no-member
+            f" failed to fulfil {err.definition}"  # pylint: disable=no-member
         ) from err

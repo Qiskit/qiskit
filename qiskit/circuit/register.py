@@ -105,6 +105,7 @@ class Register:
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
+            # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
                 raise CircuitError("Provided bits did not all match "
                                    "register type. bits=%s" % bits)
