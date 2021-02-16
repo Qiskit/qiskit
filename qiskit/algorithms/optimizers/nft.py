@@ -13,15 +13,11 @@
 """Nakanishi-Fujii-Todo algorithm."""
 
 from typing import Optional
-import logging
 
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import OptimizeResult
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-
-logger = logging.getLogger(__name__)
 
 
 class NFT(Optimizer):

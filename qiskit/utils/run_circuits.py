@@ -195,7 +195,7 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
                            "status: 'FAIL_TO_GET_STATUS' "
                            "Terra job error: %s", job_id, ex)
             time.sleep(5)
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             raise QiskitError("FAILURE: job id: {}, "
                               "status: 'FAIL_TO_GET_STATUS' "
                               "Unknown error: ({})".format(job_id, ex)) from ex
