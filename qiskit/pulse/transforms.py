@@ -22,10 +22,10 @@ from typing import List, Optional, Iterable, Union
 import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule, ScheduleComponent
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -569,3 +569,39 @@ def remove_trivial_barriers(schedule: Schedule) -> Schedule:
                 len(inst[1].channels) < 2)
 
     return schedule.exclude(filter_func)
+
+
+def block_to_schedule(block: ScheduleBlock) -> Schedule:
+    """Convert ScheduleBlock to Schedule."""
+    schedule = Schedule(name=block.name, metadata=block.metadata)
+
+    for op_data in block.instructions:
+        if isinstance(op_data, ScheduleBlock):
+            context_schedule = block_to_schedule(op_data)
+            schedule.append(context_schedule, inplace=True)
+        else:
+            try:
+                schedule.append(op_data, inplace=True)
+            except UnassignedDurationError:
+                raise UnassignedDurationError(
+                    'Duration of instruction is not assigned. Conversion of `ScheduleBlock` to '
+                    '`Schedule` requires all durations to be assigned. '
+                    f'Assign some integer value to {repr(op_data.duration)}.')
+
+    # transform with defined policy
+    transform_map = {
+        'align_left': align_left,
+        'align_right': align_right,
+        'align_sequential': align_sequential,
+        'align_equispaced': align_equispaced,
+        'align_func': align_func
+    }
+    if block.transformation_policy not in transform_map:
+        raise PulseError('Specified transform policy {} is not defined. Define one of {}.'
+                         ''.format(block.transformation_policy, ', '.join(transform_map.keys())))
+
+    transform_func = transform_map.get(block.transformation_policy)
+    return transform_func(schedule, **block.transformation_options)
+
+
+

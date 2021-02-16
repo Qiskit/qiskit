@@ -101,6 +101,7 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    :toctree: ../stubs/
 
    Schedule
+   ScheduleBlock
    Instruction
 
 
@@ -466,4 +467,4 @@ from qiskit.pulse.library import (
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
