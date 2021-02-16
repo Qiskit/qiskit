@@ -1174,6 +1174,9 @@ class QuantumCircuit:
         """
         from qiskit.circuit.controlledgate import ControlledGate
 
+        if self.num_parameters > 0:
+            raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
+
         existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
                                'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
                                'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
