@@ -107,7 +107,7 @@ class BooleanExpression(Gate):
                          params=[])
 
     def simulate(self, bitstring: str) -> bool:
-        """Evaluate the oracle on a bitstring.
+        """Evaluate the expression on a bitstring.
 
         This evaluation is done classically.
 
@@ -122,6 +122,10 @@ class BooleanExpression(Gate):
         for bit in bitstring:
             input.append(BitVec(1, bit))
         return bool(self._tweedledum_bool_expression.simulate(*input))
+
+    def simulate_all(self):
+        #  TODO
+        return self._tweedledum_bool_expression.simulate_all()
 
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.

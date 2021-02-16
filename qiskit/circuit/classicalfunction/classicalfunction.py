@@ -97,9 +97,33 @@ class ClassicalFunction(gate.Gate):
             ret.append({k: v[0] for k, v in scope.items()})
         return ret
 
-    def simulate(self):
-        """Runs ``tweedledum.simulate`` on the logic network."""
-        return simulate(self._network)
+    def simulate(self, bitstring: str) -> bool:
+        """Evaluate the expression on a bitstring.
+
+        This evaluation is done classically.
+
+        Args:
+            bitstring: The bitstring for which to evaluate.
+
+        Returns:
+            bool: result of the evaluation.
+            """
+        from tweedledum.classical import simulate
+        return simulate(self._network, bitstring)
+
+
+    def simulate_all(self):
+        from tweedledum.classical import simulate
+
+        _truth_table = simulate(self._network)
+
+        result = list()
+        for position in range(2 ** self._network.num_pis()):
+            sim_result = ''.join([str(int(tt[position])) for tt in _truth_table])
+            result.append(sim_result)
+
+        return ''.join(reversed(result))
+
 
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.

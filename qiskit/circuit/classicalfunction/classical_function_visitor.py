@@ -16,7 +16,7 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 
 import ast
 try:
-    from tweedledum import xag_network  # pylint: disable=no-name-in-module
+    from tweedledum.classical import LogicNetwork  # pylint: disable=no-name-in-module
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
@@ -63,7 +63,7 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
         scope.update({decorator.id: ('decorator', None) for decorator in node.decorator_list})
 
         self.scopes.append(scope)
-        self._network = xag_network()
+        self._network = LogicNetwork()
         self.extend_scope(node.args)
         return super().generic_visit(node)
 
