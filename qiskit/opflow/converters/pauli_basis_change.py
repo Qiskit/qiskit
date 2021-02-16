@@ -319,7 +319,6 @@ class PauliBasisChange(ConverterBase):
 
         tensorall = partial(reduce, lambda x, y: x.tensor(y))
 
-        # pylint: disable=bad-reversed-sequence
         y_to_x_origin = \
             tensorall([S if has_y else I for has_y in  # type: ignore
                        reversed(np.logical_and(pauli.x, pauli.z))]).adjoint()  # type: ignore

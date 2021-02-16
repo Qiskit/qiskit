@@ -209,7 +209,6 @@ class TestDirectives(QiskitTestCase):
 
     def test_relative_barrier(self):
         """Test the relative barrier directive."""
-        # pylint: disable=invalid-name
         a0 = channels.AcquireChannel(0)
         d0 = channels.DriveChannel(0)
         m0 = channels.MeasureChannel(0)

@@ -591,7 +591,6 @@ class TestParameters(QiskitTestCase):
     def test_parameter_equality_through_serialization(self):
         """Verify parameters maintain their equality after serialization."""
 
-        # pylint: disable=invalid-name
         x = Parameter('x')
         x1 = Parameter('x')
 
