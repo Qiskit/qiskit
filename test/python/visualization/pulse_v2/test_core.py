@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name, unused-argument
+# pylint: disable=missing-function-docstring, unused-argument
 
 """Tests for core modules of pulse drawer."""
 
@@ -18,7 +18,12 @@ import numpy as np
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawing_objects, types
+from qiskit.visualization.pulse_v2 import (core,
+                                           stylesheet,
+                                           device_info,
+                                           drawings,
+                                           types,
+                                           layouts)
 
 
 class TestChart(QiskitTestCase):
@@ -44,20 +49,20 @@ class TestChart(QiskitTestCase):
             })
 
         # objects
-        self.short_pulse = drawing_objects.LineData(
-            data_type=types.DrawingWaveform.REAL,
+        self.short_pulse = drawings.LineData(
+            data_type=types.WaveformType.REAL,
             xvals=[0, 0, 1, 4, 5, 5],
             yvals=[0, 0.5, 0.5, 0.5, 0.5, 0],
             channels=[pulse.DriveChannel(0)]
         )
-        self.long_pulse = drawing_objects.LineData(
-            data_type=types.DrawingWaveform.REAL,
+        self.long_pulse = drawings.LineData(
+            data_type=types.WaveformType.REAL,
             xvals=[8, 8, 9, 19, 20, 20],
             yvals=[0, 0.3, 0.3, 0.3, 0.3, 0],
             channels=[pulse.DriveChannel(1)]
         )
-        self.abstract_hline = drawing_objects.LineData(
-            data_type=types.DrawingLine.BASELINE,
+        self.abstract_hline = drawings.LineData(
+            data_type=types.LineType.BASELINE,
             xvals=[types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT],
             yvals=[0, 0],
             channels=[pulse.DriveChannel(0)]
@@ -115,10 +120,35 @@ class TestChart(QiskitTestCase):
         xvals = np.array([4, 5, 6, 7, 8, 9, 10, 11])
         yvals = np.array([1, 2, 3, 4, 5, 6, 7, 8])
 
-        new_xvals, new_yvals = chart._truncate_data(xvals, yvals)
+        new_xvals, new_yvals = chart._truncate_vectors(xvals, yvals)
 
         ref_xvals = np.array([4., 5., 5., 6.])
         ref_yvals = np.array([1., 2., 7., 8.])
+
+        np.testing.assert_array_almost_equal(new_xvals, ref_xvals)
+        np.testing.assert_array_almost_equal(new_yvals, ref_yvals)
+
+    def test_truncate_multiple(self):
+        """Test pulse truncation."""
+        fake_canvas = core.DrawerCanvas(stylesheet=self.style, device=self.device)
+        fake_canvas.formatter = {
+            'margin.left_percent': 0,
+            'margin.right_percent': 0,
+            'axis_break.length': 20,
+            'axis_break.max_length': 10
+        }
+        fake_canvas.time_range = (2, 12)
+        fake_canvas.time_breaks = [(4, 7), (9, 11)]
+
+        chart = core.Chart(parent=fake_canvas)
+
+        xvals = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        yvals = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+        new_xvals, new_yvals = chart._truncate_vectors(xvals, yvals)
+
+        ref_xvals = np.array([2., 3., 4., 4., 5., 6., 6., 7.])
+        ref_yvals = np.array([1., 1., 1., 1., 1., 1., 1., 1.])
 
         np.testing.assert_array_almost_equal(new_xvals, ref_xvals)
         np.testing.assert_array_almost_equal(new_yvals, ref_yvals)
@@ -127,28 +157,28 @@ class TestChart(QiskitTestCase):
         """Test pulse truncation."""
         fake_canvas = core.DrawerCanvas(stylesheet=self.style, device=self.device)
         fake_canvas.disable_chans = {pulse.DriveChannel(0)}
-        fake_canvas.disable_types = {types.DrawingWaveform.REAL}
+        fake_canvas.disable_types = {types.WaveformType.REAL}
 
         chart = core.Chart(parent=fake_canvas)
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.REAL,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.REAL,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(0)]
         )
         self.assertFalse(chart._check_visible(test_data))
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.IMAG,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.IMAG,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(0)]
         )
         self.assertFalse(chart._check_visible(test_data))
 
-        test_data = drawing_objects.ElementaryData(
-            data_type=types.DrawingWaveform.IMAG,
+        test_data = drawings.ElementaryData(
+            data_type=types.WaveformType.IMAG,
             xvals=np.array([0]),
             yvals=np.array([0]),
             channels=[pulse.DriveChannel(1)]
@@ -184,14 +214,14 @@ class TestChart(QiskitTestCase):
         np.testing.assert_array_almost_equal(yref, short_pulse.yvals)
 
         long_pulse = chart._output_dataset[self.long_pulse.data_key]
-        xref = np.array([8., 8., 9., 14., 15., 15.])
-        yref = np.array([0., 0.3, 0.3, 0.3, 0.3, 0.])
+        xref = np.array([8., 8., 9., 10., 10., 14., 15., 15.])
+        yref = np.array([0., 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.])
         np.testing.assert_array_almost_equal(xref, long_pulse.xvals)
         np.testing.assert_array_almost_equal(yref, long_pulse.yvals)
 
         abstract_hline = chart._output_dataset[self.abstract_hline.data_key]
-        xref = np.array([0., 15.])
-        yref = np.array([0., 0.])
+        xref = np.array([0., 10., 10., 15.])
+        yref = np.array([0., 0., 0., 0.])
         np.testing.assert_array_almost_equal(xref, abstract_hline.xvals)
         np.testing.assert_array_almost_equal(yref, abstract_hline.yvals)
 
@@ -241,6 +271,9 @@ class TestDrawCanvas(QiskitTestCase):
             'axis_break.length': 20,
             'axis_break.max_length': 10
         }
+        canvas.layout = {
+            'figure_title': layouts.empty_title
+        }
         canvas.time_breaks = [(10, 40), (60, 80)]
 
         canvas.time_range = (0, 100)
@@ -281,6 +314,9 @@ class TestDrawCanvas(QiskitTestCase):
             'axis_break.length': 20,
             'axis_break.max_length': 10
         }
+        canvas.layout = {
+            'figure_title': layouts.empty_title
+        }
         canvas.time_range = (0, 100)
 
         # no breaks
@@ -302,10 +338,10 @@ class TestDrawCanvas(QiskitTestCase):
             yield name, chan
 
     def generate_dummy_obj(self, data: types.PulseInstruction, **kwargs):
-        dummy_obj = drawing_objects.ElementaryData(data_type='test',
-                                                   xvals=np.arange(data.inst.pulse.duration),
-                                                   yvals=data.inst.pulse.samples,
-                                                   channels=[data.inst.channel])
+        dummy_obj = drawings.ElementaryData(data_type='test',
+                                            xvals=np.arange(data.inst.pulse.duration),
+                                            yvals=data.inst.pulse.samples,
+                                            channels=[data.inst.channel])
         return [dummy_obj]
 
     def test_load_program(self):
@@ -324,8 +360,10 @@ class TestDrawCanvas(QiskitTestCase):
             'barrier': []
         }
         canvas.layout = {
-            'chart_channel_map': self.chart_channel_map
+            'chart_channel_map': self.chart_channel_map,
+            'figure_title': layouts.empty_title
         }
+
         canvas.load_program(self.sched)
 
         self.assertEqual(len(canvas.charts), 2)

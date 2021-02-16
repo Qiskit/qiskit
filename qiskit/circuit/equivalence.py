@@ -20,17 +20,6 @@ import retworkx as rx
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
-try:
-    import pydot  # pylint: disable=unused-import
-    HAS_PYDOT = True
-except ImportError:
-    HAS_PYDOT = False
-try:
-    from PIL import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
 
 Key = namedtuple('Key', ['name',
                          'num_qubits'])
@@ -167,17 +156,35 @@ class EquivalenceLibrary():
                 if specified this method will return None.
 
         Returns:
-            PIL.Image: Drawn equivalence library.
+            PIL.Image or IPython.display.SVG: Drawn equivalence library as an
+                IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
             ImportError: when pydot or pillow are not installed.
         """
-        if not HAS_PYDOT:
+        try:
+            import pydot
+            has_pydot = True
+        except ImportError:
+            has_pydot = False
+        try:
+            from PIL import Image
+            has_pil = True
+        except ImportError:
+            has_pil = False
+
+        if not has_pydot:
             raise ImportError('EquivalenceLibrary.draw requires pydot. '
                               "You can use 'pip install pydot' to install")
-        if not HAS_PIL and not filename:
+        if not has_pil and not filename:
             raise ImportError('EquivalenceLibrary.draw requires pillow. '
                               "You can use 'pip install pillow' to install")
+
+        try:
+            from IPython.display import SVG
+            has_ipython = True
+        except ImportError:
+            has_ipython = False
 
         dot_str = self._build_basis_graph().to_dot(
             lambda node: {'label': node['label']}, lambda edge: edge)
@@ -186,6 +193,11 @@ class EquivalenceLibrary():
             extension = filename.split('.')[-1]
             dot.write(filename, format=extension)
             return None
+
+        if has_ipython:
+            svg = dot.create_svg(prog='dot')
+            return SVG(svg)
+
         png = dot.create_png(prog='dot')
         return Image.open(io.BytesIO(png))
 

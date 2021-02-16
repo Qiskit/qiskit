@@ -133,3 +133,15 @@ class TestDecompose(QiskitTestCase):
         qc.rxx(0.2, 0, 1)
         qcd = qc.decompose()
         self.assertEqual(Operator(qc), Operator(qcd))
+
+    def test_decompose_global_phase_1q_composite(self):
+        """Test decomposition of circuit with global phase in a composite gate."""
+        circ = QuantumCircuit(1, global_phase=pi / 2)
+        circ.x(0)
+        circ.h(0)
+        v = circ.to_gate()
+
+        qc = QuantumCircuit(1)
+        qc.append(v, [0])
+        qcd = qc.decompose()
+        self.assertEqual(Operator(qc), Operator(qcd))

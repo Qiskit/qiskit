@@ -17,7 +17,7 @@ from typing import Union, Callable, List, Tuple, Optional
 import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.util import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments
 from ..standard_gates import (
     XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 )
@@ -256,7 +256,7 @@ class MCMTVChain(MCMT):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
 
 
-# pylint:disable=unused-argument
+# pylint: disable=unused-argument
 @deprecate_arguments({'single_control_gate_fun': 'gate',
                       'q_controls': 'control_qubits',
                       'q_ancillae': 'ancilla_qubits',

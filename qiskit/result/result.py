@@ -62,7 +62,7 @@ class Result:
     def __repr__(self):
         out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
                "job_id='%s', success=%s, results=%s" % (
-                   self.backend_version,
+                   self.backend_name,
                    self.backend_version, self.qobj_id, self.job_id, self.success,
                    self.results))
         if hasattr(self, 'date'):
@@ -180,7 +180,7 @@ class Result:
         try:
             return self._get_experiment(experiment).data.to_dict()
         except (KeyError, TypeError):
-            raise QiskitError('No data for experiment "{}"'.format(experiment))
+            raise QiskitError('No data for experiment "{}"'.format(repr(experiment)))
 
     def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
@@ -208,9 +208,8 @@ class Result:
         Raises:
             QiskitError: if there is no memory data for the circuit.
         """
+        exp_result = self._get_experiment(experiment)
         try:
-            exp_result = self._get_experiment(experiment)
-
             try:  # header is not available
                 header = exp_result.header.to_dict()
             except (AttributeError, QiskitError):
@@ -230,14 +229,19 @@ class Result:
                 raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
         except KeyError:
-            raise QiskitError('No memory for experiment "{}".'.format(experiment))
+            raise QiskitError(
+                'No memory for experiment "{}". '
+                'Please verify that you either ran a measurement level 2 job '
+                'with the memory flag set, eg., "memory=True", '
+                'or a measurement level 0/1 job.'.format(repr(experiment))
+            )
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
 
         Args:
             experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+                experiment, as specified by ``data([experiment])``.
 
         Returns:
             dict[str:int] or list[dict[str:int]]: a dictionary or a list of
@@ -274,7 +278,7 @@ class Result:
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
-                raise QiskitError('No counts for experiment "{}"'.format(key))
+                raise QiskitError('No counts for experiment "{}"'.format(repr(key)))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
@@ -301,7 +305,7 @@ class Result:
             return postprocess.format_statevector(self.data(experiment)['statevector'],
                                                   decimals=decimals)
         except KeyError:
-            raise QiskitError('No statevector for experiment "{}"'.format(experiment))
+            raise QiskitError('No statevector for experiment "{}"'.format(repr(experiment)))
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
@@ -323,7 +327,7 @@ class Result:
             return postprocess.format_unitary(self.data(experiment)['unitary'],
                                               decimals=decimals)
         except KeyError:
-            raise QiskitError('No unitary for experiment "{}"'.format(experiment))
+            raise QiskitError('No unitary for experiment "{}"'.format(repr(experiment)))
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.
@@ -352,7 +356,10 @@ class Result:
             key = key.name
         # Key is an integer: return result by index.
         if isinstance(key, int):
-            exp = self.results[key]
+            try:
+                exp = self.results[key]
+            except IndexError:
+                raise QiskitError('Result for experiment "%s" could not be found.' % key)
         else:
             # Look into `result[x].header.name` for the names.
             exp = [result for result in self.results

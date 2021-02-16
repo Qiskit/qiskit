@@ -17,9 +17,14 @@ ddt>=1.2.0,!=1.4.0
 seaborn>=0.9.0
 reno>=3.2.0
 Sphinx>=1.8.3,<3.1.0
-sphinx-rtd-theme>=0.4.0
-sphinx-tabs>=1.1.11
+qiskit-sphinx-theme>=1.6
 sphinx-autodoc-typehints
 jupyter-sphinx
+sphinx-panels
 pygments>=2.4
 tweedledum
+networkx>=2.2
+scikit-learn>=0.20.0
+scikit-quant;platform_system != 'Windows'
+jax;platform_system != 'Windows'
+jaxlib;platform_system != 'Windows'

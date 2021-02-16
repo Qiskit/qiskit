@@ -18,7 +18,7 @@ from numbers import Number
 import numpy
 import scipy.linalg
 
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.exceptions import ExtensionError
@@ -78,10 +78,10 @@ class HamiltonianGate(Gate):
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return matrix for the unitary."""
+        # pylint: disable=unused-argument
         try:
-            # pylint: disable=no-member
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError:
             raise TypeError("Unable to generate Unitary matrix for "
@@ -118,6 +118,8 @@ class HamiltonianGate(Gate):
         """Hamiltonian parameter has to be an ndarray, operator or float."""
         if isinstance(parameter, (float, int, numpy.ndarray)):
             return parameter
+        elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
+            return float(parameter)
         else:
             raise CircuitError("invalid param type {0} for gate  "
                                "{1}".format(type(parameter), self.name))

@@ -27,7 +27,7 @@ from .qasmlexer import QasmLexer
 class QasmParser:
     """OPENQASM Parser."""
 
-    # pylint: disable=missing-docstring,invalid-name
+    # pylint: disable=missing-function-docstring,invalid-name
 
     def __init__(self, filename):
         """Create the parser."""

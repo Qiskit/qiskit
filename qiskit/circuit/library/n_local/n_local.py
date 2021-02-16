@@ -12,7 +12,6 @@
 
 """The n-local circuit class."""
 
-import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
@@ -23,8 +22,6 @@ from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExp
 from qiskit.circuit.parametertable import ParameterTable
 
 from ..blueprintcircuit import BlueprintCircuit
-
-logger = logging.getLogger(__name__)
 
 
 class NLocal(BlueprintCircuit):
@@ -113,7 +110,7 @@ class NLocal(BlueprintCircuit):
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             TypeError: If an ``initial_state`` is specified but not of the correct type,
                 ``qiskit.aqua.components.initial_states.InitialState``.
-
+            ValueError: If reps parameter is less than or equal to 0.
         """
         super().__init__(name=name)
 
@@ -135,6 +132,9 @@ class NLocal(BlueprintCircuit):
         self._initial_state, self._initial_state_circuit = None, None
         self._data = None
         self._bounds = None
+
+        if reps <= 0:
+            raise ValueError('The value of reps should be larger than or equal to 1')
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -479,7 +479,12 @@ class NLocal(BlueprintCircuit):
 
         Args:
             repetitions: The new repetitions.
+
+        Raises:
+            ValueError: If reps setter has parameter repetitions <= 0.
         """
+        if repetitions <= 0:
+            raise ValueError('The repetitions should be larger than or equal to 1')
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions
@@ -507,7 +512,7 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint:disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
                           ) -> List[List[int]]:
         """Get the entangler map for in the repetition ``rep_num`` and the block ``block_num``.
@@ -710,7 +715,7 @@ class NLocal(BlueprintCircuit):
         # modify the circuit accordingly
         if self._data and front is False:
             if self._insert_barriers and len(self._data) > 0:
-                self.barrier()  # pylint: disable=no-member
+                self.barrier()
 
             if isinstance(entanglement, str):
                 entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
@@ -846,10 +851,10 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for i, (block, ent) in enumerate(zip(blocks, entanglements)):
+        for (block, ent) in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
@@ -897,7 +902,7 @@ class NLocal(BlueprintCircuit):
         if not self._skip_final_rotation_layer:
             if self.insert_barriers:
                 self.barrier()
-            self._build_rotation_layer(param_iter, i)
+            self._build_rotation_layer(param_iter, self.reps)
 
         # add the appended layers
         self._build_additional_layers('appended')
@@ -957,13 +962,19 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         raise ValueError('The number of block qubits must be smaller or equal to the number of '
                          'qubits in the circuit.')
 
+    if entanglement == 'pairwise' and num_block_qubits != 2:
+        raise ValueError('Pairwise entanglement is only defined for blocks of 2 qubits.')
+
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
-    if entanglement in ['linear', 'circular', 'sca']:
+    if entanglement in ['linear', 'circular', 'sca', 'pairwise']:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == 'linear' or m == 1:
             return linear
+
+        if entanglement == 'pairwise':
+            return linear[::2] + linear[1::2]
 
         # circular equals linear plus top-bottom entanglement
         circular = [tuple(range(n - m + 1, n)) + (0,)] + linear

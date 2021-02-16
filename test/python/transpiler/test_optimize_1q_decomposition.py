@@ -18,6 +18,8 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.circuit.random import random_circuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -40,6 +42,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_optimize_h_gates_pass_manager(self, basis):
@@ -68,6 +72,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_ignores_conditional_rotations(self, basis):
@@ -96,6 +102,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
         ['r'],
     )
     def test_in_the_back(self, basis):
@@ -129,7 +137,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['cz', 'rx', 'rz'],
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
+        ['rz', 'sx'],
         ['u1', 'rx'],
+        ['p', 'sx'],
     )
     def test_single_parameterized_circuit(self, basis):
         """Parameters should be treated as opaque gates."""
@@ -161,6 +171,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
     )
     def test_parameterized_circuits(self, basis):
         """Parameters should be treated as opaque gates."""
@@ -195,6 +207,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ['rxx', 'rx', 'ry'],
         ['iswap', 'rx', 'rz'],
         ['u1', 'rx'],
+        ['rz', 'sx'],
+        ['p', 'sx'],
     )
     def test_parameterized_expressions_in_circuits(self, basis):
         """Expressions of Parameters should be treated as opaque gates."""
@@ -222,6 +236,113 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         self.assertTrue(
             Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
                 Operator(result.bind_parameters({theta: 3.14, phi: 10}))))
+
+    def test_identity_xyx(self):
+        """Test lone identity gates in rx ry basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.rx(0, 1)
+        circuit.ry(0, 0)
+        basis = ['rxx', 'rx', 'ry']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_zxz(self):
+        """Test lone identity gates in rx rz basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.rx(0, 1)
+        circuit.rz(0, 0)
+        basis = ['cz', 'rx', 'rz']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_psx(self):
+        """Test lone identity gates in p sx basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.p(0, 0)
+        basis = ['cx', 'p', 'sx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u(self):
+        """Test lone identity gates in u basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.u(0, 0, 0, 0)
+        basis = ['cx', 'u']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u3(self):
+        """Test lone identity gates in u3 basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.append(U3Gate(0, 0, 0), [0])
+        basis = ['cx', 'u3']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_r(self):
+        """Test lone identity gates in r basis are removed."""
+        circuit = QuantumCircuit(1)
+        circuit.r(0, 0, 0)
+        basis = ['r']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_identity_u1x(self):
+        """Test lone identity gates in u1 rx basis are removed."""
+        circuit = QuantumCircuit(2)
+        circuit.u1(0, 0)
+        circuit.rx(0, 1)
+        basis = ['cx', 'u1', 'rx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual([], result.data)
+
+    def test_overcomplete_basis(self):
+        """Test optimization with an overcomplete basis."""
+        circuit = random_circuit(3, 3, seed=42)
+        basis = ['rz', 'rxx', 'rx', 'ry', 'p', 'sx', 'u', 'cx']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        basis_translated = passmanager.run(circuit)
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result_full = passmanager.run(basis_translated)
+        self.assertTrue(Operator(circuit).equiv(Operator(result_full)))
+        self.assertGreater(basis_translated.depth(), result_full.depth())
+
+    def test_euler_decomposition_worse(self):
+        """Ensure we don't decompose to a deeper circuit."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(-np.pi / 2, 0)
+        circuit.rz(-np.pi / 2, 0)
+        basis = ['rx', 'rz']
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        # decomposition of circuit will result in 3 gates instead of 2
+        # assert optimization pass doesn't use it.
+        self.assertEqual(result, circuit)
 
 
 if __name__ == '__main__':
