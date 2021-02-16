@@ -593,14 +593,26 @@ class QCircuitImage:
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
-        # These 3 are computed in order to place the black dots and circles on the bits
         # cwire - the wire number for the first wire for the condition register
+        #      or if cregbundle, wire number of the condition register itself
         # if_value - a bit string for the condition
         # gap - the number of wires from cwire to the gate qubit
         mask = self._get_mask(op.condition[0])
         cl_reg = self.clbit_list[self._ffs(mask)]
         if_reg = cl_reg.register
-        cwire = self.img_regs[if_reg[cl_reg.index]]
+
+        # for cregbundle, start at first register and increment cwire until it hits
+        # the conditional register
+        if self.cregbundle:
+            cwire = len(self.qubit_list)
+            for creg in self.cregs:
+                if if_reg == creg[0].register:
+                    break
+                cwire += 1
+        else:
+            # otherwise select the first bit wire for the condition register
+            # instead of the register wire
+            cwire = self.img_regs[if_reg[cl_reg.index]]
 
         if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])[::-1]
         temp = wire_list + [cwire]
