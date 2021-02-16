@@ -33,7 +33,6 @@ from qiskit.opflow import (
     CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
     SummedOp, OperatorBase, Zero, OpflowError
 )
-from qiskit.opflow import MatrixOperator
 
 
 # pylint: disable=invalid-name
@@ -84,7 +83,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_evals(self):
         """ evals test """
-        # pylint: disable=no-member
         # TODO: Think about eval names
         self.assertEqual(Z.eval('0').eval('0'), 1)
         self.assertEqual(Z.eval('1').eval('0'), 0)
@@ -927,11 +925,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
             _ = MatrixOp('invalid')
 
         self.assertEqual(str(cm.exception), msg + "'str'")
-
-        with self.assertRaises(TypeError) as cm:
-            _ = MatrixOp(MatrixOperator(np.eye(2)))
-
-        self.assertEqual(str(cm.exception), msg + "'MatrixOperator'")
 
         with self.assertRaises(TypeError) as cm:
             _ = MatrixOp(None)

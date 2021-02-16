@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,assignment-from-no-return
 
 """
 DEPRECATED Tools for working with Pauli Operators.
@@ -60,8 +59,8 @@ def pauli_group(number_of_qubits, case='weight'):
         elif case == 'tensor':
             # the Pauli set is in tensor order II IX IY IZ XI ...
             for k in range(4 ** number_of_qubits):
-                z = np.zeros(number_of_qubits, dtype=np.bool)
-                x = np.zeros(number_of_qubits, dtype=np.bool)
+                z = np.zeros(number_of_qubits, dtype=bool)
+                x = np.zeros(number_of_qubits, dtype=bool)
                 # looping over all the qubits
                 for j in range(number_of_qubits):
                     # making the Pauli for each j fill it in from the

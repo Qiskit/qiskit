@@ -67,7 +67,7 @@ class OperatorStateFn(StateFn):
                 return StateFn(self.primitive,
                                coeff=self.coeff + other.coeff,
                                is_measurement=self.is_measurement)
-            # Covers MatrixOperator, Statevector and custom.
+            # Covers Statevector and custom.
             elif isinstance(other, OperatorStateFn):
                 # Also assumes scalar multiplication is available
                 return OperatorStateFn(
@@ -175,7 +175,6 @@ class OperatorStateFn(StateFn):
                 prim_str,
                 self.coeff)
 
-    # pylint: disable=too-many-return-statements
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:

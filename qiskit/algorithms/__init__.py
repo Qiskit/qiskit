@@ -45,6 +45,7 @@ Amplitude Amplifiers
    :toctree: ../stubs/
    :nosignatures:
 
+   AmplificationProblem
    Grover
    GroverResult
 
@@ -127,7 +128,7 @@ Exceptions
 
 from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
     AmplitudeEstimator, AmplitudeEstimatorResult,
     AmplitudeEstimation, AmplitudeEstimationResult,
@@ -147,6 +148,7 @@ __all__ = [
     'AlgorithmResult',
     'VariationalAlgorithm',
     'VariationalResult',
+    'AmplificationProblem',
     'Grover',
     'GroverResult',
     'AmplitudeEstimator',

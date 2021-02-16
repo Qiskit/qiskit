@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, missing-return-type-doc
+# pylint: disable=missing-return-type-doc
 
 """Qiskit pulse drawer.
 

@@ -91,9 +91,9 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
 
         # phase modulation
         if formatter['control.apply_phase_modulation']:
-            ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+            ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
         else:
-            ydata = np.asarray(ydata, dtype=np.complex)
+            ydata = np.asarray(ydata, dtype=complex)
 
         return _draw_shaped_waveform(xdata=xdata,
                                      ydata=ydata,
@@ -267,9 +267,9 @@ def gen_waveform_max_value(data: types.PulseInstruction,
 
     # phase modulation
     if formatter['control.apply_phase_modulation']:
-        ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
     else:
-        ydata = np.asarray(ydata, dtype=np.complex)
+        ydata = np.asarray(ydata, dtype=complex)
 
     texts = []
 

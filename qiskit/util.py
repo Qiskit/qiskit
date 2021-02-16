@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wildcard-import,unused-wildcard-import
-
 """Common utilities for Qiskit."""
 
 # Deprecated: for backwards compatibility to be removed in a future release
