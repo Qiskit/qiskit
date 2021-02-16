@@ -26,6 +26,7 @@ from qiskit.test.base import QiskitTestCase
 @ddt
 class TestScheduledCircuit(QiskitTestCase):
     """Test scheduled circuit (quantum circuit with duration)."""
+
     def setUp(self):
         super().setUp()
         self.backend_with_dt = FakeParis()
@@ -125,7 +126,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(1000, 0, unit='ns')  # 4500 [dt]
         qc.measure_all()  # 19584 [dt]
         scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 24244)
+        self.assertEqual(scheduled.duration, 22580)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
