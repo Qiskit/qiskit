@@ -43,3 +43,7 @@ from .montreal import FakeMontreal
 from .toronto import FakeToronto
 from .manhattan import FakeManhattan
 from .santiago import FakeSantiago
+from .casablanca import FakeCasablanca
+from .sydney import FakeSydney
+from .lima import FakeLima
+from .quito import FakeQuito
