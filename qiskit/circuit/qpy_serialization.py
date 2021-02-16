@@ -35,7 +35,7 @@ A QPY file (or memory object) always starts with the following 7
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
 file header. The contents of thie file header as defined as a C struct are:
 
-.. code-block: c
+.. code-block:: c
 
     struct {
         unsigned char qpy_version;
