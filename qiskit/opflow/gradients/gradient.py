@@ -14,6 +14,8 @@
 
 from typing import Union, List
 
+
+from multipledispatch import dispatch
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
@@ -35,14 +37,20 @@ except ImportError:
     _HAS_JAX = False
 
 
+@dispatch(float, float)
+def is_coeff_c(coeff, c):
+    return coeff == c
+
+@dispatch(ParameterExpression, float)
+def is_coeff_c(coeff, c):
+    return coeff._symbol_expr == c
+
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
 
-    # pylint: disable=signature-differs
-    def convert(self,
-                operator: OperatorBase,
-                params: Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
-                ) -> OperatorBase:
+    # Call _convert because of some multipledispatch bug, or s.t.
+    # I'm unable to use MD with convert. It seems PauliExpectation.convert is confusing the MD?
+    def convert(self, operator, params):
         r"""
         Args:
             operator: The operator we are taking the gradient of.
@@ -54,29 +62,104 @@ class Gradient(GradientBase):
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
+        return self._convert(operator, params)
 
-        if isinstance(params, (ParameterVector, list)):
-            param_grads = [self.convert(operator, param) for param in params]
-            absent_params = [params[i]
-                             for i, grad_ops in enumerate(param_grads) if grad_ops is None]
-            if len(absent_params) > 0:
-                raise ValueError(
-                    "The following parameters do not appear in the provided operator: ",
-                    absent_params
-                )
-            return ListOp(param_grads)
 
-        param = params
+    @dispatch(object, (ParameterVector, list))
+    def _convert(self, operator, params):
+        param_grads = [self._convert(operator, param) for param in params]
+        absent_params = [params[i]
+                         for i, grad_ops in enumerate(param_grads) if grad_ops is None]
+        if len(absent_params) > 0:
+            raise ValueError(
+                "The following parameters do not appear in the provided operator: ",
+                absent_params
+            )
+        return ListOp(param_grads)
+
+    @dispatch(object, object)
+    def _convert(self, operator, param):
         # Preprocessing
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
         return self.get_gradient(cleaned_op, param)
 
-    # pylint: disable=too-many-return-statements
-    def get_gradient(self,
-                     operator: OperatorBase,
-                     params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                     ) -> OperatorBase:
+
+    @dispatch((object, ComposedOp, SummedOp, TensoredOp, CircuitStateFn), (ParameterVector, list))
+    def get_gradient(self, operator, params):
+        param_grads = [self.get_gradient(operator, param) for param in params]
+        # If get_gradient returns None, then the corresponding parameter was probably not
+        # present in the operator. This needs to be looked at more carefully as other things can
+        # probably trigger a return of None.
+        absent_params = [params[i]
+                         for i, grad_ops in enumerate(param_grads) if grad_ops is None]
+        if len(absent_params) > 0:
+            raise ValueError(
+                'The following parameters do not appear in the provided operator: ',
+                absent_params
+            )
+        return ListOp(param_grads)
+
+
+    def handle_coeff_not_one(self, operator, param):
+        # Separate the operator from the coefficient
+        coeff = operator._coeff
+        op = operator / coeff
+        # Get derivative of the operator (recursively)
+        d_op = self.get_gradient(op, param)
+        # ..get derivative of the coeff
+        d_coeff = self.parameter_expression_grad(coeff, param)
+
+        grad_op = 0
+        if d_op != ~Zero @ One and not is_coeff_c(coeff, 0.0):
+            grad_op += coeff * d_op
+        if op != ~Zero @ One and not is_coeff_c(d_coeff, 0.0):
+            grad_op += d_coeff * op
+        if grad_op == 0:
+            grad_op = ~Zero @ One
+        return grad_op
+
+    # Base Case, you've hit a ComposedOp!
+    # Prior to execution, the composite operator was standardized and coefficients were
+    # collected. Any operator measurements were converted to Pauli-Z measurements and rotation
+    # circuits were applied. Additionally, all coefficients within ComposedOps were collected
+    # and moved out front.
+    @dispatch(ComposedOp, object)
+    def get_gradient(self, operator, param):
+        if not is_coeff_c(operator._coeff, 1.0):
+            return self.handle_coeff_not_one(operator, param)
+        # Do some checks to make sure operator is sensible
+        # TODO add compatibility with sum of circuit state fns
+        if not isinstance(operator[-1], CircuitStateFn):
+            raise TypeError(
+                'The gradient framework is compatible with states that are given as '
+                'CircuitStateFn')
+
+        return self.grad_method.convert(operator, param)
+
+    @dispatch(CircuitStateFn, object)
+    def get_gradient(self, operator, param):
+        # Gradient of an a state's sampling probabilities
+        if not is_coeff_c(operator._coeff, 1.0):
+            return self.handle_coeff_not_one(operator, param)
+        return self.grad_method.convert(operator, param)
+
+    @dispatch(SummedOp, object)
+    def get_gradient(self, operator, param):
+        if not is_coeff_c(operator._coeff, 1.0):
+            return self.handle_coeff_not_one(operator, param)
+        grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
+        return SummedOp(oplist=[grad for grad in grad_ops if grad != ~Zero @ One]).reduce()
+
+    @dispatch(TensoredOp, object)
+    def get_gradient(self, operator, param):
+        if not is_coeff_c(operator._coeff, 1.0):
+            return self.handle_coeff_not_one(operator, param)
+        grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
+        return TensoredOp(oplist=grad_ops)
+
+    @dispatch(ListOp, object)
+    def get_gradient(self, operator, param) -> OperatorBase:
         """Get the gradient for the given operator w.r.t. the given parameters
 
         Args:
@@ -96,110 +179,40 @@ class Gradient(GradientBase):
             MissingOptionalLibraryError: jax not installed
         """
 
-        def is_coeff_c(coeff, c):
-            if isinstance(coeff, ParameterExpression):
-                expr = coeff._symbol_expr
-                return expr == c
-            return coeff == c
-
-        if isinstance(params, (ParameterVector, list)):
-            param_grads = [self.get_gradient(operator, param) for param in params]
-            # If get_gradient returns None, then the corresponding parameter was probably not
-            # present in the operator. This needs to be looked at more carefully as other things can
-            # probably trigger a return of None.
-            absent_params = [params[i]
-                             for i, grad_ops in enumerate(param_grads) if grad_ops is None]
-            if len(absent_params) > 0:
-                raise ValueError(
-                    'The following parameters do not appear in the provided operator: ',
-                    absent_params
-                )
-            return ListOp(param_grads)
-
-        # By now params is a single parameter
-        param = params
         # Handle Product Rules
         if not is_coeff_c(operator._coeff, 1.0):
-            # Separate the operator from the coefficient
-            coeff = operator._coeff
-            op = operator / coeff
-            # Get derivative of the operator (recursively)
-            d_op = self.get_gradient(op, param)
-            # ..get derivative of the coeff
-            d_coeff = self.parameter_expression_grad(coeff, param)
-
-            grad_op = 0
-            if d_op != ~Zero @ One and not is_coeff_c(coeff, 0.0):
-                grad_op += coeff * d_op
-            if op != ~Zero @ One and not is_coeff_c(d_coeff, 0.0):
-                grad_op += d_coeff * op
-            if grad_op == 0:
-                grad_op = ~Zero @ One
-            return grad_op
-
-        # Base Case, you've hit a ComposedOp!
-        # Prior to execution, the composite operator was standardized and coefficients were
-        # collected. Any operator measurements were converted to Pauli-Z measurements and rotation
-        # circuits were applied. Additionally, all coefficients within ComposedOps were collected
-        # and moved out front.
-        if isinstance(operator, ComposedOp):
-
-            # Gradient of an expectation value
-            if not is_coeff_c(operator._coeff, 1.0):
-                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
-                                  'collected inside the ComposedOp.')
-
-            # Do some checks to make sure operator is sensible
-            # TODO add compatibility with sum of circuit state fns
-            if not isinstance(operator[-1], CircuitStateFn):
-                raise TypeError(
-                    'The gradient framework is compatible with states that are given as '
-                    'CircuitStateFn')
-
-            return self.grad_method.convert(operator, param)
-
-        elif isinstance(operator, CircuitStateFn):
-            # Gradient of an a state's sampling probabilities
-            if not is_coeff_c(operator._coeff, 1.0):
-                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
-                                  'collected inside the ComposedOp.')
-            return self.grad_method.convert(operator, param)
+            return self.handle_coeff_not_one(operator, param)
 
         # Handle the chain rule
-        elif isinstance(operator, ListOp):
-            grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
+        grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
 
-            # Note: this check to see if the ListOp has a default combo_fn
-            # will fail if the user manually specifies the default combo_fn.
-            # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
-            # later on jax will try to differentiate it and raise an error.
-            # An alternative is to check the byte code of the operator's combo_fn against the
-            # default one.
-            if operator._combo_fn == ListOp([])._combo_fn:
-                return ListOp(oplist=grad_ops)
-            elif isinstance(operator, SummedOp):
-                return SummedOp(oplist=[grad for grad in grad_ops if grad != ~Zero @ One]).reduce()
-            elif isinstance(operator, TensoredOp):
-                return TensoredOp(oplist=grad_ops)
+        # Note: this check to see if the ListOp has a default combo_fn
+        # will fail if the user manually specifies the default combo_fn.
+        # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
+        # later on jax will try to differentiate it and raise an error.
+        # An alternative is to check the byte code of the operator's combo_fn against the
+        # default one.
+        if operator._combo_fn == ListOp([])._combo_fn:
+            return ListOp(oplist=grad_ops)
 
-            if operator.grad_combo_fn:
-                grad_combo_fn = operator.grad_combo_fn
+        if operator.grad_combo_fn:
+            grad_combo_fn = operator.grad_combo_fn
+        else:
+            if _HAS_JAX:
+                grad_combo_fn = jit(grad(operator._combo_fn, holomorphic=True))
             else:
-                if _HAS_JAX:
-                    grad_combo_fn = jit(grad(operator._combo_fn, holomorphic=True))
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname='jax',
-                        name='get_gradient',
-                        msg='This automatic differentiation function is based on JAX. '
-                            'Please install jax and use `import jax.numpy as jnp` instead '
-                            'of `import numpy as np` when defining a combo_fn.')
+                raise MissingOptionalLibraryError(
+                    libname='jax',
+                    name='get_gradient',
+                    msg='This automatic differentiation function is based on JAX. '
+                    'Please install jax and use `import jax.numpy as jnp` instead '
+                    'of `import numpy as np` when defining a combo_fn.')
 
-            def chain_rule_combo_fn(x):
-                result = np.dot(x[1], x[0])
-                if isinstance(result, np.ndarray):
-                    result = list(result)
-                return result
+        def chain_rule_combo_fn(x):
+            result = np.dot(x[1], x[0])
+            if isinstance(result, np.ndarray):
+                result = list(result)
+            return result
 
-            return ListOp([ListOp(operator.oplist, combo_fn=grad_combo_fn), ListOp(grad_ops)],
-                          combo_fn=chain_rule_combo_fn)
+        return ListOp([ListOp(operator.oplist, combo_fn=grad_combo_fn), ListOp(grad_ops)],
+                      combo_fn=chain_rule_combo_fn)
