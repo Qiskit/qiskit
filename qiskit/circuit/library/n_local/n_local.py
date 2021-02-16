@@ -777,8 +777,8 @@ class NLocal(BlueprintCircuit):
 
         return super().assign_parameters(param_dict, inplace=inplace)
 
-    def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
-                           params=None):
+    def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None,
+                            indices=None, params=None):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
