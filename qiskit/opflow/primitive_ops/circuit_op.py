@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitOp Class """
+"""CircuitOp Class """
 
 from typing import Union, Optional, Set, List, Dict, cast
-import logging
 import numpy as np
 
 import qiskit
@@ -24,8 +23,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 from ..operator_base import OperatorBase
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class CircuitOp(PrimitiveOp):

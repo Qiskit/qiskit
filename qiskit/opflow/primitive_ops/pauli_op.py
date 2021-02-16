@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliOp Class """
+"""PauliOp Class """
 
 from typing import Union, Set, Dict, cast, List, Optional
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -29,7 +28,6 @@ from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 
-logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
 
 
@@ -173,7 +171,7 @@ class PauliOp(PrimitiveOp):
         Raises:
             ValueError: invalid parameters.
         """
-        return self.primitive.to_spmatrix() * self.coeff  # type: ignore
+        return self.primitive.to_matrix(sparse=True) * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -220,7 +218,7 @@ class PauliOp(PrimitiveOp):
                 corrected_z_bits = self.primitive.z[::-1]  # type: ignore
 
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
                     new_str = ''.join(map(str, 1 * new_b_str))
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
@@ -253,7 +251,7 @@ class PauliOp(PrimitiveOp):
         # if only one qubit is significant, we can perform the evolution
         corrected_x = self.primitive.x[::-1]  # type: ignore
         corrected_z = self.primitive.z[::-1]  # type: ignore
-        # pylint: disable=import-outside-toplevel,no-member
+        # pylint: disable=import-outside-toplevel
         sig_qubits = np.logical_or(corrected_x, corrected_z)
         if np.sum(sig_qubits) == 0:
             # e^I is just a global phase, but we can keep track of it! Should we?

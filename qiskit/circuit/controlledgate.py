@@ -23,8 +23,6 @@ from .gate import Gate
 from .quantumregister import QuantumRegister
 from ._utils import _ctrl_state_to_int
 
-# pylint: disable=missing-return-doc
-
 
 class ControlledGate(Gate):
     """Controlled unitary gate."""

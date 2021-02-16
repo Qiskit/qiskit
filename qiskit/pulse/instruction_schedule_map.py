@@ -255,7 +255,7 @@ class InstructionScheduleMap():
                              'callable that outputs a schedule.')
 
         # initialize parameter list
-        if isinstance(schedule, Callable):
+        if callable(schedule):
             func_parameters = list(inspect.signature(schedule).parameters.keys())
         else:
             func_parameters = set(param.name for param in schedule.parameters)

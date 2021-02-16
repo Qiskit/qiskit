@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, aqua_globals
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms import VQE
@@ -30,7 +30,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
     def setUp(self):
         """ Set the problem. """
         super().setUp()
-        aqua_globals.random_seed = 50
+        algorithm_globals.random_seed = 50
         self.qubit_op = PauliSumOp.from_list([
             ("II", -1.052373245772859),
             ("IZ", 0.39793742484318045),
@@ -42,8 +42,8 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
     def _optimize(self, optimizer):
         """ launch vqe """
         qe = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                             seed_simulator=aqua_globals.random_seed,
-                             seed_transpiler=aqua_globals.random_seed)
+                             seed_simulator=algorithm_globals.random_seed,
+                             seed_transpiler=algorithm_globals.random_seed)
         vqe = VQE(var_form=RealAmplitudes(),
                   optimizer=optimizer,
                   quantum_instance=qe)
