@@ -31,7 +31,6 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit.directive import Directive
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
@@ -792,7 +791,7 @@ class MatplotlibDrawer:
             # compute the layer_width for this layer
             #
             for op in layer:
-                if isinstance(op.op, Directive) or op.name == 'measure':
+                if op.op._directive or op.name == 'measure':
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -867,7 +866,7 @@ class MatplotlibDrawer:
                 # only add the gate to the anchors if it is going to be plotted.
                 # this prevents additional blank wires at the end of the line if
                 # the last instruction is a barrier type
-                if self._plot_barriers or not isinstance(op.op, Directive):
+                if self._plot_barriers or not op.op._directive:
                     for ii in q_idxs:
                         q_anchors[ii].set_index(this_anc, layer_width)
 
@@ -935,7 +934,7 @@ class MatplotlibDrawer:
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
 
-                elif isinstance(op.op, Directive):
+                elif op.op._directive:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
@@ -1038,7 +1037,7 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all([isinstance(op, Directive) for op in layer]) else 0
+                barrier_offset = -1 if all([op.op._directive for op in layer]) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
         #

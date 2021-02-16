@@ -31,7 +31,6 @@ import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.directive import Directive
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -1149,7 +1148,7 @@ class DAGCircuit:
         nodes = []
         for node in self._multi_graph.nodes():
             if node.type == "op":
-                if not include_directives and isinstance(node.op, Directive):
+                if not include_directives and node.op._directive:
                     continue
                 if op is None or isinstance(node.op, op):
                     nodes.append(node)
@@ -1381,7 +1380,7 @@ class DAGCircuit:
             support_list = [
                 op_node.qargs
                 for op_node in new_layer.op_nodes()
-                if not isinstance(op_node.op, Directive)
+                if not op_node.op._directive
             ]
 
             yield {"graph": new_layer, "partition": support_list}
@@ -1410,7 +1409,7 @@ class DAGCircuit:
             # Add node to new_layer
             new_layer.apply_operation_back(op, qa, ca)
             # Add operation to partition
-            if not isinstance(next_node.op, Directive):
+            if not next_node.op._directive:
                 support_list.append(list(qa))
             l_dict = {"graph": new_layer, "partition": support_list}
             yield l_dict

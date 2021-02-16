@@ -26,7 +26,6 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.directive import Directive
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
@@ -1393,7 +1392,7 @@ class QuantumCircuit:
         """
         gate_ops = 0
         for instr, _, _ in self._data:
-            if not isinstance(instr, Directive):
+            if not instr._directive:
                 gate_ops += 1
         return gate_ops
 
@@ -1440,7 +1439,7 @@ class QuantumCircuit:
             reg_ints = []
             # If count then add one to stack heights
             count = True
-            if isinstance(instr, Directive):
+            if instr._directive:
                 count = False
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
@@ -1512,7 +1511,7 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instr, _, _ in self._data:
-            if instr.num_qubits > 1 and not isinstance(instr, Directive):
+            if instr.num_qubits > 1 and not instr._directive:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
@@ -1552,7 +1551,7 @@ class QuantumCircuit:
                 args = qargs + cargs
                 num_qargs = len(args) + (1 if instr.condition else 0)
 
-            if num_qargs >= 2 and not isinstance(instr, Directive):
+            if num_qargs >= 2 and not instr._directive:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the

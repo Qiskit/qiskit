@@ -22,7 +22,6 @@ from numpy import ndarray
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.circuit import Directive as DirectiveInstruction
 from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate
@@ -999,7 +998,7 @@ class TextDrawing():
             else:
                 layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif isinstance(instruction.op, DirectiveInstruction):
+        elif instruction.op._directive:
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label

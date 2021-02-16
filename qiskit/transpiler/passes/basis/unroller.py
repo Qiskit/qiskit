@@ -15,7 +15,6 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import ControlledGate
-from qiskit.circuit.directive import Directive
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -64,7 +63,7 @@ class Unroller(TransformationPass):
                     pass
                 else:
                     continue
-            if isinstance(node.op, Directive):
+            if node.op._directive:
                 raise QiskitError(
                     'Cannot unroll unsupported directive instruction {}'.format(node.name))
 

@@ -20,7 +20,6 @@ import os
 import sys
 import tempfile
 
-from qiskit.circuit.directive import Directive
 from .exceptions import VisualizationError
 
 try:
@@ -104,7 +103,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
-                if isinstance(node.op, Directive):
+                if node.op._directive:
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'

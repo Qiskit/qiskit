@@ -14,7 +14,6 @@
 
 from collections import defaultdict
 import numpy as np
-from qiskit.circuit.directive import Directive
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
@@ -97,7 +96,7 @@ def _commute(node1, node2, cache):
         return False
 
     for nd in [node1, node2]:
-        if isinstance(nd.op, Directive) or nd.name in {"measure", "reset", "delay"}:
+        if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
             return False
 
     if node1.condition or node2.condition:
