@@ -278,6 +278,9 @@ NCT (Not-CNOT-Toffoli) template circuits
 
 from .standard_gates import *
 from .templates import *
+from ..barrier import Barrier
+from ..measure import Measure
+from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
