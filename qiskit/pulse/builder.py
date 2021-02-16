@@ -1582,7 +1582,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1782,7 +1782,7 @@ def measure(qubits: Union[List[int], int],
     Args:
         qubits: Physical qubit to measure.
         registers: Register to store result in. If not selected the current
-            behaviour is to return the :class:`MemorySlot` with the same
+            behavior is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -1893,7 +1893,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     .. jupyter-kernel:: python3
@@ -1949,7 +1949,7 @@ def cx(control: int, target: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1974,7 +1974,7 @@ def u1(theta: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2001,7 +2001,7 @@ def u2(phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2028,7 +2028,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2055,7 +2055,7 @@ def x(qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
