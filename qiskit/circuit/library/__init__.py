@@ -181,7 +181,7 @@ Particular Quantum Circuits
    QuantumVolume
    PhaseEstimation
    GroverOperator
-   LogicalExpressionOracle
+   PhaseOracle
 
 Probability distributions
 =========================
