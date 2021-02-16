@@ -86,7 +86,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._breakpoints
 
@@ -108,7 +108,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._slopes
 
@@ -127,7 +127,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
-        point implicitely is ``2**(num_state_qubits + 1)``.
+        point implicitly is ``2**(num_state_qubits + 1)``.
         """
         return self._offsets
 

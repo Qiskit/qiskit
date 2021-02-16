@@ -259,7 +259,7 @@ class QuantumCircuit:
 
         The metadata for the circuit is a user provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
-        operation of the circuit, but it is expected to be passed betweeen
+        operation of the circuit, but it is expected to be passed between
         all transforms of the circuit (ie transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.

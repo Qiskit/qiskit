@@ -191,7 +191,7 @@ class DAGCircuit:
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
-            calibrations (dict): A dictionary of input in th format
+            calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)

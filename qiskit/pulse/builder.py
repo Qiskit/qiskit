@@ -275,7 +275,7 @@ class _PulseBuilder():
         """Initialize the builder context.
 
         .. note::
-            At some point we may consider incorpating the builder into
+            At some point we may consider incorporating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -768,7 +768,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context generator, decorator.
+    """A transform context generator, decorator.
 
     Decorator accepts a transformation function, and then decorates a new
     ContextManager function.
@@ -946,7 +946,7 @@ def align_func(duration: int,
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
-    the associated fractional location witin [0, 1].
+    the associated fractional location within [0, 1].
     Delay instruction is automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of arbitrary dynamical decoupling
@@ -1210,7 +1210,7 @@ def frequency_offset(frequency: float,
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted freqeuncy frame
+            # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
@@ -1697,7 +1697,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
-    scheduling aligment operations across channels. For example
+    scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
