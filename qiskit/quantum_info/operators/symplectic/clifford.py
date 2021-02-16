@@ -286,7 +286,7 @@ class Clifford(BaseOperator, AdjointMixin):
         phase = np.mod(array2.dot(phase1) + phase2, 2)
 
         # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=np.int)
+        ifacts = np.zeros(2 * num_qubits, dtype=int)
 
         for k in range(2 * num_qubits):
 
