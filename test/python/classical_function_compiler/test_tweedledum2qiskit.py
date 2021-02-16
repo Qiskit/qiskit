@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
 from tweedledum.ir import Circuit
-from tweedledum.operators import H, X, T, Tdg
+from tweedledum.operators import H, X, T, Tdg  # pylint:disable=no-name-in-module
 
 class TestTweedledum2Qiskit(QiskitTestCase):
     """Tests qiskit.transpiler.classicalfunction.utils.tweedledum2qiskit function."""

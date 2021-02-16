@@ -58,22 +58,22 @@ class TestBooleanExpression(QiskitTestCase):
 class TestBooleanExpressionDIMACS(QiskitTestCase):
 
     def normalize_filenames(self, filename):
-        dir = path.dirname(__file__)
-        return path.join(dir, filename)
+        dirname = path.dirname(__file__)
+        return path.join(dirname, filename)
 
     def test_simple(self):
         filename = self.normalize_filenames('dimacs/simple_v3_c2.cnf')
         simple = BooleanExpression.from_dimacs_file(filename)
         self.assertEqual(simple.name, 'simple_v3_c2.cnf')
         self.assertEqual(simple.num_qubits, 4)
-        # print(simple.simulate('101'))
+        self.assertTrue(simple.simulate('101'))
 
     def test_quinn(self):
         filename = self.normalize_filenames('dimacs/quinn.cnf')
         simple = BooleanExpression.from_dimacs_file(filename)
         self.assertEqual(simple.name, 'quinn.cnf')
-        self.assertEqual(simple.num_qubits, 17)
-        # print(simple.simulate('101'))
+        self.assertEqual(simple.num_qubits, 16)
+        self.assertFalse(simple.simulate('1010101010101010'))
 
 if __name__ == '__main__':
     unittest.main()

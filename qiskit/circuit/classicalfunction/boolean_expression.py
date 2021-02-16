@@ -123,10 +123,6 @@ class BooleanExpression(Gate):
             input.append(BitVec(1, bit))
         return bool(self._tweedledum_bool_expression.simulate(*input))
 
-    def simulate_all(self):
-        #  TODO
-        return self._tweedledum_bool_expression.simulate_all()
-
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
@@ -171,7 +167,7 @@ class BooleanExpression(Gate):
         expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
 
         super(BooleanExpression, expr_obj).__init__(
-            name=basename(filename),num_qubits=expr_obj._tweedledum_bool_expression.num_inputs() +
-                                               expr_obj._tweedledum_bool_expression.num_outputs(),
+            name=basename(filename), num_qubits=expr_obj._tweedledum_bool_expression.num_inputs() +
+                                                expr_obj._tweedledum_bool_expression.num_outputs(),
             params=[])
         return expr_obj

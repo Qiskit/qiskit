@@ -17,7 +17,6 @@ from typing import Optional, Callable, Any, Union, List
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
 from qiskit.quantum_info import Statevector
-from qiskit.circuit.library.phase_oracle import PhaseOracle
 
 
 class AmplificationProblem:
