@@ -64,6 +64,7 @@ class IGate(Gate):
                           DeprecationWarning)
             IGate._ID_IMPLICIT_DELAY_WARN_SHOWN = True
 
+        # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         qc = QuantumCircuit(1)
         qc.delay(320, 0, unit='dt')
