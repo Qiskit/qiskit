@@ -33,7 +33,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.instructions import Instruction, Delay, RelativeBarrier
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -1154,6 +1154,7 @@ class ScheduleBlock(ScheduleBase):
 
         self._transform_policy = transformation_policy
         self._transform_opts = transform_kwargs
+        self._block_delay = 0
 
         self._blocks = list()
         if blocks:
@@ -1240,27 +1241,17 @@ class ScheduleBlock(ScheduleBase):
         """
         return self.ch_stop_time(*channels)
 
-    @_require_schedule_conversion
     def shift(self,
               time: int,
               name: Optional[str] = None,
               inplace: bool = False
-              ) -> Schedule:
+              ) -> 'ScheduleBlock':
         """Return a schedule shifted forward by ``time``.
 
-        Because ``ScheduleBlock`` doesn't have the notion of timeslots, data will be
-        implicitly converted into ``Schedule``. This method always initializes new
-        schedule object and the ``inplace`` option is not applied to this method.
-
-        .. code-block:: python
-
-            sched = Schedule()
-            sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
-
-            block = ScheduleBlock()
-            block.append(sched)
-
-            new_object = block.shift(10)  # this generates new schedule object
+        This operation is implemented by inserting ``Delay`` instructions ahead of the
+        current schedule block components. Because the shifted block should be left aligned to
+        insert correct time shift, this method always generates new block with left alignment
+        transformation wherein delays and the existing block are included.
 
         Args:
             time: Time to shift by.
@@ -1268,15 +1259,20 @@ class ScheduleBlock(ScheduleBase):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        # TODO this can be done with delay insertion!
         if inplace:
-            warnings.warn('ScheduleBlock is implicitly converted into Schedule. '
-                          'This method always generates new object.', UserWarning)
+            raise PulseError('Inline time shift is not supported. '
+                             'Always new schedule is returned.')
 
-        # self is newly generated Schedule from this schedule block, see the decorator
-        return self.shift(time=time, name=name, inplace=True)
+        shifted_block = ScheduleBlock(transformation_policy=AlignmentKind.Left,
+                                      name=name,
+                                      metadata=self.metadata)
+        for chan in self.channels:
+            shifted_block.append(Delay(time, chan), inplace=True)
+        shifted_block.append(RelativeBarrier(*self.channels), inplace=True)
+        shifted_block.append(self, inplace=True)
 
-    @_require_schedule_conversion
+        return shifted_block
+
     def insert(self,
                start_time: int,
                schedule: ScheduleComponent,
@@ -1304,12 +1300,10 @@ class ScheduleBlock(ScheduleBase):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        if inplace:
-            warnings.warn('ScheduleBlock is implicitly converted into Schedule. '
-                          'This method always generates new object.', UserWarning)
-
-        # self is newly generated Schedule from this schedule block, see the decorator
-        return self.insert(start_time=start_time, schedule=schedule, name=name, inplace=True)
+        raise PulseError('Inserting new component with absolute time to ``ScheduleBlock`` is '
+                         'not currently supported. '
+                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
+                         'schedule to get ``Schedule`` representation supporting this method.')
 
     def append(self, schedule: BlockComponent,
                name: Optional[str] = None,
@@ -1347,7 +1341,6 @@ class ScheduleBlock(ScheduleBase):
                 for param in schedule.parameters:
                     self._parameter_table[param].append(node_index)
 
-    @_require_schedule_conversion
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
@@ -1378,9 +1371,10 @@ class ScheduleBlock(ScheduleBase):
         Returns:
             ``Schedule`` consisting of instructions that matches with filtering condition.
         """
-        self.filter(*filter_funcs, channels, instruction_types, time_ranges, intervals)
+        raise PulseError('Filtering ``ScheduleBlock`` is not currently supported. '
+                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
+                         'schedule to get ``Schedule`` representation supporting this method.')
 
-    @_require_schedule_conversion
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
                 instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
@@ -1408,7 +1402,9 @@ class ScheduleBlock(ScheduleBase):
         Returns:
             ``Schedule`` consisting of instructions that are not matche with filtering condition.
         """
-        self.exclude(*filter_funcs, channels, instruction_types, time_ranges, intervals)
+        raise PulseError('Filtering ``ScheduleBlock`` is not currently supported. '
+                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
+                         'schedule to get ``Schedule`` representation supporting this method.')
 
     def replace(self,
                 old: BlockComponent,
