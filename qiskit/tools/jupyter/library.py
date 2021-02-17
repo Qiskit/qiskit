@@ -54,18 +54,17 @@ th {
     text-align: left;
     padding: 5px 5px 5px 5px;
     width: 100%;
-    background-color: #3700BE;
+    background-color: #988AFC;
     color: #fff;
-    font-size: 16px;
-    border-left: 2px solid #3700BE;
+    font-size: 14px;
+    border-left: 2px solid #988AFC;
 }
 
 td {
-    font-family: "IBM Plex Mono", monospace;
     text-align: left;
     padding: 5px 5px 5px 5px;
     width: 100%;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: medium;
 }
 
