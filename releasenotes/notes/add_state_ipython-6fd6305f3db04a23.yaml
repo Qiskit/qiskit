@@ -19,4 +19,10 @@ features:
 
             from qiskit.quantum_info import DensityMatrix
             dm = DensityMatrix.from_label('0r')
-            dm.draw('markdown')
+            dm.draw('latex', prefix="\\text{D =}")
+
+    .. jupyter-execute::
+
+            from qiskit.quantum_info import Statevector
+            sv = Statevector.from_label('+r')
+            sv.draw('qsphere')
