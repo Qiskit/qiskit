@@ -255,7 +255,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     def __getitem__(self, key):
         """Return a view of StabilizerTable"""
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return StabilizerTable(self._array[key], self._phase[key])
 
@@ -292,7 +292,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             table = super().delete(ind, True)
             return StabilizerTable(table, self._phase)
 
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError("Indices {} are not all less than the size"
@@ -320,7 +320,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
