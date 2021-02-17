@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,27 +12,23 @@
 
 """ The Quantum Approximate Optimization Algorithm. """
 
-from typing import List, Callable, Optional, Union
 import logging
+from typing import List, Callable, Optional, Union
+
 import numpy as np
 
+from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit import QuantumCircuit
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
 from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
-from qiskit.algorithms.optimizers import Optimizer
-from qiskit.utils.validation import validate_min
+from qiskit.providers import Backend
+from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
-from .var_form import QAOAVarForm
-from ..vqe import VQE
+from qiskit.utils.validation import validate_min
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 logger = logging.getLogger(__name__)
-
-
-# pylint: disable=invalid-name
-# disable check for operator setter because of pylint bug
-# pylint: disable=no-member
 
 
 class QAOA(VQE):
@@ -59,12 +55,11 @@ class QAOA(VQE):
     and in `this paper <https://arxiv.org/abs/1709.03489>`__ for QAOA,
     to run constrained optimization problems where the mixer constrains
     the evolution to a feasible subspace of the full Hilbert space.
-
     """
 
     def __init__(self,
                  optimizer: Optimizer = None,
-                 p: int = 1,
+                 reps: int = 1,
                  initial_state: Optional[QuantumCircuit] = None,
                  mixer: Union[QuantumCircuit, OperatorBase] = None,
                  initial_point: Optional[np.ndarray] = None,
@@ -79,7 +74,7 @@ class QAOA(VQE):
         """
         Args:
             optimizer: A classical optimizer.
-            p: the integer parameter p as specified in https://arxiv.org/abs/1411.4028,
+            reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with
             mixer: the mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
@@ -116,9 +111,9 @@ class QAOA(VQE):
                 variational form, the evaluated mean and the evaluated standard deviation.
             quantum_instance: Quantum Instance or Backend
         """
-        validate_min('p', p, 1)
+        validate_min('reps', reps, 1)
 
-        self._p = p
+        self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
 
@@ -132,14 +127,13 @@ class QAOA(VQE):
                          callback=callback,
                          quantum_instance=quantum_instance)
 
-    def _check_operator(self,
-                        operator: OperatorBase) -> OperatorBase:
-        # Recreates var_form based on operator parameter.
+    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
+        # Recreates a circuit based on operator parameter.
         if operator.num_qubits != self.var_form.num_qubits:
-            self.var_form = QAOAVarForm(operator,
-                                        self._p,
-                                        initial_state=self._initial_state,
-                                        mixer_operator=self._mixer)
+            self.var_form = QAOAAnsatz(operator,
+                                       self._reps,
+                                       initial_state=self._initial_state,
+                                       mixer_operator=self._mixer)
         operator = super()._check_operator(operator)
         return operator
 
