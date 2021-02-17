@@ -117,9 +117,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
-        **markdown**: An IPython Markdown object for displaying in Jupyter Notebooks.
-
-        **markdown_source**: ASCII markdown source used to create an IPython Markdown object.
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
 
         **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
 
@@ -131,18 +129,17 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``markdown``,
-                ``markdown_source``, ``latex_source``, ``qsphere``, ``hinton``,
-                or ``bloch``. Default is `'text`'.
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is `'latex`'.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
-                and ``markdown`` drawers, this is also the maximum number
+                and ``latex_source`` drawers, this is also the maximum number
                 of elements that will be drawn in the output array, including
                 elipses elements. For ``text`` drawer, this is the ``threshold``
                 parameter in ``numpy.array2string()``.
-            dims (bool): For `text` and `markdown`. Whether to display the
+            dims (bool): For `text` and `latex`. Whether to display the
                 dimensions.
-            prefix (str): For `text` and `markdown`. Text to be displayed before
+            prefix (str): For `text` and `latex`. Text to be displayed before
                 the state.
             drawer_args: Arguments to be passed directly to the relevant drawer
                 function (`plot_state_qsphere()`, `plot_state_hinton()` or
@@ -151,7 +148,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Markdown`
+            :class:`TextMatrix`: or :class:`IPython.display.Latex`
 
         Raises:
             ValueError: when an invalid output method is selected.

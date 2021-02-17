@@ -1051,19 +1051,17 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def _repr_state_latex(state, max_size=(8, 8)):
-    latex_str = _matrix_to_latex(state._data, max_size=max_size)
-    return latex_str
-
-
-def _repr_state_markdown(state, max_size=(8, 8), dims=True, prefix=None):
-    latex_str = _repr_state_latex(state, max_size=max_size)
+def _repr_state_latex(state, max_size=(8, 8), dims=True, prefix=None):
     if prefix is None:
-        prefix = ''
+        prefix = ""
     suffix = ""
+    if dims or prefix != "":
+        prefix = "\\begin{align}\n" + prefix
+        suffix = "\\end{align}"
     if dims:
-        dim_str = state._op_shape.dims_l()
-        suffix += f"dims={dim_str}"
+        dims_str = state._op_shape.dims_l()
+        suffix = f"\\\\\n\\text{{dims={dims_str}}}\n" + suffix
+    latex_str = _matrix_to_latex(state._data, max_size=max_size)
     return prefix + latex_str + suffix
 
 
@@ -1121,9 +1119,7 @@ def state_drawer(state,
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
-        **markdown**: An IPython Markdown object for displaying in Jupyter Notebooks.
-
-        **markdown_source**: ASCII markdown source used to create an IPython Markdown object.
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
 
         **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
 
@@ -1135,27 +1131,26 @@ def state_drawer(state,
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``markdown``,
-                ``markdown_source``, ``latex_source``, ``qsphere``, ``hinton``,
-                or ``bloch``. Default is `'text`'.
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
-                and ``markdown`` drawers, this is also the maximum number
-                of elements that will be drawn in the output array, including
-                elipses elements. For ``text`` drawer, this is the ``threshold``
-                parameter in ``numpy.array2string()``.
-            dims (bool): For `text` and `markdown`. Whether to display the
-                dimensions. If `None`, will only display if state is not a qubit
-                state.
-            prefix (str): For `text` and `markdown`. Text to be displayed before
-                the rest of the state.
+                drawer, this is also the maximum number of elements that will
+                be drawn in the output array, including elipses elements. For
+                ``text`` drawer, this is the ``threshold`` parameter in
+                ``numpy.array2string()``.
+            dims (bool): For `text`, `latex` and `latex_source`. Whether to
+                display the dimensions. If `None`, will only display if state
+                is not a qubit state.
+            prefix (str): For `text`, `latex`, and `latex_source`. Text to be
+                displayed before the rest of the state.
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Markdown`
+            :class:`TextMatrix`: or :class:`IPython.display.Latex`
 
         Raises:
-            ImportError: when `output` is `markdown` and IPython is not installed.
+            ImportError: when `output` is `latex` and IPython is not installed.
             ValueError: when `output` is not a valid selection.
     """
     # set 'output'
@@ -1166,8 +1161,8 @@ def state_drawer(state,
         default_output = config.get('state_drawer', 'auto')
         if default_output == 'auto':
             try:
-                from IPython.display import Markdown
-                default_output = 'markdown'
+                from IPython.display import Latex
+                default_output = 'latex'
             except ImportError:
                 default_output = 'text'
     if output in [None, 'auto']:
@@ -1189,25 +1184,25 @@ def state_drawer(state,
     # Choose drawing backend:
     # format is {'key': (<drawer-function>, (<drawer-specific-args>))}
     drawers = {'text': (TextMatrix, (max_size, dims, prefix)),
-               'markdown_source': (_repr_state_markdown, (max_size, dims, prefix)),
+               'latex_source': (_repr_state_latex, (max_size, dims, prefix)),
                'qsphere': (plot_state_qsphere, ()),
                'hinton': (plot_state_hinton, ()),
                'bloch': (plot_bloch_multivector, ())}
-    if output == 'markdown':
+    if output == 'latex':
         try:
-            from IPython.display import Markdown
+            from IPython.display import Latex
         except ImportError as err:
             raise ImportError('IPython is not installed, to install run: '
-                              '"pip install ipython", or set output=\'markdown_source\' '
+                              '"pip install ipython", or set output=\'latex_source\' '
                               'instead for an ASCII string.') from err
         else:
-            draw_func, args = drawers['markdown_source']
-            return Markdown(draw_func(state, *args))
+            draw_func, args = drawers['latex_source']
+            return Latex(draw_func(state, *args))
     try:
         draw_func, specific_args = drawers[output]
         return draw_func(state, *specific_args, **drawer_args)
     except KeyError as err:
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:
-            'text', 'markdown_source', 'markdown', 'latex_source', 'qsphere', 'hinton',
+            'text', 'latex', 'latex_source', 'qsphere', 'hinton',
             'bloch' or 'auto'.""".format(output, type(state).__name__)) from err
