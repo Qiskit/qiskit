@@ -12,8 +12,8 @@ features:
 
   - |
     :class:`Statevector` and :class:`DensityMatrix` classes now have ``.draw()`` methods
-    allowing them to be drawn as text matrices, LaTeX source matrices,
-    markdown, Q-spheres, Bloch spheres and Hinton plots.
+    allowing them to be drawn as text matrices, IPython Latex objects, Latex source,
+    Q-spheres, Bloch spheres and Hinton plots.
 
     .. jupyter-execute::
 
