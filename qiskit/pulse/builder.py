@@ -455,7 +455,7 @@ class _PulseBuilder():
         """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
-        This logic generates a convenient program representation in the compiler.
+        This logic just generates a convenient program representation in the compiler.
         Thus this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 

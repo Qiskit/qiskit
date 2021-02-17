@@ -26,7 +26,6 @@ class Call(instruction.Instruction):
 
     The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
     It enables code reuse both within the pulse representation and hardware (if supported).
-    Note that this instruction is not exposed to end users.
     """
     # Prefix to use for auto naming.
     prefix = 'call'
