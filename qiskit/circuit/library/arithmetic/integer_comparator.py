@@ -135,6 +135,7 @@ class IntegerComparator(BlueprintCircuit):
 
                 self.qregs = [qr_state, q_compare]
                 self._qubits = qr_state[:] + q_compare[:]
+                self._qubit_set = set(self._qubits)
 
                 # add ancillas is required
                 num_ancillas = num_state_qubits - 1

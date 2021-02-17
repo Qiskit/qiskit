@@ -183,7 +183,10 @@ class QuantumCircuit:
         self.qregs = []
         self.cregs = []
         self._qubits = []
+        self._qubit_set = set()
         self._clbits = []
+        self._clbit_set = set()
+
         self._ancillas = []
         self._calibrations = defaultdict(dict)
         self.add_register(*regs)
@@ -589,10 +592,12 @@ class QuantumCircuit:
             if element not in self.qregs:
                 self.qregs.append(element)
                 self._qubits += element[:]
+                self._qubit_set.update(element[:])
         for element in rhs.cregs:
             if element not in self.cregs:
                 self.cregs.append(element)
                 self._clbits += element[:]
+                self._clbit_set.update(element[:])
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -1028,9 +1033,11 @@ class QuantumCircuit:
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
                 self._qubits.extend(register)
+                self._qubit_set.update(register)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
                 self._clbits.extend(register)
+                self._clbit_set.update(register)
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
@@ -1048,8 +1055,10 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             elif isinstance(bit, Qubit):
                 self._qubits.append(bit)
+                self._qubit_set.add(bit)
             elif isinstance(bit, Clbit):
                 self._clbits.append(bit)
+                self._clbit_set.add(bit)
             else:
                 raise CircuitError("Expected an instance of Qubit, Clbit, or "
                                    "AncillaQubit, but was passed {}".format(bit))
@@ -1634,6 +1643,8 @@ class QuantumCircuit:
         cpy.cregs = self.cregs.copy()
         cpy._qubits = self._qubits.copy()
         cpy._clbits = self._clbits.copy()
+        cpy._qubit_set = self._qubit_set.copy()
+        cpy._clbit_set = self._clbit_set.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
