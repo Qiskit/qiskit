@@ -384,7 +384,7 @@ class ListOp(OperatorBase):
                                               "and non-measurement StateFns")
                 result = self.combo_fn(evals)
                 if isinstance(result, list):
-                    result = np.array(result)
+                    return [element * self.coeff for element in result]
                 return self.coeff * result
 
         if all(isinstance(op, OperatorBase) for op in evals):
@@ -392,10 +392,10 @@ class ListOp(OperatorBase):
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError('Cannot handle mixed scalar and Operator eval results.')
         else:
-            res = self.combo_fn(evals)
-            if isinstance(res, list):
-                return self.coeff * np.array(self.combo_fn(evals))
-            return self.coeff * self.combo_fn(evals)
+            result = self.combo_fn(evals)
+            if isinstance(result, list):
+                return [element * self.coeff for element in result]
+            return self.coeff * result
 
     def exp_i(self) -> OperatorBase:
         """ Return an ``OperatorBase`` equivalent to an exponentiation of self * -i, e^(-i*op)."""
