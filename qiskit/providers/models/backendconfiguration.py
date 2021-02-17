@@ -757,14 +757,20 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                                             "information.".format(self.backend_name))
 
     def frames(self) -> List[Channel]:
-        """Gets the frames of the backend"""
+        """
+        Gets the frames of the backend in serializable format.
+
+        Returns:
+            frames: A List of lists. Sublist i is a list of channel names that belong
+                to frame i.
+        """
         n_qubits = self.n_qubits
         frames = []
         for qubit in range(n_qubits):
-            frame_ = [DriveChannel(qubit)]
+            frame_ = [DriveChannel(qubit).name]
             for ctrl in range(n_qubits):
                 try:
-                    frame_ += self.control((ctrl, qubit))
+                    frame_ += [_.name for _ in self.control((ctrl, qubit))]
                 except BackendConfigurationError:
                     pass
 

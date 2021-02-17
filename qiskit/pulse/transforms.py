@@ -317,6 +317,75 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
+def resolve_frames(schedules: List[Schedule], frames: List[List[str]]) -> List[Schedule]:
+    """
+    Parse the schedules and replace instructions on Frames by instructions on the
+    appropriate channels.
+
+    Args:
+        schedules: The schedules for which to replace frames with the appropriate
+            channels.
+        frames: The frame configuration of the backend. Sublist i is a list of channel
+            names that belong to frame i.
+
+    Returns:
+        new_schedules: A list of new schedules where frames have been replaced with
+            their corresponding Drive, Control, and/or Measure channels.
+    """
+    if frames is None:
+        return schedules
+
+    new_schedules = []
+
+    for schedule in schedules:
+        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
+
+        for time, inst in schedule.instructions:
+
+            # Decompose frame instructions to the channels
+            if isinstance(inst.channel, chans.Frame):
+                for ch_name in frames[inst.channel.index]:
+                    ch = _resolve_channel(ch_name)
+
+                    if isinstance(inst, instructions.ShiftPhase):
+                        inst_ = instructions.ShiftPhase(inst.phase, ch)
+                    elif isinstance(inst, instructions.SetPhase):
+                        inst_ = instructions.SetPhase(inst.phase, ch)
+                    elif isinstance(inst, instructions.ShiftFrequency):
+                        inst_ = instructions.ShiftFrequency(inst.frequency, ch)
+                    elif isinstance(inst, instructions.SetFrequency):
+                        inst_ = instructions.SetFrequency(inst.frequency, ch)
+                    else:
+                        raise PulseError(inst.__class__.__name__ + ' cannot be applied to Frame.')
+
+                    new_schedule.insert(time, inst_, inplace=True)
+            else:
+                new_schedule.insert(time, inst, inplace=True)
+
+        new_schedules.append(new_schedule)
+
+    return new_schedules
+
+
+def _resolve_channel(name: str) -> chans.Channel:
+    """
+    Helper method to resolve the channels in the frame.
+
+    Args:
+        name: Name of the channel.
+
+    Returns:
+        channel: The channel of the appropriate type.
+    """
+    if name[0] == 'd':
+        return chans.DriveChannel(int(name[1:]))
+    elif name[0] == 'u':
+        return chans.ControlChannel(int(name[1:]))
+    elif name[0] == 'm':
+        return chans.MeasureChannel(int(name[1:]))
+
+    raise PulseError('Channel %s not supported in frames.' % name)
+
 def _push_left_append(this: Schedule,
                       other: Union['Schedule', instructions.Instruction],
                       ) -> Schedule:

@@ -22,7 +22,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import instructions, transforms, library
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
-from qiskit.pulse import Frame, ShiftPhase
 
 
 def assemble_schedules(
@@ -98,7 +97,8 @@ def _assemble_experiments(
     schedules = [
         sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
     ]
-    compressed_schedules = transforms.compress_pulses(schedules)
+    resolved_frames = transforms.resolve_frames(schedules, getattr(run_config, 'frames', None))
+    compressed_schedules = transforms.compress_pulses(resolved_frames)
 
     user_pulselib = {}
     experiments = []
@@ -177,18 +177,6 @@ def _assemble_instructions(
 
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
-
-        # Decompose frame shifts to the channels
-        if isinstance(instruction, instructions.ShiftPhase):
-            if isinstance(instruction.channel, Frame):
-
-                if not hasattr(run_config, 'frames'):
-                    raise QiskitError('No frames defined in backend.')
-
-                for ch in run_config.frames[instruction.channel.index]:
-                    qobj_instructions.append(instruction_converter(time, ShiftPhase(instruction.phase, ch)))
-
-                continue
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):
