@@ -24,7 +24,7 @@ import multiprocessing as mp
 import sys
 import warnings
 from collections import defaultdict
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any, NamedTuple
 
 import numpy as np
 
@@ -311,7 +311,7 @@ class ScheduleBase(abc.ABC):
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType],
-                          ) -> 'Schedule':
+                          ) -> 'ScheduleBase':
         """Assign the parameters in this schedule according to the input.
 
         Args:
@@ -321,7 +321,18 @@ class ScheduleBase(abc.ABC):
         Returns:
             Schedule with updated parameters.
         """
-        raise NotImplementedError
+        for param, value in value_dict.items():
+            entries = self._parameter_table.pop(param, [])
+            for component in entries:
+                component.assign_parameters({param: value})
+
+            # update table with new parameters
+            if isinstance(value, ParameterExpression):
+                for new_param in value.parameters:
+                    new_entries = set(self._parameter_table.get(new_param, []) + entries)
+                    self._parameter_table[new_param] = list(new_entries)
+
+        return self
 
     def get_parameters(self,
                        parameter_name: str) -> List[Parameter]:
@@ -337,6 +348,14 @@ class ScheduleBase(abc.ABC):
             Parameter objects that have corresponding name.
         """
         return [param for param in self.parameters if param.name == parameter_name]
+
+    def _update_parameter_table(self, schedule: 'Schedule'):
+        """A helper function to update parameter table with given schedule component.
+
+        Args:
+            schedule: A new schedule component to be added.
+        """
+        raise NotImplementedError
 
     def draw(self,
              dt: Any = None,  # deprecated
@@ -1022,22 +1041,7 @@ class Schedule(ScheduleBase):
         Returns:
             Schedule with updated parameters.
         """
-        for parameter in self.parameters:
-            if parameter not in value_dict:
-                continue
-
-            value = value_dict[parameter]
-            for inst in self._parameter_table[parameter]:
-                inst.assign_parameters({parameter: value})
-
-            entry = self._parameter_table.pop(parameter)
-            if isinstance(value, ParameterExpression):
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        new_entry = set(entry + self._parameter_table[new_parameter])
-                        self._parameter_table[new_parameter] = list(new_entry)
-                    else:
-                        self._parameter_table[new_parameter] = entry
+        super().assign_parameters(value_dict)
 
         # Update timeslots according to new channel keys
         for chan in copy.copy(self._timeslots):
@@ -1067,10 +1071,6 @@ class Schedule(ScheduleBase):
         Args:
             schedule: A new schedule component to be added.
         """
-        # TODO need to fix cyclic import
-        from qiskit.pulse.transforms import flatten
-
-        schedule = flatten(schedule)
         for _, inst in schedule.instructions:
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
@@ -1103,7 +1103,7 @@ class Schedule(ScheduleBase):
         if len(self.instructions) != len(other.instructions):
             return False
 
-        # 4. instruction check
+        # 3. instruction check
         return all(self_inst == other_inst for self_inst, other_inst
                    in zip(self.instructions, other.instructions))
 
@@ -1154,10 +1154,11 @@ class ScheduleBlock(ScheduleBase):
 
         self._transform_policy = transformation_policy
         self._transform_opts = transform_kwargs
-        self._block_delay = 0
 
         self._blocks = list()
         if blocks:
+            if not isinstance(blocks, list):
+                blocks = [blocks]
             map(functools.partial(self.append, inplace=True), blocks)
 
     @property
@@ -1281,17 +1282,7 @@ class ScheduleBlock(ScheduleBase):
                ) -> Schedule:
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
-        Because ``ScheduleBlock`` doesn't have the notion of timeslots, data will be
-        implicitly converted into ``Schedule``. This method always initializes new
-        schedule object and the ``inplace`` option is not applied to this method.
-
-        .. code-block:: python
-
-            sched = Schedule()
-            sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
-
-            block = ScheduleBlock()
-            new_object = block.insert(0, sched)  # this generates new schedule object
+        .. note:: This method is currently not supported.
 
         Args:
             start_time: Time to insert the schedule.
@@ -1333,13 +1324,8 @@ class ScheduleBlock(ScheduleBase):
 
             return new_block
         else:
-            node_index = len(self._blocks)
             self._blocks.append(schedule)
-
-            # update parameter table
-            if schedule.is_parameterized():
-                for param in schedule.parameters:
-                    self._parameter_table[param].append(node_index)
+            self._update_parameter_table(schedule)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
@@ -1356,7 +1342,7 @@ class ScheduleBlock(ScheduleBase):
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method returns ``Schedule``. Program representation will be overwritten.
+        .. note:: This method is currently not supported.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1387,7 +1373,7 @@ class ScheduleBlock(ScheduleBase):
 
             self.filter(args) | self.exclude(args) == self
 
-        .. note:: This method returns ``Schedule``. Program representation will be overwritten.
+        .. note:: This method is currently not supported.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1435,6 +1421,7 @@ class ScheduleBlock(ScheduleBase):
 
         if inplace:
             self._blocks = new_blocks
+            map(self._update_parameter_table, new_blocks)
             return self
         else:
             return ScheduleBlock(transformation_policy=self.transformation_policy,
@@ -1443,30 +1430,15 @@ class ScheduleBlock(ScheduleBase):
                                  metadata=self.metadata.copy(),
                                  **self.transformation_options)
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType],
-                          ) -> 'ScheduleBlock':
-        """Assign the parameters in this schedule according to the input.
+    def _update_parameter_table(self, schedule: BlockComponent):
+        """A helper function to update parameter table with given schedule component.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Schedule with updated parameters.
+            schedule: A new schedule component to be added.
         """
-        for param, value in value_dict.items():
-            entries = self._parameter_table.pop(param, [])
-            for node_index in entries:
-                self._blocks[node_index].assign_parameters({param: value})
-
-            # update table with new parameters
-            if isinstance(value, ParameterExpression):
-                for new_param in value.parameters:
-                    new_entries = set(self._parameter_table.get(new_param, []) + entries)
-                    self._parameter_table[new_param] = list(new_entries)
-
-        return self
+        if schedule.is_parameterized():
+            for param in schedule.parameters:
+                self._parameter_table[param].append(schedule)
 
     def __len__(self):
         """Return size of this block."""
