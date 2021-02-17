@@ -247,6 +247,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     @unpack
     def test_qaoa_initial_state(self, w, init_state):
         """ QAOA initial state test """
+        seed = 0
 
         optimizer = COBYLA()
         qubit_op, _ = self._get_operator(w)
@@ -259,7 +260,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             initial_state = QuantumCircuit(QuantumRegister(4, "q"))
             initial_state.initialize(init_state, initial_state.qubits)
 
-        quantum_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'))
+        backend = BasicAer.get_backend('statevector_simulator')
+        quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
         zero_init_state = QuantumCircuit(QuantumRegister(qubit_op.num_qubits, "q"))
         qaoa_zero_init_state = QAOA(optimizer=optimizer,
                                     initial_state=zero_init_state,
