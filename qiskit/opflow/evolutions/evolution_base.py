@@ -12,12 +12,8 @@
 
 """ EvolutionBase Class """
 
-import logging
-
 from ..operator_base import OperatorBase
 from ..converters.converter_base import ConverterBase
-
-logger = logging.getLogger(__name__)
 
 
 class EvolutionBase(ConverterBase):
