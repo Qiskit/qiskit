@@ -107,7 +107,7 @@ class ConfigurableFakeBackend(FakeBackend):
         self.n_qubits = n_qubits
         self.single_qubit_gates = single_qubit_gates
         self.now = datetime.now()
-        self.dt = dt  # pylint: disable=invalid-name
+        self.dt = dt
         self.std = std
 
         if coupling_map is None:
