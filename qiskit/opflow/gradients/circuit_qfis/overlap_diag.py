@@ -221,12 +221,14 @@ def _get_generators(params, circuit):
 
     for layer in layers:
         instr = layer['graph'].op_nodes()[0].op
-        if len(instr.params) == 0:
+        # if no gate is parameterized, skip
+        if not any(isinstance(param, ParameterExpression) for param in instr.params):
             continue
-        assert len(instr.params) == 1, "Circuit was not properly decomposed"
+
+        if len(instr.params) != 1:
+            raise NotImplementedError('The QFI diagonal approximation currently only supports '
+                                      'gates with a single free parameter.')
         param_value = instr.params[0]
-        if not isinstance(param_value, ParameterExpression):
-            continue
 
         for param in params:
             if param in param_value.parameters:
@@ -238,7 +240,7 @@ def _get_generators(params, circuit):
                 elif isinstance(instr, RXGate):
                     generator = X
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(f'Generator for gate {instr.name} not implemented.')
 
                 # get all qubit indices in this layer where the param parameterizes
                 # an operation.
