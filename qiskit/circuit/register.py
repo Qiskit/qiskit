@@ -112,10 +112,6 @@ class Register:
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
-    def _update_bits_hash(self):
-        for bit in self._bits:
-            bit._update_hash()
-
     @property
     def name(self):
         """Get the register name."""
