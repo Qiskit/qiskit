@@ -14,10 +14,12 @@
 from test import combine
 from ddt import ddt, data
 
+import numpy as np
+
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
@@ -85,6 +87,23 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
+    def test_level2_respects_basis(self):
+        """Test that level2 with commutative cancellation respects basis"""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cp(np.pi / 8, 0, 1)
+        qc.cp(np.pi / 4, 0, 2)
+        result = transpile(qc, basis_gates=['id', 'rz', 'sx', 'x', 'cx'],
+                           optimization_level=2)
+
+        dag = circuit_to_dag(result)
+        op_nodes = [node.name for node in dag.topological_op_nodes()]
+        # Assert no u1 or rx gates from commutative cancellation end up in
+        # end up in the output since they're not in the target basis gates
+        self.assertNotIn('u1', op_nodes)
+        self.assertNotIn('rx', op_nodes)
+
 
 @ddt
 class TestTranspileLevels(QiskitTestCase):
@@ -148,6 +167,23 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('CheckCXDirection', self.passes)
 
     @data(0, 1, 2, 3)
+    def test_5409(self, level):
+        """The parameter layout_method='noise_adaptive' should be honored
+        See: https://github.com/Qiskit/qiskit-terra/issues/5409
+        """
+        qr = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[4])
+        backend = FakeMelbourne()
+
+        _ = transpile(qc, backend, layout_method='noise_adaptive',
+                      optimization_level=level, callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertIn('NoiseAdaptiveLayout', self.passes)
+
+    @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
         """Symmetric coupling map does not run CheckCXDirection
         """
@@ -166,6 +202,42 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
         self.assertNotIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_inital_layout_fully_connected_cm(self, level):
+        """Honor initial_layout when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        transpiled = transpile(qc, initial_layout=[0, 1], optimization_level=level,
+                               callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([qr[0], qr[1]]))
+
+    @data(0, 1, 2, 3)
+    def test_partial_layout_fully_connected_cm(self, level):
+        """Honor initial_layout (partially defined) when coupling_map=None
+        See: https://github.com/Qiskit/qiskit-terra/issues/5345
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        transpiled = transpile(qc, initial_layout=[4, 2], optimization_level=level,
+                               callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        ancilla = QuantumRegister(3, 'ancilla')
+        self.assertEqual(transpiled._layout, Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1],
+                                                                     ancilla[2], qr[0]]))
 
 
 @ddt

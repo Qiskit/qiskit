@@ -23,40 +23,11 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.util import deprecate_arguments
-from .matplotlib import HAS_MATPLOTLIB
-
-if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-    from matplotlib.patches import FancyArrowPatch
-    from matplotlib.patches import Circle
-    import matplotlib.colors as mcolors
-    from matplotlib.colors import Normalize, LightSource
-    import matplotlib.gridspec as gridspec
-    from mpl_toolkits.mplot3d import proj3d
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.visualization.exceptions import VisualizationError
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
-    from qiskit.circuit.tools.pi_check import pi_check
-
-
-if HAS_MATPLOTLIB:
-    class Arrow3D(FancyArrowPatch):
-        """Standard 3D arrow."""
-
-        def __init__(self, xs, ys, zs, *args, **kwargs):
-            """Create arrow."""
-            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-            self._verts3d = xs, ys, zs
-
-        def draw(self, renderer):
-            """Draw the arrow."""
-            xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-            FancyArrowPatch.draw(self, renderer)
+from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({'rho': 'state'})
@@ -107,6 +78,9 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
+    from matplotlib import pyplot as plt
+    from matplotlib import get_backend
+
     # Figure data
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -140,17 +114,16 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         for (x, y), w in np.ndenumerate(datareal):
             color = 'white' if w > 0 else 'black'
             size = np.sqrt(np.abs(w) / max_weight)
-            rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+            rect = plt.Rectangle([0.5 + x - size / 2, 0.5 + y - size / 2], size, size,
                                  facecolor=color, edgecolor=color)
             ax1.add_patch(rect)
 
-        ax1.set_xticks(np.arange(0, lx+0.5, 1))
-        ax1.set_yticks(np.arange(0, ly+0.5, 1))
-        row_names.append('')
+        ax1.set_xticks(0.5 + np.arange(lx))
+        ax1.set_yticks(0.5 + np.arange(ly))
+        ax1.set_xlim([0, lx])
+        ax1.set_ylim([ly, 0])
         ax1.set_yticklabels(row_names, fontsize=14)
-        column_names.append('')
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax1.autoscale_view()
         ax1.invert_yaxis()
         ax1.set_title('Re[$\\rho$]', fontsize=14)
     # Imaginary
@@ -163,16 +136,16 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         for (x, y), w in np.ndenumerate(dataimag):
             color = 'white' if w > 0 else 'black'
             size = np.sqrt(np.abs(w) / max_weight)
-            rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
+            rect = plt.Rectangle([0.5 + x - size / 2, 0.5 + y - size / 2], size, size,
                                  facecolor=color, edgecolor=color)
             ax2.add_patch(rect)
 
-        ax2.set_xticks(np.arange(0, lx+0.5, 1))
-        ax2.set_yticks(np.arange(0, ly+0.5, 1))
+        ax2.set_xticks(0.5 + np.arange(lx))
+        ax2.set_yticks(0.5 + np.arange(ly))
+        ax1.set_xlim([0, lx])
+        ax1.set_ylim([ly, 0])
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
-
-        ax2.autoscale_view()
         ax2.invert_yaxis()
         ax2.set_title('Im[$\\rho$]', fontsize=14)
     if title:
@@ -218,6 +191,10 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
+    from qiskit.visualization.bloch import Bloch
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -273,8 +250,11 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
             plot_bloch_multivector(state, title="New Bloch Multivector")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     # Data
     bloch_data = _bloch_multivector_data(state)
     num = len(bloch_data)
@@ -346,8 +326,12 @@ def plot_state_city(state, title="", figsize=None, color=None,
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -544,8 +528,11 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    from matplotlib import get_backend
+    from matplotlib import pyplot as plt
+
     labels, values = _paulivec_data(state)
     numelem = len(values)
 
@@ -689,8 +676,31 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
            plot_state_qsphere(state)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
-                          'matplotlib".')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+
+    from mpl_toolkits.mplot3d import proj3d
+    from matplotlib.patches import FancyArrowPatch
+    import matplotlib.gridspec as gridspec
+    from matplotlib import pyplot as plt
+    from matplotlib.patches import Circle
+    from matplotlib import get_backend
+
+    class Arrow3D(FancyArrowPatch):
+        """Standard 3D arrow."""
+
+        def __init__(self, xs, ys, zs, *args, **kwargs):
+            """Create arrow."""
+            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+            self._verts3d = xs, ys, zs
+
+        def draw(self, renderer):
+            """Draw the arrow."""
+            xs3d, ys3d, zs3d = self._verts3d
+            xs, ys, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+            FancyArrowPatch.draw(self, renderer)
+
     try:
         import seaborn as sns
     except ImportError:
@@ -881,7 +891,14 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         color (array_like): sequence of valid color specifications, optional
     Returns:
         list: Shaded colors for bars.
+    Raises:
+        ImportError: If matplotlib is not installed
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+    import matplotlib.colors as mcolors
+
     cuboid = np.array([
         # -z
         (
@@ -998,6 +1015,13 @@ def _shade_colors(color, normals, lightsource=None):
     Shade *color* using normal vectors given by *normals*.
     *color* can also be an array of the same length as *normals*.
     """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+
+    from matplotlib.colors import Normalize, LightSource
+    import matplotlib.colors as mcolors
+
     if lightsource is None:
         # chosen for backwards-compatibility
         lightsource = LightSource(azdeg=225, altdeg=19.4712)

@@ -28,6 +28,18 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 DEFAULT_ATOL = 1e-12
 
+ONE_QUBIT_EULER_BASIS_GATES = {
+    'U3': ['u3'],
+    'U': ['u'],
+    'PSX': ['p', 'sx'],
+    'U1X': ['u1', 'rx'],
+    'RR': ['r'],
+    'ZYZ': ['rz', 'ry'],
+    'ZXZ': ['rz', 'rx'],
+    'XYX': ['rx', 'ry'],
+    'ZSX': ['rz', 'sx'],
+}
+
 
 class OneQubitEulerDecomposer:
     r"""A class for decomposing 1-qubit unitaries into Euler angle rotations.
@@ -338,12 +350,13 @@ class OneQubitEulerDecomposer:
         # Phase(phi+pi).SX.Phase(theta+pi).SX.Phase(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1, global_phase=phase)
+        circuit = QuantumCircuit(1, global_phase=phase - np.pi / 2)
         # Check for decomposition into minimimal number required SX gates
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             if not np.isclose(_mod2pi(abs(lam + phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(_mod2pi(lam + phi + theta)), [0])
+            circuit.global_phase += np.pi / 2
         elif simplify and np.isclose(abs(theta),
                                      [np.pi/2, 3*np.pi/2], atol=atol).any():
             if not np.isclose(_mod2pi(abs(lam + theta)),
@@ -353,6 +366,8 @@ class OneQubitEulerDecomposer:
             if not np.isclose(_mod2pi(abs(phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(_mod2pi(phi + theta)), [0])
+            if np.isclose(theta, [-np.pi / 2, 3 * np.pi / 2], atol=atol).any():
+                circuit.global_phase += np.pi / 2
         else:
             if not np.isclose(abs(lam), [0., 2*np.pi], atol=atol).any():
                 circuit.append(PhaseGate(lam), [0])
@@ -375,30 +390,39 @@ class OneQubitEulerDecomposer:
         # RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam)
         theta = _mod2pi(theta + np.pi)
         phi = _mod2pi(phi + np.pi)
-        circuit = QuantumCircuit(1, global_phase=phase)
+        circuit = QuantumCircuit(1, global_phase=phase - np.pi / 2)
         # Check for decomposition into minimimal number required SX gates
         if simplify and np.isclose(abs(theta), np.pi, atol=atol):
             if not np.isclose(_mod2pi(abs(lam + phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(_mod2pi(lam + phi + theta)), [0])
+                circuit.global_phase += 0.5 * _mod2pi(lam + phi + theta)
+            circuit.global_phase += np.pi / 2
         elif simplify and np.isclose(abs(theta),
                                      [np.pi/2, 3*np.pi/2], atol=atol).any():
             if not np.isclose(_mod2pi(abs(lam + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(_mod2pi(lam + theta)), [0])
+                circuit.global_phase += 0.5 * _mod2pi(lam + theta)
             circuit.append(SXGate(), [0])
             if not np.isclose(_mod2pi(abs(phi + theta)),
                               [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(_mod2pi(phi + theta)), [0])
+                circuit.global_phase += 0.5 * _mod2pi(phi + theta)
+            if np.isclose(theta, [-np.pi / 2, 3 * np.pi / 2], atol=atol).any():
+                circuit.global_phase += np.pi / 2
         else:
             if not np.isclose(abs(lam), [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(lam), [0])
+                circuit.global_phase += 0.5 * lam
             circuit.append(SXGate(), [0])
             if not np.isclose(abs(theta), [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(theta), [0])
+                circuit.global_phase += 0.5 * theta
             circuit.append(SXGate(), [0])
             if not np.isclose(abs(phi), [0., 2*np.pi], atol=atol).any():
                 circuit.append(RZGate(phi), [0])
+                circuit.global_phase += 0.5 * phi
         return circuit
 
     @staticmethod

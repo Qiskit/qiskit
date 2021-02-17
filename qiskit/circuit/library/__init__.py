@@ -25,6 +25,7 @@ Standard Gates
 
    Barrier
    C3XGate
+   C3SXGate
    C4XGate
    CCXGate
    DCXGate
@@ -200,9 +201,11 @@ N-local circuits
 
    NLocal
    TwoLocal
+   PauliTwoDesign
    RealAmplitudes
    EfficientSU2
    ExcitationPreserving
+   QAOAAnsatz
 
 
 Data encoding circuits
@@ -288,7 +291,8 @@ from .generalized_gates import (
     GR,
     GRX,
     GRY,
-    GRZ
+    GRZ,
+    RVGate
 )
 from .boolean_logic import (
     AND,
@@ -311,9 +315,11 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
+    PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,
+    QAOAAnsatz
 )
 from .data_preparation import (
     PauliFeatureMap,

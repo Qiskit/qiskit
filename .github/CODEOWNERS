@@ -6,7 +6,11 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-providers/            @Qiskit/terra-core @jyu00
-pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
-scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
-visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod
+algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
+opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm
+qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
+providers/            @Qiskit/terra-core @jyu00 @chriseclectic
+quantum_info/         @Qiskit/terra-core @chriseclectic
+pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
+scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
+visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod @nkanazawa1989
