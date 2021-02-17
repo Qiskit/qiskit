@@ -109,8 +109,8 @@ class VarQITE(VarQTE):
                     print('Residual norm', resid)
 
                     # Get the error for the current step
-                    e_t, h_squared = self._error_t(self._operator, nat_grad_result, grad_res,
-                                                   metric_res)
+                    e_t, h_squared, exp, dtdt_state, regrad = self._error_t(
+                        self._operator, nat_grad_result, grad_res, metric_res)
 
                     if np.imag(e_t) > 1e-5:
                         raise Warning(
@@ -132,8 +132,10 @@ class VarQITE(VarQTE):
                     # error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
                     #                      ) ** (self._num_time_steps - j - 1)
                     # error += dt/2 * (e_t * np.exp(2*np.abs(operator.coeff)*np.sqrt(h_squared)) +
-                    #                  et_prev * np.exp(2*np.abs(operator.coeff)*sqrt_h_prev_square))
-                    # et_prev = e_t
+                    #                 et_prev * np.exp(2*np.abs(operator.coeff)*sqrt_h_prev_square))
+                    error += dt / 2 * np.exp(2 * np.abs(operator.coeff) * h_norm) * (e_t + et_prev)
+                    # error += dt / 2 * (e_t + et_prev)
+                    et_prev = e_t
                     # sqrt_h_prev_square = np.sqrt(h_squared)
 
                     # error += dt * (e_t + 2 * h_norm)
@@ -184,9 +186,14 @@ class VarQITE(VarQTE):
                         self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
                                            resid)
                     else:
-                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
-                                           resid,  f,  true_error, true_energy, trained_energy)
-                else:
+                        if self._get_h_terms:
+                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                                               resid,  f,  true_error, true_energy, trained_energy,
+                                               h_norm, h_squared, exp, dtdt_state, regrad)
+                        else:
+                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                                               resid, f, true_error, true_energy, trained_energy)
+
                     if self._init_parameter_values is None:
                         self._store_params((j + 1) * dt, self._parameter_values, f,
                                             true_error, true_energy, trained_energy)
@@ -267,7 +274,7 @@ class VarQITE(VarQTE):
             if np.abs(eps_squared) < 1e-10:
                 eps_squared = 0
         print('Grad error', np.sqrt(eps_squared))
-        return np.sqrt(eps_squared), h_squared
+        return np.sqrt(eps_squared), h_squared,  exp, dtdt_state, regrad2 * 0.5
 
     def _distance_energy(self,
                   time: Union[float, complex],
