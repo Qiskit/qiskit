@@ -171,7 +171,7 @@ class BoxOnQuWire(DrawElement):
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
-        self.bot_connect = '┬' if conditional else '─'
+        self.bot_connect = '╥' if conditional else '─'
         self.mid_content = label
         self.top_connector = {"│": '┴'}
         self.bot_connector = {"│": '┬'}
@@ -302,7 +302,7 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
         self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
-        self.bot_connect = '┬' if conditional else bot_connect
+        self.bot_connect = '╥' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
         if input_length <= 2:
@@ -395,7 +395,7 @@ class Ex(DirectOnQuWire):
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
-        self.bot_connect = "│" if conditional else bot_connect
+        self.bot_connect = "║" if conditional else bot_connect
         self.top_connect = top_connect
 
 
@@ -405,7 +405,7 @@ class Reset(DirectOnQuWire):
     def __init__(self, conditional=False):
         super().__init__("|0>")
         if conditional:
-            self.bot_connect = "│"
+            self.bot_connect = "║"
 
 
 class Bullet(DirectOnQuWire):
@@ -422,7 +422,7 @@ class Bullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('■')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -444,7 +444,7 @@ class OpenBullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('o')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -543,7 +543,13 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        self.encoding = encoding if encoding else sys.stdout.encoding
+        if encoding:
+            self.encoding = encoding
+        else:
+            if sys.stdout.encoding:
+                self.encoding = sys.stdout.encoding
+            else:
+                self.encoding = 'utf8'
 
     def __str__(self):
         return self.single_string()
@@ -696,7 +702,7 @@ class TextDrawing():
         previous_creg = None
         for bit in self.cregs:
             if self.cregbundle:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 label = '{name}: {initial_value}{size}/'
@@ -716,7 +722,7 @@ class TextDrawing():
         if self.vertical_compression == 'low':
             return False
         for top, bot in zip(top_line, bot_line):
-            if top == '┴' and bot == '┬':
+            if top in ['┴', '╨'] and bot in ['┬', '╥']:
                 return False
         for line in (bot_line, top_line):
             no_spaces = line.replace(' ', '')
@@ -959,7 +965,7 @@ class TextDrawing():
         if instruction.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='┴')
+            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1120,7 +1126,7 @@ class Layer:
             self.cregs = []
             previous_creg = None
             for bit in cregs:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 self.cregs.append(bit.register)

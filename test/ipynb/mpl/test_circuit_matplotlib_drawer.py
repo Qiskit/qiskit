@@ -84,6 +84,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='empty_circut.png')
 
+    def test_no_ops(self):
+        """Test circuit with no ops.
+        See https://github.com/Qiskit/qiskit-terra/issues/5393 """
+        circuit = QuantumCircuit(2, 3)
+        self.circuit_drawer(circuit, filename='no_op_circut.png')
+
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -293,10 +299,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test control labels"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cy(1, 0, label='Bottom Y Label')
-        circuit.cy(2, 3, label='Top Y Label')
-        circuit.ch(0, 1, label='Top H Label')
-        circuit.append(HGate(label='H Gate Label').control(3, label='H Control Label',
+        circuit.cy(1, 0, label='Bottom Y label')
+        circuit.cy(2, 3, label='Top Y label')
+        circuit.ch(0, 1, label='Top H label')
+        circuit.append(HGate(label='H gate label').control(3, label='H control label',
                                                            ctrl_state='010'),
                        [qr[1], qr[2], qr[3], qr[0]])
 
@@ -315,7 +321,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test controlled GHZ to_gate circuit"""
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
-        ghz_circuit = QuantumCircuit(3, name='This is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
+        ghz_circuit = QuantumCircuit(3, name='this is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
@@ -464,6 +470,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.p(pi/2, 2)
         self.circuit_drawer(circuit, style={'name': 'iqx', 'subfontsize': 11},
                             filename='subfont.png')
+
+    def test_meas_condition(self):
+        """Tests measure with a condition"""
+
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[1]).c_if(cr, 1)
+        self.circuit_drawer(circuit, filename='meas_condition.png')
 
 
 if __name__ == '__main__':

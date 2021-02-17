@@ -22,15 +22,16 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
-
 from abc import ABC
-
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
-import numpy as np
+from collections import defaultdict
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_parameter_value
+
+
 # pylint: disable=missing-return-doc
 
 
@@ -48,7 +49,7 @@ class Instruction(ABC):
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
+            duration: Deprecated.
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
@@ -57,39 +58,35 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError("Instruction duration must be an integer, "
-                             "got {} instead.".format(duration))
-        if duration < 0:
-            raise PulseError("{} duration of {} is invalid: must be nonnegative."
-                             "".format(self.__class__.__name__, duration))
-        self._duration = duration
-
         for channel in channels:
             if not isinstance(channel, Channel):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
+        if duration is not None:
+            warnings.warn('Specifying duration in the constructor is deprecated. '
+                          'Now duration is an abstract property rather than class variable. '
+                          'All subclasses should implement ``duration`` accordingly. '
+                          'See Qiskit-Terra #5679 for more information.',
+                          DeprecationWarning)
+
         self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
+
+        self._parameter_table = defaultdict(list)
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and op.is_parameterized():
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
 
     @property
     def name(self) -> str:
         """Name of this instruction."""
         return self._name
-
-    @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -107,12 +104,6 @@ class Instruction(ABC):
         return self._channels
 
     @property
-    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
-        """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
-        return self._timeslots
-
-    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction."""
         return 0
@@ -125,7 +116,7 @@ class Instruction(ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self._duration
+        raise NotImplementedError
 
     @property
     def _children(self) -> Tuple['Instruction']:
@@ -235,6 +226,15 @@ class Instruction(ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        return set(self._parameter_table.keys())
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return bool(self.parameters)
+
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
@@ -249,20 +249,25 @@ class Instruction(ABC):
         """
         new_operands = list(self.operands)
 
-        for idx, op in enumerate(self.operands):
-            for parameter, value in value_dict.items():
-                if isinstance(op, ParameterExpression) and parameter in op.parameters:
-                    new_operands[idx] = new_operands[idx].assign(parameter, value)
-                elif (isinstance(op, Channel)
-                      and isinstance(op.index, ParameterExpression)
-                      and parameter in op.index.parameters):
-                    new_index = new_operands[idx].index.assign(parameter, value)
-                    if not new_index.parameters:
-                        new_index = float(new_index)
-                        if float(new_index).is_integer():
-                            # If it's not, allow Channel to raise an error upon initialization
-                            new_index = int(new_index)
-                    new_operands[idx] = type(op)(new_index)
+        for parameter in self.parameters:
+            if parameter not in value_dict:
+                continue
+
+            value = value_dict[parameter]
+            op_indices = self._parameter_table[parameter]
+            for op_idx in op_indices:
+                param_expr = new_operands[op_idx]
+                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
+
+            # Update parameter table
+            entry = self._parameter_table.pop(parameter)
+            if isinstance(value, ParameterExpression):
+                for new_parameter in value.parameters:
+                    if new_parameter in self._parameter_table:
+                        new_entry = set(entry + self._parameter_table[new_parameter])
+                        self._parameter_table[new_parameter] = list(new_entry)
+                    else:
+                        self._parameter_table[new_parameter] = entry
 
         self._operands = tuple(new_operands)
         return self

@@ -49,6 +49,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
         self.qobj = assemble(transpiled_circuit, shots=1000, seed_simulator=self.seed)
         logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel('DEBUG')
         self.log_output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.log_output))

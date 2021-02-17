@@ -62,20 +62,21 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_tabs.tabs',
     'jupyter_sphinx',
     'sphinx_autodoc_typehints',
     'reno.sphinxext',
+    'sphinx_panels',
 ]
 html_static_path = ['_static']
 templates_path = ['_templates']
-html_css_files = ['style.css', 'custom.css']
+html_css_files = []
 
 # -----------------------------------------------------------------------------
 # Autosummary
 # -----------------------------------------------------------------------------
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 
 # -----------------------------------------------------------------------------
 # Autodoc
@@ -131,9 +132,8 @@ modindex_common_prefix = ['qiskit.']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'  # use the theme in subdir 'theme'
+html_theme = 'qiskit_sphinx_theme'  # use the theme in subdir 'theme'
 
-html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
 html_last_updated_fmt = '%Y/%m/%d'
 
@@ -142,7 +142,6 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': True,
-    'style_nav_header_background': '#212121',
 }
 
 autoclass_content = 'both'

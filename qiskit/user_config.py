@@ -14,12 +14,21 @@
 
 import configparser
 import os
+import sys
 from warnings import warn
 
 from qiskit import exceptions
 
 DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
                                 '.qiskit', 'settings.conf')
+
+if os.getenv('QISKIT_PARALLEL', None) is not None:
+    PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
+else:
+    if sys.platform in {'darwin', 'win32'}:
+        PARALLEL_DEFAULT = False
+    else:
+        PARALLEL_DEFAULT = True
 
 
 class UserConfig:
@@ -32,7 +41,8 @@ class UserConfig:
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
     transpile_optimization_level = 1
-    suppress_packaging_warnings = False
+    parallel = False
+    num_processes = 4
 
     """
     def __init__(self, filename=None):
@@ -105,11 +115,20 @@ class UserConfig:
                 self.settings['transpile_optimization_level'] = (
                     transpile_optimization_level)
 
-            # Parse package warnings
-            package_warnings = self.config_parser.getboolean(
-                'default', 'suppress_packaging_warnings', fallback=False)
-            if package_warnings:
-                self.settings['suppress_packaging_warnings'] = package_warnings
+            # Parse parallel
+            parallel_enabled = self.config_parser.getboolean(
+                'default', 'parallel', fallback=PARALLEL_DEFAULT)
+            self.settings['parallel_enabled'] = parallel_enabled
+
+            # Parse num_processes
+            num_processes = self.config_parser.getint(
+                'default', 'num_processes', fallback=-1)
+            if not num_processes == -1:
+                if num_processes <= 0:
+                    raise exceptions.QiskitUserConfigError(
+                        "%s is not a valid number of processes. Must be "
+                        "greater than 0")
+                self.settings['num_processes'] = num_processes
 
 
 def get_config():
@@ -124,7 +143,7 @@ def get_config():
     """
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     if not os.path.isfile(filename):
-        return {}
+        return {'parallel_enabled': PARALLEL_DEFAULT}
     user_config = UserConfig(filename)
     user_config.read_config_file()
     return user_config.settings
