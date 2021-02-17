@@ -69,25 +69,33 @@ class VarQRTE(VarQTE):
         # Assign parameter values to parameter items
         param_dict = dict(zip(self._parameters, self._parameter_values))
 
+        # ODE Solver
+
         if self._ode_solver is not None:
-            def ode_fun(params):
-                param_dict =  dict(zip(self._parameters, params))
+            # TODO gradient error or state error?
+            # ||e_t||^2
+            def ode_fun(dummy_time, params):
+                param_dict = dict(zip(self._parameters, params))
                 nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                e_t, _ = self._error_t(self._operator, nat_grad_result, grad_res,
-                                               metric_res)
-                return e_t ** 2
+                e_t = self._error_t(self._operator, nat_grad_result, grad_res,
+                                               metric_res)[0]
+                return [e_t ** 2]
 
-            def jac_ode_fun(params):
-                param_dict =  dict(zip(self._parameters, params))
-                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                return np.dot(metric_res, nat_grad_result) - grad_res
+            # def jac_ode_fun(params):
+            #     param_dict = dict(zip(self._parameters, params))
+            #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+            #     return np.dot(metric_res, nat_grad_result) + grad_res
 
-            self._ode_solver.fun = ode_fun
-            self._ode_solver.jac = jac_ode_fun
+            # self._ode_solver.fun = ode_fun
+            # self._ode_solver.jac = jac_ode_fun
+            self._ode_solver(fun=ode_fun, t0=0, y0=self._parameter_values,
+                             t_bound=dt*self._num_time_steps, first_step=dt)
+            self._parameter_values = self._ode_solver.y
 
-        for j in range(self._num_time_steps):
+        else:
 
-            if self._ode_solver is None:
+            for j in range(self._num_time_steps):
+
 
                 # Get the natural gradient - time derivative of the variational parameters - and
                 # the gradient w.r.t. H and the QFI/4.
@@ -114,38 +122,38 @@ class VarQRTE(VarQTE):
                 self._parameter_values = list(np.add(self._parameter_values, dt *
                                                      np.real(nat_grad_result)))
                 print('param values', self._parameter_values)
-            else:
-                self._ode_solver.step()
-                self._parameter_values = self._ode_solver.y
-                if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
-                    break
+                # else:
+                #     self._ode_solver.step()
+                #     self._parameter_values = self._ode_solver.y
+                #     if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
+                #         break
 
-            # Assign parameter values to parameter items
-            param_dict = dict(zip(self._parameters, self._parameter_values))
-            # If initial parameter values were set compute the fidelity, the error between the
-            # prepared and the target state, the energy w.r.t. the target state and the energy
-            # w.r.t. the prepared state
-            if self._init_parameter_values is not None:
-                f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
-                                                                            param_dict)
-                print('Fidelity', f)
-                print('True error', true_error)
+                # Assign parameter values to parameter items
+                param_dict = dict(zip(self._parameters, self._parameter_values))
+                # If initial parameter values were set compute the fidelity, the error between the
+                # prepared and the target state, the energy w.r.t. the target state and the energy
+                # w.r.t. the prepared state
+                if self._init_parameter_values is not None:
+                    f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
+                                                                                param_dict)
+                    print('Fidelity', f)
+                    print('True error', true_error)
 
 
 
-            # Store the current status
-            if self._snapshot_dir:
-                if self._get_error:
-                    if self._init_parameter_values:
-                        self._store_params((j + 1) * dt, self._parameter_values)
+                # Store the current status
+                if self._snapshot_dir:
+                    if self._get_error:
+                        if self._init_parameter_values:
+                            self._store_params((j + 1) * dt, self._parameter_values)
+                        else:
+                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
                     else:
-                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
-                else:
-                    if self._init_parameter_values:
-                        self._store_params((j + 1) * dt, self._parameter_values, f,
-                                       true_error, true_energy, trained_energy)
-                    else:
-                        self._store_params((j + 1) * dt, self._parameter_values)
+                        if self._init_parameter_values:
+                            self._store_params((j + 1) * dt, self._parameter_values, f,
+                                           true_error, true_energy, trained_energy)
+                        else:
+                            self._store_params((j + 1) * dt, self._parameter_values)
 
         # Return variationally evolved operator
         return self._operator.oplist[-1].assign_parameters(param_dict)

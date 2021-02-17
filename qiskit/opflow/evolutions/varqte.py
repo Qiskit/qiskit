@@ -201,13 +201,13 @@ class VarQTE(EvolutionBase):
         """
         Args:
             t: current point in time evolution
-            error_bound: ||\epsilon_t|| >= |||target> - |trained>||^2
+            error_bound: ||\epsilon_t|| >= |||target> - |trained>||_2
                          (using exact |trained_energy - target_energy|)
             error_grad: ||e_t||
             resid: residual of McLachlan's SLE||Adtω-C||
             params: Current parameter values
             fidelity_to_target: fidelity between trained and target trained |<target|trained>|^2
-            true_error: |||target> - |trained>||^2
+            true_error: |||target> - |trained>||_2
             target_energy: <target|H|target>
             trained_energy: <trained|H|trained>
             h_norm: ||H||_2
@@ -235,58 +235,59 @@ class VarQTE(EvolutionBase):
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             if fidelity_to_target is None:
                 if not self._get_error:
-                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                    writer.writerow({'t': t, 'params': np.round(params, 8),
                                      'num_params': len(params),
                                      'num_time_steps': self._num_time_steps})
                 else:
-                    writer.writerow({'t': t, 'params': np.round(params, 4),
+                    writer.writerow({'t': t, 'params': np.round(params, 8),
                                      'num_params': len(params),
                                      'num_time_steps':self._num_time_steps,
-                                     'error_bound': np.round(error_bound, 4),
-                                     'error_grad': np.round(error_grad, 4),
-                                     'resid': np.round(resid, 4)})
+                                     'error_bound': np.round(error_bound, 8),
+                                     'error_grad': np.round(error_grad, 8),
+                                     'resid': np.round(resid, 8)})
             else:
                 if not self._get_error:
                     writer.writerow({'t': t,
-                                     'params': np.round(params, 4),
+                                     'params': np.round(params, 8),
                                      'num_params': len(params),
                                      'num_time_steps': self._num_time_steps,
-                                     'fidelity': np.round(fidelity_to_target, 4),
-                                     'true_error': np.round(true_error, 4),
-                                     'target_energy': np.round(target_energy, 4),
-                                     'trained_energy': np.round(trained_energy, 4)})
+                                     'fidelity': np.round(fidelity_to_target, 8),
+                                     'true_error': np.round(true_error, 8),
+                                     'target_energy': np.round(target_energy, 8),
+                                     'trained_energy': np.round(trained_energy, 8)})
                 else:
                     if not self._get_h_terms:
                         writer.writerow({'t': t,
-                                         'params': np.round(params, 4),
+                                         'params': np.round(params, 8),
                                          'num_params': len(params),
                                          'num_time_steps': self._num_time_steps,
-                                         'error_bound': np.round(error_bound, 4),
-                                         'error_grad': np.round(error_grad, 4),
-                                         'resid': np.round(resid, 4),
-                                         'fidelity': np.round(fidelity_to_target, 4),
-                                         'true_error': np.round(true_error, 4),
-                                         'target_energy': np.round(target_energy, 4),
-                                         'trained_energy': np.round(trained_energy, 4)})
+                                         'error_bound': np.round(error_bound, 8),
+                                         'error_grad': np.round(error_grad, 8),
+                                         'resid': np.round(resid, 8),
+                                         'fidelity': np.round(fidelity_to_target, 8),
+                                         'true_error': np.round(true_error, 8),
+                                         'target_energy': np.round(target_energy, 8),
+                                         'trained_energy': np.round(trained_energy, 8)})
                     else:
                         writer.writerow({'t': t,
-                                         'params': np.round(params, 4),
+                                         'params': np.round(params, 8),
                                          'num_params': len(params),
                                          'num_time_steps': self._num_time_steps,
-                                         'error_bound': np.round(error_bound, 4),
-                                         'error_grad': np.round(error_grad, 4),
-                                         'resid': np.round(resid, 4),
-                                         'fidelity': np.round(fidelity_to_target, 4),
-                                         'true_error': np.round(true_error, 4),
-                                         'target_energy': np.round(target_energy, 4),
-                                         'trained_energy': np.round(trained_energy, 4),
-                                         'h_norm': np.round(h_norm, 4),
-                                         'h_squared': np.round(h_squared, 4),
-                                         'dtdt_trained': np.round(dtdt_trained, 4),
-                                         're_im_grad': np.round(re_im_grad, 4),
-                                         'h_norm_factor': np.round(h_norm_factor, 4),
-                                         'h_squared_factor': np.round(h_squared_factor, 4),
-                                         'trained_energy_factor': np.round(trained_energy_factor)})
+                                         'error_bound': np.round(error_bound, 8),
+                                         'error_grad': np.round(error_grad, 8),
+                                         'resid': np.round(resid, 8),
+                                         'fidelity': np.round(fidelity_to_target, 8),
+                                         'true_error': np.round(true_error, 8),
+                                         'target_energy': np.round(target_energy, 8),
+                                         'trained_energy': np.round(trained_energy, 8),
+                                         'h_norm': np.round(h_norm, 8),
+                                         'h_squared': np.round(h_squared, 8),
+                                         'dtdt_trained': np.round(dtdt_trained, 8),
+                                         're_im_grad': np.round(re_im_grad, 8),
+                                         'h_norm_factor': np.round(h_norm_factor, 8),
+                                         'h_squared_factor': np.round(h_squared_factor, 8),
+                                         'trained_energy_factor': np.round(trained_energy_factor, 8)
+                                         })
 
     def _propagate(self,
                    param_dict: Dict
