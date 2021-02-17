@@ -24,13 +24,14 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import BaseBackend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule
+from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
+from qiskit.pulse.transforms import block_to_schedule
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 
 
-def draw(program: Union[Waveform, ParametricPulse, Schedule],
+def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
          style: Optional[Dict[str, Any]] = None,
          backend: Optional[BaseBackend] = None,
          time_range: Optional[Tuple[int, int]] = None,
@@ -372,6 +373,9 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         ImportError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
+    if isinstance(program, ScheduleBlock):
+        program = block_to_schedule(program)
+
     temp_style = stylesheet.QiskitPulseStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 

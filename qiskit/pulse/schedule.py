@@ -33,7 +33,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse.instructions import Instruction, Call
+from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -99,7 +99,7 @@ class ScheduleBase(abc.ABC):
 
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
-        self._metadata = metadata
+        self._metadata = metadata or dict()
 
     @property
     def name(self) -> str:
@@ -128,36 +128,32 @@ class ScheduleBase(abc.ABC):
 
     @property
     def timeslots(self) -> TimeSlots:
-        """Time keeping attribute."""
+        """Abstract property that returns timeslots of this program."""
         raise NotImplementedError
 
     @property
     def duration(self) -> int:
-        """Duration of this schedule."""
+        """Abstract property that returns the duration of this program."""
         raise NotImplementedError
 
     @property
     def start_time(self) -> int:
-        """Starting time of this schedule."""
+        """Abstract property that returns the start time of this program."""
         raise NotImplementedError
 
     @property
     def stop_time(self) -> int:
-        """Stopping time of this schedule."""
+        """Abstract property that returns the final time of this program."""
         raise NotImplementedError
 
     @property
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
+        """Abstract property that returns all channel objects associated with this program."""
         raise NotImplementedError
 
     @property
-    def instructions(self):
-        """Get the time-ordered instructions from self.
-
-        ReturnType:
-            Tuple[Tuple[int, Instruction], ...]
-        """
+    def instructions(self) -> Any:
+        """Abstract property that returns the components."""
         raise NotImplementedError
 
     @property
@@ -166,7 +162,7 @@ class ScheduleBase(abc.ABC):
         return set(self._parameter_table.keys())
 
     def ch_duration(self, *channels: List[Channel]) -> int:
-        """Return the time of the end of the last instruction over the supplied channels.
+        """Abstract method that returns the duration of the channels.
 
         Args:
             *channels: Channels within ``self`` to include.
@@ -174,7 +170,7 @@ class ScheduleBase(abc.ABC):
         raise NotImplementedError
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
-        """Return the time of the start of the first instruction over the supplied channels.
+        """Abstract method that returns the start time of the channels.
 
         Args:
             *channels: Channels within ``self`` to include.
@@ -182,7 +178,7 @@ class ScheduleBase(abc.ABC):
         raise NotImplementedError
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
-        """Return maximum start time over supplied channels.
+        """Abstract method that returns the final time of the channels.
 
         Args:
             *channels: Channels within ``self`` to include.
@@ -194,13 +190,13 @@ class ScheduleBase(abc.ABC):
               name: Optional[str] = None,
               inplace: bool = False
               ) -> 'ScheduleBase':
-        """Return a schedule shifted forward by ``time``.
+        """Abstract method that shifts absolute time of all attached components.
 
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
-                return a new ``Schedule``.
+                return a new schedule.
         """
         raise NotImplementedError
 
@@ -210,33 +206,27 @@ class ScheduleBase(abc.ABC):
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'ScheduleBase':
-        """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
+        """Abstract method that appends new component to the program with absolute time.
 
         Args:
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
-                return a new ``Schedule``.
+                return a new schedule.
         """
         raise NotImplementedError
 
     def append(self, schedule: Union['ScheduleBase', Instruction],
                name: Optional[str] = None,
                inplace: bool = False) -> 'ScheduleBase':
-        r"""Return a new schedule with ``schedule`` inserted at the maximum time over
-        all channels shared between ``self`` and ``schedule``.
-
-        .. math::
-
-            t = \textrm{max}(\texttt{x.stop_time} |\texttt{x} \in
-                \texttt{self.channels} \cap \texttt{schedule.channels})
+        """Abstract method that appends new component to the program.
 
         Args:
             schedule: Schedule to be appended.
-            name: Name of the new ``Schedule``. Defaults to name of ``self``.
+            name: Name of the new schedule. Defaults to name of ``self``.
             inplace: Perform operation inplace on this schedule. Otherwise
-                return a new ``Schedule``.
+                return a new schedule.
         """
         raise NotImplementedError
 
@@ -252,15 +242,11 @@ class ScheduleBase(abc.ABC):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types=None,
+               instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
-        though the provided filters; i.e. an instruction will be retained iff every function in
-        ``filter_funcs`` returns ``True``, the instruction occurs on a channel type contained in
-        ``channels``, the instruction type is contained in ``instruction_types``, and the period
-        over which the instruction operates is *fully* contained in one specified in
-        ``time_ranges`` or ``intervals``.
+               intervals: Optional[Iterable[Interval]] = None,
+               check_subroutine: bool = True) -> 'Schedule':
+        """Abstract method that includes specified components by provided conditions.
 
         If no arguments are provided, ``self`` is returned.
 
@@ -268,31 +254,37 @@ class ScheduleBase(abc.ABC):
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
                  tuple and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
-                ``[PulseInstruction, AcquireInstruction]``.
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[(0, 5), (6, 10)]``.
+            check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+                defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+
+        Returns:
+            ``Schedule`` consisting of instructions that matches with filtering condition.
         """
         raise NotImplementedError
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
-                instruction_types=None,
+                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """Return a Schedule with only the instructions from this Schedule *failing* at least one
-        of the provided filters. This method is the complement of ``self.filter``, so that::
-
-            self.filter(args) | self.exclude(args) == self
+                intervals: Optional[Iterable[Interval]] = None,
+                check_subroutine: bool = True) -> 'Schedule':
+        """Abstract method that excludes specified components by provided conditions.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
                 tuple and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
-                ``[PulseInstruction, AcquireInstruction]``.
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[(0, 5), (6, 10)]``.
+            check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+                defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+
+        Returns:
+            ``Schedule`` consisting of instructions that are not matche with filtering condition.
         """
         raise NotImplementedError
 
@@ -301,57 +293,15 @@ class ScheduleBase(abc.ABC):
                 new: Union['Schedule', Instruction],
                 inplace: bool = False,
                 ) -> 'Schedule':
-        """Return a schedule with the ``old`` instruction replaced with a ``new``
-        instruction.
-
-        The replacment matching is based on an instruction equality check.
-
-        .. jupyter-kernel:: python3
-          :id: replace
-
-        .. jupyter-execute::
-
-          from qiskit import pulse
-
-          d0 = pulse.DriveChannel(0)
-
-          sched = pulse.Schedule()
-
-          old = pulse.Play(pulse.Constant(100, 1.0), d0)
-          new = pulse.Play(pulse.Constant(100, 0.1), d0)
-
-          sched += old
-
-          sched = sched.replace(old, new)
-
-          assert sched == pulse.Schedule(new)
-
-        Only matches at the top-level of the schedule tree. If you wish to
-        perform this replacement over all instructions in the schedule tree.
-        Flatten the schedule prior to running::
-
-        .. jupyter-execute::
-
-          sched = pulse.Schedule()
-
-          sched += pulse.Schedule(old)
-
-          sched = sched.flatten()
-
-          sched = sched.replace(old, new)
-
-          assert sched == pulse.Schedule(new)
+        """Abstract method that replaces a component by another.
 
         Args:
           old: Instruction to replace.
           new: Instruction to replace with.
-          inplace: Replace instruction by mutably modifying this ``Schedule``.
+          inplace: Replace instruction by mutably modifying this schedule.
 
         Returns:
           The modified schedule with ``old`` replaced by ``new``.
-
-        Raises:
-            PulseError: If the ``Schedule`` after replacements will has a timing overlap.
         """
         raise NotImplementedError
 
@@ -369,7 +319,7 @@ class ScheduleBase(abc.ABC):
                 Parameter expression.
 
         Returns:
-            Schedule with updated parameters (a new one if not inplace, otherwise self).
+            Schedule with updated parameters.
         """
         raise NotImplementedError
 
@@ -532,7 +482,7 @@ class ScheduleBase(abc.ABC):
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
             instructions += ", ..."
-        return '{}({}, name="{}")'.format(type(self), instructions, name)
+        return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
 
     def __add__(self, other: ScheduleComponent) -> 'ScheduleBase':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
@@ -710,7 +660,7 @@ class Schedule(ScheduleBase):
         """
         if name is None:
             name = self.name
-        return Schedule((time, self), name=name, metadata=self.metadata)
+        return Schedule((time, self), name=name, metadata=self.metadata.copy())
 
     def _mutable_shift(self,
                        time: int
@@ -787,7 +737,7 @@ class Schedule(ScheduleBase):
         """
         if name is None:
             name = self.name
-        new_sched = Schedule(name=name, metadata=self.metadata)
+        new_sched = Schedule(name=name, metadata=self.metadata.copy())
         new_sched._mutable_insert(0, self)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
@@ -852,8 +802,9 @@ class Schedule(ScheduleBase):
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None,
                 check_subroutine: bool = True) -> 'Schedule':
-        """Return a Schedule with only the instructions from this Schedule *failing* at least one
-        of the provided filters. This method is the complement of ``self.filter``, so that::
+        """Return a ``Schedule`` with only the instructions from this Schedule *failing*
+        at least one of the provided filters.
+        This method is the complement of py:meth:`~self.filter`, so that::
 
             self.filter(args) | self.exclude(args) == self
 
@@ -983,30 +934,30 @@ class Schedule(ScheduleBase):
                 new: ScheduleComponent,
                 inplace: bool = False,
                 ) -> 'Schedule':
-        """Return a schedule with the ``old`` instruction replaced with a ``new``
+        """Return a ``Schedule`` with the ``old`` instruction replaced with a ``new``
         instruction.
 
         The replacment matching is based on an instruction equality check.
 
         .. jupyter-kernel:: python3
-          :id: replace
+            :id: replace
 
         .. jupyter-execute::
 
-          from qiskit import pulse
+            from qiskit import pulse
 
-          d0 = pulse.DriveChannel(0)
+            d0 = pulse.DriveChannel(0)
 
-          sched = pulse.Schedule()
+            sched = pulse.Schedule()
 
-          old = pulse.Play(pulse.Constant(100, 1.0), d0)
-          new = pulse.Play(pulse.Constant(100, 0.1), d0)
+            old = pulse.Play(pulse.Constant(100, 1.0), d0)
+            new = pulse.Play(pulse.Constant(100, 0.1), d0)
 
-          sched += old
+            sched += old
 
-          sched = sched.replace(old, new)
+            sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+            assert sched == pulse.Schedule(new)
 
         Only matches at the top-level of the schedule tree. If you wish to
         perform this replacement over all instructions in the schedule tree.
@@ -1014,23 +965,23 @@ class Schedule(ScheduleBase):
 
         .. jupyter-execute::
 
-          sched = pulse.Schedule()
+            sched = pulse.Schedule()
 
-          sched += pulse.Schedule(old)
+            sched += pulse.Schedule(old)
 
-          sched = sched.flatten()
+            sched = sched.flatten()
 
-          sched = sched.replace(old, new)
+            sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+            assert sched == pulse.Schedule(new)
 
         Args:
-          old: Instruction to replace.
-          new: Instruction to replace with.
-          inplace: Replace instruction by mutably modifying this ``Schedule``.
+            old: Instruction to replace.
+            new: Instruction to replace with.
+            inplace: Replace instruction by mutably modifying this ``Schedule``.
 
         Returns:
-          The modified schedule with ``old`` replaced by ``new``.
+            The modified schedule with ``old`` replaced by ``new``.
 
         Raises:
             PulseError: If the ``Schedule`` after replacements will has a timing overlap.
@@ -1052,7 +1003,7 @@ class Schedule(ScheduleBase):
             return self
         else:
             try:
-                return Schedule(*new_children, name=self.name, metadata=self.metadata)
+                return Schedule(*new_children, name=self.name, metadata=self.metadata.copy())
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
@@ -1069,7 +1020,7 @@ class Schedule(ScheduleBase):
                 Parameter expression.
 
         Returns:
-            Schedule with updated parameters (a new one if not inplace, otherwise self).
+            Schedule with updated parameters.
         """
         for parameter in self.parameters:
             if parameter not in value_dict:
@@ -1111,10 +1062,10 @@ class Schedule(ScheduleBase):
         return self
 
     def _update_parameter_table(self, schedule: 'Schedule'):
-        """
+        """A helper function to update parameter table with given schedule component.
 
         Args:
-            schedule:
+            schedule: A new schedule component to be added.
         """
         # TODO need to fix cyclic import
         from qiskit.pulse.transforms import flatten
@@ -1125,7 +1076,7 @@ class Schedule(ScheduleBase):
                 self._parameter_table[param].append(inst)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
-        """Test if two ScheduleComponents are equal.
+        """Test if two Schedule are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
         in ``other`` for every instruction in this ``Schedule``.
@@ -1135,31 +1086,26 @@ class Schedule(ScheduleBase):
             This does not check for logical equivalency. Ie.,
 
             ```python
-            >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
-                 Delay(20)(DriveChannel(0)))
+            >>> Delay(10, DriveChannel(0)) + Delay(10, DriveChannel(0))
+                == Delay(20, DriveChannel(0))
             False
             ```
         """
-        channels = set(self.channels)
-        other_channels = set(other.channels)
-
-        # first check channels are the same
-        if channels != other_channels:
+        # 0. type check
+        if not isinstance(other, type(self)):
             return False
 
-        # then verify same number of instructions in each
-        instructions = self.instructions
-        other_instructions = other.instructions
-        if len(instructions) != len(other_instructions):
+        # 1. channel check
+        if set(self.channels) != set(other.channels):
             return False
 
-        # finally check each instruction in `other` is in this schedule
-        for idx, inst in enumerate(other_instructions):
-            # check assumes `Schedule.instructions` is sorted consistently
-            if instructions[idx] != inst:
-                return False
+        # 2. size check
+        if len(self.instructions) != len(other.instructions):
+            return False
 
-        return True
+        # 4. instruction check
+        return all(self_inst == other_inst for self_inst, other_inst
+                   in zip(self.instructions, other.instructions))
 
 
 def _require_schedule_conversion(function: Callable) -> Callable:
@@ -1209,7 +1155,9 @@ class ScheduleBlock(ScheduleBase):
         self._transform_policy = transformation_policy
         self._transform_opts = transform_kwargs
 
-        self._blocks = blocks or list()
+        self._blocks = list()
+        if blocks:
+            map(functools.partial(self.append, inplace=True), blocks)
 
     @property
     def transformation_policy(self) -> str:
@@ -1223,8 +1171,8 @@ class ScheduleBlock(ScheduleBase):
 
     def _check_duration(self) -> bool:
         """Return ``True`` if all durations are assigned."""
-        return all(isinstance(block.duration, int) if isinstance(block, Instruction) else
-                   block._check_duration() for block in self._blocks)
+        return all(block._check_duration() if isinstance(block, ScheduleBlock) else
+                   isinstance(block.duration, int) for block in self.instructions)
 
     @property
     @_require_schedule_conversion
@@ -1254,7 +1202,7 @@ class ScheduleBlock(ScheduleBase):
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule clock uses."""
         chans = set()
-        for block in self._blocks:
+        for block in self.instructions:
             for chan in block.channels:
                 chans.add(chan)
 
@@ -1320,6 +1268,7 @@ class ScheduleBlock(ScheduleBase):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
+        # TODO this can be done with delay insertion!
         if inplace:
             warnings.warn('ScheduleBlock is implicitly converted into Schedule. '
                           'This method always generates new object.', UserWarning)
@@ -1362,67 +1311,208 @@ class ScheduleBlock(ScheduleBase):
         # self is newly generated Schedule from this schedule block, see the decorator
         return self.insert(start_time=start_time, schedule=schedule, name=name, inplace=True)
 
-    def append(self, block: Union[Instruction, Schedule, 'ScheduleBlock'],
+    def append(self, schedule: BlockComponent,
                name: Optional[str] = None,
                inplace: bool = False) -> 'ScheduleBlock':
         """Return a new schedule block with ``block`` appended to the context block.
         The execution time is automatically assigned when the block is converted into schedule.
 
         Args:
-            block: ScheduleBlock to be appended.
+            schedule: ScheduleBlock to be appended.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        if isinstance(block, Schedule):
-            block = Call(subroutine=block)
+        if not isinstance(schedule, (ScheduleBlock, Instruction)):
+            raise PulseError(f'Appended `schedule` {type(schedule)} is invalid type. '
+                             'Only `Instruction` and `ScheduleBlock` can be accepted.')
 
         if not inplace:
             new_block = ScheduleBlock(
                 transformation_policy=self.transformation_policy,
-                blocks=self._blocks + [block],
+                blocks=list(self.instructions),
                 name=name or self.name,
-                metadata=self.metadata,
+                metadata=self.metadata.copy(),
                 **self.transformation_options
             )
+            new_block.append(schedule, inplace=True)
+
             return new_block
         else:
-            self._blocks.append(block)
+            node_index = len(self._blocks)
+            self._blocks.append(schedule)
 
+            # update parameter table
+            if schedule.is_parameterized():
+                for param in schedule.parameters:
+                    self._parameter_table[param].append(node_index)
+
+    @_require_schedule_conversion
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types=None,
+               instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-               intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """"""
-        pass
+               intervals: Optional[Iterable[Interval]] = None,
+               check_subroutine: bool = True) -> 'Schedule':
+        """Return a new ``Schedule`` with only the instructions from this ``ScheduleBlock``
+        which pass though the provided filters; i.e. an instruction will be retained iff
+        every function in ``filter_funcs`` returns ``True``, the instruction occurs on
+        a channel type contained in ``channels``, the instruction type is contained
+        in ``instruction_types``, and the period over which the instruction operates
+        is *fully* contained in one specified in ``time_ranges`` or ``intervals``.
 
+        If no arguments are provided, ``self`` is returned.
+
+        .. note:: This method returns ``Schedule``. Program representation will be overwritten.
+
+        Args:
+            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
+                tuple and return a bool.
+            channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
+            time_ranges: For example, ``[(0, 5), (6, 10)]``.
+            intervals: For example, ``[(0, 5), (6, 10)]``.
+            check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+                defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+
+        Returns:
+            ``Schedule`` consisting of instructions that matches with filtering condition.
+        """
+        self.filter(*filter_funcs, channels, instruction_types, time_ranges, intervals)
+
+    @_require_schedule_conversion
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
-                instruction_types=None,
+                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
-        """"""
-        pass
+                intervals: Optional[Iterable[Interval]] = None,
+                check_subroutine: bool = True) -> 'Schedule':
+        """Return a ``Schedule`` with only the instructions from this Schedule *failing*
+        at least one of the provided filters.
+        This method is the complement of py:meth:`~self.filter`, so that::
+
+            self.filter(args) | self.exclude(args) == self
+
+        .. note:: This method returns ``Schedule``. Program representation will be overwritten.
+
+        Args:
+            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
+                tuple and return a bool.
+            channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
+            time_ranges: For example, ``[(0, 5), (6, 10)]``.
+            intervals: For example, ``[(0, 5), (6, 10)]``.
+            check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+                defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+
+        Returns:
+            ``Schedule`` consisting of instructions that are not matche with filtering condition.
+        """
+        self.exclude(*filter_funcs, channels, instruction_types, time_ranges, intervals)
 
     def replace(self,
-                old: Union['Schedule', Instruction],
-                new: Union['Schedule', Instruction],
+                old: BlockComponent,
+                new: BlockComponent,
                 inplace: bool = False,
-                ) -> 'Schedule':
-        """"""
-        pass
+                ) -> 'ScheduleBlock':
+        """Return a ``ScheduleBlock`` with the ``old`` component replaced with a ``new``
+        component.
+
+        Args:
+            old: Schedule block component to replace.
+            new: Schedule block component to replace with.
+            inplace: Replace instruction by mutably modifying this ``ScheduleBlock``.
+
+        Returns:
+            The modified schedule block with ``old`` replaced by ``new``.
+        """
+        new_blocks = []
+
+        for block in self.instructions:
+            if block == old:
+                new_blocks.append(new)
+            else:
+                if isinstance(block, ScheduleBlock):
+                    new_blocks.append(block.replace(old, new, inplace))
+                else:
+                    new_blocks.append(block)
+
+        if inplace:
+            self._blocks = new_blocks
+            return self
+        else:
+            return ScheduleBlock(transformation_policy=self.transformation_policy,
+                                 blocks=new_blocks,
+                                 name=self.name,
+                                 metadata=self.metadata.copy(),
+                                 **self.transformation_options)
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType],
-                          ) -> 'Schedule':
-        """"""
-        # just delegate
-        for block in self._blocks:
-            block.assign_parameters(value_dict=value_dict)
+                          ) -> 'ScheduleBlock':
+        """Assign the parameters in this schedule according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+
+        Returns:
+            Schedule with updated parameters.
+        """
+        for param, value in value_dict.items():
+            entries = self._parameter_table.pop(param, [])
+            for node_index in entries:
+                self._blocks[node_index].assign_parameters({param: value})
+
+            # update table with new parameters
+            if isinstance(value, ParameterExpression):
+                for new_param in value.parameters:
+                    new_entries = set(self._parameter_table.get(new_param, []) + entries)
+                    self._parameter_table[new_param] = list(new_entries)
+
+        return self
+
+    def __len__(self):
+        """Return size of this block."""
+        return len(self._blocks)
 
     def __eq__(self, other: 'ScheduleBlock'):
-        pass
+        """Test if two ScheduleBlocks are equal.
+
+        Equality is checked by verifying there is an equal instruction at every time
+        in ``other`` for every instruction in this ``ScheduleBlock``. Also they have
+        the same transformation.
+
+        .. warning::
+
+            This does not check for logical equivalency. Ie.,
+
+            ```python
+            >>> Delay(10, DriveChannel(0)) + Delay(10, DriveChannel(0))
+                == Delay(20, DriveChannel(0))
+            False
+            ```
+        """
+        # 0. type check
+        if not isinstance(other, type(self)):
+            return False
+
+        # 1. transformation check
+        if self.transformation_policy != other.transformation_policy or \
+                self.transformation_options != other.transformation_options:
+            return False
+
+        # 2. channel check
+        if set(self.channels) != set(other.channels):
+            return False
+
+        # 3. size check
+        if len(self) != len(other):
+            return False
+
+        # 4. instruction check
+        return all(self_inst == other_inst for self_inst, other_inst
+                   in zip(self.instructions, other.instructions))
 
 
 class ParameterizedSchedule:
