@@ -18,8 +18,6 @@ from unittest import mock
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import bit
-from qiskit.circuit import quantumregister
-from qiskit.circuit import classicalregister
 
 
 class TestBitClass(QiskitTestCase):
