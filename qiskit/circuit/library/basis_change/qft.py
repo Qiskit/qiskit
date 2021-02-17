@@ -19,8 +19,6 @@ from qiskit.circuit import QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
-# pylint: disable=no-member
-
 
 class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.

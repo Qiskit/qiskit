@@ -30,12 +30,12 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse import Schedule
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _log_assembly_time(start_time, end_time):
     log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
+    logger.info(log_msg)
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -384,7 +384,6 @@ def _parse_rep_delay(rep_delay: float,
     if rep_delay is not None:
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
-            #  pylint: disable=E1136
             if len(rep_delay_range) != 2:
                 raise SchemaValidationError(
                     "Backend rep_delay_range {} must be a list with two entries.".format(
