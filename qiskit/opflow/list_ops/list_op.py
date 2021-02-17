@@ -382,10 +382,10 @@ class ListOp(OperatorBase):
                 if not all(op.is_measurement == evals[0].is_measurement for op in evals):
                     raise NotImplementedError("Combo_fn not yet supported for mixed measurement "
                                               "and non-measurement StateFns")
-                res = self.combo_fn(evals)
-                if isinstance(res, list):
-                    return self.coeff * np.array(self.combo_fn(evals))
-                return self.coeff * self.combo_fn(evals)
+                result = self.combo_fn(evals)
+                if isinstance(result, list):
+                    result = np.array(result)
+                return self.coeff * result
 
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)
