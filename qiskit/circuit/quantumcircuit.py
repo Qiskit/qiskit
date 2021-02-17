@@ -162,13 +162,13 @@ class QuantumCircuit:
                                    "provided)" % ([type(reg).__name__ for reg in regs], regs))
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
-
-        self._base_name = self.cls_prefix() if name is None else name
-        if not isinstance(self._base_name, str):
+        self._base_name = None
+        if name is None:
+            self._base_name = self.cls_prefix()
+            self._name_update()
+        elif not isinstance(name, str):
             raise CircuitError("The circuit name should be a string "
                                "(or None to auto-generate a name).")
-        if name is None:
-            self._name_update()
         else:
             self.name = name
         self._increment_instances()
