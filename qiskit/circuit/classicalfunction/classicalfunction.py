@@ -135,11 +135,14 @@ class ClassicalFunction(gate.Gate):
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
+        from tweedledum.passes import pkrm_synth
+
         if registerless:
             qregs = None
         else:
             qregs = self.qregs
-        return tweedledum2qiskit(xag_synth(self._network), name=self.name, qregs=qregs)
+
+        return tweedledum2qiskit(pkrm_synth(self._network), name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the classical function is its synthesis"""
