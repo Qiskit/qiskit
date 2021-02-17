@@ -104,7 +104,8 @@ class VarQTE(EvolutionBase):
                                            'trained_energy'])
                     if get_h_terms:
                         fieldnames.extend(['h_norm', 'h_squared', 'dtdt_trained',
-                                           're_im_grad'])
+                                           're_im_grad', 'h_norm_factor', 'h_squared_factor',
+                                           'trained_energy_factor'])
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
         if fidelity_to_target:
@@ -193,11 +194,15 @@ class VarQTE(EvolutionBase):
                       h_norm: Optional[float] = None,
                       h_squared: Optional[float] = None,
                       dtdt_trained: Optional[float] = None,
-                      re_im_grad: Optional[float] = None):
+                      re_im_grad: Optional[float] = None,
+                      h_norm_factor: Optional[float] = None,
+                      h_squared_factor: Optional[float] = None,
+                      trained_energy_factor: Optional[float] = None):
         """
         Args:
             t: current point in time evolution
-            error_bound: ||\epsilon_t||
+            error_bound: ||\epsilon_t|| >= |||target> - |trained>||^2
+                         (using exact |trained_energy - target_energy|)
             error_grad: ||e_t||
             resid: residual of McLachlan's SLE||Adtω-C||
             params: Current parameter values
@@ -210,6 +215,9 @@ class VarQTE(EvolutionBase):
             dtdt_trained: <dt_trained|dt_trained>
             re_im_grad: Re(<dt_trained|H|trained>) for VarQITE resp.
                         Im(<dt_trained|H|trained>) for VarQRTE
+            h_norm_factor: (1 + 2 \delta_t ||H||)^{T - t}
+            h_squared_factor: (1 + 2 \delta_t \sqrt{|<trained|H^2|trained>|})
+            trained_energy_factor: (1 + 2 \delta_t |<trained|H|trained>|)
 
         Returns:
 
@@ -222,7 +230,8 @@ class VarQTE(EvolutionBase):
                 fieldnames.extend(['fidelity', 'true_error', 'target_energy', 'trained_energy'])
             if self._get_h_terms:
                 fieldnames.extend(['h_norm', 'h_squared', 'dtdt_trained',
-                                   're_im_grad'])
+                                   're_im_grad', 'h_norm_factor', 'h_squared_factor',
+                                   'trained_energy_factor'])
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             if fidelity_to_target is None:
                 if not self._get_error:
@@ -274,7 +283,10 @@ class VarQTE(EvolutionBase):
                                          'h_norm': np.round(h_norm, 4),
                                          'h_squared': np.round(h_squared, 4),
                                          'dtdt_trained': np.round(dtdt_trained, 4),
-                                         're_im_grad': np.round(re_im_grad, 4)})
+                                         're_im_grad': np.round(re_im_grad, 4),
+                                         'h_norm_factor': np.round(h_norm_factor, 4),
+                                         'h_squared_factor': np.round(h_squared_factor, 4),
+                                         'trained_energy_factor': np.round(trained_energy_factor)})
 
     def _propagate(self,
                    param_dict: Dict

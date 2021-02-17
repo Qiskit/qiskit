@@ -58,24 +58,7 @@ class VarQITE(VarQTE):
             raise TypeError('Please provide the operator either as ComposedOp or as ListOp of a '
                             'CircuitStateFn potentially with a combo function.')
 
-        # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._operator = operator / operator.coeff # Remove the time from the operator
-        # print('oplist', self._operator.oplist)
-
-        if self._get_error:
-            # Compute the norm of the Hamiltonian
-            h_norm = np.linalg.norm(self._operator.oplist[0].primitive.to_matrix(massive=True),
-                                    ord=2)
-            print('h_norm', h_norm)
-
-        # Step size
-        dt = np.abs(operator.coeff)*np.sign(operator.coeff) / self._num_time_steps
-
-        # Initialize error bound
-        error = 0
-
-        # Zip the parameter values to the parameter objects
-        param_dict = dict(zip(self._parameters, self._parameter_values))
+        # ODE Solver
 
         if self._ode_solver is not None:
             def ode_fun(params):
@@ -93,6 +76,30 @@ class VarQITE(VarQTE):
             self._ode_solver.fun = ode_fun
             self._ode_solver.jac = jac_ode_fun
 
+        # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
+        self._operator = operator / operator.coeff # Remove the time from the operator
+        # print('oplist', self._operator.oplist)
+
+        if self._get_error:
+            # Compute the norm of the Hamiltonian
+            h_norm = np.linalg.norm(self._operator.oplist[0].primitive.to_matrix(massive=True),
+                                    ord=2)
+            print('h_norm', h_norm)
+
+        # Step size
+        dt = np.abs(operator.coeff)*np.sign(operator.coeff) / self._num_time_steps
+
+        # Initialize error bound
+        error_bound_en_diff = 0
+        error_bound_l2 = 0
+
+        # Zip the parameter values to the parameter objects
+        param_dict = dict(zip(self._parameters, self._parameter_values))
+
+        et_list = []
+        h_squared_factor_list = []
+        trained_energy_factor_list = []
+
         for j in range(self._num_time_steps):
             # Get the natural gradient - time derivative of the variational parameters - and
             # the gradient w.r.t. H and the QFI/4.
@@ -102,44 +109,49 @@ class VarQITE(VarQTE):
                 # print('C', grad_res)
                 # print('metric', metric_res)
 
-
                 if self._get_error:
                     # Get the residual for McLachlan's Variational Principle
                     resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) + 0.5 * grad_res)
                     print('Residual norm', resid)
 
                     # Get the error for the current step
-                    e_t, h_squared, exp, dtdt_state, regrad = self._error_t(
+                    et, h_squared, exp, dtdt_state, regrad = self._error_t(
                         self._operator, nat_grad_result, grad_res, metric_res)
+                    # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+                    h_norm_factor = (1 + 2 * dt * h_norm) ** (operator.coeff - j - 1)
+                    # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
+                    h_squared_factor = (1 + 2 * dt * np.sqrt(h_squared))
+                    h_squared_factor_list.append(h_squared_factor)
+                    # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
+                    trained_energy_factor = (1 + 2 * dt * np.abs(exp))
+                    trained_energy_factor_list.append(trained_energy_factor)
+                    et_list.append(et)
 
-                    if np.imag(e_t) > 1e-5:
+                    if np.imag(et) > 1e-5:
                         raise Warning(
                             'The error of this step is imaginary. Thus, the SLE underlying '
                             'McLachlan was not solved well. The residuum of the SLE is ', resid,
                             '. Please use a regularized least square method to resolve this issue.')
 
-                    # TODO discuss (25) index of time step or time? I think indices
-                    print('error before', error)
-                    print('dt', dt)
-                    print('et', e_t)
+                    print('et', et)
                     if j == 0:
                         et_prev = 0
                         sqrt_h_prev_square = 0
                     # print('factor', (1 + 2 * dt * h_norm) ** (self._num_time_steps - j))
-                    # error += dt * e_t * (1 + 2 * dt * h_norm) ** (self._num_time_steps - j - 1)
+                    # error += dt * et * (1 + 2 * dt * h_norm) ** (self._num_time_steps - j - 1)
 
-                    # TODO Check -1 !!!
-                    # error += dt * e_t * (1 + 2 * dt * np.sqrt(h_squared)
+                    # error += dt * et * (1 + 2 * dt * np.sqrt(h_squared)
                     #                      ) ** (self._num_time_steps - j - 1)
-                    # error += dt/2 * (e_t * np.exp(2*np.abs(operator.coeff)*np.sqrt(h_squared)) +
+                    # error += dt/2 * (et * np.exp(2*np.abs(operator.coeff)*np.sqrt(h_squared)) +
                     #                 et_prev * np.exp(2*np.abs(operator.coeff)*sqrt_h_prev_square))
-                    error += dt / 2 * np.exp(2 * np.abs(operator.coeff) * h_norm) * (e_t + et_prev)
-                    # error += dt / 2 * (e_t + et_prev)
-                    et_prev = e_t
+                    error_bound_l2 += dt / 2 * np.exp(2 * np.abs(operator.coeff) * h_norm) * \
+                                           (et + et_prev)
+                    # error += dt / 2 * (et + et_prev)
+                    et_prev = et
                     # sqrt_h_prev_square = np.sqrt(h_squared)
 
-                    # error += dt * (e_t + 2 * h_norm)
-                    # error += dt * e_t * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
+                    # error += dt * (et + 2 * h_norm)
+                    # error += dt * et * (1 + 2 * dt * h_norm) ** (np.abs(operator.coeff) - (j * dt))
 
 
 
@@ -173,25 +185,37 @@ class VarQITE(VarQTE):
                 print('Fidelity', f)
                 print('True error', true_error)
 
-                error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - true_energy)))
-                # error += dt * (e_t + 2*h_norm)
-                # error += dt * (e_t + np.sqrt(np.linalg.norm(trained_energy - trained_energy_0)))
+                error_bound_en_diff += dt * (et + np.sqrt(np.linalg.norm(trained_energy -
+                                                                         true_energy)))
+                # error += dt * (et + 2*h_norm)
+                # error += dt * (et + np.sqrt(np.linalg.norm(trained_energy - trained_energy_0)))
 
-            print('Error', np.round(error, 6), 'after', (j + 1) * dt)
+            print('Error bound based on exact energy difference', np.round(error_bound_en_diff, 6),
+                  'after', (j + 1) * dt)
+            print('Error bound based on ||H||_2 and integration', np.round(error_bound_l2, 6),
+                  'after', (j + 1) * dt)
 
-                               # Store the current status
+            # Store the current status
             if self._snapshot_dir:
                 if self._get_error:
                     if self._init_parameter_values is None:
-                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                        self._store_params((j + 1) * dt, self._parameter_values,
+                                           error_bound_en_diff, et,
                                            resid)
                     else:
+                        # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+                        # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
+                        # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
                         if self._get_h_terms:
-                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                            self._store_params((j + 1) * dt, self._parameter_values,
+                                               error_bound_en_diff, et,
                                                resid,  f,  true_error, true_energy, trained_energy,
-                                               h_norm, h_squared, exp, dtdt_state, regrad)
+                                               h_norm, h_squared, dtdt_state, regrad,
+                                               h_norm_factor, h_squared_factor,
+                                               trained_energy_factor)
                         else:
-                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t,
+                            self._store_params((j + 1) * dt, self._parameter_values,
+                                               error_bound_en_diff, et,
                                                resid, f, true_error, true_energy, trained_energy)
 
                     if self._init_parameter_values is None:
@@ -200,6 +224,16 @@ class VarQITE(VarQTE):
                     else:
                         self._store_params((j + 1) * dt, self._parameter_values)
 
+
+        error_bound_h_squared = 0
+        error_bound_trained_energy = 0
+        for l, grad_error in enumerate(et_list):
+            error_bound_h_squared += grad_error * dt * np.prod(h_squared_factor_list[l:])
+            error_bound_trained_energy += grad_error * dt * np.prod(trained_energy_factor_list[l:])
+            print('Error bound based on sqrt(<H^2>)', np.round(error_bound_h_squared, 6),
+                  'after', (l + 1) * dt)
+            print('Error bound based on <H>', np.round(error_bound_trained_energy, 6),
+                  'after', (l + 1) * dt)
 
         # Return variationally evolved operator
         return self._operator[-1].assign_parameters(param_dict)
