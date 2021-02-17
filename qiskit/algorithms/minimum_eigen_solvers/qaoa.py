@@ -27,8 +27,6 @@ from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 # pylint: disable=invalid-name
-# disable check for operator setter because of pylint bug
-# pylint: disable=no-member
 
 
 class QAOA(VQE):

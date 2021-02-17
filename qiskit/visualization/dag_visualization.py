@@ -78,7 +78,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             dag_drawer(dag)
     """
     try:
-        import pydot  # pylint: disable=unused-import
+        import pydot
     except ImportError:
         raise ImportError("dag_drawer requires pydot. "
                           "Run 'pip install pydot'.")

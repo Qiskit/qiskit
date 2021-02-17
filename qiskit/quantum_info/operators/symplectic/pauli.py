@@ -146,7 +146,6 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
-    # pylint: disable = missing-param-doc, missing-type-doc
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
@@ -291,7 +290,7 @@ class Pauli(BasePauli):
     def __getitem__(self, qubits):
         """Return the unsigned Pauli group Pauli for subset of qubits."""
         # Set group phase to 0 so returned Pauli is always +1 coeff
-        if isinstance(qubits, int):
+        if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
         return Pauli((self.z[qubits], self.x[qubits]))
 
@@ -317,7 +316,7 @@ class Pauli(BasePauli):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(qubits, int):
+        if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
@@ -349,7 +348,7 @@ class Pauli(BasePauli):
         ret_qubits = self.num_qubits + value.num_qubits
         ret = Pauli((np.zeros(ret_qubits, dtype=bool),
                      np.zeros(ret_qubits, dtype=bool)))
-        if isinstance(qubits, int):
+        if isinstance(qubits, (int, np.integer)):
             if value.num_qubits == 1:
                 qubits = [qubits]
             else:
@@ -452,7 +451,6 @@ class Pauli(BasePauli):
             Setting ``front=True`` returns `right` matrix multiplication
             ``A * B`` and is equivalent to the :meth:`dot` method.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, Pauli):
