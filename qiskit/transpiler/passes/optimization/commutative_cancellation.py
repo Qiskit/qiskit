@@ -120,6 +120,8 @@ class CommutativeCancellation(TransformationPass):
                         cancellation_sets[q2_key].append(node)
 
         for cancel_set_key in cancellation_sets:
+            if cancel_set_key[0] == 'z_rotation' and var_z_gate is None:
+                continue
             set_len = len(cancellation_sets[cancel_set_key])
             if set_len > 1 and cancel_set_key[0] in q_gate_list:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
@@ -150,10 +152,7 @@ class CommutativeCancellation(TransformationPass):
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == 'z_rotation':
-                    if var_z_gate:
-                        new_op = var_z_gate(total_angle)
-                    else:
-                        continue
+                    var_z_gate(total_angle)
                 elif cancel_set_key[0] == 'x_rotation':
                     new_op = RXGate(total_angle)
 

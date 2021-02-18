@@ -569,6 +569,26 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.t(0)
         self.assertEqual(new_circuit, expected)
 
+    def test_basis_global_phase(self):
+        """Test no specified basis"""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        new_circuit = passmanager.run(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.s(0)
+        expected.z(0)
+        expected.t(0)
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        print('')
+        print(Operator(circuit) == Operator(new_circuit))
+        breakpoint()
+        self.assertEqual(new_circuit, expected)
+
 
 if __name__ == '__main__':
     unittest.main()
