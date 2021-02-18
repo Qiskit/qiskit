@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit.circuit import Parameter
 from qiskit.pulse.channels import (AcquireChannel, Channel, DriveChannel, Frame,
                                    ControlChannel, MeasureChannel, MemorySlot,
                                    PulseChannel, RegisterSlot, SnapshotChannel)
@@ -143,6 +144,34 @@ class TestFrame(QiskitTestCase):
         self.assertEqual(frame.index, 123)
         self.assertEqual(frame.name, 'f123')
         self.assertEqual(frame.channels, [DriveChannel(1), ControlChannel(0)])
+
+    def test_assign_parameter(self):
+        """Test that parameter assignment works."""
+
+        # Test coupling between frame parameter and a referenced channel
+        f0 = Parameter('name')
+        d0 = DriveChannel(f0)
+        frame = Frame(f0, [d0, ControlChannel(4)])
+
+        self.assertEqual(frame.index.name, 'name')
+        self.assertEqual(frame.channels, [d0, ControlChannel(4)])
+
+        new_frame = frame.assign(f0, 123)
+        self.assertEqual(new_frame.index, 123)
+        self.assertEqual(new_frame.channels, [DriveChannel(123), ControlChannel(4)])
+
+        # Test coupling between frame parameter and a referenced channel
+        p0 = Parameter('p0')
+        p1 = Parameter('p1')
+        d0 = DriveChannel(p1)
+        frame = Frame(p0, [d0, ControlChannel(4)])
+
+        self.assertEqual(frame.index.name, 'p0')
+        self.assertEqual(frame.channels, [d0, ControlChannel(4)])
+
+        new_frame = frame.assign(p0, 123)
+        self.assertEqual(new_frame.index, 123)
+        self.assertEqual(new_frame.channels, [DriveChannel(p1), ControlChannel(4)])
 
 
 if __name__ == '__main__':

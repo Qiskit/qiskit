@@ -130,6 +130,18 @@ class Channel(metaclass=ABCMeta):
             self._validate_index(new_index)
             new_index = int(new_index)
 
+        if isinstance(self, Frame):
+            # Preserve any coupling between frame parameter and the parameter
+            # of any referenced channel.
+            sub_channels = []
+            for ch in self.channels:
+                if parameter in ch.parameters:
+                    sub_channels.append(type(ch)(new_index))
+                else:
+                    sub_channels.append(ch)
+
+            return type(self)(new_index, sub_channels)
+
         return type(self)(new_index)
 
     @property
