@@ -1113,9 +1113,6 @@ class TestSubroutineCall(TestBuilder):
             with pulse.build() as sched:
                 pulse.call(subroutine, amp=0.1)
 
-        # just ignored
-        self.assertTrue(sched.is_parameterized())
-
     def test_call_with_common_parameter(self):
         """Test call subroutine with parameter that is defined multiple times."""
         amp = circuit.Parameter('amp')
@@ -1139,13 +1136,14 @@ class TestSubroutineCall(TestBuilder):
         """Test call subroutine with duplicated parameter names."""
         amp1 = circuit.Parameter('amp')
         amp2 = circuit.Parameter('amp')
+        sigma = circuit.Parameter('sigma')
 
         with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp1, sigma), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp2, sigma), pulse.DriveChannel(0))
 
         with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2}, sigma=40)
 
         assigned_sched = inline_subroutines(main_prog)
 
@@ -1153,4 +1151,6 @@ class TestSubroutineCall(TestBuilder):
         play_1 = assigned_sched.instructions[1][1]
 
         self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_0.pulse.sigma, 40)
         self.assertEqual(play_1.pulse.amp, 0.2)
+        self.assertEqual(play_1.pulse.sigma, 40)

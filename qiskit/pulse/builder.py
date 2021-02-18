@@ -479,18 +479,22 @@ class _PulseBuilder():
             subroutine = self._compile_circuit(subroutine)
 
         if len(subroutine.instructions) > 0:
-            if not value_dict:
+            if value_dict is None:
                 value_dict = dict()
-                for param_name, assigned_value in kw_params.items():
-                    param_objs = subroutine.get_parameters(param_name)
-                    if len(param_objs) > 0:
-                        for param_obj in param_objs:
-                            value_dict[param_obj] = assigned_value
-                    else:
-                        exceptions.PulseError(
-                            f'Parameter {param_name} is not defined in the target subroutine. '
-                            f'{", ".join(map(str, subroutine.parameters))} can be specified.')
-            call_def = instructions.Call(subroutine, value_dict, name)
+
+            param_value_map = dict()
+            for param_name, assigned_value in kw_params.items():
+                param_objs = subroutine.get_parameters(param_name)
+                if len(param_objs) > 0:
+                    for param_obj in param_objs:
+                        param_value_map[param_obj] = assigned_value
+                else:
+                    raise exceptions.PulseError(
+                        f'Parameter {param_name} is not defined in the target subroutine. '
+                        f'{", ".join(map(str, subroutine.parameters))} can be specified.')
+
+            param_value_map.update(value_dict)
+            call_def = instructions.Call(subroutine, param_value_map, name)
 
             self.append_instruction(call_def)
 
