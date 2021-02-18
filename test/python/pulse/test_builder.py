@@ -1109,7 +1109,7 @@ class TestSubroutineCall(TestBuilder):
         with pulse.build() as subroutine:
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
-        with self.assertWarns(UserWarning):
+        with self.assertRaises(exceptions.PulseError):
             with pulse.build() as sched:
                 pulse.call(subroutine, amp=0.1)
 
@@ -1134,3 +1134,23 @@ class TestSubroutineCall(TestBuilder):
 
         self.assertEqual(play_0.pulse.amp, 0.1)
         self.assertEqual(play_1.pulse.amp, 0.1)
+
+    def test_call_with_parameter_name_collision(self):
+        """Test call subroutine with duplicated parameter names."""
+        amp1 = circuit.Parameter('amp')
+        amp2 = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(0))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+
+        assigned_sched = inline_subroutines(main_prog)
+
+        play_0 = assigned_sched.instructions[0][1]
+        play_1 = assigned_sched.instructions[1][1]
+
+        self.assertEqual(play_0.pulse.amp, 0.1)
+        self.assertEqual(play_1.pulse.amp, 0.2)
