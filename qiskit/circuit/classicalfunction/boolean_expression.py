@@ -17,7 +17,6 @@ from os.path import basename
 from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 from .classicalfunction import HAS_TWEEDLEDUM
-from .utils import tweedledum2qiskit
 
 
 class BooleanExpression(Gate):
@@ -133,6 +132,7 @@ class BooleanExpression(Gate):
             QuantumCircuit: A circuit implementing the logic network.
         """
         from tweedledum.passes import pkrm_synth
+        from .utils import tweedledum2qiskit
 
         if registerless:
             qregs = None

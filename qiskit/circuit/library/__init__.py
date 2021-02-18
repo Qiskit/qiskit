@@ -339,3 +339,4 @@ from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
+from .phase_oracle import PhaseOracle

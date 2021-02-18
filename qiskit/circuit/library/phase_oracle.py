@@ -12,7 +12,8 @@
 
 """Phase Oracle object."""
 
-from qiskit.circuit import BooleanExpression, QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
 
 class PhaseOracle(QuantumCircuit):

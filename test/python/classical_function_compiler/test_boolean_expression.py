@@ -30,10 +30,10 @@ class TestBooleanExpression(QiskitTestCase):
           ('(x0 & x1 | ~x2) ^ x4', '0110', False),
           ('xx & xxx | ( ~z ^ zz)', '0111', True))
     @unpack
-    def test_evaluate(self, expression, input, expected):
+    def test_evaluate(self, expression, input_bitstring, expected):
         """ Test simulate"""
         expression = BooleanExpression(expression)
-        result = expression.simulate(input)
+        result = expression.simulate(input_bitstring)
         self.assertEqual(result, expected)
 
     @data(('x', False),
