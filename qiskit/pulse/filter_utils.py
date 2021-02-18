@@ -47,13 +47,13 @@ def filter_instructions(sched: Schedule,
         target_sched = inline_subroutines(target_sched)
 
     time_inst_tuples = np.array(target_sched.instructions)
-    valid_insts = np.ones(len(time_inst_tuples))
+
+    valid_insts = np.ones(len(time_inst_tuples), dtype=bool)
     for filt in filters:
-        if accept:
-            evaluated = np.array(list(map(filt, time_inst_tuples)))
-        else:
-            evaluated = ~np.array(list(map(filt, time_inst_tuples)))
-        valid_insts = np.logical_and(valid_insts, evaluated)
+        valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
+
+    if not accept:
+        valid_insts = ~valid_insts
 
     return Schedule(*time_inst_tuples[valid_insts], name=sched.name, metadata=sched.metadata)
 

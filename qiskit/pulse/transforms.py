@@ -25,7 +25,7 @@ from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent, AlignmentKind
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -590,11 +590,11 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     # transform with defined policy
     transform_map = {
-        'align_left': align_left,
-        'align_right': align_right,
-        'align_sequential': align_sequential,
-        'align_equispaced': align_equispaced,
-        'align_func': align_func
+        AlignmentKind.Left.value: align_left,
+        AlignmentKind.Right.value: align_right,
+        AlignmentKind.Sequential.value: align_sequential,
+        AlignmentKind.Equispaced.value: align_equispaced,
+        AlignmentKind.Func.value: align_func
     }
     if block.transformation_policy not in transform_map:
         raise PulseError('Specified transform policy {} is not defined. Define one of {}.'
@@ -602,6 +602,3 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     transform_func = transform_map.get(block.transformation_policy)
     return transform_func(schedule, **block.transformation_options)
-
-
-
