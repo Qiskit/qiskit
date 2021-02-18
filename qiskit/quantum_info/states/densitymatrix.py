@@ -138,9 +138,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex_source``,
-                ``latex_source``, ``qsphere``, ``hinton``,
-                or ``bloch``. Default is ``auto``.
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is ``auto``.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
                 and ``latex_source`` drawers, this is also the maximum number
