@@ -122,6 +122,7 @@ from .operators.measures import (process_fidelity,
                                  average_gate_fidelity,
                                  gate_error,
                                  diamond_norm)
+
 from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
                      concurrence, entanglement_of_formation,
