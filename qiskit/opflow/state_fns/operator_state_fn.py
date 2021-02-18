@@ -196,7 +196,8 @@ class OperatorStateFn(StateFn):
                 front) for op in self.primitive.oplist]
             result = self.primitive.combo_fn(evals)
             if isinstance(result, list):
-                return [element * self.coeff * self.primitive.coeff for element in result]
+                multiplied = self.primitive.coeff * self.coeff * np.array(result)
+                return multiplied.tolist()
             return result * self.coeff * self.primitive.coeff
 
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't

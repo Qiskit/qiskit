@@ -384,7 +384,8 @@ class ListOp(OperatorBase):
                                               "and non-measurement StateFns")
                 result = self.combo_fn(evals)
                 if isinstance(result, list):
-                    return [element * self.coeff for element in result]
+                    multiplied = self.coeff * np.array(result)
+                    return multiplied.tolist()
                 return self.coeff * result
 
         if all(isinstance(op, OperatorBase) for op in evals):
@@ -394,7 +395,8 @@ class ListOp(OperatorBase):
         else:
             result = self.combo_fn(evals)
             if isinstance(result, list):
-                return [element * self.coeff for element in result]
+                multiplied = self.coeff * np.array(result)
+                return multiplied.tolist()
             return self.coeff * result
 
     def exp_i(self) -> OperatorBase:
