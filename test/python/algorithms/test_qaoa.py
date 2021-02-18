@@ -333,8 +333,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         for i in range(num_nodes):
             for j in range(i):
                 if weight_matrix[i, j] != 0:
-                    x_p = np.zeros(num_nodes, dtype=np.bool)
-                    z_p = np.zeros(num_nodes, dtype=np.bool)
+                    x_p = np.zeros(num_nodes, dtype=bool)
+                    z_p = np.zeros(num_nodes, dtype=bool)
                     z_p[i] = True
                     z_p[j] = True
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
