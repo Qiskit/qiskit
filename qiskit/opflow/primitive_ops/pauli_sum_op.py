@@ -20,6 +20,7 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from ..exceptions import OpflowError
@@ -137,6 +138,7 @@ class PauliSumOp(PrimitiveOp):
 
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
@@ -218,7 +220,14 @@ class PauliSumOp(PrimitiveOp):
                 new_self.primitive * other.primitive,  # type:ignore
                 coeff=new_self.coeff * other.coeff,
             )
-        # TODO: implement compose with PauliOp
+        # pylint: disable=import-outside-toplevel
+        from .pauli_op import PauliOp
+        if isinstance(other, PauliOp):
+            other_primitive = SparsePauliOp(other.primitive)
+            return PauliSumOp(
+                new_self.primitive * other_primitive,  # type:ignore
+                coeff=new_self.coeff * other.coeff,
+            )
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -330,24 +339,23 @@ class PauliSumOp(PrimitiveOp):
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         from .pauli_op import PauliOp
 
-        def to_real(x):
-            return x.real if np.isreal(x) else x
-
         def to_native(x):
             return x.item() if isinstance(x, np.generic) else x
 
         if len(self.primitive) == 1:
             return PauliOp(
                 Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),  # type: ignore
-                to_native(to_real(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
+                to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
             )
+        tables = self.primitive.table
+        coeffs = np.real_if_close(self.primitive.coeffs)
         return SummedOp(
             [
                 PauliOp(
-                    Pauli((s.table.Z[0], s.table.X[0])),
-                    to_native(to_real(s.coeffs[0])),
+                    Pauli((t.Z[0], t.X[0])),
+                    to_native(c),
                 )
-                for s in self.primitive
+                for t, c in zip(tables, coeffs)
             ],
             coeff=self.coeff,
         )
@@ -414,3 +422,11 @@ class PauliSumOp(PrimitiveOp):
             The PauliSumOp constructed from the pauli_list.
         """
         return cls(SparsePauliOp.from_list(pauli_list), coeff=coeff)
+
+    def is_zero(self) -> bool:
+        """
+        Return this operator is zero operator or not.
+        """
+        op = self.reduce()
+        primitive: SparsePauliOp = op.primitive
+        return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0

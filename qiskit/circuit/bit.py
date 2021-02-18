@@ -46,12 +46,9 @@ class Bit:
 
             self._register = register
             self._index = index
-            self._update_hash()
-
-    def _update_hash(self):
-        self._hash = hash((self._register, self._index))
-        self._repr = "%s(%s, %s)" % (self.__class__.__name__,
-                                     self._register, self._index)
+            self._hash = hash((self._register, self._index))
+            self._repr = "%s(%s, %s)" % (self.__class__.__name__,
+                                         self._register, self._index)
 
     @property
     def register(self):
@@ -61,15 +58,6 @@ class Bit:
 
         return self._register
 
-    @register.setter
-    def register(self, value):
-        """Set bit's register."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to set register of a new-style Bit.')
-
-        self._register = value
-        self._update_hash()
-
     @property
     def index(self):
         """Get bit's index."""
@@ -77,15 +65,6 @@ class Bit:
             raise CircuitError('Attmped to query index of a new-style Bit.')
 
         return self._index
-
-    @index.setter
-    def index(self, value):
-        """Set bit's index."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to set index of a new-style Bit.')
-
-        self._index = value
-        self._update_hash()
 
     def __repr__(self):
         """Return the official string representing the bit."""
