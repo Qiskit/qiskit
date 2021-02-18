@@ -658,6 +658,7 @@ class QCircuitImage:
         origin = (mask & (-mask)).bit_length()
         return origin - 1
 
+
 def _get_register_specs(bits):
     """Get the number and size of unique registers from bits list.
 
@@ -672,6 +673,7 @@ def _get_register_specs(bits):
     regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
     return regs
 
+
 def _truncate_float(matchobj, ndigits=3):
     """Truncate long floats
 
@@ -684,6 +686,7 @@ def _truncate_float(matchobj, ndigits=3):
     if matchobj.group(0):
         return '%.{}g'.format(ndigits) % float(matchobj.group(0))
     return ''
+
 
 def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
