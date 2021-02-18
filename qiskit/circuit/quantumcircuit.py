@@ -16,6 +16,7 @@
 
 import copy
 import itertools
+import functools
 import sys
 import warnings
 import numbers
@@ -36,7 +37,7 @@ from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable, ParameterView
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
@@ -1813,13 +1814,17 @@ class QuantumCircuit:
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
         # parameters from gates
-        params = self._parameter_table._table.keys()
+        params = self._parameter_table.get_keys()
 
         # parameters in global phase
         if isinstance(self.global_phase, ParameterExpression):
-            params = list(self.global_phase.parameters) + params
+            params = params.union(self.global_phase.parameters)
 
-        return ParameterView(params)
+        # sort the parameters
+        sorted_by_name = sorted(list(params), key=functools.cmp_to_key(_compare_parameters))
+
+        # return as parameter view, which implements the set and list interface
+        return ParameterView(sorted_by_name)
 
     @property
     def num_parameters(self):
@@ -1908,11 +1913,6 @@ class QuantumCircuit:
             if len(params_not_in_circuit) > 0:
                 raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                     ', '.join(map(str, params_not_in_circuit))))
-
-            # check that only existing parameters are in the parameter dictionary
-            if unrolled_param_dict.keys() > self._parameter_table.keys():
-                raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                    [str(p) for p in params.keys() - self._parameter_table]))
 
             # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
             for parameter, value in unrolled_param_dict.items():
@@ -2591,3 +2591,21 @@ def _circuit_from_qasm(qasm):
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
+
+
+def _standard_compare(value1, value2):
+    if value1 < value2:
+        return -1
+    if value1 > value2:
+        return 1
+    return 0
+
+
+def _compare_parameters(param1, param2):
+    if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
+        # if they belong to the same vector, sort by index
+        if param1.vector_name == param2.vector_name:
+            return _standard_compare(param1.index, param2.index)
+
+    # else sort by name
+    return _standard_compare(param1.name, param2.name)
