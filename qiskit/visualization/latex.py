@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name,consider-using-enumerate
 
-"""latex circuit visualization backends."""
+"""latex visualization backends."""
 
 import collections
 import io
@@ -26,6 +26,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.visualization.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
