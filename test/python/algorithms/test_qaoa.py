@@ -25,7 +25,7 @@ from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
 from qiskit.opflow import I, X, PauliSumOp
 
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Pauli
