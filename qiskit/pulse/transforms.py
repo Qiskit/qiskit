@@ -317,7 +317,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def resolve_frames(schedule: Schedule, frames: List[List[str]]) -> Schedule:
+def resolve_frames(schedule: Schedule, backend_frames: List[List[str]]) -> Schedule:
     """
     Parse the schedule and replace instructions on Frames by instructions on the
     appropriate channels.
@@ -325,7 +325,7 @@ def resolve_frames(schedule: Schedule, frames: List[List[str]]) -> Schedule:
     Args:
         schedule: The schedule for which to replace frames with the appropriate
             channels.
-        frames: The frame configuration of the backend. Sublist i is a list of channel
+        backend_frames: The frame configuration of the backend. Sublist i is a list of channel
             names that belong to frame i.
 
     Returns:
@@ -334,9 +334,10 @@ def resolve_frames(schedule: Schedule, frames: List[List[str]]) -> Schedule:
 
     Raises:
         PulseError: if an instruction other than ShiftPhase, SetPhase, ShiftFrequency,
-            SetFrequency is applied to a Frame.
+            SetFrequency is applied to a Frame or if the channels in a Frame are not
+            included in the frame configuration provided by the backend.
     """
-    if frames is None:
+    if backend_frames is None:
         return schedule
 
     new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
@@ -345,7 +346,14 @@ def resolve_frames(schedule: Schedule, frames: List[List[str]]) -> Schedule:
 
         # Decompose frame instructions to the channels
         if isinstance(inst.channel, chans.Frame):
-            for ch_name in frames[inst.channel.index]:
+            frame_config = set(backend_frames[inst.channel.index])
+
+            for ch in inst.channel.channels:
+                if ch.name not in frame_config:
+                    raise PulseError(f'Frame {inst.channel.name} is not compatible with '
+                                     f'the backend frames. {ch.name} not in {frame_config}.')
+
+            for ch_name in frame_config:
                 ch = _resolve_channel(ch_name)
 
                 if isinstance(inst, instructions.ShiftPhase):
@@ -392,7 +400,7 @@ def _resolve_channel(name: str) -> chans.Channel:
 
 def _flatten_frames(channels: Tuple[chans.Channel]) -> Set[chans.Channel]:
     """
-    Flattens the frames.
+    Flattens any frames in the given channels.
 
     Args:
         channels: A list of channels to flatten.

@@ -94,15 +94,15 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
-    schedules = []
+    resolved_frames = []
     frames_map = getattr(run_config, 'frames', None)
     for sched in schedules:
         if not isinstance(sched, pulse.Schedule):
             sched = pulse.Schedule(sched)
 
-        schedules.append(transforms.resolve_frames(sched, frames_map))
+        resolved_frames.append(transforms.resolve_frames(sched, frames_map))
 
-    compressed_schedules = transforms.compress_pulses(schedules)
+    compressed_schedules = transforms.compress_pulses(resolved_frames)
 
     user_pulselib = {}
     experiments = []
