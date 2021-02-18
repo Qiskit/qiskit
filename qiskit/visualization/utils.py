@@ -18,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure
 
