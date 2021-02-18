@@ -91,14 +91,13 @@ class CommutationAnalysis(AnalysisPass):
 
 
 def _commute(node1, node2, cache):
-    from qiskit.quantum_info.operators.predicates import is_diagonal_matrix
 
     if node1.type != "op" or node2.type != "op":
         return False
 
-    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
-            for nd in [node1, node2]]):
-        return False
+    for nd in [node1, node2]:
+        if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
+            return False
 
     if node1.condition or node2.condition:
         return False
@@ -116,21 +115,15 @@ def _commute(node1, node2, cache):
 
     node1_key = (node1.op.name, str(node1.op.params), str(qarg1))
     node2_key = (node2.op.name, str(node2.op.params), str(qarg2))
-
-    op1 = Operator(node1.op)
-    op2 = Operator(node2.op)
-    if is_diagonal_matrix(op1.data) and is_diagonal_matrix(op2.data):
-        # may be better for short depth circuits; use depth criteria?
-        return True
     if (node1_key, node2_key) in cache:
         op12 = cache[(node1_key, node2_key)]
     else:
-        op12 = id_op.compose(op1, qargs=qarg1).compose(op2, qargs=qarg2)
+        op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
         cache[(node1_key, node2_key)] = op12
     if (node2_key, node1_key) in cache:
         op21 = cache[(node2_key, node1_key)]
     else:
-        op21 = id_op.compose(op2, qargs=qarg2).compose(op1, qargs=qarg1)
+        op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
         cache[(node2_key, node1_key)] = op21
 
     if_commute = (op12 == op21)
