@@ -272,11 +272,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             else:
                 original_init_qc = initial_state
 
-            job_init_state = execute(original_init_qc, self.statevector_simulator.backend)
-            job_qaoa_init_state = execute(custom_init_qc, self.statevector_simulator.backend)
+            job_init_state = self.statevector_simulator.execute(original_init_qc)
+            job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
 
-            statevector_original = job_init_state.result().get_statevector(original_init_qc)
-            statevector_custom = job_qaoa_init_state.result().get_statevector(custom_init_qc)
+            statevector_original = job_init_state.get_statevector(original_init_qc)
+            statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
 
             self.assertListEqual(statevector_original.tolist(), statevector_custom.tolist())
 
