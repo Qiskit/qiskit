@@ -317,19 +317,19 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def resolve_frames(schedules: List[Schedule], frames: List[List[str]]) -> List[Schedule]:
+def resolve_frames(schedule: Schedule, frames: List[List[str]]) -> Schedule:
     """
-    Parse the schedules and replace instructions on Frames by instructions on the
+    Parse the schedule and replace instructions on Frames by instructions on the
     appropriate channels.
 
     Args:
-        schedules: The schedules for which to replace frames with the appropriate
+        schedule: The schedule for which to replace frames with the appropriate
             channels.
         frames: The frame configuration of the backend. Sublist i is a list of channel
             names that belong to frame i.
 
     Returns:
-        new_schedules: A list of new schedules where frames have been replaced with
+        new_schedule: A new schedule where frames have been replaced with
             their corresponding Drive, Control, and/or Measure channels.
 
     Raises:
@@ -337,38 +337,33 @@ def resolve_frames(schedules: List[Schedule], frames: List[List[str]]) -> List[S
             SetFrequency is applied to a Frame.
     """
     if frames is None:
-        return schedules
+        return schedule
 
-    new_schedules = []
+    new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
 
-    for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name, metadata=schedule.metadata)
+    for time, inst in schedule.instructions:
 
-        for time, inst in schedule.instructions:
+        # Decompose frame instructions to the channels
+        if isinstance(inst.channel, chans.Frame):
+            for ch_name in frames[inst.channel.index]:
+                ch = _resolve_channel(ch_name)
 
-            # Decompose frame instructions to the channels
-            if isinstance(inst.channel, chans.Frame):
-                for ch_name in frames[inst.channel.index]:
-                    ch = _resolve_channel(ch_name)
+                if isinstance(inst, instructions.ShiftPhase):
+                    inst_ = instructions.ShiftPhase(inst.phase, ch)
+                elif isinstance(inst, instructions.SetPhase):
+                    inst_ = instructions.SetPhase(inst.phase, ch)
+                elif isinstance(inst, instructions.ShiftFrequency):
+                    inst_ = instructions.ShiftFrequency(inst.frequency, ch)
+                elif isinstance(inst, instructions.SetFrequency):
+                    inst_ = instructions.SetFrequency(inst.frequency, ch)
+                else:
+                    raise PulseError(inst.__class__.__name__ + ' cannot be applied to Frame.')
 
-                    if isinstance(inst, instructions.ShiftPhase):
-                        inst_ = instructions.ShiftPhase(inst.phase, ch)
-                    elif isinstance(inst, instructions.SetPhase):
-                        inst_ = instructions.SetPhase(inst.phase, ch)
-                    elif isinstance(inst, instructions.ShiftFrequency):
-                        inst_ = instructions.ShiftFrequency(inst.frequency, ch)
-                    elif isinstance(inst, instructions.SetFrequency):
-                        inst_ = instructions.SetFrequency(inst.frequency, ch)
-                    else:
-                        raise PulseError(inst.__class__.__name__ + ' cannot be applied to Frame.')
+                new_schedule.insert(time, inst_, inplace=True)
+        else:
+            new_schedule.insert(time, inst, inplace=True)
 
-                    new_schedule.insert(time, inst_, inplace=True)
-            else:
-                new_schedule.insert(time, inst, inplace=True)
-
-        new_schedules.append(new_schedule)
-
-    return new_schedules
+    return new_schedule
 
 
 def _resolve_channel(name: str) -> chans.Channel:
@@ -393,6 +388,7 @@ def _resolve_channel(name: str) -> chans.Channel:
         return chans.MeasureChannel(int(name[1:]))
 
     raise PulseError('Channel %s not supported in frames.' % name)
+
 
 def _push_left_append(this: Schedule,
                       other: Union['Schedule', instructions.Instruction],
