@@ -331,6 +331,10 @@ def resolve_frames(schedules: List[Schedule], frames: List[List[str]]) -> List[S
     Returns:
         new_schedules: A list of new schedules where frames have been replaced with
             their corresponding Drive, Control, and/or Measure channels.
+
+    Raises:
+        PulseError: if an instruction other than ShiftPhase, SetPhase, ShiftFrequency,
+            SetFrequency is applied to a Frame.
     """
     if frames is None:
         return schedules
@@ -376,6 +380,10 @@ def _resolve_channel(name: str) -> chans.Channel:
 
     Returns:
         channel: The channel of the appropriate type.
+
+    Raises:
+        PulseError: If the channel is not a DriveChannel, ControlChannel, or
+            MeasureChannel.
     """
     if name[0] == 'd':
         return chans.DriveChannel(int(name[1:]))
