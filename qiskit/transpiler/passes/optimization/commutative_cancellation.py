@@ -53,7 +53,6 @@ class CommutativeCancellation(TransformationPass):
         else:
             self.basis = set()
 
-        self._z_variable_gates = ['rz', 'p', 'u1']
         self._var_z_map = {'rz': RZGate, 'p': PhaseGate, 'u1': U1Gate}
         self.requires.append(CommutationAnalysis())
 
