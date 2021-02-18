@@ -1110,7 +1110,7 @@ class TestSubroutineCall(TestBuilder):
             pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
         with self.assertRaises(exceptions.PulseError):
-            with pulse.build() as sched:
+            with pulse.build():
                 pulse.call(subroutine, amp=0.1)
 
     def test_call_with_common_parameter(self):
