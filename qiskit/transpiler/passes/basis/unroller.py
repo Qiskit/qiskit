@@ -63,6 +63,10 @@ class Unroller(TransformationPass):
                     pass
                 else:
                     continue
+            if node.op._directive:
+                raise QiskitError(
+                    'Cannot unroll unsupported directive instruction {}'.format(node.name))
+
             # TODO: allow choosing other possible decompositions
             try:
                 rule = node.op.definition.data
@@ -95,8 +99,5 @@ class Unroller(TransformationPass):
                                       (str(self.basis), node.op.name))
                 decomposition = circuit_to_dag(node.op.definition)
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops
-                if unrolled_dag.global_phase:
-                    dag.global_phase += unrolled_dag.global_phase
-                    unrolled_dag.global_phase = 0
                 dag.substitute_node_with_dag(node, unrolled_dag)
         return dag

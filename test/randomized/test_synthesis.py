@@ -39,6 +39,8 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
         self.check_one_qubit_euler_angles(unitary, 'U3')
         self.check_one_qubit_euler_angles(unitary, 'U1X')
+        self.check_one_qubit_euler_angles(unitary, 'PSX')
+        self.check_one_qubit_euler_angles(unitary, 'ZSX')
         self.check_one_qubit_euler_angles(unitary, 'ZYZ')
         self.check_one_qubit_euler_angles(unitary, 'ZXZ')
         self.check_one_qubit_euler_angles(unitary, 'XYX')
@@ -54,7 +56,6 @@ class TestSynthesis(CheckDecompositions):
     @given(strategies.tuples(*[seed] * 5))
     def test_exact_supercontrolled_decompose_random(self, seeds):
         """Exact decomposition for random supercontrolled basis and random target"""
-        # pylint: disable=invalid-name
         k1 = np.kron(random_unitary(2, seed=seeds[0]).data, random_unitary(2, seed=seeds[1]).data)
         k2 = np.kron(random_unitary(2, seed=seeds[2]).data, random_unitary(2, seed=seeds[3]).data)
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2

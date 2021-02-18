@@ -26,11 +26,13 @@ import itertools
 import warnings
 import math
 
+import numpy as np
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode
@@ -194,6 +196,23 @@ class DAGCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    def add_calibration(self, gate, qubits, schedule, params=None):
+        """Register a low-level, custom pulse definition for the given gate.
+
+        Args:
+            gate (Union[Gate, str]): Gate information.
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            schedule (Schedule): Schedule information.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
+
+        Raises:
+            Exception: if the gate is of type string and params is None.
+        """
+        if isinstance(gate, Gate):
+            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+        else:
+            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
         case, the operation does not need to be translated to the device basis.
@@ -214,6 +233,32 @@ class DAGCircuit:
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):
             self.remove_op_node(n)
+
+    def add_qubits(self, qubits):
+        """Add individual qubit wires."""
+        if any(not isinstance(qubit, Qubit) for qubit in qubits):
+            raise DAGCircuitError("not a Qubit instance.")
+
+        duplicate_qubits = set(self.qubits).intersection(qubits)
+        if duplicate_qubits:
+            raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
+
+        self.qubits.extend(qubits)
+        for qubit in qubits:
+            self._add_wire(qubit)
+
+    def add_clbits(self, clbits):
+        """Add individual clbit wires."""
+        if any(not isinstance(clbit, Clbit) for clbit in clbits):
+            raise DAGCircuitError("not a Clbit instance.")
+
+        duplicate_clbits = set(self.clbits).intersection(clbits)
+        if duplicate_clbits:
+            raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
+
+        self.clbits.extend(clbits)
+        for clbit in clbits:
+            self._add_wire(clbit)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -250,7 +295,10 @@ class DAGCircuit:
         if wire not in self._wires:
             self._wires.add(wire)
 
-            wire_name = "%s[%s]" % (wire.register.name, wire.index)
+            try:
+                wire_name = "%s[%s]" % (wire.register.name, wire.index)
+            except CircuitError:
+                wire_name = "%s" % wire
 
             inp_node = DAGNode(type='in', name=wire_name, wire=wire)
             outp_node = DAGNode(type='out', name=wire_name, wire=wire)
@@ -826,6 +874,20 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
+        # Try to convert to float, but in case of unbound ParameterExpressions
+        # a TypeError will be raise, fallback to normal equality in those
+        # cases
+        try:
+            self_phase = float(self.global_phase)
+            other_phase = float(other.global_phase)
+            if not np.isclose(self_phase, other_phase):
+                return False
+        except TypeError:
+            if self.global_phase != other.global_phase:
+                return False
+        if self.calibrations != other.calibrations:
+            return False
+
         return rx.is_isomorphic_node_match(self._multi_graph,
                                            other._multi_graph,
                                            DAGNode.semantic_eq)
@@ -1086,7 +1148,7 @@ class DAGCircuit:
         nodes = []
         for node in self._multi_graph.nodes():
             if node.type == "op":
-                if not include_directives and node.name in ['snapshot', 'barrier']:
+                if not include_directives and node.op._directive:
                     continue
                 if op is None or isinstance(node.op, op):
                     nodes.append(node)
@@ -1318,7 +1380,7 @@ class DAGCircuit:
             support_list = [
                 op_node.qargs
                 for op_node in new_layer.op_nodes()
-                if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
+                if not op_node.op._directive
             ]
 
             yield {"graph": new_layer, "partition": support_list}
@@ -1347,8 +1409,7 @@ class DAGCircuit:
             # Add node to new_layer
             new_layer.apply_operation_back(op, qa, ca)
             # Add operation to partition
-            if next_node.name not in ["barrier",
-                                      "snapshot", "save", "load", "noise"]:
+            if not next_node.op._directive:
                 support_list.append(list(qa))
             l_dict = {"graph": new_layer, "partition": support_list}
             yield l_dict
@@ -1387,8 +1448,7 @@ class DAGCircuit:
                 and isinstance(node.op, Gate) \
                 and hasattr(node.op, '__array__')
 
-        group_list = rx.collect_runs(self._multi_graph, filter_fn)
-        return set(tuple(x) for x in group_list)
+        return rx.collect_runs(self._multi_graph, filter_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """

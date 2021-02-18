@@ -14,6 +14,7 @@
 DensityMatrix quantum state class.
 """
 
+import copy
 from numbers import Number
 import numpy as np
 
@@ -21,14 +22,14 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.quantum_info.operators.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
-from qiskit.quantum_info.states.statevector import Statevector
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -79,7 +80,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             op = data.to_operator()
             self._data = op.data
             if dims is None:
-                dims = op._output_dims
+                dims = op.output_dims()
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
@@ -96,11 +97,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._data = np.outer(self._data, np.conj(self._data))
         elif ndim == 2 and shape[1] == 1:
             self._data = np.reshape(self._data, shape[0])
-            shape = self._data.shape
         else:
             raise QiskitError(
                 "Invalid DensityMatrix input: not a square matrix.")
-        super().__init__(self._automatic_dims(dims, shape[0]))
+        super().__init__(op_shape=OpShape.auto(
+            shape=self._data.shape, dims_l=dims, dims_r=dims))
 
     def __array__(self, dtype=None):
         if dtype:
@@ -112,12 +113,58 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        prefix = 'DensityMatrix('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self._data, separator=', ', prefix=prefix),
-            pad, self._dims)
+        text = self.draw('text', prefix="DensityMatrix(")
+        return str(text) + ')'
+
+    def draw(self, output=None, max_size=(16, 16), dims=None, prefix='', **drawer_args):
+        """Returns a visualization of the DensityMatrix.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of density matrix using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of density matrix using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of density matrix using `plot_bloch_multivector()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is ``auto``.
+            max_size (int): Maximum number of elements before array is
+                summarized instead of fully represented. For ``latex``
+                and ``latex_source`` drawers, this is also the maximum number
+                of elements that will be drawn in the output array, including
+                elipses elements. For ``text`` drawer, this is the ``threshold``
+                parameter in ``numpy.array2string()``.
+            dims (bool): For `text` and `latex`. Whether to display the
+                dimensions.
+            prefix (str): For `text` and `latex`. String to be displayed
+                before the data representation.
+            drawer_args: Arguments to be passed directly to the relevant drawer
+                function (`plot_state_qsphere()`, `plot_state_hinton()` or
+                `plot_bloch_multivector()`). See the relevant function under
+                `qiskit.visualization` for that function's documentation.
+
+        Returns:
+            :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.visualization.state_visualization import state_drawer
+        return state_drawer(self, output=output, max_size=max_size, dims=dims,
+                            prefix=prefix, **drawer_args)
+
+    def _ipython_display_(self):
+        from IPython.display import display
+        display(self.draw())
 
     @property
     def data(self):
@@ -174,9 +221,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        dims = other.dims() + self.dims()
-        data = np.kron(self._data, other._data)
-        return DensityMatrix(data, dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(self._data, other._data)
+        ret._op_shape = self._op_shape.tensor(other._op_shape)
+        return ret
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
@@ -192,9 +240,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        dims = self.dims() + other.dims()
-        data = np.kron(other._data, self._data)
-        return DensityMatrix(data, dims)
+        ret = copy.copy(self)
+        ret._data = np.kron(other._data, self._data)
+        ret._op_shape = self._op_shape.expand(other._op_shape)
+        return ret
 
     def _add(self, other):
         """Return the linear combination self + other.
@@ -211,9 +260,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, DensityMatrix):
             other = DensityMatrix(other)
-        if self.dim != other.dim:
-            raise QiskitError("other DensityMatrix has different dimensions.")
-        return DensityMatrix(self.data + other.data, self.dims())
+        self._op_shape._validate_add(other._op_shape)
+        ret = copy.copy(self)
+        ret._data = self.data + other.data
+        return ret
 
     def _multiply(self, other):
         """Return the scalar multiplied state other * self.
@@ -229,7 +279,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        return DensityMatrix(other * self.data, self.dims())
+        ret = copy.copy(self)
+        ret._data = other * self.data
+        return ret
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by an operator.
@@ -264,6 +316,27 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
+
+    def reverse_qargs(self):
+        r"""Return a DensityMatrix with reversed subsystem ordering.
+
+        For a tensor product state this is equivalent to reversing the order
+        of tensor product subsystems. For a density matrix
+        :math:`\rho = \rho_{n-1} \otimes ... \otimes \rho_0`
+        the returned state will be
+        :math:`\rho_0 \otimes ... \otimes \rho_{n-1}`.
+
+        Returns:
+            DensityMatrix: the state with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        axes = axes + tuple(len(axes) + i for i in axes)
+        ret._data = np.reshape(np.transpose(
+            np.reshape(self.data, self._op_shape.tensor_shape), axes),
+                               self._op_shape.shape)
+        ret._op_shape = self._op_shape.reverse()
+        return ret
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
@@ -337,7 +410,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 print('Swapped probs: {}'.format(probs_swapped))
         """
         probs = self._subsystem_probabilities(
-            np.abs(self.data.diagonal()), self._dims, qargs=qargs)
+            np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs)
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs
@@ -361,9 +434,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
-            state = np.zeros(2 * (self._dim, ), dtype=complex)
+            ret = copy.copy(self)
+            state = np.zeros(self._op_shape.shape, dtype=complex)
             state[0, 0] = 1
-            return DensityMatrix(state, dims=self._dims)
+            ret._data = state
+            return ret
 
         # Reset by evolving by reset SuperOp
         dims = self.dims(qargs)
@@ -404,6 +479,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             QiskitError: if the label contains invalid characters, or the length
                          of the label is larger than an explicitly specified num_qubits.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
         return DensityMatrix(Statevector.from_label(label))
 
     @staticmethod
@@ -523,52 +599,42 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 print(rho.to_dict())
         """
         return self._matrix_to_dict(self.data,
-                                    self._dims,
+                                    self._op_shape.dims_l(),
                                     decimals=decimals,
                                     string_labels=True)
 
-    @property
-    def _shape(self):
-        """Return the tensor shape of the matrix operator"""
-        return 2 * tuple(reversed(self.dims()))
-
     def _evolve_operator(self, other, qargs=None):
         """Evolve density matrix by an operator"""
+        # Get shape of output density matrix
+        new_shape = self._op_shape.compose(other._op_shape, qargs=qargs)
+        new_shape._dims_r = new_shape._dims_l
+        new_shape._num_qargs_r = new_shape._num_qargs_l
+
+        ret = copy.copy(self)
         if qargs is None:
             # Evolution on full matrix
-            if self._dim != other.dim[0]:
-                raise QiskitError(
-                    "Operator input dimension is not equal to density matrix dimension."
-                )
             op_mat = other.data
-            mat = np.dot(op_mat, self.data).dot(op_mat.T.conj())
-            return DensityMatrix(mat, dims=other.output_dims())
-        # Otherwise we are applying an operator only to subsystems
-        # Check dimensions of subsystems match the operator
-        if self.dims(qargs) != other.input_dims():
-            raise QiskitError(
-                "Operator input dimensions are not equal to statevector subsystem dimensions."
-            )
+            ret._data = np.dot(op_mat, self.data).dot(op_mat.T.conj())
+            ret._op_shape = new_shape
+            return ret
+
         # Reshape statevector and operator
-        tensor = np.reshape(self.data, self._shape)
+        tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         # Construct list of tensor indices of statevector to be contracted
         num_indices = len(self.dims())
         indices = [num_indices - 1 - qubit for qubit in qargs]
         # Left multiple by mat
-        mat = np.reshape(other.data, other._shape)
+        mat = np.reshape(other.data, other._op_shape.tensor_shape)
         tensor = Operator._einsum_matmul(tensor, mat, indices)
         # Right multiply by mat ** dagger
         adj = other.adjoint()
-        mat_adj = np.reshape(adj.data, adj._shape)
+        mat_adj = np.reshape(adj.data, adj._op_shape.tensor_shape)
         tensor = Operator._einsum_matmul(tensor, mat_adj, indices, num_indices,
                                          True)
         # Replace evolved dimensions
-        new_dims = list(self.dims())
-        for qubit, dim in zip(qargs, other.output_dims()):
-            new_dims[qubit] = dim
-        new_dim = np.product(new_dims)
-        return DensityMatrix(np.reshape(tensor, (new_dim, new_dim)),
-                             dims=new_dims)
+        ret._data = np.reshape(tensor, new_shape.shape)
+        ret._op_shape = new_shape
+        return ret
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
@@ -619,7 +685,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """Return a new statevector by applying an instruction."""
         if isinstance(obj, QuantumCircuit):
             obj = obj.to_instruction()
-        vec = DensityMatrix(self.data, dims=self._dims)
+        vec = copy.copy(self)
         vec._append_instruction(obj, qargs=qargs)
         return vec
 
@@ -637,6 +703,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if the state is not pure.
         """
+        from qiskit.quantum_info.states.statevector import Statevector
         if atol is None:
             atol = self.atol
         if rtol is None:

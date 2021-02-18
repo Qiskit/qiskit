@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for DensityMatrix quantum state class."""
 
 import unittest
@@ -22,7 +20,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, QFT
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -895,6 +893,26 @@ class TestDensityMatrix(QiskitTestCase):
                 op = Operator.from_label(label)
                 expval = rho.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = DensityMatrix.from_instruction(circ1)
+        state2 = DensityMatrix.from_instruction(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        dm = DensityMatrix.from_instruction(qc1)
+        with self.subTest(msg='str(density_matrix)'):
+            str(dm)
+        for drawtype in ['text', 'latex', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                dm.draw(drawtype)
 
 
 if __name__ == '__main__':
