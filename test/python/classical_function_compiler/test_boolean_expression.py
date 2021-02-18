@@ -14,23 +14,24 @@
 
 import unittest
 from os import path
+from ddt import ddt, unpack, data
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import execute, QuantumCircuit, BasicAer
+from qiskit import execute, BasicAer
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
-from ddt import ddt, unpack, data
 
 
 @ddt
 class TestBooleanExpression(QiskitTestCase):
-    """ """
+    """Test boolean expression."""
+
     @data(('x | x', '1', True),
           ('x & x', '0', False),
           ('(x0 & x1 | ~x2) ^ x4', '0110', False),
           ('xx & xxx | ( ~z ^ zz)', '0111', True))
     @unpack
     def test_evaluate(self, expression, input, expected):
-        """ Test the constructor of LogicalExpressionOracle"""
+        """ Test simulate"""
         expression = BooleanExpression(expression)
         result = expression.simulate(input)
         self.assertEqual(result, expected)
@@ -41,14 +42,13 @@ class TestBooleanExpression(QiskitTestCase):
           ('xx & xxx | ( ~z ^ zz)', True))
     @unpack
     def test_synth(self, expression, expected):
-        """
-        """
+        """ Test synth"""
         expression = BooleanExpression(expression)
         expr_circ = expression.synth()
 
         new_creg = expr_circ._create_creg(1, 'c')
         expr_circ.add_register(new_creg)
-        expr_circ.measure(expression.num_qubits-1, new_creg)
+        expr_circ.measure(expression.num_qubits - 1, new_creg)
         [result] = execute(expr_circ, backend=BasicAer.get_backend('qasm_simulator'),
                            shots=1, seed_simulator=14).result().get_counts().keys()
 
@@ -74,6 +74,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
         self.assertEqual(simple.name, 'quinn.cnf')
         self.assertEqual(simple.num_qubits, 16)
         self.assertFalse(simple.simulate('1010101010101010'))
+
 
 if __name__ == '__main__':
     unittest.main()

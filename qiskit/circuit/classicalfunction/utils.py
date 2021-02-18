@@ -12,23 +12,23 @@
 
 """Internal utils for Classical Function Compiler"""
 
+from tweedledum.ir import WireRef  # pylint: disable=no-name-in-module
+from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
 
-from tweedledum.ir import WireRef
-from tweedledum.passes import parity_decomp
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate, SwapGate, TGate, TdgGate,
+                                                   XGate, YGate, ZGate)
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate,
-    SwapGate, TGate, TdgGate, XGate, YGate, ZGate)
-
-_to_qiskit_op = {
+_QISKIT_OPS = {
     'std.h': HGate, 'std.s': SGate, 'std.sdg': SdgGate, 'std.swap': SwapGate,
     'std.t': TGate, 'std.tdg': TdgGate, 'std.x': XGate, 'std.y': YGate,
     'std.z': ZGate
 }
 
+
 def _convert_tweedledum_operator(op):
-    base_gate = _to_qiskit_op.get(op.kind())
-    if base_gate == None:
+    base_gate = _QISKIT_OPS.get(op.kind())
+    if base_gate is None:
         if op.kind() == 'py_operator':
             return op.py_op()
         else:

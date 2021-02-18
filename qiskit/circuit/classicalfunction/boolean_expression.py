@@ -101,10 +101,9 @@ class BooleanExpression(Gate):
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
-        super().__init__(name or short_expr_for_name,
-                         num_qubits=self._tweedledum_bool_expression.num_inputs() +
-                                    self._tweedledum_bool_expression.num_outputs(),
-                         params=[])
+        num_qubits = self._tweedledum_bool_expression.num_outputs() +\
+                     self._tweedledum_bool_expression.num_inputs()
+        super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
 
     def simulate(self, bitstring: str) -> bool:
         """Evaluate the expression on a bitstring.
@@ -118,10 +117,10 @@ class BooleanExpression(Gate):
             bool: result of the evaluation.
         """
         from tweedledum import BitVec
-        input = []
+        bits = []
         for bit in bitstring:
-            input.append(BitVec(1, bit))
-        return bool(self._tweedledum_bool_expression.simulate(*input))
+            bits.append(BitVec(1, bit))
+        return bool(self._tweedledum_bool_expression.simulate(*bits))
 
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
@@ -166,8 +165,8 @@ class BooleanExpression(Gate):
         expr_obj = cls.__new__(cls)
         expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
 
-        super(BooleanExpression, expr_obj).__init__(
-            name=basename(filename), num_qubits=expr_obj._tweedledum_bool_expression.num_inputs() +
-                                                expr_obj._tweedledum_bool_expression.num_outputs(),
-            params=[])
+        num_qubits = expr_obj._tweedledum_bool_expression.num_inputs() + \
+                     expr_obj._tweedledum_bool_expression.num_outputs()
+        super(BooleanExpression, expr_obj).__init__(name=basename(filename), num_qubits=num_qubits,
+                                                    params=[])
         return expr_obj

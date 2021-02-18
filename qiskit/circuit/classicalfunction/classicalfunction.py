@@ -14,7 +14,7 @@
 
 import ast
 try:
-    from tweedledum.passes import xag_synth
+    from tweedledum.passes import xag_synth  # pylint: disable=no-name-in-module
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
@@ -108,12 +108,11 @@ class ClassicalFunction(gate.Gate):
         Returns:
             bool: result of the evaluation.
             """
-        from tweedledum.classical import simulate
+        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
         return simulate(self._network, bitstring)
 
-
     def simulate_all(self):
-        from tweedledum.classical import simulate
+        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
 
         _truth_table = simulate(self._network)
 
@@ -135,7 +134,7 @@ class ClassicalFunction(gate.Gate):
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
-        from tweedledum.passes import pkrm_synth
+        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
 
         if registerless:
             qregs = None
