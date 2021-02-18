@@ -13,7 +13,6 @@
 """ PauliBasisChange Class """
 
 from typing import Optional, Callable, Union, Tuple, cast
-import logging
 from functools import partial, reduce
 import numpy as np
 
@@ -26,12 +25,12 @@ from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.circuit_op import CircuitOp
 from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..list_ops.list_op import ListOp
+from ..list_ops.summed_op import SummedOp
 from ..list_ops.composed_op import ComposedOp
 from ..state_fns.state_fn import StateFn
+from ..state_fns.operator_state_fn import OperatorStateFn
 from ..operator_globals import H, S, I
 from .converter_base import ConverterBase
-
-logger = logging.getLogger(__name__)
 
 
 class PauliBasisChange(ConverterBase):
@@ -131,7 +130,43 @@ class PauliBasisChange(ConverterBase):
             The converted Operator.
 
         """
-        # TODO: implement direct way
+        if (
+                isinstance(operator, OperatorStateFn)
+                and isinstance(operator.primitive, PauliSumOp)
+                and operator.primitive.grouping_type == "TPB"
+        ):
+            primitive = operator.primitive.primitive.copy()
+            origin_x = reduce(np.logical_or, primitive.table.X)
+            origin_z = reduce(np.logical_or, primitive.table.Z)
+            origin_pauli = Pauli((origin_z, origin_x))
+            cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
+            primitive.table.Z = np.logical_or(primitive.table.X, primitive.table.Z)
+            primitive.table.X = False
+            dest_pauli_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
+            return self._replacement_fn(cob_instr_op, dest_pauli_op)
+
+        if (
+                isinstance(operator, OperatorStateFn)
+                and isinstance(operator.primitive, SummedOp)
+                and all(
+                    isinstance(op, PauliSumOp) and op.grouping_type == "TPB"
+                    for op in operator.primitive.oplist
+                )
+        ):
+            sf_list = [
+                StateFn(op, is_measurement=operator.is_measurement)
+                for op in operator.primitive.oplist
+            ]
+            listop_of_statefns = SummedOp(oplist=sf_list, coeff=operator.coeff)
+            return listop_of_statefns.traverse(self.convert)
+
+        if isinstance(operator, OperatorStateFn) and isinstance(operator.primitive, PauliSumOp):
+            operator = OperatorStateFn(
+                operator.primitive.to_pauli_op(),
+                coeff=operator.coeff,
+                is_measurement=operator.is_measurement
+            )
+
         if isinstance(operator, PauliSumOp):
             operator = operator.to_pauli_op()
 
@@ -284,7 +319,6 @@ class PauliBasisChange(ConverterBase):
 
         tensorall = partial(reduce, lambda x, y: x.tensor(y))
 
-        # pylint: disable=bad-reversed-sequence
         y_to_x_origin = \
             tensorall([S if has_y else I for has_y in  # type: ignore
                        reversed(np.logical_and(pauli.x, pauli.z))]).adjoint()  # type: ignore

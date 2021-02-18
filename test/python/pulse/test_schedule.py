@@ -390,6 +390,13 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 
+    def test_numpy_integer_input(self):
+        """Test that mixed integer duration types can build a schedule (#5754)."""
+        sched = Schedule()
+        sched += Delay(np.int32(25), DriveChannel(0))
+        sched += Play(Constant(duration=30, amp=0.1), DriveChannel(0))
+        self.assertEqual(sched.duration, 55)
+
     def test_negative_time_raises(self):
         """Test that a negative time will raise an error."""
         sched = Schedule()
@@ -979,7 +986,6 @@ class TestTimingUtils(QiskitTestCase):
 
     def test_overlaps(self):
         """Test the `_overlaps` function."""
-        # pylint: disable=invalid-name
         a = (0, 1)
         b = (1, 4)
         c = (2, 3)
@@ -994,7 +1000,6 @@ class TestTimingUtils(QiskitTestCase):
 
     def test_overlaps_zero_duration(self):
         """Test the `_overlaps` function for intervals with duration zero."""
-        # pylint: disable=invalid-name
         a = 0
         b = 1
         self.assertFalse(_overlaps((a, a), (a, a)))

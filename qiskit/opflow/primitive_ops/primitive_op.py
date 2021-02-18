@@ -13,7 +13,6 @@
 """ PrimitiveOp Class """
 
 from typing import Optional, Union, Set, List, Dict
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 import scipy.linalg
@@ -24,8 +23,6 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info import Operator as MatrixOperator
 
 from ..operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
 
 
 class PrimitiveOp(OperatorBase):
@@ -43,6 +40,10 @@ class PrimitiveOp(OperatorBase):
     new object, but the underlying primitives are not copied.
 
     """
+
+    # pylint: disable=unused-argument
+    def __init_subclass__(cls, *args, **kwargs):
+        cls.__new__ = lambda cls, *args, **kwargs: super().__new__(cls)
 
     @staticmethod
     # pylint: disable=unused-argument
@@ -65,9 +66,6 @@ class PrimitiveOp(OperatorBase):
         Raises:
             TypeError: Unsupported primitive type passed.
         """
-        if cls.__name__ != PrimitiveOp.__name__:
-            return super().__new__(cls)
-
         # pylint: disable=cyclic-import,import-outside-toplevel
         if isinstance(primitive, (Instruction, QuantumCircuit)):
             from .circuit_op import CircuitOp

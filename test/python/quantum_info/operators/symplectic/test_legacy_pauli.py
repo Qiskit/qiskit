@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Quick program to test the qi tools modules."""
 
 import unittest
@@ -33,16 +31,16 @@ class TestPauliAPI(QiskitTestCase):
         self.assertEqual(result.to_label(), 'IY')
 
     def test_ndarray_bool(self):
-        """Test creation from np.bool."""
-        x = np.asarray([1, 0]).astype(np.bool)
-        z = np.asarray([1, 0]).astype(np.bool)
+        """Test creation from bool."""
+        x = np.asarray([1, 0]).astype(bool)
+        z = np.asarray([1, 0]).astype(bool)
         pauli = Pauli(x=x, z=z)
         self.check(pauli)
 
     def test_ndarray_int(self):
-        """Test creation from np.int."""
-        x = np.asarray([2, 0]).astype(np.int)
-        z = np.asarray([2, 0]).astype(np.int)
+        """Test creation from int."""
+        x = np.asarray([2, 0]).astype(int)
+        z = np.asarray([2, 0]).astype(int)
         pauli = Pauli(x=x, z=z)
         self.check(pauli)
 
@@ -68,8 +66,8 @@ class TestPauli(QiskitTestCase):
     def setUp(self):
         """Setup."""
         super().setUp()
-        z = np.asarray([1, 0, 1, 0]).astype(np.bool)
-        x = np.asarray([1, 1, 0, 0]).astype(np.bool)
+        z = np.asarray([1, 0, 1, 0]).astype(bool)
+        x = np.asarray([1, 1, 0, 0]).astype(bool)
         self.ref_p = Pauli(z, x)
         self.ref_label = 'IZXY'
         self.ref_matrix = np.array([[0. + 0.j, 0. + 0.j, 0. + 0.j, 0. - 1.j,
@@ -214,28 +212,28 @@ class TestPauli(QiskitTestCase):
 
     def test_update_z(self):
         """Test update_z method."""
-        updated_z = np.asarray([0, 0, 0, 0]).astype(np.bool)
+        updated_z = np.asarray([0, 0, 0, 0]).astype(bool)
         self.ref_p.update_z(updated_z)
         np.testing.assert_equal(self.ref_p.z, np.asarray([False, False, False, False]))
         self.assertEqual(self.ref_p.to_label(), 'IIXX')
 
     def test_update_z_2(self):
         """Test update_z method, update partial z."""
-        updated_z = np.asarray([0, 1]).astype(np.bool)
+        updated_z = np.asarray([0, 1]).astype(bool)
         self.ref_p.update_z(updated_z, [0, 1])
         np.testing.assert_equal(self.ref_p.z, np.asarray([False, True, True, False]))
         self.assertEqual(self.ref_p.to_label(), 'IZYX')
 
     def test_update_x(self):
         """Test update_x method."""
-        updated_x = np.asarray([0, 1, 0, 1]).astype(np.bool)
+        updated_x = np.asarray([0, 1, 0, 1]).astype(bool)
         self.ref_p.update_x(updated_x)
         np.testing.assert_equal(self.ref_p.x, np.asarray([False, True, False, True]))
         self.assertEqual(self.ref_p.to_label(), 'XZXZ')
 
     def test_update_x_2(self):
         """Test update_x method, update partial x."""
-        updated_x = np.asarray([0, 1]).astype(np.bool)
+        updated_x = np.asarray([0, 1]).astype(bool)
         self.ref_p.update_x(updated_x, [1, 2])
         np.testing.assert_equal(self.ref_p.x, np.asarray([True, False, True, False]))
         self.assertEqual(self.ref_p.to_label(), 'IYIY')
