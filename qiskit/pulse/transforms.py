@@ -27,13 +27,14 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 
-def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
-                   inst_map: Optional[InstructionScheduleMap] = None,
-                   cal_gate: str = 'u3',
-                   max_calibration_duration: Optional[int] = None,
-                   align_time: Optional[int] = None,
-                   align_all: Optional[bool] = True,
-                   ) -> List[Schedule]:
+def align_measures(
+    schedules: Iterable[Union["Schedule", instructions.Instruction]],
+    inst_map: Optional[InstructionScheduleMap] = None,
+    cal_gate: str = "u3",
+    max_calibration_duration: Optional[int] = None,
+    align_time: Optional[int] = None,
+    align_all: Optional[bool] = True,
+) -> List[Schedule]:
     """Return new schedules where measurements occur at the same physical time.
 
     This transformation will align the first :class:`qiskit.pulse.Acquire` on
@@ -99,6 +100,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
     Raises:
         PulseError: If the provided alignment time is negative.
     """
+
     def get_first_acquire_times(schedules):
         """Return a list of first acquire times for each schedule."""
         acquire_times = []
@@ -107,8 +109,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
             qubit_first_acquire_times = defaultdict(lambda: None)
 
             for time, inst in schedule.instructions:
-                if (isinstance(inst, instructions.Acquire) and
-                        inst.channel not in visited_channels):
+                if isinstance(inst, instructions.Acquire) and inst.channel not in visited_channels:
                     visited_channels.add(inst.channel)
                     qubit_first_acquire_times[inst.channel.index] = time
 
@@ -155,14 +156,17 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
 
         for time, inst in schedule.instructions:
             measurement_channels = {
-                chan.index for chan in inst.channels if
-                isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
+                chan.index
+                for chan in inst.channels
+                if isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
             }
             if measurement_channels:
                 sched_first_acquire_times = first_acquire_times[sched_idx]
-                max_start_time = max(sched_first_acquire_times[chan]
-                                     for chan in measurement_channels if
-                                     chan in sched_first_acquire_times)
+                max_start_time = max(
+                    sched_first_acquire_times[chan]
+                    for chan in measurement_channels
+                    if chan in sched_first_acquire_times
+                )
                 shift = align_time - max_start_time
 
             if shift < 0:
@@ -172,16 +176,16 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
                     "This may result in an instruction being scheduled before t=0 and "
                     "an error being raised."
                 )
-            new_schedule.insert(time+shift, inst, inplace=True)
+            new_schedule.insert(time + shift, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
     return new_schedules
 
 
-def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
-                          meas_map: List[List[int]]
-                          ) -> Schedule:
+def add_implicit_acquires(
+    schedule: Union["Schedule", instructions.Instruction], meas_map: List[List[int]]
+) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -201,8 +205,10 @@ def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
     for time, inst in schedule.instructions:
         if isinstance(inst, instructions.Acquire):
             if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
-                warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
-                              " the qubit index. I'm relabeling them to match.")
+                warnings.warn(
+                    "One of your acquires was mapped to a memory slot which didn't match"
+                    " the qubit index. I'm relabeling them to match."
+                )
 
             # Get the label of all qubits that are measured with the qubit(s) in this instruction
             all_qubits = []
@@ -212,11 +218,13 @@ def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
             for i in all_qubits:
-                explicit_inst = instructions.Acquire(inst.duration,
-                                                     chans.AcquireChannel(i),
-                                                     mem_slot=chans.MemorySlot(i),
-                                                     kernel=inst.kernel,
-                                                     discriminator=inst.discriminator)
+                explicit_inst = instructions.Acquire(
+                    inst.duration,
+                    chans.AcquireChannel(i),
+                    mem_slot=chans.MemorySlot(i),
+                    kernel=inst.kernel,
+                    discriminator=inst.discriminator,
+                )
                 if time not in acquire_map:
                     new_schedule.insert(time, explicit_inst, inplace=True)
                     acquire_map = {time: {i}}
@@ -229,11 +237,12 @@ def add_implicit_acquires(schedule: Union['Schedule', instructions.Instruction],
     return new_schedule
 
 
-def pad(schedule: Schedule,
-        channels: Optional[Iterable[chans.Channel]] = None,
-        until: Optional[int] = None,
-        inplace: bool = False
-        ) -> Schedule:
+def pad(
+    schedule: Schedule,
+    channels: Optional[Iterable[chans.Channel]] = None,
+    until: Optional[int] = None,
+    inplace: bool = False,
+) -> Schedule:
     r"""Pad the input Schedule with ``Delay``\s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
 
@@ -267,15 +276,13 @@ def pad(schedule: Schedule,
             if interval[0] != curr_time:
                 end_time = min(interval[0], until)
                 schedule = schedule.insert(
-                    curr_time,
-                    instructions.Delay(end_time - curr_time, channel),
-                    inplace=inplace)
+                    curr_time, instructions.Delay(end_time - curr_time, channel), inplace=inplace
+                )
             curr_time = interval[1]
         if curr_time < until:
             schedule = schedule.insert(
-                curr_time,
-                instructions.Delay(until - curr_time, channel),
-                inplace=inplace)
+                curr_time, instructions.Delay(until - curr_time, channel), inplace=inplace
+            )
 
     return schedule
 
@@ -301,11 +308,11 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
                 if inst.pulse in existing_pulses:
                     idx = existing_pulses.index(inst.pulse)
                     identical_pulse = existing_pulses[idx]
-                    new_schedule.insert(time,
-                                        instructions.Play(identical_pulse,
-                                                          inst.channel,
-                                                          inst.name),
-                                        inplace=True)
+                    new_schedule.insert(
+                        time,
+                        instructions.Play(identical_pulse, inst.channel, inst.name),
+                        inplace=True,
+                    )
                 else:
                     existing_pulses.append(inst.pulse)
                     new_schedule.insert(time, inst, inplace=True)
@@ -317,9 +324,10 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def _push_left_append(this: Schedule,
-                      other: Union['Schedule', instructions.Instruction],
-                      ) -> Schedule:
+def _push_left_append(
+    this: Schedule,
+    other: Union["Schedule", instructions.Instruction],
+) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
 
@@ -333,8 +341,10 @@ def _push_left_append(this: Schedule,
     this_channels = set(this.channels)
     other_channels = set(other.channels)
     shared_channels = list(this_channels & other_channels)
-    ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                 for channel in shared_channels]
+    ch_slacks = [
+        this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+        for channel in shared_channels
+    ]
 
     if ch_slacks:
         slack_chan = shared_channels[np.argmin(ch_slacks)]
@@ -367,9 +377,10 @@ def align_left(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
-                        other: Union['Schedule', instructions.Instruction],
-                        ) -> Schedule:
+def _push_right_prepend(
+    this: Union["Schedule", instructions.Instruction],
+    other: Union["Schedule", instructions.Instruction],
+) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the latest possible time
     such that ``other`` ends before it overlaps with any of ``this``.
 
@@ -386,8 +397,9 @@ def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
     this_channels = set(this.channels)
     other_channels = set(other.channels)
     shared_channels = list(this_channels & other_channels)
-    ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
-                 for channel in shared_channels]
+    ch_slacks = [
+        this.ch_start_time(channel) - other.ch_stop_time(channel) for channel in shared_channels
+    ]
 
     if ch_slacks:
         insert_time = min(ch_slacks) + other.start_time
@@ -437,8 +449,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
     return aligned
 
 
-def align_equispaced(schedule: Schedule,
-                     duration: int) -> Schedule:
+def align_equispaced(schedule: Schedule, duration: int) -> Schedule:
     """Schedule a list of pulse instructions with equivalent interval.
 
     Args:
@@ -481,9 +492,7 @@ def align_equispaced(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def align_func(schedule: Schedule,
-               duration: int,
-               func: Callable[[int], float]) -> Schedule:
+def align_func(schedule: Schedule, duration: int, func: Callable[[int], float]) -> Schedule:
     """Schedule a list of pulse instructions with schedule position defined by the
     numerical expression.
 
@@ -511,7 +520,7 @@ def align_func(schedule: Schedule,
         _t_center = duration * func(ind + 1)
         _t0 = int(_t_center - 0.5 * child.duration)
         if _t0 < 0 or _t0 > duration:
-            PulseError('Invalid schedule position t=%d is specified at index=%d' % (_t0, ind))
+            PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
         aligned.insert(_t0, child, inplace=True)
 
     return pad(aligned, aligned.channels, until=duration, inplace=True)
@@ -529,8 +538,8 @@ def remove_directives(schedule: Schedule) -> Schedule:
 
 def remove_trivial_barriers(schedule: Schedule) -> Schedule:
     """Remove trivial barriers with 0 or 1 channels."""
+
     def filter_func(inst):
-        return (isinstance(inst[1], directives.RelativeBarrier) and
-                len(inst[1].channels) < 2)
+        return isinstance(inst[1], directives.RelativeBarrier) and len(inst[1].channels) < 2
 
     return schedule.exclude(filter_func)

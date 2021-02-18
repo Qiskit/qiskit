@@ -31,9 +31,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse,
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
@@ -75,9 +73,9 @@ class Play(Instruction):
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Play':
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "Play":
         super().assign_parameters(value_dict)
         pulse = self.pulse.assign_parameters(value_dict)
         self._operands = (pulse, self.channel)

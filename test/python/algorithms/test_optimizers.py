@@ -18,8 +18,19 @@ from scipy.optimize import rosen
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
-                                          POWELL, SLSQP, SPSA, TNC, GSLS)
+from qiskit.algorithms.optimizers import (
+    ADAM,
+    CG,
+    COBYLA,
+    L_BFGS_B,
+    P_BFGS,
+    NELDER_MEAD,
+    POWELL,
+    SLSQP,
+    SPSA,
+    TNC,
+    GSLS,
+)
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
@@ -98,8 +109,13 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def test_gsls(self):
         """ gsls test """
-        optimizer = GSLS(sample_size_factor=40, sampling_radius=1.0e-12, maxiter=10000,
-                         max_eval=10000, min_step_size=1.0e-12)
+        optimizer = GSLS(
+            sample_size_factor=40,
+            sampling_radius=1.0e-12,
+            maxiter=10000,
+            max_eval=10000,
+            min_step_size=1.0e-12,
+        )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
         _, x_value, n_evals = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
 
@@ -108,5 +124,5 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         self.assertLessEqual(n_evals, 10000)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

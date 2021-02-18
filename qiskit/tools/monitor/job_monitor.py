@@ -35,14 +35,14 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
     msg_len = len(msg)
 
     if not quiet:
-        print('\r%s: %s' % ('Job Status', msg), end='', file=output)
-    while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
+        print("\r%s: %s" % ("Job Status", msg), end="", file=output)
+    while status.name not in ["DONE", "CANCELLED", "ERROR"]:
         time.sleep(interval)
         status = job.status()
         msg = status.value
 
-        if status.name == 'QUEUED':
-            msg += ' (%s)' % job.queue_position()
+        if status.name == "QUEUED":
+            msg += " (%s)" % job.queue_position()
             if job.queue_position() is None:
                 interval = 2
             elif not _interval_set:
@@ -53,15 +53,15 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
 
         # Adjust length of message so there are no artifacts
         if len(msg) < msg_len:
-            msg += ' ' * (msg_len - len(msg))
+            msg += " " * (msg_len - len(msg))
         elif len(msg) > msg_len:
             msg_len = len(msg)
 
         if msg != prev_msg and not quiet:
-            print('\r%s: %s' % ('Job Status', msg), end='', file=output)
+            print("\r%s: %s" % ("Job Status", msg), end="", file=output)
             prev_msg = msg
     if not quiet:
-        print('', file=output)
+        print("", file=output)
 
 
 def job_monitor(job, interval=None, quiet=False, output=sys.stdout):
@@ -80,5 +80,4 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout):
     else:
         _interval_set = True
 
-    _text_checker(job, interval, _interval_set,
-                  quiet=quiet, output=output)
+    _text_checker(job, interval, _interval_set, quiet=quiet, output=output)

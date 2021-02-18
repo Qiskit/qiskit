@@ -28,10 +28,10 @@ def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
 
     kak_gate_names = {
-        'cx': CXGate(),
-        'cz': CZGate(),
-        'iswap': iSwapGate(),
-        'rxx': RXXGate(pi / 2),
+        "cx": CXGate(),
+        "cz": CZGate(),
+        "iswap": iSwapGate(),
+        "rxx": RXXGate(pi / 2),
     }
 
     kak_gate = None
@@ -83,7 +83,7 @@ class UnitarySynthesis(TransformationPass):
         if kak_gate is not None:
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
 
-        for node in dag.named_nodes('unitary'):
+        for node in dag.named_nodes("unitary"):
 
             synth_dag = None
             if len(node.qargs) == 1:
@@ -95,8 +95,7 @@ class UnitarySynthesis(TransformationPass):
                     continue
                 synth_dag = circuit_to_dag(decomposer2q(node.op.to_matrix()))
             else:
-                synth_dag = circuit_to_dag(
-                    isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
+                synth_dag = circuit_to_dag(isometry.Isometry(node.op.to_matrix(), 0, 0).definition)
 
             dag.substitute_node_with_dag(node, synth_dag)
 

@@ -18,8 +18,12 @@ import scipy.linalg as la
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
-                                              _format_state, _funm_svd)
+from qiskit.quantum_info.states.utils import (
+    partial_trace,
+    shannon_entropy,
+    _format_state,
+    _funm_svd,
+)
 
 
 def state_fidelity(state1, state2, validate=True):
@@ -57,7 +61,7 @@ def state_fidelity(state1, state2, validate=True):
     if isinstance(state1, Statevector):
         if isinstance(state2, Statevector):
             # Fidelity of two Statevectors
-            fid = np.abs(arr2.conj().dot(arr1))**2
+            fid = np.abs(arr2.conj().dot(arr1)) ** 2
         else:
             # Fidelity of Statevector(1) and DensityMatrix(2)
             fid = arr1.conj().dot(arr2).dot(arr1)
@@ -68,7 +72,7 @@ def state_fidelity(state1, state2, validate=True):
         # Fidelity of two DensityMatrices
         s1sq = _funm_svd(arr1, np.sqrt)
         s2sq = _funm_svd(arr2, np.sqrt)
-        fid = np.linalg.norm(s1sq.dot(s2sq), ord='nuc')**2
+        fid = np.linalg.norm(s1sq.dot(s2sq), ord="nuc") ** 2
     # Convert to py float rather than return np.float
     return float(np.real(fid))
 
@@ -119,7 +123,7 @@ def entropy(state, base=2):
     if isinstance(state, Statevector):
         return 0
     # Density matrix case
-    evals = np.maximum(np.real(la.eigvals(state.data)), 0.)
+    evals = np.maximum(np.real(la.eigvals(state.data)), 0.0)
     return shannon_entropy(evals, base=base)
 
 
@@ -148,11 +152,10 @@ def mutual_information(state, base=2):
     """
     state = _format_state(state, validate=True)
     if len(state.dims()) != 2:
-        raise QiskitError('Input must be a bipartite quantum state.')
+        raise QiskitError("Input must be a bipartite quantum state.")
     rho_a = partial_trace(state, [1])
     rho_b = partial_trace(state, [0])
-    return entropy(rho_a, base=base) + entropy(
-        rho_b, base=base) - entropy(state, base=base)
+    return entropy(rho_a, base=base) + entropy(rho_b, base=base) - entropy(state, base=base)
 
 
 def concurrence(state):
@@ -198,18 +201,18 @@ def concurrence(state):
         # Pure state concurrence
         dims = state.dims()
         if len(dims) != 2:
-            raise QiskitError('Input is not a bipartite quantum state.')
+            raise QiskitError("Input is not a bipartite quantum state.")
         qargs = [0] if dims[0] > dims[1] else [1]
         rho = partial_trace(state, qargs)
         return float(np.sqrt(2 * (1 - np.real(purity(rho)))))
     # If input is a density matrix it must be a 2-qubit state
     if state.dim != 4:
-        raise QiskitError('Input density matrix must be a 2-qubit state.')
+        raise QiskitError("Input density matrix must be a 2-qubit state.")
     rho = DensityMatrix(state).data
     yy_mat = np.fliplr(np.diag([-1, 1, 1, -1]))
     sigma = rho.dot(yy_mat).dot(rho.conj()).dot(yy_mat)
     w = np.sort(np.real(la.eigvals(sigma)))
-    w = np.sqrt(np.maximum(w, 0.))
+    w = np.sqrt(np.maximum(w, 0.0))
     return max(0.0, w[-1] - np.sum(w[0:-1]))
 
 
@@ -236,13 +239,13 @@ def entanglement_of_formation(state):
         # entropy
         dims = state.dims()
         if len(dims) != 2:
-            raise QiskitError('Input is not a bipartite quantum state.')
+            raise QiskitError("Input is not a bipartite quantum state.")
         qargs = [0] if dims[0] > dims[1] else [1]
         return entropy(partial_trace(state, qargs), base=2)
 
     # If input is a density matrix it must be a 2-qubit state
     if state.dim != 4:
-        raise QiskitError('Input density matrix must be a 2-qubit state.')
+        raise QiskitError("Input density matrix must be a 2-qubit state.")
     conc = concurrence(state)
     val = (1 + np.sqrt(1 - (conc ** 2))) / 2
     return shannon_entropy([val, 1 - val])

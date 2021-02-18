@@ -25,9 +25,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import (
-    CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
-)
+from qiskit.circuit.library import CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
 
 
 @ddt
@@ -38,12 +36,12 @@ class TestCollect2qBlocks(QiskitTestCase):
 
     def test_blocks_in_topological_order(self):
         """the pass returns blocks in correct topological order
-                                                     ______
-         q0:--[p]-------.----      q0:-------------|      |--
-                        |                 ______   |  U2  |
-         q1:--[u]--(+)-(+)---   =  q1:---|      |--|______|--
-                    |                    |  U1  |
-         q2:--------.--------      q2:---|______|------------
+                                                    ______
+        q0:--[p]-------.----      q0:-------------|      |--
+                       |                 ______   |  U2  |
+        q1:--[u]--(+)-(+)---   =  q1:---|      |--|______|--
+                   |                    |  U1  |
+        q2:--------.--------      q2:---|______|------------
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
@@ -59,7 +57,7 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         pass_ = Collect2qBlocks()
         pass_.run(dag)
-        self.assertTrue(pass_.property_set['block_list'], [block_1, block_2])
+        self.assertTrue(pass_.property_set["block_list"], [block_1, block_2])
 
     def test_block_interrupted_by_gate(self):
         """Test that blocks interrupted by a gate that can't be added
@@ -93,14 +91,14 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
-        good_names = ['cx', 'u1', 'u2', 'u3', 'id']
+        good_names = ["cx", "u1", "u2", "u3", "id"]
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
         # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
-        pass_nodes = [set(bl) for bl in pass_.property_set['block_list']]
+        pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)
 
@@ -140,9 +138,9 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         pass_manager.run(qc)
 
-        self.assertEqual([['cx']],
-                         [[n.name for n in block]
-                          for block in pass_manager.property_set['block_list']])
+        self.assertEqual(
+            [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
+        )
 
     def test_do_not_merge_conditioned_gates(self):
         """Validate that classically conditioned gates are never considered for
@@ -167,8 +165,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
 
-        qr = QuantumRegister(3, 'qr')
-        cr = ClassicalRegister(2, 'cr')
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2, "cr")
 
         qc = QuantumCircuit(qr, cr)
         qc.p(0.1, 0)
@@ -182,18 +180,18 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(Collect2qBlocks())
 
         pass_manager.run(qc)
-        self.assertEqual([['cx']],
-                         [[n.name for n in block]
-                          for block in pass_manager.property_set['block_list']])
+        self.assertEqual(
+            [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
+        )
 
     @unpack
     @data(
         (CXGate(), U1Gate(0.1), U2Gate(0.2, 0.3)),
-        (RXXGate(pi/2), RZGate(0.1), RXGate(pi/2)),
+        (RXXGate(pi / 2), RZGate(0.1), RXGate(pi / 2)),
         (
-            Gate('custom2qgate', 2, []),
-            Gate('custom1qgate1', 1, []),
-            Gate('custom1qgate2', 1, []),
+            Gate("custom2qgate", 2, []),
+            Gate("custom1qgate1", 1, []),
+            Gate("custom1qgate2", 1, []),
         ),
     )
     def test_collect_arbitrary_gates(self, twoQ_gate, oneQ_gate1, oneQ_gate2):
@@ -226,8 +224,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(Collect2qBlocks())
 
         pass_manager.run(qc)
-        self.assertEqual(len(pass_manager.property_set['block_list']), 3)
+        self.assertEqual(len(pass_manager.property_set["block_list"]), 3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

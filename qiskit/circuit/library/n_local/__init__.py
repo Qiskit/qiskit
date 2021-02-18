@@ -21,11 +21,11 @@ from .excitation_preserving import ExcitationPreserving
 from .qaoa_ansatz import QAOAAnsatz
 
 __all__ = [
-    'NLocal',
-    'TwoLocal',
-    'RealAmplitudes',
-    'PauliTwoDesign',
-    'EfficientSU2',
-    'ExcitationPreserving',
-    'QAOAAnsatz'
+    "NLocal",
+    "TwoLocal",
+    "RealAmplitudes",
+    "PauliTwoDesign",
+    "EfficientSU2",
+    "ExcitationPreserving",
+    "QAOAAnsatz",
 ]

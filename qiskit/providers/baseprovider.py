@@ -39,9 +39,9 @@ class BaseProvider(ABC):
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise QiskitBackendNotFoundError('More than one backend matches the criteria')
+            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
         if not backends:
-            raise QiskitBackendNotFoundError('No backend matches the criteria')
+            raise QiskitBackendNotFoundError("No backend matches the criteria")
 
         return backends[0]
 

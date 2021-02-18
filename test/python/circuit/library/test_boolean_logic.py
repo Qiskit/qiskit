@@ -33,7 +33,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
 
         # compute the statevector of the circuit
-        statevector = Statevector.from_label('0' * circuit.num_qubits)
+        statevector = Statevector.from_label("0" * circuit.num_qubits)
         statevector = statevector.evolve(circuit)
 
         # trace out ancillas
@@ -75,13 +75,14 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         expected.cz(2, 5)
         self.assertEqual(circuit, expected)
 
-    @data((2, None, 'noancilla'),
-          (5, None, 'noancilla'),
-          (2, [-1, 1], 'v-chain'),
-          (2, [-1, 1], 'noancilla'),
-          (5, [0, 0, -1, 1, -1], 'noancilla'),
-          (5, [-1, 0, 0, 1, 1], 'v-chain'),
-          )
+    @data(
+        (2, None, "noancilla"),
+        (5, None, "noancilla"),
+        (2, [-1, 1], "v-chain"),
+        (2, [-1, 1], "noancilla"),
+        (5, [0, 0, -1, 1, -1], "noancilla"),
+        (5, [-1, 0, 0, 1, 1], "v-chain"),
+    )
     @unpack
     def test_or(self, num_variables, flags, mcx_mode):
         """Test the or circuit."""
@@ -99,11 +100,12 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
         self.assertBooleanFunctionIsCorrect(or_circuit, reference)
 
-    @data((2, None, 'noancilla'),
-          (2, [-1, 1], 'v-chain'),
-          (5, [0, 0, -1, 1, -1], 'noancilla'),
-          (5, [-1, 0, 0, 1, 1], 'v-chain'),
-          )
+    @data(
+        (2, None, "noancilla"),
+        (2, [-1, 1], "v-chain"),
+        (5, [0, 0, -1, 1, -1], "noancilla"),
+        (5, [-1, 0, 0, 1, 1], "v-chain"),
+    )
     @unpack
     def test_and(self, num_variables, flags, mcx_mode):
         """Test the and circuit."""
@@ -122,5 +124,5 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         self.assertBooleanFunctionIsCorrect(and_circuit, reference)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

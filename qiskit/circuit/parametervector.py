@@ -23,7 +23,7 @@ class ParameterVector:
         self._params = []
         self._size = length
         for i in range(length):
-            self._params += [Parameter('{}[{}]'.format(self._name, i))]
+            self._params += [Parameter("{}[{}]".format(self._name, i))]
 
     @property
     def name(self):
@@ -45,20 +45,20 @@ class ParameterVector:
             return self.params[start:stop:step]
 
         if key > self._size:
-            raise IndexError('Index out of range: {} > {}'.format(key, self._size))
+            raise IndexError("Index out of range: {} > {}".format(key, self._size))
         return self.params[key]
 
     def __iter__(self):
-        return iter(self.params[:self._size])
+        return iter(self.params[: self._size])
 
     def __len__(self):
         return self._size
 
     def __str__(self):
-        return '{}, {}'.format(self.name, [str(item) for item in self.params[:self._size]])
+        return "{}, {}".format(self.name, [str(item) for item in self.params[: self._size]])
 
     def __repr__(self):
-        return '{}(name={}, length={})'.format(self.__class__.__name__, self.name, len(self))
+        return "{}(name={}, length={})".format(self.__class__.__name__, self.name, len(self))
 
     def resize(self, length):
         """Resize the parameter vector.
@@ -69,5 +69,5 @@ class ParameterVector:
         """
         if length > len(self._params):
             for i in range(len(self._params), length):
-                self._params += [Parameter('{}[{}]'.format(self._name, i))]
+                self._params += [Parameter("{}[{}]".format(self._name, i))]
         self._size = length

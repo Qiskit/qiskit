@@ -77,7 +77,7 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
 
     qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
     cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
@@ -105,7 +105,7 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+            VisualizationError("Unknown bit {bit} is provided.".format(bit=bit))
 
     qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
     cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
@@ -132,12 +132,10 @@ def time_map_in_dt(time_window: Tuple[int, int]) -> types.HorizontalAxis:
     axis_label = axis_loc.copy()
 
     # consider time resolution
-    label = 'System cycle time (dt)'
+    label = "System cycle time (dt)"
 
-    formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
+    formatted_label = ["{val:.0f}".format(val=val) for val in axis_label]
 
     return types.HorizontalAxis(
-        window=(t0, t1),
-        axis_map=dict(zip(axis_loc, formatted_label)),
-        label=label
+        window=(t0, t1), axis_map=dict(zip(axis_loc, formatted_label)), label=label
     )

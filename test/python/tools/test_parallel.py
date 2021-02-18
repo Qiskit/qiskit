@@ -21,8 +21,7 @@ from qiskit.test import QiskitTestCase
 
 
 def _parfunc(x):
-    """Function for testing parallel_map
-    """
+    """Function for testing parallel_map"""
     time.sleep(1)
     return x
 
@@ -39,12 +38,11 @@ def _build_simple_schedule(_):
 
 
 class TestParallel(QiskitTestCase):
-    """A class for testing parallel_map functionality.
-    """
+    """A class for testing parallel_map functionality."""
 
     def test_parallel_env_flag(self):
         """Verify parallel env flag is set """
-        self.assertEqual(os.getenv('QISKIT_IN_PARALLEL', None), 'FALSE')
+        self.assertEqual(os.getenv("QISKIT_IN_PARALLEL", None), "FALSE")
 
     def test_parallel(self):
         """Test parallel_map """

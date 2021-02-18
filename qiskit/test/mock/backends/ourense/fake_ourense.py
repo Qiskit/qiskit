@@ -21,9 +21,9 @@ from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 class FakeOurense(FakeQasmBackend):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 3 ↔ 4
-         ↕
-         2
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
     """
 
     dirname = os.path.dirname(__file__)

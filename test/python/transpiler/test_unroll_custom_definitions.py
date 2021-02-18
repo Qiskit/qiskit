@@ -23,14 +23,16 @@ from qiskit.exceptions import QiskitError
 
 class TestGate(Gate):
     """Mock one qubit zero param gate."""
+
     def __init__(self):
-        super().__init__('tg', 1, [])
+        super().__init__("tg", 1, [])
 
 
 class TestCompositeGate(Gate):
     """Mock one qubit zero param gate."""
+
     def __init__(self):
-        super().__init__('tcg', 1, [])
+        super().__init__("tcg", 1, [])
 
 
 class TestUnrollCustomDefinitions(QiskitTestCase):
@@ -50,7 +52,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
-        out = UnrollCustomDefinitions(eq_lib, ['u3', 'cx']).run(dag)
+        out = UnrollCustomDefinitions(eq_lib, ["u3", "cx"]).run(dag)
 
         expected = qc.copy()
         expected_dag = circuit_to_dag(expected)
@@ -66,7 +68,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
-        out = UnrollCustomDefinitions(eq_lib, ['u3', 'cx', 'tg']).run(dag)
+        out = UnrollCustomDefinitions(eq_lib, ["u3", "cx", "tg"]).run(dag)
 
         expected = qc.copy()
         expected_dag = circuit_to_dag(expected)
@@ -82,15 +84,15 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
-        with self.assertRaisesRegex(QiskitError, 'Cannot unroll'):
-            UnrollCustomDefinitions(eq_lib, ['u3', 'cx']).run(dag)
+        with self.assertRaisesRegex(QiskitError, "Cannot unroll"):
+            UnrollCustomDefinitions(eq_lib, ["u3", "cx"]).run(dag)
 
     def test_unroll_gate_until_reach_basis_gates(self):
         """Verify we unroll gates until we hit basis_gates."""
         eq_lib = EquivalenceLibrary()
 
         gate = TestCompositeGate()
-        q = QuantumRegister(1, 'q')
+        q = QuantumRegister(1, "q")
         gate.definition = QuantumCircuit(q)
         gate.definition.data = [(TestGate(), [q[0]], [])]
 
@@ -98,7 +100,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
-        out = UnrollCustomDefinitions(eq_lib, ['u3', 'cx', 'tg']).run(dag)
+        out = UnrollCustomDefinitions(eq_lib, ["u3", "cx", "tg"]).run(dag)
 
         expected = QuantumCircuit(1)
         expected.append(TestGate(), [0])
@@ -118,7 +120,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
 
         gate = TestCompositeGate()
 
-        q = QuantumRegister(1, 'q')
+        q = QuantumRegister(1, "q")
         gate.definition = QuantumCircuit(q)
         gate.definition.data = [(TestGate(), [q[0]], [])]
 
@@ -126,7 +128,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
-        out = UnrollCustomDefinitions(eq_lib, ['u3', 'cx']).run(dag)
+        out = UnrollCustomDefinitions(eq_lib, ["u3", "cx"]).run(dag)
 
         expected = QuantumCircuit(1)
         expected.append(TestGate(), [0])

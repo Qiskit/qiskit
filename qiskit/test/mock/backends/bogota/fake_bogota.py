@@ -31,7 +31,7 @@ class FakeBogota(FakeBackend):
             conf = json.load(f_conf)
 
         configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_bogota'
+        configuration.backend_name = "fake_bogota"
         self._defaults = None
         self._properties = None
         super().__init__(configuration)

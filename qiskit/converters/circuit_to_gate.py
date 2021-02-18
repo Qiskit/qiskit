@@ -45,15 +45,18 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     """
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumcircuit import QuantumCircuit
+
     if circuit.clbits:
-        raise QiskitError('Circuit with classical bits cannot be converted '
-                          'to gate.')
+        raise QiskitError("Circuit with classical bits cannot be converted " "to gate.")
 
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
-            raise QiskitError(('One or more instructions cannot be converted to'
-                               ' a gate. "{}" is not a gate instruction').format(
-                                   inst.name))
+            raise QiskitError(
+                (
+                    "One or more instructions cannot be converted to"
+                    ' a gate. "{}" is not a gate instruction'
+                ).format(inst.name)
+            )
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
@@ -61,14 +64,19 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         parameter_dict = circuit._unroll_param_dict(parameter_map)
 
     if parameter_dict.keys() != circuit.parameters:
-        raise QiskitError(('parameter_map should map all circuit parameters. '
-                           'Circuit parameters: {}, parameter_map: {}').format(
-                               circuit.parameters, parameter_dict))
+        raise QiskitError(
+            (
+                "parameter_map should map all circuit parameters. "
+                "Circuit parameters: {}, parameter_map: {}"
+            ).format(circuit.parameters, parameter_dict)
+        )
 
-    gate = Gate(name=circuit.name,
-                num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name),
-                label=label)
+    gate = Gate(
+        name=circuit.name,
+        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
+        params=sorted(parameter_dict.values(), key=lambda p: p.name),
+        label=label,
+    )
     gate.condition = None
 
     def find_bit_position(bit):
@@ -90,16 +98,14 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     rules = target.data
 
     if gate.num_qubits > 0:
-        q = QuantumRegister(gate.num_qubits, 'q')
+        q = QuantumRegister(gate.num_qubits, "q")
 
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    rules = list(map(
-        lambda x: (x[0],
-                   list(map(lambda y: q[find_bit_position(y)], x[1])),
-                   []),
-        rules))
+    rules = list(
+        map(lambda x: (x[0], list(map(lambda y: q[find_bit_position(y)], x[1])), []), rules)
+    )
     qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
     for instr, qargs, cargs in rules:
         qc._append(instr, qargs, cargs)

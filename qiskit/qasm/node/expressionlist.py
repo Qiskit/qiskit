@@ -24,7 +24,7 @@ class ExpressionList(Node):
 
     def __init__(self, children):
         """Create the expression list node."""
-        super().__init__('expression_list', children, None)
+        super().__init__("expression_list", children, None)
 
     def size(self):
         """Return the number of expressions."""
@@ -33,6 +33,10 @@ class ExpressionList(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'ExpressionList.qasm(..., prec)\' is no longer used and is '
-                          'being deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'ExpressionList.qasm(..., prec)' is no longer used and is "
+                "being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return ",".join([self.children[j].qasm() for j in range(self.size())])

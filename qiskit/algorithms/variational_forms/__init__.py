@@ -41,4 +41,4 @@ Variational Form Base Class
 
 from .variational_form import VariationalForm
 
-__all__ = ['VariationalForm']
+__all__ = ["VariationalForm"]

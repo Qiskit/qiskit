@@ -20,32 +20,35 @@ from qiskit.visualization.state_visualization import plot_state_qsphere
 
 
 def iplot_state_qsphere(rho, figsize=None):
-    """ Create a Q sphere representation.
-        Graphical representation of the input array, using a Q sphere for each
-        eigenvalue.
-        Args:
-            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
-            figsize (tuple): Figure size in pixels.
-        Returns:
-            Figure: A matplotlib figure for the visualization
-        Example:
-            .. code-block::
+    """Create a Q sphere representation.
+    Graphical representation of the input array, using a Q sphere for each
+    eigenvalue.
+    Args:
+        rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
+        figsize (tuple): Figure size in pixels.
+    Returns:
+        Figure: A matplotlib figure for the visualization
+    Example:
+        .. code-block::
 
-                from qiskit import QuantumCircuit
-                from qiskit.quantum_info import Statevector
-                from qiskit.visualization import iplot_state_qsphere
-                %matplotlib inline
-                qc = QuantumCircuit(2)
-                qc.h(0)
-                qc.cx(0, 1)
-                state = Statevector.from_instruction(qc)
-                iplot_state_qsphere(state)
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import Statevector
+            from qiskit.visualization import iplot_state_qsphere
+            %matplotlib inline
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+            state = Statevector.from_instruction(qc)
+            iplot_state_qsphere(state)
     """
     warnings.warn(
         "The iplot_state_qsphere function is deprecated and will be "
         "removed in a future release. The hosted code this depended on no "
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_qsphere should be "
-        "used directly moving forward.", DeprecationWarning, stacklevel=2)
+        "used directly moving forward.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     fig = plot_state_qsphere(rho, figsize=figsize)
     return fig

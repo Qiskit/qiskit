@@ -28,23 +28,23 @@ class TestDelayClass(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.delay(100, 0)
-        qc.delay(200, 0, unit='s')
-        qc.delay(300, 0, unit='ns')
-        qc.delay(400, 0, unit='dt')
-        self.assertEqual(qc.data[1][0].unit, 'dt')
-        self.assertEqual(qc.data[2][0].unit, 's')
-        self.assertEqual(qc.data[3][0].unit, 'ns')
-        self.assertEqual(qc.data[4][0].unit, 'dt')
+        qc.delay(200, 0, unit="s")
+        qc.delay(300, 0, unit="ns")
+        qc.delay(400, 0, unit="dt")
+        self.assertEqual(qc.data[1][0].unit, "dt")
+        self.assertEqual(qc.data[2][0].unit, "s")
+        self.assertEqual(qc.data[3][0].unit, "ns")
+        self.assertEqual(qc.data[4][0].unit, "dt")
 
     def test_fail_if_non_integer_duration_with_dt_unit_is_supplied(self):
         qc = QuantumCircuit(1)
         with self.assertRaises(CircuitError):
-            qc.delay(0.5, 0, unit='dt')
+            qc.delay(0.5, 0, unit="dt")
 
     def test_fail_if_unknown_unit_is_supplied(self):
         qc = QuantumCircuit(1)
         with self.assertRaises(CircuitError):
-            qc.delay(100, 0, unit='my_unit')
+            qc.delay(100, 0, unit="my_unit")
 
     def test_add_delay_on_single_qubit_to_circuit(self):
         qc = QuantumCircuit(1)
@@ -76,6 +76,5 @@ class TestDelayClass(QiskitTestCase):
 
     def test_to_matrix_return_identity_matrix(self):
         actual = np.array(Delay(100))
-        expected = np.array([[1, 0],
-                             [0, 1]], dtype=complex)
+        expected = np.array([[1, 0], [0, 1]], dtype=complex)
         self.assertTrue(np.array_equal(actual, expected))

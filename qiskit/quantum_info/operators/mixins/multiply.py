@@ -31,6 +31,7 @@ class MultiplyMixin(ABC):
 
         - ``_multiply(self, other)``
     """
+
     def __rmul__(self, other):
         return self._multiply(other)
 

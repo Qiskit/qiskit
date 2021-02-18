@@ -28,7 +28,7 @@ class EvolutionBase(ConverterBase):
     """
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Traverse the operator, replacing any ``EvolutionOps`` with their equivalent evolution
+        """Traverse the operator, replacing any ``EvolutionOps`` with their equivalent evolution
         ``CircuitOps``.
 
          Args:

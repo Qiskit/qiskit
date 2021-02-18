@@ -21,11 +21,11 @@ from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 class FakeEssex(FakeQasmBackend):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 2
-         ↕
-         3
-         ↕
-         4
+    0 ↔ 1 ↔ 2
+        ↕
+        3
+        ↕
+        4
     """
 
     dirname = os.path.dirname(__file__)

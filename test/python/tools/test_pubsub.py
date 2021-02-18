@@ -18,13 +18,13 @@ from qiskit.test import QiskitTestCase
 
 class DummySubscriber(Subscriber):
     """ Simulates a component behaving like a Subscriber """
+
     def __del__(self):
         self.clear()
 
 
 class TestPubSub(QiskitTestCase):
-    """A class for testing Publisher/Subscriber functionality.
-    """
+    """A class for testing Publisher/Subscriber functionality."""
 
     def test_pusbsub(self):
         """ Test subscribing works"""
@@ -38,8 +38,8 @@ class TestPubSub(QiskitTestCase):
         Publisher().publish("publisher.action", self)
 
     def test_single_broker(self):
-        """ Testing a single broker is instantiated no matter how many
-        Publishers or Subscribers we have """
+        """Testing a single broker is instantiated no matter how many
+        Publishers or Subscribers we have"""
 
         publishers = [Publisher() for _ in range(10)]
         subscribers = [DummySubscriber() for _ in range(10)]
@@ -49,6 +49,7 @@ class TestPubSub(QiskitTestCase):
 
     def test_double_subscribe(self):
         """ Testing that we cannot subscribe the same callback to the same event """
+
         def callback():
             """ This should be ever called """
             pass

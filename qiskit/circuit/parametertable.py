@@ -20,7 +20,7 @@ from .instruction import Instruction
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
 
-    __slots__ = ['_table', '_keys', '_names']
+    __slots__ = ["_table", "_keys", "_names"]
 
     def __init__(self, *args, **kwargs):
         """
@@ -78,4 +78,4 @@ class ParameterTable(MutableMapping):
         return len(self._table)
 
     def __repr__(self):
-        return 'ParameterTable({})'.format(repr(self._table))
+        return "ParameterTable({})".format(repr(self._table))

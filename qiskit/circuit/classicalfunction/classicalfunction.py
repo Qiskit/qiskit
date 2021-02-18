@@ -13,8 +13,10 @@
 """ClassicalFunction class"""
 
 import ast
+
 try:
     from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
+
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
@@ -41,18 +43,22 @@ class ClassicalFunction(gate.Gate):
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):
-            raise QiskitError('ClassicalFunction needs a source code as a string.')
+            raise QiskitError("ClassicalFunction needs a source code as a string.")
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the classicalfunction compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+            raise ImportError(
+                "To use the classicalfunction compiler, tweedledum "
+                "must be installed. To install tweedledum run "
+                '"pip install tweedledum".'
+            )
         self._ast = ast.parse(source)
         self._network = None
         self._scopes = None
         self._args = None
-        super().__init__(name or '*classicalfunction*',
-                         num_qubits=sum([qreg.size for qreg in self.qregs]),
-                         params=[])
+        super().__init__(
+            name or "*classicalfunction*",
+            num_qubits=sum([qreg.size for qreg in self.qregs]),
+            params=[],
+        )
 
     def compile(self):
         """Parses and creates the logical circuit"""
@@ -125,9 +131,11 @@ class ClassicalFunction(gate.Gate):
     def qregs(self):
         """The list of qregs used by the classicalfunction"""
         qregs = [
-            quantumregister.QuantumRegister(
-                1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
+            quantumregister.QuantumRegister(1, name=arg)
+            for arg in self.args
+            if self.types[0][arg] == "Int1"
+        ]
         qregs.reverse()
-        if self.types[0]['return'] == 'Int1':
-            qregs.append(quantumregister.QuantumRegister(1, name='return'))
+        if self.types[0]["return"] == "Int1":
+            qregs.append(quantumregister.QuantumRegister(1, name="return"))
         return qregs

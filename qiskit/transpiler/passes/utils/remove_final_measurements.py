@@ -33,7 +33,7 @@ class RemoveFinalMeasurements(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        final_op_types = ['measure', 'barrier']
+        final_op_types = ["measure", "barrier"]
         final_ops = []
         cregs_to_remove = dict()
         clbits_with_final_measures = set()
@@ -42,8 +42,9 @@ class RemoveFinalMeasurements(TransformationPass):
             is_final_op = True
 
             for _, child_successors in dag.bfs_successors(candidate_node):
-                if any(suc.type == 'op' and suc.name not in final_op_types
-                       for suc in child_successors):
+                if any(
+                    suc.type == "op" and suc.name not in final_op_types for suc in child_successors
+                ):
                     is_final_op = False
                     break
 

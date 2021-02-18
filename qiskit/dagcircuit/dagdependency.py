@@ -89,7 +89,7 @@ class DAGDependency:
         self._calibrations = defaultdict(dict)
 
         self.duration = None
-        self.unit = 'dt'
+        self.unit = "dt"
 
     @property
     def global_phase(self):
@@ -104,6 +104,7 @@ class DAGDependency:
             angle (float, ParameterExpression)
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
+
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
@@ -142,15 +143,16 @@ class DAGDependency:
         try:
             import networkx as nx
         except ImportError:
-            raise ImportError("Networkx is needed to use to_networkx(). It "
-                              "can be installed with 'pip install networkx'")
+            raise ImportError(
+                "Networkx is needed to use to_networkx(). It "
+                "can be installed with 'pip install networkx'"
+            )
         dag_networkx = nx.MultiDiGraph()
 
         for node in self.get_nodes():
             dag_networkx.add_node(node)
         for node in self.topological_nodes():
-            for source_id, dest_id, edge in \
-                    self.get_in_edges(node.node_id):
+            for source_id, dest_id, edge in self.get_in_edges(node.node_id):
                 dag_networkx.add_edge(self.get_node(source_id), self.get_node(dest_id), **edge)
         return dag_networkx
 
@@ -252,10 +254,11 @@ class DAGDependency:
             List: corresponding to the label.
         """
 
-        return [(src, dest, data)
-                for src_node in self._multi_graph.nodes()
-                for (src, dest, data)
-                in self._multi_graph.out_edges(src_node.node_id)]
+        return [
+            (src, dest, data)
+            for src_node in self._multi_graph.nodes()
+            for (src, dest, data) in self._multi_graph.out_edges(src_node.node_id)
+        ]
 
     def get_in_edges(self, node_id):
         """
@@ -340,9 +343,7 @@ class DAGDependency:
         def _key(x):
             return x.sort_key
 
-        return iter(rx.lexicographical_topological_sort(
-            self._multi_graph,
-            key=_key))
+        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
     def add_op_node(self, operation, qargs, cargs):
         """Add a DAGDepNode to the graph and update the edges.
@@ -352,7 +353,7 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
-        directives = ['measure', 'barrier', 'snapshot']
+        directives = ["measure", "barrier", "snapshot"]
         if operation.name not in directives:
             qindices_list = []
             for elem in qargs:
@@ -370,9 +371,18 @@ class DAGDependency:
             qindices_list = []
             cindices_list = []
 
-        new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
-                              cargs=cargs, condition=operation.condition, successors=[],
-                              predecessors=[], qindices=qindices_list, cindices=cindices_list)
+        new_node = DAGDepNode(
+            type="op",
+            op=operation,
+            name=operation.name,
+            qargs=qargs,
+            cargs=cargs,
+            condition=operation.condition,
+            successors=[],
+            predecessors=[],
+            qindices=qindices_list,
+            cindices=cindices_list,
+        )
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
@@ -427,7 +437,8 @@ class DAGDependency:
         direct_pred = self.direct_predecessors(node_id)
         self._multi_graph = self._gather_pred(node_id, direct_pred)
         self._multi_graph.get_node_data(node_id).predecessors = list(
-            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id).predecessors)))
+            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id).predecessors))
+        )
 
     def _update_edges(self):
         """
@@ -444,8 +455,9 @@ class DAGDependency:
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
             if self._multi_graph.get_node_data(prev_node_id).reachable and not _does_commute(
-                    self._multi_graph.get_node_data(prev_node_id), max_node):
-                self._multi_graph.add_edge(prev_node_id, max_node_id, {'commute': False})
+                self._multi_graph.get_node_data(prev_node_id), max_node
+            ):
+                self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
                 self._list_pred(max_node_id)
                 list_predecessors = self._multi_graph.get_node_data(max_node_id).predecessors
                 for pred_id in list_predecessors:
@@ -463,7 +475,8 @@ class DAGDependency:
             self._multi_graph = self._gather_succ(node_id, direct_successors)
 
             self._multi_graph.get_node_data(node_id).successors = list(
-                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors))
+                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors)
+            )
 
     def copy(self):
         """
@@ -483,7 +496,7 @@ class DAGDependency:
             dag._multi_graph.add_edge(edges[0], edges[1], edges[2])
         return dag
 
-    def draw(self, scale=0.7, filename=None, style='color'):
+    def draw(self, scale=0.7, filename=None, style="color"):
         """
         Draws the DAGDependency graph.
 
@@ -501,8 +514,8 @@ class DAGDependency:
                 otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
-        return dag_drawer(dag=self, scale=scale, filename=filename,
-                          style=style)
+
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
 
 
 def merge_no_duplicates(*iterables):
@@ -551,12 +564,11 @@ def _does_commute(node1, node2):
     # Commutation for non-unitary or parameterized or opaque ops
     # (e.g. measure, reset, directives or pulse gates)
     # if and only if the qubits and clbits are different.
-    non_unitaries = ['measure', 'reset', 'initialize', 'delay']
-    directives = ['barrier', 'snapshot']
+    non_unitaries = ["measure", "reset", "initialize", "delay"]
+    directives = ["barrier", "snapshot"]
 
     def _unknown_commutator(n):
-        return (n.name in non_unitaries + directives or
-                n.op.is_parameterized())
+        return n.name in non_unitaries + directives or n.op.is_parameterized()
 
     if _unknown_commutator(node1) or _unknown_commutator(node2):
         intersection_q = set(qarg1).intersection(set(qarg2))
@@ -564,7 +576,7 @@ def _does_commute(node1, node2):
         return not (intersection_q or intersection_c)
 
     # Known non-commuting gates (TODO: add more).
-    non_commute_gates = [{'x', 'y'}, {'x', 'z'}]
+    non_commute_gates = [{"x", "y"}, {"x", "z"}]
     if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_gates):
         return False
 

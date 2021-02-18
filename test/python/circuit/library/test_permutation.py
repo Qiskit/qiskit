@@ -39,5 +39,5 @@ class TestPermutationLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

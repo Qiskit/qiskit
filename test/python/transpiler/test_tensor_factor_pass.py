@@ -31,7 +31,7 @@ class TestNumTensorsFactorPass(QiskitTestCase):
         pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
-        self.assertEqual(pass_.property_set['num_tensor_factors'], 0)
+        self.assertEqual(pass_.property_set["num_tensor_factors"], 0)
 
     def test_just_qubits(self):
         """ A dag with 8 operations and 1 tensor factor."""
@@ -50,7 +50,7 @@ class TestNumTensorsFactorPass(QiskitTestCase):
         pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
-        self.assertEqual(pass_.property_set['num_tensor_factors'], 1)
+        self.assertEqual(pass_.property_set["num_tensor_factors"], 1)
 
     def test_depth_one(self):
         """ A dag with operations in parallel (2 tensor factors)"""
@@ -63,8 +63,8 @@ class TestNumTensorsFactorPass(QiskitTestCase):
         pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
-        self.assertEqual(pass_.property_set['num_tensor_factors'], 2)
+        self.assertEqual(pass_.property_set["num_tensor_factors"], 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

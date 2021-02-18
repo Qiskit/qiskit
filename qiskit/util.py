@@ -20,5 +20,10 @@ from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.utils.units import apply_prefix
 
 
-__all__ = ['deprecate_arguments', 'deprecate_function', 'is_main_process',
-           'local_hardware_info', 'apply_prefix']
+__all__ = [
+    "deprecate_arguments",
+    "deprecate_function",
+    "is_main_process",
+    "local_hardware_info",
+    "apply_prefix",
+]

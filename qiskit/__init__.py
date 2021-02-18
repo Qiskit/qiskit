@@ -64,7 +64,9 @@ if sys.version_info[0] == 3 and sys.version_info[1] == 6:
     warnings.warn(
         "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
         "Support for running Qiskit with Python 3.6 will be removed in a "
-        "future release.", DeprecationWarning)
+        "future release.",
+        DeprecationWarning,
+    )
 
 
 class AerWrapper:
@@ -77,6 +79,7 @@ class AerWrapper:
         if self.aer is None:
             try:
                 from qiskit.providers import aer
+
                 self.aer = aer.Aer
             except ImportError:
                 return False
@@ -86,11 +89,14 @@ class AerWrapper:
         if not self.aer:
             try:
                 from qiskit.providers import aer
+
                 self.aer = aer.Aer
             except ImportError as exc:
-                raise ImportError('Could not import the Aer provider from the '
-                                  'qiskit-aer package. Install qiskit-aer or '
-                                  'check your installation.') from exc
+                raise ImportError(
+                    "Could not import the Aer provider from the "
+                    "qiskit-aer package. Install qiskit-aer or "
+                    "check your installation."
+                ) from exc
         return getattr(self.aer, attr)
 
 
@@ -104,6 +110,7 @@ class IBMQWrapper:
         if self.ibmq is None:
             try:
                 from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
             except ImportError:
                 return False
@@ -113,12 +120,15 @@ class IBMQWrapper:
         if not self.ibmq:
             try:
                 from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
             except ImportError as exc:
-                raise ImportError('Could not import the IBMQ provider from the '
-                                  'qiskit-ibmq-provider package. Install '
-                                  'qiskit-ibmq-provider or check your  '
-                                  'installation.') from exc
+                raise ImportError(
+                    "Could not import the IBMQ provider from the "
+                    "qiskit-ibmq-provider package. Install "
+                    "qiskit-ibmq-provider or check your  "
+                    "installation."
+                ) from exc
         return getattr(self.ibmq, attr)
 
 

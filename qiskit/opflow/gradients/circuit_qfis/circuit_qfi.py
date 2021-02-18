@@ -37,10 +37,11 @@ class CircuitQFI(ConverterBase):
 
     # pylint: disable=arguments-differ
     @abstractmethod
-    def convert(self,
-                operator: OperatorBase,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> OperatorBase:
+    def convert(
+        self,
+        operator: OperatorBase,
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> OperatorBase:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`

@@ -57,18 +57,20 @@ class SPSA(Optimizer):
     """
 
     _C0 = 2 * np.pi * 0.1
-    _OPTIONS = ['save_steps', 'last_avg']
+    _OPTIONS = ["save_steps", "last_avg"]
 
-    def __init__(self,
-                 maxiter: int = 1000,
-                 save_steps: int = 1,
-                 last_avg: int = 1,
-                 c0: float = _C0,
-                 c1: float = 0.1,
-                 c2: float = 0.602,
-                 c3: float = 0.101,
-                 c4: float = 0,
-                 skip_calibration: bool = False) -> None:
+    def __init__(
+        self,
+        maxiter: int = 1000,
+        save_steps: int = 1,
+        last_avg: int = 1,
+        c0: float = _C0,
+        c1: float = 0.1,
+        c2: float = 0.602,
+        c3: float = 0.101,
+        c4: float = 0,
+        skip_calibration: bool = False,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of iterations to perform.
@@ -82,8 +84,8 @@ class SPSA(Optimizer):
             c4: The parameter used to control a as well.
             skip_calibration: Skip calibration and use provided c(s) as is.
         """
-        validate_min('save_steps', save_steps, 1)
-        validate_min('last_avg', last_avg, 1)
+        validate_min("save_steps", save_steps, 1)
+        validate_min("last_avg", last_avg, 1)
         super().__init__()
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
@@ -95,39 +97,47 @@ class SPSA(Optimizer):
     def get_support_level(self):
         """ return support level dictionary """
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
 
         if not isinstance(initial_point, np.ndarray):
             initial_point = np.asarray(initial_point)
 
-        logger.debug('Parameters: %s', self._parameters)
+        logger.debug("Parameters: %s", self._parameters)
         if not self._skip_calibration:
             # at least one calibration, at most 25 calibrations
             num_steps_calibration = min(25, max(1, self._maxiter // 5))
             self._calibration(objective_function, initial_point, num_steps_calibration)
         else:
-            logger.debug('Skipping calibration, parameters used as provided.')
+            logger.debug("Skipping calibration, parameters used as provided.")
 
-        opt, sol, _, _, _, _ = self._optimization(objective_function,
-                                                  initial_point,
-                                                  maxiter=self._maxiter,
-                                                  **self._options)
+        opt, sol, _, _, _, _ = self._optimization(
+            objective_function, initial_point, maxiter=self._maxiter, **self._options
+        )
         return sol, opt, None
 
-    def _optimization(self,
-                      obj_fun: Callable,
-                      initial_theta: np.ndarray,
-                      maxiter: int,
-                      save_steps: int = 1,
-                      last_avg: int = 1) -> List:
+    def _optimization(
+        self,
+        obj_fun: Callable,
+        initial_theta: np.ndarray,
+        maxiter: int,
+        save_steps: int = 1,
+        last_avg: int = 1,
+    ) -> List:
         """Minimizes obj_fun(theta) with a simultaneous perturbation stochastic
         approximation algorithm.
 
@@ -163,8 +173,9 @@ class SPSA(Optimizer):
         theta_best = np.zeros(initial_theta.shape)
         for k in range(maxiter):
             # SPSA Parameters
-            a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4],
-                                                           self._parameters[2])
+            a_spsa = float(self._parameters[0]) / np.power(
+                k + 1 + self._parameters[4], self._parameters[2]
+            )
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
             delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
@@ -182,8 +193,8 @@ class SPSA(Optimizer):
             theta = theta - a_spsa * g_spsa
             # saving
             if k % save_steps == 0:
-                logger.debug('Objective function at theta+ for step # %s: %1.7f', k, cost_plus)
-                logger.debug('Objective function at theta- for step # %s: %1.7f', k, cost_minus)
+                logger.debug("Objective function at theta+ for step # %s: %1.7f", k, cost_plus)
+                logger.debug("Objective function at theta- for step # %s: %1.7f", k, cost_minus)
                 theta_plus_save.append(theta_plus)
                 theta_minus_save.append(theta_minus)
                 cost_plus_save.append(cost_plus)
@@ -193,15 +204,18 @@ class SPSA(Optimizer):
                 theta_best += theta / last_avg
         # final cost update
         cost_final = obj_fun(theta_best)
-        logger.debug('Final objective function is: %.7f', cost_final)
+        logger.debug("Final objective function is: %.7f", cost_final)
 
-        return [cost_final, theta_best, cost_plus_save, cost_minus_save,
-                theta_plus_save, theta_minus_save]
+        return [
+            cost_final,
+            theta_best,
+            cost_plus_save,
+            cost_minus_save,
+            theta_plus_save,
+            theta_minus_save,
+        ]
 
-    def _calibration(self,
-                     obj_fun: Callable,
-                     initial_theta: np.ndarray,
-                     stat: int):
+    def _calibration(self, obj_fun: Callable, initial_theta: np.ndarray, stat: int):
         """Calibrates and stores the SPSA parameters back.
 
         SPSA parameters are c0 through c5 stored in parameters array
@@ -223,7 +237,7 @@ class SPSA(Optimizer):
         logger.debug("Calibration...")
         for i in range(stat):
             if i % 5 == 0:
-                logger.debug('calibration step # %s of %s', str(i), str(stat))
+                logger.debug("calibration step # %s of %s", str(i), str(stat))
             delta = 2 * algorithm_globals.random.integers(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
@@ -236,8 +250,9 @@ class SPSA(Optimizer):
 
         # only calibrate if delta_obj is larger than 0
         if delta_obj > 0:
-            self._parameters[0] = target_update * 2 / delta_obj \
-                * self._parameters[1] * (self._parameters[4] + 1)
-            logger.debug('delta_obj is 0, not calibrating (since this would set c0 to inf)')
+            self._parameters[0] = (
+                target_update * 2 / delta_obj * self._parameters[1] * (self._parameters[4] + 1)
+            )
+            logger.debug("delta_obj is 0, not calibrating (since this would set c0 to inf)")
 
-        logger.debug('Calibrated SPSA parameter c0 is %.7f', self._parameters[0])
+        logger.debug("Calibrated SPSA parameter c0 is %.7f", self._parameters[0])

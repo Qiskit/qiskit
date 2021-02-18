@@ -30,15 +30,15 @@ def single_gate_params(gate, params=None):
     Raises:
         QiskitError: if the gate name is not valid
     """
-    if gate in ('U', 'u3'):
+    if gate in ("U", "u3"):
         return params[0], params[1], params[2]
-    elif gate == 'u2':
+    elif gate == "u2":
         return np.pi / 2, params[0], params[1]
-    elif gate == 'u1':
+    elif gate == "u1":
         return 0, 0, params[0]
-    elif gate == 'id':
+    elif gate == "id":
         return 0, 0, 0
-    raise QiskitError('Gate is not among the valid types: %s' % gate)
+    raise QiskitError("Gate is not among the valid types: %s" % gate)
 
 
 def single_gate_matrix(gate, params=None):
@@ -55,18 +55,17 @@ def single_gate_matrix(gate, params=None):
     # This a is a probable a FIXME since it might show bugs in the simulator.
     (theta, phi, lam) = map(float, single_gate_params(gate, params))
 
-    return np.array([[np.cos(theta / 2),
-                      -np.exp(1j * lam) * np.sin(theta / 2)],
-                     [np.exp(1j * phi) * np.sin(theta / 2),
-                      np.exp(1j * phi + 1j * lam) * np.cos(theta / 2)]])
+    return np.array(
+        [
+            [np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
+            [np.exp(1j * phi) * np.sin(theta / 2), np.exp(1j * phi + 1j * lam) * np.cos(theta / 2)],
+        ]
+    )
 
 
 def cx_gate_matrix():
     """Get the matrix for a controlled-NOT gate."""
-    return np.array([[1, 0, 0, 0],
-                     [0, 0, 0, 1],
-                     [0, 0, 1, 0],
-                     [0, 1, 0, 0]], dtype=complex)
+    return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
 
 
 def einsum_matmul_index(gate_indices, number_of_qubits):
@@ -86,18 +85,18 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
         str: An indices string for the Numpy.einsum function.
     """
 
-    mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices,
-                                                                    number_of_qubits)
+    mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 
     # Right indices for the N-qubit input and output tensor
     tens_r = ascii_uppercase[:number_of_qubits]
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return "{mat_l}{mat_r}, ".format(mat_l=mat_l, mat_r=mat_r) + \
-           "{tens_lin}{tens_r}->{tens_lout}{tens_r}".format(tens_lin=tens_lin,
-                                                            tens_lout=tens_lout,
-                                                            tens_r=tens_r)
+    return "{mat_l}{mat_r}, ".format(
+        mat_l=mat_l, mat_r=mat_r
+    ) + "{tens_lin}{tens_r}->{tens_lout}{tens_r}".format(
+        tens_lin=tens_lin, tens_lout=tens_lout, tens_r=tens_r
+    )
 
 
 def einsum_vecmul_index(gate_indices, number_of_qubits):
@@ -117,14 +116,13 @@ def einsum_vecmul_index(gate_indices, number_of_qubits):
         str: An indices string for the Numpy.einsum function.
     """
 
-    mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices,
-                                                                    number_of_qubits)
+    mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return "{mat_l}{mat_r}, ".format(mat_l=mat_l, mat_r=mat_r) + \
-           "{tens_lin}->{tens_lout}".format(tens_lin=tens_lin,
-                                            tens_lout=tens_lout)
+    return "{mat_l}{mat_r}, ".format(mat_l=mat_l, mat_r=mat_r) + "{tens_lin}->{tens_lout}".format(
+        tens_lin=tens_lin, tens_lout=tens_lout
+    )
 
 
 def _einsum_matmul_index_helper(gate_indices, number_of_qubits):

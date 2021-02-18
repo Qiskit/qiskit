@@ -20,26 +20,26 @@ from qiskit.visualization.state_visualization import plot_bloch_multivector
 
 
 def iplot_bloch_multivector(rho, figsize=None):
-    """ Create a bloch sphere representation.
-        Graphical representation of the input array, using as much bloch
-        spheres as qubit are required.
-        Args:
-            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
-            figsize (tuple): Figure size in pixels.
-        Returns:
-            Figure: A matplotlib figure for the visualization
-        Example:
-            .. code-block::
+    """Create a bloch sphere representation.
+    Graphical representation of the input array, using as much bloch
+    spheres as qubit are required.
+    Args:
+        rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
+        figsize (tuple): Figure size in pixels.
+    Returns:
+        Figure: A matplotlib figure for the visualization
+    Example:
+        .. code-block::
 
-                from qiskit import QuantumCircuit
-                from qiskit.quantum_info import Statevector
-                from qiskit.visualization import iplot_bloch_multivector
-                %matplotlib inline
-                qc = QuantumCircuit(2)
-                qc.h(0)
-                qc.cx(0, 1)
-                state = Statevector.from_instruction(qc)
-                iplot_bloch_multivector(state)
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import Statevector
+            from qiskit.visualization import iplot_bloch_multivector
+            %matplotlib inline
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+            state = Statevector.from_instruction(qc)
+            iplot_bloch_multivector(state)
 
     """
     warnings.warn(
@@ -47,6 +47,9 @@ def iplot_bloch_multivector(rho, figsize=None):
         "removed in a future release. The hosted code this depended on no "
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_bloch_multivector should be "
-        "used directly moving forward.", DeprecationWarning, stacklevel=2)
+        "used directly moving forward.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     fig = plot_bloch_multivector(rho, figsize=figsize)
     return fig

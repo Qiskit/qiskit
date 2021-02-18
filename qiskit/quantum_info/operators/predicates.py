@@ -22,11 +22,7 @@ ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
 
-def matrix_equal(mat1,
-                 mat2,
-                 ignore_phase=False,
-                 rtol=RTOL_DEFAULT,
-                 atol=ATOL_DEFAULT):
+def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its
@@ -46,7 +42,9 @@ def matrix_equal(mat1,
 
     Returns:
         bool: True if the matrices are equal or False otherwise.
-    """.format(RTOL_DEFAULT, ATOL_DEFAULT)
+    """.format(
+        RTOL_DEFAULT, ATOL_DEFAULT
+    )
 
     if atol is None:
         atol = ATOL_DEFAULT
@@ -136,10 +134,7 @@ def is_positive_semidefinite_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     return True
 
 
-def is_identity_matrix(mat,
-                       ignore_phase=False,
-                       rtol=RTOL_DEFAULT,
-                       atol=ATOL_DEFAULT):
+def is_identity_matrix(mat, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is an identity matrix."""
     if atol is None:
         atol = ATOL_DEFAULT

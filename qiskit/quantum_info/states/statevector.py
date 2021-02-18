@@ -91,8 +91,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 shape = self._data.shape
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
-        super().__init__(op_shape=OpShape.auto(
-            shape=shape, dims_l=dims, num_qubits_r=0))
+        super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
 
     def __array__(self, dtype=None):
         if dtype:
@@ -101,13 +100,14 @@ class Statevector(QuantumState, TolerancesMixin):
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
-            self._data, other._data, rtol=self.rtol, atol=self.atol)
+            self._data, other._data, rtol=self.rtol, atol=self.atol
+        )
 
     def __repr__(self):
-        text = self.draw('text', prefix='Statevector(')
-        return str(text) + ')'
+        text = self.draw("text", prefix="Statevector(")
+        return str(text) + ")"
 
-    def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
+    def draw(self, output=None, max_size=16, dims=None, prefix="", **drawer_args):
         """Returns a visualization of the Statevector.
 
         **text**: ASCII TextMatrix that can be printed in the console.
@@ -150,11 +150,14 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer
-        return state_drawer(self, output=output, max_size=max_size, dims=dims,
-                            prefix=prefix, **drawer_args)
+
+        return state_drawer(
+            self, output=output, max_size=max_size, dims=dims, prefix=prefix, **drawer_args
+        )
 
     def _ipython_display_(self):
         from IPython.display import display
+
         display(self.draw())
 
     @property
@@ -284,7 +287,7 @@ class Statevector(QuantumState, TolerancesMixin):
                          specified Statevector subsystem dimensions.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         # Get return vector
         ret = copy.copy(self)
@@ -336,8 +339,7 @@ class Statevector(QuantumState, TolerancesMixin):
             atol = self.atol
         if rtol is None:
             rtol = self.rtol
-        return matrix_equal(self.data, other.data, ignore_phase=True,
-                            rtol=rtol, atol=atol)
+        return matrix_equal(self.data, other.data, ignore_phase=True, rtol=rtol, atol=atol)
 
     def reverse_qargs(self):
         r"""Return a Statevector with reversed subsystem ordering.
@@ -353,9 +355,10 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         ret = copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
-        ret._data = np.reshape(np.transpose(
-            np.reshape(self.data, self._op_shape.tensor_shape), axes),
-                               self._op_shape.shape)
+        ret._data = np.reshape(
+            np.transpose(np.reshape(self.data, self._op_shape.tensor_shape), axes),
+            self._op_shape.shape,
+        )
         ret._op_shape = self._op_shape.reverse()
         return ret
 
@@ -430,7 +433,8 @@ class Statevector(QuantumState, TolerancesMixin):
                 print('Swapped probs: {}'.format(probs_swapped))
         """
         probs = self._subsystem_probabilities(
-            np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs)
+            np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
+        )
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs
@@ -479,9 +483,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # compose with reset projection
         reset = np.dot(reset, np.diag(proj))
-        return self.evolve(
-            Operator(reset, input_dims=dims, output_dims=dims),
-            qargs=qargs)
+        return self.evolve(Operator(reset, input_dims=dims, output_dims=dims), qargs=qargs)
 
     @classmethod
     def from_label(cls, label):
@@ -518,22 +520,22 @@ class Statevector(QuantumState, TolerancesMixin):
                          specified num_qubits.
         """
         # Check label is valid
-        if re.match(r'^[01rl\-+]+$', label) is None:
-            raise QiskitError('Label contains invalid characters.')
+        if re.match(r"^[01rl\-+]+$", label) is None:
+            raise QiskitError("Label contains invalid characters.")
         # We can prepare Z-eigenstates by converting the computational
         # basis bit-string to an integer and preparing that unit vector
         # However, for X-basis states, we will prepare a Z-eigenstate first
         # then apply Hadamard gates to rotate 0 and 1s to + and -.
         z_label = label
         xy_states = False
-        if re.match('^[01]+$', label) is None:
+        if re.match("^[01]+$", label) is None:
             # We have X or Y eigenstates so replace +,r with 0 and
             # -,l with 1 and prepare the corresponding Z state
             xy_states = True
-            z_label = z_label.replace('+', '0')
-            z_label = z_label.replace('r', '0')
-            z_label = z_label.replace('-', '1')
-            z_label = z_label.replace('l', '1')
+            z_label = z_label.replace("+", "0")
+            z_label = z_label.replace("r", "0")
+            z_label = z_label.replace("-", "1")
+            z_label = z_label.replace("l", "1")
         # Initialize Z eigenstate vector
         num_qubits = len(label)
         data = np.zeros(1 << num_qubits, dtype=complex)
@@ -546,9 +548,9 @@ class Statevector(QuantumState, TolerancesMixin):
             # Apply S.H to qubits in Y eigenstates
             y_mat = np.dot(np.diag([1, 1j]), x_mat)
             for qubit, char in enumerate(reversed(label)):
-                if char in ['+', '-']:
+                if char in ["+", "-"]:
                     state = state.evolve(x_mat, qargs=[qubit])
-                elif char in ['r', 'l']:
+                elif char in ["r", "l"]:
                     state = state.evolve(y_mat, qargs=[qubit])
         return state
 
@@ -664,10 +666,9 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
         """
-        return self._vector_to_dict(self.data,
-                                    self._op_shape.dims_l(),
-                                    decimals=decimals,
-                                    string_labels=True)
+        return self._vector_to_dict(
+            self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
+        )
 
     @staticmethod
     def _evolve_operator(statevec, oper, qargs=None):
@@ -691,13 +692,12 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # Reshape input for contraction
         statevec._data = np.reshape(
-            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape),
-                         axes), contract_shape)
+            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape), axes),
+            contract_shape,
+        )
         # Contract and reshape output
-        statevec._data = np.reshape(np.dot(oper.data, statevec._data),
-                                    new_shape.tensor_shape)
-        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv),
-                                    new_shape.shape[0])
+        statevec._data = np.reshape(np.dot(oper.data, statevec._data), new_shape.tensor_shape)
+        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_shape.shape[0])
 
         # Update dimension
         statevec._op_shape = new_shape
@@ -726,18 +726,21 @@ class Statevector(QuantumState, TolerancesMixin):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if obj.definition is None:
-            raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+            raise QiskitError("Cannot apply Instruction: {}".format(obj.name))
         if not isinstance(obj.definition, QuantumCircuit):
-            raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
-                obj.name, type(obj.definition)))
+            raise QiskitError(
+                "{} instruction definition is {}; expected QuantumCircuit".format(
+                    obj.name, type(obj.definition)
+                )
+            )
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
-                    'Cannot apply instruction with classical registers: {}'.format(
-                        instr.name))
+                    "Cannot apply instruction with classical registers: {}".format(instr.name)
+                )
             # Get the integer position of the flat register
             if qargs is None:
                 new_qargs = [qubits[tup] for tup in qregs]

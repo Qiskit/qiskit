@@ -86,7 +86,4 @@ from .summed_op import SummedOp
 from .composed_op import ComposedOp
 from .tensored_op import TensoredOp
 
-__all__ = ['ListOp',
-           'SummedOp',
-           'TensoredOp',
-           'ComposedOp']
+__all__ = ["ListOp", "SummedOp", "TensoredOp", "ComposedOp"]

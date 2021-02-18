@@ -30,10 +30,10 @@ class TestResourceEstimationPass(QiskitTestCase):
         passmanager.append(ResourceEstimation())
         passmanager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['size'], 0)
-        self.assertEqual(passmanager.property_set['depth'], 0)
-        self.assertEqual(passmanager.property_set['width'], 0)
-        self.assertDictEqual(passmanager.property_set['count_ops'], {})
+        self.assertEqual(passmanager.property_set["size"], 0)
+        self.assertEqual(passmanager.property_set["depth"], 0)
+        self.assertEqual(passmanager.property_set["width"], 0)
+        self.assertDictEqual(passmanager.property_set["count_ops"], {})
 
     def test_just_qubits(self):
         """ A dag with 8 operations and no classic bits"""
@@ -52,11 +52,11 @@ class TestResourceEstimationPass(QiskitTestCase):
         passmanager.append(ResourceEstimation())
         passmanager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['size'], 8)
-        self.assertEqual(passmanager.property_set['depth'], 7)
-        self.assertEqual(passmanager.property_set['width'], 2)
-        self.assertDictEqual(passmanager.property_set['count_ops'], {'cx': 6, 'h': 2})
+        self.assertEqual(passmanager.property_set["size"], 8)
+        self.assertEqual(passmanager.property_set["depth"], 7)
+        self.assertEqual(passmanager.property_set["width"], 2)
+        self.assertDictEqual(passmanager.property_set["count_ops"], {"cx": 6, "h": 2})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -24,76 +24,77 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
     def test_empty_circuit(self):
         """Test draw an empty circuit"""
-        filename = self._get_resource_path('test_empty.tex')
+        filename = self._get_resource_path("test_empty.tex")
         qc = QuantumCircuit(1)
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
-        filename = self._get_resource_path('test_tiny.tex')
+        filename = self._get_resource_path("test_tiny.tex")
         qc = QuantumCircuit(1)
         qc.h(0)
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
-        filename = self._get_resource_path('test_normal.tex')
+        filename = self._get_resource_path("test_normal.tex")
         qc = QuantumCircuit(5)
         for qubit in range(5):
             qc.h(qubit)
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_4597(self):
         """Test cregbundle and conditional gates.
-        See: https://github.com/Qiskit/qiskit-terra/pull/4597 """
-        filename = self._get_resource_path('test_4597.tex')
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
+        See: https://github.com/Qiskit/qiskit-terra/pull/4597"""
+        filename = self._get_resource_path("test_4597.tex")
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
         qc = QuantumCircuit(qr, cr)
         qc.x(qr[2]).c_if(cr, 2)
-        qc.draw(output='latex_source', cregbundle=True)
+        qc.draw(output="latex_source", cregbundle=True)
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_deep_circuit(self):
         """Test draw deep circuit."""
-        filename = self._get_resource_path('test_deep.tex')
+        filename = self._get_resource_path("test_deep.tex")
         qc = QuantumCircuit(1)
         for _ in range(100):
             qc.h(0)
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_huge_circuit(self):
         """Test draw huge circuit."""
-        filename = self._get_resource_path('test_huge.tex')
+        filename = self._get_resource_path("test_huge.tex")
         qc = QuantumCircuit(40)
         for qubit in range(39):
             qc.h(qubit)
             qc.cx(qubit, 39)
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_teleport(self):
         """Test draw teleport circuit."""
         from qiskit.circuit.library import U3Gate
-        filename = self._get_resource_path('test_teleport.tex')
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
+
+        filename = self._get_resource_path("test_teleport.tex")
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
         qc = QuantumCircuit(qr, cr)
         # Prepare an initial state
         qc.append(U3Gate(0.3, 0.2, 0.1), [qr[0]])
@@ -112,20 +113,20 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         qc.x(qr[2]).c_if(cr, 2)
         qc.measure(qr[2], cr[2])
 
-        circuit_drawer(qc, filename=filename, output='latex_source')
+        circuit_drawer(qc, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
     def test_global_phase(self):
         """Test circuit with global phase"""
-        filename = self._get_resource_path('test_global_phase.tex')
+        filename = self._get_resource_path("test_global_phase.tex")
         circuit = QuantumCircuit(3, global_phase=1.57079632679)
         circuit.h(range(3))
 
-        circuit_drawer(circuit, filename=filename, output='latex_source')
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

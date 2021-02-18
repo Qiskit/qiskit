@@ -18,8 +18,7 @@ from qiskit.exceptions import QiskitError
 class BackendStatus:
     """Class representing Backend Status."""
 
-    def __init__(self, backend_name, backend_version, operational,
-                 pending_jobs, status_msg):
+    def __init__(self, backend_name, backend_version, operational, pending_jobs, status_msg):
         """Initialize a BackendStatus object
 
         Args:
@@ -36,7 +35,7 @@ class BackendStatus:
         self.backend_version = backend_version
         self.operational = operational
         if pending_jobs < 0:
-            raise QiskitError('Pending jobs must be >=0')
+            raise QiskitError("Pending jobs must be >=0")
         self.pending_jobs = pending_jobs
         self.status_msg = status_msg
 

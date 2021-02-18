@@ -69,6 +69,7 @@ class TestSimulatorsJob(QiskitTestCase):
 
     def test_wait_for_final_state(self):
         """Test waiting for job to reach a final state."""
+
         def _job_call_back(c_job_id, c_job_status, c_job):
             """Job status query callback function."""
             self.assertEqual(c_job_id, job_id)
@@ -107,9 +108,8 @@ class TestSimulatorsJob(QiskitTestCase):
         """Assert a mocked callable has been called once."""
         call_count = mocked_callable.call_count
         self.assertEqual(
-            call_count, 1,
-            'Callable object has been called more than once ({})'.format(
-                call_count))
+            call_count, 1, "Callable object has been called more than once ({})".format(call_count)
+        )
 
 
 @contextmanager
@@ -124,21 +124,22 @@ def mocked_executor():
 
     executor = unittest.mock.MagicMock(spec=futures.Executor)
     executor.submit.return_value = unittest.mock.MagicMock(spec=futures.Future)
-    mock_options = {'return_value': executor, 'autospec': True}
-    with patch.object(futures, 'ProcessPoolExecutor', **mock_options),\
-            patch.object(futures, 'ThreadPoolExecutor', **mock_options):
+    mock_options = {"return_value": executor, "autospec": True}
+    with patch.object(futures, "ProcessPoolExecutor", **mock_options), patch.object(
+        futures, "ThreadPoolExecutor", **mock_options
+    ):
         importlib.reload(basicaerjob)
         yield basicaerjob.BasicAerJob, executor
 
 
 @contextmanager
 def mocked_simulator_binaries():
-    """Context to force binary-based simulators to think the simulators exist.
-    """
-    with patch.object(path, 'exists', return_value=True, autospec=True),\
-            patch.object(path, 'getsize', return_value=1000, autospec=True):
+    """Context to force binary-based simulators to think the simulators exist."""
+    with patch.object(path, "exists", return_value=True, autospec=True), patch.object(
+        path, "getsize", return_value=1000, autospec=True
+    ):
         yield
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

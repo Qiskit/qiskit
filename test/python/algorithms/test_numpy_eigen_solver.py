@@ -25,13 +25,15 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.qubit_op = PauliSumOp.from_list([
-            ("II", -1.052373245772859),
-            ("ZI", 0.39793742484318045),
-            ("IZ", -0.39793742484318045),
-            ("ZZ", -0.01128010425623538),
-            ("XX", 0.18093119978423156),
-        ])
+        self.qubit_op = PauliSumOp.from_list(
+            [
+                ("II", -1.052373245772859),
+                ("ZI", 0.39793742484318045),
+                ("IZ", -0.39793742484318045),
+                ("ZZ", -0.01128010425623538),
+                ("XX", 0.18093119978423156),
+            ]
+        )
 
     def test_ce(self):
         """ Test basics """
@@ -47,8 +49,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
-        np.testing.assert_array_almost_equal(result.eigenvalues.real,
-                                             [-1.85727503, -1.24458455, -0.88272215, -0.22491125])
+        np.testing.assert_array_almost_equal(
+            result.eigenvalues.real, [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
+        )
 
     def test_ce_k4_filtered(self):
         """ Test for k=4 eigenvalues with filter """
@@ -78,5 +81,5 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenstates), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

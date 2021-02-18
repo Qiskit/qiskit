@@ -25,8 +25,9 @@ def dagdependency_to_circuit(dagdependency):
     """
 
     name = dagdependency.name or None
-    circuit = QuantumCircuit(*dagdependency.qregs.values(), *dagdependency.cregs.values(),
-                             name=name)
+    circuit = QuantumCircuit(
+        *dagdependency.qregs.values(), *dagdependency.cregs.values(), name=name
+    )
     circuit.metadata = dagdependency.metadata
 
     circuit.calibrations = dagdependency.calibrations

@@ -19,9 +19,24 @@ import scipy.linalg
 
 import qiskit
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.opflow import (CX, CircuitOp, EvolutionFactory, EvolvedOp, H, I,
-                           ListOp, PauliTrotterEvolution, QDrift, SummedOp,
-                           Suzuki, Trotter, X, Y, Z, Zero)
+from qiskit.opflow import (
+    CX,
+    CircuitOp,
+    EvolutionFactory,
+    EvolvedOp,
+    H,
+    I,
+    ListOp,
+    PauliTrotterEvolution,
+    QDrift,
+    SummedOp,
+    Suzuki,
+    Trotter,
+    X,
+    Y,
+    Z,
+    Zero,
+)
 
 
 class TestEvolution(QiskitOpflowTestCase):
@@ -38,19 +53,19 @@ class TestEvolution(QiskitOpflowTestCase):
         """ trotterization of operator with identity term """
         op = (2.0 * I ^ I) + (Z ^ Y)
         exact_matrix = scipy.linalg.expm(-1j * op.to_matrix())
-        evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=2)
-        with self.subTest('all PauliOp terms'):
+        evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=2)
+        with self.subTest("all PauliOp terms"):
             circ_op = evo.convert(EvolvedOp(op))
             circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
             np.testing.assert_array_almost_equal(exact_matrix, circuit_matrix)
 
-        with self.subTest('MatrixOp identity term'):
+        with self.subTest("MatrixOp identity term"):
             op = (2.0 * I ^ I).to_matrix_op() + (Z ^ Y)
             circ_op = evo.convert(EvolvedOp(op))
             circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
             np.testing.assert_array_almost_equal(exact_matrix, circuit_matrix)
 
-        with self.subTest('CircuitOp identity term'):
+        with self.subTest("CircuitOp identity term"):
             op = (2.0 * I ^ I).to_circuit_op() + (Z ^ Y)
             circ_op = evo.convert(EvolvedOp(op))
             circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
@@ -58,11 +73,13 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_pauli_evolution(self):
         """ pauli evolution test """
-        op = (-1.052373245772859 * I ^ I) + \
-             (0.39793742484318045 * I ^ Z) + \
-             (0.18093119978423156 * X ^ X) + \
-             (-0.39793742484318045 * Z ^ I) + \
-             (-0.01128010425623538 * Z ^ Z)
+        op = (
+            (-1.052373245772859 * I ^ I)
+            + (0.39793742484318045 * I ^ Z)
+            + (0.18093119978423156 * X ^ X)
+            + (-0.39793742484318045 * Z ^ I)
+            + (-0.01128010425623538 * Z ^ Z)
+        )
         evolution = EvolutionFactory.build(operator=op)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = ((np.pi / 2) * op).exp_i() @ CX @ (H ^ I) @ Zero
@@ -71,13 +88,15 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_summedop_pauli_evolution(self):
         """ SummedOp[PauliOp] evolution test """
-        op = SummedOp([
-            (-1.052373245772859 * I ^ I),
-            (0.39793742484318045 * I ^ Z),
-            (0.18093119978423156 * X ^ X),
-            (-0.39793742484318045 * Z ^ I),
-            (-0.01128010425623538 * Z ^ Z),
-        ])
+        op = SummedOp(
+            [
+                (-1.052373245772859 * I ^ I),
+                (0.39793742484318045 * I ^ Z),
+                (0.18093119978423156 * X ^ X),
+                (-0.39793742484318045 * Z ^ I),
+                (-0.01128010425623538 * Z ^ Z),
+            ]
+        )
         evolution = EvolutionFactory.build(operator=op)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = ((np.pi / 2) * op).exp_i() @ CX @ (H ^ I) @ Zero
@@ -86,15 +105,17 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_parameterized_evolution(self):
         """ parameterized evolution test """
-        thetas = ParameterVector('θ', length=7)
-        op = (thetas[0] * I ^ I) + \
-             (thetas[1] * I ^ Z) + \
-             (thetas[2] * X ^ X) + \
-             (thetas[3] * Z ^ I) + \
-             (thetas[4] * Y ^ Z) + \
-             (thetas[5] * Z ^ Z)
+        thetas = ParameterVector("θ", length=7)
+        op = (
+            (thetas[0] * I ^ I)
+            + (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
+        )
         op = op * thetas[6]
-        evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
+        evolution = PauliTrotterEvolution(trotter_mode="trotter", reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         mean = evolution.convert(wf)
@@ -107,14 +128,16 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_bind_parameters(self):
         """ bind parameters test """
-        thetas = ParameterVector('θ', length=6)
-        op = (thetas[1] * I ^ Z) + \
-             (thetas[2] * X ^ X) + \
-             (thetas[3] * Z ^ I) + \
-             (thetas[4] * Y ^ Z) + \
-             (thetas[5] * Z ^ Z)
+        thetas = ParameterVector("θ", length=6)
+        op = (
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
+        )
         op = thetas[0] * op
-        evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
+        evolution = PauliTrotterEvolution(trotter_mode="trotter", reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         wf = wf.assign_parameters({thetas: np.arange(10, 16)})
@@ -126,14 +149,16 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_bind_circuit_parameters(self):
         """ bind circuit parameters test """
-        thetas = ParameterVector('θ', length=6)
-        op = (thetas[1] * I ^ Z) + \
-             (thetas[2] * X ^ X) + \
-             (thetas[3] * Z ^ I) + \
-             (thetas[4] * Y ^ Z) + \
-             (thetas[5] * Z ^ Z)
+        thetas = ParameterVector("θ", length=6)
+        op = (
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
+        )
         op = thetas[0] * op
-        evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
+        evolution = PauliTrotterEvolution(trotter_mode="trotter", reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.convert(wf)
@@ -148,14 +173,16 @@ class TestEvolution(QiskitOpflowTestCase):
     # TODO test with other Op types than CircuitStateFn
     def test_bind_parameter_list(self):
         """ bind parameters list test """
-        thetas = ParameterVector('θ', length=6)
-        op = (thetas[1] * I ^ Z) + \
-             (thetas[2] * X ^ X) + \
-             (thetas[3] * Z ^ I) + \
-             (thetas[4] * Y ^ Z) + \
-             (thetas[5] * Z ^ Z)
+        thetas = ParameterVector("θ", length=6)
+        op = (
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
+        )
         op = thetas[0] * op
-        evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
+        evolution = PauliTrotterEvolution(trotter_mode="trotter", reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.convert(wf)
@@ -172,7 +199,7 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_qdrift(self):
         """ QDrift test """
-        op = (2 * Z ^ Z) + (3 * X ^ X) - (4 * Y ^ Y) + (.5 * Z ^ I)
+        op = (2 * Z ^ Z) + (3 * X ^ X) - (4 * Y ^ Y) + (0.5 * Z ^ I)
         trotterization = QDrift().convert(op)
         self.assertGreater(len(trotterization.oplist), 150)
         last_coeff = None
@@ -187,12 +214,14 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_qdrift_summed_op(self):
         """ QDrift test for SummedOp"""
-        op = SummedOp([
-            (2 * Z ^ Z),
-            (3 * X ^ X),
-            (-4 * Y ^ Y),
-            (.5 * Z ^ I),
-        ])
+        op = SummedOp(
+            [
+                (2 * Z ^ Z),
+                (3 * X ^ X),
+                (-4 * Y ^ Y),
+                (0.5 * Z ^ I),
+            ]
+        )
         trotterization = QDrift().convert(op)
         self.assertGreater(len(trotterization.oplist), 150)
         last_coeff = None
@@ -207,22 +236,26 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_matrix_op_evolution(self):
         """ MatrixOp evolution test """
-        op = (-1.052373245772859 * I ^ I) + \
-             (0.39793742484318045 * I ^ Z) + \
-             (0.18093119978423156 * X ^ X) + \
-             (-0.39793742484318045 * Z ^ I) + \
-             (-0.01128010425623538 * Z ^ Z) * np.pi/2
+        op = (
+            (-1.052373245772859 * I ^ I)
+            + (0.39793742484318045 * I ^ Z)
+            + (0.18093119978423156 * X ^ X)
+            + (-0.39793742484318045 * Z ^ I)
+            + (-0.01128010425623538 * Z ^ Z) * np.pi / 2
+        )
         exp_mat = op.to_matrix_op().exp_i().to_matrix()
         ref_mat = scipy.linalg.expm(-1j * op.to_matrix())
         np.testing.assert_array_almost_equal(ref_mat, exp_mat)
 
     def test_log_i(self):
         """ MatrixOp.log_i() test """
-        op = (-1.052373245772859 * I ^ I) + \
-             (0.39793742484318045 * I ^ Z) + \
-             (0.18093119978423156 * X ^ X) + \
-             (-0.39793742484318045 * Z ^ I) + \
-             (-0.01128010425623538 * Z ^ Z) * np.pi/2
+        op = (
+            (-1.052373245772859 * I ^ I)
+            + (0.39793742484318045 * I ^ Z)
+            + (0.18093119978423156 * X ^ X)
+            + (-0.39793742484318045 * Z ^ I)
+            + (-0.01128010425623538 * Z ^ Z) * np.pi / 2
+        )
         # Test with CircuitOp
         log_exp_op = op.to_matrix_op().exp_i().log_i().to_pauli_op()
         np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
@@ -240,21 +273,27 @@ class TestEvolution(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
 
         # Test with proper ListOp
-        op = ListOp([(0.39793742484318045 * I ^ Z),
-                     (0.18093119978423156 * X ^ X),
-                     (-0.39793742484318045 * Z ^ I),
-                     (-0.01128010425623538 * Z ^ Z) * np.pi / 2])
+        op = ListOp(
+            [
+                (0.39793742484318045 * I ^ Z),
+                (0.18093119978423156 * X ^ X),
+                (-0.39793742484318045 * Z ^ I),
+                (-0.01128010425623538 * Z ^ Z) * np.pi / 2,
+            ]
+        )
         log_exp_op = op.to_matrix_op().exp_i().to_matrix_op().log_i().to_pauli_op()
         np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
 
     def test_matrix_op_parameterized_evolution(self):
         """ parameterized MatrixOp evolution test """
-        theta = Parameter('θ')
-        op = (-1.052373245772859 * I ^ I) + \
-             (0.39793742484318045 * I ^ Z) + \
-             (0.18093119978423156 * X ^ X) + \
-             (-0.39793742484318045 * Z ^ I) + \
-             (-0.01128010425623538 * Z ^ Z)
+        theta = Parameter("θ")
+        op = (
+            (-1.052373245772859 * I ^ I)
+            + (0.39793742484318045 * I ^ Z)
+            + (0.18093119978423156 * X ^ X)
+            + (-0.39793742484318045 * Z ^ I)
+            + (-0.01128010425623538 * Z ^ Z)
+        )
         op = op * theta
         wf = (op.to_matrix_op().exp_i()) @ CX @ (H ^ I) @ Zero
         self.assertIn(theta, wf.to_circuit().parameters)
@@ -269,14 +308,16 @@ class TestEvolution(QiskitOpflowTestCase):
 
     def test_mixed_evolution(self):
         """ bind parameters test """
-        thetas = ParameterVector('θ', length=6)
-        op = (thetas[1] * (I ^ Z).to_matrix_op()) + \
-             (thetas[2] * (X ^ X)).to_matrix_op() + \
-             (thetas[3] * Z ^ I) + \
-             (thetas[4] * Y ^ Z).to_circuit_op() + \
-             (thetas[5] * (Z ^ I).to_circuit_op())
+        thetas = ParameterVector("θ", length=6)
+        op = (
+            (thetas[1] * (I ^ Z).to_matrix_op())
+            + (thetas[2] * (X ^ X)).to_matrix_op()
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z).to_circuit_op()
+            + (thetas[5] * (Z ^ I).to_circuit_op())
+        )
         op = thetas[0] * op
-        evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
+        evolution = PauliTrotterEvolution(trotter_mode="trotter", reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         wf = wf.assign_parameters({thetas: np.arange(10, 16)})
@@ -307,12 +348,11 @@ class TestEvolution(QiskitOpflowTestCase):
         evo = Suzuki()
         evolution = evo.convert(operator)
 
-        matrix = np.array([
-            [0.29192658 - 0.45464871j, -0.84147098j],
-            [-0.84147098j, 0.29192658 + 0.45464871j]
-        ])
+        matrix = np.array(
+            [[0.29192658 - 0.45464871j, -0.84147098j], [-0.84147098j, 0.29192658 + 0.45464871j]]
+        )
         np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

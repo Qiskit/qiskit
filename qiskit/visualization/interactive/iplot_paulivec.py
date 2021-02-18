@@ -22,33 +22,36 @@ from qiskit.visualization.state_visualization import plot_state_paulivec
 
 
 def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
-    """ Create a paulivec representation.
-        Graphical representation of the input array.
-        Args:
-            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
-            figsize (tuple): Figure size in pixels.
-            slider (bool): activate slider
-            show_legend (bool): show legend of graph content
-        Returns:
-            Figure: A matplotlib figure for the visualization
-        Example:
-            .. code-block::
+    """Create a paulivec representation.
+    Graphical representation of the input array.
+    Args:
+        rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
+        figsize (tuple): Figure size in pixels.
+        slider (bool): activate slider
+        show_legend (bool): show legend of graph content
+    Returns:
+        Figure: A matplotlib figure for the visualization
+    Example:
+        .. code-block::
 
-                from qiskit import QuantumCircuit
-                from qiskit.quantum_info import Statevector
-                from qiskit.visualization import iplot_state_paulivec
-                %matplotlib inline
-                qc = QuantumCircuit(2)
-                qc.h(0)
-                qc.cx(0, 1)
-                state = Statevector.from_instruction(qc)
-                iplot_state_paulivec(state)
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import Statevector
+            from qiskit.visualization import iplot_state_paulivec
+            %matplotlib inline
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+            state = Statevector.from_instruction(qc)
+            iplot_state_paulivec(state)
     """
     warnings.warn(
         "The iplot_state_paulivec function is deprecated and will be "
         "removed in a future release. The hosted code this depended on no "
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_paulivec should be "
-        "used directly moving forward.", DeprecationWarning, stacklevel=2)
+        "used directly moving forward.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     fig = plot_state_paulivec(rho, figsize=figsize)
     return fig

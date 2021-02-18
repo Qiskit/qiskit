@@ -26,11 +26,29 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
-                 'sort_key', '_node_id']
+    __slots__ = [
+        "type",
+        "_op",
+        "name",
+        "_qargs",
+        "cargs",
+        "condition",
+        "_wire",
+        "sort_key",
+        "_node_id",
+    ]
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, wire=None, nid=-1):
+    def __init__(
+        self,
+        type=None,
+        op=None,
+        name=None,
+        qargs=None,
+        cargs=None,
+        condition=None,
+        wire=None,
+        nid=-1,
+    ):
         """Create a node """
         self.type = type
         self._op = op
@@ -38,8 +56,10 @@ class DAGNode:
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
         if condition:
-            warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
-                          DeprecationWarning)
+            warnings.warn(
+                "Use of condition arg is deprecated, set condition in instruction.",
+                DeprecationWarning,
+            )
         if self._op:
             self._op.condition = condition if self._op.condition is None else self._op.condition
         self.condition = self._op.condition if self._op is not None else None
@@ -50,7 +70,7 @@ class DAGNode:
     @property
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
-        if not self.type or self.type != 'op':
+        if not self.type or self.type != "op":
             raise QiskitError("The node %s is not an op node" % (str(self)))
         return self._op
 
@@ -76,8 +96,8 @@ class DAGNode:
         """
         Returns the Bit object, else None.
         """
-        if self.type not in ['in', 'out']:
-            raise QiskitError('The node %s is not an input/output node' % str(self))
+        if self.type not in ["in", "out"]:
+            raise QiskitError("The node %s is not an input/output node" % str(self))
         return self._wire
 
     @wire.setter
@@ -114,7 +134,7 @@ class DAGNode:
             Bool: If node1 == node2
         """
         # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == node1.name == node2.name:
+        if "barrier" == node1.name == node2.name:
             return set(node1._qargs) == set(node2._qargs)
         result = False
         if node1.type == node2.type:

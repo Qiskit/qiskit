@@ -64,16 +64,19 @@ class AbelianGrouper(ConverterBase):
             return self.group_subops(operator)
 
         if isinstance(operator, ListOp):
-            if isinstance(operator, SummedOp) and all(isinstance(op, PauliOp)
-                                                      for op in operator.oplist):
+            if isinstance(operator, SummedOp) and all(
+                isinstance(op, PauliOp) for op in operator.oplist
+            ):
                 # For now, we only support graphs over Paulis.
                 return self.group_subops(operator)
             elif self._traverse:
                 return operator.traverse(self.convert)
         elif isinstance(operator, OperatorStateFn) and self._traverse:
-            return OperatorStateFn(self.convert(operator.primitive),
-                                   is_measurement=operator.is_measurement,
-                                   coeff=operator.coeff)
+            return OperatorStateFn(
+                self.convert(operator.primitive),
+                is_measurement=operator.is_measurement,
+                coeff=operator.coeff,
+            )
         elif isinstance(operator, EvolvedOp) and self._traverse:
             return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)  # type: ignore
         return operator
@@ -95,8 +98,9 @@ class AbelianGrouper(ConverterBase):
             for op in list_op.oplist:
                 if not isinstance(op, PauliOp):
                     raise OpflowError(
-                        'Cannot determine Abelian groups if any Operator in list_op is not '
-                        f'`PauliOp`. E.g., {op} ({type(op)})')
+                        "Cannot determine Abelian groups if any Operator in list_op is not "
+                        f"`PauliOp`. E.g., {op} ({type(op)})"
+                    )
 
         edges = cls._anti_commutation_graph(list_op)
         nodes = range(len(list_op))
@@ -113,11 +117,8 @@ class AbelianGrouper(ConverterBase):
         if isinstance(list_op, PauliSumOp):
             primitive = list_op.primitive
             return SummedOp(
-                [
-                    PauliSumOp(primitive[group], grouping_type="TPB")
-                    for group in groups.values()
-                ],
-                coeff=list_op.coeff
+                [PauliSumOp(primitive[group], grouping_type="TPB") for group in groups.values()],
+                coeff=list_op.coeff,
             )
 
         group_ops = [

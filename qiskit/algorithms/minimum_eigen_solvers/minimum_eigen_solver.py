@@ -30,10 +30,8 @@ class MinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
-    ) -> 'MinimumEigensolverResult':
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+    ) -> "MinimumEigensolverResult":
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with

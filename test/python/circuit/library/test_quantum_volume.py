@@ -36,5 +36,5 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
         self.assertTrue(expected.equiv(simulated))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -52,8 +52,12 @@ class AND(QuantumCircuit):
 
     """
 
-    def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
-                 mcx_mode: str = 'noancilla') -> None:
+    def __init__(
+        self,
+        num_variable_qubits: int,
+        flags: Optional[List[int]] = None,
+        mcx_mode: str = "noancilla",
+    ) -> None:
         """Create a new logical AND circuit.
 
         Args:
@@ -67,10 +71,10 @@ class AND(QuantumCircuit):
         self.flags = flags
 
         # add registers
-        qr_variable = QuantumRegister(num_variable_qubits, name='variable')
-        qr_result = QuantumRegister(1, name='result')
+        qr_variable = QuantumRegister(num_variable_qubits, name="variable")
+        qr_result = QuantumRegister(1, name="result")
 
-        super().__init__(qr_variable, qr_result, name='and')
+        super().__init__(qr_variable, qr_result, name="and")
 
         # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
@@ -82,7 +86,7 @@ class AND(QuantumCircuit):
         # determine the number of ancillas
         self.num_ancilla_qubits = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
         if self.num_ancilla_qubits > 0:
-            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, 'ancilla')
+            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, "ancilla")
             self.add_register(qr_ancilla)
         else:
             qr_ancilla = []

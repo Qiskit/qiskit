@@ -54,5 +54,5 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

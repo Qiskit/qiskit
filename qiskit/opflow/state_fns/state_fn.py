@@ -46,14 +46,23 @@ class StateFn(OperatorBase):
 
     @staticmethod
     # pylint: disable=unused-argument
-    def __new__(cls,
-                primitive: Union[str, dict, Result,
-                                 list, np.ndarray, Statevector,
-                                 QuantumCircuit, Instruction,
-                                 OperatorBase] = None,
-                coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                is_measurement: bool = False) -> 'StateFn':
-        """ A factory method to produce the correct type of StateFn subclass
+    def __new__(
+        cls,
+        primitive: Union[
+            str,
+            dict,
+            Result,
+            list,
+            np.ndarray,
+            Statevector,
+            QuantumCircuit,
+            Instruction,
+            OperatorBase,
+        ] = None,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+    ) -> "StateFn":
+        """A factory method to produce the correct type of StateFn subclass
         based on the primitive passed in. Primitive, coeff, and is_measurement arguments
         are passed into subclass's init() as-is automatically by new().
 
@@ -76,31 +85,46 @@ class StateFn(OperatorBase):
         # pylint: disable=cyclic-import,import-outside-toplevel
         if isinstance(primitive, (str, dict, Result)):
             from .dict_state_fn import DictStateFn
+
             return DictStateFn.__new__(DictStateFn)
 
         if isinstance(primitive, (list, np.ndarray, Statevector)):
             from .vector_state_fn import VectorStateFn
+
             return VectorStateFn.__new__(VectorStateFn)
 
         if isinstance(primitive, (QuantumCircuit, Instruction)):
             from .circuit_state_fn import CircuitStateFn
+
             return CircuitStateFn.__new__(CircuitStateFn)
 
         if isinstance(primitive, OperatorBase):
             from .operator_state_fn import OperatorStateFn
+
             return OperatorStateFn.__new__(OperatorStateFn)
 
-        raise TypeError('Unsupported primitive type {} passed into StateFn '
-                        'factory constructor'.format(type(primitive)))
+        raise TypeError(
+            "Unsupported primitive type {} passed into StateFn "
+            "factory constructor".format(type(primitive))
+        )
 
     # TODO allow normalization somehow?
-    def __init__(self,
-                 primitive: Union[str, dict, Result,
-                                  list, np.ndarray, Statevector,
-                                  QuantumCircuit, Instruction,
-                                  OperatorBase] = None,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                 is_measurement: bool = False) -> None:
+    def __init__(
+        self,
+        primitive: Union[
+            str,
+            dict,
+            Result,
+            list,
+            np.ndarray,
+            Statevector,
+            QuantumCircuit,
+            Instruction,
+            OperatorBase,
+        ] = None,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+    ) -> None:
         """
         Args:
             primitive: The primitive which defines the behavior of the underlying State function.
@@ -139,7 +163,7 @@ class StateFn(OperatorBase):
     def adjoint(self) -> OperatorBase:
         raise NotImplementedError
 
-    def _expand_dim(self, num_qubits: int) -> 'StateFn':
+    def _expand_dim(self, num_qubits: int) -> "StateFn":
         raise NotImplementedError
 
     def permute(self, permutation: List[int]) -> OperatorBase:
@@ -163,12 +187,14 @@ class StateFn(OperatorBase):
 
     def mul(self, scalar: Union[int, float, complex, ParameterExpression]) -> OperatorBase:
         if not isinstance(scalar, (int, float, complex, ParameterExpression)):
-            raise ValueError('Operators can only be scalar multiplied by float or complex, not '
-                             '{} of type {}.'.format(scalar, type(scalar)))
+            raise ValueError(
+                "Operators can only be scalar multiplied by float or complex, not "
+                "{} of type {}.".format(scalar, type(scalar))
+            )
 
-        return self.__class__(self.primitive,
-                              coeff=self.coeff * scalar,
-                              is_measurement=self.is_measurement)
+        return self.__class__(
+            self.primitive, coeff=self.coeff * scalar, is_measurement=self.is_measurement
+        )
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         r"""
@@ -194,26 +220,26 @@ class StateFn(OperatorBase):
 
     def tensorpower(self, other: int) -> Union[OperatorBase, int]:
         if not isinstance(other, int) or other <= 0:
-            raise TypeError('Tensorpower can only take positive int arguments')
-        temp = StateFn(self.primitive,
-                       coeff=self.coeff,
-                       is_measurement=self.is_measurement)  # type: OperatorBase
+            raise TypeError("Tensorpower can only take positive int arguments")
+        temp = StateFn(
+            self.primitive, coeff=self.coeff, is_measurement=self.is_measurement
+        )  # type: OperatorBase
         for _ in range(other - 1):
             temp = temp.tensor(self)
         return temp
 
-    def _expand_shorter_operator_and_permute(self, other: OperatorBase,
-                                             permutation: Optional[List[int]] = None) \
-            -> Tuple[OperatorBase, OperatorBase]:
+    def _expand_shorter_operator_and_permute(
+        self, other: OperatorBase, permutation: Optional[List[int]] = None
+    ) -> Tuple[OperatorBase, OperatorBase]:
         # pylint: disable=import-outside-toplevel,cyclic-import
         from ..operator_globals import Zero
 
-        if self == StateFn({'0': 1}, is_measurement=True):
+        if self == StateFn({"0": 1}, is_measurement=True):
             # Zero is special - we'll expand it to the correct qubit number.
-            return StateFn('0' * other.num_qubits, is_measurement=True), other
+            return StateFn("0" * other.num_qubits, is_measurement=True), other
         elif other == Zero:
             # Zero is special - we'll expand it to the correct qubit number.
-            return self, StateFn('0' * self.num_qubits)
+            return self, StateFn("0" * self.num_qubits)
 
         return super()._expand_shorter_operator_and_permute(other, permutation)
 
@@ -221,7 +247,7 @@ class StateFn(OperatorBase):
         raise NotImplementedError
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
-        """ Return matrix representing product of StateFn evaluated on pairs of basis states.
+        """Return matrix representing product of StateFn evaluated on pairs of basis states.
         Overridden by child classes.
 
         Args:
@@ -236,8 +262,9 @@ class StateFn(OperatorBase):
         """
         raise NotImplementedError
 
-    def compose(self, other: OperatorBase,
-                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+    def compose(
+        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
+    ) -> OperatorBase:
         r"""
         Composition (Linear algebra-style: A@B(x) = A(B(x))) is not well defined for states
         in the binary function model, but is well defined for measurements.
@@ -256,7 +283,8 @@ class StateFn(OperatorBase):
         # TODO maybe allow outers later to produce density operators or projectors, but not yet.
         if not self.is_measurement and not front:
             raise ValueError(
-                'Composition with a Statefunction in the first operand is not defined.')
+                "Composition with a Statefunction in the first operand is not defined."
+            )
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
 
@@ -266,16 +294,18 @@ class StateFn(OperatorBase):
         # pylint: disable=import-outside-toplevel
         from ..primitive_ops.circuit_op import CircuitOp
 
-        if self.primitive == {'0' * self.num_qubits: 1.0} and isinstance(other, CircuitOp):
+        if self.primitive == {"0" * self.num_qubits: 1.0} and isinstance(other, CircuitOp):
             # Returning CircuitStateFn
-            return StateFn(other.primitive, is_measurement=self.is_measurement,
-                           coeff=self.coeff * other.coeff)
+            return StateFn(
+                other.primitive, is_measurement=self.is_measurement, coeff=self.coeff * other.coeff
+            )
 
         from ..list_ops.composed_op import ComposedOp
+
         return ComposedOp([new_self, other])
 
     def power(self, exponent: int) -> OperatorBase:
-        """ Compose with Self Multiple Times, undefined for StateFns.
+        """Compose with Self Multiple Times, undefined for StateFns.
 
         Args:
             exponent: The number of times to compose self with self.
@@ -283,27 +313,27 @@ class StateFn(OperatorBase):
         Raises:
             ValueError: This function is not defined for StateFns.
         """
-        raise ValueError('Composition power over Statefunctions or Measurements is not defined.')
+        raise ValueError("Composition power over Statefunctions or Measurements is not defined.")
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
         if self.coeff == 1.0:
-            return "{}({})".format('StateFunction' if not self.is_measurement
-                                   else 'Measurement', self.coeff)
+            return "{}({})".format(
+                "StateFunction" if not self.is_measurement else "Measurement", self.coeff
+            )
         else:
-            return "{}({}) * {}".format('StateFunction' if not self.is_measurement
-                                        else 'Measurement',
-                                        self.coeff,
-                                        prim_str)
+            return "{}({}) * {}".format(
+                "StateFunction" if not self.is_measurement else "Measurement", self.coeff, prim_str
+            )
 
     def __repr__(self) -> str:
-        return "{}({}, coeff={}, is_measurement={})".format(self.__class__.__name__,
-                                                            repr(self.primitive),
-                                                            self.coeff, self.is_measurement)
+        return "{}({}, coeff={}, is_measurement={})".format(
+            self.__class__.__name__, repr(self.primitive), self.coeff, self.is_measurement
+        )
 
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
-             ) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self, front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+    ) -> Union[OperatorBase, float, complex]:
         raise NotImplementedError
 
     @property
@@ -322,6 +352,7 @@ class StateFn(OperatorBase):
             if isinstance(unrolled_dict, list):
                 # pylint: disable=import-outside-toplevel
                 from ..list_ops.list_op import ListOp
+
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
@@ -332,10 +363,11 @@ class StateFn(OperatorBase):
     def reduce(self) -> OperatorBase:
         return self
 
-    def traverse(self,
-                 convert_fn: Callable,
-                 coeff: Optional[Union[int, float, complex, ParameterExpression]] = None
-                 ) -> OperatorBase:
+    def traverse(
+        self,
+        convert_fn: Callable,
+        coeff: Optional[Union[int, float, complex, ParameterExpression]] = None,
+    ) -> OperatorBase:
         r"""
         Apply the convert_fn to the internal primitive if the primitive is an Operator (as in
         the case of ``OperatorStateFn``). Otherwise do nothing. Used by converters.
@@ -352,13 +384,14 @@ class StateFn(OperatorBase):
             coeff = self.coeff
 
         if isinstance(self.primitive, OperatorBase):
-            return StateFn(convert_fn(self.primitive),
-                           coeff=coeff, is_measurement=self.is_measurement)
+            return StateFn(
+                convert_fn(self.primitive), coeff=coeff, is_measurement=self.is_measurement
+            )
         else:
             return self
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
-        """ Return a ``VectorStateFn`` for this ``StateFn``.
+        """Return a ``VectorStateFn`` for this ``StateFn``.
 
         Args:
             massive: Whether to allow large conversions, e.g. creating a matrix representing
@@ -369,15 +402,15 @@ class StateFn(OperatorBase):
         """
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .vector_state_fn import VectorStateFn
+
         return VectorStateFn(self.to_matrix(massive=massive), is_measurement=self.is_measurement)
 
     # TODO to_dict_op
 
-    def sample(self,
-               shots: int = 1024,
-               massive: bool = False,
-               reverse_endianness: bool = False) -> Dict[str, Union[int, float]]:
-        """ Sample the state function as a normalized probability distribution. Returns dict of
+    def sample(
+        self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False
+    ) -> Dict[str, Union[int, float]]:
+        """Sample the state function as a normalized probability distribution. Returns dict of
         bitstrings in order of probability, with values being probability.
 
         Args:

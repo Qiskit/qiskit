@@ -48,11 +48,13 @@ class DerivativeBase(ConverterBase):
 
     # pylint: disable=arguments-differ
     @abstractmethod
-    def convert(self,
-                operator: OperatorBase,
-                params: Optional[Union[ParameterVector, ParameterExpression,
-                                       List[ParameterExpression]]] = None
-                ) -> OperatorBase:
+    def convert(
+        self,
+        operator: OperatorBase,
+        params: Optional[
+            Union[ParameterVector, ParameterExpression, List[ParameterExpression]]
+        ] = None,
+    ) -> OperatorBase:
         r"""
         Args:
             operator: The operator we are taking the gradient, Hessian or QFI of
@@ -66,18 +68,21 @@ class DerivativeBase(ConverterBase):
         """
         raise NotImplementedError
 
-    def gradient_wrapper(self,
-                         operator: OperatorBase,
-                         bind_params: Union[ParameterExpression, ParameterVector,
-                                            List[ParameterExpression]],
-                         grad_params: Optional[Union[ParameterExpression, ParameterVector,
-                                                     List[ParameterExpression],
-                                                     Tuple[ParameterExpression,
-                                                           ParameterExpression],
-                                                     List[Tuple[ParameterExpression,
-                                                                ParameterExpression]]]] = None,
-                         backend: Optional[Union[BaseBackend, QuantumInstance]] = None) \
-            -> Callable[[Iterable], np.ndarray]:
+    def gradient_wrapper(
+        self,
+        operator: OperatorBase,
+        bind_params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+        grad_params: Optional[
+            Union[
+                ParameterExpression,
+                ParameterVector,
+                List[ParameterExpression],
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+    ) -> Callable[[Iterable], np.ndarray]:
         """Get a callable function which provides the respective gradient, Hessian or QFI for given
         parameter values. This callable can be used as gradient function for optimizers.
 
@@ -94,6 +99,7 @@ class DerivativeBase(ConverterBase):
             takes an iterable as argument which holds the parameter values.
         """
         from ..converters import CircuitSampler
+
         if not grad_params:
             grad_params = bind_params
 
@@ -112,8 +118,9 @@ class DerivativeBase(ConverterBase):
         return gradient_fn
 
     @staticmethod
-    def parameter_expression_grad(param_expr: ParameterExpression,
-                                  param: ParameterExpression) -> Union[ParameterExpression, float]:
+    def parameter_expression_grad(
+        param_expr: ParameterExpression, param: ParameterExpression
+    ) -> Union[ParameterExpression, float]:
         """Get the derivative of a parameter expression w.r.t. the given parameter.
 
         Args:
@@ -130,6 +137,7 @@ class DerivativeBase(ConverterBase):
             return 0.0
 
         import sympy as sy
+
         expr = param_expr._symbol_expr
         keys = param_expr._parameter_symbols[param]
         expr_grad = sy.N(0)
@@ -198,19 +206,21 @@ class DerivativeBase(ConverterBase):
             take_norm_of_coeffs = False
             for op in operator.oplist:
                 if take_norm_of_coeffs:
-                    total_coeff *= (op.coeff * np.conj(op.coeff))  # type: ignore
+                    total_coeff *= op.coeff * np.conj(op.coeff)  # type: ignore
                 else:
                     total_coeff *= op.coeff  # type: ignore
-                if hasattr(op, 'primitive'):
+                if hasattr(op, "primitive"):
                     prim = op.primitive  # type: ignore
                     if isinstance(prim, ListOp):
-                        raise ValueError("This operator was not properly decomposed. "
-                                         "By this point, all operator measurements should "
-                                         "contain single operators, otherwise the coefficient "
-                                         "gradients will not be handled properly.")
-                    if hasattr(prim, 'coeff'):
+                        raise ValueError(
+                            "This operator was not properly decomposed. "
+                            "By this point, all operator measurements should "
+                            "contain single operators, otherwise the coefficient "
+                            "gradients will not be handled properly."
+                        )
+                    if hasattr(prim, "coeff"):
                         if take_norm_of_coeffs:
-                            total_coeff *= (prim._coeff * np.conj(prim._coeff))
+                            total_coeff *= prim._coeff * np.conj(prim._coeff)
                         else:
                             total_coeff *= prim._coeff
                 if isinstance(op, OperatorStateFn) and op.is_measurement:

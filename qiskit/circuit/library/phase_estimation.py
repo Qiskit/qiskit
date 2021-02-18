@@ -48,11 +48,13 @@ class PhaseEstimation(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_evaluation_qubits: int,
-                 unitary: QuantumCircuit,
-                 iqft: Optional[QuantumCircuit] = None,
-                 name: str = 'QPE') -> None:
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        unitary: QuantumCircuit,
+        iqft: Optional[QuantumCircuit] = None,
+        name: str = "QPE",
+    ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of evaluation qubits.
@@ -79,8 +81,8 @@ class PhaseEstimation(QuantumCircuit):
                 circuit = PhaseEstimation(3, unitary)
                 %circuit_library_info circuit
         """
-        qr_eval = QuantumRegister(num_evaluation_qubits, 'eval')
-        qr_state = QuantumRegister(unitary.num_qubits, 'q')
+        qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
+        qr_state = QuantumRegister(unitary.num_qubits, "q")
         super().__init__(qr_eval, qr_state, name=name)
 
         if iqft is None:
@@ -89,6 +91,6 @@ class PhaseEstimation(QuantumCircuit):
         self.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            self.append(unitary.power(2**j).control(), [j] + qr_state[:])
+            self.append(unitary.power(2 ** j).control(), [j] + qr_state[:])
 
         self.append(iqft, qr_eval[:])  # final QFT

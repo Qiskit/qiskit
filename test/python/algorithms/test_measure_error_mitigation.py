@@ -45,14 +45,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend=backend,
-                                           seed_simulator=1679,
-                                           seed_transpiler=167,
-                                           shots=1000,
-                                           noise_model=noise_model,
-                                           measurement_error_mitigation_cls=CompleteMeasFitter,
-                                           cals_matrix_refresh_period=0)
+        backend = Aer.get_backend("qasm_simulator")
+        quantum_instance = QuantumInstance(
+            backend=backend,
+            seed_simulator=1679,
+            seed_transpiler=167,
+            shots=1000,
+            noise_model=noise_model,
+            measurement_error_mitigation_cls=CompleteMeasFitter,
+            cals_matrix_refresh_period=0,
+        )
         # circuit
         qc1 = QuantumCircuit(2, 2)
         qc1.h(0)
@@ -67,7 +69,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         # this should run smoothly
         quantum_instance.execute([qc1, qc2])
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
 
         # failure case
@@ -97,34 +99,32 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend('qasm_simulator')
+        backend = Aer.get_backend("qasm_simulator")
 
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=167,
             seed_transpiler=167,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter
+            measurement_error_mitigation_cls=CompleteMeasFitter,
         )
 
-        h2_hamiltonian = -1.052373245772859 * (I ^ I) \
-            + 0.39793742484318045 * (I ^ Z) \
-            - 0.39793742484318045 * (Z ^ I) \
-            - 0.01128010425623538 * (Z ^ Z) \
+        h2_hamiltonian = (
+            -1.052373245772859 * (I ^ I)
+            + 0.39793742484318045 * (I ^ Z)
+            - 0.39793742484318045 * (Z ^ I)
+            - 0.01128010425623538 * (Z ^ Z)
             + 0.18093119978423156 * (X ^ X)
+        )
         optimizer = SPSA(maxiter=200)
         var_form = EfficientSU2(2, reps=1)
 
-        vqe = VQE(
-            var_form=var_form,
-            optimizer=optimizer,
-            quantum_instance=quantum_instance
-        )
+        vqe = VQE(var_form=var_form, optimizer=optimizer, quantum_instance=quantum_instance)
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
-        self.assertGreater(quantum_instance.time_taken, 0.)
+        self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

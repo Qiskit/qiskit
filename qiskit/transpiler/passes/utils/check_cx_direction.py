@@ -44,14 +44,13 @@ class CheckCXDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        self.property_set['is_direction_mapped'] = True
+        self.property_set["is_direction_mapped"] = True
         edges = self.coupling_map.get_edges()
 
         for gate in dag.two_qubit_ops():
             physical_q0 = gate.qargs[0].index
             physical_q1 = gate.qargs[1].index
 
-            if isinstance(gate.op, CXGate) and (
-                    physical_q0, physical_q1) not in edges:
-                self.property_set['is_direction_mapped'] = False
+            if isinstance(gate.op, CXGate) and (physical_q0, physical_q1) not in edges:
+                self.property_set["is_direction_mapped"] = False
                 return

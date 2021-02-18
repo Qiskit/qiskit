@@ -38,14 +38,14 @@ class TestUnitarySynthesis(QiskitTestCase):
 
         out = UnitarySynthesis(None).run(dag)
 
-        self.assertEqual(out.count_ops(), {'unitary': 1})
+        self.assertEqual(out.count_ops(), {"unitary": 1})
 
     @data(
-        ['u3', 'cx'],
-        ['u1', 'u2', 'u3', 'cx'],
-        ['rx', 'ry', 'rxx'],
-        ['rx', 'rz', 'iswap'],
-        ['u3', 'rx', 'rz', 'cz', 'iswap'],
+        ["u3", "cx"],
+        ["u1", "u2", "u3", "cx"],
+        ["rx", "ry", "rxx"],
+        ["rx", "rz", "iswap"],
+        ["u3", "rx", "rz", "cz", "iswap"],
     )
     def test_two_qubit_synthesis_to_basis(self, basis_gates):
         """Verify two qubit unitaries are synthesized to match basis gates."""
@@ -63,5 +63,5 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

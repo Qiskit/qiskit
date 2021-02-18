@@ -21,7 +21,7 @@ from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
 class FakeArmonk(FakePulseBackend):
     """A fake 1 qubit backend.
 
-      0
+    0
     """
 
     dirname = os.path.dirname(__file__)

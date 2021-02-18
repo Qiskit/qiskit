@@ -41,7 +41,7 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        self.property_set['is_swap_mapped'] = True
+        self.property_set["is_swap_mapped"] = True
 
         if self.coupling_map is None:
             return
@@ -51,7 +51,10 @@ class CheckMap(AnalysisPass):
             physical_q1 = gate.qargs[1].index
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                self.property_set['check_map_msg'] = "%s(%s, %s) failed" % \
-                                                     (gate.name, physical_q0, physical_q1)
-                self.property_set['is_swap_mapped'] = False
+                self.property_set["check_map_msg"] = "%s(%s, %s) failed" % (
+                    gate.name,
+                    physical_q0,
+                    physical_q1,
+                )
+                self.property_set["is_swap_mapped"] = False
                 return

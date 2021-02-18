@@ -43,7 +43,7 @@ class TestPassManagerRun(QiskitTestCase):
 
               13 -  12  - 11 -  10 -  9  -  8  -   7
         """
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
@@ -54,11 +54,14 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(PassManagerConfig(
-            basis_gates=basis_gates,
-            coupling_map=CouplingMap(coupling_map),
-            initial_layout=Layout.from_qubit_list(initial_layout),
-            seed_transpiler=42))
+        pass_manager = level_1_pass_manager(
+            PassManagerConfig(
+                basis_gates=basis_gates,
+                coupling_map=CouplingMap(coupling_map),
+                initial_layout=Layout.from_qubit_list(initial_layout),
+                seed_transpiler=42,
+            )
+        )
         new_circuit = pass_manager.run(circuit)
 
         for gate, qargs, _ in new_circuit.data:
@@ -84,7 +87,7 @@ class TestPassManagerRun(QiskitTestCase):
 
               13 -  12  - 11 -  10 -  9  -  8  -   7
         """
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, "qr")
         circuit1 = QuantumCircuit(qr)
         circuit1.h(qr[0])
         circuit1.cx(qr[0], qr[1])
@@ -100,11 +103,14 @@ class TestPassManagerRun(QiskitTestCase):
         basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        pass_manager = level_1_pass_manager(PassManagerConfig(
-            basis_gates=basis_gates,
-            coupling_map=CouplingMap(coupling_map),
-            initial_layout=Layout.from_qubit_list(initial_layout),
-            seed_transpiler=42))
+        pass_manager = level_1_pass_manager(
+            PassManagerConfig(
+                basis_gates=basis_gates,
+                coupling_map=CouplingMap(coupling_map),
+                initial_layout=Layout.from_qubit_list(initial_layout),
+                seed_transpiler=42,
+            )
+        )
         new_circuits = pass_manager.run([circuit1, circuit2])
 
         for new_circuit in new_circuits:

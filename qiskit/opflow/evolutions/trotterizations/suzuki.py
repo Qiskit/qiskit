@@ -31,9 +31,8 @@ class Suzuki(TrotterizationBase):
 
     Detailed in https://arxiv.org/pdf/quant-ph/0508139.pdf.
     """
-    def __init__(self,
-                 reps: int = 1,
-                 order: int = 2) -> None:
+
+    def __init__(self, reps: int = 1, order: int = 2) -> None:
         """
         Args:
             reps: The number of times to repeat the expansion circuit.
@@ -55,7 +54,7 @@ class Suzuki(TrotterizationBase):
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         if not isinstance(operator, (SummedOp, PauliSumOp)):
-            raise TypeError('Trotterization converters can only convert SummedOp or PauliSumOp.')
+            raise TypeError("Trotterization converters can only convert SummedOp or PauliSumOp.")
 
         if isinstance(operator, PauliSumOp):
             comp_list = self._recursive_expansion(operator, operator.coeff, self.order, self.reps)
@@ -63,17 +62,18 @@ class Suzuki(TrotterizationBase):
             comp_list = Suzuki._recursive_expansion(
                 cast(List[List[Union[complex, Pauli]]], operator.oplist),
                 cast(float, operator.coeff),
-                self.order, self.reps)
+                self.order,
+                self.reps,
+            )
 
         single_rep = ComposedOp(cast(List[OperatorBase], comp_list))
         full_evo = single_rep.power(self.reps)
         return full_evo.reduce()
 
     @staticmethod
-    def _recursive_expansion(op_list: List[List[Union[complex, Pauli]]],
-                             evo_time: float,
-                             expansion_order: int,
-                             reps: int) -> List[PrimitiveOp]:
+    def _recursive_expansion(
+        op_list: List[List[Union[complex, Pauli]]], evo_time: float, expansion_order: int, reps: int
+    ) -> List[PrimitiveOp]:
         """
         Compute the list of pauli terms for a single slice of the suzuki expansion
         following the paper https://arxiv.org/pdf/quant-ph/0508139.pdf.
@@ -92,13 +92,14 @@ class Suzuki(TrotterizationBase):
             # Base first-order Trotter case
             return [(op * (evo_time / reps)).exp_i() for op in op_list]  # type: ignore
         if expansion_order == 2:
-            half = Suzuki._recursive_expansion(op_list, evo_time / 2,
-                                               expansion_order - 1, reps)
+            half = Suzuki._recursive_expansion(op_list, evo_time / 2, expansion_order - 1, reps)
             return list(reversed(half)) + half
         else:
             p_k = (4 - 4 ** (1 / (2 * expansion_order - 1))) ** -1
-            side = 2 * Suzuki._recursive_expansion(op_list, evo_time
-                                                   * p_k, expansion_order - 2, reps)
-            middle = Suzuki._recursive_expansion(op_list, evo_time * (1 - 4 * p_k),
-                                                 expansion_order - 2, reps)
+            side = 2 * Suzuki._recursive_expansion(
+                op_list, evo_time * p_k, expansion_order - 2, reps
+            )
+            middle = Suzuki._recursive_expansion(
+                op_list, evo_time * (1 - 4 * p_k), expansion_order - 2, reps
+            )
             return side + middle + side

@@ -98,7 +98,7 @@ class PTM(QuantumChannel):
                 output_dim = np.product(input_dims)
             else:
                 output_dim = int(np.sqrt(dout))
-            if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
+            if output_dim ** 2 != dout or input_dim ** 2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
             # Otherwise we initialize by conversion from another Qiskit
@@ -113,7 +113,7 @@ class PTM(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a PTM object
-            rep = getattr(data, '_channel_rep', 'Operator')
+            rep = getattr(data, "_channel_rep", "Operator")
             ptm = _to_ptm(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
@@ -121,7 +121,7 @@ class PTM(QuantumChannel):
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
         num_qubits = int(np.log2(input_dim))
-        if 2**num_qubits != input_dim or input_dim != output_dim:
+        if 2 ** num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)
 
@@ -133,8 +133,7 @@ class PTM(QuantumChannel):
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._output_dim, self._output_dim, self._input_dim,
-                self._input_dim)
+        return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
     def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
@@ -157,10 +156,9 @@ class PTM(QuantumChannel):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if qargs is not None:
-            return PTM(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            return PTM(SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to PTM
         if not isinstance(other, PTM):

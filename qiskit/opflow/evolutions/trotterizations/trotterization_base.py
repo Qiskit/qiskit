@@ -21,7 +21,7 @@ from ..evolution_base import EvolutionBase
 
 
 class TrotterizationBase(EvolutionBase):
-    """ A base for Trotterization methods, algorithms for approximating exponentiations of
+    """A base for Trotterization methods, algorithms for approximating exponentiations of
     operator sums by compositions of exponentiations.
     """
 
@@ -31,7 +31,7 @@ class TrotterizationBase(EvolutionBase):
 
     @property
     def reps(self) -> int:
-        """ The number of repetitions to use in the Trotterization, improving the approximation
+        """The number of repetitions to use in the Trotterization, improving the approximation
         accuracy.
         """
         return self._reps

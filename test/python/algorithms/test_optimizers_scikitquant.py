@@ -31,22 +31,24 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         """ Set the problem. """
         super().setUp()
         algorithm_globals.random_seed = 50
-        self.qubit_op = PauliSumOp.from_list([
-            ("II", -1.052373245772859),
-            ("IZ", 0.39793742484318045),
-            ("ZI", -0.39793742484318045),
-            ("ZZ", -0.01128010425623538),
-            ("XX", 0.18093119978423156),
-        ])
+        self.qubit_op = PauliSumOp.from_list(
+            [
+                ("II", -1.052373245772859),
+                ("IZ", 0.39793742484318045),
+                ("ZI", -0.39793742484318045),
+                ("ZZ", -0.01128010425623538),
+                ("XX", 0.18093119978423156),
+            ]
+        )
 
     def _optimize(self, optimizer):
         """ launch vqe """
-        qe = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                             seed_simulator=algorithm_globals.random_seed,
-                             seed_transpiler=algorithm_globals.random_seed)
-        vqe = VQE(var_form=RealAmplitudes(),
-                  optimizer=optimizer,
-                  quantum_instance=qe)
+        qe = QuantumInstance(
+            BasicAer.get_backend("statevector_simulator"),
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
+        vqe = VQE(var_form=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
@@ -75,5 +77,5 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.skipTest(str(ex))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

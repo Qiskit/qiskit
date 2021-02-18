@@ -34,8 +34,7 @@ class TestAstToDag(QiskitTestCase):
 
     def test_from_ast_to_dag(self):
         """Test Unroller.execute()"""
-        ast = qasm.Qasm(filename=self._get_resource_path('example.qasm',
-                                                         Path.QASMS)).parse()
+        ast = qasm.Qasm(filename=self._get_resource_path("example.qasm", Path.QASMS)).parse()
         dag_circuit = ast_to_dag(ast)
         expected_result = """\
 OPENQASM 2.0;
@@ -62,5 +61,5 @@ measure r[2] -> d[2];
         self.assertEqual(dag_circuit, expected_dag)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

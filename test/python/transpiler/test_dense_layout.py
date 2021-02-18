@@ -30,9 +30,8 @@ class TestDenseLayout(QiskitTestCase):
         self.cmap20 = FakeTokyo().configuration().coupling_map
 
     def test_5q_circuit_20q_coupling(self):
-        """Test finds dense 5q corner in 20q coupling map.
-        """
-        qr = QuantumRegister(5, 'q')
+        """Test finds dense 5q corner in 20q coupling map."""
+        qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[3], qr[4])
@@ -43,7 +42,7 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(CouplingMap(self.cmap20))
         pass_.run(dag)
 
-        layout = pass_.property_set['layout']
+        layout = pass_.property_set["layout"]
         self.assertEqual(layout[qr[0]], 11)
         self.assertEqual(layout[qr[1]], 10)
         self.assertEqual(layout[qr[2]], 6)
@@ -51,10 +50,9 @@ class TestDenseLayout(QiskitTestCase):
         self.assertEqual(layout[qr[4]], 0)
 
     def test_6q_circuit_20q_coupling(self):
-        """Test finds dense 5q corner in 20q coupling map.
-        """
-        qr0 = QuantumRegister(3, 'q0')
-        qr1 = QuantumRegister(3, 'q1')
+        """Test finds dense 5q corner in 20q coupling map."""
+        qr0 = QuantumRegister(3, "q0")
+        qr1 = QuantumRegister(3, "q1")
         circuit = QuantumCircuit(qr0, qr1)
         circuit.cx(qr0[0], qr1[2])
         circuit.cx(qr1[1], qr0[2])
@@ -63,7 +61,7 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(CouplingMap(self.cmap20))
         pass_.run(dag)
 
-        layout = pass_.property_set['layout']
+        layout = pass_.property_set["layout"]
         self.assertEqual(layout[qr0[0]], 11)
         self.assertEqual(layout[qr0[1]], 10)
         self.assertEqual(layout[qr0[2]], 6)
@@ -72,5 +70,5 @@ class TestDenseLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[2]], 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

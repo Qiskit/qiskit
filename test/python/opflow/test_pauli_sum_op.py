@@ -56,9 +56,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ add test """
         pauli_sum = 3 * X + Y
         self.assertIsInstance(pauli_sum, PauliSumOp)
-        expected = PauliSumOp(
-            3.0 * SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Y"))
-        )
+        expected = PauliSumOp(3.0 * SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Y")))
         self.assertEqual(pauli_sum, expected)
 
         pauli_sum = X + Y
@@ -69,22 +67,16 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """ multiplication test """
         target = 2 * (X + Z)
         self.assertEqual(target.coeff, 1)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (2 + 0j)), ("Z", (2 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (2 + 0j)), ("Z", (2 + 0j))])
 
         target = 0 * (X + Z)
         self.assertEqual(target.coeff, 0)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))])
 
         beta = Parameter("β")
         target = beta * (X + Z)
         self.assertEqual(target.coeff, 1.0 * beta)
-        self.assertListEqual(
-            target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))]
-        )
+        self.assertListEqual(target.primitive.to_list(), [("X", (1 + 0j)), ("Z", (1 + 0j))])
 
     def test_adjoint(self):
         """ adjoint test """
@@ -128,16 +120,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
     def test_tensor(self):
         """ Test for tensor operation """
         pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
-        expected = (
-            (I ^ I)
-            - (I ^ Z)
-            - (Z ^ I)
-            + (Z ^ Z)
-            + (X ^ X)
-            + (X ^ Y)
-            - (Y ^ X)
-            - (Y ^ Y)
-        )
+        expected = (I ^ I) - (I ^ Z) - (Z ^ I) + (Z ^ Z) + (X ^ X) + (X ^ Y) - (Y ^ X) - (Y ^ Y)
         self.assertEqual(pauli_sum, expected)
 
     def test_permute(self):
@@ -183,20 +166,20 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual(target1, expected)
 
         phi = 0.5 * ((One + Zero) ^ 2)
-        zero_op = ((Z + I)/2)
-        one_op = ((I - Z)/2)
+        zero_op = (Z + I) / 2
+        one_op = (I - Z) / 2
         h1 = one_op ^ I
         h2 = one_op ^ (one_op + zero_op)
         h2a = one_op ^ one_op
         h2b = one_op ^ zero_op
-        self.assertEqual((~OperatorStateFn(h1)@phi).eval(), 0.5)
-        self.assertEqual((~OperatorStateFn(h2)@phi).eval(), 0.5)
-        self.assertEqual((~OperatorStateFn(h2a)@phi).eval(), 0.25)
-        self.assertEqual((~OperatorStateFn(h2b)@phi).eval(), 0.25)
+        self.assertEqual((~OperatorStateFn(h1) @ phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2) @ phi).eval(), 0.5)
+        self.assertEqual((~OperatorStateFn(h2a) @ phi).eval(), 0.25)
+        self.assertEqual((~OperatorStateFn(h2b) @ phi).eval(), 0.25)
 
         pauli_op = (Z ^ I ^ X) + (I ^ I ^ Y)
         mat_op = pauli_op.to_matrix_op()
-        full_basis = [''.join(b) for b in product('01', repeat=pauli_op.num_qubits)]
+        full_basis = ["".join(b) for b in product("01", repeat=pauli_op.num_qubits)]
         for bstr1, bstr2 in product(full_basis, full_basis):
             self.assertEqual(pauli_op.eval(bstr1).eval(bstr2), mat_op.eval(bstr1).eval(bstr2))
 
@@ -263,27 +246,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
     def test_matrix_iter(self):
         """Test PauliSumOp dense matrix_iter method."""
-        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
         table = PauliTable.from_labels(labels)
         coeff = 10
         op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter()):
-            self.assertTrue(
-                np.array_equal(i, coeff * coeffs[idx] *
-                               Pauli(labels[idx]).to_matrix()))
+            self.assertTrue(np.array_equal(i, coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix()))
 
     def test_matrix_iter_sparse(self):
         """Test PauliSumOp sparse matrix_iter method."""
-        labels = ['III', 'IXI', 'IYY', 'YIZ', 'XYZ', 'III']
+        labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
         coeff = 10
         table = PauliTable.from_labels(labels)
         op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
             self.assertTrue(
-                np.array_equal(i.toarray(), coeff * coeffs[idx] *
-                               Pauli(labels[idx]).to_matrix()))
+                np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
+            )
 
 
 if __name__ == "__main__":

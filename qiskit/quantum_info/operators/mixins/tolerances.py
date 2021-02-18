@@ -21,6 +21,7 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 class TolerancesMeta(ABCMeta):
     """Metaclass to handle tolerances"""
+
     def __init__(cls, *args, **kwargs):
         cls._ATOL_DEFAULT = ATOL_DEFAULT
         cls._RTOL_DEFAULT = RTOL_DEFAULT
@@ -35,11 +36,11 @@ class TolerancesMeta(ABCMeta):
     def _check_value(cls, value, value_name):
         """Check if value is within valid ranges"""
         if value < 0:
-            raise QiskitError(
-                "Invalid {} ({}) must be non-negative.".format(value_name, value))
+            raise QiskitError("Invalid {} ({}) must be non-negative.".format(value_name, value))
         if value > cls._MAX_TOL:
             raise QiskitError(
-                "Invalid {} ({}) must be less than {}.".format(value_name, value, cls._MAX_TOL))
+                "Invalid {} ({}) must be less than {}.".format(value_name, value, cls._MAX_TOL)
+            )
 
     @atol.setter
     def atol(cls, value):

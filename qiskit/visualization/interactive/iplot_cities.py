@@ -20,31 +20,34 @@ from qiskit.visualization.state_visualization import plot_state_city
 
 
 def iplot_state_city(rho, figsize=None):
-    """ Create a cities representation.
-        Graphical representation of the input array using a city style graph.
-        Args:
-            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
-            figsize (tuple): The figure size in pixels.
-        Returns:
-            Figure: A matplotlib figure for the visualization
-        Example:
-            .. code-block::
+    """Create a cities representation.
+    Graphical representation of the input array using a city style graph.
+    Args:
+        rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
+        figsize (tuple): The figure size in pixels.
+    Returns:
+        Figure: A matplotlib figure for the visualization
+    Example:
+        .. code-block::
 
-                from qiskit import QuantumCircuit
-                from qiskit.quantum_info import DensityMatrix
-                from qiskit.visualization import iplot_state_city
-                %matplotlib inline
-                qc = QuantumCircuit(2)
-                qc.h(0)
-                qc.cx(0, 1)
-                state = DensityMatrix.from_instruction(qc)
-                iplot_state_city(state)
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import DensityMatrix
+            from qiskit.visualization import iplot_state_city
+            %matplotlib inline
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+            state = DensityMatrix.from_instruction(qc)
+            iplot_state_city(state)
     """
     warnings.warn(
         "The iplot_state_city function is deprecated and will be "
         "removed in a future release. The hosted code this depended on no "
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_city should be "
-        "used directly moving forward.", DeprecationWarning, stacklevel=2)
+        "used directly moving forward.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     fig = plot_state_city(rho, figsize=figsize)
     return fig

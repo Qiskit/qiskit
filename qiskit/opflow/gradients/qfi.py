@@ -14,7 +14,7 @@
 
 from typing import List, Union
 
-from qiskit.circuit import (ParameterExpression, ParameterVector)
+from qiskit.circuit import ParameterExpression, ParameterVector
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -34,10 +34,11 @@ class QFI(QFIBase):
     """
 
     # pylint: disable=signature-differs
-    def convert(self,
-                operator: CircuitStateFn,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> ListOp:
+    def convert(
+        self,
+        operator: CircuitStateFn,
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state \|ψ(ω)〉for which we compute

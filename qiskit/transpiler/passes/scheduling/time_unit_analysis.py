@@ -50,26 +50,32 @@ class TimeUnitAnalysis(AnalysisPass):
             TranspilerError: if the units are not unifiable
         """
         if self.inst_durations.dt is not None:
-            self.property_set['time_unit'] = 'dt'
+            self.property_set["time_unit"] = "dt"
         else:
             # Check what units are used in delays and other instructions: dt or SI or mixed
             units_delay = self._units_used_in_delays(dag)
             if self._unified(units_delay) == "mixed":
-                raise TranspilerError("Fail to unify time units in delays. SI units "
-                                      "and dt unit must not be mixed when dt is not supplied.")
+                raise TranspilerError(
+                    "Fail to unify time units in delays. SI units "
+                    "and dt unit must not be mixed when dt is not supplied."
+                )
             units_other = self.inst_durations.units_used()
             if self._unified(units_other) == "mixed":
-                raise TranspilerError("Fail to unify time units in instruction_durations. SI units "
-                                      "and dt unit must not be mixed when dt is not supplied.")
+                raise TranspilerError(
+                    "Fail to unify time units in instruction_durations. SI units "
+                    "and dt unit must not be mixed when dt is not supplied."
+                )
 
             unified_unit = self._unified(units_delay | units_other)
             if unified_unit == "SI":
-                self.property_set['time_unit'] = 's'
+                self.property_set["time_unit"] = "s"
             elif unified_unit == "dt":
-                self.property_set['time_unit'] = 'dt'
+                self.property_set["time_unit"] = "dt"
             else:
-                raise TranspilerError("Fail to unify time units. SI units "
-                                      "and dt unit must not be mixed when dt is not supplied.")
+                raise TranspilerError(
+                    "Fail to unify time units. SI units "
+                    "and dt unit must not be mixed when dt is not supplied."
+                )
 
     @staticmethod
     def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:
@@ -83,12 +89,12 @@ class TimeUnitAnalysis(AnalysisPass):
         if not unit_set:
             return "dt"
 
-        if len(unit_set) == 1 and 'dt' in unit_set:
+        if len(unit_set) == 1 and "dt" in unit_set:
             return "dt"
 
         all_si = True
         for unit in unit_set:
-            if not unit.endswith('s'):
+            if not unit.endswith("s"):
                 all_si = False
                 break
 

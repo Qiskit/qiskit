@@ -45,11 +45,11 @@ class ALAPSchedule(TransformationPass):
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
         """
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('ALAP schedule runs on physical circuits only')
+        if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
+            raise TranspilerError("ALAP schedule runs on physical circuits only")
 
         if not time_unit:
-            time_unit = self.property_set['time_unit']
+            time_unit = self.property_set["time_unit"]
 
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():

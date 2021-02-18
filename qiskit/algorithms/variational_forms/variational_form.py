@@ -15,6 +15,7 @@ variational forms. Several types of commonly used ansatz.
 """
 
 from typing import Optional, Union, List
+
 # below to allow it for python 3.6.1
 try:
     from typing import NoReturn
@@ -31,9 +32,9 @@ class VariationalForm(ABC):
 
     """Base class for VariationalForms.
 
-        This method should initialize the module and
-        use an exception if a component of the module is not
-        available.
+    This method should initialize the module and
+    use an exception if a component of the module is not
+    available.
     """
 
     @abstractmethod
@@ -47,9 +48,9 @@ class VariationalForm(ABC):
         pass
 
     @abstractmethod
-    def construct_circuit(self,
-                          parameters: Union[List[float], np.ndarray],
-                          q: Optional[QuantumRegister] = None) -> NoReturn:
+    def construct_circuit(
+        self, parameters: Union[List[float], np.ndarray], q: Optional[QuantumRegister] = None
+    ) -> NoReturn:
         """Construct the variational form, given its parameters.
 
         Args:
@@ -72,7 +73,7 @@ class VariationalForm(ABC):
 
     @property
     def support_parameterized_circuit(self):
-        """ Whether or not the sub-class support parameterized circuit.
+        """Whether or not the sub-class support parameterized circuit.
 
         Returns:
             boolean: indicate the sub-class support parameterized circuit

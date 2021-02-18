@@ -53,9 +53,9 @@ class JobStatus:
             dict: The dictionary form of the JobStatus.
         """
         out_dict = {
-            'job_id': self.job_id,
-            'status': self.status,
-            'status_msg': self.status_msg,
+            "job_id": self.job_id,
+            "status": self.status,
+            "status_msg": self.status_msg,
         }
         out_dict.update(self._data)
         return out_dict
@@ -64,4 +64,4 @@ class JobStatus:
         try:
             return self._data[name]
         except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+            raise AttributeError("Attribute %s is not defined" % name)

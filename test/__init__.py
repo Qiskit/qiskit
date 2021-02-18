@@ -18,12 +18,13 @@ from qiskit.test.utils import generate_cases
 
 def combine(**kwargs):
     """Decorator to create combinations and tests
-        @combine(level=[0, 1, 2, 3],
-                 circuit=[a, b, c, d],
-                 dsc='Test circuit {circuit.__name__} with level {level}',
-                 name='{circuit.__name__}_level{level}')
+    @combine(level=[0, 1, 2, 3],
+             circuit=[a, b, c, d],
+             dsc='Test circuit {circuit.__name__} with level {level}',
+             name='{circuit.__name__}_level{level}')
     """
 
     def deco(func):
         return data(*generate_cases(docstring=func.__doc__, **kwargs))(unpack(func))
+
     return deco

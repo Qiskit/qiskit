@@ -46,7 +46,7 @@ class UniformDistribution(QuantumCircuit):
 
     """
 
-    def __init__(self, num_qubits: int, name: str = 'P(X)') -> None:
+    def __init__(self, num_qubits: int, name: str = "P(X)") -> None:
         """
         Args:
             num_qubits: The number of qubits in the circuit, the distribution is uniform over

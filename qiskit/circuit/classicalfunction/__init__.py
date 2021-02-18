@@ -95,8 +95,11 @@ Exceptions
 
 """
 from .classicalfunction import ClassicalFunction
-from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
-                         ClassicalFunctionCompilerTypeError)
+from .exceptions import (
+    ClassicalFunctionParseError,
+    ClassicalFunctionCompilerError,
+    ClassicalFunctionCompilerTypeError,
+)
 
 
 def classical_function(func):

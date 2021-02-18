@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
+_UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
 # pylint: disable=no-name-in-module, import-error, unused-import
 
@@ -41,6 +41,7 @@ def has_ibmq():
             # pylint: disable=import-outside-toplevel
             from qiskit.providers.ibmq import IBMQFactory
             from qiskit.providers.ibmq.accountprovider import AccountProvider
+
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_ibmq = False
@@ -57,6 +58,7 @@ def has_aer():
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import AerProvider
+
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_aer = False
@@ -78,6 +80,7 @@ def is_aer_provider(backend):
     if has_aer():
         # pylint: disable=import-outside-toplevel
         from qiskit.providers.aer import AerProvider
+
         return isinstance(backend.provider(), AerProvider)
 
     return False
@@ -108,6 +111,7 @@ def is_ibmq_provider(backend):
     if has_ibmq():
         # pylint: disable=import-outside-toplevel
         from qiskit.providers.ibmq.accountprovider import AccountProvider
+
         return isinstance(backend.provider(), AccountProvider)
 
     return False
@@ -134,7 +138,7 @@ def is_statevector_backend(backend):
     Returns:
         bool: True is statevector
     """
-    return backend.name().startswith('statevector') if backend is not None else False
+    return backend.name().startswith("statevector") if backend is not None else False
 
 
 def is_simulator_backend(backend):

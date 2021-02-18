@@ -48,7 +48,7 @@ class TGate(Gate):
 
     def __init__(self, label=None):
         """Create new T gate."""
-        super().__init__('t', 1, [], label=label)
+        super().__init__("t", 1, [], label=label)
 
     def _define(self):
         """
@@ -57,11 +57,10 @@ class TGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(pi / 4), [q[0]], [])
-        ]
+        rules = [(U1Gate(pi / 4), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -73,8 +72,7 @@ class TGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0],
-                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
+        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
 
 
 class TdgGate(Gate):
@@ -106,7 +104,7 @@ class TdgGate(Gate):
 
     def __init__(self, label=None):
         """Create new Tdg gate."""
-        super().__init__('tdg', 1, [], label=label)
+        super().__init__("tdg", 1, [], label=label)
 
     def _define(self):
         """
@@ -115,11 +113,10 @@ class TdgGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(-pi / 4), [q[0]], [])
-        ]
+        rules = [(U1Gate(-pi / 4), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -131,5 +128,4 @@ class TdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0],
-                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)
+        return numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)

@@ -14,9 +14,17 @@
 
 import unittest
 
-from qiskit.pulse.channels import (AcquireChannel, Channel, DriveChannel,
-                                   ControlChannel, MeasureChannel, MemorySlot,
-                                   PulseChannel, RegisterSlot, SnapshotChannel)
+from qiskit.pulse.channels import (
+    AcquireChannel,
+    Channel,
+    DriveChannel,
+    ControlChannel,
+    MeasureChannel,
+    MemorySlot,
+    PulseChannel,
+    RegisterSlot,
+    SnapshotChannel,
+)
 from qiskit.test import QiskitTestCase
 
 
@@ -42,16 +50,14 @@ class TestAcquireChannel(QiskitTestCase):
     """AcquireChannel tests."""
 
     def test_default(self):
-        """Test default acquire channel.
-        """
+        """Test default acquire channel."""
         acquire_channel = AcquireChannel(123)
 
         self.assertEqual(acquire_channel.index, 123)
-        self.assertEqual(acquire_channel.name, 'a123')
+        self.assertEqual(acquire_channel.name, "a123")
 
     def test_channel_hash(self):
-        """Test hashing for acquire channel.
-        """
+        """Test hashing for acquire channel."""
         acq_channel_1 = AcquireChannel(123)
         acq_channel_2 = AcquireChannel(123)
 
@@ -65,73 +71,67 @@ class TestMemorySlot(QiskitTestCase):
     """AcquireChannel tests."""
 
     def test_default(self):
-        """Test default memory slot.
-        """
+        """Test default memory slot."""
         memory_slot = MemorySlot(123)
 
         self.assertEqual(memory_slot.index, 123)
-        self.assertEqual(memory_slot.name, 'm123')
+        self.assertEqual(memory_slot.name, "m123")
 
 
 class TestRegisterSlot(QiskitTestCase):
     """RegisterSlot tests."""
 
     def test_default(self):
-        """Test default register slot.
-        """
+        """Test default register slot."""
         register_slot = RegisterSlot(123)
 
         self.assertEqual(register_slot.index, 123)
-        self.assertEqual(register_slot.name, 'c123')
+        self.assertEqual(register_slot.name, "c123")
 
 
 class TestSnapshotChannel(QiskitTestCase):
     """SnapshotChannel tests."""
 
     def test_default(self):
-        """Test default snapshot channel.
-        """
+        """Test default snapshot channel."""
         snapshot_channel = SnapshotChannel()
 
         self.assertEqual(snapshot_channel.index, 0)
-        self.assertEqual(snapshot_channel.name, 's0')
+        self.assertEqual(snapshot_channel.name, "s0")
 
 
 class TestDriveChannel(QiskitTestCase):
     """DriveChannel tests."""
 
     def test_default(self):
-        """Test default drive channel.
-        """
+        """Test default drive channel."""
         drive_channel = DriveChannel(123)
 
         self.assertEqual(drive_channel.index, 123)
-        self.assertEqual(drive_channel.name, 'd123')
+        self.assertEqual(drive_channel.name, "d123")
 
 
 class TestControlChannel(QiskitTestCase):
     """ControlChannel tests."""
 
     def test_default(self):
-        """Test default control channel.
-        """
+        """Test default control channel."""
         control_channel = ControlChannel(123)
 
         self.assertEqual(control_channel.index, 123)
-        self.assertEqual(control_channel.name, 'u123')
+        self.assertEqual(control_channel.name, "u123")
 
 
 class TestMeasureChannel(QiskitTestCase):
     """MeasureChannel tests."""
 
     def test_default(self):
-        """Test default measure channel.
-        """
+        """Test default measure channel."""
         measure_channel = MeasureChannel(123)
 
         self.assertEqual(measure_channel.index, 123)
-        self.assertEqual(measure_channel.name, 'm123')
+        self.assertEqual(measure_channel.name, "m123")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

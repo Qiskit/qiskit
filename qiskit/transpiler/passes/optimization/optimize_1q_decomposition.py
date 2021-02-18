@@ -63,8 +63,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if len(run) <= 1:
                 params = run[0].op.params
                 # Remove single identity gates
-                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(),
-                                                      identity_matrix):
+                if len(params) > 0 and np.array_equal(run[0].op.to_matrix(), identity_matrix):
                     dag.remove_op_node(run[0])
                 continue
 

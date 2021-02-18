@@ -36,14 +36,17 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        layout = self.property_set['layout']
+        layout = self.property_set["layout"]
 
         if layout is None:
             raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
         layout_virtual_qubits = layout.get_virtual_bits().keys()
-        new_qregs = {virtual_qubit.register for virtual_qubit in layout_virtual_qubits
-                     if virtual_qubit not in dag._wires}
+        new_qregs = {
+            virtual_qubit.register
+            for virtual_qubit in layout_virtual_qubits
+            if virtual_qubit not in dag._wires
+        }
 
         for qreg in new_qregs:
             dag.add_qreg(qreg)

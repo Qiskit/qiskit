@@ -60,7 +60,7 @@ class TestGenericPass(QiskitTestCase):
         self.assertEqual(pass1, pass2)
 
     def test_pass_kwargs_and_args(self):
-        """ Passes instances with same arguments (independently if they are named or not) are the
+        """Passes instances with same arguments (independently if they are named or not) are the
         same"""
         pass1 = PassD_TP_NR_NP(1, 2)
         pass2 = PassD_TP_NR_NP(argument2=2, argument1=1)
@@ -78,5 +78,5 @@ class TestGenericPass(QiskitTestCase):
         self.assertNotEqual(PassE_AP_NR_NP(True), PassE_AP_NR_NP(1))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

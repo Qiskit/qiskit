@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class OptimizerSupportLevel(IntEnum):
     """ Support Level enum for features such as bounds, gradient and initial point """
+
     not_supported = 0  # Does not support the corresponding parameter in optimize()
     ignored = 1  # Feature can be passed as non None but will be ignored
     supported = 2  # Feature is supported
@@ -38,9 +39,9 @@ class Optimizer(ABC):
         level for _gradient_support_level, _bound_support_level,
         _initial_point_support_level, and empty options.
         """
-        self._gradient_support_level = self.get_support_level()['gradient']
-        self._bounds_support_level = self.get_support_level()['bounds']
-        self._initial_point_support_level = self.get_support_level()['initial_point']
+        self._gradient_support_level = self.get_support_level()["gradient"]
+        self._bounds_support_level = self.get_support_level()["bounds"]
+        self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
         self._max_evals_grouped = 1
 
@@ -63,7 +64,7 @@ class Optimizer(ABC):
         """
         for name, value in kwargs.items():
             self._options[name] = value
-        logger.debug('options: %s', self._options)
+        logger.debug("options: %s", self._options)
 
     # pylint: disable=invalid-name
     @staticmethod
@@ -128,8 +129,10 @@ class Optimizer(ABC):
         Returns:
             function_wrapper: wrapper
         """
+
         def function_wrapper(*wrapper_args):
             return function(*(wrapper_args + args))
+
         return function_wrapper
 
     @property
@@ -144,8 +147,14 @@ class Optimizer(ABC):
         return ret
 
     @abstractmethod
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
         """
         Perform optimization.
 
@@ -171,9 +180,9 @@ class Optimizer(ABC):
         """
 
         if initial_point is not None and len(initial_point) != num_vars:
-            raise ValueError('Initial point does not match dimension')
+            raise ValueError("Initial point does not match dimension")
         if variable_bounds is not None and len(variable_bounds) != num_vars:
-            raise ValueError('Variable bounds not match dimension')
+            raise ValueError("Variable bounds not match dimension")
 
         has_bounds = False
         if variable_bounds is not None:
@@ -181,24 +190,26 @@ class Optimizer(ABC):
             has_bounds = not np.any(np.equal(variable_bounds, None))
 
         if gradient_function is None and self.is_gradient_required:
-            raise ValueError('Gradient is required but None given')
+            raise ValueError("Gradient is required but None given")
         if not has_bounds and self.is_bounds_required:
-            raise ValueError('Variable bounds is required but None given')
+            raise ValueError("Variable bounds is required but None given")
         if initial_point is None and self.is_initial_point_required:
-            raise ValueError('Initial point is required but None given')
+            raise ValueError("Initial point is required but None given")
 
         if gradient_function is not None and self.is_gradient_ignored:
             logger.debug(
-                'WARNING: %s does not support gradient function. It will be ignored.',
-                self.__class__.__name__)
+                "WARNING: %s does not support gradient function. It will be ignored.",
+                self.__class__.__name__,
+            )
         if has_bounds and self.is_bounds_ignored:
             logger.debug(
-                'WARNING: %s does not support bounds. It will be ignored.',
-                self.__class__.__name__)
+                "WARNING: %s does not support bounds. It will be ignored.", self.__class__.__name__
+            )
         if initial_point is not None and self.is_initial_point_ignored:
             logger.debug(
-                'WARNING: %s does not support initial point. It will be ignored.',
-                self.__class__.__name__)
+                "WARNING: %s does not support initial point. It will be ignored.",
+                self.__class__.__name__,
+            )
         pass
 
     @property
@@ -264,7 +275,7 @@ class Optimizer(ABC):
     def print_options(self):
         """Print algorithm-specific options."""
         for name in sorted(self._options):
-            logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
+            logger.debug("{:s} = {:s}".format(name, str(self._options[name])))
 
     def set_max_evals_grouped(self, limit):
         """ Set max evals grouped """

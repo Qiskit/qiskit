@@ -21,16 +21,16 @@ from qiskit.circuit.instruction import Instruction
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
-    def __init__(self, duration, unit='dt'):
+    def __init__(self, duration, unit="dt"):
         """Create new delay instruction."""
         if not isinstance(duration, (float, int)):
-            raise CircuitError('Unsupported duration type.')
+            raise CircuitError("Unsupported duration type.")
 
-        if unit == 'dt' and not isinstance(duration, int):
+        if unit == "dt" and not isinstance(duration, int):
             raise CircuitError("Integer duration is required for 'dt' unit.")
 
-        if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
-            raise CircuitError('Unknown unit %s is specified.' % unit)
+        if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
+            raise CircuitError("Unknown unit %s is specified." % unit)
 
         super().__init__("delay", 1, 0, params=[duration], unit=unit)
 
@@ -42,7 +42,7 @@ class Delay(Instruction):
         yield [qarg for sublist in qargs for qarg in sublist], []
 
     def c_if(self, classical, val):
-        raise CircuitError('Conditional Delay is not yet implemented.')
+        raise CircuitError("Conditional Delay is not yet implemented.")
 
     @property
     def duration(self):
@@ -56,8 +56,7 @@ class Delay(Instruction):
 
     def __array__(self, dtype=None):
         """Return the identity matrix."""
-        return np.array([[1, 0],
-                         [0, 1]], dtype=dtype)
+        return np.array([[1, 0], [0, 1]], dtype=dtype)
 
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the unitary matrix. This has been
@@ -70,5 +69,4 @@ class Delay(Instruction):
 
     def __repr__(self):
         """Return the official string representing the delay."""
-        return "%s(duration=%s[unit=%s])" % \
-               (self.__class__.__name__, self.params[0], self.unit)
+        return "%s(duration=%s[unit=%s])" % (self.__class__.__name__, self.params[0], self.unit)

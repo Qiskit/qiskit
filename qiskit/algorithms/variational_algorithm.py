@@ -41,14 +41,15 @@ logger = logging.getLogger(__name__)
 class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""
 
-    def __init__(self,
-                 var_form: Union[QuantumCircuit, VariationalForm],
-                 optimizer: Optimizer,
-                 cost_fn: Optional[Callable] = None,
-                 gradient: Optional[Union[GradientBase, Callable]] = None,
-                 initial_point: Optional[np.ndarray] = None,
-                 quantum_instance: Optional[
-                     Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
+    def __init__(
+        self,
+        var_form: Union[QuantumCircuit, VariationalForm],
+        optimizer: Optimizer,
+        cost_fn: Optional[Callable] = None,
+        gradient: Optional[Union[GradientBase, Callable]] = None,
+        initial_point: Optional[np.ndarray] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+    ) -> None:
         """
         Args:
             var_form: An optional parameterized variational form (ansatz).
@@ -68,7 +69,7 @@ class VariationalAlgorithm:
             self.quantum_instance = quantum_instance
 
         if optimizer is None:
-            logger.info('No optimizer provided, setting it to SLSPQ.')
+            logger.info("No optimizer provided, setting it to SLSPQ.")
             optimizer = SLSQP()
 
         self._optimizer = optimizer
@@ -88,8 +89,9 @@ class VariationalAlgorithm:
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
         """ Sets quantum instance. """
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
@@ -108,7 +110,7 @@ class VariationalAlgorithm:
             self._var_form_params = sorted(var_form.parameters, key=lambda p: p.name)
             self._var_form = var_form
         elif isinstance(var_form, VariationalForm):
-            self._var_form_params = ParameterVector('θ', length=var_form.num_parameters)
+            self._var_form_params = ParameterVector("θ", length=var_form.num_parameters)
             self._var_form = var_form
         elif var_form is None:
             self._var_form_params = None
@@ -136,12 +138,14 @@ class VariationalAlgorithm:
         """ Sets initial point """
         self._initial_point = initial_point
 
-    def find_minimum(self,
-                     initial_point: Optional[np.ndarray] = None,
-                     var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
-                     cost_fn: Optional[Callable] = None,
-                     optimizer: Optional[Optimizer] = None,
-                     gradient_fn: Optional[Callable] = None) -> 'VariationalResult':
+    def find_minimum(
+        self,
+        initial_point: Optional[np.ndarray] = None,
+        var_form: Optional[Union[QuantumCircuit, VariationalForm]] = None,
+        cost_fn: Optional[Callable] = None,
+        optimizer: Optional[Optimizer] = None,
+        gradient_fn: Optional[Callable] = None,
+    ) -> "VariationalResult":
         """Optimize to find the minimum cost value.
 
         Args:
@@ -168,40 +172,42 @@ class VariationalAlgorithm:
         optimizer = optimizer if optimizer is not None else self.optimizer
 
         if var_form is None:
-            raise ValueError('Variational form neither supplied to constructor nor find minimum.')
+            raise ValueError("Variational form neither supplied to constructor nor find minimum.")
         if cost_fn is None:
-            raise ValueError('Cost function neither supplied to constructor nor find minimum.')
+            raise ValueError("Cost function neither supplied to constructor nor find minimum.")
         if optimizer is None:
-            raise ValueError('Optimizer neither supplied to constructor nor find minimum.')
+            raise ValueError("Optimizer neither supplied to constructor nor find minimum.")
 
         nparms = var_form.num_parameters
 
-        if hasattr(var_form, 'parameter_bounds') and var_form.parameter_bounds is not None:
+        if hasattr(var_form, "parameter_bounds") and var_form.parameter_bounds is not None:
             bounds = var_form.parameter_bounds
         else:
             bounds = [(None, None)] * nparms
 
         if initial_point is not None and len(initial_point) != nparms:
             raise ValueError(
-                'Initial point size {} and parameter size {} mismatch'.format(
-                    len(initial_point), nparms))
+                "Initial point size {} and parameter size {} mismatch".format(
+                    len(initial_point), nparms
+                )
+            )
         if len(bounds) != nparms:
-            raise ValueError('Variational form bounds size does not match parameter size')
+            raise ValueError("Variational form bounds size does not match parameter size")
         # If *any* value is *equal* in bounds array to None then the problem does *not* have bounds
         problem_has_bounds = not np.any(np.equal(bounds, None))
         # Check capabilities of the optimizer
         if problem_has_bounds:
             if not optimizer.is_bounds_supported:
-                raise ValueError('Problem has bounds but optimizer does not support bounds')
+                raise ValueError("Problem has bounds but optimizer does not support bounds")
         else:
             if optimizer.is_bounds_required:
-                raise ValueError('Problem does not have bounds but optimizer requires bounds')
+                raise ValueError("Problem does not have bounds but optimizer requires bounds")
         if initial_point is not None:
             if not optimizer.is_initial_point_supported:
-                raise ValueError('Optimizer does not support initial point')
+                raise ValueError("Optimizer does not support initial point")
         else:
             if optimizer.is_initial_point_required:
-                if hasattr(var_form, 'preferred_init_points'):
+                if hasattr(var_form, "preferred_init_points"):
                     # Note: default implementation returns None, hence check again after below
                     initial_point = var_form.preferred_init_points
 
@@ -217,12 +223,14 @@ class VariationalAlgorithm:
             if not gradient_fn:
                 gradient_fn = self._gradient
 
-        logger.info('Starting optimizer.\nbounds=%s\ninitial point=%s', bounds, initial_point)
-        opt_params, opt_val, num_optimizer_evals = optimizer.optimize(nparms,
-                                                                      cost_fn,
-                                                                      variable_bounds=bounds,
-                                                                      initial_point=initial_point,
-                                                                      gradient_function=gradient_fn)
+        logger.info("Starting optimizer.\nbounds=%s\ninitial point=%s", bounds, initial_point)
+        opt_params, opt_val, num_optimizer_evals = optimizer.optimize(
+            nparms,
+            cost_fn,
+            variable_bounds=bounds,
+            initial_point=initial_point,
+            gradient_function=gradient_fn,
+        )
         eval_time = time.time() - start
 
         result = VariationalResult()
@@ -234,8 +242,9 @@ class VariationalAlgorithm:
 
         return result
 
-    def get_prob_vector_for_params(self, construct_circuit_fn, params_s,
-                                   quantum_instance, construct_circuit_args=None):
+    def get_prob_vector_for_params(
+        self, construct_circuit_fn, params_s, quantum_instance, construct_circuit_args=None
+    ):
         """ Helper function to get probability vectors for a set of params """
         circuits = []
         for params in params_s:

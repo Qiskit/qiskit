@@ -27,8 +27,15 @@ class RunConfig(SimpleNamespace):
         parameter_binds (list[dict]): List of parameter bindings
     """
 
-    def __init__(self, shots=None, max_credits=None, seed_simulator=None,
-                 memory=None, parameter_binds=None, **kwargs):
+    def __init__(
+        self,
+        shots=None,
+        max_credits=None,
+        seed_simulator=None,
+        memory=None,
+        parameter_binds=None,
+        **kwargs,
+    ):
         """Initialize a RunConfig object
 
         Args:

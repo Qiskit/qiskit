@@ -61,11 +61,12 @@ class CXDirection(TransformationPass):
         cmap_edges = set(self.coupling_map.get_edges())
 
         if len(dag.qregs) > 1:
-            raise TranspilerError('CXDirection expects a single qreg input DAG,'
-                                  'but input DAG had qregs: {}.'.format(
-                                      dag.qregs))
+            raise TranspilerError(
+                "CXDirection expects a single qreg input DAG,"
+                "but input DAG had qregs: {}.".format(dag.qregs)
+            )
 
-        for cnot_node in dag.named_nodes('cx', 'CX'):
+        for cnot_node in dag.named_nodes("cx", "CX"):
             control = cnot_node.qargs[0]
             target = cnot_node.qargs[1]
 
@@ -73,8 +74,10 @@ class CXDirection(TransformationPass):
             physical_q1 = target.index
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                raise TranspilerError('The circuit requires a connection between physical '
-                                      'qubits %s and %s' % (physical_q0, physical_q1))
+                raise TranspilerError(
+                    "The circuit requires a connection between physical "
+                    "qubits %s and %s" % (physical_q0, physical_q1)
+                )
 
             if (physical_q0, physical_q1) not in cmap_edges:
                 # A flip needs to be done

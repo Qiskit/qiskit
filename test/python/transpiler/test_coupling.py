@@ -19,7 +19,6 @@ from qiskit.test import QiskitTestCase
 
 
 class CouplingTest(QiskitTestCase):
-
     def test_empty_coupling_class(self):
         coupling = CouplingMap()
         self.assertEqual(0, coupling.size())
@@ -31,7 +30,7 @@ class CouplingTest(QiskitTestCase):
     def test_coupling_str(self):
         coupling_list = [[0, 1], [0, 2], [1, 2]]
         coupling = CouplingMap(coupling_list)
-        expected = ("[[0, 1], [0, 2], [1, 2]]")
+        expected = "[[0, 1], [0, 2], [1, 2]]"
         self.assertEqual(expected, str(coupling))
 
     def test_coupling_distance(self):
@@ -52,13 +51,13 @@ class CouplingTest(QiskitTestCase):
 
     def test_add_physical_qubits_not_int(self):
         coupling = CouplingMap()
-        self.assertRaises(CouplingError, coupling.add_physical_qubit, 'q')
+        self.assertRaises(CouplingError, coupling.add_physical_qubit, "q")
 
     def test_add_edge(self):
         coupling = CouplingMap()
         self.assertEqual("", str(coupling))
         coupling.add_edge(0, 1)
-        expected = ("[[0, 1]]")
+        expected = "[[0, 1]]"
         self.assertEqual(expected, str(coupling))
 
     def test_neighbors(self):
@@ -89,8 +88,7 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual(2, coupling.distance(0, 2))
 
     def test_successful_reduced_map(self):
-        """Generate a reduced map
-        """
+        """Generate a reduced map"""
         fake = FakeRueschlikon()
         cmap = fake.configuration().coupling_map
         coupling_map = CouplingMap(cmap)
@@ -99,8 +97,7 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual(set(out), set(ans))
 
     def test_failed_reduced_map(self):
-        """Generate a bad disconnected reduced map
-        """
+        """Generate a bad disconnected reduced map"""
         fake = FakeRueschlikon()
         cmap = fake.configuration().coupling_map
         coupling_map = CouplingMap(cmap)
@@ -114,9 +111,26 @@ class CouplingTest(QiskitTestCase):
         self.assertTrue(coupling.is_symmetric)
 
     def test_symmetric_big_false(self):
-        coupling_list = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8],
-                         [9, 8], [9, 10], [7, 8], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
-                         [13, 12]]
+        coupling_list = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [4, 3],
+            [4, 10],
+            [5, 4],
+            [5, 6],
+            [5, 9],
+            [6, 8],
+            [9, 8],
+            [9, 10],
+            [7, 8],
+            [11, 3],
+            [11, 10],
+            [11, 12],
+            [12, 2],
+            [13, 1],
+            [13, 12],
+        ]
         coupling = CouplingMap(coupling_list)
 
         self.assertFalse(coupling.is_symmetric)
@@ -133,8 +147,20 @@ class CouplingTest(QiskitTestCase):
     def test_full_factory(self):
         coupling = CouplingMap.from_full(4)
         edges = coupling.get_edges()
-        expected = [(0, 1), (0, 2), (0, 3), (1, 0), (1, 2), (1, 3),
-                    (2, 0), (2, 1), (2, 3), (3, 0), (3, 1), (3, 2)]
+        expected = [
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (1, 0),
+            (1, 2),
+            (1, 3),
+            (2, 0),
+            (2, 1),
+            (2, 3),
+            (3, 0),
+            (3, 1),
+            (3, 2),
+        ]
         self.assertEqual(set(edges), set(expected))
 
     def test_line_factory(self):
@@ -146,8 +172,22 @@ class CouplingTest(QiskitTestCase):
     def test_grid_factory(self):
         coupling = CouplingMap.from_grid(2, 3)
         edges = coupling.get_edges()
-        expected = [(0, 3), (0, 1), (3, 0), (3, 4), (1, 0), (1, 4), (1, 2),
-                    (4, 1), (4, 3), (4, 5), (2, 1), (2, 5), (5, 2), (5, 4)]
+        expected = [
+            (0, 3),
+            (0, 1),
+            (3, 0),
+            (3, 4),
+            (1, 0),
+            (1, 4),
+            (1, 2),
+            (4, 1),
+            (4, 3),
+            (4, 5),
+            (2, 1),
+            (2, 5),
+            (5, 2),
+            (5, 4),
+        ]
         self.assertEqual(set(edges), set(expected))
 
     def test_grid_factory_unidirectional(self):

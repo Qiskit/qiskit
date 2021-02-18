@@ -30,13 +30,17 @@ if HAS_MATPLOTLIB:
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
-    backends = list(filter(lambda x:
-                           not x.configuration().simulator and
-                           x.configuration().num_qubits in range(5, 21),
-                           FakeProvider().backends()))
+
+    backends = list(
+        filter(
+            lambda x: not x.configuration().simulator
+            and x.configuration().num_qubits in range(5, 21),
+            FakeProvider().backends(),
+        )
+    )
 
     @data(*backends)
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map(self, backend):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
         n = backend.configuration().n_qubits
@@ -48,11 +52,11 @@ class TestGateMap(QiskitVisualizationTestCase):
         os.remove(filename)
 
     @data(*backends)
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device"""
         layout_length = int(backend._configuration.n_qubits / 2)
-        qr = QuantumRegister(layout_length, 'qr')
+        qr = QuantumRegister(layout_length, "qr")
         circuit = QuantumCircuit(qr)
         circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
         n = backend.configuration().n_qubits
@@ -64,7 +68,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         os.remove(filename)
 
 
-@unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+@unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
 class TestGraphDist(QiskitTestCase):
     """ tests _GraphdDist functions """
 
@@ -84,12 +88,18 @@ class TestGraphDist(QiskitTestCase):
         self.ax1_bounds_x, self.ax1_bounds_y = ax1.get_xlim(), ax1.get_ylim()
         self.ax2_bounds_x, self.ax2_bounds_y = ax2.get_xlim(), ax2.get_ylim()
         self.size = 4
-        self.real_values = [self.ax1_x1 - self.ax1_x0, self.ax1_y1 - self.ax1_y0,
-                            self.ax2_x1 - self.ax2_x0, self.ax2_y1 - self.ax2_y0]
-        self.abs_values = [self.ax1_bounds_x[0] - self.ax1_bounds_x[1],
-                           self.ax1_bounds_y[0] - self.ax1_bounds_y[1],
-                           self.ax2_bounds_x[0] - self.ax2_bounds_x[1],
-                           self.ax2_bounds_y[0] - self.ax2_bounds_y[1]]
+        self.real_values = [
+            self.ax1_x1 - self.ax1_x0,
+            self.ax1_y1 - self.ax1_y0,
+            self.ax2_x1 - self.ax2_x0,
+            self.ax2_y1 - self.ax2_y0,
+        ]
+        self.abs_values = [
+            self.ax1_bounds_x[0] - self.ax1_bounds_x[1],
+            self.ax1_bounds_y[0] - self.ax1_bounds_y[1],
+            self.ax2_bounds_x[0] - self.ax2_bounds_x[1],
+            self.ax2_bounds_y[0] - self.ax2_bounds_y[1],
+        ]
         self.val = []
         for i in range(4):
             val = (self.size / self.real_values[i]) * self.abs_values[i]
@@ -97,28 +107,40 @@ class TestGraphDist(QiskitTestCase):
 
     def test_dist_real(self):
         """ tests dist_real calculation for different figsize """
-        params = [(self.ax1, self.real_values[0], True), (self.ax1, self.real_values[1], False),
-                  (self.ax2, self.real_values[2], True), (self.ax2, self.real_values[3], False)]
+        params = [
+            (self.ax1, self.real_values[0], True),
+            (self.ax1, self.real_values[1], False),
+            (self.ax2, self.real_values[2], True),
+            (self.ax2, self.real_values[3], False),
+        ]
         for test_val, expected_val, bool_op in params:
             with self.subTest():
                 self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).dist_real)
 
     def test_dist_abs(self):
         """ tests dist_abs calculation for different figsize """
-        params = [(self.ax1, self.abs_values[0], True), (self.ax1, self.abs_values[1], False),
-                  (self.ax2, self.abs_values[2], True), (self.ax2, self.abs_values[3], False)]
+        params = [
+            (self.ax1, self.abs_values[0], True),
+            (self.ax1, self.abs_values[1], False),
+            (self.ax2, self.abs_values[2], True),
+            (self.ax2, self.abs_values[3], False),
+        ]
         for test_val, expected_val, bool_op in params:
             with self.subTest():
                 self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).dist_abs)
 
     def test_value(self):
         """ tests value calculation for size = 4 """
-        params = [(self.ax1, self.val[0], True), (self.ax1, self.val[1], False),
-                  (self.ax2, self.val[2], True), (self.ax2, self.val[3], False)]
+        params = [
+            (self.ax1, self.val[0], True),
+            (self.ax1, self.val[1], False),
+            (self.ax2, self.val[2], True),
+            (self.ax2, self.val[3], False),
+        ]
         for test_val, expected_val, bool_op in params:
             with self.subTest():
                 self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).value)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

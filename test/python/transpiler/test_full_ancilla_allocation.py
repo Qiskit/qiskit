@@ -38,7 +38,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         q2 -> 2     3 -> ancilla0
                     4 -> ancilla1
         """
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
 
@@ -48,12 +48,12 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        pass_.property_set["layout"] = initial_layout
 
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
+        after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, 'ancilla')
+        ancilla = QuantumRegister(2, "ancilla")
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], qr[1])
@@ -70,7 +70,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
                        3 -> ancilla1
                        4 -> ancilla2
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
 
@@ -79,11 +79,11 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[1]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        pass_.property_set["layout"] = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
+        after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(3, 'ancilla')
+        ancilla = QuantumRegister(3, "ancilla")
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], ancilla[0])
@@ -100,7 +100,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         q2 -> 2        3 <- q1
                        4 <- ancilla1
         """
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
 
@@ -110,11 +110,11 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        pass_.property_set["layout"] = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
+        after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, 'ancilla')
+        ancilla = QuantumRegister(2, "ancilla")
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], ancilla[0])
@@ -124,7 +124,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
 
     def test_name_collision(self):
         """Name collision during ancilla allocation."""
-        qr_ancilla = QuantumRegister(3, 'ancilla')
+        qr_ancilla = QuantumRegister(3, "ancilla")
         circuit = QuantumCircuit(qr_ancilla)
         circuit.h(qr_ancilla)
         dag = circuit_to_dag(circuit)
@@ -135,9 +135,9 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr_ancilla[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        pass_.property_set["layout"] = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
+        after_layout = pass_.property_set["layout"]
 
         qregs = {v.register for v in after_layout.get_virtual_bits().keys()}
         self.assertEqual(2, len(qregs))
@@ -145,28 +145,30 @@ class TestFullAncillaAllocation(QiskitTestCase):
         qregs.remove(qr_ancilla)
         other_reg = qregs.pop()
         self.assertEqual(len(other_reg), 2)
-        self.assertRegex(other_reg.name, r'^ancilla\d+$')
+        self.assertRegex(other_reg.name, r"^ancilla\d+$")
 
     def test_bad_layout(self):
-        """Layout referes to a register that do not exist in the circuit
-        """
-        qr = QuantumRegister(3, 'q')
+        """Layout referes to a register that do not exist in the circuit"""
+        qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
 
         initial_layout = Layout()
-        initial_layout[0] = QuantumRegister(4, 'q')[0]
-        initial_layout[1] = QuantumRegister(4, 'q')[1]
-        initial_layout[2] = QuantumRegister(4, 'q')[2]
+        initial_layout[0] = QuantumRegister(4, "q")[0]
+        initial_layout[1] = QuantumRegister(4, "q")[1]
+        initial_layout[2] = QuantumRegister(4, "q")[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        pass_.property_set["layout"] = initial_layout
 
         with self.assertRaises(TranspilerError) as cm:
             pass_.run(dag)
-        self.assertEqual("FullAncillaAllocation: The layout refers to a quantum register that does "
-                         "not exist in circuit.", cm.exception.message)
+        self.assertEqual(
+            "FullAncillaAllocation: The layout refers to a quantum register that does "
+            "not exist in circuit.",
+            cm.exception.message,
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

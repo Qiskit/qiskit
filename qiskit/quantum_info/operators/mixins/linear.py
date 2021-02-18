@@ -38,11 +38,11 @@ class LinearMixin(MultiplyMixin, ABC):
     """
 
     def __add__(self, other):
-        qargs = getattr(other, 'qargs', None)
+        qargs = getattr(other, "qargs", None)
         return self._add(other, qargs=qargs)
 
     def __sub__(self, other):
-        qargs = getattr(other, 'qargs', None)
+        qargs = getattr(other, "qargs", None)
         return self._add(-other, qargs=qargs)
 
     @abstractmethod

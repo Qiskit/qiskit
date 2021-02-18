@@ -51,18 +51,18 @@ class BasicSwap(TransformationPass):
         """
         new_dag = dag._copy_circuit_metadata()
 
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('Basic swap runs on physical circuits only')
+        if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
+            raise TranspilerError("Basic swap runs on physical circuits only")
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
-            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+            raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
-        canonical_register = dag.qregs['q']
+        canonical_register = dag.qregs["q"]
         trivial_layout = Layout.generate_trivial_layout(canonical_register)
         current_layout = trivial_layout.copy()
 
         for layer in dag.serial_layers():
-            subdag = layer['graph']
+            subdag = layer["graph"]
 
             for gate in subdag.two_qubit_ops():
                 physical_q0 = current_layout[gate.qargs[0]]
@@ -81,9 +81,9 @@ class BasicSwap(TransformationPass):
                         qubit_2 = current_layout[connected_wire_2]
 
                         # create the swap operation
-                        swap_layer.apply_operation_back(SwapGate(),
-                                                        qargs=[qubit_1, qubit_2],
-                                                        cargs=[])
+                        swap_layer.apply_operation_back(
+                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                        )
 
                     # layer insertion
                     order = current_layout.reorder_bits(new_dag.qubits)

@@ -24,11 +24,13 @@ from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.sequence import sequence as _sequence
 
 
-def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-             backend: Optional[Union[Backend, BaseBackend]] = None,
-             inst_map: Optional[InstructionScheduleMap] = None,
-             meas_map: Optional[List[List[int]]] = None,
-             dt: Optional[float] = None) -> Union[Schedule, List[Schedule]]:
+def sequence(
+    scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+    backend: Optional[Union[Backend, BaseBackend]] = None,
+    inst_map: Optional[InstructionScheduleMap] = None,
+    meas_map: Optional[List[List[int]]] = None,
+    dt: Optional[float] = None,
+) -> Union[Schedule, List[Schedule]]:
     """
     Schedule a scheduled circuit to a pulse ``Schedule``, using the backend.
 

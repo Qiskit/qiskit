@@ -18,7 +18,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
 
-_CUTOFF_PRECISION = 1E-10
+_CUTOFF_PRECISION = 1e-10
 
 
 class CommutationAnalysis(AnalysisPass):
@@ -43,7 +43,7 @@ class CommutationAnalysis(AnalysisPass):
         into the property_set.
         """
         # Initiate the commutation set
-        self.property_set['commutation_set'] = defaultdict(list)
+        self.property_set["commutation_set"] = defaultdict(list)
 
         # Build a dictionary to keep track of the gates on each qubit
         # The key with format (wire_name) will store the lists of commutation sets
@@ -54,14 +54,14 @@ class CommutationAnalysis(AnalysisPass):
 
         for wire in dag.wires:
             wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
-            self.property_set['commutation_set'][wire_name] = []
+            self.property_set["commutation_set"][wire_name] = []
 
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
             for (_, _, edge_data) in dag.edges(node):
 
-                edge_name = edge_data['name']
-                self.property_set['commutation_set'][(node, edge_name)] = -1
+                edge_name = edge_data["name"]
+                self.property_set["commutation_set"][(node, edge_name)] = -1
 
         # Construct the commutation set
         for wire in dag.wires:
@@ -69,7 +69,7 @@ class CommutationAnalysis(AnalysisPass):
 
             for current_gate in dag.nodes_on_wire(wire):
 
-                current_comm_set = self.property_set['commutation_set'][wire_name]
+                current_comm_set = self.property_set["commutation_set"][wire_name]
                 if not current_comm_set:
                     current_comm_set.append([current_gate])
 
@@ -87,7 +87,7 @@ class CommutationAnalysis(AnalysisPass):
                         current_comm_set.append([current_gate])
 
                 temp_len = len(current_comm_set)
-                self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
+                self.property_set["commutation_set"][(current_gate, wire_name)] = temp_len - 1
 
 
 def _commute(node1, node2, cache):
@@ -95,8 +95,12 @@ def _commute(node1, node2, cache):
     if node1.type != "op" or node2.type != "op":
         return False
 
-    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
-            for nd in [node1, node2]]):
+    if any(
+        [
+            nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
+            for nd in [node1, node2]
+        ]
+    ):
         return False
 
     if node1.condition or node2.condition:
@@ -126,6 +130,6 @@ def _commute(node1, node2, cache):
         op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
         cache[(node2_key, node1_key)] = op21
 
-    if_commute = (op12 == op21)
+    if_commute = op12 == op21
 
     return if_commute

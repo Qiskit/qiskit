@@ -39,7 +39,7 @@ class TestCircuitCompose(QiskitTestCase):
         expect.z(2)
         expect.measure(0, 0)
 
-        with self.subTest('bottom.tensor(top)'):
+        with self.subTest("bottom.tensor(top)"):
             self.assertEqual(bottom.tensor(top), expect)
 
         expect = QuantumCircuit(3, 1)
@@ -48,13 +48,13 @@ class TestCircuitCompose(QiskitTestCase):
         expect.x(2)
         expect.measure(2, 0)
 
-        with self.subTest('top.tensor(bottom)'):
+        with self.subTest("top.tensor(bottom)"):
             self.assertEqual(top.tensor(bottom), expect)
 
     def test_mixed(self):
         """Test composing on named and unnamed registers."""
-        qr = QuantumRegister(1, 'my_qr')
-        cr = ClassicalRegister(1, 'my_cr')
+        qr = QuantumRegister(1, "my_qr")
+        cr = ClassicalRegister(1, "my_cr")
         top = QuantumCircuit(qr, cr)
         top.x(0)
         top.measure(0, 0)
@@ -73,22 +73,22 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_named(self):
         """Test composing on named and unnamed registers."""
-        qr0 = QuantumRegister(1, 'my_qr')
-        cr0 = ClassicalRegister(1, 'my_cr')
+        qr0 = QuantumRegister(1, "my_qr")
+        cr0 = ClassicalRegister(1, "my_cr")
         top = QuantumCircuit(qr0, cr0)
         top.x(0)
         top.measure(0, 0)
 
-        qr1 = QuantumRegister(2, 'my_qr')
+        qr1 = QuantumRegister(2, "my_qr")
         bottom = QuantumCircuit(qr1)
         bottom.y(0)
         bottom.z(1)
 
-        with self.subTest('same name raises'):
+        with self.subTest("same name raises"):
             with self.assertRaises(CircuitError):
                 _ = bottom.tensor(top)
 
-        qr1 = QuantumRegister(2, 'other_qr')
+        qr1 = QuantumRegister(2, "other_qr")
         bottom = QuantumCircuit(qr1)
         bottom.y(0)
         bottom.z(1)
@@ -99,23 +99,23 @@ class TestCircuitCompose(QiskitTestCase):
         expect.z(2)
         expect.measure(0, 0)
 
-        with self.subTest('assert circuit is correct'):
+        with self.subTest("assert circuit is correct"):
             self.assertEqual(bottom.tensor(top), expect)
 
     def test_measure_all(self):
         """Test ``tensor`` works if ``measure_all`` is called on both circuits."""
-        qr0 = QuantumRegister(1, 'my_qr')
+        qr0 = QuantumRegister(1, "my_qr")
         top = QuantumCircuit(qr0)
         top.x(0)
         top.measure_all()
 
-        qr1 = QuantumRegister(2, 'other_qr')
+        qr1 = QuantumRegister(2, "other_qr")
         bottom = QuantumCircuit(qr1)
         bottom.y(0)
         bottom.z(1)
         bottom.measure_all()
 
-        cr = ClassicalRegister(3, 'meas')
+        cr = ClassicalRegister(3, "meas")
         expect = QuantumCircuit(qr0, qr1, cr)
         expect.x(0)
         expect.y(1)
@@ -128,7 +128,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_multiple_registers(self):
         """Test tensoring circuits with multiple registers."""
-        p, q = Parameter('p'), Parameter('q')
+        p, q = Parameter("p"), Parameter("q")
         qrs = [QuantumRegister(1) for _ in range(6)]
         crs = [ClassicalRegister(1) for _ in range(2)]
 
@@ -164,7 +164,7 @@ class TestCircuitCompose(QiskitTestCase):
     def test_consistent_with_quantum_info(self):
         """Test that the ordering is consistent with quantum_info's Operator."""
 
-        with self.subTest(msg='simple, single register example'):
+        with self.subTest(msg="simple, single register example"):
             x = QuantumCircuit(1)
             x.x(0)
 
@@ -175,7 +175,7 @@ class TestCircuitCompose(QiskitTestCase):
 
             self.assertEqual(Operator(circuit), operator)
 
-        with self.subTest(msg='multi register example'):
+        with self.subTest(msg="multi register example"):
             qrs = [QuantumRegister(1) for _ in range(6)]
 
             top = QuantumCircuit(*qrs[:4])
@@ -195,7 +195,7 @@ class TestCircuitCompose(QiskitTestCase):
 
             self.assertEqual(Operator(circuit), operator)
 
-        with self.subTest(msg='nested circuits'):
+        with self.subTest(msg="nested circuits"):
             sub = QuantumCircuit(3)
             sub.h(0)
             sub.swap(0, 1)
@@ -213,5 +213,5 @@ class TestCircuitCompose(QiskitTestCase):
             self.assertEqual(Operator(circuit), operator)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

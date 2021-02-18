@@ -20,8 +20,8 @@ class QiskitError(Exception):
 
     def __init__(self, *message):
         """Set the error message."""
-        super().__init__(' '.join(message))
-        self.message = ' '.join(message)
+        super().__init__(" ".join(message))
+        self.message = " ".join(message)
 
     def __str__(self):
         """Return the message."""
@@ -30,22 +30,22 @@ class QiskitError(Exception):
 
 class QiskitIndexError(QiskitError, IndexError):
     """Raised when a sequence subscript is out of range."""
+
     pass
 
 
 class QiskitUserConfigError(QiskitError):
     """Raised when an error is encountered reading a user config file."""
+
     message = "User config invalid"
 
 
 class MissingOptionalLibraryError(QiskitError):
     """Raised when an optional library is missing."""
 
-    def __init__(self,
-                 libname: str,
-                 name: str,
-                 pip_install: Optional[str] = None,
-                 msg: Optional[str] = None) -> None:
+    def __init__(
+        self, libname: str, name: str, pip_install: Optional[str] = None, msg: Optional[str] = None
+    ) -> None:
         """Set the error message.
         Args:
             libname: Name of missing library
@@ -57,10 +57,10 @@ class MissingOptionalLibraryError(QiskitError):
         if pip_install:
             message.append("You can install it with '{}'.".format(pip_install))
         if msg:
-            message.append(' {}.'.format(msg))
+            message.append(" {}.".format(msg))
 
-        super().__init__(' '.join(message))
-        self.message = ' '.join(message)
+        super().__init__(" ".join(message))
+        self.message = " ".join(message)
 
     def __str__(self) -> str:
         """Return the message."""

@@ -81,7 +81,7 @@ class RZZGate(Gate):
 
     def __init__(self, theta):
         """Create new RZZ gate."""
-        super().__init__('rzz', 2, [theta])
+        super().__init__("rzz", 2, [theta])
 
     def _define(self):
         """
@@ -91,13 +91,14 @@ class RZZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         from .rz import RZGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (CXGate(), [q[0], q[1]], []),
             (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -111,8 +112,14 @@ class RZZGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZZ gate."""
         import numpy
+
         itheta2 = 1j * float(self.params[0]) / 2
-        return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
-                            [0, numpy.exp(itheta2), 0, 0],
-                            [0, 0, numpy.exp(itheta2), 0],
-                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=dtype)
+        return numpy.array(
+            [
+                [numpy.exp(-itheta2), 0, 0, 0],
+                [0, numpy.exp(itheta2), 0, 0],
+                [0, 0, numpy.exp(itheta2), 0],
+                [0, 0, 0, numpy.exp(-itheta2)],
+            ],
+            dtype=dtype,
+        )

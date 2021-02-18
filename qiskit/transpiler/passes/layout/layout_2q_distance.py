@@ -29,7 +29,8 @@ class Layout2qDistance(AnalysisPass):
     The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
     No CX direction is considered.
     """
-    def __init__(self, coupling_map, property_name='layout_score'):
+
+    def __init__(self, coupling_map, property_name="layout_score"):
         """Layout2qDistance initializer.
 
         Args:
@@ -57,6 +58,6 @@ class Layout2qDistance(AnalysisPass):
             physical_q0 = layout[gate.qargs[0]]
             physical_q1 = layout[gate.qargs[1]]
 
-            sum_distance += self.coupling_map.distance(physical_q0, physical_q1)-1
+            sum_distance += self.coupling_map.distance(physical_q0, physical_q1) - 1
 
         self.property_set[self.property_name] = sum_distance

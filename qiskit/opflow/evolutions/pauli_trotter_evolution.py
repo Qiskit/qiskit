@@ -25,6 +25,7 @@ from ..primitive_ops.pauli_op import PauliOp
 from ..primitive_ops.pauli_sum_op import PauliSumOp
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..converters.pauli_basis_change import PauliBasisChange
+
 # TODO uncomment when we implement Abelian grouped evolution.
 # from ..converters.abelian_grouper import AbelianGrouper
 from .evolved_op import EvolvedOp
@@ -46,12 +47,13 @@ class PauliTrotterEvolution(EvolutionBase):
     evolution circuits are composed together by Trotterization scheme.
     """
 
-    def __init__(self,
-                 trotter_mode: Optional[Union[str, TrotterizationBase]] = 'trotter',
-                 reps: Optional[int] = 1,
-                 # TODO uncomment when we implement Abelian grouped evolution.
-                 # group_paulis: Optional[bool] = False
-                 ) -> None:
+    def __init__(
+        self,
+        trotter_mode: Optional[Union[str, TrotterizationBase]] = "trotter",
+        reps: Optional[int] = 1,
+        # TODO uncomment when we implement Abelian grouped evolution.
+        # group_paulis: Optional[bool] = False
+    ) -> None:
         """
         Args:
             trotter_mode: A string ('trotter', 'suzuki', or 'qdrift') to pass to the
@@ -104,9 +106,11 @@ class PauliTrotterEvolution(EvolutionBase):
         if isinstance(operator, EvolvedOp):
             if isinstance(operator.primitive, PauliSumOp):
                 operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
-            if not {'Pauli'} == operator.primitive_strings():
-                logger.warning('Evolved Hamiltonian is not composed of only Paulis, converting to '
-                               'Pauli representation, which can be expensive.')
+            if not {"Pauli"} == operator.primitive_strings():
+                logger.warning(
+                    "Evolved Hamiltonian is not composed of only Paulis, converting to "
+                    "Pauli representation, which can be expensive."
+                )
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
@@ -119,12 +123,18 @@ class PauliTrotterEvolution(EvolutionBase):
                 #     return self.evolution_for_abelian_paulisum(operator.primitive)
                 # else:
                 # Collect terms that are not the identity.
-                oplist = [x for x in operator.primitive if not isinstance(x, PauliOp)
-                          or sum(x.primitive.x + x.primitive.z) != 0]  # type: ignore
+                oplist = [
+                    x
+                    for x in operator.primitive
+                    if not isinstance(x, PauliOp) or sum(x.primitive.x + x.primitive.z) != 0
+                ]  # type: ignore
                 # Collect the coefficients of any identity terms,
                 # which become global phases when exponentiated.
-                identity_phases = [x.coeff for x in operator.primitive if isinstance(x, PauliOp)
-                                   and sum(x.primitive.x + x.primitive.z) == 0]  # type: ignore
+                identity_phases = [
+                    x.coeff
+                    for x in operator.primitive
+                    if isinstance(x, PauliOp) and sum(x.primitive.x + x.primitive.z) == 0
+                ]  # type: ignore
                 # Construct sum without the identity operators.
                 new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
                 trotterized = self.trotter.convert(new_primitive)

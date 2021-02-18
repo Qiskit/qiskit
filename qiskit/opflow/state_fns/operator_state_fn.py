@@ -26,6 +26,7 @@ from ..list_ops.summed_op import SummedOp
 
 # pylint: disable=invalid-name
 
+
 class OperatorStateFn(StateFn):
     r"""
     A class for state functions and measurements which are defined by a density Operator,
@@ -33,10 +34,12 @@ class OperatorStateFn(StateFn):
     """
 
     # TODO allow normalization somehow?
-    def __init__(self,
-                 primitive: OperatorBase = None,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                 is_measurement: bool = False) -> None:
+    def __init__(
+        self,
+        primitive: OperatorBase = None,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+    ) -> None:
         """
         Args:
             primitive: The ``OperatorBase`` which defines the behavior of the underlying State
@@ -57,64 +60,81 @@ class OperatorStateFn(StateFn):
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
-                'Sum over statefns with different numbers of qubits, {} and {}, is not well '
-                'defined'.format(self.num_qubits, other.num_qubits))
+                "Sum over statefns with different numbers of qubits, {} and {}, is not well "
+                "defined".format(self.num_qubits, other.num_qubits)
+            )
 
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, OperatorStateFn) and self.is_measurement == other.is_measurement:
-            if isinstance(self.primitive.primitive, type(other.primitive.primitive)) and \
-                    self.primitive == other.primitive:
-                return StateFn(self.primitive,
-                               coeff=self.coeff + other.coeff,
-                               is_measurement=self.is_measurement)
+            if (
+                isinstance(self.primitive.primitive, type(other.primitive.primitive))
+                and self.primitive == other.primitive
+            ):
+                return StateFn(
+                    self.primitive,
+                    coeff=self.coeff + other.coeff,
+                    is_measurement=self.is_measurement,
+                )
             # Covers Statevector and custom.
             elif isinstance(other, OperatorStateFn):
                 # Also assumes scalar multiplication is available
                 return OperatorStateFn(
                     (self.coeff * self.primitive).add(other.primitive * other.coeff),
-                    is_measurement=self._is_measurement)
+                    is_measurement=self._is_measurement,
+                )
 
         return SummedOp([self, other])
 
     def adjoint(self) -> OperatorBase:
-        return OperatorStateFn(self.primitive.adjoint(),
-                               coeff=self.coeff.conjugate(),
-                               is_measurement=(not self.is_measurement))
+        return OperatorStateFn(
+            self.primitive.adjoint(),
+            coeff=self.coeff.conjugate(),
+            is_measurement=(not self.is_measurement),
+        )
 
-    def _expand_dim(self, num_qubits: int) -> 'OperatorStateFn':
-        return OperatorStateFn(self.primitive._expand_dim(num_qubits),
-                               coeff=self.coeff,
-                               is_measurement=self.is_measurement)
+    def _expand_dim(self, num_qubits: int) -> "OperatorStateFn":
+        return OperatorStateFn(
+            self.primitive._expand_dim(num_qubits),
+            coeff=self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
-    def permute(self, permutation: List[int]) -> 'OperatorStateFn':
-        return OperatorStateFn(self.primitive.permute(permutation),
-                               coeff=self.coeff,
-                               is_measurement=self.is_measurement)
+    def permute(self, permutation: List[int]) -> "OperatorStateFn":
+        return OperatorStateFn(
+            self.primitive.permute(permutation),
+            coeff=self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         if isinstance(other, OperatorStateFn):
-            return StateFn(self.primitive.tensor(other.primitive),
-                           coeff=self.coeff * other.coeff,
-                           is_measurement=self.is_measurement)
+            return StateFn(
+                self.primitive.tensor(other.primitive),
+                coeff=self.coeff * other.coeff,
+                is_measurement=self.is_measurement,
+            )
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .. import TensoredOp
+
         return TensoredOp([self, other])
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
-        """ Return numpy matrix of density operator, warn if more than 16 qubits
+        """Return numpy matrix of density operator, warn if more than 16 qubits
         to force the user to set
         massive=True if they want such a large matrix. Generally big methods like
         this should require the use of a
         converter, but in this case a convenience method for quick hacking and
         access to classical tools is
-        appropriate. """
-        OperatorBase._check_massive('to_density_matrix', True, self.num_qubits, massive)
+        appropriate."""
+        OperatorBase._check_massive("to_density_matrix", True, self.num_qubits, massive)
         return self.primitive.to_matrix() * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Return a MatrixOp for this operator. """
-        return OperatorStateFn(self.primitive.to_matrix_op(massive=massive) * self.coeff,
-                               is_measurement=self.is_measurement)
+        return OperatorStateFn(
+            self.primitive.to_matrix_op(massive=massive) * self.coeff,
+            is_measurement=self.is_measurement,
+        )
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         r"""
@@ -139,7 +159,7 @@ class OperatorStateFn(StateFn):
         Raises:
             ValueError: Invalid parameters.
         """
-        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
+        OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
         # Operator - return diagonal (real values, not complex),
         # not rank 1 decomposition (statevector)!
         mat = self.primitive.to_matrix(massive=massive)
@@ -159,7 +179,7 @@ class OperatorStateFn(StateFn):
         return diag_over_tree(mat)
 
     def to_circuit_op(self) -> OperatorBase:
-        r""" Return ``StateFnCircuit`` corresponding to this StateFn. Ignore for now because this is
+        r"""Return ``StateFnCircuit`` corresponding to this StateFn. Ignore for now because this is
         undefined. TODO maybe call to_pauli_op and diagonalize here, but that could be very
         inefficient, e.g. splitting one Stabilizer measurement into hundreds of 1 qubit Paulis."""
         raise NotImplementedError
@@ -167,33 +187,38 @@ class OperatorStateFn(StateFn):
     def __str__(self) -> str:
         prim_str = str(self.primitive)
         if self.coeff == 1.0:
-            return "{}({})".format('OperatorStateFn' if not self.is_measurement
-                                   else 'OperatorMeasurement', prim_str)
+            return "{}({})".format(
+                "OperatorStateFn" if not self.is_measurement else "OperatorMeasurement", prim_str
+            )
         else:
             return "{}({}) * {}".format(
-                'OperatorStateFn' if not self.is_measurement else 'OperatorMeasurement',
+                "OperatorStateFn" if not self.is_measurement else "OperatorMeasurement",
                 prim_str,
-                self.coeff)
+                self.coeff,
+            )
 
-    def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self, front: Union[str, dict, np.ndarray, OperatorBase] = None
+    ) -> Union[OperatorBase, float, complex]:
         if front is None:
             matrix = self.primitive.to_matrix_op().primitive.data
             return VectorStateFn(matrix[0, :])
 
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
-                'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
-                'sf.adjoint() first to convert to measurement.')
+                "Cannot compute overlap with StateFn or Operator if not Measurement. Try taking "
+                "sf.adjoint() first to convert to measurement."
+            )
 
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
 
         if isinstance(self.primitive, ListOp) and self.primitive.distributive:
             coeff = self.coeff * self.primitive.coeff
-            evals = [OperatorStateFn(op, coeff=coeff, is_measurement=self.is_measurement).eval(
-                front) for op in self.primitive.oplist]
+            evals = [
+                OperatorStateFn(op, coeff=coeff, is_measurement=self.is_measurement).eval(front)
+                for op in self.primitive.oplist
+            ]
             return self.primitive.combo_fn(evals)
 
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't
@@ -201,13 +226,13 @@ class OperatorStateFn(StateFn):
         # Can't use isinstance because this would include subclasses.
         # pylint: disable=unidiomatic-typecheck
         if type(front) == ListOp:
-            return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
-                                   for front_elem in front.oplist])  # type: ignore
+            return front.combo_fn(
+                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]  # type: ignore
+            )  # type: ignore
 
         return front.adjoint().eval(self.primitive.eval(front)) * self.coeff  # type: ignore
 
-    def sample(self,
-               shots: int = 1024,
-               massive: bool = False,
-               reverse_endianness: bool = False) -> dict:
+    def sample(
+        self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False
+    ) -> dict:
         raise NotImplementedError

@@ -34,10 +34,10 @@ class PauliSumOp(PrimitiveOp):
     """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
 
     def __init__(
-            self,
-            primitive: SparsePauliOp,
-            coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-            grouping_type: str = "None",
+        self,
+        primitive: SparsePauliOp,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+        grouping_type: str = "None",
     ) -> None:
         """
         Args:
@@ -90,15 +90,16 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             MatrixIterator: matrix iterator object for the PauliTable.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
                 return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
 
             def __getitem__(self, key):
                 sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
-                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key],
-                                            sparse=sparse)
+                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key], sparse=sparse)
                 return sumopcoeff * mat
 
         return MatrixIterator(self)
@@ -132,9 +133,7 @@ class PauliSumOp(PrimitiveOp):
         return super().mul(scalar)
 
     def adjoint(self) -> OperatorBase:
-        return PauliSumOp(
-            self.primitive.adjoint(), coeff=self.coeff.conjugate()
-        )
+        return PauliSumOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
@@ -143,7 +142,7 @@ class PauliSumOp(PrimitiveOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
-                other_reduced.coeff, ParameterExpression
+            other_reduced.coeff, ParameterExpression
         ):
             return (
                 self_reduced.coeff == other_reduced.coeff
@@ -186,8 +185,9 @@ class PauliSumOp(PrimitiveOp):
             OpflowError: if indices do not define a new index for each qubit.
         """
         if len(permutation) != self.num_qubits:
-            raise OpflowError("List of indices to permute must have the "
-                              "same size as Pauli Operator")
+            raise OpflowError(
+                "List of indices to permute must have the " "same size as Pauli Operator"
+            )
         length = max(permutation) + 1
         spop = self.primitive.tensor(  # type:ignore
             SparsePauliOp(Pauli("I" * (length - self.num_qubits)))
@@ -199,10 +199,10 @@ class PauliSumOp(PrimitiveOp):
         return PauliSumOp(spop, self.coeff)
 
     def compose(
-            self,
-            other: OperatorBase,
-            permutation: Optional[List[int]] = None,
-            front: bool = False,
+        self,
+        other: OperatorBase,
+        permutation: Optional[List[int]] = None,
+        front: bool = False,
     ) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
@@ -222,6 +222,7 @@ class PauliSumOp(PrimitiveOp):
             )
         # pylint: disable=import-outside-toplevel
         from .pauli_op import PauliOp
+
         if isinstance(other, PauliOp):
             other_primitive = SparsePauliOp(other.primitive)
             return PauliSumOp(
@@ -267,8 +268,8 @@ class PauliSumOp(PrimitiveOp):
         return f"{main_string}" if self.coeff == 1 else f"{self.coeff} * (\n{main_string}\n)"
 
     def eval(
-            self,
-            front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None,
+        self,
+        front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None,
     ) -> Union[OperatorBase, float, complex]:
         if front is None:
             return self.to_matrix_op()
@@ -408,9 +409,9 @@ class PauliSumOp(PrimitiveOp):
 
     @classmethod
     def from_list(
-            cls,
-            pauli_list: List[Tuple[str, Union[int, float, complex]]],
-            coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+        cls,
+        pauli_list: List[Tuple[str, Union[int, float, complex]]],
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 

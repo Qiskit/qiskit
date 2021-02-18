@@ -34,9 +34,12 @@ class SetFrequency(Instruction):
     The duration of SetFrequency is 0.
     """
 
-    def __init__(self, frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new set channel frequency instruction.
 
         Args:
@@ -69,10 +72,12 @@ class SetFrequency(Instruction):
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
-    def __init__(self,
-                 frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        frequency: Union[float, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Creates a new shift frequency instruction.
 
         Args:

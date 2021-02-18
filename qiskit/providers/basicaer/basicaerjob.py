@@ -30,11 +30,13 @@ def requires_submit(func):
     Returns:
         callable: the decorated function.
     """
+
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         if self._future is None:
             raise JobError("Job not submitted yet!. You have to .submit() first!")
         return func(self, *args, **kwargs)
+
     return _wrapper
 
 
@@ -45,7 +47,7 @@ class BasicAerJob(BaseJob):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    if sys.platform in ['darwin', 'win32']:
+    if sys.platform in ["darwin", "win32"]:
         _executor = futures.ThreadPoolExecutor()
     else:
         _executor = futures.ProcessPoolExecutor()

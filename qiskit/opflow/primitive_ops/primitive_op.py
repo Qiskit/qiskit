@@ -47,12 +47,23 @@ class PrimitiveOp(OperatorBase):
 
     @staticmethod
     # pylint: disable=unused-argument
-    def __new__(cls,
-                primitive:
-                Optional[Union[Instruction, QuantumCircuit, List,
-                               np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
-                coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> 'PrimitiveOp':
-        """ A factory method to produce the correct type of PrimitiveOp subclass
+    def __new__(
+        cls,
+        primitive: Optional[
+            Union[
+                Instruction,
+                QuantumCircuit,
+                List,
+                np.ndarray,
+                spmatrix,
+                MatrixOperator,
+                Pauli,
+                SparsePauliOp,
+            ]
+        ] = None,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+    ) -> "PrimitiveOp":
+        """A factory method to produce the correct type of PrimitiveOp subclass
         based on the primitive passed in. Primitive and coeff arguments are passed into
         subclass's init() as-is automatically by new().
 
@@ -69,40 +80,58 @@ class PrimitiveOp(OperatorBase):
         # pylint: disable=cyclic-import,import-outside-toplevel
         if isinstance(primitive, (Instruction, QuantumCircuit)):
             from .circuit_op import CircuitOp
+
             return CircuitOp.__new__(CircuitOp)
 
         if isinstance(primitive, (list, np.ndarray, spmatrix, MatrixOperator)):
             from .matrix_op import MatrixOp
+
             return MatrixOp.__new__(MatrixOp)
 
         if isinstance(primitive, Pauli):
             from .pauli_op import PauliOp
+
             return PauliOp.__new__(PauliOp)
 
         if isinstance(primitive, SparsePauliOp):
             from .pauli_sum_op import PauliSumOp
+
             return PauliSumOp.__new__(PauliSumOp)
 
-        raise TypeError('Unsupported primitive type {} passed into PrimitiveOp '
-                        'factory constructor'.format(type(primitive)))
+        raise TypeError(
+            "Unsupported primitive type {} passed into PrimitiveOp "
+            "factory constructor".format(type(primitive))
+        )
 
-    def __init__(self,
-                 primitive:
-                 Optional[Union[Instruction, QuantumCircuit, List,
-                                np.ndarray, spmatrix, MatrixOperator, Pauli, SparsePauliOp]] = None,
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0) -> None:
+    def __init__(
+        self,
+        primitive: Optional[
+            Union[
+                Instruction,
+                QuantumCircuit,
+                List,
+                np.ndarray,
+                spmatrix,
+                MatrixOperator,
+                Pauli,
+                SparsePauliOp,
+            ]
+        ] = None,
+        coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+    ) -> None:
         """
-            Args:
-                primitive: The operator primitive being wrapped.
-                coeff: A coefficient multiplying the primitive.
+        Args:
+            primitive: The operator primitive being wrapped.
+            coeff: A coefficient multiplying the primitive.
         """
         self._primitive = primitive
         self._coeff = coeff
 
     @property
-    def primitive(self) -> Union[Instruction, QuantumCircuit, List,
-                                 np.ndarray, spmatrix, MatrixOperator, Pauli]:
-        """ The primitive defining the underlying function of the Operator.
+    def primitive(
+        self,
+    ) -> Union[Instruction, QuantumCircuit, List, np.ndarray, spmatrix, MatrixOperator, Pauli]:
+        """The primitive defining the underlying function of the Operator.
 
         Returns:
              The primitive object.
@@ -137,8 +166,10 @@ class PrimitiveOp(OperatorBase):
 
     def mul(self, scalar: Union[int, float, complex, ParameterExpression]) -> OperatorBase:
         if not isinstance(scalar, (int, float, complex, ParameterExpression)):
-            raise ValueError('Operators can only be scalar multiplied by float or complex, not '
-                             '{} of type {}.'.format(scalar, type(scalar)))
+            raise ValueError(
+                "Operators can only be scalar multiplied by float or complex, not "
+                "{} of type {}.".format(scalar, type(scalar))
+            )
         # Need to return self.__class__ in case the object is one of the inherited OpPrimitives
         return self.__class__(self.primitive, coeff=self.coeff * scalar)
 
@@ -150,17 +181,18 @@ class PrimitiveOp(OperatorBase):
         if other == 0:
             return 1
         if not isinstance(other, int) or other < 0:
-            raise TypeError('Tensorpower can only take positive int arguments')
+            raise TypeError("Tensorpower can only take positive int arguments")
         temp = PrimitiveOp(self.primitive, coeff=self.coeff)  # type: OperatorBase
         for _ in range(other - 1):
             temp = temp.tensor(self)
         return temp
 
-    def compose(self, other: OperatorBase,
-                permutation: Optional[List[int]] = None, front: bool = False) -> \
-            OperatorBase:
+    def compose(
+        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
+    ) -> OperatorBase:
         # pylint: disable=import-outside-toplevel,cyclic-import
         from ..list_ops.composed_op import ComposedOp
+
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         if isinstance(other, ComposedOp):
             comp_with_first = new_self.compose(other.oplist[0])
@@ -173,7 +205,7 @@ class PrimitiveOp(OperatorBase):
 
     def power(self, exponent: int) -> OperatorBase:
         if not isinstance(exponent, int) or exponent <= 0:
-            raise TypeError('power can only take positive int arguments')
+            raise TypeError("power can only take positive int arguments")
         temp = PrimitiveOp(self.primitive, coeff=self.coeff)  # type: OperatorBase
         for _ in range(exponent - 1):
             temp = temp.compose(self)
@@ -189,6 +221,7 @@ class PrimitiveOp(OperatorBase):
         """ Return Operator exponentiation, equaling e^(-i * op)"""
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..evolutions.evolved_op import EvolvedOp
+
         return EvolvedOp(self)
 
     def log_i(self, massive: bool = False) -> OperatorBase:
@@ -198,8 +231,12 @@ class PrimitiveOp(OperatorBase):
         # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
         from .matrix_op import MatrixOp
-        return MatrixOp(np.around(scipy.linalg.logm(self.to_matrix(massive=massive)) / -1j,
-                                  decimals=EVAL_SIG_DIGITS))
+
+        return MatrixOp(
+            np.around(
+                scipy.linalg.logm(self.to_matrix(massive=massive)) / -1j, decimals=EVAL_SIG_DIGITS
+            )
+        )
 
     def __str__(self) -> str:
         raise NotImplementedError
@@ -207,9 +244,9 @@ class PrimitiveOp(OperatorBase):
     def __repr__(self) -> str:
         return "{}({}, coeff={})".format(type(self).__name__, repr(self.primitive), self.coeff)
 
-    def eval(self,
-             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
-             ) -> Union[OperatorBase, float, complex]:
+    def eval(
+        self, front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+    ) -> Union[OperatorBase, float, complex]:
         raise NotImplementedError
 
     @property
@@ -228,6 +265,7 @@ class PrimitiveOp(OperatorBase):
             if isinstance(unrolled_dict, list):
                 # pylint: disable=import-outside-toplevel,cyclic-import
                 from ..list_ops.list_op import ListOp
+
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
@@ -246,6 +284,7 @@ class PrimitiveOp(OperatorBase):
         # pylint: disable=import-outside-toplevel
         prim_mat = self.__class__(self.primitive).to_matrix(massive=massive)
         from .matrix_op import MatrixOp
+
         return MatrixOp(prim_mat, coeff=self.coeff)
 
     def to_instruction(self) -> Instruction:
@@ -262,6 +301,7 @@ class PrimitiveOp(OperatorBase):
         """ Returns a ``CircuitOp`` equivalent to this Operator. """
         # pylint: disable=import-outside-toplevel
         from .circuit_op import CircuitOp
+
         if self.coeff == 0:
             return CircuitOp(QuantumCircuit(self.num_qubits), coeff=0)
         return CircuitOp(self.to_circuit(), coeff=self.coeff)
@@ -270,11 +310,13 @@ class PrimitiveOp(OperatorBase):
         """ Returns a sum of ``PauliOp`` s equivalent to this Operator. """
         # pylint: disable=import-outside-toplevel,cyclic-import
         from ..list_ops.summed_op import SummedOp
+
         mat_op = self.to_matrix_op(massive=massive)
         sparse_pauli = SparsePauliOp.from_operator(mat_op.primitive)  # type: ignore
         if not sparse_pauli.to_list():
             # pylint: disable=import-outside-toplevel
             from ..operator_globals import I
+
             return (I ^ self.num_qubits) * 0.0
         if len(sparse_pauli) == 1:
             label, coeff = sparse_pauli.to_list()[0]

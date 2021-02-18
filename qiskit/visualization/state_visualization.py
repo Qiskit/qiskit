@@ -32,8 +32,8 @@ from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
 from qiskit.circuit.tools.pi_check import pi_check
 
 
-@deprecate_arguments({'rho': 'state'})
-def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+@deprecate_arguments({"rho": "state"})
+def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
@@ -78,8 +78,9 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
             plot_state_hinton(state, title="New Hinton Plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     from matplotlib import pyplot as plt
     from matplotlib import get_backend
 
@@ -103,21 +104,26 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
-    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    column_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
     ly, lx = datareal.shape
     # Real
     if ax1:
-        ax1.patch.set_facecolor('gray')
-        ax1.set_aspect('equal', 'box')
+        ax1.patch.set_facecolor("gray")
+        ax1.set_aspect("equal", "box")
         ax1.xaxis.set_major_locator(plt.NullLocator())
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
-            color = 'white' if w > 0 else 'black'
+            color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
-            rect = plt.Rectangle([0.5 + x - size / 2, 0.5 + y - size / 2], size, size,
-                                 facecolor=color, edgecolor=color)
+            rect = plt.Rectangle(
+                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                size,
+                size,
+                facecolor=color,
+                edgecolor=color,
+            )
             ax1.add_patch(rect)
 
         ax1.set_xticks(0.5 + np.arange(lx))
@@ -127,19 +133,24 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         ax1.set_yticklabels(row_names, fontsize=14)
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
         ax1.invert_yaxis()
-        ax1.set_title('Re[$\\rho$]', fontsize=14)
+        ax1.set_title("Re[$\\rho$]", fontsize=14)
     # Imaginary
     if ax2:
-        ax2.patch.set_facecolor('gray')
-        ax2.set_aspect('equal', 'box')
+        ax2.patch.set_facecolor("gray")
+        ax2.set_aspect("equal", "box")
         ax2.xaxis.set_major_locator(plt.NullLocator())
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
-            color = 'white' if w > 0 else 'black'
+            color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
-            rect = plt.Rectangle([0.5 + x - size / 2, 0.5 + y - size / 2], size, size,
-                                 facecolor=color, edgecolor=color)
+            rect = plt.Rectangle(
+                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                size,
+                size,
+                facecolor=color,
+                edgecolor=color,
+            )
             ax2.add_patch(rect)
 
         ax2.set_xticks(0.5 + np.arange(lx))
@@ -149,12 +160,11 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
         ax2.invert_yaxis()
-        ax2.set_title('Im[$\\rho$]', fontsize=14)
+        ax2.set_title("Im[$\\rho$]", fontsize=14)
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
 
@@ -191,8 +201,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     from qiskit.visualization.bloch import Bloch
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
@@ -202,23 +213,22 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     B = Bloch(axes=ax)
     if coord_type == "spherical":
         r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r*np.sin(theta)*np.cos(phi)
-        bloch[1] = r*np.sin(theta)*np.sin(phi)
-        bloch[2] = r*np.cos(theta)
+        bloch[0] = r * np.sin(theta) * np.cos(phi)
+        bloch[1] = r * np.sin(theta) * np.sin(phi)
+        bloch[2] = r * np.cos(theta)
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
         fig = B.fig
         fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
     return None
 
 
-@deprecate_arguments({'rho': 'state'})
-def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
+@deprecate_arguments({"rho": "state"})
+def plot_bloch_multivector(state, title="", figsize=None, *, rho=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -252,30 +262,30 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
             plot_bloch_multivector(state, title="New Bloch Multivector")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     # Data
     bloch_data = _bloch_multivector_data(state)
     num = len(bloch_data)
-    width, height = plt.figaspect(1/num)
+    width, height = plt.figaspect(1 / num)
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
-        ax = fig.add_subplot(1, num, i + 1, projection='3d')
-        plot_bloch_vector(bloch_data[i], "qubit " + str(i), ax=ax,
-                          figsize=figsize)
+        ax = fig.add_subplot(1, num, i + 1, projection="3d")
+        plot_bloch_vector(bloch_data[i], "qubit " + str(i), ax=ax, figsize=figsize)
     fig.suptitle(title, fontsize=16)
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
+    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig
 
 
-@deprecate_arguments({'rho': 'state'})
-def plot_state_city(state, title="", figsize=None, color=None,
-                    alpha=1, ax_real=None, ax_imag=None, *, rho=None):
+@deprecate_arguments({"rho": "state"})
+def plot_state_city(
+    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
@@ -328,8 +338,9 @@ def plot_state_city(state, title="", figsize=None, color=None,
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -344,18 +355,18 @@ def plot_state_city(state, title="", figsize=None, color=None,
     dataimag = np.imag(rho.data)
 
     # get the labels
-    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    column_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
 
-    lx = len(datareal[0])            # Work out matrix dimensions
+    lx = len(datareal[0])  # Work out matrix dimensions
     ly = len(datareal[:, 0])
-    xpos = np.arange(0, lx, 1)    # Set up a mesh of positions
+    xpos = np.arange(0, lx, 1)  # Set up a mesh of positions
     ypos = np.arange(0, ly, 1)
-    xpos, ypos = np.meshgrid(xpos+0.25, ypos+0.25)
+    xpos, ypos = np.meshgrid(xpos + 0.25, ypos + 0.25)
 
     xpos = xpos.flatten()
     ypos = ypos.flatten()
-    zpos = np.zeros(lx*ly)
+    zpos = np.zeros(lx * ly)
 
     dx = 0.5 * np.ones_like(zpos)  # width of bars
     dy = dx.copy()
@@ -377,8 +388,8 @@ def plot_state_city(state, title="", figsize=None, color=None,
             figsize = (15, 5)
 
         fig = plt.figure(figsize=figsize)
-        ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-        ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+        ax1 = fig.add_subplot(1, 2, 1, projection="3d")
+        ax2 = fig.add_subplot(1, 2, 2, projection="3d")
     elif ax_real is not None:
         fig = ax_real.get_figure()
         ax1 = ax_real
@@ -401,10 +412,17 @@ def plot_state_city(state, title="", figsize=None, color=None,
                 zorder = 2
             else:
                 zorder = 0
-            b1 = ax1.bar3d(xpos[idx], ypos[idx], cur_zpos,
-                           dx[idx], dy[idx], dzr[idx],
-                           alpha=alpha, zorder=zorder)
-            b1.set_facecolors(fc1[6*idx:6*idx+6])
+            b1 = ax1.bar3d(
+                xpos[idx],
+                ypos[idx],
+                cur_zpos,
+                dx[idx],
+                dy[idx],
+                dzr[idx],
+                alpha=alpha,
+                zorder=zorder,
+            )
+            b1.set_facecolors(fc1[6 * idx : 6 * idx + 6])
 
         xlim, ylim = ax1.get_xlim(), ax1.get_ylim()
         x = [xlim[0], xlim[1], xlim[1], xlim[0]]
@@ -412,26 +430,25 @@ def plot_state_city(state, title="", figsize=None, color=None,
         z = [0, 0, 0, 0]
         verts = [list(zip(x, y, z))]
 
-        pc1 = Poly3DCollection(verts, alpha=0.15, facecolor='k',
-                               linewidths=1, zorder=1)
+        pc1 = Poly3DCollection(verts, alpha=0.15, facecolor="k", linewidths=1, zorder=1)
 
         if min(dzr) < 0 < max(dzr):
             ax1.add_collection3d(pc1)
-        ax1.set_xticks(np.arange(0.5, lx+0.5, 1))
-        ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
+        ax1.set_xticks(np.arange(0.5, lx + 0.5, 1))
+        ax1.set_yticks(np.arange(0.5, ly + 0.5, 1))
         if max_dzr != min_dzr:
             ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr) + 1e-9, max_dzi))
         else:
             if min_dzr == 0:
-                ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
+                ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr) + 1e-9, np.max(dzi)))
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
-                                   ha='right', va='top')
-        ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
-                                   ha='left', va='center')
-        ax1.set_zlabel('Re[$\\rho$]', fontsize=14)
+        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax1.w_yaxis.set_ticklabels(
+            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
+        )
+        ax1.set_zlabel("Re[$\\rho$]", fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
 
@@ -442,10 +459,17 @@ def plot_state_city(state, title="", figsize=None, color=None,
                 zorder = 2
             else:
                 zorder = 0
-            b2 = ax2.bar3d(xpos[idx], ypos[idx], cur_zpos,
-                           dx[idx], dy[idx], dzi[idx],
-                           alpha=alpha, zorder=zorder)
-            b2.set_facecolors(fc2[6*idx:6*idx+6])
+            b2 = ax2.bar3d(
+                xpos[idx],
+                ypos[idx],
+                cur_zpos,
+                dx[idx],
+                dy[idx],
+                dzi[idx],
+                alpha=alpha,
+                zorder=zorder,
+            )
+            b2.set_facecolors(fc2[6 * idx : 6 * idx + 6])
 
         xlim, ylim = ax2.get_xlim(), ax2.get_ylim()
         x = [xlim[0], xlim[1], xlim[1], xlim[0]]
@@ -453,42 +477,40 @@ def plot_state_city(state, title="", figsize=None, color=None,
         z = [0, 0, 0, 0]
         verts = [list(zip(x, y, z))]
 
-        pc2 = Poly3DCollection(verts, alpha=0.2, facecolor='k',
-                               linewidths=1, zorder=1)
+        pc2 = Poly3DCollection(verts, alpha=0.2, facecolor="k", linewidths=1, zorder=1)
 
         if min(dzi) < 0 < max(dzi):
             ax2.add_collection3d(pc2)
-        ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
-        ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
+        ax2.set_xticks(np.arange(0.5, lx + 0.5, 1))
+        ax2.set_yticks(np.arange(0.5, ly + 0.5, 1))
         if min_dzi != max_dzi:
             eps = 0
-            ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
+            ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr) + 1e-9, np.max(dzi) + eps))
         else:
             if min_dzi == 0:
                 ax2.set_zticks([0])
                 eps = 1e-9
-                ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
+                ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr) + 1e-9, np.max(dzi) + eps))
             else:
                 ax2.axes.set_zlim3d(auto=True)
 
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45,
-                                   ha='right', va='top')
-        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5,
-                                   ha='left', va='center')
-        ax2.set_zlabel('Im[$\\rho$]', fontsize=14)
+        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax2.w_yaxis.set_ticklabels(
+            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
+        )
+        ax2.set_zlabel("Im[$\\rho$]", fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
             tick.label.set_fontsize(14)
         ax2.get_autoscalez_on()
 
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
 
 
-@deprecate_arguments({'rho': 'state'})
+@deprecate_arguments({"rho": "state"})
 def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
     """Plot the paulivec representation of a quantum state.
 
@@ -530,8 +552,9 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
@@ -551,23 +574,22 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
     else:
         return_fig = False
         fig = ax.get_figure()
-    ax.grid(zorder=0, linewidth=1, linestyle='--')
+    ax.grid(zorder=0, linewidth=1, linestyle="--")
     ax.bar(ind, values, width, color=color, zorder=2)
-    ax.axhline(linewidth=1, color='k')
+    ax.axhline(linewidth=1, color="k")
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel('Expectation value', fontsize=14)
+    ax.set_ylabel("Expectation value", fontsize=14)
     ax.set_xticks(ind)
     ax.set_yticks([-1, -0.5, 0, 0.5, 1])
     ax.set_xticklabels(labels, fontsize=14, rotation=70)
-    ax.set_xlabel('Pauli', fontsize=14)
+    ax.set_xlabel("Pauli", fontsize=14)
     ax.set_ylim([-1, 1])
-    ax.set_facecolor('#eeeeee')
-    for tick in ax.xaxis.get_major_ticks()+ax.yaxis.get_major_ticks():
+    ax.set_facecolor("#eeeeee")
+    for tick in ax.xaxis.get_major_ticks() + ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
 
@@ -584,9 +606,7 @@ def n_choose_k(n, k):
     """
     if n == 0:
         return 0
-    return reduce(lambda x, y: x * y[0] / y[1],
-                  zip(range(n - k + 1, n + 1),
-                      range(1, k + 1)), 1)
+    return reduce(lambda x, y: x * y[0] / y[1], zip(range(n - k + 1, n + 1), range(1, k + 1)), 1)
 
 
 def lex_index(n, k, lst):
@@ -631,9 +651,17 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_arguments({'rho': 'state'})
-def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=False, use_degrees=False, *, rho=None):
+@deprecate_arguments({"rho": "state"})
+def plot_state_qsphere(
+    state,
+    figsize=None,
+    ax=None,
+    show_state_labels=True,
+    show_state_phases=False,
+    use_degrees=False,
+    *,
+    rho=None,
+):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -678,8 +706,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
            plot_state_qsphere(state)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
 
     from mpl_toolkits.mplot3d import proj3d
     from matplotlib.patches import FancyArrowPatch
@@ -706,8 +735,10 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     try:
         import seaborn as sns
     except ImportError:
-        raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip install seaborn".')
+        raise ImportError(
+            "Must have seaborn installed to use "
+            'plot_state_qsphere. To install, run "pip install seaborn".'
+        )
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -727,7 +758,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     gs = gridspec.GridSpec(nrows=3, ncols=3)
 
-    ax = fig.add_subplot(gs[0:3, 0:3], projection='3d')
+    ax = fig.add_subplot(gs[0:3, 0:3], projection="3d")
     ax.axes.set_xlim3d(-1.0, 1.0)
     ax.axes.set_ylim3d(-1.0, 1.0)
     ax.axes.set_zlim3d(-1.0, 1.0)
@@ -736,7 +767,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     # Force aspect ratio
     # MPL 3.2 or previous do not have set_box_aspect
-    if hasattr(ax.axes, 'set_box_aspect'):
+    if hasattr(ax.axes, "set_box_aspect"):
         ax.axes.set_box_aspect((1, 1, 1))
 
     # start the plotting
@@ -746,8 +777,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
     z = np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, color=plt.rcParams['grid.color'],
-                    alpha=0.2, linewidth=0)
+    ax.plot_surface(
+        x, y, z, rstride=1, cstride=1, color=plt.rcParams["grid.color"], alpha=0.2, linewidth=0
+    )
 
     # Get rid of the panes
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -765,7 +797,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.set_zticks([])
 
     # traversing the eigvals/vecs backward as sorted low->high
-    for idx in range(eigvals.shape[0]-1, -1, -1):
+    for idx in range(eigvals.shape[0] - 1, -1, -1):
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
             state = eigvecs[:, idx]
@@ -783,11 +815,13 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                 zvalue = -2 * weight / d + 1
                 number_of_divisions = n_choose_k(d, weight)
                 weight_order = bit_string_index(element)
-                angle = (float(weight) / d) * (np.pi * 2) + \
-                        (weight_order * 2 * (np.pi / number_of_divisions))
+                angle = (float(weight) / d) * (np.pi * 2) + (
+                    weight_order * 2 * (np.pi / number_of_divisions)
+                )
 
-                if (weight > d / 2) or ((weight == d / 2) and
-                                        (weight_order >= number_of_divisions / 2)):
+                if (weight > d / 2) or (
+                    (weight == d / 2) and (weight_order >= number_of_divisions / 2)
+                ):
                     angle = np.pi - angle - (2 * np.pi / number_of_divisions)
 
                 xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
@@ -809,25 +843,45 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
                     yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
                     zvalue_text = rprime * np.cos(angle_theta)
-                    element_text = '$\\vert' + element + '\\rangle$'
+                    element_text = "$\\vert" + element + "\\rangle$"
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
                         else:
-                            element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
-                            element_text += '\n$%s$' % (element_angle)
-                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
-                            ha='center', va='center', size=12)
+                            element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
+                            element_text += "\n$%s$" % (element_angle)
+                    ax.text(
+                        xvalue_text,
+                        yvalue_text,
+                        zvalue_text,
+                        element_text,
+                        ha="center",
+                        va="center",
+                        size=12,
+                    )
 
-                ax.plot([xvalue], [yvalue], [zvalue],
-                        markerfacecolor=colorstate,
-                        markeredgecolor=colorstate,
-                        marker='o', markersize=np.sqrt(prob) * 30, alpha=alfa)
+                ax.plot(
+                    [xvalue],
+                    [yvalue],
+                    [zvalue],
+                    markerfacecolor=colorstate,
+                    markeredgecolor=colorstate,
+                    marker="o",
+                    markersize=np.sqrt(prob) * 30,
+                    alpha=alfa,
+                )
 
-                a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue],
-                            mutation_scale=20, alpha=prob, arrowstyle="-",
-                            color=colorstate, lw=2)
+                a = Arrow3D(
+                    [0, xvalue],
+                    [0, yvalue],
+                    [0, zvalue],
+                    mutation_scale=20,
+                    alpha=prob,
+                    arrowstyle="-",
+                    color=colorstate,
+                    lw=2,
+                )
                 ax.add_artist(a)
 
             # add weight lines
@@ -837,12 +891,19 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                 r = np.sqrt(1 - z ** 2)
                 x = r * np.cos(theta)
                 y = r * np.sin(theta)
-                ax.plot(x, y, z, color=(.5, .5, .5), lw=1, ls=':', alpha=.5)
+                ax.plot(x, y, z, color=(0.5, 0.5, 0.5), lw=1, ls=":", alpha=0.5)
 
             # add center point
-            ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
-                    markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
-                    alpha=1)
+            ax.plot(
+                [0],
+                [0],
+                [0],
+                markerfacecolor=(0.5, 0.5, 0.5),
+                markeredgecolor=(0.5, 0.5, 0.5),
+                marker="o",
+                markersize=3,
+                alpha=1,
+            )
         else:
             break
 
@@ -851,28 +912,30 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams['figure.facecolor'], zorder=1))
+    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
-        labels = ['Phase\n(Deg)', '0', '90', '180   ', '270']
+        labels = ["Phase\n(Deg)", "0", "90", "180   ", "270"]
     else:
-        labels = ['Phase', '$0$', '$\\pi/2$', '$\\pi$', '$3\\pi/2$']
+        labels = ["Phase", "$0$", "$\\pi/2$", "$\\pi$", "$3\\pi/2$"]
 
-    ax2.text(0, 0, labels[0], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(offset, 0, labels[1], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, offset, labels[2], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(-offset, 0, labels[3], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, -offset, labels[4], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
+    ax2.text(0, 0, labels[0], horizontalalignment="center", verticalalignment="center", fontsize=14)
+    ax2.text(
+        offset, 0, labels[1], horizontalalignment="center", verticalalignment="center", fontsize=14
+    )
+    ax2.text(
+        0, offset, labels[2], horizontalalignment="center", verticalalignment="center", fontsize=14
+    )
+    ax2.text(
+        -offset, 0, labels[3], horizontalalignment="center", verticalalignment="center", fontsize=14
+    )
+    ax2.text(
+        0, -offset, labels[4], horizontalalignment="center", verticalalignment="center", fontsize=14
+    )
 
     if return_fig:
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
+        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
         return fig
 
@@ -897,54 +960,57 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         ImportError: If matplotlib is not installed
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
     import matplotlib.colors as mcolors
 
-    cuboid = np.array([
-        # -z
-        (
-            (0, 0, 0),
-            (0, 1, 0),
-            (1, 1, 0),
-            (1, 0, 0),
-        ),
-        # +z
-        (
-            (0, 0, 1),
-            (1, 0, 1),
-            (1, 1, 1),
-            (0, 1, 1),
-        ),
-        # -y
-        (
-            (0, 0, 0),
-            (1, 0, 0),
-            (1, 0, 1),
-            (0, 0, 1),
-        ),
-        # +y
-        (
-            (0, 1, 0),
-            (0, 1, 1),
-            (1, 1, 1),
-            (1, 1, 0),
-        ),
-        # -x
-        (
-            (0, 0, 0),
-            (0, 0, 1),
-            (0, 1, 1),
-            (0, 1, 0),
-        ),
-        # +x
-        (
-            (1, 0, 0),
-            (1, 1, 0),
-            (1, 1, 1),
-            (1, 0, 1),
-        ),
-    ])
+    cuboid = np.array(
+        [
+            # -z
+            (
+                (0, 0, 0),
+                (0, 1, 0),
+                (1, 1, 0),
+                (1, 0, 0),
+            ),
+            # +z
+            (
+                (0, 0, 1),
+                (1, 0, 1),
+                (1, 1, 1),
+                (0, 1, 1),
+            ),
+            # -y
+            (
+                (0, 0, 0),
+                (1, 0, 0),
+                (1, 0, 1),
+                (0, 0, 1),
+            ),
+            # +y
+            (
+                (0, 1, 0),
+                (0, 1, 1),
+                (1, 1, 1),
+                (1, 1, 0),
+            ),
+            # -x
+            (
+                (0, 0, 0),
+                (0, 0, 1),
+                (0, 1, 1),
+                (0, 1, 0),
+            ),
+            # +x
+            (
+                (1, 0, 0),
+                (1, 1, 0),
+                (1, 1, 1),
+                (1, 0, 1),
+            ),
+        ]
+    )
 
     # indexed by [bar, face, vertex, coord]
     polys = np.empty(x.shape + cuboid.shape)
@@ -966,7 +1032,7 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         # a single color specified, or face colors specified explicitly
         facecolors = list(mcolors.to_rgba_array(color))
         if len(facecolors) < len(x):
-            facecolors *= (6 * len(x))
+            facecolors *= 6 * len(x)
 
     normals = _generate_normals(polys)
     return _shade_colors(facecolors, normals)
@@ -996,7 +1062,7 @@ def _generate_normals(polygons):
         # optimization: polygons all have the same number of points, so can
         # vectorize
         n = polygons.shape[-2]
-        i1, i2, i3 = 0, n//3, 2*n//3
+        i1, i2, i3 = 0, n // 3, 2 * n // 3
         v1 = polygons[..., i1, :] - polygons[..., i2, :]
         v2 = polygons[..., i2, :] - polygons[..., i3, :]
     else:
@@ -1005,7 +1071,7 @@ def _generate_normals(polygons):
         v2 = np.empty((len(polygons), 3))
         for poly_i, ps in enumerate(polygons):
             n = len(ps)
-            i1, i2, i3 = 0, n//3, 2*n//3
+            i1, i2, i3 = 0, n // 3, 2 * n // 3
             v1[poly_i, :] = ps[i1, :] - ps[i2, :]
             v2[poly_i, :] = ps[i2, :] - ps[i3, :]
 
@@ -1018,8 +1084,9 @@ def _shade_colors(color, normals, lightsource=None):
     *color* can also be an array of the same length as *normals*.
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
+        raise ImportError(
+            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        )
 
     from matplotlib.colors import Normalize, LightSource
     import matplotlib.colors as mcolors
@@ -1031,8 +1098,9 @@ def _shade_colors(color, normals, lightsource=None):
     def mod(v):
         return np.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
 
-    shade = np.array([np.dot(n / mod(n), lightsource.direction)
-                      if mod(n) else np.nan for n in normals])
+    shade = np.array(
+        [np.dot(n / mod(n), lightsource.direction) if mod(n) else np.nan for n in normals]
+    )
     mask = ~np.isnan(shade)
 
     if mask.any():
@@ -1066,18 +1134,18 @@ def _repr_state_latex(state, max_size=(8, 8), dims=True, prefix=None):
 
 
 def _repr_state_text(state):
-    prefix = '{}('.format(type(state).__name__)
-    pad = len(prefix) * ' '
-    return '{}{},\n{}dims={})'.format(
-        prefix, np.array2string(
-            state._data, separator=', ', prefix=prefix),
-        pad, state._dims)
+    prefix = "{}(".format(type(state).__name__)
+    pad = len(prefix) * " "
+    return "{}{},\n{}dims={})".format(
+        prefix, np.array2string(state._data, separator=", ", prefix=prefix), pad, state._dims
+    )
 
 
-class TextMatrix():
+class TextMatrix:
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
-    def __init__(self, state, max_size=8, dims=False, prefix=''):
+
+    def __init__(self, state, max_size=8, dims=False, prefix=""):
         self.state = state
         self.max_size = max_size
         self.dims = dims
@@ -1087,85 +1155,76 @@ class TextMatrix():
         elif isinstance(state, DensityMatrix):
             # density matrices are square, so threshold for
             # summarization is shortest side squared
-            self.max_size = min(max_size)**2
+            self.max_size = min(max_size) ** 2
         else:
             self.max_size = max_size[0]
 
     def __str__(self):
         threshold = self.max_size
-        data = np.array2string(
-            self.state._data,
-            prefix=self.prefix,
-            threshold=threshold
-        )
+        data = np.array2string(self.state._data, prefix=self.prefix, threshold=threshold)
         if self.dims:
-            suffix = f',\ndims={self.state._op_shape.dims_l()}'
+            suffix = f",\ndims={self.state._op_shape.dims_l()}"
         else:
-            suffix = ''
+            suffix = ""
         return self.prefix + data + suffix
 
     def __repr__(self):
         return self.__str__()
 
 
-def state_drawer(state,
-                 output=None,
-                 max_size=None,
-                 dims=None,
-                 prefix=None,
-                 **drawer_args
-                 ):
+def state_drawer(state, output=None, max_size=None, dims=None, prefix=None, **drawer_args):
     """Returns a visualization of the state.
 
-        **text**: ASCII TextMatrix that can be printed in the console.
+    **text**: ASCII TextMatrix that can be printed in the console.
 
-        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+    **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
 
-        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+    **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
 
-        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+    **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
 
-        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+    **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
 
-        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+    **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
 
-        Args:
-            output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
-                ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
-            max_size (int): Maximum number of elements before array is
-                summarized instead of fully represented. For ``latex``
-                drawer, this is also the maximum number of elements that will
-                be drawn in the output array, including elipses elements. For
-                ``text`` drawer, this is the ``threshold`` parameter in
-                ``numpy.array2string()``.
-            dims (bool): For `text`, `latex` and `latex_source`. Whether to
-                display the dimensions. If `None`, will only display if state
-                is not a qubit state.
-            prefix (str): For `text`, `latex`, and `latex_source`. Text to be
-                displayed before the rest of the state.
+    Args:
+        output (str): Select the output method to use for drawing the
+            circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+            ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
+        max_size (int): Maximum number of elements before array is
+            summarized instead of fully represented. For ``latex``
+            drawer, this is also the maximum number of elements that will
+            be drawn in the output array, including elipses elements. For
+            ``text`` drawer, this is the ``threshold`` parameter in
+            ``numpy.array2string()``.
+        dims (bool): For `text`, `latex` and `latex_source`. Whether to
+            display the dimensions. If `None`, will only display if state
+            is not a qubit state.
+        prefix (str): For `text`, `latex`, and `latex_source`. Text to be
+            displayed before the rest of the state.
 
-        Returns:
-            :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+    Returns:
+        :class:`matplotlib.figure` or :class:`str` or
+        :class:`TextMatrix`: or :class:`IPython.display.Latex`
 
-        Raises:
-            ImportError: when `output` is `latex` and IPython is not installed.
-            ValueError: when `output` is not a valid selection.
+    Raises:
+        ImportError: when `output` is `latex` and IPython is not installed.
+        ValueError: when `output` is not a valid selection.
     """
     # set 'output'
     config = user_config.get_config()
     # Get default 'output' from config file else use text
-    default_output = 'text'
+    default_output = "text"
     if config:
-        default_output = config.get('state_drawer', 'auto')
-        if default_output == 'auto':
+        default_output = config.get("state_drawer", "auto")
+        if default_output == "auto":
             try:
                 from IPython.display import Latex
-                default_output = 'latex'
+
+                default_output = "latex"
             except ImportError:
-                default_output = 'text'
-    if output in [None, 'auto']:
+                default_output = "text"
+    if output in [None, "auto"]:
         output = default_output
     output = output.lower()
     # Set 'dims'
@@ -1175,7 +1234,7 @@ def state_drawer(state,
         else:
             dims = True
     if prefix is None:
-        prefix = ''
+        prefix = ""
     if max_size is None:
         max_size = (8, 8)
     if isinstance(max_size, int):
@@ -1183,20 +1242,24 @@ def state_drawer(state,
 
     # Choose drawing backend:
     # format is {'key': (<drawer-function>, (<drawer-specific-args>))}
-    drawers = {'text': (TextMatrix, (max_size, dims, prefix)),
-               'latex_source': (_repr_state_latex, (max_size, dims, prefix)),
-               'qsphere': (plot_state_qsphere, ()),
-               'hinton': (plot_state_hinton, ()),
-               'bloch': (plot_bloch_multivector, ())}
-    if output == 'latex':
+    drawers = {
+        "text": (TextMatrix, (max_size, dims, prefix)),
+        "latex_source": (_repr_state_latex, (max_size, dims, prefix)),
+        "qsphere": (plot_state_qsphere, ()),
+        "hinton": (plot_state_hinton, ()),
+        "bloch": (plot_bloch_multivector, ()),
+    }
+    if output == "latex":
         try:
             from IPython.display import Latex
         except ImportError as err:
-            raise ImportError('IPython is not installed, to install run: '
-                              '"pip install ipython", or set output=\'latex_source\' '
-                              'instead for an ASCII string.') from err
+            raise ImportError(
+                "IPython is not installed, to install run: "
+                "\"pip install ipython\", or set output='latex_source' "
+                "instead for an ASCII string."
+            ) from err
         else:
-            draw_func, args = drawers['latex_source']
+            draw_func, args = drawers["latex_source"]
             return Latex(draw_func(state, *args))
     try:
         draw_func, specific_args = drawers[output]
@@ -1205,4 +1268,7 @@ def state_drawer(state,
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch' or 'auto'.""".format(output, type(state).__name__)) from err
+            'bloch' or 'auto'.""".format(
+                output, type(state).__name__
+            )
+        ) from err

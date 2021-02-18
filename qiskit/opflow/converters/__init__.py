@@ -68,10 +68,11 @@ from .dict_to_circuit_sum import DictToCircuitSum
 from .abelian_grouper import AbelianGrouper
 from .two_qubit_reduction import TwoQubitReduction
 
-__all__ = ['ConverterBase',
-           'CircuitSampler',
-           'PauliBasisChange',
-           'DictToCircuitSum',
-           'AbelianGrouper',
-           'TwoQubitReduction',
-           ]
+__all__ = [
+    "ConverterBase",
+    "CircuitSampler",
+    "PauliBasisChange",
+    "DictToCircuitSum",
+    "AbelianGrouper",
+    "TwoQubitReduction",
+]
