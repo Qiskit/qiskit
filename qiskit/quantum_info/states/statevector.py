@@ -20,11 +20,6 @@ from numbers import Number
 
 import numpy as np
 
-try:
-    from IPython.display import display
-except ImportError:
-    pass
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -159,6 +154,7 @@ class Statevector(QuantumState, TolerancesMixin):
                             prefix=prefix, **drawer_args)
 
     def _ipython_display_(self):
+        from IPython.display import display
         display(self.draw())
 
     @property
