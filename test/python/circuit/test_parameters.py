@@ -151,11 +151,11 @@ class TestParameters(QiskitTestCase):
         qc.rz(z, 0)
         qc.ry(y, 0)
         qc.u(*v, 0)
-        self.assertEqual(x, qc.parameters[0])
-        self.assertEqual(y, qc.parameters[2])
-        self.assertEqual(z, qc.parameters[1])
+        self.assertEqual(x, qc.parameters[3])
+        self.assertEqual(y, qc.parameters[4])
+        self.assertEqual(z, qc.parameters[5])
         for i, vi in enumerate(v):
-            self.assertEqual(vi, qc.parameters[3+i])
+            self.assertEqual(vi, qc.parameters[i])
 
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
@@ -185,10 +185,7 @@ class TestParameters(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rz(y, 0)
 
-        if front:
-            order = [y, x]
-        else:
-            order = [x, y]
+        order = [x, y]
 
         composed = qc1.compose(qc2, front=front)
 
@@ -225,7 +222,7 @@ class TestParameters(QiskitTestCase):
         outer.compose(inner, inplace=True)
         outer.rz(x[4], 0)
 
-        order = [x[1], x[0], x[2], x[3], x[4]]
+        order = [x[0], x[1], x[2], x[3], x[4]]
 
         self.assertListEqual(list(outer.parameters), order)
 
@@ -1403,7 +1400,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction()
 
-        self.assertEqual(gate.params, [theta, phi])
+        self.assertEqual(gate.params, [phi, theta])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
