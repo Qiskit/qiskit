@@ -22,6 +22,44 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.23.6
+*************
+
+Terra 0.16.4
+============
+
+No change
+
+Aer 0.7.5
+=========
+
+.. _Release Notes_Aer_0.7.5_Prelude:
+
+Prelude
+-------
+
+This release is a bugfix release that fixes compatibility in the precompiled
+binary wheel packages with numpy versions < 1.20.0. The previous release 0.7.4
+was building the binaries in a way that would require numpy 1.20.0 which has
+been resolved now, so the precompiled binary wheel packages will work with any
+numpy compatible version.
+
+Ignis 0.5.2
+===========
+
+No change
+
+Aqua 0.8.2
+==========
+
+No change
+
+IBM Q Provider 0.11.1
+=====================
+
+No change
+
+*************
 Qiskit 0.23.5
 *************
 
