@@ -150,6 +150,12 @@ class PauliOp(PrimitiveOp):
             product = new_self.primitive * other.primitive
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
+        if isinstance(other, PauliSumOp):
+            return PauliSumOp(
+                SparsePauliOp(new_self.primitive) * other.primitive,
+                coeff=new_self.coeff * other.coeff,
+            )
+
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -281,23 +287,6 @@ class PauliOp(PrimitiveOp):
         else:
             from ..evolutions.evolved_op import EvolvedOp
             return EvolvedOp(self)
-
-    def commutes(self, other_op: OperatorBase) -> bool:
-        """ Returns whether self commutes with other_op.
-
-        Args:
-            other_op: An ``OperatorBase`` with which to evaluate whether self commutes.
-
-        Returns:
-            A bool equaling whether self commutes with other_op
-
-        """
-        if not isinstance(other_op, PauliOp):
-            return False
-        # Don't use compose because parameters will break this
-        self_bits = self.primitive.z + 2 * self.primitive.x  # type: ignore
-        other_bits = other_op.primitive.z + 2 * other_op.primitive.x  # type: ignore
-        return all((self_bits * other_bits) * (self_bits - other_bits) == 0)
 
     def to_circuit(self) -> QuantumCircuit:
         # If Pauli equals identity, don't skip the IGates
