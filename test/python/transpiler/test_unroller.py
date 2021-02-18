@@ -540,7 +540,7 @@ class TestUnrollAllInstructions(QiskitTestCase):
         num_qubits = self.circuit.num_qubits
         instr = Snapshot('0', num_qubits=num_qubits)
         self.circuit.append(instr, range(num_qubits))
-        self.ref_circuit.snapshot('0')
+        self.ref_circuit.append(instr, range(num_qubits))
         self.compare_dags()
 
     def test_unroll_measure(self):
