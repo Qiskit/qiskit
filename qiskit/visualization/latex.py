@@ -198,7 +198,7 @@ class QCircuitImage:
                     self._latex[i][0] = \
                         "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
                     clbitsize = self.cregs[self.ordered_regs[i + offset].register]
-                    self._latex[i][1] = "{/_{_{" + str(clbitsize) + "}}} \\cw"
+                    self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
                 else:
                     self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
@@ -526,11 +526,9 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
             self._latex[wire2][col] = \
-                "\\dstick{\\mathrm{%s}} \\cw \\cwx[-%s]" % \
+                "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % \
                 (str(cregindex), str(wire2-wire1))
         else:
-            self._latex[wire2][col] = \
-                "\\cw \\cwx[-" + str(wire2 - wire1) + "]"
             self._latex[wire2][col] = \
                 "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
 
@@ -586,7 +584,7 @@ class QCircuitImage:
                 gate_text += '\\mathrm{>4\\,parameters}'
             else:
                 for param in op.op.params:
-                    gate_text += "\\mathrm{%s}," % self.parse_params(param)
+                    gate_text += "\\mathrm{%s}," % pi_check(param, output='latex', ndigits=4)
                 gate_text = gate_text[:-1]
             gate_text += "\\mathrm{)}"
         return gate_text
@@ -625,7 +623,7 @@ class QCircuitImage:
             if self.cregbundle:
                 # Print the condition value at the bottom
                 self._latex[cwire + i][col] = \
-                    "\\dstick{\\mathrm{%s}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
+                    "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
             else:
                 if if_value[i] == '1':
                     self._latex[cwire + i][col] = \
@@ -643,10 +641,6 @@ class QCircuitImage:
             if creg_name == cbit.register:
                 mask |= (1 << index)
         return mask
-
-    def parse_params(self, param):
-        """Parse parameters."""
-        return pi_check(param, output='latex', ndigits=4)
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit."""
