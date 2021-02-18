@@ -112,38 +112,15 @@ class Register:
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
-    def _update_bits_hash(self):
-        for bit in self._bits:
-            bit._update_hash()
-
     @property
     def name(self):
         """Get the register name."""
         return self._name
 
-    @name.setter
-    def name(self, value):
-        """Set the register name."""
-        if self.name_format.match(value) is None:
-            raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
-                               " A of https://arxiv.org/pdf/1707.03429v2.pdf." % value)
-        self._name = value
-        self._hash = hash((type(self), self._name, self._size))
-        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
-        self._update_bits_hash()
-
     @property
     def size(self):
         """Get the register size."""
         return self._size
-
-    @size.setter
-    def size(self, value):
-        """Set the register size."""
-        self._size = value
-        self._hash = hash((type(self), self._name, self._size))
-        self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
-        self._update_bits_hash()
 
     def __repr__(self):
         """Return the official string representing the register."""
