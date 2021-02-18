@@ -25,7 +25,7 @@ from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
 from qiskit.opflow import I, X, PauliSumOp
 
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Pauli
@@ -255,7 +255,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         self.assertEqual(len(zero_circuits), len(custom_circuits))
 
-        backend = BasicAer.get_backend('statevector_simulator')
         for zero_circ, custom_circ in zip(zero_circuits, custom_circuits):
 
             z_length = len(zero_circ.data)
@@ -273,11 +272,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             else:
                 original_init_qc = initial_state
 
-            job_init_state = execute(original_init_qc, backend)
-            job_qaoa_init_state = execute(custom_init_qc, backend)
+            job_init_state = self.statevector_simulator.execute(original_init_qc)
+            job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
 
-            statevector_original = job_init_state.result().get_statevector(original_init_qc)
-            statevector_custom = job_qaoa_init_state.result().get_statevector(custom_init_qc)
+            statevector_original = job_init_state.get_statevector(original_init_qc)
+            statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
 
             self.assertListEqual(statevector_original.tolist(), statevector_custom.tolist())
 
@@ -308,8 +307,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         for i in range(num_nodes):
             for j in range(i):
                 if weight_matrix[i, j] != 0:
-                    x_p = np.zeros(num_nodes, dtype=np.bool)
-                    z_p = np.zeros(num_nodes, dtype=np.bool)
+                    x_p = np.zeros(num_nodes, dtype=bool)
+                    z_p = np.zeros(num_nodes, dtype=bool)
                     z_p[i] = True
                     z_p[j] = True
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
