@@ -255,7 +255,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         self.assertEqual(len(zero_circuits), len(custom_circuits))
 
-        backend = BasicAer.get_backend('statevector_simulator')
         for zero_circ, custom_circ in zip(zero_circuits, custom_circuits):
 
             z_length = len(zero_circ.data)
@@ -273,8 +272,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             else:
                 original_init_qc = initial_state
 
-            job_init_state = execute(original_init_qc, backend)
-            job_qaoa_init_state = execute(custom_init_qc, backend)
+            job_init_state = execute(original_init_qc, self.statevector_simulator.backend)
+            job_qaoa_init_state = execute(custom_init_qc, self.statevector_simulator.backend)
 
             statevector_original = job_init_state.result().get_statevector(original_init_qc)
             statevector_custom = job_qaoa_init_state.result().get_statevector(custom_init_qc)
