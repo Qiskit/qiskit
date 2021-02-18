@@ -21,7 +21,7 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Any, Set
+from typing import Any, Set, List, Union
 
 import numpy as np
 
@@ -185,6 +185,19 @@ class Frame(PulseChannel):
     """Channel to manage frames."""
     prefix = 'f'
 
+    def __init__(self, index: Union[int, Parameter], channels: List[Channel]):
+        """
+        Args:
+            index: The index of the frame.
+            channels: List of channels tied together by this frame.
+        """
+        super().__init__(index)
+        self._channels = [ch for ch in channels]
+
+    @property
+    def channels(self):
+        """Returns the channels tied together by this frame."""
+        return self._channels
 
 class AcquireChannel(Channel):
     """Acquire channels are used to collect data."""

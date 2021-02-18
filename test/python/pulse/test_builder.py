@@ -15,6 +15,7 @@
 from math import pi
 
 import numpy as np
+import unittest
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros, transforms
@@ -306,6 +307,30 @@ class TestChannels(TestBuilder):
         with pulse.build(self.backend):
             self.assertEqual(pulse.control_channels(0, 1)[0],
                              pulse.ControlChannel(0))
+
+
+class TestFrames(TestBuilder):
+    """Test builder with frame channels."""
+
+    def test_align_left(self):
+        """Test that frames are recognized."""
+        with pulse.build() as sched:
+            with pulse.align_left():
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame(0, [pulse.DriveChannel(0)]))
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        for idx, time in enumerate([0, 160, 160]):
+            self.assertEqual(sched.instructions[idx][0], time)
+
+        with pulse.build() as sched:
+            with pulse.align_left():
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame(0, [pulse.DriveChannel(1)]))
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        for idx, time in enumerate([0, 0, 160]):
+            self.assertEqual(sched.instructions[idx][0], time)
 
 
 class TestInstructions(TestBuilder):
@@ -950,3 +975,7 @@ class TestBuilderComposition(TestBuilder):
                          inplace=True)
         reference += measure_reference
         self.assertEqual(schedule, reference)
+
+
+if __name__ == '__main__':
+    unittest.main()

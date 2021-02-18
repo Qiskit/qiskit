@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.pulse.channels import (AcquireChannel, Channel, DriveChannel,
+from qiskit.pulse.channels import (AcquireChannel, Channel, DriveChannel, Frame,
                                    ControlChannel, MeasureChannel, MemorySlot,
                                    PulseChannel, RegisterSlot, SnapshotChannel)
 from qiskit.test import QiskitTestCase
@@ -131,6 +131,18 @@ class TestMeasureChannel(QiskitTestCase):
 
         self.assertEqual(measure_channel.index, 123)
         self.assertEqual(measure_channel.name, 'm123')
+
+
+class TestFrame(QiskitTestCase):
+    """Frame tests."""
+
+    def test_default(self):
+        """Test default Frame."""
+        frame = Frame(123, [DriveChannel(1), ControlChannel(0)])
+
+        self.assertEqual(frame.index, 123)
+        self.assertEqual(frame.name, 'f123')
+        self.assertEqual(frame.channels, [DriveChannel(1), ControlChannel(0)])
 
 
 if __name__ == '__main__':

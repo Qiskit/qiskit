@@ -16,7 +16,7 @@
 import warnings
 from collections import defaultdict
 from typing import Callable
-from typing import List, Optional, Iterable, Union
+from typing import List, Optional, Iterable, Union, Set, Tuple
 
 import numpy as np
 
@@ -390,8 +390,28 @@ def _resolve_channel(name: str) -> chans.Channel:
     raise PulseError('Channel %s not supported in frames.' % name)
 
 
+def _flatten_frames(channels: Tuple[chans.Channel]) -> Set[chans.Channel]:
+    """
+    Flattens the frames.
+
+    Args:
+        channels: A list of channels to flatten.
+
+    Returns:
+        all_channels: A set of all channels in which frames and the channels
+            tied together by frames are included.
+    """
+    all_channels = set()
+    for ch in channels:
+        if isinstance(ch, chans.Frame):
+            all_channels.update(ch.channels)
+        all_channels.add(ch)
+
+    return all_channels
+
+
 def _push_left_append(this: Schedule,
-                      other: Union['Schedule', instructions.Instruction],
+                      other: Union['Schedule', instructions.Instruction]
                       ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
@@ -403,8 +423,8 @@ def _push_left_append(this: Schedule,
     Returns:
         Push left appended schedule.
     """
-    this_channels = set(this.channels)
-    other_channels = set(other.channels)
+    this_channels = _flatten_frames(this.channels)
+    other_channels = _flatten_frames(other.channels)
     shared_channels = list(this_channels & other_channels)
     ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
                  for channel in shared_channels]
@@ -428,7 +448,7 @@ def align_left(schedule: Schedule) -> Schedule:
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+            rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -456,8 +476,8 @@ def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
     Returns:
        Push right prepended schedule.
     """
-    this_channels = set(this.channels)
-    other_channels = set(other.channels)
+    this_channels = _flatten_frames(this.channels)
+    other_channels = _flatten_frames(other.channels)
     shared_channels = list(this_channels & other_channels)
     ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
                  for channel in shared_channels]
