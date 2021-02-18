@@ -79,6 +79,21 @@ class UserConfig:
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
 
+            # Parse state_drawer
+            state_drawer = self.config_parser.get('default',
+                                                  'state_drawer',
+                                                  fallback=None)
+            if state_drawer:
+                valid_state_drawers = ['auto', 'text', 'latex',
+                                       'latex_source', 'qsphere',
+                                       'hinton', 'bloch']
+                if state_drawer not in valid_state_drawers:
+                    valid_choices_string = "', '".join(c for c in valid_state_drawers)
+                    raise exceptions.QiskitUserConfigError(
+                        f"'{state_drawer}' is not a valid state drawer backend. "
+                        f"Choose from: '{valid_choices_string}'")
+                self.settings['state_drawer'] = state_drawer
+
             # Parse circuit_mpl_style
             circuit_mpl_style = self.config_parser.get('default',
                                                        'circuit_mpl_style',
