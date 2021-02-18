@@ -24,8 +24,6 @@ from ..operator_base import OperatorBase
 from .list_op import ListOp
 
 
-# pylint: disable=invalid-name
-
 class ComposedOp(ListOp):
     """ A class for lazily representing compositions of Operators. Often Operators cannot be
     efficiently composed with one another, but may be manipulated further so that they can be
