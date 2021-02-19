@@ -94,7 +94,7 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-
+        breakpoint()
         for wire in dag.wires:
             wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
@@ -164,6 +164,7 @@ class CommutativeCancellation(TransformationPass):
                     dag.substitute_node_with_dag(run[0], new_dag)
 
                 # Delete the other nodes in the run
+                breakpoint()
                 for current_node in run[1:]:
                     dag.remove_op_node(current_node)
 

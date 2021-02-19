@@ -20,6 +20,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
+from qiskit.quantum_info import Operator
 
 
 class TestCommutativeCancellation(QiskitTestCase):
@@ -579,10 +580,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = passmanager.run(circuit)
 
-        expected = QuantumCircuit(1)
-        expected.s(0)
-        expected.z(0)
-        expected.t(0)
         np.set_printoptions(precision=3, linewidth=250, suppress=True)
         print('')
         print(Operator(circuit) == Operator(new_circuit))
