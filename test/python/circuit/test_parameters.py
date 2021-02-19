@@ -623,7 +623,7 @@ class TestParameters(QiskitTestCase):
                                num_processes=num_processes)
 
         for qc in results:
-            circuit += qc
+            circuit.compose(qc, inplace=True)
 
         parameter_values = [{x: 1 for x in parameters}]
 

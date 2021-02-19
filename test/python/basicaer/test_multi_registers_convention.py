@@ -35,7 +35,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg0, creg0)
         meas.measure(qreg1, creg1)
 
-        qc = circ + meas
+        qc = circ.compose(meas)
 
         backend_sim = BasicAer.get_backend('qasm_simulator')
 
