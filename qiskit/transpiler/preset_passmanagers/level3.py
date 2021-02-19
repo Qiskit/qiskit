@@ -170,7 +170,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction = [CXDirection(coupling_map)]
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
-    # after reset and before measure, commutes gates and optimizes continguous blocks.
+    # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
