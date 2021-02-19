@@ -21,7 +21,7 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Any, Set, List, Union
+from typing import Any, Set, List, Union, Dict
 
 import numpy as np
 
@@ -130,18 +130,6 @@ class Channel(metaclass=ABCMeta):
             self._validate_index(new_index)
             new_index = int(new_index)
 
-        if isinstance(self, Frame):
-            # Preserve any coupling between frame parameter and the parameter
-            # of any referenced channel.
-            sub_channels = []
-            for ch in self.channels:
-                if parameter in ch.parameters:
-                    sub_channels.append(type(ch)(new_index))
-                else:
-                    sub_channels.append(ch)
-
-            return type(self)(new_index, sub_channels)
-
         return type(self)(new_index)
 
     @property
@@ -202,14 +190,89 @@ class Frame(PulseChannel):
         Args:
             index: The index of the frame.
             channels: List of channels tied together by this frame.
+
+        Raises:
+            PulseError: if any of the channels is a Frame.
         """
         super().__init__(index)
-        self._channels = [ch for ch in channels]
+
+        for ch in channels:
+            if isinstance(ch, Frame):
+                raise PulseError('Cannot add Frame to Frame channels..')
+
+        self._parameters = set()
+        if isinstance(index, ParameterExpression):
+            self._parameters.update(index.parameters)
+
+        self._channels = channels
+        for ch in self._channels:
+            self._parameters.update(ch.parameters)
 
     @property
     def channels(self):
         """Returns the channels tied together by this frame."""
         return self._channels
+
+    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
+        """
+        Override the base class's assign method to handle any links between the
+        parameter of the frame and the parameters of the sub-channels.
+
+        Args:
+            parameter:
+            value:
+        """
+        return self.assign_parameters({parameter: value})
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]) -> 'Frame':
+        """
+        Assign the value of the parameters.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+        """
+        assigned_sub_channels = self._assign_sub_channels(value_dict)
+
+        new_index = None
+        if isinstance(self.index, ParameterExpression):
+            for param, value in value_dict.items():
+                if param in self.index.parameters:
+                    new_index = self.index.assign(param, value)
+                    if not new_index.parameters:
+                        self._validate_index(new_index)
+                        new_index = int(new_index)
+
+        if new_index is not None:
+            return type(self)(new_index, assigned_sub_channels)
+
+        return type(self)(self.index, assigned_sub_channels)
+
+    def __repr__(self):
+        sub_str = '['+', '.join([ch.__repr__() for ch in self._channels]) + ']'
+        return f'{self.__class__.__name__}({self._index}, '+sub_str+')'
+
+    def _assign_sub_channels(self, value_dict: Dict[ParameterExpression,
+                                                    ParameterValueType]) -> List['Channel']:
+        """
+        Args:
+            parameter:
+            value:
+
+        Returns:
+             Frame: A Frame in which the parameter has been assigned.
+        """
+        sub_channels = []
+        for ch in self._channels:
+            for param, value in value_dict.items():
+                if param in ch.parameters:
+                    sub_channels.append(ch.assign(param, value))
+            else:
+                sub_channels.append(ch)
+
+        return sub_channels
+
 
 class AcquireChannel(Channel):
     """Acquire channels are used to collect data."""
