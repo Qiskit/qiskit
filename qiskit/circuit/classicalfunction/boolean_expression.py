@@ -90,7 +90,7 @@ class BooleanExpression(Gate):
             expression (str): The logical expression string.
             name (str): Optional. Instruction gate name. Otherwise part of
                         the expression is going to be used.
-        Raise:
+        Raises:
             ImportError: If tweedledum is not installed. Tweedledum is required.
         """
         if not HAS_TWEEDLEDUM:
@@ -99,9 +99,10 @@ class BooleanExpression(Gate):
                               '"pip install tweedledum".')
         from tweedledum import BoolFunction
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
+        self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
-        num_qubits = self._tweedledum_bool_expression.num_outputs() +\
+        num_qubits = self._tweedledum_bool_expression.num_outputs() + \
                      self._tweedledum_bool_expression.num_inputs()
         super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
 
@@ -126,13 +127,15 @@ class BooleanExpression(Gate):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
-            registerless (bool): Default ``True``. If ``False`` uses the parameter names to create
-            registers with those names. Otherwise, creates a circuit with a flat quantum register.
-
+            registerless (bool): Default ``True``. If ``False`` uses the parameter names
+                to create registers with those names. Otherwise, creates a circuit with a flat
+                quantum register.
+            synthesizer (callable): A callable that takes a Logic Network and returns a Tweedledum
+                circuit.
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
-        from tweedledum.passes import pkrm_synth
+        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
         from .utils import tweedledum2qiskit
 
         if registerless:

@@ -56,12 +56,15 @@ class TestBooleanExpression(QiskitTestCase):
 
 
 class TestBooleanExpressionDIMACS(QiskitTestCase):
+    """ Loading from a cnf file """
 
     def normalize_filenames(self, filename):
+        """Given a filename, returns the directory in terms of __file__."""
         dirname = path.dirname(__file__)
         return path.join(dirname, filename)
 
     def test_simple(self):
+        """Loads simple_v3_c2.cnf and simulate """
         filename = self.normalize_filenames('dimacs/simple_v3_c2.cnf')
         simple = BooleanExpression.from_dimacs_file(filename)
         self.assertEqual(simple.name, 'simple_v3_c2.cnf')
@@ -69,6 +72,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
         self.assertTrue(simple.simulate('101'))
 
     def test_quinn(self):
+        """Loads quinn.cnf and simulate """
         filename = self.normalize_filenames('dimacs/quinn.cnf')
         simple = BooleanExpression.from_dimacs_file(filename)
         self.assertEqual(simple.name, 'quinn.cnf')

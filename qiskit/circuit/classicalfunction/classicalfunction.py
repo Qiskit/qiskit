@@ -14,7 +14,7 @@
 
 import ast
 try:
-    from tweedledum.passes import xag_synth  # pylint: disable=no-name-in-module
+    import tweedledum  # pylint: disable=unused-import
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False

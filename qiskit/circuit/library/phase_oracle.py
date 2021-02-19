@@ -28,7 +28,7 @@ class PhaseOracle(QuantumCircuit):
 
         super().__init__(qr_state, name='Phase Oracle')
 
-        from tweedledum.passes import pkrm_synth
+        from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
         synthesizer = lambda logic_network: pkrm_synth(logic_network,
                                                        {"pkrm_synth": {"phase_esop": True}})
 
