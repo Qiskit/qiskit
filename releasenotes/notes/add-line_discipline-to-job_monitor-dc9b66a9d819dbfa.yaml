@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    New line_discipline kwarg for job_monitor(). User can now change the new line characters that are emitted by job_monitor output. The line_discipline kwarg defaults to '\r', which is what was in use before. Refer to `#5690 <https://github.com/Qiskit/qiskit-terra/issues/5690>` for more details.
+    New line_discipline kwarg for job_monitor(). User can now change the cartridge return characters in the ``job_monitor`` output. The line_discipline kwarg defaults to '\r', which is what was in use before. Refer to `#5690 <https://github.com/Qiskit/qiskit-terra/issues/5690>` for more details.
