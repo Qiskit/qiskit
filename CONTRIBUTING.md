@@ -282,13 +282,20 @@ C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 
 ##### STDOUT/STDERR and logging capture
 
-When running tests in parallel either via tox, the makefile, or in CI we set
-the env variable `QISKIT_TEST_CAPTURE_STREAMS` which will capture any text
-written to stdout, stderr, and log messages and add them as attachments to
-the tests run so output can be associated with the test case it originated
-from. However, if you run tests outside of these mechanisms by default the
-streams are not captured. To enable stream capture just set the
-`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`.
+When running tests in parallel using `stestr` either via tox, the Makefile
+(`make test_ci`), or in CI we set the env variable
+`QISKIT_TEST_CAPTURE_STREAMS` which will capture any text written to stdout,
+stderr, and log messages and add them as attachments to the tests run so
+output can be associated with the test case it originated from. However, if
+you run tests with `stestr` outside of these mechanisms by default the streams
+are not captured. To enable stream capture just set the
+`QISKIT_TEST_CAPTURE_STREAMS` env variable to `1`. If this environment
+variable is set outside of running with `stestr` the streams (STDOUT, STDERR,
+and logging) will still be captured but **not** displayed in the test runners
+output. If you are using the stdlib unittest runner a similar result can be
+accomplished by using the
+[`--buffer`](https://docs.python.org/3/library/unittest.html#command-line-options)
+option (e.g. `python -m unittest discover --buffer ./test/python`).
 
 ##### Test Skip Options
 

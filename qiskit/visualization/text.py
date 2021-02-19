@@ -22,17 +22,16 @@ from numpy import ndarray
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.circuit import Barrier as BarrierInstruction
 from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
-from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
+from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):
-    """The parameter "cregbundle" was set to True in an imposible situation. For example, an
+    """The parameter "cregbundle" was set to True in an impossible situation. For example, an
     instruction needs to refer to individual classical wires'"""
     pass
 
@@ -543,7 +542,13 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        self.encoding = encoding if encoding else sys.stdout.encoding
+        if encoding:
+            self.encoding = encoding
+        else:
+            if sys.stdout.encoding:
+                self.encoding = sys.stdout.encoding
+            else:
+                self.encoding = 'utf8'
 
     def __str__(self):
         return self.single_string()
@@ -993,7 +998,7 @@ class TextDrawing():
             else:
                 layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif isinstance(instruction.op, (BarrierInstruction, Snapshot)):
+        elif instruction.op._directive:
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label

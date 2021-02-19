@@ -306,7 +306,7 @@ class TemplateSubstitution:
         # Remove incompatible matches.
         self._remove_impossible()
 
-        # First sort the matches accordding to the smallest index in the matches (circuit).
+        # First sort the matches according to the smallest index in the matches (circuit).
         self.substitution_list.sort(key=lambda x: x.circuit_config[0])
 
         # Change position of the groups due to predecessors of other groups.

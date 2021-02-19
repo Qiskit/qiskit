@@ -10,16 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" TrotterizationFactory Class """
-
-import logging
+"""TrotterizationFactory Class """
 
 from .trotterization_base import TrotterizationBase
 from .trotter import Trotter
 from .suzuki import Suzuki
 from .qdrift import QDrift
-
-logger = logging.getLogger(__name__)
 
 
 class TrotterizationFactory():

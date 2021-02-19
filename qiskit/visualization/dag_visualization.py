@@ -39,8 +39,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     system is required for this to work.
 
     The current release of Graphviz can be downloaded here: <https://graphviz.gitlab.io/download/>.
-    Download the version of the sotware that matches your environment and follow the instructions to
-    install Graph Visualization Software (Graphviz) on your operating system.
+    Download the version of the software that matches your environment and follow the instructions
+    to install Graph Visualization Software (Graphviz) on your operating system.
 
     Args:
         dag (DAGCircuit): The dag to draw.
@@ -78,7 +78,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             dag_drawer(dag)
     """
     try:
-        import pydot  # pylint: disable=unused-import
+        import pydot
     except ImportError:
         raise ImportError("dag_drawer requires pydot. "
                           "Run 'pip install pydot'.")
@@ -103,7 +103,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
-                if node.name == 'snapshot':
+                if node.op._directive:
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'

@@ -24,8 +24,6 @@ from qiskit.opflow import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
                            SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
 
 
-# pylint: disable=invalid-name
-
 class TestStateConstruction(QiskitOpflowTestCase):
     """State Construction tests."""
 
