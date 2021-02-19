@@ -24,7 +24,7 @@ from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.circuit import ParameterExpression
 from qiskit.converters import circuit_to_dag
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
@@ -70,7 +70,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         if not self.basis:
-            LOG.info("Skipping pass because no basis is set")
+            logger.info("Skipping pass because no basis is set")
             return dag
         runs = dag.collect_1q_runs()
         identity_matrix = np.eye(2)

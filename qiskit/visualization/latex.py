@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name,consider-using-enumerate
 
-"""latex circuit visualization backends."""
+"""latex visualization backends."""
 
 import collections
 import io
@@ -24,6 +24,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.visualization.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
@@ -362,9 +363,6 @@ class QCircuitImage:
         """Returns an array of strings containing \\LaTeX for this circuit.
         """
 
-        qregdata = self.qregs
-        # Rename qregs if necessary
-
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (self.ops and self.ops[0] and
@@ -473,8 +471,7 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
 
-                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                     'save', 'noise']:
+                elif not op.op._directive and op.name not in ['measure']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
@@ -942,8 +939,7 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
 
-                elif op.name in ['barrier', 'snapshot', 'load', 'save',
-                                 'noise']:
+                elif op.op._directive:
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
@@ -1027,3 +1023,58 @@ def _truncate_float(matchobj, ndigits=3):
     if matchobj.group(0):
         return '%.{}g'.format(ndigits) % float(matchobj.group(0))
     return ''
+
+
+def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
+    """Latex representation of a complex numpy array (with dimension 1 or 2)
+
+        Args:
+            array (ndarray): The array to be converted to latex, must have dimension 1 or 2 and
+                             contain only numerical data.
+            precision (int): For numbers not close to integers or common terms, the number of
+                             decimal places to round to.
+            pretext (str): Latex string to be prepended to the latex, intended for labels.
+            source (bool): If ``False``, will return IPython.display.Latex object. If display is
+                           ``True``, will instead return the LaTeX source string.
+            max_size (list(int) or int): The maximum size of the output Latex array.
+                      * If list(```int```), then the 0th element of the list specifies the maximum
+                        width (including dots characters) and the 1st specifies the maximum height
+                        (also inc. dots characters).
+                      * If a single ```int``` then this value sets the maximum width _and_ maximum
+                        height.
+
+        Returns:
+            if ``source`` is ``True``:
+                ``str``: LaTeX string representation of the array, wrapped in `$$`.
+            else:
+                ``IPython.display.Latex``: LaTeX representation of the array.
+
+        Raises:
+            TypeError: If array can not be interpreted as a numerical numpy array.
+            ValueError: If the dimension of array is not 1 or 2.
+            ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
+                         imported.
+    """
+    try:
+        array = np.asarray(array)
+        _ = array[0]+1  # Test first element contains numerical data
+    except TypeError as err:
+        raise TypeError("""array_to_latex can only convert numpy arrays containing numerical data,
+        or types that can be converted to such arrays""") from err
+
+    if array.ndim <= 2:
+        if isinstance(max_size, int):
+            max_size = (max_size, max_size)
+        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
+    else:
+        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    if source is False:
+        try:
+            from IPython.display import Latex
+        except ImportError as err:
+            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
+                                         " source string, set `source=True`).")
+        return Latex(outstr)
+    else:
+        return outstr

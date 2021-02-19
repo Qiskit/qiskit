@@ -16,7 +16,8 @@ Quantum information measures, metrics, and related functions for states.
 import numpy as np
 import scipy.linalg as la
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix, Statevector
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
                                               _format_state, _funm_svd)
 
@@ -114,7 +115,6 @@ def entropy(state, base=2):
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
     """
-    # pylint: disable=assignment-from-no-return
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
         return 0

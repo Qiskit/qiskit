@@ -217,7 +217,7 @@ def _gate_to_circuit(operation):
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:
         for rule in operation.definition.data:
-            if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
+            if rule[0]._directive or rule[0].name in {'id', 'measure'}:
                 raise CircuitError('Cannot make controlled gate with {} instruction'.format(
                     rule[0].name))
             qc.append(rule[0], qargs=[qr[bit.index] for bit in rule[1]], cargs=[])
