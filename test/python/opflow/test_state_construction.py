@@ -218,7 +218,8 @@ class TestStateConstruction(QiskitOpflowTestCase):
         self.assertEqual(c_op, c_op_id)
 
     def test_primitive_param_binding(self):
-        """Test that assign_parameters binds parameters of both the underlying primitive and coeffs."""
+        """Test that assign_parameters binds parameters of both the underlying primitive and
+        coeffs."""
         theta = ParameterVector("theta", 2)
         # only OperatorStateFn can have a primitive with a parameterized coefficient
         op = StateFn(theta[0] * X) * theta[1]
