@@ -12,22 +12,20 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, List, Dict, Iterator, Callable, Any
 import itertools
 import logging
-import operator
 import math
+import operator
+from typing import Iterator, List, Optional, Union
+
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
-
-from qiskit.utils import QuantumInstance
+from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import partial_trace
+from qiskit.utils import QuantumInstance
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
-
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +251,6 @@ class Grover(AmplitudeAmplifier):
         result.oracle_evaluation = oracle_evaluation
         result.circuit_results = circuit_results
         result.max_probability = max_probability
-        result.shots = shots
 
         return result
 
@@ -312,9 +309,6 @@ class GroverResult(AmplitudeAmplifierResult):
         super().__init__()
         self._iterations = None
         self._circuit_results = None
-        self._top_measurement = None
-        self._assignment = None
-        self._oracle_evaluation = None
         self._shots = None
 
     @property
@@ -334,63 +328,3 @@ class GroverResult(AmplitudeAmplifierResult):
             value: A new value for the powers.
         """
         self._iterations = value
-
-    @property
-    def circuit_results(self) -> Optional[Union[np.ndarray, Dict[str, int]]]:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._circuit_results
-
-    @circuit_results.setter
-    def circuit_results(self, value: Union[np.ndarray, Dict[str, int]]) -> None:
-        """Set the circuit results."""
-        self._circuit_results = value
-
-    @property
-    def top_measurement(self) -> str:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._top_measurement
-
-    @top_measurement.setter
-    def top_measurement(self, value: str) -> None:
-        """Set the circuit results."""
-        self._top_measurement = value
-
-    @property
-    def max_probability(self) -> float:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._max_probability
-
-    @max_probability.setter
-    def max_probability(self, value: float) -> None:
-        """Set the circuit results."""
-        self._max_probability = value
-
-    @property
-    def assignment(self) -> Callable[[str], Any]:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._assignment
-
-    @assignment.setter
-    def assignment(self, value: Callable[[str], Any]) -> None:
-        """Set the circuit results."""
-        self._assignment = value
-
-    @property
-    def oracle_evaluation(self) -> bool:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._oracle_evaluation
-
-    @oracle_evaluation.setter
-    def oracle_evaluation(self, value: bool) -> None:
-        """Set the circuit results."""
-        self._oracle_evaluation = value
-
-    @property
-    def shots(self) -> int:
-        """Return the circuit results. Can be a statevector or counts dictionary."""
-        return self._shots
-
-    @shots.setter
-    def shots(self, value: int) -> None:
-        """Set the circuit results."""
-        self._shots = value
