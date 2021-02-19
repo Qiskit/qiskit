@@ -1,7 +1,0 @@
----
-features:
-  - |
-    A new ``compose`` method is added to ``QuantumCircuit``. It allows
-    composition of two quantum circuits without having to turn one into
-    a gate or instruction. It also allows permutations of qubits/clbits
-    at the point of composition, as well as optional inplace modification.
