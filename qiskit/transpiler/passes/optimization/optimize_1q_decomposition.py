@@ -84,7 +84,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                                       identity_matrix):
                     dag.remove_op_node(run[0])
                     continue
-                if (isinstance(run[0].op, U3Gate)# and not isinstance(params[0], ParameterExpression)
+                if (isinstance(run[0].op, U3Gate) and not isinstance(params[0], ParameterExpression)
                         and (np.isclose(params[0], [0, np.pi/2], atol=1e-12, rtol=1e-12).any())):
                     single_u3 = True
                 else:
@@ -98,7 +98,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
-                if len(run) > len(new_circ) or single_u3:
+                if (len(run) > len(new_circ) or (single_u3 and
+                                                 new_circ.data[0][0].name != 'u3')):
                     new_dag = circuit_to_dag(new_circ)
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
