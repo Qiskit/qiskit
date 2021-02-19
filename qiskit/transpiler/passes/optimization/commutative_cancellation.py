@@ -53,7 +53,6 @@ class CommutativeCancellation(TransformationPass):
         else:
             self.basis = set()
 
-        self._z_variable_gates = ['rz', 'p', 'u1']
         self._var_z_map = {'rz': RZGate, 'p': PhaseGate, 'u1': U1Gate}
         self.requires.append(CommutationAnalysis())
 
@@ -70,14 +69,14 @@ class CommutativeCancellation(TransformationPass):
             TranspilerError: when the 1-qubit rotation gates are not found
         """
         var_z_gate = None
-        z_var_gates = [gate for gate in dag.properties()['operations'].keys()
-                       if gate in set(self._z_variable_gates)]
+        z_var_gates = [gate for gate in dag.count_ops().keys()
+                       if gate in self._var_z_map]
         if z_var_gates:
             # priortize z gates in circuit
             var_z_gate = self._var_z_map[next(iter(z_var_gates))]
         else:
             z_var_gates = [gate for gate in self.basis
-                           if gate in set(self._z_variable_gates)]
+                           if gate in self._var_z_map]
             if z_var_gates:
                 var_z_gate = self._var_z_map[next(iter(z_var_gates))]
 
