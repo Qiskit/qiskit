@@ -1121,6 +1121,8 @@ def state_drawer(state,
                  ):
     """Returns a visualization of the state.
 
+        **repr**: ASCII TextMatrix of the state's ``_repr_``.
+
         **text**: ASCII TextMatrix that can be printed in the console.
 
         **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
@@ -1160,11 +1162,9 @@ def state_drawer(state,
     config = user_config.get_config()
     # Get default 'output' from config file else use 'repr'
     default_output = 'repr'
-    if output in [None, 'auto']:
+    if output is None:
         if config:
-            default_output = config.get('state_drawer', 'auto')
-            if default_output == 'auto':
-                default_output = 'repr'
+            default_output = config.get('state_drawer', 'repr')
         output = default_output
     output = output.lower()
     # Set 'dims'
@@ -1201,10 +1201,7 @@ def state_drawer(state,
     if output == 'repr':
         if prefix != '':
             warnings.warn("Ignoring 'prefix' for 'repr' drawing")
-        prefix = type(state).__name__ + "("
-        suffix = ")"
-        draw_func, _ = drawers['text']
-        return draw_func(state, max_size, dims, prefix, suffix)
+        return state.__repr__()
 
     try:
         draw_func, specific_args = drawers[output]

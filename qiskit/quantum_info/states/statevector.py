@@ -104,10 +104,15 @@ class Statevector(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        return str(self.draw('repr'))
+        prefix = 'Statevector('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self._data, separator=', ', prefix=prefix),
+            pad, self._op_shape.dims_l())
 
     def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
-        """Returns a visualization of the Statevector.
+        """Return a visualization of the Statevector.
 
         **repr**: ASCII TextMatrix of the state's ``_repr_``.
 
@@ -125,9 +130,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are `auto`, `repr`, `text`,
-                `latex`, `latex_source`, `qsphere`, `hinton`, or `bloch`.
-                Default is `'auto'`.
+                circuit. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                `qsphere`, `hinton`, or `bloch`. Default is `repr`.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For `latex`
                 and `latex_source` drawers, this is also the maximum number
@@ -145,7 +149,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             :class:`matplotlib.Figure` or :class:`str` or
-            :class:`TextMatrix` or :class:`IPython.display.Latex`
+            :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Statevector.
 
         Raises:
             ValueError: when an invalid output method is selected.
@@ -157,7 +162,11 @@ class Statevector(QuantumState, TolerancesMixin):
 
     def _ipython_display_(self):
         from IPython.display import display
-        display(self.draw())
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            display(out)
 
     @property
     def data(self):
