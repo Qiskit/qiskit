@@ -48,7 +48,7 @@ class OneQubitEulerDecomposer:
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
     shown in the following table. Note that for the non-Euler bases (U3, U1X,
-    RR), the ZYZ euler parameters are used.
+    RR), the ZYZ Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -195,7 +195,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zyz(mat):
-        """Return the euler angles and phase for the ZYZ basis."""
+        """Return the Euler angles and phase for the ZYZ basis."""
         # We rescale the input matrix to be special unitary (det(U) = 1)
         # This ensures that the quaternion representation is real
         coeff = la.det(mat)**(-0.5)
@@ -215,13 +215,13 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zxz(mat):
-        """Return the euler angles and phase for the ZXZ basis."""
+        """Return the Euler angles and phase for the ZXZ basis."""
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat)
         return theta, phi + np.pi / 2, lam - np.pi / 2, phase
 
     @staticmethod
     def _params_xyx(mat):
-        """Return the euler angles and phase for the XYX basis."""
+        """Return the Euler angles and phase for the XYX basis."""
         # We use the fact that
         # Rx(a).Ry(b).Rx(c) = H.Rz(a).Ry(-b).Rz(c).H
         mat_zyz = 0.5 * np.array(
@@ -239,7 +239,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u3(mat):
-        """Return the euler angles and phase for the U3 basis."""
+        """Return the Euler angles and phase for the U3 basis."""
         # The determinant of U3 gate depends on its params
         # via det(u3(theta, phi, lam)) = exp(1j*(phi+lam))
         # Since the phase is wrt to a SU matrix we must rescale
@@ -249,7 +249,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u1x(mat):
-        """Return the euler angles and phase for the U1X basis."""
+        """Return the Euler angles and phase for the U1X basis."""
         # The determinant of this decomposition depends on its params
         # Since the phase is wrt to a SU matrix we must rescale
         # phase to correct this

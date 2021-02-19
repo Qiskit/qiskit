@@ -130,7 +130,7 @@ class DAGDependency:
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
-            calibrations (dict): A dictionary of input in th format
+            calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
@@ -353,7 +353,7 @@ class DAGDependency:
             cargs (list[Clbit]): list of classical wires to attach to.
         """
         directives = ['measure']
-        if operation._directive or operation.name not in directives:
+        if not operation._directive and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))

@@ -51,21 +51,22 @@ class Unroller(TransformationPass):
         if self.basis is None:
             return dag
         # Walk through the DAG and expand each non-basis node
+        basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
         for node in dag.op_nodes():
-            basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
+            if node.op._directive:
+                continue
+
             if node.name in basic_insts:
                 # TODO: this is legacy behavior.Basis_insts should be removed that these
                 #  instructions should be part of the device-reported basis. Currently, no
                 #  backend reports "measure", for example.
                 continue
+
             if node.name in self.basis:  # If already a base, ignore.
                 if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
                     pass
                 else:
                     continue
-            if node.op._directive:
-                raise QiskitError(
-                    'Cannot unroll unsupported directive instruction {}'.format(node.name))
 
             # TODO: allow choosing other possible decompositions
             try:
