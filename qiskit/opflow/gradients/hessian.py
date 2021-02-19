@@ -103,12 +103,6 @@ class Hessian(HessianBase):
                 # Compute the Hessian entries corresponding to these pairs of parameters.
                 return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
 
-        def is_coeff_c(coeff, c):
-            if isinstance(coeff, ParameterExpression):
-                expr = coeff._symbol_expr
-                return expr == c
-            return coeff == c
-
         # If a gradient is requested w.r.t a single parameter, then call the
         # Gradient().get_gradient method.
         if isinstance(params, ParameterExpression):
@@ -122,7 +116,7 @@ class Hessian(HessianBase):
         p_1 = params[1]
 
         # Handle Product Rules
-        if not is_coeff_c(operator._coeff, 1.0):
+        if operator._coeff != 1.0:
             # Separate the operator from the coefficient
             coeff = operator._coeff
             op = operator / coeff
@@ -138,13 +132,13 @@ class Hessian(HessianBase):
 
             grad_op = 0
             # Avoid creating operators that will evaluate to zero
-            if dd_op != ~Zero @ One and not is_coeff_c(coeff, 0):
+            if dd_op != ~Zero @ One and coeff != 0:
                 grad_op += coeff * dd_op
-            if d0_op != ~Zero @ One and not is_coeff_c(d1_coeff, 0):
+            if d0_op != ~Zero @ One and d1_coeff != 0:
                 grad_op += d1_coeff * d0_op
-            if d1_op != ~Zero @ One and not is_coeff_c(d0_coeff, 0):
+            if d1_op != ~Zero @ One and d0_coeff != 0:
                 grad_op += d0_coeff * d1_op
-            if not is_coeff_c(dd_coeff, 0):
+            if dd_coeff != 0:
                 grad_op += dd_coeff * op
 
             if grad_op == 0:
@@ -159,7 +153,7 @@ class Hessian(HessianBase):
         # and moved out front.
         if isinstance(operator, ComposedOp):
 
-            if not is_coeff_c(operator.coeff, 1.):
+            if operator.coeff != 1.0:
                 raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
                                   'collected inside the ComposedOp.')
 
