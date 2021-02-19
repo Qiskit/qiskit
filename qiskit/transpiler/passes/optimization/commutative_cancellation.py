@@ -93,7 +93,7 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-        breakpoint()
+
         for wire in dag.wires:
             wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
@@ -131,6 +131,7 @@ class CommutativeCancellation(TransformationPass):
                 run = cancellation_sets[cancel_set_key]
                 run_qarg = run[0].qargs[0]
                 total_angle = 0.0  # lambda
+                total_phase = 0.0
                 for current_node in run:
                     if (current_node.condition is not None
                             or len(current_node.qargs) != 1
@@ -148,22 +149,28 @@ class CommutativeCancellation(TransformationPass):
 
                     # Compose gates
                     total_angle = current_angle + total_angle
+                    if current_node.op.definition:
+                        total_phase += current_node.op.definition.global_phase
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == 'z_rotation':
-                    var_z_gate(total_angle)
+                    new_op = var_z_gate(total_angle)
                 elif cancel_set_key[0] == 'x_rotation':
                     new_op = RXGate(total_angle)
 
+                new_op_phase = 0
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
                     new_qarg = QuantumRegister(1, 'q')
                     new_dag = DAGCircuit()
                     new_dag.add_qreg(new_qarg)
                     new_dag.apply_operation_back(new_op, [new_qarg[0]])
                     dag.substitute_node_with_dag(run[0], new_dag)
+                    if new_op.definition:
+                        new_op_phase = new_op.definition.global_phase
+
+                dag.global_phase = total_phase - new_op_phase
 
                 # Delete the other nodes in the run
-                breakpoint()
                 for current_node in run[1:]:
                     dag.remove_op_node(current_node)
 

@@ -371,7 +371,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
-
+        expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
+        print(Operator(expected) == Operator(circuit))
         self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit3(self):
@@ -537,6 +538,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(1)
         expected.rz(11 * np.pi / 4, 0)
+        expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
 
         self.assertEqual(new_circuit, expected)
 
@@ -552,6 +554,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         expected = QuantumCircuit(1)
         expected.rz(7 * np.pi / 4, 0)
+        expected.global_phase = 7 * np.pi / 4 / 2
         self.assertEqual(new_circuit, expected)
 
     def test_basis_03(self):
@@ -570,22 +573,38 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.t(0)
         self.assertEqual(new_circuit, expected)
 
-    def test_basis_global_phase(self):
-        """Test no specified basis"""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-        circuit.z(0)
-        circuit.t(0)
+    def test_basis_global_phase_01(self):
+        """Test no specified basis, rz"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
         passmanager = PassManager()
         passmanager.append(CommutativeCancellation())
-        new_circuit = passmanager.run(circuit)
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
-        np.set_printoptions(precision=3, linewidth=250, suppress=True)
-        print('')
-        print(Operator(circuit) == Operator(new_circuit))
-        breakpoint()
-        self.assertEqual(new_circuit, expected)
+    def test_basis_global_phase_02(self):
+        """Test no specified basis, p"""
+        circ = QuantumCircuit(1)
+        circ.p(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
+    def test_basis_global_phase_03(self):
+        """Test global phase preservation if cummulative z-rotation is 0"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        circ.z(0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
 if __name__ == '__main__':
     unittest.main()
