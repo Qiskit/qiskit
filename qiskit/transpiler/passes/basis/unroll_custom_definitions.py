@@ -57,6 +57,9 @@ class UnrollCustomDefinitions(TransformationPass):
 
         for node in dag.op_nodes():
 
+            if node.op._directive:
+                continue
+
             if dag.has_calibration_for(node):
                 continue
 
@@ -65,10 +68,6 @@ class UnrollCustomDefinitions(TransformationPass):
                     pass
                 else:
                     continue
-
-            if node.op._directive:
-                raise QiskitError(
-                    'Cannot unroll unsupported directive instruction {}'.format(node.name))
 
             try:
                 rule = node.op.definition.data
