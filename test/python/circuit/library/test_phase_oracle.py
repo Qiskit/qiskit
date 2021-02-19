@@ -53,9 +53,11 @@ class TestPhaseOracle(QiskitTestCase):
         invalid_state = 1 / sqrt(2 ** num_qubits)
         for state in range(2 ** num_qubits):
             if state in good_states:
-                self.assertAlmostEqual(statevector.data[state], valid_state)
+                self.assertAlmostEqual(statevector.data[state], valid_state,
+                                       msg='State %s should be valid' % state)
             else:
-                self.assertAlmostEqual(statevector.data[state], invalid_state)
+                self.assertAlmostEqual(statevector.data[state], invalid_state,
+                                       msg='State %s should be invalid' % state)
 
 
 if __name__ == '__main__':
