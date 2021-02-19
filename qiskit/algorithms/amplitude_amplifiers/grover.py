@@ -200,13 +200,14 @@ class Grover(AmplitudeAmplifier):
         iterations = []
         top_measurement = '0' * len(amplification_problem.objective_qubits)
         oracle_evaluation = False
-        circuit_results = None
+        all_circuit_results = []
         max_probability = 0
         shots = 0
 
         for _ in range(max_iterations):  # iterate at most to the max number of iterations
             # get next power and check if allowed
             power = next(iterator)
+
             if power > max_power:
                 break
 
@@ -241,6 +242,7 @@ class Grover(AmplitudeAmplifier):
                 max_probability = max(circuit_results.items(), key=operator.itemgetter(1))[1] \
                     / shots
 
+            all_circuit_results.append(circuit_results)
             oracle_evaluation = amplification_problem.is_good_state(top_measurement)
             if oracle_evaluation is True:
                 break  # we found a solution
@@ -249,7 +251,7 @@ class Grover(AmplitudeAmplifier):
         result.top_measurement = top_measurement
         result.assignment = amplification_problem.post_processing(top_measurement)
         result.oracle_evaluation = oracle_evaluation
-        result.circuit_results = circuit_results
+        result.circuit_results = all_circuit_results
         result.max_probability = max_probability
 
         return result

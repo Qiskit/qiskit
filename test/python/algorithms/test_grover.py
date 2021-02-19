@@ -195,10 +195,13 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test circuit_result"""
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
-        problem = AmplificationProblem(oracle, is_good_state=['11'])
-        grover = Grover(quantum_instance=self.qasm)
+        # is_good_state=['00'] is intentionally selected to obtain a list of results
+        problem = AmplificationProblem(oracle, is_good_state=['00'])
+        grover = Grover(iterations=[1, 2, 3, 4], quantum_instance=self.qasm)
         result = grover.amplify(problem)
-        self.assertEqual(result.circuit_results, {'11': 1024})
+        expected_results = [{'11': 1024}, {'00': 238, '01': 253, '10': 263, '11': 270},
+                            {'00': 238, '01': 253, '10': 263, '11': 270}, {'11': 1024}]
+        self.assertEqual(result.circuit_results, expected_results)
 
     def test_max_probability(self):
         """Test max_probability"""
