@@ -471,8 +471,7 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
 
-                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                     'save', 'noise']:
+                elif not op.op._directive and op.name not in ['measure']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
@@ -940,8 +939,7 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
 
-                elif op.name in ['barrier', 'snapshot', 'load', 'save',
-                                 'noise']:
+                elif op.op._directive:
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]

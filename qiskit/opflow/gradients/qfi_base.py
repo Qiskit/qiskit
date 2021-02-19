@@ -22,7 +22,7 @@ class QFIBase(DerivativeBase):  # pylint: disable=abstract-method
 
     r"""Base class for Quantum Fisher Information (QFI).
 
-    Compute the Quantum Fisher Information (QFI) given a pure, parametrized quantum state.
+    Compute the Quantum Fisher Information (QFI) given a pure, parameterized quantum state.
 
     The QFI is:
 
