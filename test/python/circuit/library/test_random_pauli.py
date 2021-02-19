@@ -70,6 +70,18 @@ class TestPauliTwoDesign(QiskitTestCase):
 
             self.assertEqual(top_gates, new_top_gates)
 
+    def test_assign_keeps_one_initial_layer(self):
+        """Test assigning parameters does not add an additional initial layer."""
+        circuit = PauliTwoDesign(2)
+        values = list(range(circuit.num_parameters))
+
+        bound0 = circuit.assign_parameters(values)
+        bound1 = circuit.assign_parameters(values)
+        bound2 = circuit.assign_parameters(values)
+
+        self.assertEqual(bound0, bound1)
+        self.assertEqual(bound0, bound2)
+
 
 if __name__ == '__main__':
     unittest.main()

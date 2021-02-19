@@ -83,7 +83,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_evals(self):
         """ evals test """
-        # pylint: disable=no-member
         # TODO: Think about eval names
         self.assertEqual(Z.eval('0').eval('0'), 1)
         self.assertEqual(Z.eval('1').eval('0'), 0)
