@@ -109,11 +109,12 @@ class Statevector(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        text = self.draw('text', prefix='Statevector(')
-        return str(text) + ')'
+        return str(self.draw('repr'))
 
     def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
         """Returns a visualization of the Statevector.
+
+        **repr**: ASCII TextMatrix of the state's ``_repr_``.
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
@@ -129,14 +130,15 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
-                ``qsphere``, ``hinton``, or ``bloch``. Default is `'latex`'.
+                circuit. Valid choices are `auto`, `repr`, `text`,
+                `latex`, `latex_source`, `qsphere`, `hinton`, or `bloch`.
+                Default is `'auto'`.
             max_size (int): Maximum number of elements before array is
-                summarized instead of fully represented. For ``latex``
-                and ``latex_source`` drawers, this is also the maximum number
-                of elements that will be drawn in the output array, including
-                elipses elements. For ``text`` drawer, this is the ``threshold``
-                parameter in ``numpy.array2string()``.
+                summarized instead of fully represented. For `latex`
+                and `latex_source` drawers, this is also the maximum number
+                of elements that will be drawn along each axis of the output
+                array, including elipses elements. For `repr` and `text`
+                drawer, this is the `threshold` parameter in `numpy.array2string()`.
             dims (bool): For `text` and `latex`. Whether to display the
                 dimensions.
             prefix (str): For `text` and `latex`. Text to be displayed before
@@ -147,8 +149,8 @@ class Statevector(QuantumState, TolerancesMixin):
                 `qiskit.visualization` for that function's documentation.
 
         Returns:
-            :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+            :class:`matplotlib.Figure` or :class:`str` or
+            :class:`TextMatrix` or :class:`IPython.display.Latex`
 
         Raises:
             ValueError: when an invalid output method is selected.

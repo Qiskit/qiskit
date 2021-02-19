@@ -118,11 +118,12 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        text = self.draw('text', prefix="DensityMatrix(")
-        return str(text) + ')'
+        return str(self.draw('repr'))
 
     def draw(self, output=None, max_size=(16, 16), dims=None, prefix='', **drawer_args):
         """Returns a visualization of the DensityMatrix.
+
+        **repr**: ASCII TextMatrix of the state's ``_repr_``.
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
@@ -138,9 +139,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are ``text``, ``latex_source``,
-                ``latex_source``, ``qsphere``, ``hinton``,
-                or ``bloch``. Default is ``auto``.
+                circuit. Valid choices are `auto`, `repr`, `text`,
+                `latex`, `latex_source`, `qsphere`, `hinton`, or `bloch`.
+                Default is `'auto'`.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For ``latex``
                 and ``latex_source`` drawers, this is also the maximum number

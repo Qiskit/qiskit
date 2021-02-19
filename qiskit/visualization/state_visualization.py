@@ -20,6 +20,7 @@ Visualization functions for quantum states.
 
 from functools import reduce
 import colorsys
+import warnings
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
@@ -1077,11 +1078,12 @@ def _repr_state_text(state):
 class TextMatrix():
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
-    def __init__(self, state, max_size=8, dims=False, prefix=''):
+    def __init__(self, state, max_size=8, dims=False, prefix='', suffix=''):
         self.state = state
         self.max_size = max_size
         self.dims = dims
         self.prefix = prefix
+        self.suffix = suffix
         if isinstance(max_size, int):
             self.max_size = max_size
         elif isinstance(state, DensityMatrix):
@@ -1096,13 +1098,15 @@ class TextMatrix():
         data = np.array2string(
             self.state._data,
             prefix=self.prefix,
-            threshold=threshold
+            threshold=threshold,
+            separator=','
         )
+        dimstr = ''
         if self.dims:
-            suffix = f',\ndims={self.state._op_shape.dims_l()}'
-        else:
-            suffix = ''
-        return self.prefix + data + suffix
+            data += ',\n'
+            dimstr += ' '*len(self.prefix)
+            dimstr += f'dims={self.state._op_shape.dims_l()}'
+        return self.prefix + data + dimstr + self.suffix
 
     def __repr__(self):
         return self.__str__()
@@ -1153,19 +1157,14 @@ def state_drawer(state,
             ImportError: when `output` is `latex` and IPython is not installed.
             ValueError: when `output` is not a valid selection.
     """
-    # set 'output'
     config = user_config.get_config()
-    # Get default 'output' from config file else use text
-    default_output = 'text'
-    if config:
-        default_output = config.get('state_drawer', 'auto')
-        if default_output == 'auto':
-            try:
-                from IPython.display import Latex
-                default_output = 'latex'
-            except ImportError:
-                default_output = 'text'
+    # Get default 'output' from config file else use 'repr'
+    default_output = 'repr'
     if output in [None, 'auto']:
+        if config:
+            default_output = config.get('state_drawer', 'auto')
+            if default_output == 'auto':
+                default_output = 'repr'
         output = default_output
     output = output.lower()
     # Set 'dims'
@@ -1198,6 +1197,14 @@ def state_drawer(state,
         else:
             draw_func, args = drawers['latex_source']
             return Latex(draw_func(state, *args))
+    if output == 'repr':
+        if prefix != '':
+            warnings.warn("Ignoring 'prefix' for 'repr' drawing")
+        prefix = type(state).__name__ + "("
+        suffix = ")"
+        draw_func, _ = drawers['text']
+        return draw_func(state, max_size, dims, prefix, suffix)
+
     try:
         draw_func, specific_args = drawers[output]
         return draw_func(state, *specific_args, **drawer_args)
