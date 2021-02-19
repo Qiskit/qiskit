@@ -42,7 +42,7 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """"Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
@@ -88,7 +88,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """"Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
