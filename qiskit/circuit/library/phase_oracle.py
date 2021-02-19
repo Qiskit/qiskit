@@ -25,16 +25,14 @@ class PhaseOracle(QuantumCircuit):
 
         # initialize the quantumcircuit
         qr_state = QuantumRegister(len(self.state_qubits), 'state')
-        qr_flag = QuantumRegister(1, 'flag')
-        super().__init__(qr_state, qr_flag, name='Phase Oracle')
 
-        # to convert from the bitflip oracle provided from BooleanExpression to a phase oracle, we
-        # additionally apply a Hadamard and X gates
-        self.x(qr_flag)
-        self.h(qr_flag)
-        self.compose(self.bit_oracle.synth(), inplace=True)
-        self.h(qr_flag)
-        self.x(qr_flag)
+        super().__init__(qr_state, name='Phase Oracle')
+
+        from tweedledum.passes import pkrm_synth
+        synthesizer = lambda logic_network: pkrm_synth(logic_network,
+                                                       {"pkrm_synth": {"phase_esop": True}})
+
+        self.compose(self.bit_oracle.synth(synthesizer=synthesizer), inplace=True)
 
     def evaluate_bitstring(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.

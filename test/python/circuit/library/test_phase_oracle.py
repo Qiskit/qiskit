@@ -14,9 +14,12 @@
 
 import unittest
 from ddt import ddt, data, unpack
+from numpy import sqrt, isclose
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import PhaseOracle
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -33,16 +36,26 @@ class TestPhaseOracle(QiskitTestCase):
         result = oracle.evaluate_bitstring(input_bitstring)
         self.assertEqual(result, expected)
 
-    # @data(('x | x', '1', True),
-    #       ('x & x', '0', False),
-    #       ('(x0 & x1 | ~x2) ^ x4', '0110', False),
-    #       ('xx & xxx | ( ~z ^ zz)', '0111', True))
-    # @unpack
-    # def test_evaluate_bitstring(self, expression, input_bitstring, expected):
-    #     initial_value.
-    #     oracle = PhaseOracle(expression)
-    #     result = oracle.evaluate_bitstring(input_bitstring)
-    #     self.assertEqual(result, expected)
+    @data(('x | x', [1]),
+          ('x & y', [3]),
+          ('(x0 & x1 | ~x2) ^ x4', [0, 1, 2, 3, 7, 12, 13, 14]),
+          ('x & y ^ ( ~z1 | z2)', [0, 1, 2, 7, 8, 9, 10, 12, 13, 14]))
+    @unpack
+    def test_statevector(self, expression, good_states):
+        oracle = PhaseOracle(expression)
+        num_qubits = oracle.num_qubits
+        circuit = QuantumCircuit(num_qubits)
+        circuit.h(range(num_qubits))
+        circuit.compose(oracle, inplace=True)
+
+        statevector = Statevector.from_instruction(circuit)
+        valid_state = -1 / sqrt(2 ** num_qubits)
+        invalid_state = 1 / sqrt(2 ** num_qubits)
+        for state in range(2 ** num_qubits):
+            if state in good_states:
+                self.assertAlmostEqual(statevector.data[state], valid_state)
+            else:
+                self.assertAlmostEqual(statevector.data[state], invalid_state)
 
 
 if __name__ == '__main__':

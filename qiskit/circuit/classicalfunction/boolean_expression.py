@@ -121,7 +121,7 @@ class BooleanExpression(Gate):
             bits.append(BitVec(1, bit))
         return bool(self._tweedledum_bool_expression.simulate(*bits))
 
-    def synth(self, registerless=True):
+    def synth(self, registerless=True, synthesizer=None):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
@@ -141,7 +141,10 @@ class BooleanExpression(Gate):
 
         logic_network = self._tweedledum_bool_expression._logic_network
 
-        return tweedledum2qiskit(pkrm_synth(logic_network), name=self.name, qregs=qregs)
+        if synthesizer is None:
+            synthesizer = pkrm_synth
+
+        return tweedledum2qiskit(synthesizer(logic_network), name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the boolean expression is its synthesis"""
