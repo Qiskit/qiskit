@@ -460,7 +460,7 @@ def _parse_transpile_args(circuits, backend,
 
 def _create_faulty_qubits_map(backend):
     """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
-       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
+       from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
         if backend.properties():

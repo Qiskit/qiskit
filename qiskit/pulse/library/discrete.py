@@ -252,7 +252,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
 
     with the center :math:`\mu=` ``duration/2``.
 
-    If ``zero_ends==True``, each output sample :math:`y` is modifed according to:
+    If ``zero_ends==True``, each output sample :math:`y` is modified according to:
 
     .. math::
 
@@ -321,7 +321,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
 
     with the center :math:`\mu=` ``duration/2``.
 
-    If ``zero_ends==True``, each output sample :math:`y` is modifed according to:
+    If ``zero_ends==True``, each output sample :math:`y` is modified according to:
 
     .. math::
 

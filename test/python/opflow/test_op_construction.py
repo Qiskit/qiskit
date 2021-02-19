@@ -731,7 +731,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_matrix_op_conversions(self):
         """Test to reveal QiskitError when to_instruction or to_circuit method is called on
-        parametrized matrix op."""
+        parameterized matrix op."""
         m = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
         matrix_op = MatrixOp(m, Parameter('beta'))
         for method in ['to_instruction', 'to_circuit']:
@@ -805,7 +805,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(Operator(unitary).equiv(circuit))
 
     def test_op_to_circuit_with_parameters(self):
-        """On parametrized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
+        """On parameterized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
         the infinite recursion, OpflowError is raised. """
         m1 = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0]])  # non-unitary
         m2 = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, -1, 0, 0]])  # non-unitary

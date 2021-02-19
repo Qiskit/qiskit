@@ -75,11 +75,11 @@ class Suzuki(TrotterizationBase):
                              expansion_order: int,
                              reps: int) -> List[PrimitiveOp]:
         """
-        Compute the list of pauli terms for a single slice of the suzuki expansion
+        Compute the list of pauli terms for a single slice of the Suzuki expansion
         following the paper https://arxiv.org/pdf/quant-ph/0508139.pdf.
 
         Args:
-            op_list: The slice's weighted Pauli list for the suzuki expansion
+            op_list: The slice's weighted Pauli list for the Suzuki expansion
             evo_time: The parameter lambda as defined in said paper,
                 adjusted for the evolution time and the number of time slices
             expansion_order: The order for the Suzuki expansion.

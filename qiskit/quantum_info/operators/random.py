@@ -95,7 +95,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         scale=0.5, size=num_tril, random_state=rng)
     imag_tril = stats.norm.rvs(
         scale=0.5, size=num_tril, random_state=rng)
-    # Get lower triangular indicies
+    # Get lower triangular indices
     rows, cols = np.tril_indices(dim, -1)
     mat[(rows, cols)] = real_tril + 1j * imag_tril
     mat[(cols, rows)] = real_tril - 1j * imag_tril

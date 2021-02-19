@@ -83,7 +83,7 @@ class PhaseGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Phase gate.
+        """Return a (multi-)controlled-Phase gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.

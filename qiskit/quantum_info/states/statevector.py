@@ -161,6 +161,7 @@ class Statevector(QuantumState, TolerancesMixin):
                             prefix=prefix, **drawer_args)
 
     def _ipython_display_(self):
+        from IPython.display import display
         display(self.draw())
 
     @property
