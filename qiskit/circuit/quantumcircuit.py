@@ -259,7 +259,7 @@ class QuantumCircuit:
 
         The metadata for the circuit is a user provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
-        operation of the circuit, but it is expected to be passed betweeen
+        operation of the circuit, but it is expected to be passed between
         all transforms of the circuit (ie transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.
@@ -1392,7 +1392,7 @@ class QuantumCircuit:
         """
         gate_ops = 0
         for instr, _, _ in self._data:
-            if instr.name not in ['barrier', 'snapshot']:
+            if not instr._directive:
                 gate_ops += 1
         return gate_ops
 
@@ -1439,7 +1439,7 @@ class QuantumCircuit:
             reg_ints = []
             # If count then add one to stack heights
             count = True
-            if instr.name in ['barrier', 'snapshot']:
+            if instr._directive:
                 count = False
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
@@ -1511,7 +1511,7 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instr, _, _ in self._data:
-            if instr.num_qubits > 1 and instr.name not in ['barrier', 'snapshot']:
+            if instr.num_qubits > 1 and not instr._directive:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
@@ -1551,7 +1551,7 @@ class QuantumCircuit:
                 args = qargs + cargs
                 num_qargs = len(args) + (1 if instr.condition else 0)
 
-            if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
+            if num_qargs >= 2 and not instr._directive:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the

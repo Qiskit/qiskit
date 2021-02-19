@@ -58,7 +58,7 @@ frequently around the Operator flow.
    AbelianGrouper
    DictToCircuitSum
    PauliBasisChange
-
+   TwoQubitReduction
 """
 
 from .converter_base import ConverterBase
@@ -66,9 +66,12 @@ from .circuit_sampler import CircuitSampler
 from .pauli_basis_change import PauliBasisChange
 from .dict_to_circuit_sum import DictToCircuitSum
 from .abelian_grouper import AbelianGrouper
+from .two_qubit_reduction import TwoQubitReduction
 
 __all__ = ['ConverterBase',
            'CircuitSampler',
            'PauliBasisChange',
            'DictToCircuitSum',
-           'AbelianGrouper']
+           'AbelianGrouper',
+           'TwoQubitReduction',
+           ]

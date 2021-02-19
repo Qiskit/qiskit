@@ -158,7 +158,7 @@ class Schedule(abc.ABC):
 
         The metadata for the schedule is a user provided ``dict`` of metadata
         for the schedule. It will not be used to influence the execution or
-        operation of the schedule, but it is expected to be passed betweeen
+        operation of the schedule, but it is expected to be passed between
         all transforms of the schedule and that providers will associate any
         schedule metadata with the results it returns from execution of that
         schedule.
@@ -619,7 +619,7 @@ class Schedule(abc.ABC):
         """Return a schedule with the ``old`` instruction replaced with a ``new``
         instruction.
 
-        The replacment matching is based on an instruction equality check.
+        The replacement matching is based on an instruction equality check.
 
         .. jupyter-kernel:: python3
           :id: replace
@@ -1040,7 +1040,7 @@ class ParameterizedSchedule:
             if isinstance(param_sched, type(self)):
                 predefined = param_sched.parameters
             else:
-                # assuming no other parametrized instructions
+                # assuming no other parameterized instructions
                 predefined = self.parameters
             sub_params = {k: v for k, v in named_parameters.items()
                           if k in predefined}

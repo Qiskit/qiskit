@@ -81,7 +81,7 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         """Set the value for the assignment.
 
         Args:
-            value: A new value for the assigment/solution.
+            value: A new value for the assignment/solution.
         """
         self._assignment = value
 
