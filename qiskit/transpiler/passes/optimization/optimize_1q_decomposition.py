@@ -21,7 +21,6 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.circuit.library.standard_gates import U3Gate
-from qiskit.circuit import ParameterExpression
 from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
