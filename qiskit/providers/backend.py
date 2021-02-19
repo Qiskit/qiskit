@@ -15,8 +15,11 @@
 
 from abc import ABC
 from abc import abstractmethod
+from typing import List
 
 from qiskit.providers.models.backendstatus import BackendStatus
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 
 
 class Backend:
@@ -187,6 +190,182 @@ class BackendV1(Backend, ABC):
         method.
         """
         return self._options
+
+    @abstractmethod
+    def run(self, run_input, **options):
+        """Run on the backend.
+
+        This method that will return a :class:`~qiskit.providers.Job` object
+        that run circuits. Depending on the backend this may be either an async
+        or sync call. It is the discretion of the provider to decide whether
+        running should  block until the execution is finished or not. The Job
+        class can handle either situation.
+
+        Args:
+            run_input (QuantumCircuit or Schedule or list): An individual or a
+                list of :class:`~qiskit.circuits.QuantumCircuit` or
+                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
+                For legacy providers migrating to the new versioned providers,
+                provider interface a :class:`~qiskit.qobj.QasmQobj` or
+                :class:`~qiskit.qobj.PulseQobj` objects should probably be
+                supported too (but deprecated) for backwards compatibility. Be
+                sure to update the docstrings of subclasses implementing this
+                method to document that. New provider implementations should not
+                do this though as :mod:`qiskit.qobj` will be deprecated and
+                removed along with the legacy providers interface.
+            options: Any kwarg options to pass to the backend for running the
+                config. If a key is also present in the options
+                attribute/object then the expectation is that the value
+                specified will be used instead of what's set in the options
+                object.
+        Returns:
+            Job: The job object for the run
+        """
+        pass
+
+
+class BackendV2(Backend, ABC):
+    """Abstract class for Backends
+
+    This abstract class is to be used for all Backend objects created by a
+    provider. This version differs from earlier abstract Backend classes in
+    that the configuration attribute no longer exists instead attributes
+
+    The ``options`` attribute of the backend is used to contain the dynamic
+    user configurable options of the backend. It should be used more for
+    runtime options that configure how the backend is used. For example,
+    something like a ``shots`` field for a backend that runs experiments which
+    would contain an int for how many shots to execute.
+
+    If migrating a provider from :class:`~qiskit.providers.BackendV1` or
+    :class:`~qiskit.providers.BaseBackend` one thing to keep in mind is for
+    backwards compatibility you might need to add a configuration method that
+    will build a :class:`~qiskit.providers.models.BackendConfiguration` object
+    and :class:`~qiskit.providers.models.BackendProperties` from the attributes
+    defined in this class for backwards compatibility.
+    """
+
+    version = 2
+
+    def __init__(self, provider, **fields):
+        self._options = self._default_options()
+        self._provider = provider
+        self._gate_weights = None
+        self._coupling_map = None
+        if fields:
+            for field in fields:
+                if field not in self._options.data:
+                    raise AttributeError("Options field %s is not valid for this backend" % field)
+            self._options.update_config(**fields)
+
+    @property
+    def basis_gates(self) -> List[Gate]:
+        """A list of Gate classes that the backend supports."""
+        if not self._gate_weights:
+            self._gate_weights = {x.gate for x in self.gate_map.gates_weights()}
+        return self._gate_weights
+
+    @property
+    @abstractmethod
+    def gate_map(self):
+        """A :class:`qiskit.transpiler.GateMap` object for the backend."""
+        pass
+
+    @property
+    @abstractmethod
+    def num_qubits(self) -> int:
+        """Return the number of qubits the backend has."""
+        pass
+
+    @property
+    @abstractmethod
+    def supported_instruction(self) -> List[Instruction]:
+        """Return the list of supported non-gate instructions for the
+        backend.
+
+        The expectation this will be things like Measure, Reset, Save, etc.
+        """
+        pass
+
+    @property
+    def coupling_map(self):
+        """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
+        if not self._coupling_map:
+            self._coupling_map = self.gate_map.to_coupling_map()
+        return self._coupling_map
+
+    @property
+    @abstractmethod
+    def conditional(self) -> bool:
+        """Return bool whether the target can execute gates with classical
+        conditions."""
+        pass
+
+    @property
+    @abstractmethod
+    def max_shots(self) -> int:
+        """Return the maximum number of shots supported by the backend.
+
+        If there is no limit this will return None
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def max_experiments(self):
+        """The maximum number of circuits (or Pulse schedules) that can be
+        run in a single job.
+
+        If there is no limit this will return None
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def _default_options(cls):
+        """Return the default options
+
+        This method will return a :class:`qiskit.providers.Options`
+        subclass object that will be used for the default options. These
+        should be the default parameters to use for the options of the
+        backend.
+
+        Returns:
+            qiskit.providers.Options: A options object with
+                default values set
+        """
+        pass
+
+    @property
+    def properties(self):
+        """Return the backend properties.
+
+        The properties of a backend are the measure properties of backend.
+
+        Returns:
+            BackendProperties: the configuration for the backend. If the backend
+            does not support properties, it returns ``None``.
+        """
+        return None
+
+    def set_options(self, **fields):
+        """Set the options fields for the backend
+
+        This method is used to update the options of a backend. If
+        you need to change any of the options prior to running just
+        pass in the kwarg with the new value for the options.
+
+        Args:
+            fields: The fields to update the options
+
+        Raises:
+            AttributeError: If the field passed in is not part of the
+                options
+        """
+        for field in fields:
+            if not hasattr(self._options, field):
+                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+        self._options.update_options(**fields)
 
     @abstractmethod
     def run(self, run_input, **options):
