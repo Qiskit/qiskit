@@ -44,7 +44,7 @@ class LayoutTransformation(TransformationPass):
                 If the type is str, look up `property_set` when this pass runs.
 
             to_layout (Union[Layout, str]):
-                The final layout of qubits on phyiscal qubits.
+                The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
