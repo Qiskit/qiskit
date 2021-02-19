@@ -52,7 +52,7 @@ def filter_instructions(sched: Schedule,
     for filt in filters:
         valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
 
-    if not accept:
+    if not accept and len(filters) > 0:
         valid_insts = ~valid_insts
 
     return Schedule(*time_inst_tuples[valid_insts], name=sched.name, metadata=sched.metadata)
@@ -76,13 +76,16 @@ def composite_filter(channels: Optional[Union[Iterable[Channel], Channel]] = Non
         List of filtering functions.
     """
     filters = []
-    if channels:
+
+    # An empty list is also valid input for filter generators.
+    # See unittest `test.python.pulse.test_schedule.TestScheduleFilter.test_empty_filters`.
+    if channels is not None:
         filters.append(with_channels(channels))
-    if instruction_types:
+    if instruction_types is not None:
         filters.append(with_instruction_types(instruction_types))
-    if time_ranges:
+    if time_ranges is not None:
         filters.append(with_intervals(time_ranges))
-    if intervals:
+    if intervals is not None:
         filters.append(with_intervals(intervals))
 
     return filters

@@ -1091,8 +1091,8 @@ class Schedule(ScheduleBase):
             False
             ```
         """
-        # 0. type check
-        if not isinstance(other, type(self)):
+        # 0. type check, we consider Instruction is a subtype of schedule
+        if not isinstance(other, (type(self), Instruction)):
             return False
 
         # 1. channel check
