@@ -12,12 +12,14 @@
 
 """ ConverterBase Class """
 
+from plum import Referentiable
+import abc
 from abc import ABC, abstractmethod
 
 from ..operator_base import OperatorBase
 
 
-class ConverterBase(ABC):
+class ConverterBase(metaclass=Referentiable(abc.ABCMeta)):
     r"""
     Converters take an Operator and return a new Operator, generally isomorphic
     in some way with the first, but with certain desired properties. For example,

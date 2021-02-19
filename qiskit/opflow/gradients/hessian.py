@@ -14,10 +14,12 @@
 
 from typing import Union, List, Tuple
 
+# This requires the master branch of plum-dispatch
+import plum
+
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.circuit import ParameterVector, ParameterExpression
-from ..operator_globals import Zero, One
+from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..state_fns.state_fn import StateFn
 from ..expectations.pauli_expectation import PauliExpectation
@@ -37,9 +39,13 @@ try:
 except ImportError:
     _HAS_JAX = False
 
+from .derivative_utils import ZERO_EXPR
+from .derivative_utils import is_coeff_c
 
 class Hessian(HessianBase):
     """Compute the Hessian of an expected value."""
+
+    dispatch = plum.Dispatcher(in_class=plum.Self)
 
     # pylint: disable=signature-differs
     def convert(self,
@@ -62,14 +68,21 @@ class Hessian(HessianBase):
 
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+
         return self.get_hessian(cleaned_op, params)
 
-    # pylint: disable=too-many-return-statements
-    def get_hessian(self,
-                    operator: OperatorBase,
-                    params: Union[Tuple[ParameterExpression, ParameterExpression],
-                                  List[Tuple[ParameterExpression, ParameterExpression]]]
-                    ) -> OperatorBase:
+    @dispatch
+    def get_hessian(self, operator: object, params: ParameterExpression, precedence=1):
+        return Gradient(grad_method=self._hess_method).get_gradient(operator, params)
+
+    @dispatch
+    def get_hessian(self, operator: object, params: plum.List(tuple)):
+        # Compute the Hessian entries corresponding to these pairs of parameters.
+        return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
+
+    @dispatch
+    def get_hessian(self, operator: object,
+                    params: {ParameterVector, plum.List(ParameterExpression)}):
         """Get the Hessian for the given operator w.r.t. the given parameters
 
         Args:
@@ -89,161 +102,134 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
-        # if input is a tuple instead of a list, wrap it into a list
-        if isinstance(params, (ParameterVector, list)):
-            # Case: a list of parameters were given, compute the Hessian for all param pairs
-            if all(isinstance(param, ParameterExpression) for param in params):
-                return ListOp([ListOp([
-                    self.get_hessian(operator, (p_i, p_j))
-                    for i, p_i in enumerate(params[j:], j)])
-                               for j, p_j in enumerate(params)],
-                              combo_fn=triu_to_dense)
-            # Case: a list was given containing tuples of parameter pairs.
-            elif all(isinstance(param, tuple) for param in params):
-                # Compute the Hessian entries corresponding to these pairs of parameters.
-                return ListOp([self.get_hessian(operator, param_pair) for param_pair in params])
+        return ListOp([ListOp([
+            self.get_hessian(operator, (p_i, p_j))
+            for i, p_i in enumerate(params[j:], j)])
+                       for j, p_j in enumerate(params)],
+                      combo_fn=triu_to_dense)
 
-        def is_coeff_c(coeff, c):
-            if isinstance(coeff, ParameterExpression):
-                expr = coeff._symbol_expr
-                return expr == c
-            return coeff == c
-
-        # If a gradient is requested w.r.t a single parameter, then call the
-        # Gradient().get_gradient method.
-        if isinstance(params, ParameterExpression):
-            return Gradient(grad_method=self._hess_method).get_gradient(operator, params)
-
-        if (not isinstance(params, tuple)) or (not len(params) == 2):
-            raise TypeError("Parameters supplied in unsupported format.")
-
+    @dispatch
+    def get_hessian(self, operator: object, params: object):
+        if is_coeff_c(operator._coeff, 1.0):
+            return self.get_hessian_coeff_one(operator, params)
+        # Separate the operator from the coefficient
+        coeff = operator._coeff
+        op = operator / coeff
+        # Get derivative of the operator (recursively)
         # By this point, it's only one parameter tuple
         p_0 = params[0]
         p_1 = params[1]
 
-        # Handle Product Rules
-        if not is_coeff_c(operator._coeff, 1.0):
-            # Separate the operator from the coefficient
-            coeff = operator._coeff
-            op = operator / coeff
-            # Get derivative of the operator (recursively)
-            d0_op = self.get_hessian(op, p_0)
-            d1_op = self.get_hessian(op, p_1)
-            # ..get derivative of the coeff
-            d0_coeff = self.parameter_expression_grad(coeff, p_0)
-            d1_coeff = self.parameter_expression_grad(coeff, p_1)
+        d0_op = self.get_hessian_coeff_one(op, p_0)
+        d1_op = self.get_hessian_coeff_one(op, p_1)
+        # ..get derivative of the coeff
+        d0_coeff = self.parameter_expression_grad(coeff, p_0)
+        d1_coeff = self.parameter_expression_grad(coeff, p_1)
 
-            dd_op = self.get_hessian(op, params)
-            dd_coeff = self.parameter_expression_grad(d0_coeff, p_1)
+        dd_op = self.get_hessian_coeff_one(op, params)
+        dd_coeff = self.parameter_expression_grad(d0_coeff, p_1)
 
-            grad_op = 0
-            # Avoid creating operators that will evaluate to zero
-            if dd_op != ~Zero @ One and not is_coeff_c(coeff, 0):
-                grad_op += coeff * dd_op
-            if d0_op != ~Zero @ One and not is_coeff_c(d1_coeff, 0):
-                grad_op += d1_coeff * d0_op
-            if d1_op != ~Zero @ One and not is_coeff_c(d0_coeff, 0):
-                grad_op += d0_coeff * d1_op
-            if not is_coeff_c(dd_coeff, 0):
-                grad_op += dd_coeff * op
+        grad_op = 0
+        # Avoid creating operators that will evaluate to zero
+        if dd_op != ZERO_EXPR and not is_coeff_c(coeff, 0):
+            grad_op += coeff * dd_op
+        if d0_op != ZERO_EXPR and not is_coeff_c(d1_coeff, 0):
+            grad_op += d1_coeff * d0_op
+        if d1_op != ZERO_EXPR and not is_coeff_c(d0_coeff, 0):
+            grad_op += d0_coeff * d1_op
+        if not is_coeff_c(dd_coeff, 0):
+            grad_op += dd_coeff * op
 
-            if grad_op == 0:
-                return ~Zero @ One
+        if grad_op == 0:
+            return ZERO_EXPR
 
-            return grad_op
+        return grad_op
 
-        # Base Case, you've hit a ComposedOp!
+    @dispatch.multi((ComposedOp, tuple), (ComposedOp, Parameter))
+    def get_hessian_coeff_one(self, operator: ComposedOp, params: {Parameter, tuple}):
         # Prior to execution, the composite operator was standardized and coefficients were
         # collected. Any operator measurements were converted to Pauli-Z measurements and rotation
         # circuits were applied. Additionally, all coefficients within ComposedOps were collected
         # and moved out front.
-        if isinstance(operator, ComposedOp):
+        # Do some checks to make sure operator is sensible
+        # TODO enable compatibility with sum of CircuitStateFn operators
+        if not isinstance(operator[-1], CircuitStateFn):
+            raise TypeError(
+                'The gradient framework is compatible with states that are given as '
+                'CircuitStateFn')
 
-            if not is_coeff_c(operator.coeff, 1.):
-                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
-                                  'collected inside the ComposedOp.')
+        return self.hess_method.convert(operator, params)
 
-            # Do some checks to make sure operator is sensible
-            # TODO enable compatibility with sum of CircuitStateFn operators
-            if not isinstance(operator[-1], CircuitStateFn):
-                raise TypeError(
-                    'The gradient framework is compatible with states that are given as '
-                    'CircuitStateFn')
+    @dispatch
+    def get_hessian_coeff_one(self, operator: {SummedOp, TensoredOp}, params: tuple):
+        dd_ops = [self.get_hessian(op, params) for op in operator.oplist]
+        return type(operator)(oplist=dd_ops)
 
+    @dispatch
+    def get_hessian_coeff_one(self, operator: StateFn, params: tuple):
+        if not operator.is_measurement:
             return self.hess_method.convert(operator, params)
+        else:
+            raise TypeError('The computation of Hessians is only supported for Operators which '
+                            'represent expectation values or quantum states.')
 
-        # This is the recursive case where the chain rule is handled
-        elif isinstance(operator, ListOp):
-            # These operators correspond to (d_op/d θ0,θ1) for op in operator.oplist
-            # and params = (θ0,θ1)
-            dd_ops = [self.get_hessian(op, params) for op in operator.oplist]
+    # This is the recursive case where the chain rule is handled
+    @dispatch
+    def get_hessian_coeff_one(self, operator: ListOp, params: tuple):
+        # These operators correspond to (d_op/d θ0,θ1) for op in operator.oplist
+        # and params = (θ0,θ1)
+        dd_ops = [self.get_hessian(op, params) for op in operator.oplist]
 
-            # Note that this check to see if the ListOp has a default combo_fn
-            # will fail if the user manually specifies the default combo_fn.
-            # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
-            # later on jax will try to differentiate it and fail.
-            # An alternative is to check the byte code of the operator's combo_fn against the
-            # default one.
-            # This will work but look very ugly and may have other downsides I'm not aware of
-            if operator.combo_fn == ListOp([]).combo_fn:
-                return ListOp(oplist=dd_ops)
-            elif isinstance(operator, SummedOp):
-                return SummedOp(oplist=dd_ops)
-            elif isinstance(operator, TensoredOp):
-                return TensoredOp(oplist=dd_ops)
+        # Note that this check to see if the ListOp has a default combo_fn
+        # will fail if the user manually specifies the default combo_fn.
+        # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
+        # later on jax will try to differentiate it and fail.
+        # An alternative is to check the byte code of the operator's combo_fn against the
+        # default one.
+        # This will work but look very ugly and may have other downsides I'm not aware of
+        if operator.combo_fn == ListOp([]).combo_fn:
+            return ListOp(oplist=dd_ops)
 
-            # These operators correspond to (d g_i/d θ0)•(d g_i/d θ1) for op in operator.oplist
-            # and params = (θ0,θ1)
-            d1d0_ops = ListOp([ListOp([Gradient(grad_method=self._hess_method).convert(op, param)
-                                       for param in params], combo_fn=np.prod) for
-                               op in operator.oplist])
+        # These operators correspond to (d g_i/d θ0)•(d g_i/d θ1) for op in operator.oplist
+        # and params = (θ0,θ1)
+        d1d0_ops = ListOp([ListOp([Gradient(grad_method=self._hess_method).convert(op, param)
+                                   for param in params], combo_fn=np.prod) for
+                           op in operator.oplist])
 
-            if operator.grad_combo_fn:
-                first_partial_combo_fn = operator.grad_combo_fn
-                if _HAS_JAX:
-                    second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
-                                                       holomorphic=True))
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname='jax',
-                        name='get_hessian',
-                        msg='This automatic differentiation function is based on JAX. Please '
-                            'install jax and use `import jax.numpy as jnp` instead of '
-                            '`import numpy as np` when defining a combo_fn.')
+        if operator.grad_combo_fn:
+            first_partial_combo_fn = operator.grad_combo_fn
+            if _HAS_JAX:
+                second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
+                                                   holomorphic=True))
             else:
-                if _HAS_JAX:
-                    first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
-                    second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
-                                                       holomorphic=True))
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname='jax',
-                        name='get_hessian',
-                        msg='This automatic differentiation function is based on JAX. '
-                            'Please install jax and use `import jax.numpy as jnp` instead '
-                            'of `import numpy as np` when defining a combo_fn.')
+                raise MissingOptionalLibraryError(
+                    libname='jax',
+                    name='get_hessian',
+                    msg='This automatic differentiation function is based on JAX. Please '
+                    'install jax and use `import jax.numpy as jnp` instead of '
+                    '`import numpy as np` when defining a combo_fn.')
+        else:
+            if _HAS_JAX:
+                first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
+                second_partial_combo_fn = jit(grad(lambda x: first_partial_combo_fn(x)[0],
+                                                   holomorphic=True))
+            else:
+                raise MissingOptionalLibraryError(
+                    libname='jax',
+                    name='get_hessian',
+                    msg='This automatic differentiation function is based on JAX. '
+                    'Please install jax and use `import jax.numpy as jnp` instead '
+                    'of `import numpy as np` when defining a combo_fn.')
 
             # For a general combo_fn F(g_0, g_1, ..., g_k)
             # dF/d θ0,θ1 = sum_i: (∂F/∂g_i)•(d g_i/ d θ0,θ1) + (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d
             # θ1)
 
             # term1 = (∂F/∂g_i)•(d g_i/ d θ0,θ1)
-            term1 = ListOp([ListOp(operator.oplist, combo_fn=first_partial_combo_fn),
-                            ListOp(dd_ops)], combo_fn=lambda x: np.dot(x[1], x[0]))
-            # term2 = (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d θ1)
-            term2 = ListOp([ListOp(operator.oplist, combo_fn=second_partial_combo_fn), d1d0_ops],
-                           combo_fn=lambda x: np.dot(x[1], x[0]))
+        term1 = ListOp([ListOp(operator.oplist, combo_fn=first_partial_combo_fn),
+                        ListOp(dd_ops)], combo_fn=lambda x: np.dot(x[1], x[0]))
+        # term2 = (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d θ1)
+        term2 = ListOp([ListOp(operator.oplist, combo_fn=second_partial_combo_fn), d1d0_ops],
+                       combo_fn=lambda x: np.dot(x[1], x[0]))
 
-            return SummedOp([term1, term2])
-
-        elif isinstance(operator, StateFn):
-            if not operator.is_measurement:
-                return self.hess_method.convert(operator, params)
-
-            else:
-                raise TypeError('The computation of Hessians is only supported for Operators which '
-                                'represent expectation values or quantum states.')
-
-        else:
-            raise TypeError('The computation of Hessians is only supported for Operators which '
-                            'represent expectation values.')
+        return SummedOp([term1, term2])

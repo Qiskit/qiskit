@@ -26,7 +26,7 @@ from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
-from ..operator_globals import Zero, One
+# from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..exceptions import OpflowError
 
@@ -37,13 +37,8 @@ except ImportError:
     _HAS_JAX = False
 
 
-@dispatch(float, float)
-def is_coeff_c(coeff, c):
-    return coeff == c
-
-@dispatch(ParameterExpression, float)
-def is_coeff_c(coeff, c):
-    return coeff._symbol_expr == c
+from .derivative_utils import ZERO_EXPR
+from .derivative_utils import is_coeff_c
 
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
@@ -64,7 +59,6 @@ class Gradient(GradientBase):
         """
         return self._convert(operator, params)
 
-
     @dispatch(object, (ParameterVector, list))
     def _convert(self, operator, params):
         param_grads = [self._convert(operator, param) for param in params]
@@ -83,7 +77,6 @@ class Gradient(GradientBase):
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
         return self.get_gradient(cleaned_op, param)
-
 
     @dispatch((object, ComposedOp, SummedOp, TensoredOp, CircuitStateFn), (ParameterVector, list))
     def get_gradient(self, operator, params):
@@ -111,12 +104,12 @@ class Gradient(GradientBase):
         d_coeff = self.parameter_expression_grad(coeff, param)
 
         grad_op = 0
-        if d_op != ~Zero @ One and not is_coeff_c(coeff, 0.0):
+        if d_op != ZERO_EXPR and not is_coeff_c(coeff, 0.0):
             grad_op += coeff * d_op
-        if op != ~Zero @ One and not is_coeff_c(d_coeff, 0.0):
+        if op != ZERO_EXPR and not is_coeff_c(d_coeff, 0.0):
             grad_op += d_coeff * op
         if grad_op == 0:
-            grad_op = ~Zero @ One
+            grad_op = ZERO_EXPR
         return grad_op
 
     # Base Case, you've hit a ComposedOp!
@@ -149,7 +142,7 @@ class Gradient(GradientBase):
         if not is_coeff_c(operator._coeff, 1.0):
             return self.handle_coeff_not_one(operator, param)
         grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
-        return SummedOp(oplist=[grad for grad in grad_ops if grad != ~Zero @ One]).reduce()
+        return SummedOp(oplist=[grad for grad in grad_ops if grad != ZERO_EXPR]).reduce()
 
     @dispatch(TensoredOp, object)
     def get_gradient(self, operator, param):

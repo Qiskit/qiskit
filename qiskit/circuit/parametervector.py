@@ -14,8 +14,7 @@
 
 from .parameter import Parameter
 
-
-class ParameterVector:
+class ParameterVector():
     """ParameterVector class to quickly generate lists of parameters."""
 
     def __init__(self, name, length=0):
