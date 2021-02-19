@@ -86,7 +86,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to pass different types of integer as indices
         of QuantumRegister and ClassicalRegister
         """
-        ints = [int(2), np.int(2), np.int32(2), np.int64(2)]
+        ints = [int(2), np.int32(2), np.int64(2)]
         for index in ints:
             with self.subTest(index=index):
                 qr = QuantumRegister(4)
