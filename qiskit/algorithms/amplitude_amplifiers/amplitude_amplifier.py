@@ -13,7 +13,7 @@
 """The interface for amplification algorithms and results."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union, Dict
+from typing import Optional, Any, Union, Dict, List
 
 import numpy as np
 
@@ -104,12 +104,12 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         self._oracle_evaluation = value
 
     @property
-    def circuit_results(self) -> Optional[Union[np.ndarray, Dict[str, int]]]:
+    def circuit_results(self) -> Optional[Union[List[np.ndarray], List[Dict[str, int]]]]:
         """Return the circuit results. Can be a statevector or counts dictionary."""
         return self._circuit_results
 
     @circuit_results.setter
-    def circuit_results(self, value: Union[np.ndarray, Dict[str, int]]) -> None:
+    def circuit_results(self, value: Union[List[np.ndarray], List[Dict[str, int]]]) -> None:
         """Set the circuit results."""
         self._circuit_results = value
 
