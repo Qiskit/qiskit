@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Test Qiskit's inverse gate operation."""
 
 import unittest
@@ -21,7 +19,7 @@ from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
-from qiskit.extensions.simulator import snapshot
+from qiskit.extensions.simulator import Snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -327,7 +325,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.snapshot('snap')
+        circ.append(Snapshot('snap', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -339,11 +337,11 @@ class TestCircuitProperties(QiskitTestCase):
         c = ClassicalRegister(4, 'c')
         circ = QuantumCircuit(q, c)
         circ.h(0)
-        circ.snapshot('snap0')
+        circ.append(Snapshot('snap0', num_qubits=4), [0, 1, 2, 3])
         circ.cx(0, 1)
-        circ.snapshot('snap1')
+        circ.append(Snapshot('snap1', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
-        circ.snapshot('snap2')
+        circ.append(Snapshot('snap2', num_qubits=4), [0, 1, 2, 3])
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
@@ -355,8 +353,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.snapshot('snap0')
-        circ.snapshot('snap1')
+        circ.append(Snapshot('snap0', num_qubits=4), [0, 1, 2, 3])
+        circ.append(Snapshot('snap1', num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -405,7 +403,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.size(), 2)
         qc.barrier(q)
         self.assertEqual(qc.size(), 2)
-        qc.snapshot('snapshot_label')
+        qc.append(Snapshot('snapshot_label', num_qubits=4), [0, 1, 2, 3])
         self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):

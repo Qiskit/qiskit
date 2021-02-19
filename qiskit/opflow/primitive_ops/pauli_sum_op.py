@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliSumOp Class """
+"""PauliSumOp Class """
 
-import logging
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
@@ -20,6 +20,7 @@ from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp
+
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from ..exceptions import OpflowError
@@ -27,8 +28,6 @@ from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class PauliSumOp(PrimitiveOp):
@@ -38,11 +37,13 @@ class PauliSumOp(PrimitiveOp):
             self,
             primitive: SparsePauliOp,
             coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+            grouping_type: str = "None",
     ) -> None:
         """
         Args:
             primitive: The SparsePauliOp which defines the behavior of the underlying function.
             coeff: A coefficient multiplying the primitive.
+            grouping_type: The type of grouping. If None, the operator is not grouped.
 
         Raises:
             TypeError: invalid parameters.
@@ -53,9 +54,17 @@ class PauliSumOp(PrimitiveOp):
             )
 
         super().__init__(primitive, coeff=coeff)
+        self._grouping_type = grouping_type
 
     def primitive_strings(self) -> Set[str]:
         return {"SparsePauliOp"}
+
+    @property
+    def grouping_type(self) -> str:
+        """
+        Returns: Type of Grouping
+        """
+        return self._grouping_type
 
     @property
     def num_qubits(self) -> int:
@@ -124,11 +133,12 @@ class PauliSumOp(PrimitiveOp):
 
     def adjoint(self) -> OperatorBase:
         return PauliSumOp(
-            self.primitive.conjugate(), coeff=self.coeff.conjugate()  # type:ignore
+            self.primitive.adjoint(), coeff=self.coeff.conjugate()
         )
 
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
@@ -202,7 +212,7 @@ class PauliSumOp(PrimitiveOp):
             return other.compose(new_self)
         # If self is identity, just return other.
         if not np.any(new_self.primitive.table.array):  # type: ignore
-            return other * new_self.coeff * sum(new_self.coeffs)  # type: ignore
+            return other * new_self.coeff * sum(new_self.primitive.coeffs)  # type: ignore
 
         # Both PauliSumOps
         if isinstance(other, PauliSumOp):
@@ -210,7 +220,14 @@ class PauliSumOp(PrimitiveOp):
                 new_self.primitive * other.primitive,  # type:ignore
                 coeff=new_self.coeff * other.coeff,
             )
-        # TODO: implement compose with PauliOp
+        # pylint: disable=import-outside-toplevel
+        from .pauli_op import PauliOp
+        if isinstance(other, PauliOp):
+            other_primitive = SparsePauliOp(other.primitive)
+            return PauliSumOp(
+                new_self.primitive * other_primitive,  # type:ignore
+                coeff=new_self.coeff * other.coeff,
+            )
 
         # pylint: disable=cyclic-import,import-outside-toplevel
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -282,36 +299,32 @@ class PauliSumOp(PrimitiveOp):
                 )
 
             if isinstance(front, DictStateFn):
-
-                new_dict = {}  # type: Dict
-                corrected_x_bits = self.primitive.table.X[::-1]  # type: ignore
-                corrected_z_bits = self.primitive.table.Z[::-1]  # type: ignore
-                coeffs = self.primitive.coeffs  # type:ignore
-
+                new_dict = defaultdict(int)
+                corrected_x_bits = self.primitive.table.X[::, ::-1]
+                corrected_z_bits = self.primitive.table.Z[::, ::-1]
+                coeffs = self.primitive.coeffs
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
-                    new_str = ["".join(map(str, 1 * bs)) for bs in new_b_str]
+                    new_str = ["".join([str(b) for b in bs]) for bs in new_b_str.astype(int)]
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits), axis=1)
                     y_factor = np.product(
                         np.sqrt(1 - 2 * np.logical_and(corrected_x_bits, corrected_z_bits) + 0j),
                         axis=1,
                     )
                     for i, n_str in enumerate(new_str):
-                        new_dict[n_str] = (
-                            v * z_factor[i] * y_factor[i] * coeffs[i]
-                        ) + new_dict.get(n_str, 0)
-                    return DictStateFn(new_dict, coeff=self.coeff * front.coeff)
+                        new_dict[n_str] += v * z_factor[i] * y_factor[i] * coeffs[i]
+                return DictStateFn(new_dict, coeff=self.coeff * front.coeff)
 
             elif isinstance(front, StateFn) and front.is_measurement:
                 raise ValueError("Operator composed with a measurement is undefined.")
 
             # Composable types with PauliOp
             elif isinstance(front, (PauliSumOp, PauliOp, CircuitOp, CircuitStateFn)):
-                return self.compose(front).eval()  # type: ignore
+                return self.compose(front).eval()
 
         # Covers VectorStateFn and OperatorStateFn
-        return self.to_matrix_op().eval(front.to_matrix_op())  # type: ignore
+        return self.to_matrix_op().eval(front.to_matrix_op())
 
     def exp_i(self) -> OperatorBase:
         """ Return a ``CircuitOp`` equivalent to e^-iH for this operator H. """
@@ -326,24 +339,23 @@ class PauliSumOp(PrimitiveOp):
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         from .pauli_op import PauliOp
 
-        def to_real(x):
-            return x.real if np.isreal(x) else x
-
         def to_native(x):
             return x.item() if isinstance(x, np.generic) else x
 
         if len(self.primitive) == 1:
             return PauliOp(
                 Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),  # type: ignore
-                to_native(to_real(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
+                to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,  # type: ignore
             )
+        tables = self.primitive.table
+        coeffs = np.real_if_close(self.primitive.coeffs)
         return SummedOp(
             [
                 PauliOp(
-                    Pauli((s.table.Z[0], s.table.X[0])),
-                    to_native(to_real(s.coeffs[0])),
+                    Pauli((t.Z[0], t.X[0])),
+                    to_native(c),
                 )
-                for s in self.primitive
+                for t, c in zip(tables, coeffs)
             ],
             coeff=self.coeff,
         )
@@ -410,3 +422,11 @@ class PauliSumOp(PrimitiveOp):
             The PauliSumOp constructed from the pauli_list.
         """
         return cls(SparsePauliOp.from_list(pauli_list), coeff=coeff)
+
+    def is_zero(self) -> bool:
+        """
+        Return this operator is zero operator or not.
+        """
+        op = self.reduce()
+        primitive: SparsePauliOp = op.primitive
+        return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0

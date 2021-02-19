@@ -12,7 +12,6 @@
 
 """ DerivativeBase Class """
 
-import logging
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
 from typing import Callable, Iterable, List, Optional, Tuple, Union
@@ -30,8 +29,6 @@ from ..primitive_ops.primitive_op import PrimitiveOp
 from ..state_fns import StateFn, OperatorStateFn
 
 OperatorType = Union[StateFn, PrimitiveOp, ListOp]
-
-logger = logging.getLogger(__name__)
 
 
 class DerivativeBase(ConverterBase):
@@ -100,15 +97,16 @@ class DerivativeBase(ConverterBase):
         if not grad_params:
             grad_params = bind_params
 
+        grad = self.convert(operator, grad_params)
+
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))
             if not backend:
-                converter = self.convert(operator, grad_params).assign_parameters(p_values_dict)
+                converter = grad.assign_parameters(p_values_dict)
                 return np.real(converter.eval())
             else:
                 p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = CircuitSampler(backend=backend).convert(
-                    self.convert(operator, grad_params), p_values_dict)
+                converter = CircuitSampler(backend=backend).convert(grad, p_values_dict)
                 return np.real(converter.eval()[0])
 
         return gradient_fn

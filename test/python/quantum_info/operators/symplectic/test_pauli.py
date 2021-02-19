@@ -17,7 +17,6 @@
 import unittest
 import itertools as it
 from functools import lru_cache
-import logging
 
 import numpy as np
 from ddt import ddt, data, unpack
@@ -33,8 +32,6 @@ from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator, Clifford
 from qiskit.quantum_info.operators.symplectic.pauli import (
     _split_pauli_label, _phase_from_label)
-
-logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=8)
@@ -307,18 +304,6 @@ class TestPauli(QiskitTestCase):
         iden = Pauli('II')
         op = Pauli(label)
         self.assertTrue(op ** 2, iden)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        op = Pauli('YXZ')
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, op.power, 0.5)
-
-    def test_add_except(self):
-        """Test add method raises exceptions."""
-        P1 = Pauli('X')
-        P2 = Pauli('Z')
-        self.assertRaises(NotImplementedError, P1._add, P2)
 
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):

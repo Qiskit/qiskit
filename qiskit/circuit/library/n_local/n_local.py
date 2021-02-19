@@ -12,7 +12,6 @@
 
 """The n-local circuit class."""
 
-import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
@@ -23,8 +22,6 @@ from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExp
 from qiskit.circuit.parametertable import ParameterTable
 
 from ..blueprintcircuit import BlueprintCircuit
-
-logger = logging.getLogger(__name__)
 
 
 class NLocal(BlueprintCircuit):
@@ -87,7 +84,7 @@ class NLocal(BlueprintCircuit):
             rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
                 these will be applied one after another (like new sub-layers).
             entanglement_blocks: The blocks used in the entanglement layers. If multiple are passed,
-                these will be applied one after another. To use different enganglements for
+                these will be applied one after another. To use different entanglements for
                 the sub-layers, see :meth:`get_entangler_map`.
             entanglement: The indices specifying on which qubits the input blocks act. If None, the
                 entanglement blocks are applied at the top of the circuit.
@@ -515,7 +512,7 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint:disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
                           ) -> List[List[int]]:
         """Get the entangler map for in the repetition ``rep_num`` and the block ``block_num``.
@@ -718,7 +715,7 @@ class NLocal(BlueprintCircuit):
         # modify the circuit accordingly
         if self._data and front is False:
             if self._insert_barriers and len(self._data) > 0:
-                self.barrier()  # pylint: disable=no-member
+                self.barrier()
 
             if isinstance(entanglement, str):
                 entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
@@ -728,8 +725,8 @@ class NLocal(BlueprintCircuit):
             layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)):]
-                parametrized_block = self._parametrize_block(block, params=params)
-                layer.compose(parametrized_block, i)
+                parameterized_block = self._parameterize_block(block, params=params)
+                layer.compose(parameterized_block, i)
 
             self += layer
         else:
@@ -780,8 +777,8 @@ class NLocal(BlueprintCircuit):
 
         return super().assign_parameters(param_dict, inplace=inplace)
 
-    def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
-                           params=None):
+    def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None,
+                            indices=None, params=None):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
@@ -822,8 +819,8 @@ class NLocal(BlueprintCircuit):
 
             # apply the operations in the layer
             for indices in block_indices:
-                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.compose(parametrized_block, indices, inplace=True)
+                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
             self += layer
@@ -838,8 +835,8 @@ class NLocal(BlueprintCircuit):
 
             # apply the operations in the layer
             for indices in entangler_map:
-                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.compose(parametrized_block, indices, inplace=True)
+                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
             self += layer
@@ -854,10 +851,10 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for i, (block, ent) in enumerate(zip(blocks, entanglements)):
+        for (block, ent) in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
@@ -905,7 +902,7 @@ class NLocal(BlueprintCircuit):
         if not self._skip_final_rotation_layer:
             if self.insert_barriers:
                 self.barrier()
-            self._build_rotation_layer(param_iter, i)
+            self._build_rotation_layer(param_iter, self.reps)
 
         # add the appended layers
         self._build_additional_layers('appended')
@@ -965,13 +962,19 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         raise ValueError('The number of block qubits must be smaller or equal to the number of '
                          'qubits in the circuit.')
 
+    if entanglement == 'pairwise' and num_block_qubits != 2:
+        raise ValueError('Pairwise entanglement is only defined for blocks of 2 qubits.')
+
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
-    if entanglement in ['linear', 'circular', 'sca']:
+    if entanglement in ['linear', 'circular', 'sca', 'pairwise']:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == 'linear' or m == 1:
             return linear
+
+        if entanglement == 'pairwise':
+            return linear[::2] + linear[1::2]
 
         # circular equals linear plus top-bottom entanglement
         circular = [tuple(range(n - m + 1, n)) + (0,)] + linear

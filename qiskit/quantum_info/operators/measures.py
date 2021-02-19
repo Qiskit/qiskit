@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions for operators.
 """
@@ -404,7 +403,7 @@ def _tp_condition(channel):
         if not isinstance(channel, Choi):
             channel = Choi(channel)
         choi = channel.data
-        dims = tuple(np.sqrt(choi.shape).astype(np.int))
+        dims = tuple(np.sqrt(choi.shape).astype(int))
         shape = dims + dims
         tr_choi = np.trace(np.reshape(choi, shape), axis1=1, axis2=3)
     else:

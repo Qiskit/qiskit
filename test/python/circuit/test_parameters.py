@@ -28,7 +28,7 @@ from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
-from qiskit.execute import execute
+from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -300,6 +300,7 @@ class TestParameters(QiskitTestCase):
         """Verify binding parameters which are not present in the circuit raises an error."""
         x = Parameter('x')
         y = Parameter('y')
+        z = ParameterVector('z', 3)
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
 
@@ -309,9 +310,12 @@ class TestParameters(QiskitTestCase):
             with self.subTest(assign_fun=assign_fun):
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
-
                 qc.p(x, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1, y: 2})
+                qc.p(z[1], qr[0])
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {z: [3, 4, 5]})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {'a_str': 6})
+                self.assertRaises(CircuitError, getattr(qc, assign_fun), {None: 7})
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
@@ -587,7 +591,6 @@ class TestParameters(QiskitTestCase):
     def test_parameter_equality_through_serialization(self):
         """Verify parameters maintain their equality after serialization."""
 
-        # pylint: disable=invalid-name
         x = Parameter('x')
         x1 = Parameter('x')
 
@@ -952,11 +955,35 @@ class TestParameters(QiskitTestCase):
         qc_aer = transpile(qc, backend)
         self.assertIn(phi, qc_aer.parameters)
 
+    def test_parametervector_resize(self):
+        """Test the resize method of the parameter vector."""
+
+        vec = ParameterVector('x', 2)
+        element = vec[1]  # store an entry for instancecheck later on
+
+        with self.subTest('shorten'):
+            vec.resize(1)
+            self.assertEqual(len(vec), 1)
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 1))
+
+        with self.subTest('enlargen'):
+            vec.resize(3)
+            self.assertEqual(len(vec), 3)
+            # ensure we still have the same instance not a copy with the same name
+            # this is crucial for adding parameters to circuits since we cannot use the same
+            # name if the instance is not the same
+            self.assertIs(element, vec[1])
+            self.assertListEqual([param.name for param in vec], _paramvec_names('x', 3))
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
     qc.ry(param, qr[0])
     return qc
+
+
+def _paramvec_names(prefix, length):
+    return [f'{prefix}[{i}]' for i in range(length)]
 
 
 @ddt
@@ -1518,6 +1545,14 @@ class TestParameterEquality(QiskitTestCase):
         """Verify an expression is equal an identical expression."""
         theta = Parameter('theta')
         expr1 = 2 * theta
+        expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
+    def test_parameter_expression_equal_floats_to_ints(self):
+        """Verify an expression with float and int is identical."""
+        theta = Parameter('theta')
+        expr1 = 2.0 * theta
         expr2 = 2 * theta
 
         self.assertEqual(expr1, expr2)

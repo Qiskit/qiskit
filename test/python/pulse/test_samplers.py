@@ -41,7 +41,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         left_linear_pulse_fun = samplers.left(linear)
-        reference = np.array([0.1, 0.2], dtype=np.complex)
+        reference = np.array([0.1, 0.2], dtype=complex)
 
         pulse = left_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -53,7 +53,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         right_linear_pulse_fun = samplers.right(linear)
-        reference = np.array([0.2, 0.3], dtype=np.complex)
+        reference = np.array([0.2, 0.3], dtype=complex)
 
         pulse = right_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -65,7 +65,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         midpoint_linear_pulse_fun = samplers.midpoint(linear)
-        reference = np.array([0.15, 0.25], dtype=np.complex)
+        reference = np.array([0.15, 0.25], dtype=complex)
 
         pulse = midpoint_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -87,7 +87,7 @@ class TestSampler(QiskitTestCase):
         m = 0.1
         duration = 2
         left_linear_pulse_fun = samplers.left(linear)
-        reference = np.array([0.1, 0.2], dtype=np.complex)
+        reference = np.array([0.1, 0.2], dtype=complex)
 
         pulse = left_linear_pulse_fun(duration, m=m)
         self.assertIsInstance(pulse, library.Waveform)
