@@ -84,7 +84,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                                       identity_matrix):
                     dag.remove_op_node(run[0])
                     continue
-                if (isinstance(run[0].op, U3Gate) and not isinstance(params[0], ParameterExpression)
+                if (isinstance(run[0].op, U3Gate)# and not isinstance(params[0], ParameterExpression)
                         and (np.isclose(params[0], [0, np.pi/2], atol=1e-12, rtol=1e-12).any())):
                     single_u3 = True
                 else:
