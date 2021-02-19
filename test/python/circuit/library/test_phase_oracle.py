@@ -47,17 +47,20 @@ class TestPhaseOracle(QiskitTestCase):
         circuit = QuantumCircuit(num_qubits)
         circuit.h(range(num_qubits))
         circuit.compose(oracle, inplace=True)
-
         statevector = Statevector.from_instruction(circuit)
+
         valid_state = -1 / sqrt(2 ** num_qubits)
         invalid_state = 1 / sqrt(2 ** num_qubits)
-        for state in range(2 ** num_qubits):
-            if state in good_states:
-                self.assertAlmostEqual(statevector.data[state], valid_state,
-                                       msg='State %s should be valid' % state)
-            else:
-                self.assertAlmostEqual(statevector.data[state], invalid_state,
-                                       msg='State %s should be invalid' % state)
+
+        states = list(range(2 ** num_qubits))
+        expected_valid = [state in good_states for state in states]
+        result_valid = [isclose(statevector.data[state], valid_state) for state in states]
+
+        expected_invalid = [state not in good_states for state in states]
+        result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
+
+        self.assertListEqual(expected_valid, result_valid)
+        self.assertListEqual(expected_invalid, result_invalid)
 
 
 if __name__ == '__main__':

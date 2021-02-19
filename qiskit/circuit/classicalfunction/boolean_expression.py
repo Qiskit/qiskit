@@ -87,11 +87,12 @@ class BooleanExpression(Gate):
     def __init__(self, expression: str, name: str = None) -> None:
         """
         Args:
-            expression: The logical expression string.
+            expression (str): The logical expression string.
+            name (str): Optional. Instruction gate name. Otherwise part of
+                        the expression is going to be used.
+        Raise:
+            ImportError: If tweedledum is not installed. Tweedledum is required.
         """
-
-        if not isinstance(expression, str):
-            raise QiskitError('BooleanExpression needs a Python expression as a string.')
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
                               "must be installed. To install tweedledum run "
