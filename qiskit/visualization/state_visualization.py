@@ -165,7 +165,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
             or [<r>, <theta>, <phi>] (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
@@ -174,7 +174,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
-            (cartesian or spherical), default is cartesian
+            (Cartesian or spherical), default is Cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -654,7 +654,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             radians or degrees for the phase values in the plot.
 
     Returns:
-        Figure: A matplotlib figure instance if the ``ax`` kwag is not set
+        Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         ImportError: Requires matplotlib.

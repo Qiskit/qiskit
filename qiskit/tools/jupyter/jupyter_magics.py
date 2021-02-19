@@ -41,7 +41,7 @@ def _html_checker(job_var, interval, status, header,
     Args:
         job_var (BaseJob): The job to keep track of.
         interval (int): The status check interval
-        status (widget): HTML ipywidget for output ot screen
+        status (widget): HTML ipywidget for output to screen
         header (str): String representing HTML code for status.
         _interval_set (bool): Was interval set by user?
     """

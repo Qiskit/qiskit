@@ -467,7 +467,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         sort_inds = index.argsort()
         index = index[sort_inds]
         unique = self[index]
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique, )
         if return_index:
             ret += (index, )
@@ -645,7 +645,7 @@ class PauliTable(BaseOperator, AdjointMixin):
                                   (Default: None)
 
         Returns:
-            PauliTable: the concatinated table self + other.
+            PauliTable: the concatenated table self + other.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
@@ -742,7 +742,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Args:
             other (PauliTable): a PauliTable.
             anti (bool): if True return rows that anti-commute, otherwise
-                         return rows taht commute (Default: False).
+                         return rows that commute (Default: False).
 
         Returns:
             array: index array of commuting or anti-commuting row.
@@ -779,7 +779,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         tmp = PauliTable(pauli_table.array ^ pauli.array)
         tmp.X = (tmp.X & non_iden)
         tmp.Z = (tmp.Z & non_iden)
-        # Find total number of non I pauli's remaining in table
+        # Find total number of non I Pauli's remaining in table
         # if there are an even number the row commutes with the
         # input Pauli, otherwise it anti-commutes
         return np.logical_not(np.sum((tmp.X | tmp.Z), axis=1) % 2)

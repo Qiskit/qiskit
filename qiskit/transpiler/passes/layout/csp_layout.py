@@ -115,7 +115,7 @@ class CSPLayout(AnalysisPass):
 
         problem = Problem(solver)
         problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
-        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
+        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
 
         if self.strict_direction:
             def constraint(control, target):

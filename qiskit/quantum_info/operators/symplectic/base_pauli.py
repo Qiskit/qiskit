@@ -299,7 +299,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if base_z.shape != base_x.shape:
             raise QiskitError("z and x vectors are different size.")
 
-        # Convert group phase convention to internal ZX-phase convertion.
+        # Convert group phase convention to internal ZX-phase conversion.
         base_phase = np.mod(np.sum(np.logical_and(base_x, base_z),
                                    axis=1, dtype=int) + phase, 4)
         return base_z, base_x, base_phase
@@ -452,7 +452,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             'swap': _evolve_swap
         }
 
-        # Non-clifford gates
+        # Non-Clifford gates
         non_clifford = ['t', 'tdg', 'ccx', 'ccz']
 
         if isinstance(gate, str):
