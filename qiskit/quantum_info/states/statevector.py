@@ -20,11 +20,6 @@ from numbers import Number
 
 import numpy as np
 
-try:
-    from IPython.display import display
-except ImportError:
-    pass
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError

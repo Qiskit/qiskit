@@ -1365,6 +1365,7 @@ class QuantumCircuit:
                 qc.measure(q, c)
                 qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
+
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 

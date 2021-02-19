@@ -26,6 +26,7 @@ import numpy as np
 
 try:
     from pylatexenc.latex2text import LatexNodes2Text
+
     HAS_PYLATEX = True
 except ImportError:
     HAS_PYLATEX = False
