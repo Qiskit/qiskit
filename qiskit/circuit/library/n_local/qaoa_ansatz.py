@@ -110,7 +110,7 @@ class QAOAAnsatz(BlueprintCircuit):
         # calculate bounds, num_parameters, mixer
         self._calculate_parameters()
 
-        # parametrize circuit and build it
+        # parameterize circuit and build it
         param_vector = ParameterVector("θ", self._num_parameters)
         circuit = self._construct_circuit(param_vector)
 
@@ -162,7 +162,7 @@ class QAOAAnsatz(BlueprintCircuit):
             self._bounds = [(None, None)] * self._reps + [(0, 2 * np.pi)] * self._reps
 
     def _construct_circuit(self, parameters) -> QuantumCircuit:
-        """Construct a parametrized circuit."""
+        """Construct a parameterized circuit."""
         if not len(parameters) == self._num_parameters:
             raise ValueError('Incorrect number of angles: expecting {}, but {} given.'.format(
                 self._num_parameters, len(parameters)
