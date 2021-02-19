@@ -665,6 +665,5 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
 
-
 if __name__ == '__main__':
     unittest.main()
