@@ -112,6 +112,12 @@ class ClassicalFunction(gate.Gate):
         return simulate(self._network, bitstring)
 
     def simulate_all(self):
+        """
+        Returns a truth table.
+
+        Returns:
+            str: a bitstring with a truth table
+        """
         from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
 
         _truth_table = simulate(self._network)

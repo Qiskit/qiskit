@@ -32,6 +32,7 @@ class TestPhaseOracle(QiskitTestCase):
           ('xx & xxx | ( ~z ^ zz)', '0111', True))
     @unpack
     def test_evaluate_bitstring(self, expression, input_bitstring, expected):
+        """PhaseOracle(...).evaluate_bitstring"""
         oracle = PhaseOracle(expression)
         result = oracle.evaluate_bitstring(input_bitstring)
         self.assertEqual(result, expected)
@@ -42,6 +43,7 @@ class TestPhaseOracle(QiskitTestCase):
           ('x & y ^ ( ~z1 | z2)', [0, 1, 2, 7, 8, 9, 10, 12, 13, 14]))
     @unpack
     def test_statevector(self, expression, good_states):
+        """Circuit generation"""
         oracle = PhaseOracle(expression)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)

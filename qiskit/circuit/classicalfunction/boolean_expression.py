@@ -15,7 +15,6 @@
 from os.path import basename
 
 from qiskit.circuit import Gate
-from qiskit.exceptions import QiskitError
 from .classicalfunction import HAS_TWEEDLEDUM
 
 
@@ -161,7 +160,10 @@ class BooleanExpression(Gate):
             filename (str): A file in DIMACS format.
 
         Returns:
-            A quantum circuit (BooleanExpression) for the input string
+            BooleanExpression: A quantum circuit for the input string
+
+        Raises:
+            ImportError: If tweedledum is not installed. Tweedledum is required.
         """
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
