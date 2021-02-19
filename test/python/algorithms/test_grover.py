@@ -191,6 +191,24 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
         self.assertTrue(Operator(constructed).equiv(Operator(expected)))
 
+    def test_circuit_result(self):
+        """Test circuit_result"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=['11'])
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertEqual(result.circuit_results, {'11': 1024})
+
+    def test_max_probability(self):
+        """Test max_probability"""
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=['11'])
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertEqual(result.max_probability, 1.0)
+
 
 if __name__ == '__main__':
     unittest.main()
