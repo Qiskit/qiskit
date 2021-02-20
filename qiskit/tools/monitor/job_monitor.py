@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 
-"""A module for monitoring various qiskit functionality"""
+"""A module for monitoring various qiskit functionality
+
+"""
 
 import sys
 import time
