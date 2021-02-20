@@ -41,7 +41,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
@@ -175,11 +174,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
-                        'u3' in basis_gates):
-        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
-    else:
-        _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
