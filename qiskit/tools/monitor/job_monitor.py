@@ -17,7 +17,8 @@ import sys
 import time
 
 
-def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout, line_discipline='\r'):
+def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout, 
+                  line_discipline='\r'):
     """A text-based job status checker
 
     Args:
