@@ -64,7 +64,7 @@ class ExpectationFactory:
         """
         backend_to_check = backend.backend if isinstance(backend, QuantumInstance) else backend
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         primitives = operator.primitive_strings()
         if primitives in ({'Pauli'}, {'SparsePauliOp'}):
 
