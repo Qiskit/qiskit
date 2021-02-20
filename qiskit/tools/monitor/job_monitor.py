@@ -27,7 +27,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
-        line_discipline (string): character emitted at start of a line of job monitor output, 
+        line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to '\r'.
 
     """
@@ -75,7 +75,7 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
-        line_discipline (string): character emitted at start of a line of job monitor output, 
+        line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to '\r'.
 
     """
