@@ -67,13 +67,8 @@ class ScheduleBase(abc.ABC):
     # Prefix to use for auto naming.
     prefix = 'base'
 
-    def __new__(cls, *args, **kwargs):
-        """Initialize instance counter."""
-        # counter is singleton
-        if not hasattr(cls, 'instances_counter'):
-            cls.instances_counter = itertools.count()
-
-        return super().__new__(cls)
+    # Counter to count instance number.
+    instances_counter = None
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -507,10 +502,6 @@ class ScheduleBase(abc.ABC):
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> 'ScheduleBase':
-        """Return a new schedule which is the union of `self` and `other`."""
-        return self.insert(0, other)
-
     def __lshift__(self, time: int) -> 'ScheduleBase':
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
@@ -519,9 +510,60 @@ class ScheduleBase(abc.ABC):
 class Schedule(ScheduleBase):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
+
+    In Qiskit Pulse model, time overlap of pulse instructions is not allowed.
+    This program representation evaluates this overlap constant immediately when new
+    instruction is inserted. This means user always need to specify the duration of
+    instruction and time ``t0`` when it is issued. The ``Schedule`` performs strict allocation of
+    instructions on the time slot of assigned channel.
+
+    The ``Schedule`` program supports some syntax sugar for efficient programming.
+
+    - Appending instruction at the end of channel
+
+    .. code-block:: python
+
+        sched = Schedule()
+        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+
+    - Appending instruction with time shift
+
+    .. code-block:: python
+
+        sched = Schedule()
+        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
+
+    - Merging two schedule
+
+    .. code-block:: python
+
+        sched1 = Schedule()
+        sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+
+        sched2 = Schedule()
+        sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
+        sched2 = sched1 | sched2
+
+    The ``PulseError` is immediately raised when instruction overlap is detected.
+    In this program representation, user can assign :py:class:`~qiskit.circuit.Parameter` object
+    to any parameter except for duration and ``t0``.
+
+    References:
+        [1] https://arxiv.org/abs/2004.06755
+
     """
     # Prefix to use for auto naming.
     prefix = 'sched'
+
+    def __new__(cls,
+                *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+                name: Optional[str] = None,
+                metadata: Optional[dict] = None):
+        """Initialize instance counter."""
+        if not cls.instances_counter:
+            cls.instances_counter = itertools.count()
+
+        return super().__new__(cls)
 
     def __init__(self,
                  *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
@@ -1075,6 +1117,10 @@ class Schedule(ScheduleBase):
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
 
+    def __or__(self, other: ScheduleComponent) -> 'ScheduleBase':
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.insert(0, other)
+
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two Schedule are equal.
 
@@ -1125,35 +1171,75 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 
 class ScheduleBlock(ScheduleBase):
-    """A quantum program *schedule block* with alignment policy constraints for its instructions,
-    operating over all input signal *channels* and supporting special syntaxes for building.
+    """A quantum program *schedule block* with alignment policy that allows lazy scheduling
+    of underlying instructions. This representation is best used with the pulse builder.
+
+    This program representation doesn't have explicit notion of time slots in contrast to the
+    ``Schedule`` representation. This allows lazy scheduling of instruction, allowing
+    parametrization of duration of instructions as well.
+    The overlap constraint is not immediately evaluated.
+
+    In the block representation, allocation of instructions is determined by
+    relative timing with delay and predefined context transformation policies.
+    Since ``ScheduleBlock`` holds this transformation preference rather than
+    instruction time ``t0``, this is more context-rich representation of a pulse program.
+
+    - ``align_left`` ... Align in the `as-soon-as-possible` manner.
+
+    - ``align_right`` ... Align in the `as-late-as-possible` manner.
+
+    - ``align_sequential`` ... Align sequentially even though on different channels.
+
+    - ``align_equispaced`` ... Align with equal separation within a specified duration.
+
+    - ``align_func`` ... Align with arbitrary separation specified by a callback function.
+
+    Note that instructions are order sensitive. User cannot reverse or interchange the
+    position of instructions once they are stored in the program.
+
+    This program supports the same syntax sugar as the ``Schedule`` representation.
+    However, method such as :py:meth:`~Schedule.insert` is not supported because
+    this representation cannot define the absolute time when an instruction is issued.
     """
     # Prefix to use for auto naming.
     prefix = 'block'
 
+    def __new__(cls,
+                *blocks: BlockComponent,
+                name: Optional[str] = None,
+                metadata: Optional[dict] = None,
+                transform: str = AlignmentKind.Left.value,
+                **transform_opts):
+        """Initialize instance counter."""
+        if not cls.instances_counter:
+            cls.instances_counter = itertools.count()
+
+        return super().__new__(cls)
+
     def __init__(self,
-                 transformation_policy: str = AlignmentKind.Left.value,
-                 blocks: Optional[List[BlockComponent]] = None,
+                 *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 **transform_kwargs):
+                 transform: str = AlignmentKind.Left.value,
+                 **transform_opts):
         """Create an empty schedule block.
 
         Args:
-            transformation_policy: Enum option that represents alignment of this context.
+            blocks: Child instruction or block of this parent ``ScheduleBlock``.
             name: Name of this schedule. Defaults to an autogenerated string if not provided.
             metadata: Arbitrary key value metadata to associate with the schedule. This gets
                 stored as free-form data in a dict in the
-                :attr:`~qiskit.pulse.Schedule.metadata` attribute. It will not be directly
+                :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            **transform_kwargs: Options used to align this context if available.
+            transform: String that represents alignment of this context.
+            **transform_opts: Options used to align this context if available.
         Raises:
             TypeError: if metadata is not a dict.
         """
         super().__init__(name=name, metadata=metadata)
 
-        self._transform_policy = transformation_policy
-        self._transform_opts = transform_kwargs
+        self._transform_policy = transform
+        self._transform_opts = transform_opts
 
         self._blocks = list()
         if blocks:
@@ -1162,12 +1248,12 @@ class ScheduleBlock(ScheduleBase):
             map(functools.partial(self.append, inplace=True), blocks)
 
     @property
-    def transformation_policy(self) -> str:
+    def transform(self) -> str:
         """Return callback function that align block component to generate schedule."""
         return self._transform_policy
 
     @property
-    def transformation_options(self) -> Dict[str, Any]:
+    def transform_opts(self) -> Dict[str, Any]:
         """Return keyword arguments that is used for transformation."""
         return self._transform_opts
 
@@ -1254,6 +1340,8 @@ class ScheduleBlock(ScheduleBase):
         insert correct time shift, this method always generates new block with left alignment
         transformation wherein delays and the existing block are included.
 
+        .. note:: This method doesn't support ``inline=True``.
+
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
@@ -1264,9 +1352,8 @@ class ScheduleBlock(ScheduleBase):
             raise PulseError('Inline time shift is not supported. '
                              'Always new schedule is returned.')
 
-        shifted_block = ScheduleBlock(transformation_policy=AlignmentKind.Left,
-                                      name=name,
-                                      metadata=self.metadata)
+        shifted_block = ScheduleBlock(name=name, metadata=self.metadata,
+                                      transform=AlignmentKind.Left)
         for chan in self.channels:
             shifted_block.append(Delay(time, chan), inplace=True)
         shifted_block.append(RelativeBarrier(*self.channels), inplace=True)
@@ -1314,11 +1401,11 @@ class ScheduleBlock(ScheduleBase):
 
         if not inplace:
             new_block = ScheduleBlock(
-                transformation_policy=self.transformation_policy,
                 blocks=list(self.instructions),
                 name=name or self.name,
                 metadata=self.metadata.copy(),
-                **self.transformation_options
+                transform=self.transform,
+                **self.transform_opts
             )
             new_block.append(schedule, inplace=True)
 
@@ -1424,11 +1511,11 @@ class ScheduleBlock(ScheduleBase):
             map(self._update_parameter_table, new_blocks)
             return self
         else:
-            return ScheduleBlock(transformation_policy=self.transformation_policy,
-                                 blocks=new_blocks,
+            return ScheduleBlock(*new_blocks,
                                  name=self.name,
                                  metadata=self.metadata.copy(),
-                                 **self.transformation_options)
+                                 transform=self.transform,
+                                 **self.transform_opts)
 
     def _update_parameter_table(self, schedule: BlockComponent):
         """A helper function to update parameter table with given schedule component.
@@ -1440,9 +1527,14 @@ class ScheduleBlock(ScheduleBase):
             for param in schedule.parameters:
                 self._parameter_table[param].append(schedule)
 
-    def __len__(self):
-        """Return size of this block."""
-        return len(self._blocks)
+    def __or__(self, other: ScheduleComponent) -> 'ScheduleBlock':
+        """Return a new schedule which is the union of `self` and `other`."""
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata,
+                                    transform=AlignmentKind.Left)
+        union_block.append(self, inplace=True)
+        union_block.append(other, inplace=True)
+
+        return union_block
 
     def __eq__(self, other: 'ScheduleBlock'):
         """Test if two ScheduleBlocks are equal.
@@ -1466,8 +1558,8 @@ class ScheduleBlock(ScheduleBase):
             return False
 
         # 1. transformation check
-        if self.transformation_policy != other.transformation_policy or \
-                self.transformation_options != other.transformation_options:
+        if self.transform != other.transform or \
+                self.transform_opts != other.transform_opts:
             return False
 
         # 2. channel check

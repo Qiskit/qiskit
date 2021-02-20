@@ -596,9 +596,9 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
         AlignmentKind.Equispaced.value: align_equispaced,
         AlignmentKind.Func.value: align_func
     }
-    if block.transformation_policy not in transform_map:
+    if block.transform not in transform_map:
         raise PulseError('Specified transform policy {} is not defined. Define one of {}.'
-                         ''.format(block.transformation_policy, ', '.join(transform_map.keys())))
+                         ''.format(block.transform, ', '.join(transform_map.keys())))
 
-    transform_func = transform_map.get(block.transformation_policy)
-    return transform_func(schedule, **block.transformation_options)
+    transform_func = transform_map.get(block.transform)
+    return transform_func(schedule, **block.transform_opts)
