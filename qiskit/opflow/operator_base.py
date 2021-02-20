@@ -521,7 +521,7 @@ class OperatorBase(ABC):
             other = other.permute(permutation)
         new_self = self
         if not self.num_qubits == other.num_qubits:
-            # pylint: disable=cyclic-import,import-outside-toplevel
+            # pylint: disable=cyclic-import
             from .operator_globals import Zero
             if other == Zero:
                 # Zero is special - we'll expand it to the correct qubit number.

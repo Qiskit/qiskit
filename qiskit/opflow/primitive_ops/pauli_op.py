@@ -102,7 +102,7 @@ class PauliOp(PrimitiveOp):
             op_copy = Pauli((other.primitive.z, other.primitive.x))  # type: ignore
             return PauliOp(self.primitive.tensor(op_copy), coeff=self.coeff * other.coeff)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .circuit_op import CircuitOp
         if isinstance(other, CircuitOp):
             return self.to_circuit_op().tensor(other)
@@ -156,7 +156,7 @@ class PauliOp(PrimitiveOp):
                 coeff=new_self.coeff * other.coeff,
             )
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
         if isinstance(other, (CircuitOp, CircuitStateFn)):
@@ -192,7 +192,7 @@ class PauliOp(PrimitiveOp):
         if front is None:
             return self.to_matrix_op()
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
         from ..state_fns.dict_state_fn import DictStateFn
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -257,7 +257,6 @@ class PauliOp(PrimitiveOp):
         # if only one qubit is significant, we can perform the evolution
         corrected_x = self.primitive.x[::-1]  # type: ignore
         corrected_z = self.primitive.z[::-1]  # type: ignore
-        # pylint: disable=import-outside-toplevel
         sig_qubits = np.logical_or(corrected_x, corrected_z)
         if np.sum(sig_qubits) == 0:
             # e^I is just a global phase, but we can keep track of it! Should we?
