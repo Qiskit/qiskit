@@ -29,7 +29,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
         line_discipline (string): character emitted at start of a line of job monitor output,
-        This defaults to 0x0d.
+        This defaults to the CR control char.
 
     """
     status = job.status()
@@ -77,7 +77,7 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.
         line_discipline (string): character emitted at start of a line of job monitor output,
-        This defaults to 0x0d.
+        This defaults to the CR control char.
         
     """
     if interval is None:
