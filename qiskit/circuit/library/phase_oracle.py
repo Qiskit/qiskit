@@ -40,6 +40,7 @@ class PhaseOracle(QuantumCircuit):
         # input qubits for the oracle
         self.state_qubits = range(self.boolean_expression.num_qubits - 1)
 
+        # pylint:super-init-not-called
         self.compose(self._build_from_boolean_expression(), inplace=True)
 
     def _build_from_boolean_expression(self):
@@ -66,7 +67,7 @@ class PhaseOracle(QuantumCircuit):
 
     @classmethod
     def from_dimacs_file(cls, filename: str):
-        """Create a PhaseOracle from the string in the DIMACS format.
+        r"""Create a PhaseOracle from the string in the DIMACS format.
 
         It is possible to build a PhaseOracle from a file in `DIMACS CNF format
         <http://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
@@ -79,7 +80,7 @@ class PhaseOracle(QuantumCircuit):
 
         .. code:: text
 
-          c This is an example DIMACS CNF file with 3 satisfying assignments: 1 -2 3, -1 -2 -3, 1 2 -3.
+          c DIMACS CNF file with 3 satisfying assignments: 1 -2 3, -1 -2 -3, 1 2 -3.
           p cnf 3 5
           -1 -2 -3 0
           1 -2 3 0
@@ -87,14 +88,14 @@ class PhaseOracle(QuantumCircuit):
           1 -2 -3 0
           -1 2 3 0
 
-        The first line, following the `c` character, is a comment. The second line specifies that the
-        CNF is over three boolean variables --- let us call them  :math:`x_1, x_2, x_3`, and contains
-        five clauses.  The five clauses, listed afterwards, are implicitly joined by the logical `AND`
-        operator, :math:`\land`, while the variables in each clause, represented by their indices,
-        are implicitly disjoined by the logical `OR` operator, :math:`lor`. The :math:`-` symbol
-        preceding a boolean variable index corresponds to the logical `NOT` operator, :math:`lnot`.
-        Character `0` (zero) marks the end of each clause.  Essentially, the code above corresponds
-        to the following CNF:
+        The first line, following the `c` character, is a comment. The second line specifies that
+        the CNF is over three boolean variables --- let us call them  :math:`x_1, x_2, x_3`, and
+        contains five clauses.  The five clauses, listed afterwards, are implicitly joined by the
+        logical `AND` operator, :math:`\land`, while the variables in each clause, represented by
+        their indices, are implicitly disjoined by the logical `OR` operator, :math:`lor`. The
+        :math:`-` symbol preceding a boolean variable index corresponds to the logical `NOT`
+        operator, :math:`lnot`. Character `0` (zero) marks the end of each clause.  Essentially,
+        the code above corresponds to the following CNF:
 
         :math:`(\lnot x_1 \lor \lnot x_2 \lor \lnot x_3)
         \land (x_1 \lor \lnot x_2 \lor x_3)
