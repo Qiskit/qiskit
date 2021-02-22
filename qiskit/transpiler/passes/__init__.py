@@ -30,6 +30,7 @@ Layout Selection (Placement)
    SabreLayout
    CSPLayout
    ApplyLayout
+   ApplyLayoutSwap
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
@@ -130,6 +131,7 @@ from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import ApplyLayout
+from .layout import ApplyLayoutSwaps
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation

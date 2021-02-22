@@ -42,7 +42,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import ApplyLayoutSwaps
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -120,7 +120,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                property_set['trivial_layout_score'] != 0
 
     # 3. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
 
     # 4. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = Unroll3qOrMore()
@@ -209,6 +209,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
+        pm1.append(ApplyLayoutSwaps(coupling_map, seed=seed_transpiler, trials=4))
         pm1.append(_unroll3q)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
