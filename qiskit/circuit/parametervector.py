@@ -61,12 +61,12 @@ class ParameterVector:
         for i in range(length):
             self._params += [ParameterVectorElement(name, i)]
 
-    @ property
+    @property
     def name(self):
         """Returns the name of the ParameterVector."""
         return self._name
 
-    @ property
+    @property
     def params(self):
         """Returns the list of parameters in the ParameterVector."""
         return self._params
