@@ -39,8 +39,8 @@ class BooleanExpression(Gate):
         self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
         short_expr_for_name = (expression[:10] + '...') if len(expression) > 13 else expression
-        num_qubits = self._tweedledum_bool_expression.num_outputs() \
-                     + self._tweedledum_bool_expression.num_inputs()
+        num_qubits = (self._tweedledum_bool_expression.num_outputs() +
+                      self._tweedledum_bool_expression.num_inputs())
         super().__init__(name or short_expr_for_name, num_qubits=num_qubits, params=[])
 
     def simulate(self, bitstring: str) -> bool:
@@ -112,8 +112,8 @@ class BooleanExpression(Gate):
         expr_obj = cls.__new__(cls)
         expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
 
-        num_qubits = expr_obj._tweedledum_bool_expression.num_inputs() \
-                     + expr_obj._tweedledum_bool_expression.num_outputs()
+        num_qubits = (expr_obj._tweedledum_bool_expression.num_inputs() +
+                      expr_obj._tweedledum_bool_expression.num_outputs())
         super(BooleanExpression, expr_obj).__init__(name=basename(filename), num_qubits=num_qubits,
                                                     params=[])
         return expr_obj
