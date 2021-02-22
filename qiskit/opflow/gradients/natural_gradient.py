@@ -133,6 +133,11 @@ class NaturalGradient(GradientBase):
                     #             # Try to solve the system of linear equations Ax = C.
                     nat_grad = np.linalg.solve(a, c)
 
+                    if np.linalg.norm(nat_grad) > 1e2:
+                        warnings.warn('Solution of the exact solver to big. Use Lstsq.')
+                        nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+
+
                 except np.linalg.LinAlgError:  # singular matrix
                     warnings.warn('Singular matrix lstsq solver required')
                     nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
@@ -438,6 +443,7 @@ class NaturalGradient(GradientBase):
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(a + alpha * np.diag(a), c, rcond=None)
         elif regularization == 'perturb_diag':
+            # l2 - regularization
             alpha = 1e-7
             while np.linalg.cond(a + alpha * np.eye(len(c))) > tol_cond_a:
                 alpha *= 10

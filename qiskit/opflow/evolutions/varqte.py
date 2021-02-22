@@ -19,7 +19,7 @@ import numpy as np
 import os
 import csv
 
-from scipy.integrate import OdeSolver
+from scipy.integrate import OdeSolver, ode
 
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -46,7 +46,7 @@ class VarQTE(EvolutionBase):
                  parameters: Optional[Union[ParameterExpression, List[ParameterExpression],
                                             ParameterVector]] = None,
                  init_parameter_values: Optional[Union[List, np.ndarray]] = None,
-                 ode_solver: Optional[OdeSolver] = None,
+                 ode_solver: Optional[Union[OdeSolver, ode]] = None,
                  backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
                  get_error: bool = False,
                  get_h_terms: bool = False,

@@ -92,11 +92,10 @@ class VarQRTE(VarQTE):
                              t_bound=dt*self._num_time_steps, first_step=dt)
             self._parameter_values = self._ode_solver.y
 
-        else:
 
-            for j in range(self._num_time_steps):
+        for j in range(self._num_time_steps):
 
-
+            if self._ode_solver is None:
                 # Get the natural gradient - time derivative of the variational parameters - and
                 # the gradient w.r.t. H and the QFI/4.
                 nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
@@ -154,6 +153,11 @@ class VarQRTE(VarQTE):
                                            true_error, true_energy, trained_energy)
                         else:
                             self._store_params((j + 1) * dt, self._parameter_values)
+            else:
+                self._ode_solver.step()
+                self._parameter_values = self._ode_solver.y
+                if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
+                    break
 
         # Return variationally evolved operator
         return self._operator.oplist[-1].assign_parameters(param_dict)

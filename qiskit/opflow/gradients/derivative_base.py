@@ -25,6 +25,7 @@ from qiskit.providers import BaseBackend
 from ..converters.converter_base import ConverterBase
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
+from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
 from ..state_fns import StateFn, OperatorStateFn
@@ -206,7 +207,7 @@ class DerivativeBase(ConverterBase):
                     total_coeff *= op.coeff  # type: ignore
                 if hasattr(op, 'primitive'):
                     prim = op.primitive  # type: ignore
-                    if isinstance(prim, ListOp):
+                    if isinstance(prim, ListOp) and not isinstance(prim, TensoredOp):
                         raise ValueError("This operator was not properly decomposed. "
                                          "By this point, all operator measurements should "
                                          "contain single operators, otherwise the coefficient "
