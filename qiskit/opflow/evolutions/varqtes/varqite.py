@@ -151,6 +151,7 @@ class VarQITE(VarQTE):
         trained_energy_factor_list = []
         stddev_factor_list = []
 
+        f, true_error, true_energy, trained_energy = self._distance_energy(dt, param_dict)
         for j in range(self._num_time_steps):
             # Get the natural gradient - time derivative of the variational parameters - and
             # the gradient w.r.t. H and the QFI/4.
@@ -211,6 +212,38 @@ class VarQITE(VarQTE):
                 # omega_new = omega - A^(-1)Cdt or
                 # omega_new = omega + A^(-1)((-1)*C)dt
 
+                # Store the current status
+                if self._snapshot_dir:
+                    if self._get_error:
+                        if self._init_parameter_values is None:
+                            self._store_params(j * dt, self._parameter_values,
+                                               error_bound_en_diff, et,
+                                               resid)
+                        else:
+                            # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+                            # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
+                            # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
+                            if self._get_h_terms:
+                                self._store_params(j * dt, self._parameter_values,
+                                                   error_bound_l2, et,
+                                                   resid,  f,  true_error, true_energy,
+                                                   trained_energy,
+                                                   h_norm, h_squared, dtdt_state, regrad,
+                                                   h_norm_factor, h_squared_factor,
+                                                   trained_energy_factor)
+                            else:
+                                self._store_params(j * dt, self._parameter_values,
+                                                   error_bound_en_diff, et,
+                                                   resid, f, true_error, true_energy,
+                                                   trained_energy)
+                    else:
+
+                        if self._init_parameter_values is None:
+                            self._store_params(j * dt, self._parameter_values, f, true_error,
+                                               true_energy, trained_energy)
+                        else:
+                            self._store_params(j * dt, self._parameter_values)
+
                 self._parameter_values = list(np.add(self._parameter_values, dt * np.real(
                                               nat_grad_result)))
                 print('Params', self._parameter_values)
@@ -233,40 +266,12 @@ class VarQITE(VarQTE):
                     # error += dt * (et + 2*h_norm)
                     # error += dt * (et + np.sqrt(np.linalg.norm(trained_energy - trained_energy_0)))
 
-                print('Error bound based on exact energy difference', np.round(error_bound_en_diff, 6),
-                      'after', (j + 1) * dt)
+                print('Error bound based on exact energy difference', np.round(error_bound_en_diff,
+                                                                               6), 'after',
+                      (j + 1) * dt)
                 print('Error bound based on ||H||_2 and integration', np.round(error_bound_l2, 6),
                       'after', (j + 1) * dt)
 
-                # Store the current status
-                if self._snapshot_dir:
-                    if self._get_error:
-                        if self._init_parameter_values is None:
-                            self._store_params((j + 1) * dt, self._parameter_values,
-                                               error_bound_en_diff, et,
-                                               resid)
-                        else:
-                            # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
-                            # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
-                            # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
-                            if self._get_h_terms:
-                                self._store_params((j + 1) * dt, self._parameter_values,
-                                                   error_bound_l2, et,
-                                                   resid,  f,  true_error, true_energy, trained_energy,
-                                                   h_norm, h_squared, dtdt_state, regrad,
-                                                   h_norm_factor, h_squared_factor,
-                                                   trained_energy_factor)
-                            else:
-                                self._store_params((j + 1) * dt, self._parameter_values,
-                                                   error_bound_en_diff, et,
-                                                   resid, f, true_error, true_energy, trained_energy)
-                    else:
-
-                        if self._init_parameter_values is None:
-                            self._store_params((j + 1) * dt, self._parameter_values, f,
-                                                true_error, true_energy, trained_energy)
-                        else:
-                            self._store_params((j + 1) * dt, self._parameter_values)
             else:
                 self._ode_solver.step()
                 self._parameter_values = self._ode_solver.y
@@ -275,6 +280,41 @@ class VarQITE(VarQTE):
                 pass
 
         if self._ode_solver is None:
+
+            # Store the current status
+            if self._snapshot_dir:
+                if self._get_error:
+                    if self._init_parameter_values is None:
+                        self._store_params((j + 1) * dt, self._parameter_values,
+                                           error_bound_l2)
+                    else:
+                        # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+                        # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
+                        # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
+                        if self._get_h_terms:
+                            self._store_params((j + 1) * dt, self._parameter_values,
+                                               error_bound_l2, fidelity_to_target=f,
+                                               true_error=true_error,
+                                               target_energy=true_energy,
+                                               trained_energy= trained_energy,
+                                               h_norm=h_norm)
+                        else:
+                            self._store_params((j + 1) * dt, self._parameter_values,
+                                               error_bound_l2, fidelity_to_target=f,
+                                               true_error=true_error,
+                                               target_energy=true_energy,
+                                               trained_energy= trained_energy)
+                else:
+
+                    if self._init_parameter_values is None:
+                        self._store_params((j + 1) * dt, self._parameter_values,
+                                           error_bound_l2, fidelity_to_target=f,
+                                           true_error=true_error,
+                                           target_energy=true_energy,
+                                           trained_energy=trained_energy)
+                    else:
+                        self._store_params((j + 1) * dt, self._parameter_values)
+                        self._store_params((j + 1) * dt, self._parameter_values)
 
             error_bound_h_squared = 0
             error_bound_trained_energy = 0
@@ -299,10 +339,10 @@ class VarQITE(VarQTE):
         return self._operator[-1].assign_parameters(param_dict)
 
     def _error_t(self,
-                 operator: OperatorBase,
-                 ng_res: Union[List, np.ndarray],
-                 grad_res: Union[List, np.ndarray],
-                 metric: Union[List, np.ndarray]) -> float:
+         operator: OperatorBase,
+         ng_res: Union[List, np.ndarray],
+         grad_res: Union[List, np.ndarray],
+         metric: Union[List, np.ndarray]) -> float:
 
         """
         Evaluate the square root of the l2 norm for a single time step of VarQRTE.
@@ -359,10 +399,6 @@ class VarQITE(VarQTE):
         #     overlap = self._inner_prod(ng_res, overlap)
         #     print('energy overlap', overlap)
         #     eps_squared -= overlap
-
-
-
-
         print('Energy Variance', h_squared - exp **2)
         if eps_squared < 0:
             if np.abs(eps_squared) < 1e-10:
@@ -445,4 +481,4 @@ class VarQITE(VarQTE):
 
         print('Fidelity', f)
         print('True error', act_err)
-        return f, act_err, act_en, trained_en
+        return f, act_err, np.real(act_en), np.real(trained_en)

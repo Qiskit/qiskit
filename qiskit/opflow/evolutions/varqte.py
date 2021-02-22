@@ -103,7 +103,8 @@ class VarQTE(EvolutionBase):
                         fieldnames.extend(['fidelity', 'true_error', 'target_energy',
                                            'trained_energy'])
                     if get_h_terms:
-                        fieldnames.extend(['h_norm', 'h_squared', 'dtdt_trained',
+                        fieldnames.extend(['energy_error', 'h_norm', 'h_squared', 'variance',
+                                           'dtdt_trained',
                                            're_im_grad', 'h_norm_factor', 'h_squared_factor',
                                            'trained_energy_factor'])
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -229,7 +230,7 @@ class VarQTE(EvolutionBase):
             if fidelity_to_target is not None:
                 fieldnames.extend(['fidelity', 'true_error', 'target_energy', 'trained_energy'])
             if self._get_h_terms:
-                fieldnames.extend(['h_norm', 'h_squared', 'dtdt_trained',
+                fieldnames.extend(['energy_error', 'h_norm', 'h_squared', 'variance', 'dtdt_trained',
                                    're_im_grad', 'h_norm_factor', 'h_squared_factor',
                                    'trained_energy_factor'])
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -269,24 +270,30 @@ class VarQTE(EvolutionBase):
                                          'target_energy': np.round(target_energy, 8),
                                          'trained_energy': np.round(trained_energy, 8)})
                     else:
+                        variance = None
+                        if h_squared is not None:
+                            variance = h_squared - trained_energy**2
                         writer.writerow({'t': t,
                                          'params': np.round(params, 8),
                                          'num_params': len(params),
                                          'num_time_steps': self._num_time_steps,
                                          'error_bound': np.round(error_bound, 8),
-                                         'error_grad': np.round(error_grad, 8),
-                                         'resid': np.round(resid, 8),
+                                         'error_grad': error_grad,
+                                         'resid': resid,
                                          'fidelity': np.round(fidelity_to_target, 8),
                                          'true_error': np.round(true_error, 8),
                                          'target_energy': np.round(target_energy, 8),
                                          'trained_energy': np.round(trained_energy, 8),
+                                         'energy_error': np.round(trained_energy - target_energy,
+                                                                  8),
                                          'h_norm': np.round(h_norm, 8),
-                                         'h_squared': np.round(h_squared, 8),
-                                         'dtdt_trained': np.round(dtdt_trained, 8),
-                                         're_im_grad': np.round(re_im_grad, 8),
-                                         'h_norm_factor': np.round(h_norm_factor, 8),
-                                         'h_squared_factor': np.round(h_squared_factor, 8),
-                                         'trained_energy_factor': np.round(trained_energy_factor, 8)
+                                         'h_squared': h_squared,
+                                         'variance': variance,
+                                         'dtdt_trained': dtdt_trained,
+                                         're_im_grad': re_im_grad,
+                                         'h_norm_factor': h_norm_factor,
+                                         'h_squared_factor': h_squared_factor,
+                                         'trained_energy_factor': trained_energy_factor
                                          })
 
     def _propagate(self,
