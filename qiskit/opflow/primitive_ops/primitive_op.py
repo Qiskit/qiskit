@@ -66,7 +66,7 @@ class PrimitiveOp(OperatorBase):
         Raises:
             TypeError: Unsupported primitive type passed.
         """
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         if isinstance(primitive, (Instruction, QuantumCircuit)):
             from .circuit_op import CircuitOp
             return CircuitOp.__new__(CircuitOp)
@@ -159,7 +159,7 @@ class PrimitiveOp(OperatorBase):
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> \
             OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.composed_op import ComposedOp
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         if isinstance(other, ComposedOp):
@@ -187,7 +187,7 @@ class PrimitiveOp(OperatorBase):
 
     def exp_i(self) -> OperatorBase:
         """ Return Operator exponentiation, equaling e^(-i * op)"""
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..evolutions.evolved_op import EvolvedOp
         return EvolvedOp(self)
 
@@ -226,7 +226,7 @@ class PrimitiveOp(OperatorBase):
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=import-outside-toplevel,cyclic-import
+                # pylint: disable=cyclic-import
                 from ..list_ops.list_op import ListOp
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
@@ -243,7 +243,6 @@ class PrimitiveOp(OperatorBase):
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
-        # pylint: disable=import-outside-toplevel
         prim_mat = self.__class__(self.primitive).to_matrix(massive=massive)
         from .matrix_op import MatrixOp
         return MatrixOp(prim_mat, coeff=self.coeff)
@@ -260,7 +259,6 @@ class PrimitiveOp(OperatorBase):
 
     def to_circuit_op(self) -> OperatorBase:
         """ Returns a ``CircuitOp`` equivalent to this Operator. """
-        # pylint: disable=import-outside-toplevel
         from .circuit_op import CircuitOp
         if self.coeff == 0:
             return CircuitOp(QuantumCircuit(self.num_qubits), coeff=0)
@@ -268,12 +266,11 @@ class PrimitiveOp(OperatorBase):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a sum of ``PauliOp`` s equivalent to this Operator. """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
         mat_op = self.to_matrix_op(massive=massive)
         sparse_pauli = SparsePauliOp.from_operator(mat_op.primitive)  # type: ignore
         if not sparse_pauli.to_list():
-            # pylint: disable=import-outside-toplevel
             from ..operator_globals import I
             return (I ^ self.num_qubits) * 0.0
         if len(sparse_pauli) == 1:
