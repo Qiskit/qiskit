@@ -151,7 +151,7 @@ class VarQITE(VarQTE):
         trained_energy_factor_list = []
         stddev_factor_list = []
 
-        f, true_error, true_energy, trained_energy = self._distance_energy(dt, param_dict)
+        f, true_error, true_energy, trained_energy = self._distance_energy(0, param_dict)
         for j in range(self._num_time_steps):
             # Get the natural gradient - time derivative of the variational parameters - and
             # the gradient w.r.t. H and the QFI/4.
