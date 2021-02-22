@@ -14,6 +14,8 @@
 
 from typing import Union, Dict, List
 
+import warnings
+
 import numpy as np
 from scipy.linalg import expm
 
@@ -74,12 +76,20 @@ class VarQRTE(VarQTE):
         if self._ode_solver is not None:
             # TODO gradient error or state error?
             # ||e_t||^2
-            def ode_fun(dummy_time, params):
+            def ode_fun(time, params):
                 param_dict = dict(zip(self._parameters, params))
                 nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                e_t = self._error_t(self._operator, nat_grad_result, grad_res,
+                et = self._error_t(self._operator, nat_grad_result, grad_res,
                                                metric_res)[0]
-                return [e_t ** 2]
+                dw_et = self._grad_error_t(self._operator, nat_grad_result, grad_res,
+                                               metric_res)
+                print('grad error', et)
+                warnings.warn('Be careful that the following output is for the fidelity before '
+                              'the parameter update.')
+                fid_and_errors = self._distance_energy(time, trained_param_dict=dict(zip(
+                    self._parameters, self._parameter_values)))
+                # return nat_grad_result
+                return dw_et
 
             # def jac_ode_fun(params):
             #     param_dict = dict(zip(self._parameters, params))
@@ -199,7 +209,7 @@ class VarQRTE(VarQTE):
         print('dot dot', np.round(dotdot, 4))
         eps_squared += dotdot
 
-        # 2Re⟨dtψ(ω)| H | ψ(ω)〉= 2Re dtω⟨dωψ(ω)|H | ψ(ω)〉
+        # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)〉
         print('2 Im grad', np.round(self._inner_prod(grad_res, ng_res), 4))
         # 2 missing b.c. of Im
         imgrad2 = self._inner_prod(grad_res, ng_res)
@@ -208,6 +218,38 @@ class VarQRTE(VarQTE):
 
         # print('E_t squared', np.round(eps_squared, 4))
         return np.sqrt(eps_squared)
+
+    def _grad_error_t(self,
+                 operator: OperatorBase,
+                 ng_res: Union[List, np.ndarray],
+                 grad_res: Union[List, np.ndarray],
+                 metric: Union[List, np.ndarray]) -> float:
+
+        """
+        Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
+
+        Args:
+            operator: ⟨ψ(ω)|H|ψ(ω)〉
+            ng_res: dω/dt
+            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉
+            metric: Fubini-Study Metric
+
+        Returns:
+            square root of the l2 norm of the error
+        """
+        if not isinstance(operator, ComposedOp):
+            raise TypeError('Currently this error can only be computed for operators given as '
+                            'ComposedOps')
+        grad_eps_squared = 0
+        # dω_jF_ij^Q
+        grad_eps_squared += np.dot(metric, ng_res)
+
+        # 2Im⟨dωψ(ω)|H | ψ(ω)〉
+        grad_eps_squared = grad_res
+
+        # print('E_t squared', np.round(eps_squared, 4))
+        return grad_eps_squared
+
 
     def _distance_energy(self,
                         time: Union[float, complex],

@@ -90,14 +90,17 @@ class VarQITE(VarQTE):
             def ode_fun(time, params):
                 param_dict = dict(zip(self._parameters, params))
                 nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                e_t = self._error_t(self._operator, nat_grad_result, grad_res,
+                et = self._error_t(self._operator, nat_grad_result, grad_res,
                                                metric_res)[0]
-                print('grad error', e_t)
+                dw_et = self._grad_error_t(self._operator, nat_grad_result, grad_res,
+                                               metric_res)
+                print('grad error', et)
                 warnings.warn('Be careful that the following output is for the fidelity before '
                               'the parameter update.')
                 fid_and_errors = self._distance_energy(time, trained_param_dict=dict(zip(
                     self._parameters, self._parameter_values)))
-                return nat_grad_result
+                # return nat_grad_result
+                return dw_et
 
             # def jac_ode_fun(params):
             #     param_dict = dict(zip(self._parameters, params))
@@ -120,9 +123,11 @@ class VarQITE(VarQTE):
                 dt = 1
 
                 while self._ode_solver.successful() and self._ode_solver.t < t1:
-                    print(self._ode_solver.t + dt, self._ode_solver.integrate(self._ode_solver.t +
+                    print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
+                        self._ode_solver.t +
                                                                               dt))
                     self._parameter_values = self._ode_solver.y
+                    print('time', self._ode_solver.t)
                 _ = self._distance_energy(dt * self._num_time_steps,
                                                        trained_param_dict=dict(zip(
                                                        self._parameters,
@@ -364,6 +369,35 @@ class VarQITE(VarQTE):
                 eps_squared = 0
         print('Grad error', np.sqrt(eps_squared))
         return np.sqrt(eps_squared), h_squared,  exp, dtdt_state, regrad2 * 0.5
+
+    def _grad_error_t(self,
+                 operator: OperatorBase,
+                 ng_res: Union[List, np.ndarray],
+                 grad_res: Union[List, np.ndarray],
+                 metric: Union[List, np.ndarray]) -> float:
+
+        """
+        Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
+
+        Args:
+            operator: ⟨ψ(ω)|H|ψ(ω)〉
+            ng_res: dω/dt
+            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉
+            metric: Fubini-Study Metric
+
+        Returns:
+            square root of the l2 norm of the error
+        """
+        if not isinstance(operator, ComposedOp):
+            raise TypeError('Currently this error can only be computed for operators given as '
+                            'ComposedOps')
+        grad_eps_squared = 0
+        # dω_jF_ij^Q
+        grad_eps_squared += np.dot(metric, ng_res)
+        # 2Re⟨dωψ(ω)|H | ψ(ω)〉
+        grad_eps_squared += grad_res
+
+        return grad_eps_squared
 
     def _distance_energy(self,
                   time: Union[float, complex],
