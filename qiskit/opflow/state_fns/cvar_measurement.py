@@ -121,7 +121,7 @@ class CVaRMeasurement(OperatorStateFn):
         if isinstance(other, OperatorStateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import TensoredOp
         return TensoredOp([self, other])
 

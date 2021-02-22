@@ -45,7 +45,7 @@ class LayoutTransformation(TransformationPass):
                 If None, it will map to the trivial layout.
 
             to_layout (Union[Layout, str]):
-                The final layout of qubits on phyiscal qubits.
+                The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
                 if None, use trivial.
 

@@ -123,7 +123,7 @@ class ElementaryData(ABC):
 class LineData(ElementaryData):
     """Drawing object to represent object appears as a line.
 
-    This is the counterpart of `matplotlib.pyploy.plot`.
+    This is the counterpart of `matplotlib.pyplot.plot`.
     """
     def __init__(self,
                  data_type: Union[str, Enum],
@@ -160,7 +160,7 @@ class LineData(ElementaryData):
 class TextData(ElementaryData):
     """Drawing object to represent object appears as a text.
 
-    This is the counterpart of `matplotlib.pyploy.text`.
+    This is the counterpart of `matplotlib.pyplot.text`.
     """
     def __init__(self,
                  data_type: Union[str, Enum],
