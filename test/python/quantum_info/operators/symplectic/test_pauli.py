@@ -17,7 +17,6 @@
 import unittest
 import itertools as it
 from functools import lru_cache
-import logging
 
 import numpy as np
 from ddt import ddt, data, unpack
@@ -33,8 +32,6 @@ from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator, Clifford
 from qiskit.quantum_info.operators.symplectic.pauli import (
     _split_pauli_label, _phase_from_label)
-
-logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=8)

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name
-
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse, circuit
@@ -99,7 +97,7 @@ class TestChannelEvents(QiskitTestCase):
         inst_data1 = frames[1]
         self.assertAlmostEqual(inst_data1.frame.freq, 1.0)
 
-    def test_parametrized_parametric_pulse(self):
+    def test_parameterized_parametric_pulse(self):
         """Test generating waveforms that are parameterized."""
         param = circuit.Parameter('amp')
 
@@ -114,10 +112,10 @@ class TestChannelEvents(QiskitTestCase):
         self.assertTrue(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.inst, test_waveform)
 
-    def test_parametrized_frame_change(self):
+    def test_parameterized_frame_change(self):
         """Test generating waveforms that are parameterized.
 
-        Parametrized phase should be ignored when calculating waveform frame.
+        Parameterized phase should be ignored when calculating waveform frame.
         This is due to phase modulated representation of waveforms,
         i.e. we cannot calculate the phase factor of waveform if the phase is unbound.
         """

@@ -96,7 +96,7 @@ class OperatorStateFn(StateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import TensoredOp
         return TensoredOp([self, other])
 
@@ -175,7 +175,6 @@ class OperatorStateFn(StateFn):
                 prim_str,
                 self.coeff)
 
-    # pylint: disable=too-many-return-statements
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:

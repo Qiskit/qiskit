@@ -145,7 +145,6 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_ryy(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for YY rotation
         """
         ham = Y ^ Y
@@ -165,7 +164,6 @@ class TestGradients(QiskitOpflowTestCase):
 
     @data('lin_comb', 'param_shift', 'fin_diff')
     def test_gradient_rzz(self, method):
-        # pylint: disable=wrong-spelling-in-comment
         """Test the state gradient for ZZ rotation
         """
         ham = Z ^ X
@@ -1117,6 +1115,36 @@ class TestQFI(QiskitOpflowTestCase):
                 with self.subTest(f'set {i} circuit {j}'):
                     self.assertEqual(base.compose(composed_op[1].primitive),
                                      base.compose(reference))
+
+    def test_overlap_qfi_bound_parameters(self):
+        """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 2, 3, 0)
+        circuit.rx(x, 0)
+
+        qfi = QFI('overlap_diag').convert(StateFn(circuit), [x])
+        value = qfi.bind_parameters({x: 1}).eval()[0][0]
+        ref = 0.87737713
+        self.assertAlmostEqual(value, ref)
+
+    def test_overlap_qfi_raises_on_multiparam(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = ParameterVector('x', 2)
+        circuit = QuantumCircuit(1)
+        circuit.u(x[0], x[1], 2, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+
+    def test_overlap_qfi_raises_on_unsupported_gate(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.p(x, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
 
 
 if __name__ == '__main__':

@@ -12,12 +12,8 @@
 
 """Limited-memory BFGS Bound optimizer."""
 
-import logging
-
 from scipy import optimize as sciopt
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 
 class L_BFGS_B(Optimizer):  # pylint: disable=invalid-name

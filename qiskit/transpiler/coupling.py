@@ -337,7 +337,7 @@ class CouplingMap:
         """
 
         try:
-            import pydot  # pylint: disable=unused-import
+            import pydot
             from PIL import Image
         except ImportError:
             raise ImportError("CouplingMap.draw requires pydot and pillow. "
