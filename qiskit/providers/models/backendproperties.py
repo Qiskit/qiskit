@@ -31,7 +31,7 @@ class Nduv:
         value: value.
     """
     def __init__(self, date, name, unit, value):
-        """Intialize a new name-date-unit-value object
+        """Initialize a new name-date-unit-value object
 
         Args:
             date (datetime): Date field
@@ -160,7 +160,7 @@ class BackendProperties:
 
     This holds backend properties measured by the provider. All properties
     which are provided optionally. These properties may describe qubits, gates,
-    or other general propeties of the backend.
+    or other general properties of the backend.
     """
 
     _data = {}

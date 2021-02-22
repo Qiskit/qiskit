@@ -214,10 +214,10 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             with the chart. If the minimum height is above this value, this value is set
             as the chart bottom (default -0.1).
         formatter.box_width.opaque_shape: Default box length of the waveform representation
-            when the instruction is parametrized and duration is not bound or not defined.
+            when the instruction is parameterized and duration is not bound or not defined.
             Value is units in dt (default: 150).
         formatter.box_height.opaque_shape: Default box height of the waveform representation
-            when the instruction is parametrized (default: 0.4).
+            when the instruction is parameterized (default: 0.4).
         formatter.axis_break.length: Waveform or idle time duration that axis break is
             applied. Intervals longer than this value are truncated.
             The value is in units of data points (default `3000`).
@@ -243,19 +243,19 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             snapshot. This text is used when the plotter doesn't support latex
             (default u'\u21AF').
         formatter.unicode_symbol.phase_parameter: Text that represents the symbol of
-            parametrized phase value. This text is used when the plotter doesn't support latex
+            parameterized phase value. This text is used when the plotter doesn't support latex
             (default u'\u03b8').
         formatter.unicode_symbol.freq_parameter: Text that represents the symbol of
-            parametrized frequency value. This text is used when the plotter doesn't support latex
+            parameterized frequency value. This text is used when the plotter doesn't support latex
             (default 'f').
         formatter.latex_symbol.frame_change: Latex text that represents the symbol of
             frame change (default r'\\circlearrowleft').
         formatter.latex_symbol.snapshot: Latex text that represents the symbol of
             snapshot (default '').
         formatter.latex_symbol.phase_parameter: Latex text that represents the symbol of
-            parametrized phase value (default r'\theta').
+            parameterized phase value (default r'\theta').
         formatter.latex_symbol.freq_parameter: Latex text that represents the symbol of
-            parametrized frequency value (default 'f').
+            parameterized frequency value (default 'f').
         generator.waveform: List of callback functions that generates drawing
             for waveforms. Arbitrary callback functions satisfying the generator format
             can be set here. There are some default generators in the pulse drawer.

@@ -323,7 +323,7 @@ class SparsePauliOp(LinearOp):
     def from_operator(obj, atol=None, rtol=None):
         """Construct from an Operator objector.
 
-        Note that the cost of this contruction is exponential as it involves
+        Note that the cost of this construction is exponential as it involves
         taking inner products with every element of the N-qubit Pauli basis.
 
         Args:

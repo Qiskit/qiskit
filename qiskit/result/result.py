@@ -193,7 +193,7 @@ class Result:
 
         Returns:
             List[str] or np.ndarray: Either the list of each outcome, formatted according to
-                registers in circuit or a complex numpy np.darray with shape:
+                registers in circuit or a complex numpy np.ndarray with shape:
 
                 ============  =============  =====
                 `meas_level`  `meas_return`  shape

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class AQGD(Optimizer):
     """Analytic Quantum Gradient Descent (AQGD) with Epochs optimizer.
     Performs gradient descent optimization with a momentum term, analytic gradients,
-    and customized step length schedule for parametrized quantum gates, i.e.
+    and customized step length schedule for parameterized quantum gates, i.e.
     Pauli Rotations. See, for example:
 
     * K. Mitarai, M. Negoro, M. Kitagawa, and K. Fujii. (2018).
@@ -37,7 +37,7 @@ class AQGD(Optimizer):
       Evaluating analytic gradients on quantum hardware. Phys. Rev. A 99, 032331.
       https://arxiv.org/abs/1811.11184
 
-    for further details on analytic gradients of parametrized quantum gates.
+    for further details on analytic gradients of parameterized quantum gates.
 
     Gradients are computed "analytically" using the quantum circuit when evaluating
     the objective function.

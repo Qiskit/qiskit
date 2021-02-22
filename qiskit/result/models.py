@@ -37,7 +37,7 @@ class ExperimentResultData:
                 memory enabled
             statevector (list or numpy.array): A list or numpy array of the
                 statevector result
-            unitary (list or numpy.array): A list or numpy arrray of the
+            unitary (list or numpy.array): A list or numpy array of the
                 unitary result
             kwargs (any): additional data key-value pairs.
         """

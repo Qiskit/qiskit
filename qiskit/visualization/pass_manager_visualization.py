@@ -185,14 +185,14 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
             raise VisualizationError("if format=raw, then a filename is required.")
 
     if not HAS_PIL and filename:
-        # linter says this isn't a method - it is
+        # pylint says this isn't a method - it is
         graph.write_png(filename)  # pylint: disable=no-member
         return None
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, 'pass_manager.png')
 
-        # linter says this isn't a method - it is
+        # pylint says this isn't a method - it is
         graph.write_png(tmppath)  # pylint: disable=no-member
 
         image = Image.open(tmppath)

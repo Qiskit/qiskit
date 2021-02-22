@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 EXTENDED_SET_SIZE = 20     # Size of lookahead window. TODO: set dynamically to len(current_layout)
 EXTENDED_SET_WEIGHT = 0.5  # Weight of lookahead window compared to front_layer.
 
-DECAY_RATE = 0.001         # Decay cooefficient for penalizing serial swaps.
+DECAY_RATE = 0.001         # Decay coefficient for penalizing serial swaps.
 DECAY_RESET_INTERVAL = 5   # How often to reset all decay rates to 1.
 
 
@@ -36,7 +36,7 @@ class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The hueristic aims to minimize the number
+    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
     of lossy SWAPs inserted and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
@@ -52,7 +52,7 @@ class SabreSwap(TransformationPass):
     and update the mapping.
 
     The search for SWAPs is restricted, in the sense that we only consider
-    physical qubits in the neighoborhood of those qubits involved in
+    physical qubits in the neighborhood of those qubits involved in
     ``front_layer``. These give rise to a ``swap_candidate_list`` which is
     scored according to some heuristic cost function. The best SWAP is
     implemented and ``current_layout`` updated.

@@ -160,7 +160,7 @@ class ListOp(OperatorBase):
             return self.mul(2.0)
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .summed_op import SummedOp
         return SummedOp([self, other])
 
@@ -217,7 +217,7 @@ class ListOp(OperatorBase):
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .tensored_op import TensoredOp
         return TensoredOp([self, other])
 
@@ -229,7 +229,7 @@ class ListOp(OperatorBase):
             raise TypeError('Tensorpower can only take positive int arguments')
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .tensored_op import TensoredOp
         return TensoredOp([self] * other)
 
@@ -273,7 +273,7 @@ class ListOp(OperatorBase):
         for trans in transpositions:
             qc.swap(trans[0], trans[1])
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.circuit_op import CircuitOp
 
         return CircuitOp(qc.reverse_ops()) @ new_self @ CircuitOp(qc)
@@ -287,7 +287,7 @@ class ListOp(OperatorBase):
         if front:
             return other.compose(new_self)
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .composed_op import ComposedOp
         return ComposedOp([new_self, other])
 
@@ -296,7 +296,7 @@ class ListOp(OperatorBase):
             raise TypeError('power can only take positive int arguments')
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .composed_op import ComposedOp
         return ComposedOp([self] * exponent)
 
@@ -398,7 +398,6 @@ class ListOp(OperatorBase):
             return ListOp([op.exp_i() for op in self.oplist],  # type: ignore
                           **self._state(abelian=False))
 
-        # pylint: disable=import-outside-toplevel
         from ..evolutions.evolved_op import EvolvedOp
         return EvolvedOp(self)
 
