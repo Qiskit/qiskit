@@ -35,7 +35,7 @@ class PhaseOracle(QuantumCircuit):
     or more literals. See :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`.
     """
 
-    def __init__(self, expression: str) -> None:  # pylint:super-init-not-called
+    def __init__(self, expression: str) -> None:  # pylint: disable=super-init-not-called
         self.boolean_expression = BooleanExpression(expression)
         # input qubits for the oracle
         self.state_qubits = range(self.boolean_expression.num_qubits - 1)
