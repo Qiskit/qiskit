@@ -372,7 +372,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
         expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
-        print(Operator(expected) == Operator(circuit))
         self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit3(self):
