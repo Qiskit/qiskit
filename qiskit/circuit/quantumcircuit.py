@@ -201,6 +201,14 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
+        self.open_qasm_2_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
+                               'csx', 'cu', 'cu1', 'cu3', 'h', 'i', 'id', 'iden', 'iswap',
+                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
+                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
+                               'u3']
+        #self.existing_gate_names = self.open_qasm_2_gate_names.copy()
+        self.existing_composite_circuits = []
+
     @property
     def data(self):
         """Return the circuit data (instructions and context).
@@ -1174,13 +1182,8 @@ class QuantumCircuit:
         """
         if self.num_parameters > 0:
             raise QasmError('Cannot represent circuits with unbound parameters in OpenQASM 2.')
-        existing_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'csx', 'cu', 'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap',
-                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
-                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
-                               'u3']
 
-        existing_composite_circuits = []
+        self.existing_composite_circuits = []
 
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -1196,36 +1199,28 @@ class QuantumCircuit:
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
-            # If instruction is a root gate or a root instruction (in that case, compositive)
-            elif type(instruction) in [Gate, Instruction]:  # pylint: disable=unidiomatic-typecheck
-                if instruction not in existing_composite_circuits:
-                    if instruction.name in existing_gate_names:
-                        old_name = instruction.name
-                        instruction.name += "_" + str(id(instruction))
+            else:
+                # decompose gate using definitions if they are not defined in OpenQASM2
+                if instruction.name not in self.open_qasm_2_gate_names:
+                    if instruction not in self.existing_composite_circuits:
 
-                        warnings.warn("A gate named {} already exists. "
-                                      "We have renamed "
-                                      "your gate to {}".format(old_name, instruction.name))
+                        # Get qasm of composite circuit
+                        qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                    # Get qasm of composite circuit
-                    qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
-
-                    # Insert composite circuit qasm definition right after header and extension lib
-                    string_temp = string_temp.replace(self.extension_lib,
+                        # Insert composite circuit qasm definition right after header and extension lib
+                        string_temp = string_temp.replace(self.extension_lib,
                                                       "%s\n%s" % (self.extension_lib,
                                                                   qasm_string))
 
-                    existing_composite_circuits.append(instruction)
-                    existing_gate_names.append(instruction.name)
+                        self.existing_composite_circuits.append(instruction)
+
+                    #self.existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
                 string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
-            else:
-                string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j.register.name, j.index)
-                                                       for j in qargs + cargs]))
+
             if instruction.name == 'unitary':
                 unitary_gates.append(instruction)
 
