@@ -739,9 +739,9 @@ class NLocal(BlueprintCircuit):
 
         return self
 
-    @deprecate_arguments({'param_dict': 'params'})
-    def assign_parameters(self, params: Union[dict, List[float], List[Parameter],
-                                              ParameterVector],
+    @deprecate_arguments({'param_dict': 'parameters'})
+    def assign_parameters(self, parameters: Union[dict, List[float], List[Parameter],
+                                                  ParameterVector],
                           inplace: bool = False, *,
                           param_dict: Optional[dict] = None  # pylint: disable=unused-argument
                           ) -> Optional[QuantumCircuit]:
@@ -762,27 +762,27 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(params, dict):
-            if len(params) != self.num_parameters:
+        if not isinstance(parameters, dict):
+            if len(parameters) != self.num_parameters:
                 raise AttributeError('If the parameters are provided as list, the size must match '
                                      'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(params)
+                                         self.num_parameters, len(parameters)
                                      ))
-            unbound_params = [param for param in self._ordered_parameters if
-                              isinstance(param, ParameterExpression)]
+            unbound_parameters = [param for param in self._ordered_parameters if
+                                  isinstance(param, ParameterExpression)]
 
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = [param for param in unbound_params
-                                     if param not in used and (used.add(param) or True)]
-            params = dict(zip(unbound_unique_params, params))
+            unbound_unique_parameters = [param for param in unbound_parameters
+                                         if param not in used and (used.add(param) or True)]
+            parameters = dict(zip(unbound_unique_parameters, parameters))
 
         if inplace:
-            new = [params.get(param, param) for param in self.ordered_parameters]
+            new = [parameters.get(param, param) for param in self.ordered_parameters]
             self._ordered_parameters = new
 
-        return super().assign_parameters(params, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace)
 
     def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
                            params=None):

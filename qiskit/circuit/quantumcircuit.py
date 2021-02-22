@@ -1831,8 +1831,8 @@ class QuantumCircuit:
         """Convenience function to get the number of parameter objects in the circuit."""
         return len(self.parameters)
 
-    @deprecate_arguments({'param_dict': 'params'})
-    def assign_parameters(self, params, inplace=False, *,
+    @deprecate_arguments({'param_dict': 'parameters'})
+    def assign_parameters(self, parameters, inplace=False, *,
                           param_dict=None):  # pylint: disable=unused-argument
         """Assign parameters to new parameters or values.
 
@@ -1841,19 +1841,20 @@ class QuantumCircuit:
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            params (dict or iterable): Either a dictionary or iterable specifying the new parameter
-                values. If a dict, it specifies the mapping from ``current_parameter`` to
+            parameters (dict or iterable): Either a dictionary or iterable specifying the new
+                parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
                 ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
                 numeric value. If an iterable, the elements are assigned to the existing parameters
                 in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
                 this order.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
-            param_dict (dict): Deprecated, use ``params`` instead.
+            param_dict (dict): Deprecated, use ``parameters`` instead.
 
         Raises:
-            CircuitError: If params is a dict and contains parameters not present in the circuit.
-            ValueError: If params is a list/array and the length mismatches the number of free
+            CircuitError: If parameters is a dict and contains parameters not present in the
+                circuit.
+            ValueError: If parameters is a list/array and the length mismatches the number of free
                 parameters in the circuit.
 
         Returns:
@@ -1903,9 +1904,9 @@ class QuantumCircuit:
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
 
-        if isinstance(params, dict):
+        if isinstance(parameters, dict):
             # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-            unrolled_param_dict = self._unroll_param_dict(params)
+            unrolled_param_dict = self._unroll_param_dict(parameters)
 
             # check that all param_dict items are in the _parameter_table for this circuit
             params_not_in_circuit = [param_key for param_key in unrolled_param_dict
@@ -1918,10 +1919,10 @@ class QuantumCircuit:
             for parameter, value in unrolled_param_dict.items():
                 bound_circuit._assign_parameter(parameter, value)
         else:
-            if len(params) != self.num_parameters:
+            if len(parameters) != self.num_parameters:
                 raise ValueError('Mismatching number of values and parameters. For partial binding '
                                  'please pass a dictionary of {parameter: value} pairs.')
-            for i, value in enumerate(params):
+            for i, value in enumerate(parameters):
                 bound_circuit._assign_parameter(self._parameter_table[i], value)
         return None if inplace else bound_circuit
 
@@ -1937,8 +1938,8 @@ class QuantumCircuit:
             value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
-            CircuitError: If params contains parameters not present in the circuit.
-            TypeError: If params contains a ParameterExpression in the values.
+            CircuitError: If values is a dict and contains parameters not present in the circuit.
+            TypeError: If values contains a ParameterExpression.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
