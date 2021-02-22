@@ -201,12 +201,14 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
-        self.open_qasm_2_gate_names = ['ch', 'cp', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
-                               'csx', 'cu', 'cu1', 'cu3', 'h', 'i', 'id', 'iden', 'iswap',
-                               'ms', 'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's',
-                               'sdg', 'swap', 'sx', 'x', 'y', 'z', 't', 'tdg', 'u', 'u1', 'u2',
-                               'u3']
-        #self.existing_gate_names = self.open_qasm_2_gate_names.copy()
+        self.qelib1_gate_names = \
+                                ['u3', 'u2', 'u1', 'cx', 'id', 'u0',
+                                 'u', 'p', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg',
+                                 'rx', 'ry', 'rz',
+                                 'sx', 'sxdg', 'cz', 'cy', 'swap', 'ch', 'ccx', 'cswap',
+                                 'crx', 'cry', 'crz', 'cu1', 'cp', 'cu3', 'csx', 'cu',
+                                 'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sqrtx', 'c4x',
+                                 ]
         self.existing_composite_circuits = []
 
     @property
@@ -1201,7 +1203,7 @@ class QuantumCircuit:
                                                            clbit.register.name, clbit.index)
             else:
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if instruction.name not in self.open_qasm_2_gate_names:
+                if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
 
                         # Get qasm of composite circuit
