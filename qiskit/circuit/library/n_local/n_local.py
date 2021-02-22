@@ -768,8 +768,12 @@ class NLocal(BlueprintCircuit):
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = [param for param in unbound_params
-                                     if param not in used and (used.add(param) or True)]
+            unbound_unique_params = []
+            for param in unbound_params:
+                if param not in used:
+                    unbound_unique_params.append(param)
+                    used.add(param)
+
             param_dict = dict(zip(unbound_unique_params, param_dict))
 
         if inplace:

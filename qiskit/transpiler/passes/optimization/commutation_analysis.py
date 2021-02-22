@@ -95,8 +95,8 @@ def _commute(node1, node2, cache):
     if node1.type != "op" or node2.type != "op":
         return False
 
-    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
-            for nd in [node1, node2]]):
+    if any(nd.name in {"barrier", "snapshot", "measure", "reset", "copy", "delay"}
+            for nd in [node1, node2]):
         return False
 
     if node1.condition or node2.condition:

@@ -149,7 +149,7 @@ class QuantumCircuit:
     extension_lib = "include \"qelib1.inc\";"
 
     def __init__(self, *regs, name=None, global_phase=0, metadata=None):
-        if any([not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs]):
+        if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
 
             try:
@@ -925,7 +925,7 @@ class QuantumCircuit:
 
         # Make copy of parameterized gate instances
         if hasattr(instruction, 'params'):
-            is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
+            is_parameter = any(isinstance(param, Parameter) for param in instruction.params)
             if is_parameter:
                 instruction = copy.deepcopy(instruction)
 
@@ -1002,12 +1002,12 @@ class QuantumCircuit:
         if not regs:
             return
 
-        if any([isinstance(reg, int) for reg in regs]):
+        if any(isinstance(reg, int) for reg in regs):
             # QuantumCircuit defined without registers
             if len(regs) == 1 and isinstance(regs[0], int):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
                 regs = (QuantumRegister(regs[0], 'q'),)
-            elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
+            elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
             else:

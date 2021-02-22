@@ -780,7 +780,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if any([isinstance(param, ndarray) for param in op.params]):
+        if any(isinstance(param, ndarray) for param in op.params):
             return None
 
         ret = []

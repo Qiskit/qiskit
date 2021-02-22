@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -575,8 +577,8 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
+            is_last_measure = all(after_measure.type == 'out'
+                                  for after_measure in out_dag.quantum_successors(meas_node))
             self.assertTrue(is_last_measure)
 
     def test_initialize_reset_should_be_removed(self):

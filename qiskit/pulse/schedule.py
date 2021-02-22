@@ -464,7 +464,7 @@ class Schedule(abc.ABC):
                 Args:
                     time_inst (Tuple[int, Instruction]): Time
                 """
-                return any([chan in channels for chan in time_inst[1].channels])
+                return any(chan in channels for chan in time_inst[1].channels)
             return channel_filter
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
@@ -506,7 +506,7 @@ class Schedule(abc.ABC):
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
         # return function returning true iff all filters are passed
-        return lambda x: all([filter_func(x) for filter_func in filter_func_list])
+        return lambda x: all(filter_func(x) for filter_func in filter_func_list)
 
     def _add_timeslots(self,
                        time: int,

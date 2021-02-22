@@ -222,7 +222,7 @@ class Gate(Instruction):
             raise CircuitError(
                 'The amount of qubit/clbit arguments does not match the gate expectation.')
 
-        if any([not qarg for qarg in qargs]):
+        if any(not qarg for qarg in qargs):
             raise CircuitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:

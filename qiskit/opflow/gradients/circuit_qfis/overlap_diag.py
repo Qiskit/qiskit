@@ -192,7 +192,7 @@ def _partition_circuit(circuit):
                 # If the next_node can be moved back a layer without
                 # without becoming the descendant of a parameterized gate,
                 # then do it.
-                if not any([ledger[x] for x in indices]):
+                if not any(ledger[x] for x in indices):
 
                     apply_node_op(next_node, layer)
                     next_layer.remove_op_node(next_node)
