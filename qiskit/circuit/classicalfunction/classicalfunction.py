@@ -13,8 +13,10 @@
 """ClassicalFunction class"""
 
 import ast
+
 try:
     import tweedledum  # pylint: disable=unused-import
+
     HAS_TWEEDLEDUM = True
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
@@ -128,7 +130,6 @@ class ClassicalFunction(gate.Gate):
             result.append(sim_result)
 
         return ''.join(reversed(result))
-
 
     def synth(self, registerless=True):
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.

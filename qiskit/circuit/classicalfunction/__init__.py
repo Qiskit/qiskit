@@ -100,6 +100,7 @@ from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerE
                          ClassicalFunctionCompilerTypeError)
 from .boolean_expression import BooleanExpression
 
+
 def classical_function(func):
     """
     Parses and type checks the callable ``func`` to compile it into an ``ClassicalFunction``

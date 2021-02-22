@@ -35,12 +35,11 @@ class PhaseOracle(QuantumCircuit):
     or more literals. See :meth:`qiskit.circuit.library.phase_oracle.PhaseOracle.from_dimacs_file`.
     """
 
-    def __init__(self, expression: str) -> None:
+    def __init__(self, expression: str) -> None:  # pylint:super-init-not-called
         self.boolean_expression = BooleanExpression(expression)
         # input qubits for the oracle
         self.state_qubits = range(self.boolean_expression.num_qubits - 1)
 
-        # pylint:super-init-not-called
         self.compose(self._build_from_boolean_expression(), inplace=True)
 
     def _build_from_boolean_expression(self):
@@ -50,10 +49,10 @@ class PhaseOracle(QuantumCircuit):
         super().__init__(qr_state, name='Phase Oracle')
 
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
-        synthesizer = lambda logic_network: pkrm_synth(logic_network,
-                                                       {"pkrm_synth": {"phase_esop": True}})
 
-        return self.boolean_expression.synth(synthesizer=synthesizer)
+        return self.boolean_expression.synth(
+            synthesizer=lambda logic_network: pkrm_synth(logic_network,
+                                                         {"pkrm_synth": {"phase_esop": True}}))
 
     def evaluate_bitstring(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
