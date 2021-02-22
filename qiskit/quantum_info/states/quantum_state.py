@@ -521,7 +521,7 @@ class QuantumState:
         return self.evolve(other)
 
     @deprecate_function(
-        'Using `psi @ U` as shorthand for `psi.evovle(U)` is deprecated'
+        'Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated'
         ' as of version 0.17.0 and will be removed no earlier than 3 months'
         ' after the release date. It has been superceded by the `&` operator'
         ' (`psi & U == psi.evolve(U)`) instead.')
