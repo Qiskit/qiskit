@@ -182,7 +182,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
     qasm_wid = qasm_widget(circuit)
     sep_length = str(min(20*qasm_wid._code_length, 495))
 
-    # The seperator widget
+    # The separator widget
     sep = wid.HTML("<div style='border-left: 3px solid #212121;"
                    "height: {}px;'></div>".format(sep_length),
                    layout=wid.Layout(height='auto',
