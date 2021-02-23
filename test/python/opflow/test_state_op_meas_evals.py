@@ -64,7 +64,6 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_coefficients_correctly_propagated(self):
         """Test that the coefficients in SummedOp and states are correctly used."""
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
@@ -90,7 +89,6 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_is_measurement_correctly_propagated(self):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
@@ -104,7 +102,6 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_parameter_binding_on_listop(self):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.providers.aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
