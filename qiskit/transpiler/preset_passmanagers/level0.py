@@ -34,7 +34,6 @@ from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
-from qiskit.transpiler.passes import LayoutTransformation
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
@@ -83,7 +82,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
-    restore_layout = pass_manager_config.restore_layout
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -128,15 +126,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                             'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
-
-    _restore_layout = []
-    if restore_layout == 'initial':
-        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', 'layout',
-                                                 seed=seed_transpiler)]
-    elif restore_layout == 'trivial':
-        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', seed=seed_transpiler)]
-    elif restore_layout is not None:
-        raise TranspilerError("Invalid restore_layout option %s." % restore_layout)
 
     # 5. Unroll to the basis
     if translation_method == 'unroller':
