@@ -24,6 +24,9 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
     Transpiler pass to remove swaps in front of measurements by re-targeting
     the classical bit of the measure instruction.
+
+    If `all_measurement` is `True` (default is `False`)`, the SWAP to be removed
+    has to be measure on both wires. Otherwise, it stays.
     """
     def __init__(self, all_measurement=False):
         self.all_measurement = all_measurement

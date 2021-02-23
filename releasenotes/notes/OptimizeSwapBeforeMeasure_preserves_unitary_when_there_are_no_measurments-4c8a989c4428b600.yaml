@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes #4911. Level 3 now calls
+    :class:`qiskit.transpiler.passes.optimization.optimize_swap_before_measure.OptimizeSwapBeforeMeasure`
+    with a special parameter to avoid removing SWAP gates when not followed by measurment on both wires.
