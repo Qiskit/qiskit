@@ -187,6 +187,42 @@ class VarQITE(VarQTE):
                             '. Please use a regularized least square method to resolve this issue.')
 
                     print('et', et)
+
+                    # Store the current status
+                    if self._snapshot_dir:
+                        if self._get_error:
+                            if self._init_parameter_values is None:
+                                self._store_params(j * dt, self._parameter_values,
+                                                   error_bound_en_diff, et,
+                                                   resid)
+                            else:
+                                # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+                                # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 |
+                                # trained > |})
+                                # trained_energy_factor: (1 + 2 \delta_t | < trained | H |
+                                # trained > |)
+                                if self._get_h_terms:
+                                    self._store_params(j * dt, self._parameter_values,
+                                                       error_bound_l2, et,
+                                                       resid, f, true_error, true_energy,
+                                                       trained_energy,
+                                                       h_norm, h_squared, dtdt_state, regrad,
+                                                       h_norm_factor, h_squared_factor,
+                                                       trained_energy_factor)
+                                else:
+                                    self._store_params(j * dt, self._parameter_values,
+                                                       error_bound_en_diff, et,
+                                                       resid, f, true_error, true_energy,
+                                                       trained_energy)
+                        else:
+
+                            if self._init_parameter_values is None:
+                                self._store_params(j * dt, self._parameter_values, f, true_error,
+                                                   true_energy, trained_energy)
+                            else:
+                                self._store_params(j * dt, self._parameter_values)
+
+
                     if j == 0:
                         et_prev = 0
                         sqrt_h_prev_square = 0
@@ -211,38 +247,6 @@ class VarQITE(VarQTE):
                 # Subtract is correct either
                 # omega_new = omega - A^(-1)Cdt or
                 # omega_new = omega + A^(-1)((-1)*C)dt
-
-                # Store the current status
-                if self._snapshot_dir:
-                    if self._get_error:
-                        if self._init_parameter_values is None:
-                            self._store_params(j * dt, self._parameter_values,
-                                               error_bound_en_diff, et,
-                                               resid)
-                        else:
-                            # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
-                            # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
-                            # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
-                            if self._get_h_terms:
-                                self._store_params(j * dt, self._parameter_values,
-                                                   error_bound_l2, et,
-                                                   resid,  f,  true_error, true_energy,
-                                                   trained_energy,
-                                                   h_norm, h_squared, dtdt_state, regrad,
-                                                   h_norm_factor, h_squared_factor,
-                                                   trained_energy_factor)
-                            else:
-                                self._store_params(j * dt, self._parameter_values,
-                                                   error_bound_en_diff, et,
-                                                   resid, f, true_error, true_energy,
-                                                   trained_energy)
-                    else:
-
-                        if self._init_parameter_values is None:
-                            self._store_params(j * dt, self._parameter_values, f, true_error,
-                                               true_energy, trained_energy)
-                        else:
-                            self._store_params(j * dt, self._parameter_values)
 
                 self._parameter_values = list(np.add(self._parameter_values, dt * np.real(
                                               nat_grad_result)))
