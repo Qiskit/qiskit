@@ -15,7 +15,6 @@ Look-up table for variable parameters in QuantumCircuit.
 import warnings
 import functools
 from collections.abc import MutableMapping, MappingView
-from itertools import islice
 
 from .instruction import Instruction
 
