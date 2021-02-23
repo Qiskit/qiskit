@@ -35,8 +35,6 @@ class ParameterTable(MutableMapping):
         self._names = {x.name for x in self._table}
 
     def __getitem__(self, key):
-        if isinstance(key, int):
-            return next(islice(self._table.keys(), key, key+1))
         return self._table[key]
 
     def __setitem__(self, parameter, instr_params):

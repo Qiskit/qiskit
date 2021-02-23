@@ -159,21 +159,58 @@ class TestParameters(QiskitTestCase):
 
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
+        phase = Parameter('phase')
         x = Parameter('x')
         y = Parameter('y')
         z = Parameter('z')
         v = ParameterVector('v', 3)
-        qc = QuantumCircuit(1)
+        qc = QuantumCircuit(1, global_phase=phase)
         qc.rx(x, 0)
         qc.rz(z, 0)
         qc.ry(y, 0)
         qc.u(*v, 0)
         params = [0.1 * i for i in range(len(qc.parameters))]
+
+        order = [phase] + v[:] + [x, y, z]
+        param_dict = dict(zip(order, params))
         for assign_fun in ['bind_parameters', 'assign_parameters']:
             with self.subTest(assign_fun=assign_fun):
-                bqc = getattr(qc, assign_fun)(params)
-                for value1, value2 in zip(bqc._parameter_table.values(), params):
-                    self.assertEqual(value1, value2)
+                bqc_anonymous = getattr(qc, assign_fun)(params)
+                bqc_list = getattr(qc, assign_fun)(param_dict)
+                self.assertEqual(bqc_anonymous, bqc_list)
+
+    def test_parameter_order(self):
+        """Test the parameters are sorted by name but parameter vector order takes precedence.
+
+        This means that the following set of parameters
+
+            {a, z, x[0], x[1], x[2], x[3], x[10], x[11]}
+
+        will be sorted as
+
+            [a, x[0], x[1], x[2], x[3], x[10], x[11], z]
+
+        """
+        a, b, some_name, z = [Parameter(name) for name in ['a', 'b', 'some_name', 'z']]
+        x = ParameterVector('x', 12)
+        a_vector = ParameterVector('a_vector', 15)
+
+        qc = QuantumCircuit(2)
+        qc.p(z, 0)
+        for i, x_i in enumerate(reversed(x)):
+            qc.rx(x_i, i % 2)
+        qc.cry(a, 0, 1)
+        qc.crz(some_name, 1, 0)
+        for v_i in a_vector[::2]:
+            qc.p(v_i, 0)
+        for v_i in a_vector[1::2]:
+            qc.p(v_i, 1)
+        qc.p(b, 0)
+
+        expected_order = [a] + a_vector[:] + [b, some_name] + x[:] + [z]
+        actual_order = qc.parameters
+
+        self.assertListEqual(expected_order, list(actual_order))
 
     @data(True, False)
     def test_parameter_order_compose(self, front):

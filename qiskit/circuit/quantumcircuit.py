@@ -1955,7 +1955,7 @@ class QuantumCircuit:
                 raise ValueError('Mismatching number of values and parameters. For partial binding '
                                  'please pass a dictionary of {parameter: value} pairs.')
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self._parameter_table[i], value)
+                bound_circuit._assign_parameter(self.parameters[i], value)
         return None if inplace else bound_circuit
 
     @deprecate_arguments({'value_dict': 'values'})
