@@ -25,6 +25,9 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
     Transpiler pass to remove swaps in front of measurements by re-targeting
     the classical bit of the measure instruction.
     """
+    def __init__(self, all_measurement=False):
+        self.all_measurement = all_measurement
+        super().__init__()
 
     def run(self, dag):
         """Run the OptimizeSwapBeforeMeasure pass on `dag`.
@@ -39,8 +42,10 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         for swap in swaps[::-1]:
             final_successor = []
             for successor in dag.successors(swap):
-                final_successor.append(successor.type == 'out' or (successor.type == 'op' and
-                                                                   successor.op.name == 'measure'))
+                is_final_successor = successor.type == 'op' and successor.op.name == 'measure'
+                if not self.all_measurement:
+                    is_final_successor = is_final_successor or successor.type == 'out'
+                final_successor.append(is_final_successor)
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = swap.qargs

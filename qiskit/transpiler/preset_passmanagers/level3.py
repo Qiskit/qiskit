@@ -177,7 +177,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _reset = [RemoveResetInZeroState()]
 
-    _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+    _meas = [OptimizeSwapBeforeMeasure(all_measurement=True), RemoveDiagonalGatesBeforeMeasure()]
 
     _opt = [
         Collect2qBlocks(),
