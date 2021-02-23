@@ -204,7 +204,7 @@ class Frame(PulseChannel):
         if isinstance(index, ParameterExpression):
             self._parameters.update(index.parameters)
 
-        self._channels = channels
+        self._channels = set(channels)
         for ch in self._channels:
             self._parameters.update(ch.parameters)
 
@@ -257,19 +257,19 @@ class Frame(PulseChannel):
                                                     ParameterValueType]) -> List['Channel']:
         """
         Args:
-            parameter:
-            value:
+            value_dict:
 
         Returns:
              Frame: A Frame in which the parameter has been assigned.
         """
         sub_channels = []
         for ch in self._channels:
-            for param, value in value_dict.items():
-                if param in ch.parameters:
-                    sub_channels.append(ch.assign(param, value))
-            else:
-                sub_channels.append(ch)
+            if isinstance(ch.index, ParameterExpression):
+                for param, value in value_dict.items():
+                    if param in ch.parameters:
+                        ch = ch.assign(param, value)
+
+            sub_channels.append(ch)
 
         return sub_channels
 

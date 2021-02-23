@@ -139,39 +139,72 @@ class TestFrame(QiskitTestCase):
 
     def test_default(self):
         """Test default Frame."""
-        frame = Frame(123, [DriveChannel(1), ControlChannel(0)])
+        frame = Frame(123, [DriveChannel(1), ControlChannel(0), ControlChannel(0)])
 
         self.assertEqual(frame.index, 123)
         self.assertEqual(frame.name, 'f123')
-        self.assertEqual(frame.channels, [DriveChannel(1), ControlChannel(0)])
+        self.assertEqual(frame.channels, {DriveChannel(1), ControlChannel(0)})
+
+    def test_parameters(self):
+        """Test that parameters are properly registered."""
+        f0 = Parameter('name')
+        d0 = DriveChannel(Parameter('d0'))
+        u0 = ControlChannel(Parameter('u0'))
+        frame = Frame(f0, [d0, u0])
+
+        self.assertEqual(len(frame.parameters), 3)
 
     def test_assign_parameter(self):
         """Test that parameter assignment works."""
 
-        # Test coupling between frame parameter and a referenced channel
+        # Test that assignment works when there is a parameter coupling
+        # between the frame index and an index of a sub-channels.
         f0 = Parameter('name')
         d0 = DriveChannel(f0)
         frame = Frame(f0, [d0, ControlChannel(4)])
 
         self.assertEqual(frame.index.name, 'name')
-        self.assertEqual(frame.channels, [d0, ControlChannel(4)])
+        self.assertEqual(frame.channels, {d0, ControlChannel(4)})
 
         new_frame = frame.assign(f0, 123)
         self.assertEqual(new_frame.index, 123)
-        self.assertEqual(new_frame.channels, [DriveChannel(123), ControlChannel(4)])
+        self.assertEqual(new_frame.channels, {DriveChannel(123), ControlChannel(4)})
 
-        # Test coupling between frame parameter and a referenced channel
+        # Test that assignment works when there are multiple parameters.
         p0 = Parameter('p0')
         p1 = Parameter('p1')
         d0 = DriveChannel(p1)
         frame = Frame(p0, [d0, ControlChannel(4)])
 
         self.assertEqual(frame.index.name, 'p0')
-        self.assertEqual(frame.channels, [d0, ControlChannel(4)])
+        self.assertEqual(frame.channels, {d0, ControlChannel(4)})
 
         new_frame = frame.assign(p0, 123)
         self.assertEqual(new_frame.index, 123)
-        self.assertEqual(new_frame.channels, [DriveChannel(p1), ControlChannel(4)])
+        self.assertEqual(new_frame.channels, {DriveChannel(p1), ControlChannel(4)})
+
+        new_frame = new_frame.assign_parameters({p1: 234})
+        self.assertEqual(new_frame.index, 123)
+        self.assertEqual(new_frame.channels, {DriveChannel(234), ControlChannel(4)})
+
+        # Test multi-parameter assignment
+        p0 = Parameter('p0')
+        p1 = Parameter('p1')
+        p2 = Parameter('p2')
+        p3 = Parameter('p3')
+        frame = Frame(p0, [DriveChannel(p1), ControlChannel(p2), ControlChannel(p3)])
+        self.assertEqual(frame.index, p0)
+        frame = frame.assign(p0, 12)
+        self.assertEqual(frame.index, 12)
+
+        frame = frame.assign_parameters({p0: 12, p1: 34, p2: 2})
+        self.assertEqual(frame.channels, {ControlChannel(p3), ControlChannel(2), DriveChannel(34)})
+
+        # Test parameter assignment with math
+        frame = Frame(p0, [DriveChannel(p0), ControlChannel(p0 + 1)])
+        frame = frame.assign_parameters({p0: 12})
+        self.assertEqual(frame.index, 12)
+        self.assertEqual(frame.channels, {ControlChannel(13), DriveChannel(12)})
 
 
 if __name__ == '__main__':
