@@ -298,5 +298,6 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
+
 if __name__ == '__main__':
     unittest.main()
