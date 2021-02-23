@@ -146,15 +146,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    _restore_layout = []
-    if restore_layout == 'initial':
-        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', 'layout',
+    _restore_layout = [LayoutTransformation(coupling_map, 'layout_out', None,
                                                  seed=seed_transpiler, trials=4)]
-    elif restore_layout == 'trivial':
-        _restore_layout += [LayoutTransformation(coupling_map, 'layout_out', 'TRIVIAL',
-                                                 seed=seed_transpiler, trials=4)]
-    elif restore_layout is not None:
-        raise TranspilerError("Invalid restore_layout option %s." % restore_layout)
 
     # 6. Unroll to the basis
     if translation_method == 'unroller':
