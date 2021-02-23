@@ -96,7 +96,7 @@ class OperatorStateFn(StateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import TensoredOp
         return TensoredOp([self, other])
 
