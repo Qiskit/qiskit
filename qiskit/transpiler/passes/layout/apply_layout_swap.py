@@ -26,13 +26,7 @@ from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 
 class ApplyLayoutSwaps(TransformationPass):
-    """TODO Transform a circuit with virtual qubits into a circuit with physical qubits.
-
-    Transforms a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
-    by applying the Layout given in `property_set`.
-    Requires either of passes to set/select Layout, e.g. `SetLayout`, `TrivialLayout`.
-    Assumes the Layout has full physical qubits.
-    """
+    """TODO"""
     def __init__(self, coupling_map: CouplingMap,
                  seed: Union[int, np.random.default_rng] = None,
                  trials: int = 4):
