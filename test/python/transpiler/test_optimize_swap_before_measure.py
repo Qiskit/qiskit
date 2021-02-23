@@ -218,6 +218,85 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
+    def test_all_measurement(self):
+        """OptimizeSwapBeforeMeasure(all_measurement=True) on total measurment
+            qr0:--X-----m--
+                  |     |
+            qr1:--X--m--|--
+                     |  |
+            cr :-----0--1--
+        """
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1])
+        circuit.measure(qr[1], cr[0])
+        circuit.measure(qr[0], cr[1])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[1])
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
+
+    def test_all_measurement_skip(self):
+        """OptimizeSwapBeforeMeasure(all_measurement=True) on no total measurment
+            qr0:--X-----
+                  |
+            qr1:--X--m--
+                     |
+            cr0:-----.--
+        """
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1])
+        circuit.measure(qr[1], cr[0])
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(circuit, after)
+
+    def test_all_measurement_mixed(self):
+        """OptimizeSwapBeforeMeasure(all_measurement=True) on mixed measurment
+            qr0:--X-----------
+                  |
+            qr1:--X--X-----m--
+                     |     |
+            qr2:-----X--m--|--
+                        |  |
+            cr :--------0--1--
+        """
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1])
+        circuit.swap(qr[1], qr[2])
+        circuit.measure(qr[2], cr[0])
+        circuit.measure(qr[1], cr[1])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.swap(qr[0], qr[1])
+        expected.measure(qr[1], cr[0])
+        expected.measure(qr[2], cr[1])
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
 
 if __name__ == '__main__':
     unittest.main()
