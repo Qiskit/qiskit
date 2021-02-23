@@ -86,9 +86,10 @@ class ApplyLayoutSwaps(TransformationPass):
 
         qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
         new_dag.compose(perm_circ.circuit, qubits=qubits)
-        new_dag.compose(dag, qubits=qubits)
 
-        # Reset the layout to trivial
-        self.property_set["layout"] = trivial_layout
+        for node in dag.topological_op_nodes():
+            if node.type == 'op':
+                qargs = [q[layout[qarg]] for qarg in node.qargs]
+                new_dag.apply_operation_back(node.op, qargs, node.cargs)
 
         return new_dag

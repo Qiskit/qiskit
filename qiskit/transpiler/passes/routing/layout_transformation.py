@@ -104,11 +104,15 @@ class LayoutTransformation(TransformationPass):
             raise TranspilerError('to_layout parameter should be a Layout, a string, or None.')
 
         # Find the permutation between the initial physical qubits and final physical qubits.
-        permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
-                       for vqubit, pqubit in from_layout.get_virtual_bits().items()}
+        permutation = {pqubit: self.property_set['layout'][vqubit] for vqubit, pqubit in
+                       from_layout.get_virtual_bits().items()}
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
         qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
         dag.compose(perm_circ.circuit, qubits=qubits)
+
+        # Reset the layout to trivial
+        self.property_set["layout"] = Layout.generate_trivial_layout(*dag.qregs.values())
+
         return dag
