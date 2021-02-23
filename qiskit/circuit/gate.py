@@ -46,7 +46,7 @@ class Gate(Instruction):
         """Return a Numpy.array for the gate unitary matrix.
 
         Returns:
-            np.ndarray: if the Gate subclass has a matrix defintion.
+            np.ndarray: if the Gate subclass has a matrix definition.
 
         Raises:
             CircuitError: If a Gate subclass does not implement this method an

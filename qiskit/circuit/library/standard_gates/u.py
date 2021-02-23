@@ -71,7 +71,7 @@ class UGate(Gate):
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-U3 gate.
+        """Return a (multi-)controlled-U3 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.

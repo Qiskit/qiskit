@@ -546,7 +546,7 @@ class Chart:
         else:
             self.scale = 1.0
 
-        # update vertical range with scalign and limitation
+        # update vertical range with scaling and limitation
         self.vmax = max(self.scale * self.vmax,
                         self.parent.formatter['channel_scaling.pos_spacing'])
 
