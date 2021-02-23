@@ -479,9 +479,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """ rzz drawing. See #1957 """
         expected = '\n'.join(["                          ",
                               "q_0: |0>─■────────────────",
-                              "         │zz(0)           ",
+                              "         │ZZ(0)           ",
                               "q_1: |0>─■───────■────────",
-                              "                 │zz(π/2) ",
+                              "                 │ZZ(π/2) ",
                               "q_2: |0>─────────■────────",
                               "                          "])
         qr = QuantumRegister(3, 'q')
@@ -494,9 +494,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """ cu1 drawing. """
         expected = '\n'.join(["                            ",
                               "q_0: |0>─■─────────■────────",
-                              "         │u1(π/2)  │        ",
+                              "         │U1(π/2)  │        ",
                               "q_1: |0>─■─────────┼────────",
-                              "                   │u1(π/2) ",
+                              "                   │U1(π/2) ",
                               "q_2: |0>───────────■────────",
                               "                            "])
         qr = QuantumRegister(3, 'q')
@@ -509,9 +509,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """ cp drawing. """
         expected = '\n'.join(["                          ",
                               "q_0: |0>─■────────■───────",
-                              "         │p(π/2)  │       ",
+                              "         │P(π/2)  │       ",
                               "q_1: |0>─■────────┼───────",
-                              "                  │p(π/2) ",
+                              "                  │P(π/2) ",
                               "q_2: |0>──────────■───────",
                               "                          "])
         qr = QuantumRegister(3, 'q')
@@ -526,7 +526,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "q_2: |0>───────────■────────",
                               "                   │        ",
                               "q_1: |0>─■─────────┼────────",
-                              "         │u1(π/2)  │u1(π/2) ",
+                              "         │U1(π/2)  │U1(π/2) ",
                               "q_0: |0>─■─────────■────────",
                               "                            "])
         qr = QuantumRegister(3, 'q')
@@ -920,7 +920,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/4838"""
         expected = '\n'.join(["                                               ",
                               "q_0: |0>────────────────■──────────────────────",
-                              "                        │zz(π/2)               ",
+                              "                        │ZZ(π/2)               ",
                               "q_1: |0>────────────────■──────────────────────",
                               "        ┌─────────────────────────────────────┐",
                               "q_2: |0>┤ This is a really long long long box ├",
@@ -936,7 +936,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/4838"""
         expected = '\n'.join(["                                               ",
                               "q_0: |0>────────────────■──────────────────────",
-                              "                        │u1(π/2)               ",
+                              "                        │U1(π/2)               ",
                               "q_1: |0>────────────────■──────────────────────",
                               "        ┌─────────────────────────────────────┐",
                               "q_2: |0>┤ This is a really long long long box ├",
@@ -2773,13 +2773,13 @@ class TestTextOpenControlledGate(QiskitTestCase):
         """Controlled U1 gates."""
         expected = '\n'.join(["                                                           ",
                               "qr_0: |0>─o─────────o─────────o─────────o─────────■────────",
-                              "          │u1(0.1)  │         │         │         │        ",
+                              "          │U1(0.1)  │         │         │         │        ",
                               "qr_1: |0>─■─────────o─────────■─────────■─────────o────────",
-                              "                    │u1(0.2)  │u1(0.3)  │         │        ",
+                              "                    │U1(0.2)  │U1(0.3)  │         │        ",
                               "qr_2: |0>───────────■─────────■─────────o─────────o────────",
-                              "                                        │u1(0.4)  │        ",
+                              "                                        │U1(0.4)  │        ",
                               "qr_3: |0>───────────────────────────────■─────────■────────",
-                              "                                                  │u1(0.5) ",
+                              "                                                  │U1(0.5) ",
                               "qr_4: |0>─────────────────────────────────────────■────────",
                               "                                                           "])
         qreg = QuantumRegister(5, 'qr')
@@ -2829,11 +2829,11 @@ class TestTextOpenControlledGate(QiskitTestCase):
                               "qr_0: |0>─o───────o───────o───────o──────",
                               "          │       │       │       │      ",
                               "qr_1: |0>─■───────o───────■───────■──────",
-                              "          │zz(1)  │       │       │      ",
+                              "          │ZZ(1)  │       │       │      ",
                               "qr_2: |0>─■───────■───────■───────o──────",
-                              "                  │zz(1)  │zz(1)  │      ",
+                              "                  │ZZ(1)  │ZZ(1)  │      ",
                               "qr_3: |0>─────────■───────■───────■──────",
-                              "                                  │zz(1) ",
+                              "                                  │ZZ(1) ",
                               "qr_4: |0>─────────────────────────■──────",
                               "                                         "])
         qreg = QuantumRegister(5, 'qr')

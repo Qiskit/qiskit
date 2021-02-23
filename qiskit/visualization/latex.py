@@ -699,7 +699,7 @@ class QCircuitImage:
                                 #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                 #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{\\hspace{12pt}zz(%s)}\\qw" % \
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
                                     self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 3
@@ -788,7 +788,7 @@ class QCircuitImage:
                                 #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
                                 #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{\\hspace{12pt}zz(%s)}\\qw" % \
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
                                     self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 3

@@ -475,9 +475,9 @@ class MatplotlibDrawer:
     def _sidetext(self, xy, tc=None, text=''):
         xpos, ypos = xy
 
-        # 0.08 = the initial gap, add 1/2 text width to place on the right
+        # 0.11 = the initial gap, add 1/2 text width to place on the right
         text_width = self._get_text_width(text, self._style['sfs'])
-        xp = xpos + 0.08 + text_width / 2
+        xp = xpos + 0.11 + text_width / 2
         self._ax.text(xp, ypos + HIG, text, ha='center', va='top',
                       fontsize=self._style['sfs'], color=tc,
                       clip_on=True, zorder=PORDER_TEXT)
@@ -831,7 +831,7 @@ class MatplotlibDrawer:
                     elif op.name == 'cp':
                         tname = 'P'
                     else:
-                        tname = 'zz'
+                        tname = 'ZZ'
                     gate_width = (self._get_text_width(tname + ' ()',
                                                        fontsize=sfs)
                                   + param_width) * 1.5
@@ -1009,7 +1009,7 @@ class MatplotlibDrawer:
                     elif op.name == 'cp':
                         stext = 'P'
                     else:
-                        stext = 'zz'
+                        stext = 'ZZ'
                     self._sidetext(qreg_b, tc=tc,
                                    text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
