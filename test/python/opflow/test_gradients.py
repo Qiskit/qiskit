@@ -1116,6 +1116,36 @@ class TestQFI(QiskitOpflowTestCase):
                     self.assertEqual(base.compose(composed_op[1].primitive),
                                      base.compose(reference))
 
+    def test_overlap_qfi_bound_parameters(self):
+        """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 2, 3, 0)
+        circuit.rx(x, 0)
+
+        qfi = QFI('overlap_diag').convert(StateFn(circuit), [x])
+        value = qfi.bind_parameters({x: 1}).eval()[0][0]
+        ref = 0.87737713
+        self.assertAlmostEqual(value, ref)
+
+    def test_overlap_qfi_raises_on_multiparam(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = ParameterVector('x', 2)
+        circuit = QuantumCircuit(1)
+        circuit.u(x[0], x[1], 2, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+
+    def test_overlap_qfi_raises_on_unsupported_gate(self):
+        """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.p(x, 0)
+
+        with self.assertRaises(NotImplementedError):
+            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+
 
 if __name__ == '__main__':
     unittest.main()

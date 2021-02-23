@@ -536,9 +536,9 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u3', 'cx'])
+                          basis_gates=['u3', 'u2', 'u1', 'cx'])
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
         self.assertEqual(after, expected)
 
     def test_pass_manager_empty(self):

@@ -19,8 +19,8 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import (PhaseGate, U3Gate,
-                                                   U1Gate, RXGate, RYGate,
+from qiskit.circuit.library.standard_gates import (UGate, PhaseGate, U3Gate,
+                                                   U2Gate, U1Gate, RXGate, RYGate,
                                                    RZGate, RGate, SXGate)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -29,6 +29,7 @@ DEFAULT_ATOL = 1e-12
 
 ONE_QUBIT_EULER_BASIS_GATES = {
     'U3': ['u3'],
+    'U321': ['u3', 'u2', 'u1'],
     'U': ['u'],
     'PSX': ['p', 'sx'],
     'U1X': ['u1', 'rx'],
@@ -48,7 +49,7 @@ class OneQubitEulerDecomposer:
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
     shown in the following table. Note that for the non-Euler bases (U3, U1X,
-    RR), the ZYZ euler parameters are used.
+    RR), the ZYZ Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -67,6 +68,9 @@ class OneQubitEulerDecomposer:
           - :math:`X(\phi) Y(\theta) X(\lambda)`
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
         * - 'U3'
+          - :math:`Z(\phi) Y(\theta) Z(\lambda)`
+          - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
+        * - 'U321'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U'
@@ -93,7 +97,7 @@ class OneQubitEulerDecomposer:
     def __init__(self, basis='U3'):
         """Initialize decomposer
 
-        Supported bases are: 'U', 'PSX', 'ZSX', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
+        Supported bases are: 'U', 'PSX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ', 'XYX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
@@ -155,6 +159,7 @@ class OneQubitEulerDecomposer:
     def basis(self, basis):
         """Set the decomposition basis."""
         basis_methods = {
+            'U321': (self._params_u3, self._circuit_u321),
             'U3': (self._params_u3, self._circuit_u3),
             'U': (self._params_u3, self._circuit_u),
             'PSX': (self._params_u1x, self._circuit_psx),
@@ -195,7 +200,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zyz(mat):
-        """Return the euler angles and phase for the ZYZ basis."""
+        """Return the Euler angles and phase for the ZYZ basis."""
         # We rescale the input matrix to be special unitary (det(U) = 1)
         # This ensures that the quaternion representation is real
         coeff = la.det(mat)**(-0.5)
@@ -215,13 +220,13 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_zxz(mat):
-        """Return the euler angles and phase for the ZXZ basis."""
+        """Return the Euler angles and phase for the ZXZ basis."""
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat)
         return theta, phi + np.pi / 2, lam - np.pi / 2, phase
 
     @staticmethod
     def _params_xyx(mat):
-        """Return the euler angles and phase for the XYX basis."""
+        """Return the Euler angles and phase for the XYX basis."""
         # We use the fact that
         # Rx(a).Ry(b).Rx(c) = H.Rz(a).Ry(-b).Rz(c).H
         mat_zyz = 0.5 * np.array(
@@ -239,7 +244,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u3(mat):
-        """Return the euler angles and phase for the U3 basis."""
+        """Return the Euler angles and phase for the U3 basis."""
         # The determinant of U3 gate depends on its params
         # via det(u3(theta, phi, lam)) = exp(1j*(phi+lam))
         # Since the phase is wrt to a SU matrix we must rescale
@@ -249,7 +254,7 @@ class OneQubitEulerDecomposer:
 
     @staticmethod
     def _params_u1x(mat):
-        """Return the euler angles and phase for the U1X basis."""
+        """Return the Euler angles and phase for the U1X basis."""
         # The determinant of this decomposition depends on its params
         # Since the phase is wrt to a SU matrix we must rescale
         # phase to correct this
@@ -280,13 +285,12 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      phase,
-                     simplify=False,
+                     simplify=True,
                      atol=DEFAULT_ATOL):
+        circuit = QuantumCircuit(1, global_phase=phase)
         if simplify and np.isclose(theta, 0.0, atol=atol):
-            circuit = QuantumCircuit(1, global_phase=phase)
             circuit.append(RZGate(phi + lam), [0])
             return circuit
-        circuit = QuantumCircuit(1, global_phase=phase)
         if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.append(RZGate(lam), [0])
         if not simplify or not np.isclose(theta, 0.0, atol=atol):
@@ -327,6 +331,24 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
+    def _circuit_u321(theta,
+                      phi,
+                      lam,
+                      phase,
+                      simplify=True,
+                      atol=DEFAULT_ATOL):
+        rtol = 1e-9  # default is 1e-5, too far from atol=1e-12
+        circuit = QuantumCircuit(1, global_phase=phase)
+        if simplify and (np.isclose(theta, 0.0, atol=atol, rtol=rtol)):
+            if not np.isclose(phi+lam, [0.0, 2*np.pi], atol=atol, rtol=rtol).any():
+                circuit.append(U1Gate(_mod2pi(phi+lam)), [0])
+        elif simplify and np.isclose(theta, np.pi/2, atol=atol, rtol=rtol):
+            circuit.append(U2Gate(phi, lam), [0])
+        else:
+            circuit.append(U3Gate(theta, phi, lam), [0])
+        return circuit
+
+    @staticmethod
     def _circuit_u(theta,
                    phi,
                    lam,
@@ -335,7 +357,7 @@ class OneQubitEulerDecomposer:
                    atol=DEFAULT_ATOL):
         # pylint: disable=unused-argument
         circuit = QuantumCircuit(1, global_phase=phase)
-        circuit.u(theta, phi, lam, 0)
+        circuit.append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod

@@ -920,6 +920,17 @@ class TestStatevector(QiskitTestCase):
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        sv = Statevector.from_instruction(qc1)
+        with self.subTest(msg='str(statevector)'):
+            str(sv)
+        for drawtype in ['text', 'latex', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                sv.draw(drawtype)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -20,8 +20,8 @@ from qiskit.visualization.state_visualization import plot_bloch_multivector
 
 
 def iplot_bloch_multivector(rho, figsize=None):
-    """ Create a bloch sphere representation.
-        Graphical representation of the input array, using as much bloch
+    """ Create a Bloch sphere representation.
+        Graphical representation of the input array, using as much Bloch
         spheres as qubit are required.
         Args:
             rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
