@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 from scipy.linalg import expm
+from scipy.integrate import OdeSolver, ode
 
 from qiskit.quantum_info import state_fidelity
 
@@ -74,33 +75,29 @@ class VarQRTE(VarQTE):
         # ODE Solver
 
         if self._ode_solver is not None:
-            # TODO gradient error or state error?
-            # ||e_t||^2
-            def ode_fun(time, params):
-                param_dict = dict(zip(self._parameters, params))
-                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                et = self._error_t(self._operator, nat_grad_result, grad_res,
-                                               metric_res)[0]
-                dw_et = self._grad_error_t(self._operator, nat_grad_result, grad_res,
-                                               metric_res)
-                print('grad error', et)
-                warnings.warn('Be careful that the following output is for the fidelity before '
-                              'the parameter update.')
-                fid_and_errors = self._distance_energy(time, trained_param_dict=dict(zip(
-                    self._parameters, self._parameter_values)))
-                # return nat_grad_result
-                return dw_et
+            if isinstance(self._ode_solver, OdeSolver):
+                self._ode_solver.t_bound = dt * self._num_time_steps
+            elif isinstance(self._ode_solver, ode):
+                self._ode_solver.set_integrator('vode', method='bdf')
+                self._ode_solver.set_initial_value(self._parameter_values, 0)
 
-            # def jac_ode_fun(params):
-            #     param_dict = dict(zip(self._parameters, params))
-            #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            #     return np.dot(metric_res, nat_grad_result) + grad_res
+                t1 = dt * self._num_time_steps
 
-            # self._ode_solver.fun = ode_fun
-            # self._ode_solver.jac = jac_ode_fun
-            self._ode_solver(fun=ode_fun, t0=0, y0=self._parameter_values,
-                             t_bound=dt*self._num_time_steps, first_step=dt)
-            self._parameter_values = self._ode_solver.y
+                dt = 1
+
+                while self._ode_solver.successful() and self._ode_solver.t < t1:
+                    print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
+                        self._ode_solver.t +
+                        dt))
+                    self._parameter_values = self._ode_solver.y
+                    print('time', self._ode_solver.t)
+                _ = self._distance_energy(dt * self._num_time_steps,
+                                          trained_param_dict=dict(zip(self._parameters,
+                                                                      self._parameter_values)))
+
+                # Return variationally evolved operator
+                return self._operator[-1].assign_parameters(dict(zip(self._parameters,
+                                                                     self._parameter_values)))
 
 
         for j in range(self._num_time_steps):
@@ -121,6 +118,10 @@ class VarQRTE(VarQTE):
 
                     # Get the error for the current step
                     e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
+                    if et < 0 and np.abs(et) > 1e-4:
+                        raise Warning('Non-neglectible negative et observed')
+                    else:
+                        et = np.sqrt(np.real(et))
                     error += dt * e_t
                     print('dt', dt)
                     print('et', e_t)
@@ -179,7 +180,7 @@ class VarQRTE(VarQTE):
                  metric: Union[List, np.ndarray]) -> float:
 
         """
-        Evaluate the square root of the l2 norm for a single time step of VarQRTE.
+        Evaluate the l2 norm of the error for a single time step of VarQRTE.
 
         Args:
             operator: ⟨ψ(ω)|H|ψ(ω)〉
@@ -188,7 +189,7 @@ class VarQRTE(VarQTE):
             metric: Fubini-Study Metric
 
         Returns:
-            square root of the l2 norm of the error
+            The l2 norm of the error
         """
         if not isinstance(operator, ComposedOp):
             raise TypeError('Currently this error can only be computed for operators given as '
@@ -217,7 +218,7 @@ class VarQRTE(VarQTE):
 
 
         # print('E_t squared', np.round(eps_squared, 4))
-        return np.sqrt(eps_squared)
+        return eps_squared
 
     def _grad_error_t(self,
                  operator: OperatorBase,

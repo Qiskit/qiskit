@@ -20,6 +20,7 @@ import os
 import csv
 
 from scipy.integrate import OdeSolver, ode
+from scipy.optimize import least_squares
 
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -30,6 +31,7 @@ from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow import StateFn, ListOp, CircuitSampler
 from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, \
     NaturalGradient
+
 
 class VarQTE(EvolutionBase):
     """Variational Quantum Time Evolution.
@@ -117,6 +119,38 @@ class VarQTE(EvolutionBase):
         self._nat_grad = None
         self._metric = None
         self._grad = None
+
+        if self._ode_solver is not None:
+            def ode_fun(time, params):
+                param_dict = dict(zip(self._parameters, params))
+                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+
+                def argmin_fun(dt_param_values):
+                    et_squared = self._error_t(self._operator, dt_param_values, grad_res,
+                                               metric_res)[0]
+                    print('grad error', et_squared)
+                    return et_squared
+
+                def jac_argmin_fun(dt_param_values):
+                    dw_et_squared = self._grad_error_t(self._operator, dt_param_values, grad_res,
+                                                       metric_res)
+                    return dw_et_squared
+                # TODO remove
+                _ = self._distance_energy(time, trained_param_dict=dict(zip(
+                    self._parameters, params)))
+                # TODO remove alternative
+                # return nat_grad_result
+                ls = least_squares(fun=argmin_fun, x0=params, jac=jac_argmin_fun,
+                                     bounds=(0, 2 * np.pi))
+                return ls.x
+
+            if isinstance(self._ode_solver, OdeSolver):
+                self._ode_solver=self._ode_solver(fun=ode_fun, t0=0, y0=self._parameter_values)
+            elif self._ode_solver == ode:
+                self._ode_solver = ode(ode_fun)
+            else:
+                raise TypeError('Please define a valid ODESolver')
+
 
     @abstractmethod
     def convert(self,

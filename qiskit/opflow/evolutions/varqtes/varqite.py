@@ -38,7 +38,7 @@ class VarQITE(VarQTE):
     def convert(self,
                 operator: ListOp) -> StateFn:
         """
-        Apply Variational Quantum Imaginary Time Evolution (VarIQTE) w.r.t. the given operator
+        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given operator
         Args:
             operator:
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
@@ -76,46 +76,10 @@ class VarQITE(VarQTE):
         # ODE Solver
 
         if self._ode_solver is not None:
-            # ||e_t||^2
-            # def ode_fun(time, params):
-            #     param_dict = dict(zip(self._parameters, params))
-            #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            #     e_t = self._error_t(self._operator, nat_grad_result, grad_res,
-            #                                    metric_res)[0]
-            #     warnings.warn('Be careful that the following output is for the fidelity before '
-            #                   'the parameter update.')
-            #     fid_and_errors = self._distance_energy(time, trained_param_dict=dict(zip(
-            #         self._parameters, self._parameter_values)))
-            #     return [e_t ** 2]
-            def ode_fun(time, params):
-                param_dict = dict(zip(self._parameters, params))
-                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                et = self._error_t(self._operator, nat_grad_result, grad_res,
-                                               metric_res)[0]
-                dw_et = self._grad_error_t(self._operator, nat_grad_result, grad_res,
-                                               metric_res)
-                print('grad error', et)
-                warnings.warn('Be careful that the following output is for the fidelity before '
-                              'the parameter update.')
-                fid_and_errors = self._distance_energy(time, trained_param_dict=dict(zip(
-                    self._parameters, self._parameter_values)))
-                # return nat_grad_result
-                return dw_et
-
-            # def jac_ode_fun(params):
-            #     param_dict = dict(zip(self._parameters, params))
-            #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            #     return np.dot(metric_res, nat_grad_result) + grad_res
-
-            # self._ode_solver.fun = ode_fun
-            # self._ode_solver.jac = jac_ode_fun
             if isinstance(self._ode_solver, OdeSolver):
-                self._ode_solver=self._ode_solver(fun=ode_fun, t0=0, y0=self._parameter_values,
-                                 t_bound=dt*self._num_time_steps)
-            # elif isinstance(self._ode_solver, ode):
-            else:
-                self._ode_solver = ode(ode_fun).set_integrator('vode', method='bdf')
-
+                self._ode_solver.t_bound = dt * self._num_time_steps
+            elif isinstance(self._ode_solver, ode):
+                self._ode_solver.set_integrator('vode', method='bdf')
                 self._ode_solver.set_initial_value(self._parameter_values, 0)
 
                 t1 = dt*self._num_time_steps
@@ -129,13 +93,12 @@ class VarQITE(VarQTE):
                     self._parameter_values = self._ode_solver.y
                     print('time', self._ode_solver.t)
                 _ = self._distance_energy(dt * self._num_time_steps,
-                                                       trained_param_dict=dict(zip(
-                                                       self._parameters,
-                                                       self._parameter_values)))
+                                          trained_param_dict=dict(zip(self._parameters,
+                                          self._parameter_values)))
 
                 # Return variationally evolved operator
                 return self._operator[-1].assign_parameters(dict(zip(self._parameters,
-                                                                     self._parameter_values)))
+                                                                     self._ode_solver.y)))
             # else:
             #     raise TypeError('Please provide a scipy ODESolver or ode type object.')
 
@@ -169,6 +132,10 @@ class VarQITE(VarQTE):
                     # Get the error for the current step
                     et, h_squared, exp, dtdt_state, regrad = self._error_t(
                         self._operator, nat_grad_result, grad_res, metric_res)
+                    if et < 0 and np.abs(et) > 1e-4:
+                        raise Warning('Non-neglectible negative et observed')
+                    else:
+                        et = np.sqrt(np.real(et))
                     # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
                     h_norm_factor = (1 + 2 * dt * h_norm) ** (operator.coeff - j - 1)
                     # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
@@ -349,7 +316,7 @@ class VarQITE(VarQTE):
          metric: Union[List, np.ndarray]) -> float:
 
         """
-        Evaluate the square root of the l2 norm for a single time step of VarQRTE.
+        Evaluate the l2 norm of the error for a single time step of VarQITE.
 
         Args:
             operator: ⟨ψ(ω)|H|ψ(ω)〉
@@ -408,7 +375,7 @@ class VarQITE(VarQTE):
             if np.abs(eps_squared) < 1e-10:
                 eps_squared = 0
         print('Grad error', np.sqrt(eps_squared))
-        return np.sqrt(eps_squared), h_squared,  exp, dtdt_state, regrad2 * 0.5
+        return eps_squared, h_squared,  exp, dtdt_state, regrad2 * 0.5
 
     def _grad_error_t(self,
                  operator: OperatorBase,
@@ -417,7 +384,7 @@ class VarQITE(VarQTE):
                  metric: Union[List, np.ndarray]) -> float:
 
         """
-        Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
+        Evaluate the gradient of the l2 norm for a single time step of VarQITE.
 
         Args:
             operator: ⟨ψ(ω)|H|ψ(ω)〉
