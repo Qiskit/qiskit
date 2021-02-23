@@ -1483,7 +1483,7 @@ class TestParameterExpressions(QiskitTestCase):
         elif target_type == 'instruction':
             gate = qc1.to_instruction(parameter_map={theta: theta_p, phi: phi_p})
 
-        self.assertEqual(gate.params, [theta_p, phi_p])
+        self.assertListEqual(gate.params, [theta_p, phi_p])
 
         delta = Parameter('delta')
         qr2 = QuantumRegister(3, name='qr2')
@@ -1491,7 +1491,7 @@ class TestParameterExpressions(QiskitTestCase):
         qc2.ry(delta, qr2[0])
         qc2.append(gate, qargs=[qr2[1]])
 
-        self.assertEqual(qc2.parameters, {delta, theta_p, phi_p})
+        self.assertListEqual(list(qc2.parameters), [delta, phi_p, theta_p])
 
         binds = {delta: 1, theta_p: 2, phi_p: 3}
         expected_qc = QuantumCircuit(qr2)
