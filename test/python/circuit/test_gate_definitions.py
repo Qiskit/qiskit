@@ -247,6 +247,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params[0] = 2
                 if gate_class.__name__ in ['PauliGate']:
                     params = ["IXYZ"]
+                if gate_class.__name__ in ['BooleanExpression']:
+                    params = ["x | y"]
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
