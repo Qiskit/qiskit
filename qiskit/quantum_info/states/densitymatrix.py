@@ -174,6 +174,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if isinstance(out, str):
             print(out)
         else:
+            from IPython.display import display
             display(out)
 
     @property
