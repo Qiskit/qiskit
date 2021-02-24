@@ -68,6 +68,7 @@ Optimizations
    Collect2qBlocks
    ConsolidateBlocks
    CXCancellation
+   SWAPCancellation
    CommutationAnalysis
    CommutativeCancellation
    RemoveDiagonalGatesBeforeMeasure
@@ -156,6 +157,7 @@ from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CXCancellation
+from .optimization import SWAPCancellation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure

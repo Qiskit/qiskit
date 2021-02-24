@@ -19,6 +19,7 @@ from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis
 from .commutative_cancellation import CommutativeCancellation
 from .cx_cancellation import CXCancellation
+from .swap_cancellation import SWAPCancellation
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .remove_reset_in_zero_state import RemoveResetInZeroState
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
