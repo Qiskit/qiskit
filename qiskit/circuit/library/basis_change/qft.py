@@ -19,8 +19,6 @@ from qiskit.circuit import QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
-# pylint: disable=no-member
-
 
 class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.
@@ -189,7 +187,7 @@ class QFT(BlueprintCircuit):
 
     @do_swaps.setter
     def do_swaps(self, do_swaps: bool) -> None:
-        """Specifiy whether to do the final swaps of the QFT circuit or not.
+        """Specify whether to do the final swaps of the QFT circuit or not.
 
         Args:
             do_swaps: If True, the final swaps are applied, if False not.

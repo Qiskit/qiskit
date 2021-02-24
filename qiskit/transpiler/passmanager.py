@@ -21,7 +21,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .runningpassmanager import RunningPassManager
+from .runningpassmanager import RunningPassManager, FlowController
 
 
 class PassManager:
@@ -60,6 +60,9 @@ class PassManager:
             passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
                     passes that are controlled by the same flow controller. If a single pass is
                     provided, the pass set will only have that pass a single element.
+                    It is also possible to append a
+                    :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
+                    rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
             flow_controller_conditions: control flow plugins.
 
@@ -156,7 +159,10 @@ class PassManager:
                                                                               other.__class__))
 
     @staticmethod
-    def _normalize_passes(passes: Union[BasePass, List[BasePass]]) -> List[BasePass]:
+    def _normalize_passes(passes: Union[BasePass, List[BasePass], FlowController])\
+            -> List[BasePass]:
+        if isinstance(passes, FlowController):
+            return passes
         if isinstance(passes, BasePass):
             passes = [passes]
         for pass_ in passes:

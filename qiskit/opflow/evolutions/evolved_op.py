@@ -12,7 +12,6 @@
 
 """ EvolutionOp Class """
 
-import logging
 from typing import List, Optional, Set, Union, cast
 
 import numpy as np
@@ -21,8 +20,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class EvolvedOp(PrimitiveOp):
@@ -52,7 +49,7 @@ class EvolvedOp(PrimitiveOp):
         return self.primitive.num_qubits  # type: ignore
 
     def add(self, other: OperatorBase) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
@@ -81,7 +78,7 @@ class EvolvedOp(PrimitiveOp):
         return self.primitive == other.primitive
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.tensored_op import TensoredOp
         if isinstance(other, TensoredOp):
             return TensoredOp([self] + other.oplist)  # type: ignore
@@ -89,7 +86,7 @@ class EvolvedOp(PrimitiveOp):
         return TensoredOp([self, other])
 
     def _expand_dim(self, num_qubits: int) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..operator_globals import I
 
         return self.tensor(I ^ num_qubits)
@@ -99,7 +96,7 @@ class EvolvedOp(PrimitiveOp):
 
     def compose(self, other: OperatorBase,
                 permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.composed_op import ComposedOp
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         if front:
@@ -123,7 +120,7 @@ class EvolvedOp(PrimitiveOp):
         return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)  # type: ignore
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):
@@ -142,7 +139,7 @@ class EvolvedOp(PrimitiveOp):
         return cast(Union[OperatorBase, float, complex], self.to_matrix_op().eval(front=front))
 
     def to_matrix(self, massive: bool = False) -> Union[np.ndarray, List[np.ndarray]]:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
         if self.primitive.__class__.__name__ == ListOp.__name__:
             return [
@@ -153,12 +150,11 @@ class EvolvedOp(PrimitiveOp):
             ]
 
         prim_mat = -1.j * self.primitive.to_matrix()  # type: ignore
-        # pylint: disable=no-member
         return scipy.linalg.expm(prim_mat) * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
         from ..primitive_ops.matrix_op import MatrixOp
         if self.primitive.__class__.__name__ == ListOp.__name__:

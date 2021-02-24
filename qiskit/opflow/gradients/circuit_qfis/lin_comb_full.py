@@ -30,7 +30,7 @@ from .circuit_qfi import CircuitQFI
 class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).
 
-    Given a pure, parametrized quantum state this class uses the linear combination of unitaries
+    Given a pure, parameterized quantum state this class uses the linear combination of unitaries
     approach, requiring one additional working qubit.
     See also :class:`~qiskit.opflow.QFI`.
     """
@@ -75,7 +75,7 @@ class LinCombFull(CircuitQFI):
             trim_after_grad_gate=True
         )
         # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
-        if type(gradient_states) == ListOp:  # pylint: disable=unidiomatic-typecheck
+        if type(gradient_states) == ListOp:
             phase_fix_states = gradient_states.oplist
         else:
             phase_fix_states = [gradient_states]

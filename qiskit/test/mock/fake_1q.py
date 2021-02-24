@@ -27,7 +27,7 @@ class Fake1Q(FakeBackend):
           0
         """
         mock_time = datetime.datetime.now()
-        dt = 1.3333  # pylint: disable=invalid-name
+        dt = 1.3333
         configuration = BackendProperties(
             backend_name='fake_1q',
             backend_version='0.0.0',

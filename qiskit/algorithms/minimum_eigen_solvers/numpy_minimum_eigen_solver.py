@@ -23,8 +23,6 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
     The Numpy Minimum Eigensolver algorithm.

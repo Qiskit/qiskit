@@ -37,7 +37,7 @@ class AmplitudeAmplifier(ABC):
 
 
 class AmplitudeAmplifierResult(AlgorithmResult):
-    """The rmplification result base class."""
+    """The amplification result base class."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -79,7 +79,7 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         """Set the value for the assignment.
 
         Args:
-            value: A new value for the assigment/solution.
+            value: A new value for the assignment/solution.
         """
         self._assignment = value
 
