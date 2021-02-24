@@ -114,7 +114,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
         """Return a visualization of the Statevector.
 
-        **repr**: ASCII TextMatrix of the state's ``_repr_``.
+        **repr**: ASCII TextMatrix of the state's ``__repr__``.
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
@@ -130,8 +130,10 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Args:
             output (str): Select the output method to use for drawing the
-                circuit. Valid choices are `repr`, `text`, `latex`, `latex_source`,
-                `qsphere`, `hinton`, or `bloch`. Default is `repr`.
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                `qsphere`, `hinton`, or `bloch`. Default is `repr`. Default can
+                be changed by adding the line ``state_drawer = <default>`` to
+                ``~/.qiskit/settings.conf`` under ``[default]``.
             max_size (int): Maximum number of elements before array is
                 summarized instead of fully represented. For `latex`
                 and `latex_source` drawers, this is also the maximum number
@@ -161,11 +163,11 @@ class Statevector(QuantumState, TolerancesMixin):
                             prefix=prefix, **drawer_args)
 
     def _ipython_display_(self):
-        from IPython.display import display
         out = self.draw()
         if isinstance(out, str):
             print(out)
         else:
+            from IPython.display import display
             display(out)
 
     @property
