@@ -128,7 +128,7 @@ class SparsePauliOp(LinearOp):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
@@ -323,7 +323,7 @@ class SparsePauliOp(LinearOp):
     def from_operator(obj, atol=None, rtol=None):
         """Construct from an Operator objector.
 
-        Note that the cost of this contruction is exponential as it involves
+        Note that the cost of this construction is exponential as it involves
         taking inner products with every element of the N-qubit Pauli basis.
 
         Args:
