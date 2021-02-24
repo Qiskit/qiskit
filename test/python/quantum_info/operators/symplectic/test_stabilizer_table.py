@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for StabilizerTable class."""
 
 import unittest
@@ -848,23 +846,28 @@ class TestStabilizerTableMethods(QiskitTestCase):
                 self.assertTrue(np.all(i.toarray() == stab_mat(labels[idx])))
 
     def test_tensor(self):
-        """Test tensor and expand methods."""
+        """Test tensor method."""
         labels1 = ['-XX', 'YY']
         labels2 = ['III', '-ZZZ']
         stab1 = StabilizerTable.from_labels(labels1)
         stab2 = StabilizerTable.from_labels(labels2)
 
-        with self.subTest(msg='tensor'):
-            target = StabilizerTable.from_labels(
-                ['-XXIII', 'XXZZZ', 'YYIII', '-YYZZZ'])
-            value = stab1.tensor(stab2)
-            self.assertEqual(value, target)
+        target = StabilizerTable.from_labels(
+            ['-XXIII', 'XXZZZ', 'YYIII', '-YYZZZ'])
+        value = stab1.tensor(stab2)
+        self.assertEqual(value, target)
 
-        with self.subTest(msg='expand'):
-            target = StabilizerTable.from_labels(
-                ['-IIIXX', 'ZZZXX', 'IIIYY', '-ZZZYY'])
-            value = stab1.expand(stab2)
-            self.assertEqual(value, target)
+    def test_expand(self):
+        """Test expand method."""
+        labels1 = ['-XX', 'YY']
+        labels2 = ['III', '-ZZZ']
+        stab1 = StabilizerTable.from_labels(labels1)
+        stab2 = StabilizerTable.from_labels(labels2)
+
+        target = StabilizerTable.from_labels(
+            ['-IIIXX', 'IIIYY', 'ZZZXX', '-ZZZYY'])
+        value = stab1.expand(stab2)
+        self.assertEqual(value, target)
 
     def test_compose(self):
         """Test compose and dot methods."""

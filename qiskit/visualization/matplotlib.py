@@ -17,7 +17,6 @@
 import collections
 import itertools
 import json
-import logging
 import re
 import os
 from warnings import warn
@@ -32,13 +31,11 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.visualization.qcstyle import DefaultStyle, set_style
 from qiskit.circuit import Delay
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
-
-logger = logging.getLogger(__name__)
 
 # Default gate width and height
 WID = 0.65
@@ -55,6 +52,7 @@ PORDER_SUBP = 4
 
 class Anchor:
     """Locate the anchors for the gates"""
+
     def __init__(self, reg_num, yind, fold):
         self.__yind = yind
         self.__fold = fold
@@ -362,11 +360,9 @@ class MatplotlibDrawer:
 
         if gate_text in self._style['disptex']:
             gate_text = "{}".format(self._style['disptex'][gate_text])
-        else:
-            gate_text = "{}".format(gate_text[0].upper() + gate_text[1:])
+        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
+            gate_text = gate_text.capitalize()
 
-        if ctrl_text:
-            ctrl_text = "{}".format(ctrl_text[0].upper() + ctrl_text[1:])
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
@@ -770,7 +766,6 @@ class MatplotlibDrawer:
         _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry',
                               'rz', 'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'u', 'swap', 'reset',
                               'sx', 'sxdg', 'p']
-        _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -796,7 +791,7 @@ class MatplotlibDrawer:
             # compute the layer_width for this layer
             #
             for op in layer:
-                if op.name in [*_barrier_gates, 'measure']:
+                if op.op._directive or op.name == 'measure':
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -876,7 +871,7 @@ class MatplotlibDrawer:
                 # only add the gate to the anchors if it is going to be plotted.
                 # this prevents additional blank wires at the end of the line if
                 # the last instruction is a barrier type
-                if self._plot_barriers or op.name not in _barrier_gates:
+                if self._plot_barriers or not op.op._directive:
                     for ii in q_idxs:
                         q_anchors[ii].set_index(this_anc, layer_width)
 
@@ -944,7 +939,7 @@ class MatplotlibDrawer:
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
 
-                elif op.name in _barrier_gates:
+                elif op.op._directive:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
@@ -1052,7 +1047,7 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all([op.name in _barrier_gates for op in layer]) else 0
+                barrier_offset = -1 if all([op.op._directive for op in layer]) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
         #

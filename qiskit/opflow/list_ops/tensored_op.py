@@ -59,7 +59,7 @@ class TensoredOp(ListOp):
         Returns:
             TensoredOp expanded with identity operator.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..operator_globals import I
         return TensoredOp(self.oplist + [I ^ num_qubits], coeff=self.coeff)
 
@@ -94,7 +94,7 @@ class TensoredOp(ListOp):
         Raises:
             OpflowError: for operators where a single underlying circuit can not be produced.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         circuit_op = self.to_circuit_op()
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):

@@ -299,10 +299,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test control labels"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cy(1, 0, label='Bottom Y Label')
-        circuit.cy(2, 3, label='Top Y Label')
-        circuit.ch(0, 1, label='Top H Label')
-        circuit.append(HGate(label='H Gate Label').control(3, label='H Control Label',
+        circuit.cy(1, 0, label='Bottom Y label')
+        circuit.cy(2, 3, label='Top Y label')
+        circuit.ch(0, 1, label='Top H label')
+        circuit.append(HGate(label='H gate label').control(3, label='H control label',
                                                            ctrl_state='010'),
                        [qr[1], qr[2], qr[3], qr[0]])
 
@@ -321,7 +321,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test controlled GHZ to_gate circuit"""
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
-        ghz_circuit = QuantumCircuit(3, name='This is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
+        ghz_circuit = QuantumCircuit(3, name='this is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
         ghz_circuit.h(0)
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)

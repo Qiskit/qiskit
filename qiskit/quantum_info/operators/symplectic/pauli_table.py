@@ -21,9 +21,10 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class PauliTable(BaseOperator):
+class PauliTable(BaseOperator, AdjointMixin):
     r"""Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
@@ -242,7 +243,7 @@ class PauliTable(BaseOperator):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -271,7 +272,7 @@ class PauliTable(BaseOperator):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
 
         # Row deletion
@@ -306,7 +307,7 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliTable):
@@ -466,7 +467,7 @@ class PauliTable(BaseOperator):
         sort_inds = index.argsort()
         index = index[sort_inds]
         unique = self[index]
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique, )
         if return_index:
             ret += (index, )
@@ -509,9 +510,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x2, x1, z2, z1]))
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -542,9 +541,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x1, x2, z1, z2]))
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -576,7 +573,6 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
         if not isinstance(other, PauliTable):
@@ -631,6 +627,12 @@ class PauliTable(BaseOperator):
         """
         return self.compose(other, qargs=qargs, front=True)
 
+    @classmethod
+    def _tensor(cls, a, b):
+        x1, x2 = a._block_stack(a.X, b.X)
+        z1, z2 = a._block_stack(a.Z, b.Z)
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
+
     def _add(self, other, qargs=None):
         """Append with another PauliTable.
 
@@ -643,7 +645,7 @@ class PauliTable(BaseOperator):
                                   (Default: None)
 
         Returns:
-            PauliTable: the concatinated table self + other.
+            PauliTable: the concatenated table self + other.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
@@ -662,6 +664,10 @@ class PauliTable(BaseOperator):
             np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
         return PauliTable(np.vstack((self._array, padded._array)))
+
+    def __add__(self, other):
+        qargs = getattr(other, 'qargs', None)
+        return self._add(other, qargs=qargs)
 
     def conjugate(self):
         """Not implemented."""
@@ -736,7 +742,7 @@ class PauliTable(BaseOperator):
         Args:
             other (PauliTable): a PauliTable.
             anti (bool): if True return rows that anti-commute, otherwise
-                         return rows taht commute (Default: False).
+                         return rows that commute (Default: False).
 
         Returns:
             array: index array of commuting or anti-commuting row.
@@ -773,7 +779,7 @@ class PauliTable(BaseOperator):
         tmp = PauliTable(pauli_table.array ^ pauli.array)
         tmp.X = (tmp.X & non_iden)
         tmp.Z = (tmp.Z & non_iden)
-        # Find total number of non I pauli's remaining in table
+        # Find total number of non I Pauli's remaining in table
         # if there are an even number the row commutes with the
         # input Pauli, otherwise it anti-commutes
         return np.logical_not(np.sum((tmp.X | tmp.Z), axis=1) % 2)
@@ -1058,3 +1064,7 @@ class PauliTable(BaseOperator):
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(PauliTable)

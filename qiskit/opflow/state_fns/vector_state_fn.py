@@ -68,7 +68,7 @@ class VectorStateFn(StateFn):
             # Covers Statevector and custom.
             return VectorStateFn((self.coeff * self.primitive) + (other.primitive * other.coeff),
                                  is_measurement=self._is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import SummedOp
         return SummedOp([self, other])
 
@@ -127,7 +127,7 @@ class VectorStateFn(StateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import TensoredOp
         return TensoredOp([self, other])
 
@@ -179,7 +179,7 @@ class VectorStateFn(StateFn):
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
         from .operator_state_fn import OperatorStateFn
         from .circuit_state_fn import CircuitStateFn

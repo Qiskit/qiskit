@@ -140,7 +140,7 @@ def _assemble_circuit(
             instruction.conditional = conditional_reg_idx
             max_conditional_idx += 1
             # Delete condition attribute now that we have replaced it with
-            # the conditional and bfuc
+            # the conditional and bfunc
             del instruction._condition
 
         instructions.append(instruction)
