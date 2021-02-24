@@ -965,8 +965,19 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         if entanglement == 'linear' or m == 1:
             return linear
 
+<<<<<<< HEAD
         # circular equals linear plus top-bottom entanglement
         circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+=======
+        if entanglement == 'pairwise':
+            return linear[::2] + linear[1::2]
+
+        # circular equals linear plus top-bottom entanglement (if there's space for it)
+        if n > m:
+            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        else:
+            circular = linear
+>>>>>>> d299de195... Fix circular entanglement edge case in ``NLocal`` (#5884)
         if entanglement == 'circular':
             return circular
 
