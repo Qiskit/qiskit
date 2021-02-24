@@ -127,12 +127,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         # It does not break any others that we tested.
         return unitary_circuit.decompose().decompose()
 
-    def _run(self) -> HamiltonianPhaseEstimationResult:
-        """Run the circuit and return and return `HamiltonianPhaseEstimationResult`.
-        """
-
-        circuit_result = self._quantum_instance.execute(self.construct_circuit())
-        phases = self._compute_phases(circuit_result)
+    def _result(self, circuit_result, phases) -> HamiltonianPhaseEstimationResult:
         return HamiltonianPhaseEstimationResult(
             self._num_evaluation_qubits, phases=phases, id_coefficient=self._id_coefficient,
             circuit_result=circuit_result, phase_estimation_scale=self._pe_scale)

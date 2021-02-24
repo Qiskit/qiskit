@@ -189,23 +189,21 @@ class PhaseEstimation(PhaseEstimator):
                  state_preparation: Optional[QuantumCircuit] = None,
                  pe_circuit: Optional[QuantumCircuit] = None,
                  num_unitary_qubits: Optional[int] = None) -> PhaseEstimationResult:
-
-        super().estimate(num_evaluation_qubits, unitary, state_preparation,
-                         pe_circuit, num_unitary_qubits)
-        return self._run()
-
-    def _run(self) -> PhaseEstimationResult:
         """Run the circuit and return and return `PhaseEstimationResult`.
 
 
         Returns:
                An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
-
+        super().estimate(num_evaluation_qubits, unitary, state_preparation,
+                         pe_circuit, num_unitary_qubits)
         if hasattr(self._quantum_instance, 'execute'):
             circuit_result = self._quantum_instance.execute(self.construct_circuit())
         else:
             circuit_result = self._quantum_instance.run(self.construct_circuit())
         phases = self._compute_phases(circuit_result)
+        return self._result(circuit_result, phases)
+
+    def _result(self, circuit_result, phases) -> PhaseEstimationResult:
         return PhaseEstimationResult(self._num_evaluation_qubits, circuit_result=circuit_result,
                                      phases=phases)
