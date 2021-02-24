@@ -24,7 +24,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
@@ -251,7 +250,7 @@ class QCircuitImage:
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                                'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
                                'crz', 'cu3', 'id']
-                target_gates = ['cx', 'ccx']
+                target_gates = ['cx', 'ccx', 'cu1', 'cp', 'rzz']
                 if op.name in boxed_gates:
                     self.has_box = True
                 if op.name in target_gates:
@@ -293,8 +292,8 @@ class QCircuitImage:
         for layer in self.ops:
             column_width = 1
             for nd in layer:
-                if nd.name in ['cu1', 'rzz']:
-                    column_width = 2
+                if nd.name in ['cu1', 'cp', 'rzz']:
+                    column_width = 3
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -380,7 +379,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cp', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
@@ -658,20 +657,22 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
                                 elif cond == '1':
                                     self._latex[pos_1][column] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                dname = 'U_1' if nm == 'cu1' else 'P'
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (dname, self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                # this is because this gate takes up 2 columns,
+                                # this is because this gate takes up 3 columns,
                                 # and we have just written to the next column
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
@@ -689,12 +690,15 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 # Based on the \cds command of the qcircuit package
+                                # self._latex[min(pos_1, pos_2)][column + 1] = \
+                                #    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
+                                    self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -744,18 +748,20 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
                                 elif cond == '1':
                                     self._latex[pos_1][column] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                dname = 'U_1' if nm == 'cu1' else 'P'
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (dname, self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
@@ -773,12 +779,15 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 # Based on the \cds command of the qcircuit package
+                                # self._latex[min(pos_1, pos_2)][column + 1] = \
+                                #    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
+                                    self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
@@ -1023,58 +1032,3 @@ def _truncate_float(matchobj, ndigits=3):
     if matchobj.group(0):
         return '%.{}g'.format(ndigits) % float(matchobj.group(0))
     return ''
-
-
-def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
-    """Latex representation of a complex numpy array (with dimension 1 or 2)
-
-        Args:
-            array (ndarray): The array to be converted to latex, must have dimension 1 or 2 and
-                             contain only numerical data.
-            precision (int): For numbers not close to integers or common terms, the number of
-                             decimal places to round to.
-            pretext (str): Latex string to be prepended to the latex, intended for labels.
-            source (bool): If ``False``, will return IPython.display.Latex object. If display is
-                           ``True``, will instead return the LaTeX source string.
-            max_size (list(int) or int): The maximum size of the output Latex array.
-                      * If list(```int```), then the 0th element of the list specifies the maximum
-                        width (including dots characters) and the 1st specifies the maximum height
-                        (also inc. dots characters).
-                      * If a single ```int``` then this value sets the maximum width _and_ maximum
-                        height.
-
-        Returns:
-            if ``source`` is ``True``:
-                ``str``: LaTeX string representation of the array, wrapped in `$$`.
-            else:
-                ``IPython.display.Latex``: LaTeX representation of the array.
-
-        Raises:
-            TypeError: If array can not be interpreted as a numerical numpy array.
-            ValueError: If the dimension of array is not 1 or 2.
-            ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
-                         imported.
-    """
-    try:
-        array = np.asarray(array)
-        _ = array[0]+1  # Test first element contains numerical data
-    except TypeError as err:
-        raise TypeError("""array_to_latex can only convert numpy arrays containing numerical data,
-        or types that can be converted to such arrays""") from err
-
-    if array.ndim <= 2:
-        if isinstance(max_size, int):
-            max_size = (max_size, max_size)
-        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
-    else:
-        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
-
-    if source is False:
-        try:
-            from IPython.display import Latex
-        except ImportError as err:
-            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
-                                         " source string, set `source=True`).")
-        return Latex(outstr)
-    else:
-        return outstr
