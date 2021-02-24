@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Core module of the pulse drawer.
 
@@ -548,7 +546,7 @@ class Chart:
         else:
             self.scale = 1.0
 
-        # update vertical range with scalign and limitation
+        # update vertical range with scaling and limitation
         self.vmax = max(self.scale * self.vmax,
                         self.parent.formatter['channel_scaling.pos_spacing'])
 

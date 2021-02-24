@@ -209,7 +209,8 @@ class QasmBackendConfiguration:
                  default_rep_delay=None, max_experiments=None,
                  sample_name=None, n_registers=None, register_map=None,
                  configurable=None, credits_required=None, online_date=None,
-                 display_name=None, description=None, tags=None, dt=None, dtm=None, **kwargs):
+                 display_name=None, description=None, tags=None, dt=None, dtm=None,
+                 processor_type=None, **kwargs):
         """Initialize a QasmBackendConfiguration Object
 
         Args:
@@ -254,6 +255,14 @@ class QasmBackendConfiguration:
             tags (list): A list of string tags to describe the backend
             dt (float): Qubit drive channel timestep in nanoseconds.
             dtm (float): Measurement drive channel timestep in nanoseconds.
+            processor_type (dict): Processor type for this backend. A dictionary of the
+                form ``{"family": <str>, "revision": <number>, segment: <str>}`` such as
+                ``{"family": "Canary", "revision": 1.0, segment: "A"}``.
+
+                - family: Processor family of this backend.
+                - revision: Revision number of this processor.
+                - segment: Segment this processor belongs to within a larger chip.
+
             **kwargs: optional fields
         """
         self._data = {}
@@ -305,9 +314,11 @@ class QasmBackendConfiguration:
         # Add pulse properties here because some backends do not
         # fit within the Qasm / Pulse backend partitioning in Qiskit
         if dt is not None:
-            self.dt = dt * 1e-9  # pylint: disable=invalid-name
+            self.dt = dt * 1e-9
         if dtm is not None:
             self.dtm = dtm * 1e-9
+        if processor_type is not None:
+            self.processor_type = processor_type
 
         if 'qubit_lo_range' in kwargs.keys():
             kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
@@ -378,7 +389,7 @@ class QasmBackendConfiguration:
         for kwarg in ['max_experiments', 'sample_name', 'n_registers',
                       'register_map', 'configurable', 'credits_required',
                       'online_date', 'display_name', 'description',
-                      'tags', 'dt', 'dtm']:
+                      'tags', 'dt', 'dtm', 'processor_type']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
 
@@ -548,7 +559,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
 
-        self.dt = dt * 1e-9  # pylint: disable=invalid-name
+        self.dt = dt * 1e-9
         self.dtm = dtm * 1e-9
 
         if channels is not None:
@@ -651,7 +662,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if self.rep_times:
             out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
 
-        out_dict['dt'] *= 1e9  # pylint: disable=invalid-name
+        out_dict['dt'] *= 1e9
         out_dict['dtm'] *= 1e9
 
         if hasattr(self, 'channel_bandwidth'):

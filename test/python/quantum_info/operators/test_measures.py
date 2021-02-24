@@ -168,7 +168,6 @@ class TestOperatorMeasures(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_diamond_norm(self, num_qubits):
         """Test the diamond_norm for {num_qubits}-qubit pauli channel."""
-        # pylint: disable=import-outside-toplevel
         try:
             import cvxpy
         except ImportError:

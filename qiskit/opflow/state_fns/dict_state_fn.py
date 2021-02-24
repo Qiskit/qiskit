@@ -100,7 +100,7 @@ class DictStateFn(StateFn):
                 new_dict.update({b: v * other.coeff for (b, v) in other.primitive.items()
                                  if b not in self.primitive})
                 return StateFn(new_dict, is_measurement=self._is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
         return SummedOp([self, other])
 
@@ -137,7 +137,7 @@ class DictStateFn(StateFn):
             return StateFn(new_dict,
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops.tensored_op import TensoredOp
         return TensoredOp([self, other])
 
@@ -213,7 +213,7 @@ class DictStateFn(StateFn):
         if not isinstance(front, OperatorBase):
             front = StateFn(front)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
 
         # If the primitive is a lookup of bitstrings,

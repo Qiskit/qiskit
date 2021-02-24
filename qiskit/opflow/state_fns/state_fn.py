@@ -73,7 +73,7 @@ class StateFn(OperatorBase):
         if cls.__name__ != StateFn.__name__:
             return super().__new__(cls)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         if isinstance(primitive, (str, dict, Result)):
             from .dict_state_fn import DictStateFn
             return DictStateFn.__new__(DictStateFn)
@@ -205,7 +205,7 @@ class StateFn(OperatorBase):
     def _expand_shorter_operator_and_permute(self, other: OperatorBase,
                                              permutation: Optional[List[int]] = None) \
             -> Tuple[OperatorBase, OperatorBase]:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..operator_globals import Zero
 
         if self == StateFn({'0': 1}, is_measurement=True):
@@ -263,7 +263,6 @@ class StateFn(OperatorBase):
         if front:
             return other.compose(self)
         # TODO maybe include some reduction here in the subclasses - vector and Op, op and Op, etc.
-        # pylint: disable=import-outside-toplevel
         from ..primitive_ops.circuit_op import CircuitOp
 
         if self.primitive == {'0' * self.num_qubits: 1.0} and isinstance(other, CircuitOp):
@@ -320,7 +319,6 @@ class StateFn(OperatorBase):
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=import-outside-toplevel
                 from ..list_ops.list_op import ListOp
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
@@ -367,7 +365,7 @@ class StateFn(OperatorBase):
         Returns:
             A VectorStateFn equivalent to self.
         """
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .vector_state_fn import VectorStateFn
         return VectorStateFn(self.to_matrix(massive=massive), is_measurement=self.is_measurement)
 
