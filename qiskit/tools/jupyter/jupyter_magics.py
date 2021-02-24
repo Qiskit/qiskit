@@ -23,7 +23,7 @@ from IPython.core.magic import (cell_magic, line_magic,
 
 try:
     import ipywidgets as widgets
-except ImportError:
+except ImportError as ex:
     raise ImportError('These functions  need ipywidgets. '
                       'Run "pip install ipywidgets" before.') from ex
 import qiskit

@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
-
 """Optimizer interface"""
 
 from enum import IntEnum
@@ -25,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class OptimizerSupportLevel(IntEnum):
     """ Support Level enum for features such as bounds, gradient and initial point """
+    # pylint: disable=invalid-name
     not_supported = 0  # Does not support the corresponding parameter in optimize()
     ignored = 1  # Feature can be passed as non None but will be ignored
     supported = 2  # Feature is supported
