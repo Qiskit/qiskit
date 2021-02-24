@@ -256,10 +256,12 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 qr_ancilla = []
 
             self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
+            self._qubit_set = set(self._qubits)
             self._ancillas = qr_ancilla[:]
         else:
             self.qregs = []
             self._qubits = []
+            self._qubit_set = set()
             self._ancillas = []
 
     def _build(self):
