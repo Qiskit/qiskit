@@ -19,7 +19,8 @@ import numpy as np
 import os
 import csv
 
-from scipy.integrate import OdeSolver, ode
+
+from scipy.integrate import OdeSolver, ode, solve_ivp
 from scipy.optimize import least_squares
 
 from qiskit.providers import BaseBackend
@@ -31,6 +32,8 @@ from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow import StateFn, ListOp, CircuitSampler
 from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, \
     NaturalGradient
+
+from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
 
 class VarQTE(EvolutionBase):
@@ -120,37 +123,6 @@ class VarQTE(EvolutionBase):
         self._metric = None
         self._grad = None
 
-        if self._ode_solver is not None:
-            def ode_fun(time, params):
-                param_dict = dict(zip(self._parameters, params))
-                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-
-                def argmin_fun(dt_param_values):
-                    et_squared = self._error_t(self._operator, dt_param_values, grad_res,
-                                               metric_res)[0]
-                    print('grad error', et_squared)
-                    return et_squared
-
-                def jac_argmin_fun(dt_param_values):
-                    dw_et_squared = self._grad_error_t(self._operator, dt_param_values, grad_res,
-                                                       metric_res)
-                    return dw_et_squared
-                # TODO remove
-                _ = self._distance_energy(time, trained_param_dict=dict(zip(
-                    self._parameters, params)))
-                # TODO remove alternative
-                # return nat_grad_result
-                ls = least_squares(fun=argmin_fun, x0=params, jac=jac_argmin_fun,
-                                     bounds=(0, 2 * np.pi))
-                return ls.x
-
-            if isinstance(self._ode_solver, OdeSolver):
-                self._ode_solver=self._ode_solver(fun=ode_fun, t0=0, y0=self._parameter_values)
-            elif self._ode_solver == ode:
-                self._ode_solver = ode(ode_fun)
-            else:
-                raise TypeError('Please define a valid ODESolver')
-
 
     @abstractmethod
     def convert(self,
@@ -192,16 +164,129 @@ class VarQTE(EvolutionBase):
                                              regularization=self._regularization
                                              ).convert(self._operator * -0.5, self._parameters)
 
-        # self._grad = Gradient(self._grad_method, epsilon=self._epsilon).convert(self._operator,
-        #                                                                         self._parameters)
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
 
         if self._backend is not None:
-            # self._nat_grad = CircuitSampler(self._backend).convert(self._nat_grad)
+            self._nat_grad = CircuitSampler(self._backend).convert(self._nat_grad)
             self._metric = CircuitSampler(self._backend).convert(self._metric)
             self._grad = CircuitSampler(self._backend).convert(self._grad)
+
+    def _init_ode_solver(self, t: float):
+        """
+        Initialize ODE Solver
+        Args:
+            t: time
+        """
+        def ode_fun(time, params):
+            param_dict = dict(zip(self._parameters, params))
+            nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+
+            def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:
+                """
+                Search for the dω/dt which minimizes ||e_t||^2
+
+                Args:
+                    dt_param_values: values for dω/dt
+                Returns:
+                    ||e_t||^2 for given for dω/dt
+
+                """
+                et_squared = self._error_t(self._operator, dt_param_values, grad_res,
+                                           metric_res)[0]
+                print('grad error', et_squared)
+                return et_squared
+
+            def jac_argmin_fun(dt_param_values: Union[List, np.ndarray]
+                               ) -> Union[List, np.ndarray]:
+                """
+                Get tge gradient of ||e_t||^2 w.r.t. dω/dt for given values
+
+                Args:
+                    dt_param_values: values for dω/dt
+                Returns:
+                    Gradient of ||e_t||^2 w.r.t. dω/dt
+
+                """
+                dw_et_squared = self._grad_error_t(self._operator, dt_param_values, grad_res,
+                                                   metric_res)
+                return dw_et_squared
+
+
+            # # TODO remove
+            # # Used to check the intermediate fidelity
+            _ = self._distance_energy(time, trained_param_dict=dict(zip(
+                self._parameters, params)))
+            # TODO remove alternative
+            # TODO We could also easily run this with the natural gradient result. Good results.
+            # return nat_grad_result
+
+            # ls = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+            #                      bounds=(0, 2 * np.pi), ftol=1e-2)
+
+            # Use the natural gradient result as initial point for least squares solver
+            ls = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+                               ftol=1e-8)
+            print('least squares solved')
+            print('initial natural gradient result', nat_grad_result)
+            print('final dt_omega', ls.x)
+            return ls.x
+
+        if issubclass(self._ode_solver, OdeSolver):
+            self._ode_solver=self._ode_solver(fun=ode_fun, t0=0,
+                                              t_bound=t, y0=self._parameter_values)
+        elif self._ode_solver == ode:
+            self._ode_solver = ode(ode_fun)
+
+        elif self._ode_solver == solve_ivp:
+            self._ode_solver = ode(ode_fun, (0, t), y0=self._parameter_values, method='BDF')
+        elif self._ode_solver == backward_euler_fsolve:
+            self._ode_solver=self._ode_solver(ode_fun,  tspan=(0, t), y0=self._parameter_values,
+                                              n=self._num_time_steps)
+        else:
+            raise TypeError('Please define a valid ODESolver')
+        return
+
+    def _run_ode_solver(self, t):
+        self._init_ode_solver(t=t)
+        if isinstance(self._ode_solver, OdeSolver):
+            while self._ode_solver.t < t:
+                self._ode_solver.step()
+                print('ode time', self._ode_solver.t)
+                param_values = self._ode_solver.y
+                print('ode parameters', self._ode_solver.y)
+                print('ode step size', self._ode_solver.step_size)
+                if self._ode_solver.status == 'finished':
+                    break
+                elif self._ode_solver.status == 'failed':
+                    raise Warning('ODESolver failed')
+        elif isinstance(self._ode_solver, ode):
+            self._ode_solver.set_integrator('vode', method='bdf')
+            self._ode_solver.set_initial_value(self._parameter_values, 0)
+
+            t1 = t
+
+            dt = 1
+
+            while self._ode_solver.successful() and self._ode_solver.t < t1:
+                print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
+                    self._ode_solver.t +
+                    dt))
+                param_values = self._ode_solver.y
+                print('ode time', self._ode_solver.t)
+        elif isinstance(self._ode_solver, backward_euler_fsolve):
+            t, param_values = self._ode_solver.run()
+
+            # Return variationally evolved operator
+
+
+        else:
+            raise TypeError('Please provide a scipy ODESolver or ode type object.')
+
+        _ = self._distance_energy(dt * self._num_time_steps,
+                                  trained_param_dict=dict(zip(self._parameters, param_values)))
+        return param_values
 
     def _inner_prod(self,
                     x: Iterable,
@@ -358,12 +443,8 @@ class VarQTE(EvolutionBase):
         #     return nat_grad
 
         if not all(ew >= -1e-8 for ew in w):
-            raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
-                                                                                'Please use a '
-                                                                                'regularized '
-                                                                                'least-square '
-                                                                                'solver for this '
-                                                                                'problem.')
+            raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
+                          '. Please use a regularized least-square solver for this problem.')
         if not all(ew >= 0 for ew in w):
             w = [max(0, ew) for ew in w]
             metric_res = v @ np.diag(w) @ np.linalg.inv(v)

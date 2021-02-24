@@ -25,6 +25,8 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.opflow.evolutions.varqte import VarQTE
 from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, CircuitSampler, OperatorBase
 
+from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
+
 
 class VarQRTE(VarQTE):
     """Variational Quantum Real Time Evolution.
@@ -34,7 +36,6 @@ class VarQRTE(VarQTE):
     given Hermitian operator and quantum state.
     """
 
-    # TODO time parameter in Hamiltonian
     def convert(self,
                 operator: ComposedOp) -> StateFn:
         """
@@ -53,7 +54,6 @@ class VarQRTE(VarQTE):
             time evolution.
 
         """
-        # or len(operator.oplist) != 2
         if not isinstance(operator, ComposedOp):
             raise TypeError('Please provide the operator as a ComposedOp consisting of the '
                             'observable and the state (as CircuitStateFn).')
@@ -75,100 +75,61 @@ class VarQRTE(VarQTE):
         # ODE Solver
 
         if self._ode_solver is not None:
-            if isinstance(self._ode_solver, OdeSolver):
-                self._ode_solver.t_bound = dt * self._num_time_steps
-            elif isinstance(self._ode_solver, ode):
-                self._ode_solver.set_integrator('vode', method='bdf')
-                self._ode_solver.set_initial_value(self._parameter_values, 0)
-
-                t1 = dt * self._num_time_steps
-
-                dt = 1
-
-                while self._ode_solver.successful() and self._ode_solver.t < t1:
-                    print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
-                        self._ode_solver.t +
-                        dt))
-                    self._parameter_values = self._ode_solver.y
-                    print('time', self._ode_solver.t)
-                _ = self._distance_energy(dt * self._num_time_steps,
-                                          trained_param_dict=dict(zip(self._parameters,
-                                                                      self._parameter_values)))
-
-                # Return variationally evolved operator
-                return self._operator[-1].assign_parameters(dict(zip(self._parameters,
-                                                                     self._parameter_values)))
-
+            self._parameter_values = self._run_ode_solver(dt * self._num_time_steps)
+            # Return variationally evolved operator
+            return self._operator[-1].assign_parameters(dict(zip(self._parameters,
+                                                                 self._parameter_values)))
 
         for j in range(self._num_time_steps):
 
-            if self._ode_solver is None:
-                # Get the natural gradient - time derivative of the variational parameters - and
-                # the gradient w.r.t. H and the QFI/4.
-                nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-                print('Nat grad result', np.round(nat_grad_result, 3))
-                print('grad_res', np.round(grad_res, 3))
-                print('metric ', np.real(np.round(metric_res, 3)))
+            # Get the natural gradient - time derivative of the variational parameters - and
+            # the gradient w.r.t. H and the QFI/4.
+            nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
 
-                # Evaluate the error bound
+            # Evaluate the error bound
+            if self._get_error:
+                # Get the residual for McLachlan's Variational Principle
+                resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
+
+                # Get the error for the current step
+                e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
+                if et < 0 and np.abs(et) > 1e-4:
+                    raise Warning('Non-neglectible negative et observed')
+                else:
+                    et = np.sqrt(np.real(et))
+                error += dt * e_t
+                print('dt', dt)
+                print('et', e_t)
+                print('Error', np.round(error, 3),  'after', j, ' time steps.')
+
+            # TODO enable the use of arbitrary ODE solvers
+            # Propagate the Ansatz parameters step by step using explicit Euler
+            self._parameter_values = list(np.add(self._parameter_values, dt *
+                                                 np.real(nat_grad_result)))
+
+
+            # Assign parameter values to parameter items
+            param_dict = dict(zip(self._parameters, self._parameter_values))
+            # If initial parameter values were set compute the fidelity, the error between the
+            # prepared and the target state, the energy w.r.t. the target state and the energy
+            # w.r.t. the prepared state
+            if self._init_parameter_values is not None:
+                f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
+                                                                            param_dict)
+
+            # Store the current status
+            if self._snapshot_dir:
                 if self._get_error:
-                    # Get the residual for McLachlan's Variational Principle
-                    resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
-                    print('Residual norm', resid)
-
-                    # Get the error for the current step
-                    e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
-                    if et < 0 and np.abs(et) > 1e-4:
-                        raise Warning('Non-neglectible negative et observed')
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values)
                     else:
-                        et = np.sqrt(np.real(et))
-                    error += dt * e_t
-                    print('dt', dt)
-                    print('et', e_t)
-                    print('Error', np.round(error, 3),  'after', j, ' time steps.')
-
-                # TODO enable the use of arbitrary ODE solvers
-                # Propagate the Ansatz parameters step by step using explicit Euler
-                self._parameter_values = list(np.add(self._parameter_values, dt *
-                                                     np.real(nat_grad_result)))
-                print('param values', self._parameter_values)
-                # else:
-                #     self._ode_solver.step()
-                #     self._parameter_values = self._ode_solver.y
-                #     if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
-                #         break
-
-                # Assign parameter values to parameter items
-                param_dict = dict(zip(self._parameters, self._parameter_values))
-                # If initial parameter values were set compute the fidelity, the error between the
-                # prepared and the target state, the energy w.r.t. the target state and the energy
-                # w.r.t. the prepared state
-                if self._init_parameter_values is not None:
-                    f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
-                                                                                param_dict)
-                    print('Fidelity', f)
-                    print('True error', true_error)
-
-
-
-                # Store the current status
-                if self._snapshot_dir:
-                    if self._get_error:
-                        if self._init_parameter_values:
-                            self._store_params((j + 1) * dt, self._parameter_values)
-                        else:
-                            self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
+                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
+                else:
+                    if self._init_parameter_values:
+                        self._store_params((j + 1) * dt, self._parameter_values, f,
+                                       true_error, true_energy, trained_energy)
                     else:
-                        if self._init_parameter_values:
-                            self._store_params((j + 1) * dt, self._parameter_values, f,
-                                           true_error, true_energy, trained_energy)
-                        else:
-                            self._store_params((j + 1) * dt, self._parameter_values)
-            else:
-                self._ode_solver.step()
-                self._parameter_values = self._ode_solver.y
-                if self._ode_solver.status == 'finished' or self._ode_solver.status == 'failed':
-                    break
+                        self._store_params((j + 1) * dt, self._parameter_values)
 
         # Return variationally evolved operator
         return self._operator.oplist[-1].assign_parameters(param_dict)
@@ -197,27 +158,26 @@ class VarQRTE(VarQTE):
         eps_squared = 0
 
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        hsquared = ComposedOp([~StateFn(operator.oplist[0].primitive ** 2
+        h_squared = ComposedOp([~StateFn(operator.oplist[0].primitive ** 2
                                         * operator.oplist[0].coeff ** 2), operator.oplist[-1]]
                               ).assign_parameters(dict(zip(self._parameters,
-                                                           self._parameter_values))).eval()
+                                                           self._parameter_values)))
 
-        print('Varqte H^2', np.round(hsquared, 4))
-        eps_squared += hsquared
+        if self._backend is not None:
+            h_squared = CircuitSampler(self._backend).convert(h_squared)
+
+        h_squared = np.real(h_squared.eval())
+        eps_squared += h_squared
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         dotdot = self._inner_prod(ng_res, np.dot(metric, ng_res))
-        print('dot dot', np.round(dotdot, 4))
         eps_squared += dotdot
 
-        # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)〉
-        print('2 Im grad', np.round(self._inner_prod(grad_res, ng_res), 4))
+        # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)
         # 2 missing b.c. of Im
         imgrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared -= imgrad2
 
-
-        # print('E_t squared', np.round(eps_squared, 4))
         return eps_squared
 
     def _grad_error_t(self,
@@ -251,10 +211,9 @@ class VarQRTE(VarQTE):
         # print('E_t squared', np.round(eps_squared, 4))
         return grad_eps_squared
 
-
     def _distance_energy(self,
-                        time: Union[float, complex],
-                        trained_param_dict: Dict) -> (float, float, float):
+                         time: Union[float, complex],
+                         trained_param_dict: Dict) -> (float, float, float):
         """
         Evaluate the fidelity to the target state, the energy w.r.t. the target state and
         the energy w.r.t. the trained state for a given time and the current parameter set
