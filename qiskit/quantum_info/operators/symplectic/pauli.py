@@ -12,7 +12,7 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re

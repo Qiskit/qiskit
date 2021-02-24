@@ -18,7 +18,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-# pylint: disable=unused-import
 from qiskit.extensions.simulator import Snapshot
 
 
