@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,import-error
+# pylint: disable=invalid-name
 # pylint: disable=inconsistent-return-statements,unsubscriptable-object
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 

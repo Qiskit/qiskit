@@ -113,7 +113,7 @@ def plot_gate_map(backend, figsize=None,
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
@@ -436,7 +436,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
                           'run "pip install matplotlib".')
     import matplotlib
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 
