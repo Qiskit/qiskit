@@ -66,8 +66,7 @@ class CommutativeCancellation(TransformationPass):
         #    qubits and commutation sets.
 
         for wire in dag.wires:
-            wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
-            wire_commutation_set = self.property_set['commutation_set'][wire_name]
+            wire_commutation_set = self.property_set['commutation_set'][wire]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):
                 if com_set[0].type in ['in', 'out']:
@@ -75,18 +74,17 @@ class CommutativeCancellation(TransformationPass):
                 for node in com_set:
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
-                        cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
+                        cancellation_sets[(node.name, wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['z', 'u1', 'rz', 't', 's']:
-                        cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
+                        cancellation_sets[('z_rotation', wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['rx', 'x']:
-                        cancellation_sets[('x_rotation', wire_name, com_set_idx)].append(node)
+                        cancellation_sets[('x_rotation', wire, com_set_idx)].append(node)
                     # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
                     # it should be dealt with by optimized1qgate pass
                     elif num_qargs == 2 and node.qargs[0] == wire:
-                        second_op_name = "{}[{}]".format(str(node.qargs[1].register.name),
-                                                         str(node.qargs[1].index))
-                        q2_key = (node.name, wire_name, second_op_name, com_set_idx,
-                                  self.property_set['commutation_set'][(node, second_op_name)])
+                        second_qarg = node.qargs[1]
+                        q2_key = (node.name, wire, second_qarg, com_set_idx,
+                                  self.property_set['commutation_set'][(node, second_qarg)])
                         cancellation_sets[q2_key].append(node)
 
         for cancel_set_key in cancellation_sets:

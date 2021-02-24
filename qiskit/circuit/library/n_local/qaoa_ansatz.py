@@ -121,6 +121,7 @@ class QAOAAnsatz(BlueprintCircuit):
         """Set the registers and qubits to the new size."""
         self._qregs = []
         self._qubits = []
+        self._qubit_set = set()
 
         if num_qubits > 0:
             qr = QuantumRegister(num_qubits, 'q')
