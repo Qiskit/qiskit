@@ -86,7 +86,8 @@ class PhaseEstimationScale():
             return (phi - 1) * w + id_coefficient
 
     # pylint: disable=unsubscriptable-object
-    def scale_phases(self, phases: Union[List, Dict], id_coefficient: float = 0.0) -> Union[Dict, List]:
+    def scale_phases(self, phases: Union[List, Dict], id_coefficient: float = 0.0
+                     ) -> Union[Dict, List]:
         """Convert a list or dict of phases to eigenvalues.
 
         The values in the list, or keys in the dict, are values of `phi` and

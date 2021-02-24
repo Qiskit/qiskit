@@ -125,12 +125,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def test_from_bound(self):
         """HamiltonianPhaseEstimation with bound"""
         result = self._setup_from_bound(MatrixEvolution())
-        phases = result.filter_phases()
+        cutoff = 0.01
+        phases = result.filter_phases(cutoff)
         with self.subTest('test phases has the correct length'):
             self.assertEqual(len(phases), 2)
         with self.subTest('test scaled phases are correct'):
             self.assertEqual(list(phases.keys()), [1.5, -1.5])
-        phases = result.filter_phases(scaled=False)
+        phases = result.filter_phases(cutoff, scaled=False)
         with self.subTest('test unscaled phases are correct'):
             self.assertEqual(list(phases.keys()), [0.25, 0.75])
         with self.subTest('test most_likely_phase method'):

@@ -16,7 +16,7 @@ from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import EvolutionBase, OperatorBase, SummedOp
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from . import phase_estimation_scale
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
@@ -50,6 +50,17 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
          `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
     """
 
+    def __init__(self,
+                 num_evaluation_qubits: int,
+                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+        self._pe_scale = None
+        self._bound = None
+        self._evolution = None
+        self._hamiltonian = None
+        self._id_coefficient = None
+        super().__init__(num_evaluation_qubits=num_evaluation_qubits,
+                         quantum_instance=quantum_instance)
+
     def _set_scale(self) -> None:
         if self._bound is None:
             pe_scale = phase_estimation_scale.from_pauli_sum(self._hamiltonian)
@@ -81,10 +92,11 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
             self._num_evaluation_qubits, phases=phases, id_coefficient=self._id_coefficient,
             circuit_result=circuit_result, phase_estimation_scale=self._pe_scale)
 
+    # pylint: disable=arguments-differ
     def estimate(self, hamiltonian: OperatorBase,
                  evolution: EvolutionBase,
                  state_preparation: Optional[QuantumCircuit] = None,
-                 bound: Optional[float] = None):
+                 bound: Optional[float] = None) -> HamiltonianPhaseEstimationResult:
         """
         Args:
             hamiltonian: a Hermitian operator.
@@ -95,6 +107,10 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
             bound: An upper bound on the absolute value of the eigenvalues of
                 `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
                 then a bound will be computed.
+
+        Returns:
+               HamiltonianPhaseEstimationResult instance containing the result of the estimation
+            and diagnostic information.
 
         Raises:
             ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a

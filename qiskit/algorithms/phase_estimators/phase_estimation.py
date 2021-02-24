@@ -18,7 +18,6 @@ from typing import Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit
 import qiskit
-import qiskit.circuit as circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -70,6 +69,7 @@ class PhaseEstimation(PhaseEstimator):
                            `num_unitary_qubits` disagrees with size of `unitary`.
         """
 
+        self._measurements_added = False
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
 
@@ -153,6 +153,8 @@ class PhaseEstimation(PhaseEstimator):
         """Run the circuit and return and return `PhaseEstimationResult`.
 
            Args:
+            num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
+                                   be estimated as a binary string with this many bits.
             unitary: The circuit representing the unitary operator whose eigenvalues (via phase)
                      will be measured. Exactly one of `pe_circuit` and `unitary` must be passed.
             state_preparation: The circuit that prepares the state whose eigenphase will be
