@@ -35,9 +35,10 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,
-            hamiltonian=hamiltonian, quantum_instance=quantum_instance,
+            quantum_instance=quantum_instance)
+        result = phase_est.estimate(
+            hamiltonian=hamiltonian,
             state_preparation=state_preparation, evolution=evolution)
-        result = phase_est.estimate()
         return result
 
     # pylint: disable=invalid-name
@@ -114,12 +115,11 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         backend = qiskit.BasicAer.get_backend('statevector_simulator')
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6,
-                                               hamiltonian=hamiltonian,
+                                               quantum_instance=qi)
+        result = phase_est.estimate(hamiltonian=hamiltonian,
                                                bound=bound,
-                                               quantum_instance=qi,
-                                               state_preparation=state_preparation,
-                                               evolution=evolution)
-        result = phase_est.estimate()
+                                    evolution=evolution,
+                                    state_preparation=state_preparation)
         return result
 
     def test_from_bound(self):
@@ -162,10 +162,9 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             backend = qiskit.BasicAer.get_backend('qasm_simulator')
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         p_est = PhaseEstimation(num_evaluation_qubits=n_eval_qubits,
-                                unitary=unitary_circuit,
-                                quantum_instance=qi,
+                                quantum_instance=qi)
+        result = p_est.estimate(unitary=unitary_circuit,
                                 state_preparation=state_preparation)
-        result = p_est.estimate()
         phase = result.most_likely_phase
         return phase
 
@@ -227,10 +226,9 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         """
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits,
-                                    unitary=unitary_circuit,
-                                    quantum_instance=qi,
+                                    quantum_instance=qi)
+        result = phase_est.estimate(unitary=unitary_circuit,
                                     state_preparation=state_preparation)
-        result = phase_est.estimate()
         return result
 
     def test_qpe_Zplus(self):

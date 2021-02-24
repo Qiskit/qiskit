@@ -49,57 +49,6 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
          T.E. O'Brien, B. Tarasinski, B.M. Terhal
          `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
     """
-    def __init__(self,
-                 num_evaluation_qubits: int,
-                 hamiltonian: OperatorBase,
-                 evolution: EvolutionBase,
-                 state_preparation: Optional[QuantumCircuit] = None,
-                 bound: Optional[float] = None,
-                 quantum_instance: Optional[Union[QuantumInstance,
-                                                  BaseBackend, Backend]] = None) -> None:
-        """
-        Args:
-            num_evaluation_qubits: The number of qubits used in estimating the phase. The phase
-                will be estimated as a binary string with this many bits.
-            hamiltonian: a Hermitian operator.
-            evolution: An evolution object that generates a unitary from `hamiltonian`.
-            state_preparation: The circuit that prepares the state whose eigenphase will be
-                measured. If this parameter is omitted, no preparation circuit will be run and
-                input state will be the all-zero state in the computational basis.
-            bound: An upper bound on the absolute value of the eigenvalues of
-                `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
-                then a bound will be computed.
-            quantum_instance: The quantum instance on which the circuit will be run.
-
-        Raises:
-            ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
-            `SummedOp` whose terms are `PauliOp`s.)
-        """
-
-        self._evolution = evolution
-        self._bound = bound
-
-        # The term propto the identity is removed from hamiltonian.
-        # This is done for three reasons:
-        # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
-        #    cases.
-        # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
-        # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
-        #   occupies more of the range of values representable by the qubit register.
-        # The coefficient of this term will be added to the eigenvalues.
-        id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-        self._hamiltonian = hamiltonian_no_id
-        self._id_coefficient = id_coefficient
-
-        self._set_scale()
-        unitary = self._get_unitary()
-
-        super().__init__(num_evaluation_qubits,
-                         unitary=unitary,
-                         pe_circuit=None,
-                         num_unitary_qubits=None,
-                         state_preparation=state_preparation,
-                         quantum_instance=quantum_instance)
 
     def _set_scale(self) -> None:
         if self._bound is None:
@@ -131,6 +80,44 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         return HamiltonianPhaseEstimationResult(
             self._num_evaluation_qubits, phases=phases, id_coefficient=self._id_coefficient,
             circuit_result=circuit_result, phase_estimation_scale=self._pe_scale)
+
+    def estimate(self, hamiltonian: OperatorBase,
+                 evolution: EvolutionBase,
+                 state_preparation: Optional[QuantumCircuit] = None,
+                 bound: Optional[float] = None):
+        """
+        Args:
+            hamiltonian: a Hermitian operator.
+            evolution: An evolution object that generates a unitary from `hamiltonian`.
+            state_preparation: The circuit that prepares the state whose eigenphase will be
+                measured. If this parameter is omitted, no preparation circuit will be run and
+                input state will be the all-zero state in the computational basis.
+            bound: An upper bound on the absolute value of the eigenvalues of
+                `hamiltonian`. If omitted, then `hamiltonian` must be a Pauli sum, in which case
+                then a bound will be computed.
+
+        Raises:
+            ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
+            `SummedOp` whose terms are `PauliOp`s.)
+        """
+
+        self._evolution = evolution
+        self._bound = bound
+        # The term propto the identity is removed from hamiltonian.
+        # This is done for three reasons:
+        # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
+        #    cases.
+        # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
+        # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
+        #   occupies more of the range of values representable by the qubit register.
+        # The coefficient of this term will be added to the eigenvalues.
+        id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
+        self._hamiltonian = hamiltonian_no_id
+        self._id_coefficient = id_coefficient
+        self._set_scale()
+        unitary = self._get_unitary()
+        return super().estimate(unitary=unitary,
+                         state_preparation=state_preparation)
 
 
 def _remove_identity(pauli_sum):

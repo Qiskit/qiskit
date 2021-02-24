@@ -41,7 +41,6 @@ class PhaseEstimationResult(PhaseEstimatorResult):
 
         self._phases = phases
         self._circuit_result = circuit_result
-#        super().__init__({'phases': phases, 'circuit_result': circuit_result})
 
     @property
     def circuit_result(self) -> Result:
@@ -50,7 +49,6 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         This is useful for inspecting and troubleshooting the QPE algorithm.
         """
         return self._circuit_result
-#        return self.get('circuit_result')
 
     @property
     def most_likely_phase(self) -> float:
