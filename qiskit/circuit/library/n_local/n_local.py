@@ -959,16 +959,13 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
 
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
+
     if entanglement in ['linear', 'circular', 'sca']:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == 'linear' or m == 1:
             return linear
 
-<<<<<<< HEAD
-        # circular equals linear plus top-bottom entanglement
-        circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
-=======
         if entanglement == 'pairwise':
             return linear[::2] + linear[1::2]
 
@@ -977,7 +974,7 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
             circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
         else:
             circular = linear
->>>>>>> d299de195... Fix circular entanglement edge case in ``NLocal`` (#5884)
+
         if entanglement == 'circular':
             return circular
 
