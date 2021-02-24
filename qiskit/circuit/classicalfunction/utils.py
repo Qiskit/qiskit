@@ -68,6 +68,6 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
     for instruction in parity_decomp(tweedledum_circuit):
         gate = _convert_tweedledum_operator(instruction)
         qubits = [qubit.uid() for qubit in instruction.qubits()]
-        print(qubits)
+        print(gate.name, qubits)
         qiskit_qc.append(gate, qubits)
     return qiskit_qc
