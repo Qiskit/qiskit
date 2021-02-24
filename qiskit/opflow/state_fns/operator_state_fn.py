@@ -191,10 +191,13 @@ class OperatorStateFn(StateFn):
             front = StateFn(front)
 
         if isinstance(self.primitive, ListOp) and self.primitive.distributive:
-            coeff = self.coeff * self.primitive.coeff
-            evals = [OperatorStateFn(op, coeff=coeff, is_measurement=self.is_measurement).eval(
+            evals = [OperatorStateFn(op, is_measurement=self.is_measurement).eval(
                 front) for op in self.primitive.oplist]
-            return self.primitive.combo_fn(evals)
+            result = self.primitive.combo_fn(evals)
+            if isinstance(result, list):
+                multiplied = self.primitive.coeff * self.coeff * np.array(result)
+                return multiplied.tolist()
+            return result * self.coeff * self.primitive.coeff
 
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't
         # produce two-dimensional ListOp from composing from both sides of primitive.

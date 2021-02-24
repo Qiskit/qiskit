@@ -58,7 +58,6 @@ def backend_monitor(backend):
         ImportError: If qiskit-ibmq-provider is not installed
     """
     try:
-        # pylint: disable=import-error
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError:
         raise ImportError("The IBMQ provider is necessary for this function "

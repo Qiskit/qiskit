@@ -53,9 +53,9 @@ __all__ = ['Bloch']
 import os
 import numpy as np
 from matplotlib import get_backend
-import matplotlib.pyplot as plt  # pylint: disable=import-error
-from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
-from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import (Axes3D, proj3d)
 
 
 class Arrow3D(FancyArrowPatch):

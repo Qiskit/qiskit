@@ -12,7 +12,7 @@
 """
 Optimized list of Pauli operators
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 
 import copy
 import numpy as np
