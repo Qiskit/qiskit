@@ -183,7 +183,10 @@ class QuantumCircuit:
         self.qregs = []
         self.cregs = []
         self._qubits = []
+        self._qubit_set = set()
         self._clbits = []
+        self._clbit_set = set()
+
         self._ancillas = []
         self._calibrations = defaultdict(dict)
         self.add_register(*regs)
@@ -343,7 +346,8 @@ class QuantumCircuit:
             q_1: ┤ RX(1.57) ├─────
                  └──────────┘
         """
-        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        reverse_circ = QuantumCircuit(self.qubits, self.clbits,
+                                      *self.qregs, *self.cregs,
                                       name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
@@ -424,7 +428,8 @@ class QuantumCircuit:
             q_1: ┤ RX(-1.57) ├─────
                  └───────────┘
         """
-        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        inverse_circ = QuantumCircuit(self.qubits, self.clbits,
+                                      *self.qregs, *self.cregs,
                                       name=self.name + '_dg', global_phase=-self.global_phase)
 
         for inst, qargs, cargs in reversed(self._data):
@@ -440,7 +445,8 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
-        repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
+        repeated_circ = QuantumCircuit(self.qubits, self.clbits,
+                                       *self.qregs, *self.cregs,
                                        name=self.name + '**{}'.format(reps))
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
@@ -490,7 +496,7 @@ class QuantumCircuit:
                                'controlled. Note that no qiskit.circuit.Instruction objects may '
                                'be in the circuit for this operation.')
 
-        power_circuit = QuantumCircuit(*self.qregs, *self.cregs)
+        power_circuit = QuantumCircuit(self.qubits, self.clbits, *self.qregs, *self.cregs)
         power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
         return power_circuit
 
@@ -518,7 +524,7 @@ class QuantumCircuit:
 
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
         control_qreg = QuantumRegister(num_ctrl_qubits)
-        controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+        controlled_circ = QuantumCircuit(control_qreg, self.qubits, *self.qregs,
                                          name='c_{}'.format(self.name))
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
@@ -589,10 +595,12 @@ class QuantumCircuit:
             if element not in self.qregs:
                 self.qregs.append(element)
                 self._qubits += element[:]
+                self._qubit_set.update(element[:])
         for element in rhs.cregs:
             if element not in self.cregs:
                 self.cregs.append(element)
                 self._clbits += element[:]
+                self._clbit_set.update(element[:])
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -700,7 +708,7 @@ class QuantumCircuit:
 
             if instr.condition is not None:
                 from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
-                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition)
+                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition, self.cregs)
 
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
@@ -780,7 +788,8 @@ class QuantumCircuit:
 
         # Now we don't have to handle any more cases arising from special implicit naming
         else:
-            dest = QuantumCircuit(*other.qregs, *self.qregs, *other.cregs, *self.cregs)
+            dest = QuantumCircuit(other.qubits, self.qubits, other.clbits, self.clbits,
+                                  *other.qregs, *self.qregs, *other.cregs, *self.cregs)
 
         # compose self onto the output, and then other
         dest.compose(other, range(other.num_qubits), range(other.num_clbits), inplace=True)
@@ -1027,10 +1036,16 @@ class QuantumCircuit:
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
-                self._qubits.extend(register)
+                new_bits = [bit for bit in register
+                            if bit not in self._qubit_set]
+                self._qubits.extend(new_bits)
+                self._qubit_set.update(new_bits)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
-                self._clbits.extend(register)
+                new_bits = [bit for bit in register
+                            if bit not in self._qubit_set]
+                self._clbits.extend(new_bits)
+                self._clbit_set.update(new_bits)
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
@@ -1048,8 +1063,10 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             elif isinstance(bit, Qubit):
                 self._qubits.append(bit)
+                self._qubit_set.add(bit)
             elif isinstance(bit, Clbit):
                 self._clbits.append(bit)
+                self._clbit_set.add(bit)
             else:
                 raise CircuitError("Expected an instance of Qubit, Clbit, or "
                                    "AncillaQubit, but was passed {}".format(bit))
@@ -1064,15 +1081,15 @@ class QuantumCircuit:
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
             raise CircuitError("qarg is not a Qubit")
-        if not all(self.has_register(i.register) for i in qargs):
-            raise CircuitError("register not in this circuit")
+        if not set(qargs).issubset(self._qubit_set):
+            raise CircuitError("qargs not in this circuit")
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
-        if not all(self.has_register(i.register) for i in cargs):
-            raise CircuitError("register not in this circuit")
+        if not set(cargs).issubset(self._clbit_set):
+            raise CircuitError("cargs not in this circuit")
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.
@@ -1141,8 +1158,13 @@ class QuantumCircuit:
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
-        for data, qargs, _ in instruction.definition:
-            gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
+        definition = instruction.definition
+        definition_bit_labels = {bit: idx
+                                 for bits in (definition.qubits, definition.clbits)
+                                 for idx, bit in enumerate(bits)}
+        for data, qargs, _ in definition:
+            gate_qargs = ",".join(["q%i" % index
+                                   for index in [definition_bit_labels[qubit] for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
         if composite_circuit_gates:
@@ -1191,14 +1213,38 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
+
+        qreg_bits = set(bit for reg in self.qregs for bit in reg)
+        creg_bits = set(bit for reg in self.cregs for bit in reg)
+        regless_qubits = []
+        regless_clbits = []
+
+        if set(self.qubits) != qreg_bits:
+            regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
+            string_temp += "qreg %s[%d];\n" % ('regless', len(regless_qubits))
+
+        if set(self.clbits) != creg_bits:
+            regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
+            string_temp += "creg %s[%d];\n" % ('regless', len(regless_clbits))
+
         unitary_gates = []
+
+        bit_labels = {bit: "%s[%d]" % (reg.name, idx)
+                      for reg in self.qregs + self.cregs
+                      for (idx, bit) in enumerate(reg)}
+
+        bit_labels.update({bit: "regless[%d]" % idx
+                           for reg in (regless_qubits, regless_clbits)
+                           for idx, bit in enumerate(reg)})
+
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
-                                                           qubit.register.name, qubit.index,
-                                                           clbit.register.name, clbit.index)
+                string_temp += "%s %s -> %s;\n" % (instruction.qasm(),
+                                                   bit_labels[qubit],
+                                                   bit_labels[clbit])
+
             # If instruction is a root gate or a root instruction (in that case, compositive)
 
             elif (type(instruction) in  # pylint: disable=unidiomatic-typecheck
@@ -1226,11 +1272,11 @@ class QuantumCircuit:
 
                 # Insert qasm representation of the original instruction
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j.register.name, j.index)
+                                             ",".join([bit_labels[j]
                                                        for j in qargs + cargs]))
             else:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j.register.name, j.index)
+                                             ",".join([bit_labels[j]
                                                        for j in qargs + cargs]))
             if instruction.name == 'unitary':
                 unitary_gates.append(instruction)
@@ -1414,22 +1460,19 @@ class QuantumCircuit:
             The circuit depth and the DAG depth need not be the
             same.
         """
-        # Labels the registers by ints
-        # and then the qubit position in
-        # a register is given by reg_int+qubit_num
-        reg_offset = 0
-        reg_map = {}
-        for reg in self.qregs + self.cregs:
-            reg_map[reg.name] = reg_offset
-            reg_offset += reg.size
+        # Assign each bit in the circuit a unique integer
+        # to index into op_stack.
+        bit_indices = {bit: idx
+                       for idx, bit in enumerate(self.qubits + self.clbits)}
 
-        # If no registers return 0
-        if reg_offset == 0:
+        # If no bits, return 0
+        if not bit_indices:
             return 0
 
         # A list that holds the height of each qubit
         # and classical bit.
-        op_stack = [0] * reg_offset
+        op_stack = [0] * len(bit_indices)
+
         # Here we are playing a modified version of
         # Tetris where we stack gates, but multi-qubit
         # gates, or measurements have a block for each
@@ -1450,7 +1493,7 @@ class QuantumCircuit:
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
-                reg_ints.append(reg_map[reg.register.name] + reg.index)
+                reg_ints.append(bit_indices[reg])
                 if count:
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
@@ -1460,11 +1503,11 @@ class QuantumCircuit:
             if instr.condition:
                 # Controls operate over all bits in the
                 # classical register they use.
-                cint = reg_map[instr.condition[0].name]
-                for off in range(instr.condition[0].size):
-                    if cint + off not in reg_ints:
-                        reg_ints.append(cint + off)
-                        levels.append(op_stack[cint + off] + 1)
+                for cbit in instr.condition[0]:
+                    idx = bit_indices[cbit]
+                    if idx not in reg_ints:
+                        reg_ints.append(idx)
+                        levels.append(op_stack[idx] + 1)
 
             max_level = max(levels)
             for ind in reg_ints:
@@ -1479,15 +1522,12 @@ class QuantumCircuit:
             int: Width of circuit.
 
         """
-        return sum(reg.size for reg in self.qregs + self.cregs)
+        return len(self.qubits) + len(self.clbits)
 
     @property
     def num_qubits(self):
         """Return number of qubits."""
-        qubits = 0
-        for reg in self.qregs:
-            qubits += reg.size
-        return qubits
+        return len(self.qubits)
 
     @property
     def num_ancillas(self):
@@ -1497,7 +1537,7 @@ class QuantumCircuit:
     @property
     def num_clbits(self):
         """Return number of classical bits."""
-        return sum(len(reg) for reg in self.cregs)
+        return len(self.clbits)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -1531,19 +1571,12 @@ class QuantumCircuit:
             int: Number of connected components in circuit.
         """
         # Convert registers to ints (as done in depth).
-        reg_offset = 0
-        reg_map = {}
+        bits = self.qubits if unitary_only else (self.qubits + self.clbits)
+        bit_indices = {bit: idx
+                       for idx, bit in enumerate(bits)}
 
-        if unitary_only:
-            regs = self.qregs
-        else:
-            regs = self.qregs + self.cregs
-
-        for reg in regs:
-            reg_map[reg.name] = reg_offset
-            reg_offset += reg.size
         # Start with each qubit or cbit being its own subgraph.
-        sub_graphs = [[bit] for bit in range(reg_offset)]
+        sub_graphs = [[bit] for bit in range(len(bit_indices))]
 
         num_sub_graphs = len(sub_graphs)
 
@@ -1564,17 +1597,16 @@ class QuantumCircuit:
                 # register that they use.
                 if instr.condition and not unitary_only:
                     creg = instr.condition[0]
-                    creg_int = reg_map[creg.name]
-                    for coff in range(creg.size):
-                        temp_int = creg_int + coff
+                    for bit in creg:
+                        idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
-                            if temp_int in sub_graphs[k]:
+                            if idx in sub_graphs[k]:
                                 graphs_touched.append(k)
                                 num_touched += 1
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item.register.name] + item.index
+                    reg_int = bit_indices[item]
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
@@ -1634,6 +1666,8 @@ class QuantumCircuit:
         cpy.cregs = self.cregs.copy()
         cpy._qubits = self._qubits.copy()
         cpy._clbits = self._clbits.copy()
+        cpy._qubit_set = self._qubit_set.copy()
+        cpy._clbit_set = self._clbit_set.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
@@ -1767,18 +1801,10 @@ class QuantumCircuit:
         circ.cregs = list(new_dag.cregs.values())
 
         for node in new_dag.topological_op_nodes():
-            qubits = []
-            for qubit in node.qargs:
-                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
-
-            clbits = []
-            for clbit in node.cargs:
-                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
-
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
             inst.condition = node.condition
-            circ.append(inst, qubits, clbits)
+            circ.append(inst, node.qargs, node.cargs)
 
         circ.clbits.clear()
 
@@ -2041,9 +2067,7 @@ class QuantumCircuit:
         qubits = []
 
         if not qargs:  # None
-            for qreg in self.qregs:
-                for j in range(qreg.size):
-                    qubits.append(qreg[j])
+            qubits.extend(self.qubits)
 
         for qarg in qargs:
             if isinstance(qarg, QuantumRegister):
