@@ -25,7 +25,11 @@ from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent, AlignmentKind
+from qiskit.pulse.schedule import (Schedule,
+                                   ScheduleBlock,
+                                   PulseProgram,
+                                   ScheduleComponent,
+                                   AlignmentKind)
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -518,9 +522,11 @@ def align_func(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def flatten(program: ScheduleComponent) -> ScheduleComponent:
+def flatten(program: PulseProgram) -> PulseProgram:
     """Flatten (inline) any called nodes into a Schedule tree with no nested children."""
     if isinstance(program, instructions.Instruction):
+        return program
+    elif isinstance(program, ScheduleBlock):
         return program
     else:
         return Schedule(*program.instructions,

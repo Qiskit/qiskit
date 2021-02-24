@@ -51,6 +51,9 @@ ScheduleComponent = Union['Schedule', Instruction]
 BlockComponent = Union['ScheduleBlock', Instruction]
 """An element that composes a pulse schedule block."""
 
+PulseProgram = Union['Schedule', 'ScheduleBlock', Instruction]
+"""Any program that represents a sequence of pulse instructions."""
+
 
 class AlignmentKind(str, enum.Enum):
     """Type of alignment policy and mapping to the alignment function."""
