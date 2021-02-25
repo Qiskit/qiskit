@@ -27,7 +27,8 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse import (Waveform, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
+                          Instruction, ShiftFrequency, SetPhase)
+from qiskit.pulse.schedule import ScheduleComponent
 
 
 class EventsOutputChannels:
