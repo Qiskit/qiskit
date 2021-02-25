@@ -235,7 +235,7 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
-        circuit.cx(qr1[0], qr2[ 1])
+        circuit.cx(qr1[0], qr2[1])
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
@@ -246,7 +246,7 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         expected.swap(qr1[0], qr2[0])
         expected.measure(qr1[0], cr[0])
         expected.measure(qr2[0], cr[1])
-        expected.cx(qr1[0], qr2[ 1])
+        expected.cx(qr1[0], qr2[1])
         expected.measure(qr2[0], cr[0])
         expected.measure(qr1[0], cr[1])
 
