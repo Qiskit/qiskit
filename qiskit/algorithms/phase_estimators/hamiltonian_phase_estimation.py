@@ -133,7 +133,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         self._set_scale()
         unitary = self._get_unitary()
         return super().estimate(unitary=unitary,
-                         state_preparation=state_preparation)
+                                state_preparation=state_preparation)
 
 
 def _remove_identity(pauli_sum):
