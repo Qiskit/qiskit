@@ -222,10 +222,10 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
 
 class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
-    """ Test swap-followed-by-measure optimizations in a transpiler, with mid-measurement."""
+    """ Test swap-followed-by-measure optimizations, with mid-circuit measurement."""
 
-    def test_optimize_undone_swap(self):
-        """ """
+    def test_mid_circuit(self):
+        """Test mid-circuit measurement"""
         qr1 = QuantumRegister(1, 'qr1')
         qr2 = QuantumRegister(2, 'qr2')
         cr = ClassicalRegister(3, 'cr')
@@ -235,12 +235,10 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
-        circuit.measure(qr2[1], cr[2])
         circuit.cx(qr1[0], qr2[ 1])
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
-        circuit.measure(qr2[1], cr[2])
 
         expected = QuantumCircuit(qr1, qr2, cr)
         expected.h(qr1[0])
@@ -248,11 +246,9 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         expected.swap(qr1[0], qr2[0])
         expected.measure(qr1[0], cr[0])
         expected.measure(qr2[0], cr[1])
-        expected.measure(qr2[1], cr[2])
         expected.cx(qr1[0], qr2[ 1])
         expected.measure(qr2[0], cr[0])
         expected.measure(qr1[0], cr[1])
-        expected.measure(qr2[1], cr[2])
 
         pass_manager = PassManager()
         pass_manager.append(
