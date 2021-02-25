@@ -577,9 +577,9 @@ class DAGCircuit:
                         candidate_creg = next(creg
                                               for creg in target_cregs
                                               if wire_map[bit] in creg)
-                    except StopIteration:
+                    except StopIteration as ex:
                         raise DAGCircuitError('Did not find creg containing '
-                                              'mapped clbit in conditional.')
+                                              'mapped clbit in conditional.') from ex
 
                     if new_creg is None:
                         new_creg = candidate_creg
