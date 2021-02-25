@@ -50,6 +50,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if node.type == 'op':
+                qargs = [_trivial_layout[_layout[qarg]] for qarg in node.qargs]
                 if isinstance(node.op, SwapGate):
                     swap = node
                     final_successor = []
@@ -61,9 +62,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                             is_final_measure = False
                         final_successor.append(successor.type == 'out' or is_final_measure)
                     if all(final_successor):
-                        swap_qargs = [_trivial_layout[_layout[qarg]] for qarg in swap.qargs]
-                        _layout.swap(*swap_qargs)
+                        _layout.swap(*qargs)
                         continue
-                qargs = [_trivial_layout[_layout[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
         return new_dag
