@@ -17,7 +17,6 @@ import copy
 
 import numpy as np
 
-from qiskit.quantum_info import Operator
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.circuit.library.standard_gates import U3Gate
@@ -95,7 +94,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for gate in run[1:]:
                 operator = np.dot(gate.op, operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(Operator(operator)))
+                new_circs.append(decomposer(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
                 if (len(run) > len(new_circ) or (single_u3 and
