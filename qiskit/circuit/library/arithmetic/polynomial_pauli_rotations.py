@@ -244,11 +244,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             qr_target = QuantumRegister(1, name='target')
 
             self.qregs = [qr_state, qr_target]
-
-            self._qubits = qr_state[:] + qr_target[:]
         else:
             self.qregs = []
-            self._qubits = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
