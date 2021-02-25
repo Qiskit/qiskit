@@ -233,6 +233,9 @@ def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
     d_chans = chan_type_dict.get(pulse.DriveChannel, [])
     d_chans = sorted(d_chans, key=lambda x: x.index, reverse=True)
 
+    f_chans = chan_type_dict.get(pulse.Frame, [])
+    f_chans = sorted(f_chans, key=lambda x: x.index, reverse=True)
+
     m_chans = chan_type_dict.get(pulse.MeasureChannel, [])
     m_chans = sorted(m_chans, key=lambda x: x.index, reverse=True)
 
@@ -251,6 +254,9 @@ def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
         # measure channel
         if len(m_chans) > 0 and m_chans[-1].index == ind:
             ordered_channels.append(m_chans.pop())
+        # frames
+        if len(f_chans) > 0 and f_chans[-1].index == ind:
+            ordered_channels.append(f_chans.pop())
         # acquire channel
         if formatter['control.show_acquire_channel']:
             if len(a_chans) > 0 and a_chans[-1].index == ind:

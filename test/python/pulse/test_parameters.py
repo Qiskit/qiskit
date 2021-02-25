@@ -276,6 +276,22 @@ class TestPulseParameters(QiskitTestCase):
 
         self.assertEqual(len(schedule.get_parameters('amp')), 2)
 
+    def test_schedule_and_frame_parameters(self):
+        d0 = Parameter('d0')
+        d1 = Parameter('d1')
+        u0 = Parameter('u0.1')  # control.target
+
+        dch0 = DriveChannel(d0)
+        dch1 = DriveChannel(d1)
+        uch0 = ControlChannel(u0)
+        f0 = Frame(d0, [dch0])
+        f1 = Frame(d1, [dch1, uch0])
+
+        with pulse.build() as sched:
+            with pulse.align_left():
+                pulse.shift_phase(-np.pi / 2, f0)
+                pulse.shift_phase(-np.pi, f1)
+
 
 class TestParameterDuration(QiskitTestCase):
     """Tests parametrization of instruction duration."""

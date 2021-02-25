@@ -243,6 +243,22 @@ class DrawerCanvas:
 
         self.charts.append(chart)
 
+    @staticmethod
+    def _flatten_frames(program: pulse.Schedule) -> pulse.Schedule:
+        """Flatten the frames to their sub channels if the have any."""
+        sched = pulse.Schedule()
+        for inst in program.instructions:
+            if isinstance(inst[1].channel, pulse.Frame):
+                for ch in inst[1].channel.channels:
+                    if isinstance(inst[1], (pulse.SetPhase, pulse.ShiftPhase)):
+                        sched = sched.insert(inst[0], inst[1].__class__(inst[1].phase, ch))
+                    if isinstance(inst[1], (pulse.SetFrequency, pulse.ShiftFrequency)):
+                        sched = sched.insert(inst[0], inst[1].__class__(inst[1].frequency, ch))
+            else:
+                sched = sched.insert(inst[0], inst[1])
+
+        return sched
+
     def _schedule_loader(self, program: pulse.Schedule):
         """Load Schedule instance.
 
@@ -251,6 +267,9 @@ class DrawerCanvas:
         Args:
             program: `Schedule` to draw.
         """
+        # flatten Frames
+        program = self._flatten_frames(program)
+
         # initialize scale values
         self.chan_scales = {}
         for chan in program.channels:

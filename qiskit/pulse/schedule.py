@@ -28,7 +28,7 @@ import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.channels import Channel
+from qiskit.pulse.channels import Channel, Frame
 from qiskit.pulse.exceptions import PulseError
 # pylint: disable=cyclic-import
 from qiskit.pulse.instructions import Instruction
@@ -732,6 +732,11 @@ class Schedule(abc.ABC):
 
         # Update timeslots according to new channel keys
         for chan in copy.copy(self._timeslots):
+
+            # Frames contain references to other channels that may have parameters.
+            if isinstance(chan, Frame):
+                chan = chan.assign_parameters(value_dict)
+
             if isinstance(chan.index, ParameterExpression):
                 chan_timeslots = self._timeslots.pop(chan)
 
