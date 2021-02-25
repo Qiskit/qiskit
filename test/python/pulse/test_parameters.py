@@ -17,7 +17,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
 from qiskit.pulse import PulseError
-from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
+from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot, ControlChannel, Frame
 from qiskit.test.mock import FakeAlmaden
 
 
@@ -277,20 +277,23 @@ class TestPulseParameters(QiskitTestCase):
         self.assertEqual(len(schedule.get_parameters('amp')), 2)
 
     def test_schedule_and_frame_parameters(self):
-        d0 = Parameter('d0')
-        d1 = Parameter('d1')
-        u0 = Parameter('u0.1')  # control.target
-
-        dch0 = DriveChannel(d0)
-        dch1 = DriveChannel(d1)
-        uch0 = ControlChannel(u0)
-        f0 = Frame(d0, [dch0])
-        f1 = Frame(d1, [dch1, uch0])
+        """Test schedule parameter assignment with frames."""
+        param = Parameter('p')
+        d0 = DriveChannel(param)
+        f0 = Frame(param, [d0])
 
         with pulse.build() as sched:
-            with pulse.align_left():
-                pulse.shift_phase(-np.pi / 2, f0)
-                pulse.shift_phase(-np.pi, f1)
+            with pulse.align_sequential():
+                pulse.shift_phase(1.57, f0)
+                pulse.play(pulse.Gaussian(160, 0.2, 40, 100), d0)
+
+        self.assertEqual(sched.instructions[0][1].channel.index, param)
+        self.assertEqual(list(sched.instructions[0][1].channel.channels)[0].index, param)
+        self.assertEqual(sched.instructions[1][1].channel.index, param)
+        sched.assign_parameters({param: 123})
+        self.assertEqual(sched.instructions[0][1].channel.index, 123)
+        self.assertEqual(list(sched.instructions[0][1].channel.channels)[0].index, 123)
+        self.assertEqual(sched.instructions[1][1].channel.index, 123)
 
 
 class TestParameterDuration(QiskitTestCase):
@@ -355,3 +358,7 @@ class TestParameterDuration(QiskitTestCase):
         sched = pulse.Schedule()
         with self.assertRaises(pulse.exceptions.UnassignedDurationError):
             sched.insert(0, test_play)
+
+
+if __name__ == '__main__':
+    unittest.main()
