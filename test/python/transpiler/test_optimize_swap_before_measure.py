@@ -338,7 +338,7 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
-    def test_all_measurement_remove(self):
+    def test_all_measurement_remove_one(self):
         """OptimizeSwapBeforeMeasure(all_measurement=True) with mid-circ measurements, remove one
             qr0:--X-----------H-----------
                   |
@@ -381,7 +381,7 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
-    def test_all_measurement_remove(self):
+    def test_all_measurement_remove_none(self):
         """OptimizeSwapBeforeMeasure(all_measurement=True) with mid-circ measurements, remove none
             qr0:--X-----------H--------
                   |

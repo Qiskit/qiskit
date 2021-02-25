@@ -83,6 +83,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         return new_dag
 
     def should_remove_swap(self, swap_successors, dag):
+        """Based on the swap successor characteristics, should that swap be removed/moved? """
         final_successor = []
         followed_by_measures = []
         for successor in swap_successors:
@@ -92,7 +93,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 if self.move_swap:
                     is_final_measure = True
                 else:
-                    is_final_measure = all([s.type == 'out' for s in dag.successors(successor)])
+                    is_final_measure = all(s.type == 'out' for s in dag.successors(successor))
             else:
                 followed_by_measures.append(False)
             final_successor.append(successor.type == 'out' or is_final_measure)
