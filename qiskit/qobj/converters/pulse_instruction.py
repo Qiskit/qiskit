@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
 import hashlib
@@ -72,8 +74,8 @@ class ConversionMethodBinder:
         """Get conversion method for bound object."""
         try:
             return self._bound_instructions[bound]
-        except KeyError:
-            raise QiskitError('Bound method for %s is not found.' % bound)
+        except KeyError as ex:
+            raise QiskitError(f'Bound method for {bound} is not found.') from ex
 
 
 class InstructionToQobjConverter:

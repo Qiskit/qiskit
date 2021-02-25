@@ -675,10 +675,10 @@ class TestScheduleFilter(BaseTestSchedule):
         channels = [AcquireChannel(1), DriveChannel(1)]
         filtered, excluded = self._filter_and_test_consistency(sched, channels=channels)
         for _, inst in filtered.instructions:
-            self.assertTrue(any([chan in channels for chan in inst.channels]))
+            self.assertTrue(any(chan in channels for chan in inst.channels))
 
         for _, inst in excluded.instructions:
-            self.assertFalse(any([chan in channels for chan in inst.channels]))
+            self.assertFalse(any(chan in channels for chan in inst.channels))
 
     def test_filter_exclude_name(self):
         """Test the name of the schedules after applying filter and exclude functions."""
@@ -823,7 +823,7 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, Play)
-            self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
+            self.assertTrue(all(chan.index == 0 for chan in inst.channels))
             self.assertTrue(25 <= time <= 100)
         self.assertEqual(len(excluded.instructions), 5)
         self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))

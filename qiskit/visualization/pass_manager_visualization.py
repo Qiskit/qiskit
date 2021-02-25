@@ -101,11 +101,11 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         import pydot
         if not HAS_GRAPHVIZ:
             raise ImportError
-    except ImportError:
+    except ImportError as ex:
         raise ImportError("pass_manager_drawer requires pydot and graphviz. "
                           "Run 'pip install pydot'. "
                           "Graphviz can be installed using 'brew install graphviz' on Mac"
-                          " or by downloading it from the website.")
+                          " or by downloading it from the website.") from ex
 
     passes = pass_manager.passes()
 
