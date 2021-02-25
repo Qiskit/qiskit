@@ -14,6 +14,7 @@
 
 import numpy as np
 
+from qiskit import pulse, circuit
 from qiskit.pulse import channels, configuration, instructions, library
 from qiskit.test import QiskitTestCase
 
@@ -193,11 +194,11 @@ class TestPlay(QiskitTestCase):
     def test_play(self):
         """Test basic play instruction."""
         duration = 4
-        pulse = library.Waveform([1.0] * duration, name='test')
-        play = instructions.Play(pulse, channels.DriveChannel(1))
+        pulse_op = library.Waveform([1.0] * duration, name='test')
+        play = instructions.Play(pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, pulse.name)
+        self.assertEqual(play.name, pulse_op.name)
         self.assertEqual(play.duration, duration)
         self.assertEqual(repr(play),
                          "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
@@ -223,3 +224,49 @@ class TestDirectives(QiskitTestCase):
         self.assertEqual(barrier.duration, 0)
         self.assertEqual(barrier.channels, chans)
         self.assertEqual(barrier.operands, chans)
+
+
+class TestCall(QiskitTestCase):
+    """Test call instruction."""
+
+    def setUp(self):
+        super().setUp()
+
+        with pulse.build() as _subroutine:
+            pulse.delay(10, pulse.DriveChannel(0))
+        self.subroutine = _subroutine
+
+        self.param1 = circuit.Parameter('amp1')
+        self.param2 = circuit.Parameter('amp2')
+        with pulse.build() as _function:
+            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, self.param2, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
+        self.function = _function
+
+    def test_call(self):
+        """Test basic call instruction."""
+        call = instructions.Call(subroutine=self.subroutine)
+
+        self.assertEqual(call.duration, 10)
+        self.assertEqual(call.subroutine, self.subroutine)
+
+    def test_parameterized_call(self):
+        """Test call instruction with parameterized subroutine."""
+        call = instructions.Call(subroutine=self.function)
+
+        self.assertTrue(call.is_parameterized())
+        self.assertEqual(len(call.parameters), 2)
+
+    def test_assign_parameters(self):
+        """Test assigning parameter doesn't immediately update program."""
+        call = instructions.Call(subroutine=self.function)
+        call.assign_parameters({self.param1: 0.1, self.param2: 0.2})
+
+        self.assertFalse(call.is_parameterized())
+
+        subroutine = call.subroutine
+        self.assertTrue(subroutine.is_parameterized())
+
+        arguments = call.arguments
+        self.assertDictEqual(arguments, {self.param1: 0.1, self.param2: 0.2})

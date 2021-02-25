@@ -136,7 +136,7 @@ class DefaultStyle:
                 'cx': ('#6FA4FF', '#000000'),
                 'ccx': ('#BB8BFF', '#000000'),
                 'mcx': ('#BB8BFF', '#000000'),
-                'mcx_gray': ('#BB8BFF', '#000000),
+                'mcx_gray': ('#BB8BFF', '#000000'),
                 'cy': ('#6FA4FF', '#000000'),
                 'cz': ('#6FA4FF', '#000000'),
                 'swap': ('#6FA4FF', '#000000'),
@@ -159,8 +159,8 @@ class DefaultStyle:
                 'rxx': ('#BB8BFF', '#000000'),
                 'ryy': ('#BB8BFF', '#000000'),
                 'rzx': ('#BB8BFF', '#000000'),
-                'reset': ('#000000', #FFFFFF'),
-                'target': ('#FFFFFF, '#FFFFFF'),
+                'reset': ('#000000', '#FFFFFF'),
+                'target': ('#FFFFFF', '#FFFFFF'),
                 'measure': ('#000000', '#FFFFFF'),
             }
 

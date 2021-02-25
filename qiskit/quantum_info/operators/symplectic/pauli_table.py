@@ -12,7 +12,7 @@
 """
 Symplectic Pauli Table Class
 """
-# pylint: disable=invalid-name, useless-super-delegation
+# pylint: disable=invalid-name
 
 import numpy as np
 
