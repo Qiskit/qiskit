@@ -17,8 +17,11 @@ from typing import List, Tuple, Callable, Optional, Union
 import warnings
 
 import numpy as np
+from scipy.optimize import least_squares
+
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
@@ -48,7 +51,7 @@ class NaturalGradient(GradientBase):
     def __init__(self,
                  grad_method: Union[str, CircuitGradient] = 'lin_comb',
                  qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
-                 regularization: Optional[str] = None,
+                 regularization: Optional[Union[str, Callable]] = None,
                  **kwargs):
         r"""
         Args:
@@ -59,7 +62,8 @@ class NaturalGradient(GradientBase):
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
+                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
+                or a penalty term given as Callable
                 If regularization is None but the metric is ill-conditioned or singular then
                 a least square solver is used without regularization
             kwargs (dict): Optional parameters for a CircuitGradient
@@ -105,47 +109,50 @@ class NaturalGradient(GradientBase):
         # Instantiate the QFI metric which is used to re-scale the gradient
         metric = self._qfi_method.convert(operator[-1], params) * 0.25
 
-        # Define the function which compute the natural gradient from the gradient and the QFI.
         def combo_fn(x):
-            c = x[0]
-            a = x[1]
-            if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
-                raise Warning('The imaginary part of the gradient are non-negligible.')
-            if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
-                raise Warning('The imaginary part of the gradient are non-negligible.')
-            c = np.real(c)
-            a = np.real(a)
+            return self.nat_grad_combo_fn(x, self.regularization)
 
-            if self.regularization:
-                # If a regularization method is chosen then use a regularized solver to
-                # construct the natural gradient.
-                nat_grad = NaturalGradient._regularized_sle_solver(
-                    a, c, regularization=self.regularization)
-            else:
-                w, v = np.linalg.eig(a)
-                if not all(ew >= -1e-8 for ew in w):
-                    raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
-                                  'Please use a regularized least-square solver for this problem.')
-                if not all(ew >= 0 for ew in w):
-                    w = [max(0, ew) for ew in w]
-                    a = v @ np.diag(w) @ np.linalg.inv(v)
-                try:
-                    #             # Try to solve the system of linear equations Ax = C.
-                    nat_grad = np.linalg.solve(a, c)
-
-                    if np.linalg.norm(nat_grad) > 1e2:
-                        warnings.warn('Solution of the exact solver to big. Use Lstsq.')
-                        nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
-
-
-                except np.linalg.LinAlgError:  # singular matrix
-                    warnings.warn('Singular matrix lstsq solver required')
-                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
-
-            return nat_grad
         # Define the ListOp which combines the gradient and the QFI according to the combination
         # function defined above.
         return ListOp([grad, metric], combo_fn=combo_fn)
+
+    @staticmethod
+    def nat_grad_combo_fn(x, regularization=None):
+        c = x[0]
+        a = x[1]
+        if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
+        if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
+            raise Warning('The imaginary part of the gradient are non-negligible.')
+        c = np.real(c)
+        a = np.real(a)
+
+        if regularization:
+            # If a regularization method is chosen then use a regularized solver to
+            # construct the natural gradient.
+            nat_grad = NaturalGradient._regularized_sle_solver(
+                a, c, regularization=regularization)
+        else:
+            w, v = np.linalg.eig(a)
+            if not all(ew >= -1e-8 for ew in w):
+                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8, '. '
+                              'Please use a regularized least-square solver for this problem.')
+            if not all(ew >= 0 for ew in w):
+                w = [max(0, ew) for ew in w]
+                a = v @ np.diag(w) @ np.linalg.inv(v)
+            try:
+                #             # Try to solve the system of linear equations Ax = C.
+                nat_grad = np.linalg.solve(a, c)
+
+                if np.linalg.norm(nat_grad) > 1e2:
+                    warnings.warn('Solution of the exact solver to big. Use Lstsq.')
+                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+
+            except np.linalg.LinAlgError:  # singular matrix
+                warnings.warn('Singular matrix lstsq solver required')
+                nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+
+        return nat_grad
 
     @property
     def qfi_method(self) -> CircuitQFI:
@@ -409,7 +416,7 @@ class NaturalGradient(GradientBase):
     @staticmethod
     def _regularized_sle_solver(a: np.ndarray,
                                 c: np.ndarray,
-                                regularization: str = 'perturb_diag',
+                                regularization: Union[str, Callable] = 'perturb_diag',
                                 lambda1: float = 1e-3,
                                 lambda4: float = 1.,
                                 alpha: float = 0.,
@@ -449,6 +456,10 @@ class NaturalGradient(GradientBase):
                 alpha *= 10
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(a + alpha * np.eye(len(c)), c, rcond=None)
+        elif isinstance(regularization, Callable):
+            def argmin_fun(dt_omega):
+                return np.linalg.norm(np.dot(a, dt_omega) - c) - regularization(dt_omega)
+            x = least_squares(argmin_fun, x0=NaturalGradient._ridge(a, c, lambda1=lambda1)[1]).x
         else:
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(a, c, rcond=None)

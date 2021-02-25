@@ -9,7 +9,7 @@ from scipy.integrate._ivp.common import (validate_max_step, validate_tol, select
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
 
 
-MAX_ORDER = 2
+MAX_ORDER = 1
 NEWTON_MAXITER = 4
 MIN_FACTOR = 0.2
 MAX_FACTOR = 10
@@ -132,7 +132,7 @@ class backward_euler_fsolve():
             t[i+1] = tp
             y[i+1,:] = yp[:]
 
-        return t, y
+        return t[-1], y[-1, :]
 
 
 def compute_R(order, factor):
@@ -340,7 +340,7 @@ class BDF(OdeSolver):
         self.I = I
 
         # kappa = np.array([0, -0.1850, -1/9, -0.0823, -0.0415, 0])
-        kappa = np.array([0, -0.1850, -1/9])
+        kappa = np.array([0, -0.1850])
         self.gamma = np.hstack((0, np.cumsum(1 / np.arange(1, MAX_ORDER + 1))))
         self.alpha = (1 - kappa) * self.gamma
         self.error_const = kappa * self.gamma + 1 / np.arange(1, MAX_ORDER + 2)

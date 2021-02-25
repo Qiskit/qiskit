@@ -29,9 +29,11 @@ from qiskit.utils import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
-from qiskit.opflow import StateFn, ListOp, CircuitSampler
+from qiskit.opflow import StateFn, ListOp, CircuitSampler, ComposedOp
 from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, \
     NaturalGradient
+
+from qiskit.quantum_info import state_fidelity
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
@@ -53,10 +55,8 @@ class VarQTE(EvolutionBase):
                  init_parameter_values: Optional[Union[List, np.ndarray]] = None,
                  ode_solver: Optional[Union[OdeSolver, ode]] = None,
                  backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-                 get_error: bool = False,
-                 get_h_terms: bool = False,
-                 fidelity_to_target: bool = False,
                  snapshot_dir: Optional[str] = None,
+                 faster: bool = True,
                  **kwargs):
         r"""
         Args:
@@ -91,8 +91,7 @@ class VarQTE(EvolutionBase):
         else:
             self._parameter_values = np.random.random(len(parameters))
         self._backend = backend
-        self._get_error = get_error
-        self._get_h_terms = get_h_terms
+        self._faster = faster
         self._ode_solver = ode_solver
         self._snapshot_dir = snapshot_dir
         if snapshot_dir:
@@ -101,27 +100,19 @@ class VarQTE(EvolutionBase):
             if not os.path.exists(os.path.join(self._snapshot_dir, 'varqte_output.csv')):
                 with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='w') as \
                         csv_file:
-                    fieldnames = ['t', 'params', 'num_params', 'num_time_steps']
-                    if self._get_error:
-                        fieldnames.extend(['error_bound', 'error_grad', 'resid'])
-                    if fidelity_to_target:
-                        fieldnames.extend(['fidelity', 'true_error', 'target_energy',
-                                           'trained_energy'])
-                    if get_h_terms:
-                        fieldnames.extend(['energy_error', 'h_norm', 'h_squared', 'variance',
-                                           'dtdt_trained',
-                                           're_im_grad', 'h_norm_factor', 'h_squared_factor',
-                                           'trained_energy_factor'])
+                    fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
+                                  'error_grad', 'resid', 'fidelity', 'true_error',
+                                  'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
+                                  'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                                  'variance', 'dtdt_trained', 're_im_grad']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
-        if fidelity_to_target:
-            self._init_parameter_values = init_parameter_values
-        else:
-            self._init_parameter_values = None
         self._operator = None
         self._nat_grad = None
         self._metric = None
         self._grad = None
+
+        self._exact_euler_state = None
 
 
     @abstractmethod
@@ -144,6 +135,21 @@ class VarQTE(EvolutionBase):
             StateFn (parameters are bound) which represents an approximation to the respective
             time evolution.
 
+        Raises: NotImplementedError
+
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _exact_state(self,
+                     time: Union[float, complex]) -> Iterable:
+        """
+
+        Args:
+            time: current time
+
+        Raises: NotImplementedError
+
         """
         raise NotImplementedError
 
@@ -151,25 +157,43 @@ class VarQTE(EvolutionBase):
         # Adapt coefficients for the real part for McLachlan with 0.5
         # True and needed!! Double checked
 
-        # VarQRTE
-        if np.iscomplex(self._operator.coeff):
-            self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-                                             qfi_method=self._qfi_method,
-                                             regularization=self._regularization
-                                            ).convert(self._operator * 0.5, self._parameters)
-        # VarQITE
-        else:
-            self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-                                             qfi_method=self._qfi_method,
-                                             regularization=self._regularization
-                                             ).convert(self._operator * -0.5, self._parameters)
+        self._state = self._operator[-1]
+        # Convert the operator with the CircuitSampler
+        if self._backend is not None:
+            self._state = CircuitSampler(self._backend).convert(self._state)
+        self._init_state = self._state.assign_parameters(dict(zip(self._parameters,
+                                                                  self._parameter_values)))
+        self._init_state = self._init_state.eval().primitive.data
+        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
+        self._h_matrix = self._h.to_matrix(massive=True)
+
+        self._h_squared = ComposedOp([~StateFn(self._h ** 2), self._state])
+        if self._backend is not None:
+            self._h_squared = CircuitSampler(self._backend).convert(self._h_squared)
+
+        self._exact_euler_state = self._exact_state(0)
+
+        if not self._faster:
+            # VarQRTE
+            if np.iscomplex(self._operator.coeff):
+                self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+                                                 qfi_method=self._qfi_method,
+                                                 regularization=self._regularization
+                                                ).convert(self._operator * 0.5, self._parameters)
+            # VarQITE
+            else:
+                self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+                                                 qfi_method=self._qfi_method,
+                                                 regularization=self._regularization
+                                                 ).convert(self._operator * -0.5, self._parameters)
 
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
 
         if self._backend is not None:
-            self._nat_grad = CircuitSampler(self._backend).convert(self._nat_grad)
+            if not self._faster:
+                self._nat_grad = CircuitSampler(self._backend).convert(self._nat_grad)
             self._metric = CircuitSampler(self._backend).convert(self._metric)
             self._grad = CircuitSampler(self._backend).convert(self._grad)
 
@@ -213,9 +237,8 @@ class VarQTE(EvolutionBase):
                                                    metric_res)
                 return dw_et_squared
 
-
-            # # TODO remove
-            # # Used to check the intermediate fidelity
+            # TODO remove
+            # Used to check the intermediate fidelity
             _ = self._distance_energy(time, trained_param_dict=dict(zip(
                 self._parameters, params)))
             # TODO remove alternative
@@ -240,7 +263,8 @@ class VarQTE(EvolutionBase):
             self._ode_solver = ode(ode_fun)
 
         elif self._ode_solver == solve_ivp:
-            self._ode_solver = ode(ode_fun, (0, t), y0=self._parameter_values, method='BDF')
+            self._ode_solver = self._ode_solver(ode_fun, (0, t), y0=self._parameter_values,
+                                                method='BDF')
         elif self._ode_solver == backward_euler_fsolve:
             self._ode_solver=self._ode_solver(ode_fun,  tspan=(0, t), y0=self._parameter_values,
                                               n=self._num_time_steps)
@@ -261,31 +285,26 @@ class VarQTE(EvolutionBase):
                     break
                 elif self._ode_solver.status == 'failed':
                     raise Warning('ODESolver failed')
-        elif isinstance(self._ode_solver, ode):
-            self._ode_solver.set_integrator('vode', method='bdf')
-            self._ode_solver.set_initial_value(self._parameter_values, 0)
-
-            t1 = t
-
-            dt = 1
-
-            while self._ode_solver.successful() and self._ode_solver.t < t1:
-                print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
-                    self._ode_solver.t +
-                    dt))
-                param_values = self._ode_solver.y
-                print('ode time', self._ode_solver.t)
+        # elif isinstance(self._ode_solver, ode):
+        #     self._ode_solver.set_integrator('vode', method='bdf')
+        #     self._ode_solver.set_initial_value(self._parameter_values, 0)
+        #
+        #     t1 = t
+        #
+        #     while self._ode_solver.successful() and self._ode_solver.t < t1:
+        #         print('ode step', self._ode_solver.t + dt, self._ode_solver.integrate(
+        #             self._ode_solver.t +
+        #             dt))
+        #         param_values = self._ode_solver.y
+        #         print('ode time', self._ode_solver.t)
         elif isinstance(self._ode_solver, backward_euler_fsolve):
             t, param_values = self._ode_solver.run()
 
-            # Return variationally evolved operator
-
-
         else:
             raise TypeError('Please provide a scipy ODESolver or ode type object.')
+        print('Parameter Values ', param_values)
+        _ = self._distance_energy(t, trained_param_dict=dict(zip(self._parameters, param_values)))
 
-        _ = self._distance_energy(dt * self._num_time_steps,
-                                  trained_param_dict=dict(zip(self._parameters, param_values)))
         return param_values
 
     def _inner_prod(self,
@@ -309,15 +328,14 @@ class VarQTE(EvolutionBase):
                       resid: Optional[float] = None,
                       fidelity_to_target: Optional[float] = None,
                       true_error: Optional[float] = None,
+                      true_to_euler_error: Optional[float] = None,
+                      trained_to_euler_error: Optional[float] = None,
                       target_energy: Optional[float] = None,
                       trained_energy: Optional[float] = None,
                       h_norm: Optional[float] = None,
                       h_squared: Optional[float] = None,
                       dtdt_trained: Optional[float] = None,
-                      re_im_grad: Optional[float] = None,
-                      h_norm_factor: Optional[float] = None,
-                      h_squared_factor: Optional[float] = None,
-                      trained_energy_factor: Optional[float] = None):
+                      re_im_grad: Optional[float] = None):
         """
         Args:
             t: current point in time evolution
@@ -343,77 +361,37 @@ class VarQTE(EvolutionBase):
 
         """
         with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='a') as csv_file:
-            fieldnames = ['t', 'params', 'num_params', 'num_time_steps']
-            if self._get_error:
-                fieldnames.extend(['error_bound', 'error_grad', 'resid'])
-            if fidelity_to_target is not None:
-                fieldnames.extend(['fidelity', 'true_error', 'target_energy', 'trained_energy'])
-            if self._get_h_terms:
-                fieldnames.extend(['energy_error', 'h_norm', 'h_squared', 'variance', 'dtdt_trained',
-                                   're_im_grad', 'h_norm_factor', 'h_squared_factor',
-                                   'trained_energy_factor'])
+            fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
+                          'error_grad', 'resid', 'fidelity', 'true_error', 'true_to_euler_error',
+                          'trained_to_euler_error', 'target_energy', 'trained_energy',
+                          'energy_error', 'h_norm', 'h_squared', 'variance',
+                          'dtdt_trained', 're_im_grad']
+
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            if fidelity_to_target is None:
-                if not self._get_error:
-                    writer.writerow({'t': t, 'params': np.round(params, 8),
-                                     'num_params': len(params),
-                                     'num_time_steps': self._num_time_steps})
-                else:
-                    writer.writerow({'t': t, 'params': np.round(params, 8),
-                                     'num_params': len(params),
-                                     'num_time_steps':self._num_time_steps,
-                                     'error_bound': np.round(error_bound, 8),
-                                     'error_grad': np.round(error_grad, 8),
-                                     'resid': np.round(resid, 8)})
-            else:
-                if not self._get_error:
-                    writer.writerow({'t': t,
-                                     'params': np.round(params, 8),
-                                     'num_params': len(params),
-                                     'num_time_steps': self._num_time_steps,
-                                     'fidelity': np.round(fidelity_to_target, 8),
-                                     'true_error': np.round(true_error, 8),
-                                     'target_energy': np.round(target_energy, 8),
-                                     'trained_energy': np.round(trained_energy, 8)})
-                else:
-                    if not self._get_h_terms:
-                        writer.writerow({'t': t,
-                                         'params': np.round(params, 8),
-                                         'num_params': len(params),
-                                         'num_time_steps': self._num_time_steps,
-                                         'error_bound': np.round(error_bound, 8),
-                                         'error_grad': np.round(error_grad, 8),
-                                         'resid': np.round(resid, 8),
-                                         'fidelity': np.round(fidelity_to_target, 8),
-                                         'true_error': np.round(true_error, 8),
-                                         'target_energy': np.round(target_energy, 8),
-                                         'trained_energy': np.round(trained_energy, 8)})
-                    else:
-                        variance = None
-                        if h_squared is not None:
-                            variance = h_squared - trained_energy**2
-                        writer.writerow({'t': t,
-                                         'params': np.round(params, 8),
-                                         'num_params': len(params),
-                                         'num_time_steps': self._num_time_steps,
-                                         'error_bound': np.round(error_bound, 8),
-                                         'error_grad': error_grad,
-                                         'resid': resid,
-                                         'fidelity': np.round(fidelity_to_target, 8),
-                                         'true_error': np.round(true_error, 8),
-                                         'target_energy': np.round(target_energy, 8),
-                                         'trained_energy': np.round(trained_energy, 8),
-                                         'energy_error': np.round(trained_energy - target_energy,
-                                                                  8),
-                                         'h_norm': np.round(h_norm, 8),
-                                         'h_squared': h_squared,
-                                         'variance': variance,
-                                         'dtdt_trained': dtdt_trained,
-                                         're_im_grad': re_im_grad,
-                                         'h_norm_factor': h_norm_factor,
-                                         'h_squared_factor': h_squared_factor,
-                                         'trained_energy_factor': trained_energy_factor
-                                         })
+
+            variance = None
+            if h_squared is not None:
+                variance = h_squared - trained_energy**2
+            writer.writerow({'t': t,
+                             'params': np.round(params, 8),
+                             'num_params': len(params),
+                             'num_time_steps': self._num_time_steps,
+                             'error_bound': error_bound,
+                             'error_grad': error_grad,
+                             'resid': resid,
+                             'fidelity': np.round(fidelity_to_target, 8),
+                             'true_error': np.round(true_error, 8),
+                             'true_to_euler_error': true_to_euler_error,
+                             'trained_to_euler_error': trained_to_euler_error,
+                             'target_energy': np.round(target_energy, 8),
+                             'trained_energy': np.round(trained_energy, 8),
+                             'energy_error': np.round(trained_energy - target_energy, 8),
+                             'h_norm': h_norm,
+                             'h_squared': h_squared,
+                             'variance': variance,
+                             'dtdt_trained': dtdt_trained,
+                             're_im_grad': re_im_grad
+                             })
 
     def _propagate(self,
                    param_dict: Dict
@@ -427,20 +405,29 @@ class VarQTE(EvolutionBase):
 
         """
 
-        if self._grad is None:
-            self._init_grad_objects()
-
-        nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
-        print('nat grad result', nat_grad_result)
-        # Get the gradient of <H> w.r.t. the variational parameters
         grad_res = self._grad.assign_parameters(param_dict).eval()
         # Get the QFI/4
         metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
 
+        if self._faster:
+            if np.iscomplex(self._operator.coeff):
+                # VarQRTE
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * 0.5,
+                                                                       metric_res],
+                                                                    regularization=
+                                                                    self._regularization)
+            else:
+                # VarQITE
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -0.5,
+                                                                       metric_res],
+                                                                    regularization=
+                                                                    self._regularization)
+            print('nat grad result', nat_grad_result)
+        else:
+            nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
+            print('nat grad result', nat_grad_result)
+
         w, v = np.linalg.eig(metric_res)
-        # if not all(ew >= 0 for ew in w):
-        #     nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-5)
-        #     return nat_grad
 
         if not all(ew >= -1e-8 for ew in w):
             raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
@@ -448,17 +435,7 @@ class VarQTE(EvolutionBase):
         if not all(ew >= 0 for ew in w):
             w = [max(0, ew) for ew in w]
             metric_res = v @ np.diag(w) @ np.linalg.inv(v)
-        # Get the time derivative of the variational parameters
-        # VarQRTE
-        # if np.iscomplex(self._operator.coeff):
-        #     nat_grad_result = np.real(NaturalGradient(regularization=self._regularization
-        #                                               ).compute_with_res(metric_res * 4,
-        #                                                                  grad_res * 0.5))
-        # # VarQITE
-        # else:
-        #     nat_grad_result = np.real(NaturalGradient(regularization=self._regularization
-        #                                               ).compute_with_res(metric_res * 4,
-        #                                                                  grad_res * (-0.5)))
+
         if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
             raise Warning('The imaginary part of the gradient are non-negligible.')
         if np.any([[np.abs(np.imag(metric_res_item)) > 1e-8 for metric_res_item in metric_res_row]
@@ -466,4 +443,41 @@ class VarQTE(EvolutionBase):
             raise Warning('The imaginary part of the gradient are non-negligible.')
 
         return np.real(nat_grad_result), np.real(grad_res), np.real(metric_res)
+
+    def _distance_energy(self,
+                         time: Union[float, complex],
+                         trained_param_dict: Dict) -> (float, float, float):
+        """
+        Evaluate the fidelity to the target state, the energy w.r.t. the target state and
+        the energy w.r.t. the trained state for a given time and the current parameter set
+        Args:
+            time: current evolution time
+            trained_param_dict: dictionary which matches the operator parameters to the current
+            values of parameters for the given time
+        Returns: fidelity to the target state, the energy w.r.t. the target state and
+        the energy w.r.t. the trained state
+        """
+
+        # |state_t>
+        trained_state = self._state.assign_parameters(trained_param_dict)
+        target_state = self._exact_state(time)
+        trained_state = trained_state.eval().primitive.data
+
+        # Fidelity
+        f = state_fidelity(target_state, trained_state)
+        # Actual error
+        act_err = np.linalg.norm(target_state - trained_state, ord=2)
+        # Target Energy
+        act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
+        # Trained Energy
+        trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
+        print('Fidelity', f)
+        print('True error', act_err)
+        print('actual energy', act_en)
+        print('trained_en', trained_en)
+        # Error between exact evolution and Euler evolution using exact gradients
+        exact_exact_euler_err = np.linalg.norm(target_state - self._exact_euler_state, ord=2)
+        # Error between Euler evolution using exact gradients and the trained state
+        exact_euler_trained_err = np.linalg.norm(trained_state - self._exact_euler_state, ord=2)
+        return f, act_err, act_en, trained_en, exact_exact_euler_err, exact_euler_trained_err
 

@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Iterable
 
 import warnings
 
@@ -54,7 +54,7 @@ class VarQRTE(VarQTE):
             time evolution.
 
         """
-        if not isinstance(operator, ComposedOp):
+        if not isinstance(operator, ComposedOp) or len(operator.oplist) != 2:
             raise TypeError('Please provide the operator as a ComposedOp consisting of the '
                             'observable and the state (as CircuitStateFn).')
         if not isinstance(operator[-1], CircuitStateFn):
@@ -62,13 +62,32 @@ class VarQRTE(VarQTE):
 
         # For VarQRTE we need to add a -i factor to the operator coefficient.
         self._operator = 1j * operator / operator.coeff
+        self._operator_eval = operator / operator.coeff
+        if self._backend is not None:
+            self._operator_eval = CircuitSampler(self._backend).convert(self._operator_eval)
 
-
+        self._init_grad_objects()
         # Step size
         dt = np.abs(operator.coeff) / self._num_time_steps
 
+        if self._regularization == 'energy':
+            exp_0 = self._operator_eval.assign_parameters(dict(zip(self._parameters,
+                                                        self._parameter_values)))
+            exp_0 = np.real(exp_0.eval())
+
+            def energy_reg(dt_params):
+                # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
+                exp_evolved = self._operator_eval.assign_parameters(dict(zip(self._parameters,
+                                                                    self._parameter_values +
+                                                                    dt_params)))
+                exp_evolved = np.real(exp_evolved.eval())
+                return 0.1 * np.linalg.norm(exp_evolved - exp_0)
+
+            self._regularization = energy_reg
+
         # Initialize error
-        error = 0
+        error_bound = 0
+
         # Assign parameter values to parameter items
         param_dict = dict(zip(self._parameters, self._parameter_values))
 
@@ -77,8 +96,11 @@ class VarQRTE(VarQTE):
         if self._ode_solver is not None:
             self._parameter_values = self._run_ode_solver(dt * self._num_time_steps)
             # Return variationally evolved operator
-            return self._operator[-1].assign_parameters(dict(zip(self._parameters,
-                                                                 self._parameter_values)))
+            return self._state.assign_parameters(dict(zip(self._parameters,
+                                                          self._parameter_values)))
+        if self._snapshot_dir is not None:
+            f, true_error, true_energy, trained_energy, exact_exact_euler_err, \
+            exact_euler_trained_err = self._distance_energy(0, param_dict)
 
         for j in range(self._num_time_steps):
 
@@ -87,58 +109,60 @@ class VarQRTE(VarQTE):
             nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
 
             # Evaluate the error bound
-            if self._get_error:
+            if self._snapshot_dir:
                 # Get the residual for McLachlan's Variational Principle
                 resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
 
                 # Get the error for the current step
-                e_t = self._error_t(self._operator, nat_grad_result, grad_res, metric_res)
+                et,  h_squared, dtdt_state, imgrad = self._error_t(self._operator,
+                                                                   nat_grad_result, grad_res,
+                                                                   metric_res)
                 if et < 0 and np.abs(et) > 1e-4:
                     raise Warning('Non-neglectible negative et observed')
                 else:
                     et = np.sqrt(np.real(et))
-                error += dt * e_t
-                print('dt', dt)
-                print('et', e_t)
-                print('Error', np.round(error, 3),  'after', j, ' time steps.')
+                error_bound += dt * et
+                print('et', et)
+                print('Error', np.round(error_bound, 3),  'after', j, ' time steps.')
 
-            # TODO enable the use of arbitrary ODE solvers
-            # Propagate the Ansatz parameters step by step using explicit Euler
+                if self._snapshot_dir:
+                    self._store_params(j * dt, self._parameter_values, error_bound, et,
+                                       resid, f, true_error, exact_exact_euler_err,
+                                       exact_euler_trained_err, true_energy,
+                                       trained_energy, None, h_squared, dtdt_state, imgrad)
+
+                # Propagate the Ansatz parameters step by step using explicit Euler
+                self._exact_euler_state += dt * self._exact_grad_state(
+                    self._state.assign_parameters(param_dict).eval().primitive.data)
+
             self._parameter_values = list(np.add(self._parameter_values, dt *
                                                  np.real(nat_grad_result)))
 
-
             # Assign parameter values to parameter items
             param_dict = dict(zip(self._parameters, self._parameter_values))
-            # If initial parameter values were set compute the fidelity, the error between the
-            # prepared and the target state, the energy w.r.t. the target state and the energy
-            # w.r.t. the prepared state
-            if self._init_parameter_values is not None:
-                f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
-                                                                            param_dict)
 
             # Store the current status
             if self._snapshot_dir:
-                if self._get_error:
-                    if self._init_parameter_values:
-                        self._store_params((j + 1) * dt, self._parameter_values)
-                    else:
-                        self._store_params((j + 1) * dt, self._parameter_values, error, e_t, resid)
-                else:
-                    if self._init_parameter_values:
-                        self._store_params((j + 1) * dt, self._parameter_values, f,
-                                       true_error, true_energy, trained_energy)
-                    else:
-                        self._store_params((j + 1) * dt, self._parameter_values)
+                # Compute the fidelity, the error between the
+                # prepared and the target state, the energy w.r.t. the target state and the energy
+                # w.r.t. the prepared state
+                f, true_error, true_energy, trained_energy, exact_exact_euler_err, \
+                exact_euler_trained_err = self._distance_energy((j + 1) * dt, param_dict)
+                # TODO store parameters
+        if self._snapshot_dir:
+            self._store_params((j + 1) * dt, self._parameter_values, error_bound, None,
+                               resid, f, true_error, exact_exact_euler_err,
+                               exact_euler_trained_err, true_energy,
+                               trained_energy, None, None, None, None)
 
         # Return variationally evolved operator
-        return self._operator.oplist[-1].assign_parameters(param_dict)
+        return self._state.assign_parameters(param_dict)
 
     def _error_t(self,
                  operator: OperatorBase,
                  ng_res: Union[List, np.ndarray],
                  grad_res: Union[List, np.ndarray],
-                 metric: Union[List, np.ndarray]) -> float:
+                 metric: Union[List, np.ndarray]) -> [float]:
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQRTE.
@@ -158,27 +182,20 @@ class VarQRTE(VarQTE):
         eps_squared = 0
 
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        h_squared = ComposedOp([~StateFn(operator.oplist[0].primitive ** 2
-                                        * operator.oplist[0].coeff ** 2), operator.oplist[-1]]
-                              ).assign_parameters(dict(zip(self._parameters,
-                                                           self._parameter_values)))
+        h_squared = np.real(self._h_squared.assign_parameters(dict(zip(self._parameters,
+                                                           self._parameter_values))).eval())
 
-        if self._backend is not None:
-            h_squared = CircuitSampler(self._backend).convert(h_squared)
-
-        h_squared = np.real(h_squared.eval())
         eps_squared += h_squared
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
-        dotdot = self._inner_prod(ng_res, np.dot(metric, ng_res))
-        eps_squared += dotdot
+        dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
+        eps_squared += dtdt_state
 
         # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)
         # 2 missing b.c. of Im
         imgrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared -= imgrad2
-
-        return eps_squared
+        return eps_squared, h_squared, dtdt_state, imgrad2 * 0.5
 
     def _grad_error_t(self,
                  operator: OperatorBase,
@@ -211,46 +228,33 @@ class VarQRTE(VarQTE):
         # print('E_t squared', np.round(eps_squared, 4))
         return grad_eps_squared
 
-    def _distance_energy(self,
-                         time: Union[float, complex],
-                         trained_param_dict: Dict) -> (float, float, float):
+    def _exact_state(self,
+                     time: Union[float, complex]) -> Iterable:
         """
-        Evaluate the fidelity to the target state, the energy w.r.t. the target state and
-        the energy w.r.t. the trained state for a given time and the current parameter set
+
         Args:
-            time: current evolution time
-            trained_param_dict: dictionary which matches the operator parameters to the current
-            values of parameters for the given time
-        Returns: fidelity to the target state, the energy w.r.t. the target state and
-        the energy w.r.t. the trained state
+            time: current time
+
+        Returns:
+            Exactly evolved state for the respective time
+
         """
-        # H
-        hermitian_op = self._operator[0].primitive.to_matrix_op().primitive.data * \
-                       self._operator[0].primitive.to_matrix_op().coeff
-        # exp(-iHt)
-        evolution_op = expm(-1j * hermitian_op * time)
-        #|state>
-        state = self._operator[-1]
-        # |state_0>
-        init_state = state.assign_parameters(dict(zip(trained_param_dict.keys(),
-                                                      self._init_parameter_values)))
-        # |state_t>
-        trained_state = state.assign_parameters(trained_param_dict)
 
-        # Convert the operator with the CircuitSampler
-        if self._backend is not None:
-            init_state = CircuitSampler(self._backend).convert(init_state)
-            trained_state = CircuitSampler(self._backend).convert(trained_state)
+        # Evolve with exponential operator
+        target_state = np.dot(expm(-1j * self._h_matrix * time), self._init_state)
+        return target_state
 
-        target_state = np.dot(evolution_op, init_state.eval().primitive.data)
-        trained_state = trained_state.eval().primitive.data
+    def _exact_grad_state(self,
+                          state: Iterable) -> Iterable:
+        """
+        Return the gradient of the given state
+        -i H |state>
 
-        # Fidelity
-        f = state_fidelity(target_state, trained_state)
-        # Actual error
-        act_err = np.linalg.norm(target_state - trained_state, ord=2)
-        # Target Energy
-        act_en = self._inner_prod(target_state, np.dot(hermitian_op, target_state))
-        # Trained Energy
-        trained_en = self._inner_prod(trained_state, np.dot(hermitian_op, trained_state))
-        return f, act_err, act_en, trained_en
+        Args:
+            state: State for which the exact gradient shall be evaluated
+
+        Returns:
+            Exact gradient of the given state
+
+        """
+        return np.matmul(-1j * self._h_matrix, state)
