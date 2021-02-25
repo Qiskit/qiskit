@@ -91,11 +91,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     continue
 
             new_circs = []
-            operator = Operator(run[0].op)
+            operator = np.array(run[0].op, dtype=complex)
             for gate in run[1:]:
-                operator = operator.compose(gate.op)
+                operator = np.dot(gate.op, operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator))
+                new_circs.append(decomposer(Operator(operator)))
             if new_circs:
                 new_circ = min(new_circs, key=len)
                 if (len(run) > len(new_circ) or (single_u3 and
