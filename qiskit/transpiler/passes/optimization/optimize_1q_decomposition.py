@@ -90,9 +90,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     continue
 
             new_circs = []
-            operator = np.array(run[0].op, dtype=complex)
+            operator = run[0].op.to_matrix()
             for gate in run[1:]:
-                operator = np.dot(gate.op, operator)
+                operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
                 new_circs.append(decomposer(operator))
             if new_circs:
