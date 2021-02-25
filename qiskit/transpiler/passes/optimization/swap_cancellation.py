@@ -19,7 +19,7 @@ class SWAPCancellation(TransformationPass):
     """Cancel back-to-back `swap` gates in dag."""
 
     def run(self, dag):
-        """Run the CXCancellation pass on `dag`.
+        """Run the SWAPCancellation pass on `dag`.
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.

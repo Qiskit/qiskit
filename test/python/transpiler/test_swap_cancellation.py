@@ -21,7 +21,21 @@ from qiskit.test import QiskitTestCase
 class TestSWAPCancellation(QiskitTestCase):
     """Test the SWAPCancellation pass."""
 
-    def test_pass_swap_cancellation(self):
+    def test_pass_swap_cancellation_simple(self):
+        """Test a simple swap cancellation pass, symmetric wires """
+        qr = QuantumRegister(2)
+        circuit = QuantumCircuit(qr)
+        circuit.swap(qr[0], qr[1])
+        circuit.swap(qr[1], qr[2])
+
+        pass_manager = PassManager()
+        pass_manager.append(SWAPCancellation())
+        out_circuit = pass_manager.run(circuit)
+        resources_after = out_circuit.count_ops()
+
+        self.assertNotIn('swap', resources_after)
+
+    def test_pass_swap_cancellation_many(self):
         """Test the swap cancellation pass.
 
         It should cancel consecutive swap pairs on same qubits.
@@ -42,4 +56,4 @@ class TestSWAPCancellation(QiskitTestCase):
         out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
-        self.assertNotIn('cx', resources_after)
+        self.assertNotIn('swap', resources_after)
