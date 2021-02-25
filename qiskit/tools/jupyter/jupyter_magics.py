@@ -23,9 +23,9 @@ from IPython.core.magic import (cell_magic, line_magic,
 
 try:
     import ipywidgets as widgets
-except ImportError:
+except ImportError as ex:
     raise ImportError('These functions  need ipywidgets. '
-                      'Run "pip install ipywidgets" before.')
+                      'Run "pip install ipywidgets" before.') from ex
 import qiskit
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.tools.events.progressbar import TextProgressBar
