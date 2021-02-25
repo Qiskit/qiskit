@@ -130,7 +130,7 @@ class DAGDependency:
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
-            calibrations (dict): A dictionary of input in th format
+            calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
@@ -352,16 +352,16 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
-        directives = ['measure', 'barrier', 'snapshot']
-        if operation.name not in directives:
+        directives = ['measure']
+        if not operation._directive and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
             if operation.condition:
                 for clbit in self.clbits:
-                    if clbit.register == operation.condition[0]:
+                    if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
-                        final = self.clbits.index(clbit) + clbit.register.size
+                        final = self.clbits.index(clbit) + operation.condition[0].size
                         cindices_list = range(initial, final)
                         break
             else:
@@ -533,12 +533,12 @@ def _does_commute(node1, node2):
     """
 
     # Create set of qubits on which the operation acts
-    qarg1 = [node1.qargs[i].index for i in range(0, len(node1.qargs))]
-    qarg2 = [node2.qargs[i].index for i in range(0, len(node2.qargs))]
+    qarg1 = [node1.qargs[i] for i in range(0, len(node1.qargs))]
+    qarg2 = [node2.qargs[i] for i in range(0, len(node2.qargs))]
 
     # Create set of cbits on which the operation acts
-    carg1 = [node1.qargs[i].index for i in range(0, len(node1.cargs))]
-    carg2 = [node2.qargs[i].index for i in range(0, len(node2.cargs))]
+    carg1 = [node1.cargs[i] for i in range(0, len(node1.cargs))]
+    carg2 = [node2.cargs[i] for i in range(0, len(node2.cargs))]
 
     # Commutation for classical conditional gates
     # if and only if the qubits are different.
@@ -552,10 +552,10 @@ def _does_commute(node1, node2):
     # (e.g. measure, reset, directives or pulse gates)
     # if and only if the qubits and clbits are different.
     non_unitaries = ['measure', 'reset', 'initialize', 'delay']
-    directives = ['barrier', 'snapshot']
 
     def _unknown_commutator(n):
-        return (n.name in non_unitaries + directives or
+        return (n.op._directive or
+                n.name in non_unitaries or
                 n.op.is_parameterized())
 
     if _unknown_commutator(node1) or _unknown_commutator(node2):

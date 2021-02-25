@@ -220,7 +220,6 @@ class PauliSumOp(PrimitiveOp):
                 new_self.primitive * other.primitive,  # type:ignore
                 coeff=new_self.coeff * other.coeff,
             )
-        # pylint: disable=import-outside-toplevel
         from .pauli_op import PauliOp
         if isinstance(other, PauliOp):
             other_primitive = SparsePauliOp(other.primitive)
@@ -229,7 +228,7 @@ class PauliSumOp(PrimitiveOp):
                 coeff=new_self.coeff * other.coeff,
             )
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         from .circuit_op import CircuitOp
 
@@ -273,7 +272,7 @@ class PauliSumOp(PrimitiveOp):
         if front is None:
             return self.to_matrix_op()
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.list_op import ListOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..state_fns.dict_state_fn import DictStateFn

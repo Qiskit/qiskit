@@ -495,7 +495,7 @@ class ScheduleDrawer:
         """Draw event table if events exist.
 
         Args:
-            figure (matpotlib.figure.Figure): Figure object
+            figure (matplotlib.figure.Figure): Figure object
             channels: Dictionary of channel and event table
             dt: Time interval
 
@@ -630,7 +630,7 @@ class ScheduleDrawer:
     @staticmethod
     def _prev_label_at_time(prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                             time: int) -> bool:
-        """Check overlap of pulses with pervious channels.
+        """Check overlap of pulses with previous channels.
 
         Args:
             prev_labels: List of labels in previous channels.

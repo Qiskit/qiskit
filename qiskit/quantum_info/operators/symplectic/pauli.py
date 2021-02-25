@@ -12,7 +12,7 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name, abstract-method
+# pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
@@ -426,7 +426,6 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the operator composition with another Pauli.
 
