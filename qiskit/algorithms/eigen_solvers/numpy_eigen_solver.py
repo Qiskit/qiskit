@@ -119,12 +119,13 @@ class NumPyEigensolver(Eigensolver):
             if self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 eigval, eigvec = np.linalg.eig(operator.to_matrix())
-                indices = np.argsort(eigval)[:self._k]
-                eigval = eigval[indices]
-                eigvec = eigvec[:, indices]
             else:
                 eigval, eigvec = scisparse.linalg.eigs(operator.to_spmatrix(),
                                                        k=self._k, which='SR')
+            indices = np.argsort(eigval)[:self._k]
+            eigval = eigval[indices]
+            eigvec = eigvec[:, indices]
+        
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
