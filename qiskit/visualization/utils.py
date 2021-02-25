@@ -48,15 +48,15 @@ def generate_latex_label(label):
     match = regex.search(label)
     if not match:
         label = label.replace(r'\$', '$')
-        return utf8tolatex(label)
+        return utf8tolatex(label, non_ascii_only=True)
     else:
         mathmode_string = match.group(1).replace(r'\$', '$')
         before_match = label[:match.start()]
         before_match = before_match.replace(r'\$', '$')
         after_match = label[match.end():]
         after_match = after_match.replace(r'\$', '$')
-        return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
-            after_match)
+        return utf8tolatex(before_match, non_ascii_only=True) + mathmode_string + utf8tolatex(
+            after_match, non_ascii_only=True)
 
 
 def _trim(image):

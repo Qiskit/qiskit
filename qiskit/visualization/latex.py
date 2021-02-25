@@ -383,8 +383,8 @@ class QCircuitImage:
 
                 else:
                     gate_text, _ = self._get_gate_ctrl_text(op)
-                    gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
                     gate_text = self._add_params_to_gate_text(op, gate_text)
+                    gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
 
                     wire_list = []
                     for wire in op.qargs:
