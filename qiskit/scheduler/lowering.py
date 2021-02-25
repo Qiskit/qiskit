@@ -137,10 +137,12 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 circ_pulse_defs.append(
                     CircuitPulseDef(schedule=inst_map.get(inst, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
-            except PulseError:
-                raise QiskitError("Operation '{}' on qubit(s) {} not supported by the backend "
-                                  "command definition. Did you remember to transpile your input "
-                                  "circuit for the same backend?".format(inst.name, inst_qubits))
+            except PulseError as ex:
+                raise QiskitError(
+                    f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
+                    "backend command definition. Did you remember to transpile your input "
+                    "circuit for the same backend?"
+                ) from ex
 
     if qubit_mem_slots:
         circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))

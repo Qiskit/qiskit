@@ -92,9 +92,9 @@ class Register:
         else:
             try:
                 name = str(name)
-            except Exception:
+            except Exception as ex:
                 raise CircuitError("The circuit name should be castable to a string "
-                                   "(or None for autogenerate a name).")
+                                   "(or None for autogenerate a name).") from ex
             if self.name_format.match(name) is None:
                 raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
                                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name)
@@ -105,6 +105,7 @@ class Register:
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
+            # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
                 raise CircuitError("Provided bits did not all match "
                                    "register type. bits=%s" % bits)
