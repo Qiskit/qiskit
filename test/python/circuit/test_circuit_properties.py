@@ -15,6 +15,7 @@
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -47,8 +48,8 @@ class TestCircuitProperties(QiskitTestCase):
         """Test castable to integer cargs for QuantumCircuit.
         """
         qc1 = QuantumCircuit(12, np.int64(12))
-        c_regs = qc1.cregs
-        self.assertEqual(c_regs[0], ClassicalRegister(12, 'c'))
+        self.assertEqual(len(qc1.clbits), 12)
+        self.assertTrue(all(isinstance(bit, Clbit) for bit in qc1.clbits))
         self.assertEqual(type(qc1), QuantumCircuit)
 
     def test_qarg_numpy_int_exception(self):
