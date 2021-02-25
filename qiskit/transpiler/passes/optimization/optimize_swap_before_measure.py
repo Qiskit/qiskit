@@ -20,16 +20,21 @@ from qiskit.dagcircuit import DAGCircuit
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
-    """Remove the swaps followed by measurement (and adapt the measurement).
+    """Remove or move the swaps followed by measurement (and adapt the measurement)."""
 
-    Transpiler pass to remove swaps in front of measurements by re-targeting
-    the classical bit of the measure instruction.
+    def __init__(self, all_measurement=False, move_swap=False):
+        """Remove/move the swaps followed by measurement (and adapt the measurement).
 
-    If `all_measurement` is `True` (default is `False`)`, the SWAP to be removed
-    has to be measure on both wires. Otherwise, it stays.
-    """
-    def __init__(self, all_measurement=False):
+        Transpiler pass to remove swaps in front of measurements by re-targeting
+        the classical bit of the measure instruction.
+
+        Args:
+            all_measurement (bool): If `True` (default is `False`)`, the SWAP to be removed
+                 has to be measure on both wires. Otherwise, it stays.
+            move_swap (bool):
+        """
         self.all_measurement = all_measurement
+        self.move_swap = move_swap
         super().__init__()
 
     def run(self, dag):
@@ -45,10 +50,12 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         for swap in swaps[::-1]:
             final_successor = []
             for successor in dag.successors(swap):
-                is_final_successor = successor.type == 'op' and successor.op.name == 'measure'
+                is_measure = successor.type == 'op' and successor.op.name == 'measure'
                 if not self.all_measurement:
-                    is_final_successor = is_final_successor or successor.type == 'out'
-                final_successor.append(is_final_successor)
+                    is_out = successor.type == 'out'
+                else:
+                    is_out = False
+                final_successor.append(is_measure or is_out)
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = swap.qargs
@@ -66,6 +73,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                         new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
                         measure_layer.apply_operation_back(Measure(), [new_measure_qarg],
                                                            [successor.cargs[0]])
+                    # measure_layer.apply_operation_back(SwapGate(), swap.qargs)
                 dag.compose(measure_layer)
                 dag.remove_op_node(swap)
         return dag
