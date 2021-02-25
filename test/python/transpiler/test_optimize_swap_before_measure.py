@@ -178,6 +178,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
+
     def test_optimize_nswap_nmeasure(self):
         """ Remove several swap affecting multiple measurements
                             ┌─┐                                                   ┌─┐
@@ -247,7 +248,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         self.assertEqual(expected, after)
 
     def test_all_measurement_skip(self):
-        """OptimizeSwapBeforeMeasure(all_measurement=True) on no total measurment
+        """OptimizeSwapBeforeMeasure(all_measurement=True) on no total measurements
             qr0:--X-----
                   |
             qr1:--X--m--
@@ -269,7 +270,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         self.assertEqual(circuit, after)
 
     def test_all_measurement_mixed(self):
-        """OptimizeSwapBeforeMeasure(all_measurement=True) on mixed measurment
+        """OptimizeSwapBeforeMeasure(all_measurement=True) on mixed measurement
             qr0:--X-----------
                   |
             qr1:--X--X-----m--
@@ -314,7 +315,7 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
-        circuit.cx(qr1[0], qr2[ 1])
+        circuit.cx(qr1[0], qr2[1])
         circuit.swap(qr1[0], qr2[0])
         circuit.measure(qr1[0], cr[0])
         circuit.measure(qr2[0], cr[1])
@@ -325,13 +326,133 @@ class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
         expected.swap(qr1[0], qr2[0])
         expected.measure(qr1[0], cr[0])
         expected.measure(qr2[0], cr[1])
-        expected.cx(qr1[0], qr2[ 1])
+        expected.cx(qr1[0], qr2[1])
         expected.measure(qr2[0], cr[0])
         expected.measure(qr1[0], cr[1])
 
         pass_manager = PassManager()
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
+
+    def test_all_measurement_remove(self):
+        """OptimizeSwapBeforeMeasure(all_measurement=True) with mid-circ measurements, remove one
+            qr0:--X-----------H-----------
+                  |
+            qr1:--X--X-----m--X--X--m-----
+                     |     |     |  |
+            qr2:-----X--m--|--H--X--|--m--
+                        |  |        |  |
+            cr :--------0--1--------1--0--
+
+        Only the last swap should be removed
+        """
+        circuit = QuantumCircuit(3, 2)
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        circuit.measure(2, 0)
+        circuit.measure(1, 1)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.h(2)
+        circuit.swap(1, 2)
+        circuit.measure(1, 1)
+        circuit.measure(2, 0)
+
+        expected = QuantumCircuit(3, 2)
+        expected.swap(0, 1)
+        expected.swap(1, 2)
+        expected.measure(2, 0)
+        expected.measure(1, 1)
+        expected.h(0)
+        expected.x(1)
+        expected.h(2)
+        expected.measure(2, 1)
+        expected.measure(1, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
+
+    def test_all_measurement_remove(self):
+        """OptimizeSwapBeforeMeasure(all_measurement=True) with mid-circ measurements, remove none
+            qr0:--X-----------H--------
+                  |
+            qr1:--X--X-----m--X--X--m--
+                     |     |     |  |
+            qr2:-----X--m--|--H--X--|--
+                        |  |        |
+            cr :--------0--1--------1--
+
+        Last swap should stay, because is partially measured
+        """
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1])
+        circuit.swap(qr[1], qr[2])
+        circuit.measure(qr[2], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.h(qr[0])
+        circuit.x(qr[1])
+        circuit.h(qr[2])
+        circuit.swap(qr[1], qr[2])
+        circuit.measure(qr[1], cr[1])
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(circuit, after)
+
+    def test_move_swap(self):
+        """OptimizeSwapBeforeMeasure(move_swap=True) with mid-circ measurements
+            qr0:--X-----------H-----------
+                  |
+            qr1:--X--X-----m--X--X--m-----
+                     |     |     |  |
+            qr2:-----X--m--|--H--X--|--m--
+                        |  |        |  |
+            cr :--------0--1--------1--0--
+
+        Only the last swap should be removed
+        """
+        circuit = QuantumCircuit(3, 2)
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        circuit.measure(2, 0)
+        circuit.measure(1, 1)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.h(2)
+        circuit.swap(1, 2)
+        circuit.measure(1, 1)
+        circuit.measure(2, 0)
+
+        expected = QuantumCircuit(3, 2)
+        expected.swap(0, 1)
+        expected.measure(1, 0)
+        expected.measure(2, 1)
+        expected.swap(1, 2)
+        expected.h(0)
+        expected.x(1)
+        expected.h(2)
+        expected.measure(2, 1)
+        expected.measure(1, 0)
+        expected.swap(1, 2)
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(move_swap=True), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
         after = pass_manager.run(circuit)
 

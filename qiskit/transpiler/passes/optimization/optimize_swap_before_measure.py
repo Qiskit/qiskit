@@ -58,21 +58,45 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         _layout = Layout.generate_trivial_layout(*dag.qregs.values())
         _trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        for node in dag.topological_op_nodes():
+        nodes = dag.topological_op_nodes()
+        nodes_to_skip = []
+        for node in nodes:
+            if node in nodes_to_skip:
+                nodes_to_skip.remove(node)
+                continue
             if node.type == 'op':
                 qargs = [_trivial_layout[_layout[qarg]] for qarg in node.qargs]
-                if isinstance(node.op, SwapGate):
-                    swap = node
-                    final_successor = []
-                    for successor in dag.successors(swap):
-                        if successor.type == 'op' and successor.op.name == 'measure':
-                            is_final_measure = all([s.type == 'out'
-                                                    for s in dag.successors(successor)])
-                        else:
-                            is_final_measure = False
-                        final_successor.append(successor.type == 'out' or is_final_measure)
-                    if all(final_successor):
+                swap_successors = list(dag.successors(node))
+                if isinstance(node.op, SwapGate) and self.should_remove_swap(swap_successors, dag):
+                    if self.move_swap:
+                        [q1, q2] = [s.qargs[0] for s in swap_successors]
+                        [c1, c2] = [s.cargs[0] for s in swap_successors]
+                        new_dag.apply_operation_back(Measure(), [q1], [c2])
+                        new_dag.apply_operation_back(Measure(), [q2], [c1])
+                        new_dag.apply_operation_back(SwapGate(), qargs, node.cargs)
+                        nodes_to_skip += swap_successors  # skip the successors (they are measure)
+                    else:
                         _layout.swap(*qargs)
-                        continue
+                    continue
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
         return new_dag
+
+    def should_remove_swap(self, swap_successors, dag):
+        final_successor = []
+        followed_by_measures = []
+        for successor in swap_successors:
+            is_final_measure = False
+            if successor.type == 'op' and successor.op.name == 'measure':
+                followed_by_measures.append(True)
+                if self.move_swap:
+                    is_final_measure = True
+                else:
+                    is_final_measure = all([s.type == 'out' for s in dag.successors(successor)])
+            else:
+                followed_by_measures.append(False)
+            final_successor.append(successor.type == 'out' or is_final_measure)
+        if self.all_measurement:
+            return all(followed_by_measures) and all(final_successor)
+        if self.move_swap:
+            return all(followed_by_measures)
+        return all(final_successor)
