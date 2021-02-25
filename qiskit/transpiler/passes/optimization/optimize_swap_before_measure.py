@@ -16,6 +16,7 @@
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler import Layout
 from qiskit.dagcircuit import DAGCircuit
 
 
@@ -46,34 +47,32 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        swaps = dag.op_nodes(SwapGate)
-        for swap in swaps[::-1]:
-            final_successor = []
-            for successor in dag.successors(swap):
-                is_measure = successor.type == 'op' and successor.op.name == 'measure'
-                if not self.all_measurement:
-                    is_out = successor.type == 'out'
-                else:
-                    is_out = False
-                final_successor.append(is_measure or is_out)
-            if all(final_successor):
-                # the node swap needs to be removed and, if a measure follows, needs to be adapted
-                swap_qargs = swap.qargs
-                measure_layer = DAGCircuit()
-                for qreg in dag.qregs.values():
-                    measure_layer.add_qreg(qreg)
-                for creg in dag.cregs.values():
-                    measure_layer.add_creg(creg)
-                for successor in list(dag.successors(swap)):
-                    if successor.type == 'op' and successor.op.name == 'measure':
-                        # replace measure node with a new one, where qargs is set with the "other"
-                        # swap qarg.
-                        dag.remove_op_node(successor)
-                        old_measure_qarg = successor.qargs[0]
-                        new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
-                        measure_layer.apply_operation_back(Measure(), [new_measure_qarg],
-                                                           [successor.cargs[0]])
-                    # measure_layer.apply_operation_back(SwapGate(), swap.qargs)
-                dag.compose(measure_layer)
-                dag.remove_op_node(swap)
-        return dag
+        new_dag = DAGCircuit()
+        new_dag.metadata = dag.metadata
+        new_dag._global_phase = dag._global_phase
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+
+        _layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        _trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        for node in dag.topological_op_nodes():
+            if node.type == 'op':
+                qargs = [_trivial_layout[_layout[qarg]] for qarg in node.qargs]
+                if isinstance(node.op, SwapGate):
+                    swap = node
+                    final_successor = []
+                    for successor in dag.successors(swap):
+                        if successor.type == 'op' and successor.op.name == 'measure':
+                            is_final_measure = all([s.type == 'out'
+                                                    for s in dag.successors(successor)])
+                        else:
+                            is_final_measure = False
+                        final_successor.append(successor.type == 'out' or is_final_measure)
+                    if all(final_successor):
+                        _layout.swap(*qargs)
+                        continue
+                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+        return new_dag

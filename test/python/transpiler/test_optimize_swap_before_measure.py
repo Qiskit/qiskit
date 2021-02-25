@@ -73,72 +73,6 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    def test_optimize_nswap_nmeasure(self):
-        """ Remove severals swap affecting multiple measurements
-                            ┌─┐                                                   ┌─┐
-        q_0: ─X──X─────X────┤M├─────────────────────────────────       q_0: ──────┤M├───────────────
-              │  │     │    └╥┘         ┌─┐                                    ┌─┐└╥┘
-        q_1: ─X──X──X──X──X──╫─────X────┤M├─────────────────────       q_1: ───┤M├─╫────────────────
-                    │     │  ║     │    └╥┘      ┌─┐                        ┌─┐└╥┘ ║
-        q_2: ───────X──X──X──╫──X──X─────╫──X────┤M├────────────       q_2: ┤M├─╫──╫────────────────
-                       │     ║  │        ║  │    └╥┘┌─┐                     └╥┘ ║  ║    ┌─┐
-        q_3: ─X─────X──X─────╫──X──X──X──╫──X─────╫─┤M├─────────       q_3: ─╫──╫──╫────┤M├─────────
-              │     │        ║     │  │  ║        ║ └╥┘┌─┐                   ║  ║  ║    └╥┘      ┌─┐
-        q_4: ─X──X──X──X─────╫──X──X──X──╫──X─────╫──╫─┤M├──────  ==>  q_4: ─╫──╫──╫─────╫───────┤M├
-                 │     │     ║  │        ║  │     ║  ║ └╥┘┌─┐                ║  ║  ║ ┌─┐ ║       └╥┘
-        q_5: ────X──X──X──X──╫──X──X─────╫──X──X──╫──╫──╫─┤M├───       q_5: ─╫──╫──╫─┤M├─╫────────╫─
-                    │     │  ║     │     ║     │  ║  ║  ║ └╥┘┌─┐             ║  ║  ║ └╥┘ ║ ┌─┐    ║
-        q_6: ─X──X──X──X──X──╫──X──X─────╫─────X──╫──╫──╫──╫─┤M├       q_6: ─╫──╫──╫──╫──╫─┤M├────╫─
-              │  │     │     ║  │ ┌─┐    ║        ║  ║  ║  ║ └╥┘             ║  ║  ║  ║  ║ └╥┘┌─┐ ║
-        q_7: ─X──X─────X─────╫──X─┤M├────╫────────╫──╫──╫──╫──╫─       q_7: ─╫──╫──╫──╫──╫──╫─┤M├─╫─
-                             ║    └╥┘    ║        ║  ║  ║  ║  ║              ║  ║  ║  ║  ║  ║ └╥┘ ║
-        c: 8/════════════════╩═════╩═════╩════════╩══╩══╩══╩══╩═       c: 8/═╩══╩══╩══╩══╩══╩══╩══╩═
-                             0     7     1        2  3  4  5  6              0  1  2  3  4  5  6  7
-        """
-        circuit = QuantumCircuit(8, 8)
-        circuit.swap(3, 4)
-        circuit.swap(6, 7)
-        circuit.swap(0, 1)
-        circuit.swap(6, 7)
-        circuit.swap(4, 5)
-        circuit.swap(0, 1)
-        circuit.swap(5, 6)
-        circuit.swap(3, 4)
-        circuit.swap(1, 2)
-        circuit.swap(6, 7)
-        circuit.swap(4, 5)
-        circuit.swap(2, 3)
-        circuit.swap(0, 1)
-        circuit.swap(5, 6)
-        circuit.swap(1, 2)
-        circuit.swap(6, 7)
-        circuit.swap(4, 5)
-        circuit.swap(2, 3)
-        circuit.swap(3, 4)
-        circuit.swap(3, 4)
-        circuit.swap(5, 6)
-        circuit.swap(1, 2)
-        circuit.swap(4, 5)
-        circuit.swap(2, 3)
-        circuit.swap(5, 6)
-        circuit.measure(range(8), range(8))
-        dag = circuit_to_dag(circuit)
-
-        expected = QuantumCircuit(8, 8)
-        expected.measure(0, 2)
-        expected.measure(1, 1)
-        expected.measure(2, 0)
-        expected.measure(3, 4)
-        expected.measure(4, 7)
-        expected.measure(5, 3)
-        expected.measure(6, 5)
-        expected.measure(7, 6)
-
-        pass_ = OptimizeSwapBeforeMeasure()
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
     def test_cannot_optimize(self):
         """ Cannot optimize when swap is not at the end in all of the successors
             qr0:--X-----m--
@@ -244,6 +178,73 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
+    def test_optimize_nswap_nmeasure(self):
+        """ Remove several swap affecting multiple measurements
+                            ┌─┐                                                   ┌─┐
+        q_0: ─X──X─────X────┤M├─────────────────────────────────       q_0: ──────┤M├───────────────
+              │  │     │    └╥┘         ┌─┐                                    ┌─┐└╥┘
+        q_1: ─X──X──X──X──X──╫─────X────┤M├─────────────────────       q_1: ───┤M├─╫────────────────
+                    │     │  ║     │    └╥┘      ┌─┐                        ┌─┐└╥┘ ║
+        q_2: ───────X──X──X──╫──X──X─────╫──X────┤M├────────────       q_2: ┤M├─╫──╫────────────────
+                       │     ║  │        ║  │    └╥┘┌─┐                     └╥┘ ║  ║    ┌─┐
+        q_3: ─X─────X──X─────╫──X──X──X──╫──X─────╫─┤M├─────────       q_3: ─╫──╫──╫────┤M├─────────
+              │     │        ║     │  │  ║        ║ └╥┘┌─┐                   ║  ║  ║    └╥┘      ┌─┐
+        q_4: ─X──X──X──X─────╫──X──X──X──╫──X─────╫──╫─┤M├──────  ==>  q_4: ─╫──╫──╫─────╫───────┤M├
+                 │     │     ║  │        ║  │     ║  ║ └╥┘┌─┐                ║  ║  ║ ┌─┐ ║       └╥┘
+        q_5: ────X──X──X──X──╫──X──X─────╫──X──X──╫──╫──╫─┤M├───       q_5: ─╫──╫──╫─┤M├─╫────────╫─
+                    │     │  ║     │     ║     │  ║  ║  ║ └╥┘┌─┐             ║  ║  ║ └╥┘ ║ ┌─┐    ║
+        q_6: ─X──X──X──X──X──╫──X──X─────╫─────X──╫──╫──╫──╫─┤M├       q_6: ─╫──╫──╫──╫──╫─┤M├────╫─
+              │  │     │     ║  │ ┌─┐    ║        ║  ║  ║  ║ └╥┘             ║  ║  ║  ║  ║ └╥┘┌─┐ ║
+        q_7: ─X──X─────X─────╫──X─┤M├────╫────────╫──╫──╫──╫──╫─       q_7: ─╫──╫──╫──╫──╫──╫─┤M├─╫─
+                             ║    └╥┘    ║        ║  ║  ║  ║  ║              ║  ║  ║  ║  ║  ║ └╥┘ ║
+        c: 8/════════════════╩═════╩═════╩════════╩══╩══╩══╩══╩═       c: 8/═╩══╩══╩══╩══╩══╩══╩══╩═
+                             0     7     1        2  3  4  5  6              0  1  2  3  4  5  6  7
+        """
+        circuit = QuantumCircuit(8, 8)
+        circuit.swap(3, 4)
+        circuit.swap(6, 7)
+        circuit.swap(0, 1)
+        circuit.swap(6, 7)
+        circuit.swap(4, 5)
+        circuit.swap(0, 1)
+        circuit.swap(5, 6)
+        circuit.swap(3, 4)
+        circuit.swap(1, 2)
+        circuit.swap(6, 7)
+        circuit.swap(4, 5)
+        circuit.swap(2, 3)
+        circuit.swap(0, 1)
+        circuit.swap(5, 6)
+        circuit.swap(1, 2)
+        circuit.swap(6, 7)
+        circuit.swap(4, 5)
+        circuit.swap(2, 3)
+        circuit.swap(3, 4)
+        circuit.swap(3, 4)
+        circuit.swap(5, 6)
+        circuit.swap(1, 2)
+        circuit.swap(4, 5)
+        circuit.swap(2, 3)
+        circuit.swap(5, 6)
+        circuit.measure(range(8), range(8))
+
+        expected = QuantumCircuit(8, 8)
+        expected.measure(0, 2)
+        expected.measure(1, 1)
+        expected.measure(2, 0)
+        expected.measure(3, 4)
+        expected.measure(4, 7)
+        expected.measure(5, 3)
+        expected.measure(6, 5)
+        expected.measure(7, 6)
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
 
     def test_all_measurement_skip(self):
         """OptimizeSwapBeforeMeasure(all_measurement=True) on no total measurment
@@ -293,6 +294,44 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(all_measurement=True), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set['dag_fixed_point'])
+        after = pass_manager.run(circuit)
+
+        self.assertEqual(expected, after)
+
+
+class TestOptimizeSwapBeforeMeasureMidMeasure(QiskitTestCase):
+    """ Test swap-followed-by-measure optimizations, with mid-circuit measurement."""
+
+    def test_mid_circuit(self):
+        """Test mid-circuit measurement"""
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        cr = ClassicalRegister(3, 'cr')
+        circuit = QuantumCircuit(qr1, qr2, cr)
+        circuit.h(qr1[0])
+        circuit.h(qr2[1])
+        circuit.swap(qr1[0], qr2[0])
+        circuit.measure(qr1[0], cr[0])
+        circuit.measure(qr2[0], cr[1])
+        circuit.cx(qr1[0], qr2[ 1])
+        circuit.swap(qr1[0], qr2[0])
+        circuit.measure(qr1[0], cr[0])
+        circuit.measure(qr2[0], cr[1])
+
+        expected = QuantumCircuit(qr1, qr2, cr)
+        expected.h(qr1[0])
+        expected.h(qr2[1])
+        expected.swap(qr1[0], qr2[0])
+        expected.measure(qr1[0], cr[0])
+        expected.measure(qr2[0], cr[1])
+        expected.cx(qr1[0], qr2[ 1])
+        expected.measure(qr2[0], cr[0])
+        expected.measure(qr1[0], cr[1])
+
+        pass_manager = PassManager()
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
         after = pass_manager.run(circuit)
 

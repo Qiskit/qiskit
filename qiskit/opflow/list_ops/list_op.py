@@ -370,7 +370,7 @@ class ListOp(OperatorBase):
             raise NotImplementedError("ListOp's eval function is only defined for distributive "
                                       "ListOps.")
 
-        evals = [(self.coeff * op).eval(front) for op in self.oplist]  # type: ignore
+        evals = [op.eval(front) for op in self.oplist]  # type: ignore
 
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn != ListOp([])._combo_fn:
@@ -382,14 +382,22 @@ class ListOp(OperatorBase):
                 if not all(op.is_measurement == evals[0].is_measurement for op in evals):
                     raise NotImplementedError("Combo_fn not yet supported for mixed measurement "
                                               "and non-measurement StateFns")
-                return self.combo_fn(evals)
+                result = self.combo_fn(evals)
+                if isinstance(result, list):
+                    multiplied = self.coeff * np.array(result)
+                    return multiplied.tolist()
+                return self.coeff * result
 
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError('Cannot handle mixed scalar and Operator eval results.')
         else:
-            return self.combo_fn(evals)
+            result = self.combo_fn(evals)
+            if isinstance(result, list):
+                multiplied = self.coeff * np.array(result)
+                return multiplied.tolist()
+            return self.coeff * result
 
     def exp_i(self) -> OperatorBase:
         """ Return an ``OperatorBase`` equivalent to an exponentiation of self * -i, e^(-i*op)."""
