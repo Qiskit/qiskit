@@ -275,7 +275,7 @@ class _PulseBuilder():
         """Initialize the builder context.
 
         .. note::
-            At some point we may consider incorpating the builder into
+            At some point we may consider incorporating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -768,7 +768,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context generator, decorator.
+    """A transform context generator, decorator.
 
     Decorator accepts a transformation function, and then decorates a new
     ContextManager function.
@@ -946,7 +946,7 @@ def align_func(duration: int,
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
-    the associated fractional location witin [0, 1].
+    the associated fractional location within [0, 1].
     Delay instruction is automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of arbitrary dynamical decoupling
@@ -1210,7 +1210,7 @@ def frequency_offset(frequency: float,
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted freqeuncy frame
+            # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
@@ -1582,7 +1582,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1697,7 +1697,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
-    scheduling aligment operations across channels. For example
+    scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
@@ -1782,7 +1782,7 @@ def measure(qubits: Union[List[int], int],
     Args:
         qubits: Physical qubit to measure.
         registers: Register to store result in. If not selected the current
-            behaviour is to return the :class:`MemorySlot` with the same
+            behavior is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -1893,7 +1893,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     .. jupyter-kernel:: python3
@@ -1949,7 +1949,7 @@ def cx(control: int, target: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1974,7 +1974,7 @@ def u1(theta: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2001,7 +2001,7 @@ def u2(phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2028,7 +2028,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2055,7 +2055,7 @@ def x(qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:

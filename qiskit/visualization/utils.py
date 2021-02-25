@@ -305,13 +305,13 @@ class _LayerSpooler(list):
 
 
 def _bloch_multivector_data(state):
-    """Return list of bloch vectors for each qubit
+    """Return list of Bloch vectors for each qubit
 
     Args:
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        list: list of bloch vectors (x, y, z) for each qubit.
+        list: list of Bloch vectors (x, y, z) for each qubit.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
@@ -340,7 +340,7 @@ def _paulivec_data(state):
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        tuple: (labels, values) for Pauli vec.
+        tuple: (labels, values) for Pauli vector.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.

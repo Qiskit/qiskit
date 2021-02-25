@@ -31,7 +31,7 @@ def state_fidelity(state1, state2, validate=True):
     .. math::
         F(\rho_1, \rho_2) = Tr[\sqrt{\sqrt{\rho_1}\rho_2\sqrt{\rho_1}}]^2.
 
-    If one of the states is a pure state this simplies to
+    If one of the states is a pure state this simplifies to
     :math:`F(\rho_1, \rho_2) = \langle\psi_1|\rho_2|\psi_1\rangle`, where
     :math:`\rho_1 = |\psi_1\rangle\!\langle\psi_1|`.
 

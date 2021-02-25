@@ -60,7 +60,7 @@ class PassManager:
             passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
                     passes that are controlled by the same flow controller. If a single pass is
                     provided, the pass set will only have that pass a single element.
-                    It is also possibble to append a
+                    It is also possible to append a
                     :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
                     rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
