@@ -12,8 +12,9 @@
 
 """The Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Tuple, Callable
 import logging
+from typing import List, Optional, Union, Tuple, Callable
+
 import numpy as np
 from scipy import sparse as scisparse
 
@@ -109,20 +110,21 @@ class NumPyEigensolver(Eigensolver):
         # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
         if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
             diag = sp_mat.diagonal()
-            eigval = np.sort(diag)[:self._k]
-            temp = np.argsort(diag)[:self._k]
+            indices = np.argsort(diag)[:self._k]
+            eigval = diag[indices]
             eigvec = np.zeros((sp_mat.shape[0], self._k))
-            for i, idx in enumerate(temp):
+            for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
             if self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
-                eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-                eigval = eigval[:self._k]
-                eigvec = eigvec[:, :self._k]
+                eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                indices = np.argsort(eigval)[:self._k]
+                eigval = eigval[indices]
+                eigvec = eigvec[:, indices]
             else:
-                eigval, eigvec = scisparse.linalg.eigsh(operator.to_spmatrix(),
-                                                        k=self._k, which='SA')
+                eigval, eigvec = scisparse.linalg.eigs(operator.to_spmatrix(),
+                                                       k=self._k, which='SR')
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
