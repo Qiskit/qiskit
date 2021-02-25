@@ -26,7 +26,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
@@ -106,10 +105,10 @@ class QCircuitImage:
         self.plot_barriers = plot_barriers
 
         #################################
-        self.qregs = _get_register_specs(qubits)
+        self.qregs = self._get_register_specs(qubits)
         self.qubit_list = qubits
         self.ordered_regs = qubits + clbits
-        self.cregs = _get_register_specs(clbits)
+        self.cregs = self._get_register_specs(clbits)
         self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
@@ -252,7 +251,7 @@ class QCircuitImage:
                 for arg in op.op.params:
                     if not any([isinstance(param, np.ndarray) for param in op.op.params]):
                         arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
-                                         _truncate_float, str(arg))
+                                         self._truncate_float, str(arg))
                         arg_str_len += len(arg_str)
 
                 # the width of the column is the max of all the gates in the column
@@ -658,86 +657,13 @@ class QCircuitImage:
         origin = (mask & (-mask)).bit_length()
         return origin - 1
 
+    def _get_register_specs(self, bits):
+        """Get the number and size of unique registers from bits list."""
+        regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
+        return regs
 
-def _get_register_specs(bits):
-    """Get the number and size of unique registers from bits list.
-
-    Args:
-        bits (list[Bit]): this list is of the form::
-            [Qubit(v0, 0), Qubit(v0, 1), Qubit(v0, 2), Qubit(v0, 3), Qubit(v1, 0)]
-            which indicates a size-4 register and a size-1 register
-
-    Returns:
-        OrderedDict: ordered map of Registers to their sizes
-    """
-    regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
-    return regs
-
-
-def _truncate_float(matchobj, ndigits=3):
-    """Truncate long floats
-
-    Args:
-        matchobj (re.Match): contains original float
-        ndigits (int): Number of digits to print
-    Returns:
-       str: returns truncated float
-    """
-    if matchobj.group(0):
-        return '%.{}g'.format(ndigits) % float(matchobj.group(0))
-    return ''
-
-
-def array_to_latex(array, precision=5, pretext="", source=False, max_size=8):
-    """Latex representation of a complex numpy array (with dimension 1 or 2)
-
-        Args:
-            array (ndarray): The array to be converted to latex, must have dimension 1 or 2 and
-                             contain only numerical data.
-            precision (int): For numbers not close to integers or common terms, the number of
-                             decimal places to round to.
-            pretext (str): Latex string to be prepended to the latex, intended for labels.
-            source (bool): If ``False``, will return IPython.display.Latex object. If display is
-                           ``True``, will instead return the LaTeX source string.
-            max_size (list(int) or int): The maximum size of the output Latex array.
-                      * If list(```int```), then the 0th element of the list specifies the maximum
-                        width (including dots characters) and the 1st specifies the maximum height
-                        (also inc. dots characters).
-                      * If a single ```int``` then this value sets the maximum width _and_ maximum
-                        height.
-
-        Returns:
-            if ``source`` is ``True``:
-                ``str``: LaTeX string representation of the array, wrapped in `$$`.
-            else:
-                ``IPython.display.Latex``: LaTeX representation of the array.
-
-        Raises:
-            TypeError: If array can not be interpreted as a numerical numpy array.
-            ValueError: If the dimension of array is not 1 or 2.
-            ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
-                         imported.
-    """
-    try:
-        array = np.asarray(array)
-        _ = array[0]+1  # Test first element contains numerical data
-    except TypeError as err:
-        raise TypeError("""array_to_latex can only convert numpy arrays containing numerical data,
-        or types that can be converted to such arrays""") from err
-
-    if array.ndim <= 2:
-        if isinstance(max_size, int):
-            max_size = (max_size, max_size)
-        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
-    else:
-        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
-
-    if source is False:
-        try:
-            from IPython.display import Latex
-        except ImportError as err:
-            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
-                                         " source string, set `source=True`).")
-        return Latex(outstr)
-    else:
-        return outstr
+    def _truncate_float(self, matchobj, ndigits=4):
+        """Truncate long floats."""
+        if matchobj.group(0):
+            return '%.{}g'.format(ndigits) % float(matchobj.group(0))
+        return ''
