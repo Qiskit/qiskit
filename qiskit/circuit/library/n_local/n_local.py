@@ -778,7 +778,7 @@ class NLocal(BlueprintCircuit):
                     unbound_unique_parameters.append(param)
                     used.add(param)
 
-            param_dict = dict(zip(unbound_unique_parameters, param_dict))
+            param_dict = dict(zip(unbound_unique_parameters, parameters))
 
         if inplace:
             new = [parameters.get(param, param) for param in self.ordered_parameters]
