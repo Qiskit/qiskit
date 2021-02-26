@@ -772,13 +772,13 @@ class NLocal(BlueprintCircuit):
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = []
-            for param in unbound_params:
+            unbound_unique_parameters = []
+            for param in unbound_parameters:
                 if param not in used:
-                    unbound_unique_params.append(param)
+                    unbound_unique_parameters.append(param)
                     used.add(param)
 
-            param_dict = dict(zip(unbound_unique_params, param_dict))
+            param_dict = dict(zip(unbound_unique_parameters, param_dict))
 
         if inplace:
             new = [parameters.get(param, param) for param in self.ordered_parameters]
