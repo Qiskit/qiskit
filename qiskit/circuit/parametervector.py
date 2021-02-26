@@ -20,7 +20,7 @@ from .parameter import Parameter
 class ParameterVectorElement(Parameter):
     """An element of a ParameterVector."""
 
-    def __new__(cls, vector_name, index, uuid=None):  # pylint:disable=unused-argument
+    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
         obj = object.__new__(cls)
 
         if uuid is None:
@@ -32,23 +32,23 @@ class ParameterVectorElement(Parameter):
         return obj
 
     def __getnewargs__(self):
-        return (self.vector_name, self.index, self._uuid)
+        return (self.vector, self.index, self._uuid)
 
-    def __init__(self, vector_name, index):
-        name = f'{vector_name}[{index}]'
+    def __init__(self, vector, index):
+        name = f'{vector.name}[{index}]'
         super().__init__(name)
-        self._vector_name = vector_name
+        self._vector = vector
         self._index = index
 
     @property
     def index(self):
-        """Get the index of this element in the parameter vector."""
+        """Get the index of this element in the parent vector."""
         return self._index
 
     @property
-    def vector_name(self):
-        """Get the name of the vector."""
-        return self._vector_name
+    def vector(self):
+        """Get the parent vector instance."""
+        return self._vector
 
 
 class ParameterVector:
@@ -59,7 +59,7 @@ class ParameterVector:
         self._params = []
         self._size = length
         for i in range(length):
-            self._params += [ParameterVectorElement(name, i)]
+            self._params += [ParameterVectorElement(self, i)]
 
     @property
     def name(self):
@@ -105,5 +105,5 @@ class ParameterVector:
         """
         if length > len(self._params):
             for i in range(len(self._params), length):
-                self._params += [ParameterVectorElement(self.name, i)]
+                self._params += [ParameterVectorElement(self, i)]
         self._size = length

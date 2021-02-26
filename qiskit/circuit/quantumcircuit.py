@@ -2636,8 +2636,8 @@ def _standard_compare(value1, value2):
 
 def _compare_parameters(param1, param2):
     if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
-        # if they belong to the same vector, sort by index
-        if param1.vector_name == param2.vector_name:
+        # if they belong to a vector with the same name, sort by index
+        if param1.vector.name == param2.vector.name:
             return _standard_compare(param1.index, param2.index)
 
     # else sort by name
