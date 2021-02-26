@@ -106,7 +106,7 @@ def _marginalize(counts, indices=None):
     if not indices or not set(indices).issubset(set(range(num_clbits))):
         raise QiskitError('indices must be in range [0, {}].'.format(num_clbits-1))
 
-    # Sort the indices to keep in decending order
+    # Sort the indices to keep in descending order
     # Since bitstrings have qubit-0 as least significant bit
     indices = sorted(indices, reverse=True)
 

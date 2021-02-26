@@ -182,7 +182,7 @@ class MatrixOp(PrimitiveOp):
         if front is None:
             return self
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
         from ..state_fns import StateFn, OperatorStateFn
 

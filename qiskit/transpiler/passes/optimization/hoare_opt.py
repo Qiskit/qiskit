@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Pass for hoare logic circuit optimization. """
+""" Pass for Hoare logic circuit optimization. """
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate, Gate
 from qiskit.extensions.unitary import UnitaryGate
@@ -25,7 +25,7 @@ except ImportError:
 
 
 class HoareOptimizer(TransformationPass):
-    """ This is a transpiler pass using hoare logic circuit optimization.
+    """ This is a transpiler pass using Hoare logic circuit optimization.
         The inner workings of this are detailed in:
         https://arxiv.org/abs/1810.00375
     """
@@ -173,7 +173,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             qb_id (int): index of qubit cache to inspect
         Returns:
-            list(list(DAGNode)): list of target succesive gate sequences for
+            list(list(DAGNode)): list of target successive gate sequences for
                                  this qubit's cache
         """
         seqs = []
@@ -200,7 +200,7 @@ class HoareOptimizer(TransformationPass):
         return seqs
 
     def _is_identity(self, sequence):
-        """ determine whether the sequence of gates combines to the idendity
+        """ determine whether the sequence of gates combines to the identity
             (consider sequences of length 2 for now)
         Args:
             sequence (list(DAGNode)): gate sequence to inspect

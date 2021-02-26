@@ -113,7 +113,7 @@ def plot_gate_map(backend, figsize=None,
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
@@ -428,15 +428,15 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     """
     try:
         import seaborn as sns
-    except ImportError:
+    except ImportError as ex:
         raise ImportError('Must have seaborn installed to use plot_error_map. '
-                          'To install, run "pip install seaborn".')
+                          'To install, run "pip install seaborn".') from ex
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, '
                           'run "pip install matplotlib".')
     import matplotlib
     from matplotlib import get_backend
-    import matplotlib.pyplot as plt  # pylint: disable=import-error
+    import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
 
