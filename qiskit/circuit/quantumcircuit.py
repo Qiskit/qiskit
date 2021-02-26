@@ -566,6 +566,11 @@ class QuantumCircuit:
         for instruction_context in itertools.chain(self.data, rhs.data):
             circuit._append(*instruction_context)
         circuit.global_phase = self.global_phase + rhs.global_phase
+
+        # Add the calibrations
+        for gate, cals in rhs.calibrations.items():
+            circuit._calibrations[gate].update(cals)
+
         return circuit
 
     def extend(self, rhs):
@@ -610,6 +615,11 @@ class QuantumCircuit:
         for instruction_context in data:
             self._append(*instruction_context)
         self.global_phase += rhs.global_phase
+
+        # Add calibrations
+        for gate, cals in rhs.calibrations.items():
+            self._calibrations[gate].update(cals)
+
         return self
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
