@@ -221,7 +221,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._qubits = qr_state[:] + qr_target[:]
             self._ancillas = []
 
             # add ancillas if required
@@ -231,7 +230,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 self.add_register(qr_ancilla)
         else:
             self.qregs = []
-            self._qubits = []
             self._ancillas = []
 
     def _build(self):

@@ -13,7 +13,9 @@
 """The interface for amplification algorithms and results."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Union, Dict, List
+
+import numpy as np
 
 from .amplification_problem import AmplificationProblem
 from ..algorithm_result import AlgorithmResult
@@ -100,3 +102,23 @@ class AmplitudeAmplifierResult(AlgorithmResult):
             value: A new value for the classical oracle evaluation.
         """
         self._oracle_evaluation = value
+
+    @property
+    def circuit_results(self) -> Optional[Union[List[np.ndarray], List[Dict[str, int]]]]:
+        """Return the circuit results. Can be a statevector or counts dictionary."""
+        return self._circuit_results
+
+    @circuit_results.setter
+    def circuit_results(self, value: Union[List[np.ndarray], List[Dict[str, int]]]) -> None:
+        """Set the circuit results."""
+        self._circuit_results = value
+
+    @property
+    def max_probability(self) -> float:
+        """Return the maximum sampling probability."""
+        return self._max_probability
+
+    @max_probability.setter
+    def max_probability(self, value: float) -> None:
+        """Set the maximum sampling probability."""
+        self._max_probability = value
