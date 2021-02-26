@@ -23,7 +23,7 @@ from scipy.integrate import OdeSolver, ode
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.opflow.evolutions.varqte import VarQTE
-from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, CircuitSampler, OperatorBase
+from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, OperatorBase
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
@@ -63,23 +63,32 @@ class VarQRTE(VarQTE):
         # For VarQRTE we need to add a -i factor to the operator coefficient.
         self._operator = 1j * operator / operator.coeff
         self._operator_eval = operator / operator.coeff
-        if self._backend is not None:
-            self._operator_eval = CircuitSampler(self._backend).convert(self._operator_eval)
 
         self._init_grad_objects()
         # Step size
         dt = np.abs(operator.coeff) / self._num_time_steps
 
         if self._regularization == 'energy':
-            exp_0 = self._operator_eval.assign_parameters(dict(zip(self._parameters,
+            if self._backend is not None:
+                exp_0 = self._operator_circ_sampler.convert(self._operator_eval,
+                                                    params=dict(zip(self._parameters,
+                                                                    self._parameter_values)))[0]
+            else:
+                exp_0 = self._operator_eval.assign_parameters(dict(zip(self._parameters,
                                                         self._parameter_values)))
             exp_0 = np.real(exp_0.eval())
 
             def energy_reg(dt_params):
                 # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
-                exp_evolved = self._operator_eval.assign_parameters(dict(zip(self._parameters,
-                                                                    self._parameter_values +
-                                                                    dt_params)))
+                if self._backend is not None:
+                    exp_evolved = self._operator_circ_sampler.convert(self._operator_eval,
+                                                        params=dict(zip(self._parameters,
+                                                                        self._parameter_values +
+                                                                    dt_params)))[0]
+                else:
+                    exp_evolved = self._operator_eval.assign_parameters(dict(zip(self._parameters,
+                                                                           self._parameter_values
+                                                                           + dt_params)))
                 exp_evolved = np.real(exp_evolved.eval())
                 return 0.1 * np.linalg.norm(exp_evolved - exp_0)
 
@@ -114,8 +123,7 @@ class VarQRTE(VarQTE):
                 resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
 
                 # Get the error for the current step
-                et,  h_squared, dtdt_state, imgrad = self._error_t(self._operator,
-                                                                   nat_grad_result, grad_res,
+                et,  h_squared, dtdt_state, imgrad = self._error_t(nat_grad_result, grad_res,
                                                                    metric_res)
                 if et < 0 and np.abs(et) > 1e-4:
                     raise Warning('Non-neglectible negative et observed')
@@ -132,8 +140,14 @@ class VarQRTE(VarQTE):
                                        trained_energy, None, h_squared, dtdt_state, imgrad)
 
                 # Propagate the Ansatz parameters step by step using explicit Euler
-                self._exact_euler_state += dt * self._exact_grad_state(
-                    self._state.assign_parameters(param_dict).eval().primitive.data)
+                if self._backend is not None:
+                    state_for_grad = self._state_circ_sampler.convert(self._state,
+                                                                      params=param_dict)[0]
+                else:
+                    state_for_grad = self._state.assign_parameters(param_dict)
+                self._exact_euler_state += dt * \
+                                           self._exact_grad_state(
+                                               state_for_grad.eval().primitive.data)
 
             self._parameter_values = list(np.add(self._parameter_values, dt *
                                                  np.real(nat_grad_result)))
@@ -159,7 +173,6 @@ class VarQRTE(VarQTE):
         return self._state.assign_parameters(param_dict)
 
     def _error_t(self,
-                 operator: OperatorBase,
                  ng_res: Union[List, np.ndarray],
                  grad_res: Union[List, np.ndarray],
                  metric: Union[List, np.ndarray]) -> [float]:
@@ -176,14 +189,17 @@ class VarQRTE(VarQTE):
         Returns:
             The l2 norm of the error
         """
-        if not isinstance(operator, ComposedOp):
-            raise TypeError('Currently this error can only be computed for operators given as '
-                            'ComposedOps')
         eps_squared = 0
 
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        h_squared = np.real(self._h_squared.assign_parameters(dict(zip(self._parameters,
-                                                           self._parameter_values))).eval())
+        if self._backend is not None:
+            h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
+                                                             params=dict(zip(self._parameters,
+                                                             self._parameter_values)))[0]
+        else:
+            h_squared = self._h_squared.assign_parameters(dict(zip(self._parameters,
+                                                             self._parameter_values)))
+        h_squared = np.real(h_squared.eval())
 
         eps_squared += h_squared
 
@@ -198,7 +214,6 @@ class VarQRTE(VarQTE):
         return eps_squared, h_squared, dtdt_state, imgrad2 * 0.5
 
     def _grad_error_t(self,
-                 operator: OperatorBase,
                  ng_res: Union[List, np.ndarray],
                  grad_res: Union[List, np.ndarray],
                  metric: Union[List, np.ndarray]) -> float:
@@ -215,9 +230,6 @@ class VarQRTE(VarQTE):
         Returns:
             square root of the l2 norm of the error
         """
-        if not isinstance(operator, ComposedOp):
-            raise TypeError('Currently this error can only be computed for operators given as '
-                            'ComposedOps')
         grad_eps_squared = 0
         # dω_jF_ij^Q
         grad_eps_squared += np.dot(metric, ng_res)

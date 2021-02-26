@@ -23,8 +23,7 @@ from scipy.integrate import ode, OdeSolver, solve_ivp
 from qiskit.quantum_info import state_fidelity
 
 from qiskit.opflow.evolutions.varqte import VarQTE
-from qiskit.opflow import StateFn, CircuitStateFn, ListOp, ComposedOp, OperatorBase, \
-    CircuitSampler
+from qiskit.opflow import StateFn, CircuitStateFn, ListOp, ComposedOp, OperatorBase
 
 from qiskit.working_files.varQTE.implicit_euler import BDF, backward_euler_fsolve
 
@@ -67,8 +66,6 @@ class VarQITE(VarQTE):
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = operator / operator.coeff # Remove the time from the operator
         self._operator_eval = operator / operator.coeff
-        if self._backend is not None:
-            self._operator_eval = CircuitSampler(self._backend).convert(self._operator_eval)
 
         self._init_grad_objects()
 
@@ -112,7 +109,7 @@ class VarQITE(VarQTE):
 
                 # Get the error for the current step
                 et, h_squared, exp, dtdt_state, regrad = self._error_t(
-                    self._operator, nat_grad_result, grad_res, metric_res)
+                    nat_grad_result, grad_res, metric_res)
                 if et < 0 and np.abs(et) > 1e-4:
                     raise Warning('Non-neglectible negative et observed')
                 else:
@@ -147,8 +144,14 @@ class VarQITE(VarQTE):
                 # et_prev = et
 
                 # Propagate the Ansatz parameters step by step using explicit Euler
-                self._exact_euler_state += dt * self._exact_grad_state(
-                    self._state.assign_parameters(param_dict).eval().primitive.data)
+                if self._backend is not None:
+                    state_for_grad = self._state_circ_sampler.convert(self._state,
+                                                                      params=param_dict)[0]
+                else:
+                    state_for_grad = self._state.assign_parameters(param_dict)
+                self._exact_euler_state += dt * \
+                                           self._exact_grad_state(
+                                               state_for_grad.eval().primitive.data)
 
             # Propagate the Ansatz parameters step by step using explicit Euler
             # Subtract is correct either
@@ -219,17 +222,27 @@ class VarQITE(VarQTE):
         eps_squared = 0
 
         # ⟨ψ(ω)|H^2|ψ(ω)〉Hermitian
-        h_squared = self._h_squared.assign_parameters(dict(zip(self._parameters,
-                                                            self._parameter_values)))
+        if self._backend is not None:
+            h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
+                                                             params=dict(zip(self._parameters,
+                                                                             self._parameter_values)
+                                                                         ))[0]
+        else:
+            h_squared = self._h_squared.assign_parameters(dict(zip(self._parameters,
+                                                                   self._parameter_values)))
+        h_squared = np.real(h_squared.eval())
 
         # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
-        exp = self._operator_eval.assign_parameters(dict(zip(self._parameters,
-                                                   self._parameter_values)))
-
-        h_squared = np.real(h_squared.eval())
-        eps_squared += np.real(h_squared)
-
+        if self._backend is not None:
+            exp = self._operator_circ_sampler.convert(self._operator_eval,
+                                                             params=dict(zip(self._parameters,
+                                                                             self._parameter_values)
+                                                                         ))[0]
+        else:
+            exp = self._operator_eval.assign_parameters(dict(zip(self._parameters,
+                                                                   self._parameter_values)))
         exp = np.real(exp.eval())
+        eps_squared += h_squared
         eps_squared -= exp ** 2
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
@@ -246,7 +259,6 @@ class VarQITE(VarQTE):
         return eps_squared, h_squared,  exp, dtdt_state, regrad2 * 0.5
 
     def _grad_error_t(self,
-                      operator: OperatorBase,
                       ng_res: Union[List, np.ndarray],
                       grad_res: Union[List, np.ndarray],
                       metric: Union[List, np.ndarray]) -> float:
@@ -255,7 +267,6 @@ class VarQITE(VarQTE):
         Evaluate the gradient of the l2 norm for a single time step of VarQITE.
 
         Args:
-            operator: ⟨ψ(ω)|H|ψ(ω)〉
             ng_res: dω/dt
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉
             metric: Fubini-Study Metric
@@ -263,9 +274,6 @@ class VarQITE(VarQTE):
         Returns:
             square root of the l2 norm of the error
         """
-        if not isinstance(operator, ComposedOp):
-            raise TypeError('Currently this error can only be computed for operators given as '
-                            'ComposedOps')
         grad_eps_squared = 0
         # dω_jF_ij^Q
         grad_eps_squared += np.dot(metric, ng_res)
@@ -274,36 +282,36 @@ class VarQITE(VarQTE):
 
         return grad_eps_squared
 
-    def _distance_energy(self,
-                  time: Union[float, complex],
-                  trained_param_dict: Dict)-> (float, float, float):
-        """
-        Evaluate the fidelity to the target state, the energy w.r.t. the target state and
-        the energy w.r.t. the trained state for a given time and the current parameter set
-        Args:
-            time: current evolution time
-            trained_param_dict: dictionary which matches the operator parameters to the current
-            values of parameters for the given time
-        Returns: fidelity to the target state, the energy w.r.t. the target state and
-        the energy w.r.t. the trained state
-        """
-
-        trained_state = self._state.assign_parameters(trained_param_dict)
-        target_state = self._exact_state(time)
-        trained_state = trained_state.eval().primitive.data
-        # Fidelity
-        f = state_fidelity(target_state, trained_state)
-        # Actual error
-        act_err = np.linalg.norm(target_state - trained_state, ord=2)
-        # Target Energy
-        act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
-        print('actual energy', act_en)
-        # Trained Energy
-        trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
-        print('trained_en', trained_en)
-        print('Fidelity', f)
-        print('True error', act_err)
-        return f, act_err, np.real(act_en), np.real(trained_en)
+    # def _distance_energy(self,
+    #                      time: Union[float, complex],
+    #                      trained_param_dict: Dict)-> (float, float, float):
+    #     """
+    #     Evaluate the fidelity to the target state, the energy w.r.t. the target state and
+    #     the energy w.r.t. the trained state for a given time and the current parameter set
+    #     Args:
+    #         time: current evolution time
+    #         trained_param_dict: dictionary which matches the operator parameters to the current
+    #         values of parameters for the given time
+    #     Returns: fidelity to the target state, the energy w.r.t. the target state and
+    #     the energy w.r.t. the trained state
+    #     """
+    #
+    #     trained_state = self._state.assign_parameters(trained_param_dict)
+    #     target_state = self._exact_state(time)
+    #     trained_state = trained_state.eval().primitive.data
+    #     # Fidelity
+    #     f = state_fidelity(target_state, trained_state)
+    #     # Actual error
+    #     act_err = np.linalg.norm(target_state - trained_state, ord=2)
+    #     # Target Energy
+    #     act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
+    #     print('actual energy', act_en)
+    #     # Trained Energy
+    #     trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
+    #     print('trained_en', trained_en)
+    #     print('Fidelity', f)
+    #     print('True error', act_err)
+    #     return f, act_err, np.real(act_en), np.real(trained_en)
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:

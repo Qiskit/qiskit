@@ -21,7 +21,7 @@ import csv
 
 
 from scipy.integrate import OdeSolver, ode, solve_ivp
-from scipy.optimize import least_squares
+from scipy.optimize import least_squares, minimize
 
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -91,6 +91,14 @@ class VarQTE(EvolutionBase):
         else:
             self._parameter_values = np.random.random(len(parameters))
         self._backend = backend
+        if self._backend is not None:
+            self._operator_circ_sampler = CircuitSampler(self._backend)
+            self._state_circ_sampler = CircuitSampler(self._backend)
+            self._h_squared_circ_sampler = CircuitSampler(self._backend)
+            self._grad_circ_sampler = CircuitSampler(self._backend)
+            self._metric_circ_sampler = CircuitSampler(self._backend)
+            if not faster:
+                self._nat_grad_circ_sampler = CircuitSampler(self._backend)
         self._faster = faster
         self._ode_solver = ode_solver
         self._snapshot_dir = snapshot_dir
@@ -158,18 +166,22 @@ class VarQTE(EvolutionBase):
         # True and needed!! Double checked
 
         self._state = self._operator[-1]
-        # Convert the operator with the CircuitSampler
         if self._backend is not None:
-            self._state = CircuitSampler(self._backend).convert(self._state)
-        self._init_state = self._state.assign_parameters(dict(zip(self._parameters,
-                                                                  self._parameter_values)))
+            self._init_state = self._state_circ_sampler.convert(self._state,
+                                                                params=dict(zip
+                                                                            (self._parameters,
+                                                                             self._parameter_values
+                                                                             )
+                                                                            )
+                                                                )[0]
+        else:
+            self._init_state = self._state.assign_parameters(dict(zip(self._parameters,
+                                                                      self._parameter_values)))
         self._init_state = self._init_state.eval().primitive.data
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
 
         self._h_squared = ComposedOp([~StateFn(self._h ** 2), self._state])
-        if self._backend is not None:
-            self._h_squared = CircuitSampler(self._backend).convert(self._h_squared)
 
         self._exact_euler_state = self._exact_state(0)
 
@@ -191,12 +203,6 @@ class VarQTE(EvolutionBase):
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
 
-        if self._backend is not None:
-            if not self._faster:
-                self._nat_grad = CircuitSampler(self._backend).convert(self._nat_grad)
-            self._metric = CircuitSampler(self._backend).convert(self._metric)
-            self._grad = CircuitSampler(self._backend).convert(self._grad)
-
     def _init_ode_solver(self, t: float):
         """
         Initialize ODE Solver
@@ -217,7 +223,7 @@ class VarQTE(EvolutionBase):
                     ||e_t||^2 for given for dω/dt
 
                 """
-                et_squared = self._error_t(self._operator, dt_param_values, grad_res,
+                et_squared = self._error_t(dt_param_values, grad_res,
                                            metric_res)[0]
                 print('grad error', et_squared)
                 return et_squared
@@ -233,7 +239,7 @@ class VarQTE(EvolutionBase):
                     Gradient of ||e_t||^2 w.r.t. dω/dt
 
                 """
-                dw_et_squared = self._grad_error_t(self._operator, dt_param_values, grad_res,
+                dw_et_squared = self._grad_error_t(dt_param_values, grad_res,
                                                    metric_res)
                 return dw_et_squared
 
@@ -249,12 +255,14 @@ class VarQTE(EvolutionBase):
             #                      bounds=(0, 2 * np.pi), ftol=1e-2)
 
             # Use the natural gradient result as initial point for least squares solver
-            ls = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-                               ftol=1e-8)
+            # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+            #                    ftol=1e-8)
+            argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+                              method='CG', tol=1e-8)
             print('least squares solved')
             print('initial natural gradient result', nat_grad_result)
-            print('final dt_omega', ls.x)
-            return ls.x
+            print('final dt_omega', argmin.x)
+            return argmin.x
 
         if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(fun=ode_fun, t0=0,
@@ -404,10 +412,15 @@ class VarQTE(EvolutionBase):
         Returns:
 
         """
-
-        grad_res = self._grad.assign_parameters(param_dict).eval()
-        # Get the QFI/4
-        metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
+        if self._backend is not None:
+            grad_res = self._grad_circ_sampler.convert(self._grad, params=param_dict).eval()[0]
+            # Get the QFI/4
+            metric_res = self._metric_circ_sampler.convert(self._metric,
+                                                           params=param_dict).eval()[0] * 0.25
+        else:
+            grad_res = self._grad.assign_parameters(param_dict).eval()
+            # Get the QFI/4
+            metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
 
         if self._faster:
             if np.iscomplex(self._operator.coeff):
@@ -424,7 +437,11 @@ class VarQTE(EvolutionBase):
                                                                     self._regularization)
             print('nat grad result', nat_grad_result)
         else:
-            nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
+            if self._backend is not None:
+                nat_grad_result = \
+                    self._nat_grad_circ_sampler.convert(self._nat_grad, params=param_dict).eval()[0]
+            else:
+                nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
             print('nat grad result', nat_grad_result)
 
         w, v = np.linalg.eig(metric_res)
@@ -459,9 +476,13 @@ class VarQTE(EvolutionBase):
         """
 
         # |state_t>
-        trained_state = self._state.assign_parameters(trained_param_dict)
-        target_state = self._exact_state(time)
+        if self._backend is not None:
+            trained_state = self._state_circ_sampler.convert(self._state,
+                                                             params=trained_param_dict)[0]
+        else:
+            trained_state = self._state.assign_parameters(trained_param_dict)
         trained_state = trained_state.eval().primitive.data
+        target_state = self._exact_state(time)
 
         # Fidelity
         f = state_fidelity(target_state, trained_state)
