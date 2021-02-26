@@ -740,7 +740,7 @@ class NLocal(BlueprintCircuit):
     @deprecate_arguments({'param_dict': 'parameters'})
     def assign_parameters(self, parameters: Union[dict, List[float], List[Parameter],
                                                   ParameterVector],
-                          inplace: bool = False, *,
+                          inplace: bool = False,
                           param_dict: Optional[dict] = None  # pylint: disable=unused-argument
                           ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.

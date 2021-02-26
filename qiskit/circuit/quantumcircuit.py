@@ -1891,7 +1891,7 @@ class QuantumCircuit:
         return len(self.parameters)
 
     @deprecate_arguments({'param_dict': 'parameters'})
-    def assign_parameters(self, parameters, inplace=False, *,
+    def assign_parameters(self, parameters, inplace=False,
                           param_dict=None):  # pylint: disable=unused-argument
         """Assign parameters to new parameters or values.
 
@@ -1986,7 +1986,7 @@ class QuantumCircuit:
         return None if inplace else bound_circuit
 
     @deprecate_arguments({'value_dict': 'values'})
-    def bind_parameters(self, values, *, value_dict=None):  # pylint: disable=unused-argument
+    def bind_parameters(self, values, value_dict=None):  # pylint: disable=unused-argument
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
