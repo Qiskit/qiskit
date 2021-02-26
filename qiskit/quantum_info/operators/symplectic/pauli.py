@@ -146,6 +146,8 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
+    _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
+
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
@@ -589,15 +591,14 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if Pauli string is not valid.
         """
+        if Pauli._VALID_LABEL_PATTERN.match(label) is None:
+            raise QiskitError('Pauli string is not valid.')
+
         # Split string into coefficient and Pauli
-        span = re.search(r'[IXYZ]+', label).span()
         pauli, coeff = _split_pauli_label(label)
-        coeff = label[:span[0]]
 
         # Convert coefficient to phase
         phase = 0 if not coeff else _phase_from_label(coeff)
-        if phase is None:
-            raise QiskitError('Pauli string is not valid.')
 
         # Convert to Symplectic representation
         num_qubits = len(pauli)
@@ -1042,7 +1043,7 @@ def _phase_from_label(label):
     phases = {'': 0, '-i': 1, '-': 2, 'i': 3}
     if label not in phases:
         raise QiskitError("Invalid Pauli phase label '{}'".format(label))
-    return phases.get(label)
+    return phases[label]
 
 
 # Update docstrings for API docs
