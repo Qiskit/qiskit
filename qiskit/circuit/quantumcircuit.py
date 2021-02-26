@@ -567,7 +567,6 @@ class QuantumCircuit:
             circuit._append(*instruction_context)
         circuit.global_phase = self.global_phase + rhs.global_phase
 
-        # Add the calibrations
         for gate, cals in rhs.calibrations.items():
             for key, sched in cals.items():
                 circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
@@ -617,7 +616,6 @@ class QuantumCircuit:
             self._append(*instruction_context)
         self.global_phase += rhs.global_phase
 
-        # Add calibrations
         for gate, cals in rhs.calibrations.items():
             for key, sched in cals.items():
                 self.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
