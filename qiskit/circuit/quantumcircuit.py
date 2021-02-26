@@ -569,7 +569,8 @@ class QuantumCircuit:
 
         # Add the calibrations
         for gate, cals in rhs.calibrations.items():
-            circuit._calibrations[gate].update(cals)
+            for key, sched in cals.items():
+                circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
 
         return circuit
 
@@ -618,7 +619,8 @@ class QuantumCircuit:
 
         # Add calibrations
         for gate, cals in rhs.calibrations.items():
-            self._calibrations[gate].update(cals)
+            for key, sched in cals.items():
+                self.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
 
         return self
 
