@@ -367,6 +367,6 @@ def _get_instruction_string(inst: Union[str, Instruction]):
     else:
         try:
             return inst.name
-        except AttributeError:
+        except AttributeError as ex:
             raise PulseError('Input "inst" has no attribute "name".'
-                             'This should be a circuit "Instruction".')
+                             'This should be a circuit "Instruction".') from ex

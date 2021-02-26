@@ -547,7 +547,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     # remove gates using faulty edges or with faulty qubits (and remap the
                     # gates in terms of faulty_qubits_map)
                     faulty_qubits_map = _create_faulty_qubits_map(backend)
-                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
+                    if any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits) or \
                             gate.qubits in faulty_edges:
                         continue
                     gate_dict = gate.to_dict()

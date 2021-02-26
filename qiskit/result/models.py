@@ -169,8 +169,8 @@ class ExperimentResult:
     def __getattr__(self, name):
         try:
             return self._metadata[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResult
