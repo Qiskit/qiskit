@@ -475,17 +475,21 @@ class Operator(LinearOp):
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs)
                 self._data = op.data
-            flat_instr = obj.definition.to_instruction()
-            for instr, qregs, cregs in flat_instr.definition.data:
+            flat_instr = obj.definition
+            bit_indices = {bit: index
+                           for bits in [flat_instr.qubits, flat_instr.clbits]
+                           for index, bit in enumerate(bits)}
+
+            for instr, qregs, cregs in flat_instr:
                 if cregs:
                     raise QiskitError(
                         'Cannot apply instruction with classical registers: {}'.format(
                             instr.name))
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
+                    new_qargs = [bit_indices[tup] for tup in qregs]
                 else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
+                    new_qargs = [qargs[bit_indices[tup]] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
 
 
