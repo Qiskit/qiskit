@@ -79,6 +79,9 @@ class SolovayKitaev():
 
         Args:
             filename: The path to the file from where to load the data.
+
+        Raises:
+            ValueError: If the number of gate combinations and associated matrices does not match.
         """
         data = np.load(filename, allow_pickle=True)
         gatestrings = data[0]
@@ -212,12 +215,6 @@ class SolovayKitaev():
         Returns:
             Gate in basic approximations that is closest to ``sequence``.
         """
-        # use this snippet to return the exact gate with no approximation
-        # from .solovay_kitaev_utils import convert_so3_to_su2
-        # from qiskit.extensions import UnitaryGate
-        # su2 = convert_so3_to_su2(sequence.product)
-        # return GateSequence([UnitaryGate(su2)])
-
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
