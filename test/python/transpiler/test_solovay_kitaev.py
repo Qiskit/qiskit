@@ -22,8 +22,7 @@ from scipy.optimize import minimize
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit
-import qiskit.circuit.library as gates
-from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate, QFT
+from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
