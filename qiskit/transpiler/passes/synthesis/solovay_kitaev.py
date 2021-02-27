@@ -174,7 +174,7 @@ class SolovayKitaev():
         # convert to a circuit and attach the right phases
         # TODO insert simplify again, but it seems to break the accuracy test
         circuit = decomposition.to_circuit()
-        decomposition.global_phase = decomposition.global_phase - global_phase
+        circuit.global_phase = decomposition.global_phase - global_phase
 
         return circuit
 

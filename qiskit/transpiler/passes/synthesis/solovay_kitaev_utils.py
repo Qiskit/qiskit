@@ -19,7 +19,6 @@ import numpy as np
 from scipy.optimize import fsolve
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit.library import IGate
 
 
 class GateSequence():
@@ -95,19 +94,6 @@ class GateSequence():
 
         return circuit
 
-    def represents_same_gate(self, other: 'GateSequence', precision: float = 0.0) -> bool:
-        """Returns whether to ``self`` represents the same gate as ``other`` up to ``precision``.
-
-        Args:
-            other: The GateSequence compared to ``self``.
-            precision: The error tolerated when comparing the fields of the matrices of the gates.
-
-        Returns:
-            True when ``self`` represents the same gate as ``other`` up to ``precision``,
-            False otherwise.
-        """
-        return np.allclose(self.product, other.product, atol=precision)
-
     def append(self, gate: Gate) -> 'GateSequence':
         """Append gate to the sequence of gates.
 
@@ -137,40 +123,6 @@ class GateSequence():
         adjoint.global_phase = -self.global_phase
 
         return adjoint
-
-    def count(self, gate: Gate) -> int:
-        """Count the number of times the argument ``gate`` occurs in the sequence.
-
-        Args:
-            gate: The gate to be counted in the sequence.
-
-        Returns:
-            The number of times the argument ``gate`` occurs in the sequence.
-        """
-        return self.gates.count(gate)
-
-    def simplify(self, precision: float = 0.0) -> 'GateSequence':
-        """Returns GateSequence with less gates that represents the same gate up to ``precision``.
-
-        Args:
-            precision: The required precision for letting two sequences represent the same gate.
-
-        Returns:
-            The simplified GateSequence.
-        """
-        gslist = [GateSequence([])]
-        for gate in self.gates:
-            new_sequence = gslist[len(gslist)-1].copy()
-            new_sequence.append(gate)
-            same_as_new_sequences = [
-                s for s in gslist if s.represents_same_gate(new_sequence, precision)]
-            if len(same_as_new_sequences) > 1 or gate == IGate():
-                index = gslist.index(same_as_new_sequences[0])
-                gslist = gslist[:index+1]
-            else:
-                gslist.append(new_sequence)
-        self.gates = gslist[len(gslist)-1].gates
-        return self
 
     def copy(self) -> 'GateSequence':
         """Create copy of the sequence of gates.

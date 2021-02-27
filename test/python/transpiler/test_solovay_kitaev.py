@@ -29,6 +29,7 @@ from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
+from qiskit.quantum_info import Operator
 
 # pylint: disable=invalid-name, missing-class-docstring
 
@@ -235,66 +236,34 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertAlmostEqual(actual[1][2], 0.0)
         self.assertAlmostEqual(actual[2][1], 0.0)
 
-    def test_solovay_kitaev_basic_gates_on_h_returns_circuit_h(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with an H-gate when
-        it approximates the H-gate and the H-gate is in the basic gates."""
-
-        circuit = QuantumCircuit(1)
-        circuit.h(0)
-
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    def test_solovay_kitaev_basic_gates_on_i_returns_empty_circuit(self):
+    def test_i_returns_empty_circuit(self):
         """Test that ``SolovayKitaevDecomposition`` returns an empty circuit when
         it approximates the I-gate."""
         circuit = QuantumCircuit(1)
         circuit.i(0)
 
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        basic_gates = [HGate(), TGate(), TdgGate()]
         synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(QuantumCircuit(1) == decomposed_circuit)
+        self.assertEqual(QuantumCircuit(1), decomposed_circuit)
 
-    def test_solovay_kitaev_basic_gates_on_t_returns_circuit_t(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with a T-gate when
-        it approximates the T-gate and the T-gate is in the basic gates."""
+    def test_exact_decomposition_acts_trivially(self):
+        """Test that the a circuit that can be represented exactly is represented exactly."""
         circuit = QuantumCircuit(1)
         circuit.t(0)
+        circuit.h(0)
+        circuit.tdg(0)
 
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        basic_gates = [HGate(), TGate(), TdgGate()]
         synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    @ data(2, 3, 4, 5)
-    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self, nr_qubits):
-        """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
-        it approximates the QFT-circuit and the basic gates contain the gates of QFT."""
-        circuit = QFT(nr_qubits, 0)
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(4, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-
-        self.assertTrue(circuit == decomposed_circuit)
+        self.assertEqual(circuit, decomposed_circuit)
 
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
@@ -315,62 +284,134 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertEqual(discretized, reference)
 
 
-@ ddt
-class TestSolovayKitaevUtils(QiskitTestCase):
-    """Test the algebra utils."""
+@ddt
+class TestGateSequence(QiskitTestCase):
+    """Test the ``GateSequence`` class."""
 
-    @ data([GateSequence([IGate()]), IGate(), GateSequence([IGate(), IGate()])])
-    @ unpack
-    def test_append(self, first_value, second_value, third_value):
-        """Test append of ``GateSequence``."""
-        actual_gate = first_value.append(second_value)
-        self.assertTrue(actual_gate == third_value)
+    def test_append(self):
+        """Test append."""
+        seq = GateSequence([IGate()])
+        seq.append(HGate())
 
-    @ data(
-        [GateSequence([IGate()]), GateSequence([IGate(), IGate()]), 0.0],
-        [GateSequence([IGate(), IGate()]), GateSequence(
-            [IGate(), IGate(), IGate()]), 0.0],
-        [GateSequence([IGate(), RXGate(1)]), GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence([RXGate(0.99)]), 0.01],
-    )
-    @ unpack
-    def test_represents_same_gate_true(self, first_sequence, second_sequence, precision):
-        """Test ``represents_same_gate``."""
-        self.assertTrue(first_sequence.represents_same_gate(
-            second_sequence, precision))
+        ref = GateSequence([IGate(), HGate()])
+        self.assertEqual(seq, ref)
 
-    @ data(
-        [GateSequence([IGate()]), GateSequence([IGate(), RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1), RXGate(1), RXGate(0.5)]),
-         GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence([RXGate(0.5)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence(
-            [RXGate(0.3), RXGate(0.2)]), 0.0],
-        [GateSequence([RXGate(0.3), RXGate(0.5), RXGate(1)]),
-         GateSequence([RXGate(0.3), RXGate(0.2)]), 0.0],
-        [GateSequence([RXGate(0.3), RXGate(0.8), RXGate(1)]),
-         GateSequence([RXGate(0.1), RXGate(0.2)]), 0.0],
-    )
-    @ unpack
-    def test_represents_same_gate_false(self, first_sequence, second_sequence, precision):
-        """Test ``represents_same_gate``."""
-        self.assertFalse(first_sequence.represents_same_gate(
-            second_sequence, precision))
+    def test_eq(self):
+        """Test equality."""
+        base = GateSequence([HGate(), HGate()])
+        seq1 = GateSequence([HGate(), HGate()])
+        seq2 = GateSequence([IGate()])
+        seq3 = GateSequence([HGate(), HGate()])
+        seq3.global_phase = 0.12
+        seq4 = GateSequence([IGate(), HGate()])
 
-    @ data(
-        [GateSequence([IGate(), IGate()]), GateSequence([]), 0.0],
-        [GateSequence([IGate(), RXGate(1), IGate()]),
-         GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([IGate(), RXGate(1), IGate(), RXGate(0.4)]),
-         GateSequence([RXGate(1), RXGate(0.4)]), 0.0],
-        [GateSequence([IGate(), RXGate(2*math.pi), RXGate(2*math.pi)]),
-         GateSequence([]), 1e10],
-    )
-    @ unpack
-    def test_simplify(self, original_sequence, expected_sequence, precision):
-        """Test the simplify method on ``GateSequence``."""
-        actual_sequence = original_sequence.simplify(precision)
-        self.assertTrue(actual_sequence == expected_sequence)
+        with self.subTest('equal'):
+            self.assertEqual(base, seq1)
+
+        with self.subTest('same product, but different repr (-> false)'):
+            self.assertNotEqual(base, seq2)
+
+        with self.subTest('differing global phase (-> false)'):
+            self.assertNotEqual(base, seq3)
+
+        with self.subTest('same num gates, but different gates (-> false)'):
+            self.assertNotEqual(base, seq4)
+
+    def test_to_circuit(self):
+        """Test converting a gate sequence to a circuit."""
+        seq = GateSequence([HGate(), HGate(), TGate(), SGate(), SdgGate()])
+        ref = QuantumCircuit(1)
+        ref.h(0)
+        ref.h(0)
+        ref.t(0)
+        ref.s(0)
+        ref.sdg(0)
+        # a GateSequence is SU(2), so add the right phase
+        z = 1 / np.sqrt(np.linalg.det(Operator(ref)))
+        ref.global_phase = np.arctan2(np.imag(z), np.real(z))
+
+        self.assertEqual(seq.to_circuit(), ref)
+
+    def test_adjoint(self):
+        """Test adjoint."""
+        seq = GateSequence([TGate(), SGate(), HGate(), IGate()])
+        inv = GateSequence([IGate(), HGate(), SdgGate(), TdgGate()])
+
+        self.assertEqual(seq.adjoint(), inv)
+
+    def test_copy(self):
+        """Test copy."""
+        seq = GateSequence([IGate()])
+        copied = seq.copy()
+        seq.gates.append(HGate())
+
+        self.assertEqual(len(seq.gates), 2)
+        self.assertEqual(len(copied.gates), 1)
+
+    @data(0, 1, 10)
+    def test_len(self, n):
+        """Test __len__."""
+        seq = GateSequence([IGate()] * n)
+        self.assertEqual(len(seq), n)
+
+    def test_getitem(self):
+        """Test __getitem__."""
+        seq = GateSequence([IGate(), HGate(), IGate()])
+        self.assertEqual(seq[0], IGate())
+        self.assertEqual(seq[1], HGate())
+        self.assertEqual(seq[2], IGate())
+
+        self.assertEqual(seq[-2], HGate())
+
+    def test_from_su2_matrix(self):
+        """Test from_matrix with an SU2 matrix."""
+        matrix = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+        matrix /= np.sqrt(np.linalg.det(matrix))
+        seq = GateSequence.from_matrix(matrix)
+
+        ref = GateSequence([HGate()])
+
+        self.assertEqual(seq.gates, list())
+        self.assertTrue(np.allclose(seq.product, ref.product))
+        self.assertEqual(seq.global_phase, 0)
+
+    def test_from_so3_matrix(self):
+        """Test from_matrix with an SO3 matrix."""
+        matrix = np.array([[0, 0, -1],
+                           [0, -1, 0],
+                           [-1, 0, 0]])
+        seq = GateSequence.from_matrix(matrix)
+
+        ref = GateSequence([HGate()])
+
+        self.assertEqual(seq.gates, list())
+        self.assertTrue(np.allclose(seq.product, ref.product))
+        self.assertEqual(seq.global_phase, 0)
+
+    def test_from_invalid_matrix(self):
+        """Test from_matrix with invalid matrices."""
+        with self.subTest('2x2 but not SU2'):
+            matrix = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+            with self.assertRaises(ValueError):
+                _ = GateSequence.from_matrix(matrix)
+
+        with self.subTest('not 2x2 or 3x3'):
+            with self.assertRaises(ValueError):
+                _ = GateSequence.from_matrix(np.array([[1]]))
+
+    def test_dot(self):
+        """Test dot."""
+        seq1 = GateSequence([HGate()])
+        seq2 = GateSequence([TGate(), SGate()])
+        composed = seq1.dot(seq2)
+
+        ref = GateSequence([TGate(), SGate(), HGate()])
+
+        # check the product matches
+        self.assertTrue(np.allclose(ref.product, composed.product))
+
+        # check the circuit & phases are equivalent
+        self.assertTrue(Operator(ref.to_circuit()).equiv(composed.to_circuit()))
 
 
 if __name__ == '__main__':
