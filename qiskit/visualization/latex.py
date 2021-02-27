@@ -270,8 +270,8 @@ class QCircuitImage:
         for layer in self.ops:
             column_width = 1
             for op in layer:
-                if (op.name in ['cu1', 'cp', 'rzz'] or
-                        (hasattr(op.op, 'base_gate') and op.op.base_gate.name == 'rzz')):
+                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+                if op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
                     column_width = 4
             columns += column_width
 
@@ -324,10 +324,13 @@ class QCircuitImage:
     def _get_gate_ctrl_text(self, op):
         """Load the gate_text and ctrl_text strings based on names and labels"""
         op_label = getattr(op.op, 'label', None)
-        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
         op_type = type(op.op)
-        base_type = None if not hasattr(op.op, 'base_gate') else type(op.op.base_gate)
+        if hasattr(op.op, 'base_gate'):
+            base_name = op.op.base_gate.name
+            base_label = op.op.base_gate.label
+            base_type = type(op.op.base_gate)
+        else:
+            base_name = base_label = base_type = None
         ctrl_text = None
 
         if base_label:
@@ -349,7 +352,7 @@ class QCircuitImage:
             if gate_text[0] != '$' and gate_text[-1] != '$':
                 gate_text = "$\\mathrm{{{}}}$".format(gate_text)
 
-        # Don't captitalize user created gates or instructions
+        # Only captitalize internally-created gate or instruction names
         elif ((gate_text == op.name and op_type not in (Gate, Instruction))
               or (gate_text == base_name and base_type not in (Gate, Instruction))):
             gate_text = "$\\mathrm{{{}}}$".format(gate_text.capitalize())
@@ -375,6 +378,7 @@ class QCircuitImage:
             num_cols_used = 1
 
             for op in layer:
+                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 if op.name == "measure":
                     self._build_measure(op, column)
 
@@ -400,8 +404,9 @@ class QCircuitImage:
                         if op.name == "swap":
                             self._build_swap(wire_list, column)
 
-                        elif op.name in ['cu1', 'cp', 'rzz']:
-                            num_cols_used = self._build_symmetric_gate(op, op.name, gate_text,
+                        elif op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
+                            symm_name = 'rzz' if op.name == 'rzz' else base_name
+                            num_cols_used = self._build_symmetric_gate(op, symm_name, gate_text,
                                                                        wire_list, column,
                                                                        num_cols_used)
                         elif isinstance(op.op, ControlledGate):
@@ -438,9 +443,9 @@ class QCircuitImage:
         elif cond == '1':
             self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
 
-        if op.name == 'cx':
+        if op.op.base_gate.name == 'x':
             self._latex[wire2][col] = "\\targ"
-        elif op.name == 'cz':
+        elif op.op.base_gate.name == 'z':
             self._latex[wire2][col] = "\\control\\qw"
         else:
             self._latex[wire2][col] = "\\gate{%s}" % gate_text
@@ -489,11 +494,11 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\qswap"
         self._latex[wire2][col] = "\\qswap \\qwx[" + str(wire1 - wire2) + "]"
 
-    def _build_symmetric_gate(self, op, op_name, gate_text, wire_list, col, num_cols_used):
+    def _build_symmetric_gate(self, op, symm_name, gate_text, wire_list, col, num_cols_used):
         """Add symmetric gates for cu1, cp, and rzz"""
         wire1 = min(wire_list)
         wire2 = max(wire_list)
-        cond = '1' if op_name == 'rzz' else "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
+        cond = '1' if symm_name == 'rzz' else "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
 
         if cond == '0':
             self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
