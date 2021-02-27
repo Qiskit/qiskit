@@ -809,7 +809,7 @@ class MatplotlibDrawer:
 
                 # get param_width, but 0 for gates with array params
                 if (hasattr(op.op, 'params')
-                        and not any([isinstance(param, np.ndarray) for param in op.op.params])
+                        and not any(isinstance(param, np.ndarray) for param in op.op.params)
                         and len(op.op.params) > 0):
                     param = self._param_parse(op.op.params)
                     if op.name == 'initialize':
@@ -893,7 +893,7 @@ class MatplotlibDrawer:
 
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
-                        and not any([isinstance(param, np.ndarray) for param in op.op.params])):
+                        and not any(isinstance(param, np.ndarray) for param in op.op.params)):
                     param = "{}".format(self._param_parse(op.op.params))
                 else:
                     param = ''
@@ -1047,7 +1047,7 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all([op.op._directive for op in layer]) else 0
+                barrier_offset = -1 if all(op.op._directive for op in layer) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
         #

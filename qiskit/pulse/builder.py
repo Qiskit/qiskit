@@ -659,11 +659,11 @@ def _active_builder() -> _PulseBuilder:
     """
     try:
         return BUILDER_CONTEXTVAR.get()
-    except LookupError:
+    except LookupError as ex:
         raise exceptions.NoActiveBuilder(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with pulse.build() as schedule: ...".')
+            'context, eg., "with pulse.build() as schedule: ...".') from ex
 
 
 def active_backend():

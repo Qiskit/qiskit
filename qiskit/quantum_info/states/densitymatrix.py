@@ -669,6 +669,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
                 other.name, type(other.definition)))
+        qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
@@ -676,9 +677,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                     format(instr.name))
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [tup.index for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in qregs]
             else:
-                new_qargs = [qargs[tup.index] for tup in qregs]
+                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
             self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):

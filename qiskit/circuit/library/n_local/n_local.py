@@ -154,10 +154,11 @@ class NLocal(BlueprintCircuit):
                 if not isinstance(initial_state, InitialState):
                     raise TypeError('initial_state must be of type InitialState, but is '
                                     '{}.'.format(type(initial_state)))
-            except ImportError:
-                raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
-                                  'InitialState. To use this feature Qiskit Aqua must be installed.'
-                                  )
+            except ImportError as ex:
+                raise ImportError(
+                    'Could not import the qiskit.aqua.components.initial_states.'
+                    'InitialState. To use this feature Qiskit Aqua must be installed.'
+                ) from ex
             self.initial_state = initial_state
 
     @property
@@ -767,8 +768,12 @@ class NLocal(BlueprintCircuit):
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = [param for param in unbound_params
-                                     if param not in used and (used.add(param) or True)]
+            unbound_unique_params = []
+            for param in unbound_params:
+                if param not in used:
+                    unbound_unique_params.append(param)
+                    used.add(param)
+
             param_dict = dict(zip(unbound_unique_params, param_dict))
 
         if inplace:
@@ -851,7 +856,7 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for (block, ent) in zip(blocks, entanglements):
+        for block, ent in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)

@@ -257,7 +257,7 @@ class SabreSwap(TransformationPass):
         """
         predecessors = dag.quantum_predecessors(node)
         predecessors = filter(lambda x: x.type == 'op', predecessors)
-        return all([n in self.applied_gates for n in predecessors])
+        return all(n in self.applied_gates for n in predecessors)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
