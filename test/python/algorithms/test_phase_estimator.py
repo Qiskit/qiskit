@@ -26,7 +26,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.hamiltonian_1 = ((0.5 * X) + Y + Z).to_pauli_op()
+        self.hamiltonian_1 = ((0.5 * X) + Y + Z)
 
     def hamiltonian_pe(self, hamiltonian, state_preparation=None, num_evaluation_qubits=6,
                        backend=qiskit.BasicAer.get_backend('statevector_simulator'),
@@ -46,7 +46,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         """Two eigenvalues from Pauli sum with X, Z"""
         a1 = 0.5
         a2 = 1.0
-        hamiltonian = ((a1 * X) + (a2 * Z)).to_pauli_op()
+        hamiltonian = ((a1 * X) + (a2 * Z))
         state_preparation = H.to_circuit()
         result = self.hamiltonian_pe(hamiltonian, state_preparation)
         phase_dict = result.filter_phases(0.162, as_float=True)
@@ -88,7 +88,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             + (0.18093119978423147 * (X ^ X))
         state_preparation = (I ^ H).to_circuit()
         evo = PauliTrotterEvolution(trotter_mode='suzuki', reps=4)
-        result = self.hamiltonian_pe(hamiltonian.to_pauli_op(), state_preparation, evolution=evo)
+        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
         with self.subTest('Most likely eigenvalues'):
             self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=.001)
         with self.subTest('All eigenvalues'):
@@ -100,7 +100,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_matrix_evolution(self):
         """1Q Hamiltonian with MatrixEvolution"""
-        hamiltonian = ((0.5 * X) + (0.6 * Y) + (0.7 * I)).to_pauli_op()
+        hamiltonian = ((0.5 * X) + (0.6 * Y) + (0.7 * I))
         state_preparation = None
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=MatrixEvolution())
         phase_dict = result.filter_phases(0.2, as_float=True)
@@ -111,7 +111,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def _setup_from_bound(self, evolution):
         hamiltonian = self.hamiltonian_1
         state_preparation = None
-        bound = 1.2 * sum([abs(hamiltonian.coeff * pauli.coeff) for pauli in hamiltonian])
+        bound = 1.2 * sum([abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs])
         backend = qiskit.BasicAer.get_backend('statevector_simulator')
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6,

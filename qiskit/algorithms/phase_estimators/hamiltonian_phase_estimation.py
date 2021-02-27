@@ -15,7 +15,7 @@
 from typing import Optional, Union
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.opflow import EvolutionBase, OperatorBase, SummedOp
+from qiskit.opflow import EvolutionBase, OperatorBase, SummedOp, PauliSumOp
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from . import phase_estimation_scale
@@ -114,7 +114,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
 
         Raises:
             ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
-            `SummedOp` whose terms are `PauliOp`s.)
+            `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
         """
 
         self._evolution = evolution
@@ -127,6 +127,9 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
         #   occupies more of the range of values representable by the qubit register.
         # The coefficient of this term will be added to the eigenvalues.
+        if isinstance(hamiltonian, PauliSumOp):
+            hamiltonian = hamiltonian.to_pauli_op()
+
         id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
         self._hamiltonian = hamiltonian_no_id
         self._id_coefficient = id_coefficient
