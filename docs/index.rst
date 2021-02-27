@@ -77,7 +77,7 @@ Qiskit consists of four foundational elements:
   :caption: Troubleshooting
   :hidden:
 
-  Quantum Experience API error codes <https://quantum-computing.ibm.com/docs/cloud/errors>
+  IBM Quantum API error codes <https://quantum-computing.ibm.com/docs/cloud/errors>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
