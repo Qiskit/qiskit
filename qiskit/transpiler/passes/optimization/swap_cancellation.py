@@ -38,7 +38,7 @@ class SWAPCancellation(TransformationPass):
                 qargs0 = swap_run[i].qargs
                 qargs1 = swap_run[i + 1].qargs
 
-                if qargs0 != qargs1:
+                if set(qargs0) != set(qargs1):
                     partition.append(chunk)
                     chunk = []
             chunk.append(swap_run[-1])

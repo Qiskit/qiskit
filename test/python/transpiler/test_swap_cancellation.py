@@ -26,7 +26,7 @@ class TestSWAPCancellation(QiskitTestCase):
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[1], qr[2])
+        circuit.swap(qr[1], qr[0])
 
         pass_manager = PassManager()
         pass_manager.append(SWAPCancellation())
