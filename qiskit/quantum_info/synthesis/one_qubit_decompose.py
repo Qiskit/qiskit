@@ -536,6 +536,6 @@ class OneQubitEulerDecomposer:
 
 def _mod2pi(angle):
     if angle >= 0:
-        return np.mod(angle, 2*np.pi)
+        return math.fmod(angle, 2*np.pi)
     else:
-        return np.mod(angle, -2*np.pi)
+        return math.fmod(angle, -2*np.pi)
