@@ -342,9 +342,15 @@ class MatplotlibDrawer:
 
     def _get_gate_ctrl_text(self, op):
         op_label = getattr(op.op, 'label', None)
-        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
+        op_type = type(op.op)
+        if hasattr(op.op, 'base_gate'):
+            base_name = op.op.base_gate.name
+            base_label = op.op.base_gate.label
+            base_type = type(op.op.base_gate)
+        else:
+            base_name = base_label = base_type = None
         ctrl_text = None
+
         if base_label:
             gate_text = base_label
             ctrl_text = op_label
@@ -360,7 +366,8 @@ class MatplotlibDrawer:
 
         if gate_text in self._style['disptex']:
             gate_text = "{}".format(self._style['disptex'][gate_text])
-        elif gate_text in (op.name, base_name) and not isinstance(op.op, (Gate, Instruction)):
+        elif ((gate_text == op.name and op_type not in (Gate, Instruction))
+                or (gate_text == base_name and base_type not in (Gate, Instruction))):
             gate_text = gate_text.capitalize()
 
         return gate_text, ctrl_text

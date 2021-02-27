@@ -795,9 +795,6 @@ class TextDrawing():
     def special_label(instruction):
         """Some instructions have special labels"""
         labels = {IGate: 'I',
-                  Initialize: 'initialize',
-                  UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian',
                   SXGate: '√X',
                   SXdgGate: '√XDG'}
         instruction_type = type(instruction)
