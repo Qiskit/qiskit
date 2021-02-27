@@ -79,7 +79,7 @@ class UnitarySynthesis(TransformationPass):
 
         decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
-            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
+            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis, use_dag=True)
         if kak_gate is not None:
             decomposer2q = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
 
@@ -89,7 +89,7 @@ class UnitarySynthesis(TransformationPass):
             if len(node.qargs) == 1:
                 if decomposer1q is None:
                     continue
-                synth_dag = circuit_to_dag(decomposer1q(node.op.to_matrix()))
+                synth_dag = decomposer1q(node.op.to_matrix())
             elif len(node.qargs) == 2:
                 if decomposer2q is None:
                     continue

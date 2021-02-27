@@ -20,7 +20,6 @@ import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.circuit.library.standard_gates import U3Gate
-from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     # if not a subset, add it to the list
                     else:
                         self.basis.append(one_qubit_decompose.OneQubitEulerDecomposer(
-                            euler_basis_name))
+                            euler_basis_name, use_dag=True))
 
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
@@ -89,17 +88,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 else:
                     continue
 
-            new_circs = []
+            new_dags = []
             operator = run[0].op.to_matrix()
             for gate in run[1:]:
                 operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator))
-            if new_circs:
-                new_circ = min(new_circs, key=len)
-                if (len(run) > len(new_circ) or (single_u3 and
-                                                 new_circ.data[0][0].name != 'u3')):
-                    new_dag = circuit_to_dag(new_circ)
+                new_dags.append(decomposer(operator))
+            if new_dags:
+                new_dag = min(new_dags, key=lambda x: x.depth())
+                if (len(run) > new_dag.depth()) or (single_u3 and
+                                                    new_dags[0]._multi_graph[2].name != 'u3'):
                     dag.substitute_node_with_dag(run[0], new_dag)
                     # Delete the other nodes in the run
                     for current_node in run[1:]:
