@@ -33,7 +33,7 @@ class QasmQobjInstruction:
     def __init__(self, name, params=None, qubits=None, register=None,
                  memory=None, condition=None, conditional=None, label=None,
                  mask=None, relation=None, val=None, snapshot_type=None):
-        """Instatiate a new QasmQobjInstruction object.
+        """Instantiate a new QasmQobjInstruction object.
 
         Args:
             name (str): The name of the instruction
@@ -166,7 +166,7 @@ class QasmQobjExperiment:
     """
 
     def __init__(self, config=None, header=None, instructions=None):
-        """Instatiate a QasmQobjExperiment.
+        """Instantiate a QasmQobjExperiment.
 
         Args:
             config (QasmQobjExperimentConfig): A config object for the experiment
@@ -486,7 +486,7 @@ class QasmQobj:
 
     def __init__(self, qobj_id=None, config=None, experiments=None,
                  header=None):
-        """Instatiate a new QASM Qobj Object.
+        """Instantiate a new QASM Qobj Object.
 
         Each QASM Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published

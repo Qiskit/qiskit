@@ -34,7 +34,7 @@ class InstructionDurations:
                  dt: float = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
-        self.dt = dt  # pylint: disable=invalid-name
+        self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
 
@@ -79,7 +79,7 @@ class InstructionDurations:
                 instruction_durations.append(('measure', [q], readout_length, 's'))
 
         try:
-            dt = backend.configuration().dt  # pylint: disable=invalid-name
+            dt = backend.configuration().dt
         except AttributeError:
             dt = None
 
@@ -164,9 +164,10 @@ class InstructionDurations:
 
         try:
             return self._get(inst_name, qubits, unit)
-        except TranspilerError:
-            raise TranspilerError("Duration of {} on qubits {} is not found."
-                                  .format(inst_name, qubits))
+        except TranspilerError as ex:
+            raise TranspilerError(
+                f"Duration of {inst_name} on qubits {qubits} is not found."
+            ) from ex
 
     def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
         """Get the duration of the instruction with the name and the qubits."""

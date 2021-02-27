@@ -20,8 +20,6 @@ from ..list_ops import ListOp, ComposedOp
 from ..state_fns.operator_state_fn import OperatorStateFn
 
 
-# pylint: disable=invalid-name
-
 class MatrixExpectation(ExpectationBase):
     """ An Expectation converter which converts Operator measurements to be matrix-based so they
     can be evaluated by matrix multiplication. """

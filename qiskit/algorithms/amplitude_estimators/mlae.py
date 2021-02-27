@@ -81,7 +81,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
-            if any([value < 0 for value in evaluation_schedule]):
+            if any(value < 0 for value in evaluation_schedule):
                 raise ValueError('The elements of the evaluation schedule cannot be < 0.')
 
             self._evaluation_schedule = evaluation_schedule
@@ -166,7 +166,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                     alpha: float,
                                     kind: str = 'fisher',
                                     apply_post_processing: bool = False) -> Tuple[float, float]:
-        # pylint: disable=wrong-spelling-in-docstring
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',

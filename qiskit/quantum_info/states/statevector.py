@@ -104,12 +104,58 @@ class Statevector(QuantumState, TolerancesMixin):
             self._data, other._data, rtol=self.rtol, atol=self.atol)
 
     def __repr__(self):
-        prefix = 'Statevector('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}dims={})'.format(
-            prefix, np.array2string(
-                self.data, separator=', ', prefix=prefix),
-            pad, self._op_shape.dims_l())
+        text = self.draw('text', prefix='Statevector(')
+        return str(text) + ')'
+
+    def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
+        """Returns a visualization of the Statevector.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is `'latex`'.
+            max_size (int): Maximum number of elements before array is
+                summarized instead of fully represented. For ``latex``
+                and ``latex_source`` drawers, this is also the maximum number
+                of elements that will be drawn in the output array, including
+                elipses elements. For ``text`` drawer, this is the ``threshold``
+                parameter in ``numpy.array2string()``.
+            dims (bool): For `text` and `latex`. Whether to display the
+                dimensions.
+            prefix (str): For `text` and `latex`. Text to be displayed before
+                the state.
+            drawer_args: Arguments to be passed directly to the relevant drawer
+                function (`plot_state_qsphere()`, `plot_state_hinton()` or
+                `plot_bloch_multivector()`). See the relevant function under
+                `qiskit.visualization` for that function's documentation.
+
+        Returns:
+            :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.visualization.state_visualization import state_drawer
+        return state_drawer(self, output=output, max_size=max_size, dims=dims,
+                            prefix=prefix, **drawer_args)
+
+    def _ipython_display_(self):
+        from IPython.display import display
+        display(self.draw())
 
     @property
     def data(self):
