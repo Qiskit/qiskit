@@ -249,7 +249,7 @@ class QCircuitImage:
 
                 # the wide gates
                 for arg in op.op.params:
-                    if not any([isinstance(param, np.ndarray) for param in op.op.params]):
+                    if not any(isinstance(param, np.ndarray) for param in op.op.params):
                         arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
                                          self._truncate_float, str(arg))
                         arg_str_len += len(arg_str)
@@ -583,7 +583,7 @@ class QCircuitImage:
         # Must limit to 4 params or may get dimension too large error
         # from xy-pic xymatrix command
         if (len(op.op.params) > 0 and not any(
-                [isinstance(param, np.ndarray) for param in op.op.params])):
+                isinstance(param, np.ndarray) for param in op.op.params)):
             gate_text += "\\,\\mathrm{(}"
             if len(op.op.params) > 4:
                 gate_text += '\\mathrm{>4\\,parameters}'
