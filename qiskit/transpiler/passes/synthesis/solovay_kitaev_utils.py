@@ -352,7 +352,7 @@ def convert_su2_to_so3(matrix: np.ndarray) -> np.ndarray:
         raise ValueError(
             'Conversion from SU2 called on determinant of', np.linalg.det(matrix))
 
-    matrix = matrix.astype(np.complex)
+    matrix = matrix.astype(complex)
     a = np.real(matrix[0][0])
     b = np.imag(matrix[0][0])
     c = -np.real(matrix[0][1])
