@@ -111,15 +111,17 @@ class OneQubitEulerDecomposer:
     def __call__(self,
                  unitary,
                  simplify=True,
-                 atol=DEFAULT_ATOL):
+                 atol=DEFAULT_ATOL,
+                 check_unitary=True):
         """Decompose single qubit gate into a circuit.
 
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
             simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (bool): absolute tolerance for checking angles when simplifing
+            atol (float): absolute tolerance for checking angles when simplifing
                          returnd circuit [Default: 1e-12].
-
+            check_unitary (bool): If set to false the input is assumed to be a
+                                  2-qubit unitary and this is not checked.
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -139,12 +141,13 @@ class OneQubitEulerDecomposer:
         unitary = np.asarray(unitary, dtype=complex)
 
         # Check input is a 2-qubit unitary
-        if unitary.shape != (2, 2):
-            raise QiskitError("OneQubitEulerDecomposer: "
-                              "expected 2x2 input matrix")
-        if not is_unitary_matrix(unitary):
-            raise QiskitError("OneQubitEulerDecomposer: "
-                              "input matrix is not unitary.")
+        if check_unitary:
+            if unitary.shape != (2, 2):
+                raise QiskitError("OneQubitEulerDecomposer: "
+                                  "expected 2x2 input matrix")
+            if not is_unitary_matrix(unitary):
+                raise QiskitError("OneQubitEulerDecomposer: "
+                                  "input matrix is not unitary.")
         theta, phi, lam, phase = self._params(unitary)
         circuit = self._circuit(theta, phi, lam, phase,
                                 simplify=simplify,
