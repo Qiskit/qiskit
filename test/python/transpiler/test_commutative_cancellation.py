@@ -21,7 +21,8 @@ from qiskit.circuit.library import U1Gate, RZGate
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
-
+from qiskit.transpiler.passes.optimization.axis_angle_analysis import _su2_axis_angle as su2
+from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis
 
 class TestCommutativeCancellation(QiskitTestCase):
 
@@ -606,5 +607,94 @@ class TestCommutativeCancellation(QiskitTestCase):
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+    def test_basis_global_phase_04(self):
+        """Test global phase preservation if cummulative z-rotation is 0"""
+        altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
+        altp.rz(np.pi/2, 0)
+        altpgate = altp.to_gate()
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.x(0)
+        circ.p(np.pi/2, 0)
+        circ.append(altpgate, [0])
+        circ.rx(np.pi/2, 0)
+        circ.x(0)
+        
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        print(circ)
+        print(ccirc)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_axis_angle(self):
+        from qiskit.circuit.library.standard_gates import SGate, TGate, RXGate, XGate, ZGate, RYGate, YGate, IGate
+
+        x = XGate()
+        t = TGate()
+        u1 = U1Gate(np.pi/3)
+        rz = RZGate(np.pi/3)
+        rx = RXGate(np.pi/2)
+        ry = RYGate(np.pi/3)
+        y = YGate()
+        z = ZGate()
+        iden = IGate()
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        print('')
+        ccirc = passmanager.run(circ)
+
+        axis, angle, phase = su2(np.exp(1j*np.pi/4) * np.array([[1, 0], [0, 1]]))
+        print(f'axis={axis}, angle={angle}, phase={phase}')
+        breakpoint()
+
+    def test_axis_angle_pass(self):
+        altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
+        altp.rz(np.pi/2, 0)
+        altpgate = altp.to_gate()
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        circ.append(altpgate, [0])
+        circ.rx(np.pi/2, 0)
+        circ.x(0)
+
+        passmanager = PassManager()
+        passmanager.append(AxisAngleAnalysis())
+        ccirc = passmanager.run(circ)
+
+    def test_axis_angle_pass_2q_noninteracting(self):
+        altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
+        altp.rz(np.pi/2, 0)
+        altpgate = altp.to_gate()
+        circ = QuantumCircuit(2)
+        # z-axis, qubit 0
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        circ.append(altpgate, [0])  # test custom gate
+        # x-axis, qubit 0
+        circ.rx(np.pi/2, 0)
+        circ.x(0)
+        # zx-axis, qubit 0
+        circ.h(0)
+        circ.h(0)
+        circ.h(0)
+        # -zx-axis, qubit 0
+        circ.rv(-1, 0, -1, 0)
+        # z-axis, qubit 1
+        circ.rz(np.pi/2, 1)
+        circ.t(1)
+        # y-axis, qubit 1
+        circ.ry(np.pi/3, 1)
+        circ.y(1)
+        circ.r(np.pi/3, np.pi/2, 1)
+        # cos(pi/3)x + sin(pi/3)y axis, qubit 1, 2 parameters
+        circ.r(np.pi/2, np.pi/3, 1)
+        circ.r(np.pi/3, np.pi/3, 1)
+        passmanager = PassManager()
+        passmanager.append(AxisAngleAnalysis())
+        ccirc = passmanager.run(circ)
+        
+        
 if __name__ == '__main__':
     unittest.main()

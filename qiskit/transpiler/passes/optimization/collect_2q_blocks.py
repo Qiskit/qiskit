@@ -22,7 +22,7 @@ class Collect2qBlocks(AnalysisPass):
     """Collect sequences of uninterrupted gates acting on 2 qubits.
 
     Traverse the DAG and find blocks of gates that act consecutively on
-    pairs of qubits. Write the blocks to propert_set as a dictionary
+    pairs of qubits. Write the blocks to property_set as a dictionary
     of the form::
 
         {(q0, q1): [[g0, g1, g2], [g5]],

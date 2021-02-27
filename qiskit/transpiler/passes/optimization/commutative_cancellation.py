@@ -68,9 +68,12 @@ class CommutativeCancellation(TransformationPass):
         Raises:
             TranspilerError: when the 1-qubit rotation gates are not found
         """
+        from qiskit.quantum_info.operators.predicates import is_diagonal_matrix
         var_z_gate = None
         z_var_gates = [gate for gate in dag.count_ops().keys()
                        if gate in self._var_z_map]
+        std_z_gates = {'p', 'z', 'u1', 'rz', 't', 's'}
+        std_x_gates = {'rx', 'x'}
         if z_var_gates:
             # priortize z gates in circuit
             var_z_gate = self._var_z_map[next(iter(z_var_gates))]
@@ -93,7 +96,6 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-
         for wire in dag.wires:
             wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
@@ -102,12 +104,13 @@ class CommutativeCancellation(TransformationPass):
                 if com_set[0].type in ['in', 'out']:
                     continue
                 for node in com_set:
+                    breakpoint()
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ['p', 'z', 'u1', 'rz', 't', 's']:
+                    if num_qargs == 1 and node.name in std_z_gates:
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ['rx', 'x']:
+                    if num_qargs == 1 and node.name in std_x_gates:
                         cancellation_sets[('x_rotation', wire_name, com_set_idx)].append(node)
                     # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
                     # it should be dealt with by optimized1qgate pass
