@@ -19,7 +19,7 @@ import numpy as np
 import scipy
 
 from scipy.optimize import minimize
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate
@@ -141,99 +141,8 @@ def are_almost_equal_so3_matrices(a: np.ndarray, b: np.ndarray) -> bool:
     return True
 
 
-@ddt
 class TestSolovayKitaev(QiskitTestCase):
     """Test the Solovay Kitaev algorithm and transformation pass."""
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_of_two_so3_gatesequences(self, u_so3: np.ndarray):
-        """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
-        actual_result = commutator_decompose(u_so3)
-        self.assertTrue(is_so3_matrix(actual_result[0].product))
-        self.assertTrue(is_so3_matrix(actual_result[1].product))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_whose_commutator_equals_input(self, u_so3):
-        """Test that ``commutator_decompose`` exactly decomposes the input."""
-        actual_result = commutator_decompose(u_so3)
-        first_so3 = actual_result[0].product
-        second_so3 = actual_result[1].product
-        actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
-            np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(
-            actual_commutator, u_so3))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_whose_commutator_equals_input_2(self, u_so3):
-        """Test that ``commutator_decompose`` exactly decomposes the input."""
-        actual_result = commutator_decompose(u_so3)
-        first_so3 = actual_result[0].product
-        second_so3 = actual_result[1].product
-        actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
-            np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(
-            actual_commutator, u_so3))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    @unittest.skip("Make algorithm more precise first")
-    def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3):
-        """Test that ``commutator_decompose`` returns a X-rotation as first element."""
-        actual_result = commutator_decompose(u_so3)
-        actual_first = actual_result[0]
-        actual = actual_first.product
-        self.assertAlmostEqual(actual[0][0], 1.0)
-        self.assertAlmostEqual(actual[0][1], 0.0)
-        self.assertAlmostEqual(actual[0][2], 0.0)
-        self.assertAlmostEqual(actual[1][0], 0.0)
-        self.assertAlmostEqual(actual[2][0], 0.0)
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    @unittest.skip("Make algorithm more precise first")
-    def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3):
-        """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
-        actual_result = commutator_decompose(u_so3)
-        actual_second = actual_result[1]
-        actual = actual_second.product
-        self.assertAlmostEqual(actual[1][1], 1.0)
-        self.assertAlmostEqual(actual[0][1], 0.0)
-        self.assertAlmostEqual(actual[1][0], 0.0)
-        self.assertAlmostEqual(actual[1][2], 0.0)
-        self.assertAlmostEqual(actual[2][1], 0.0)
 
     def test_i_returns_empty_circuit(self):
         """Test that ``SolovayKitaevDecomposition`` returns an empty circuit when
@@ -242,11 +151,9 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.i(0)
 
         basic_gates = [HGate(), TGate(), TdgGate()]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
+        skd = SolovayKitaevDecomposition(3, basic_gates, 3)
 
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
+        decomposed_circuit = skd(circuit)
         self.assertEqual(QuantumCircuit(1), decomposed_circuit)
 
     def test_exact_decomposition_acts_trivially(self):
@@ -411,6 +318,41 @@ class TestGateSequence(QiskitTestCase):
 
         # check the circuit & phases are equivalent
         self.assertTrue(Operator(ref.to_circuit()).equiv(composed.to_circuit()))
+
+
+@ddt
+class TestSolovayKitaevUtils(QiskitTestCase):
+    """Test the public functions in the Solovay Kitaev utils."""
+
+    @data(
+        _generate_x_rotation(0.1),
+        _generate_y_rotation(0.2),
+        _generate_z_rotation(0.3),
+        np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))
+    )
+    def test_commutator_decompose_return_type(self, u_so3: np.ndarray):
+        """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
+        v, w = commutator_decompose(u_so3)
+        self.assertTrue(is_so3_matrix(v.product))
+        self.assertTrue(is_so3_matrix(w.product))
+        self.assertIsInstance(v, GateSequence)
+        self.assertIsInstance(w, GateSequence)
+
+    @data(
+        _generate_x_rotation(0.1),
+        _generate_y_rotation(0.2),
+        _generate_z_rotation(0.3),
+        np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))
+    )
+    def test_commutator_decompose_decomposes_correctly(self, u_so3):
+        """Test that ``commutator_decompose`` exactly decomposes the input."""
+        v, w = commutator_decompose(u_so3)
+        v_so3 = v.product
+        w_so3 = w.product
+        actual_commutator = np.dot(v_so3, np.dot(w_so3, np.dot(np.conj(v_so3).T, np.conj(w_so3).T)))
+        self.assertTrue(np.allclose(actual_commutator, u_so3))
 
 
 if __name__ == '__main__':
