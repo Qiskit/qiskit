@@ -15,6 +15,7 @@
 import unittest
 import math
 import numpy as np
+import scipy
 
 from ddt import ddt, data
 
@@ -29,9 +30,10 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 from qiskit.quantum_info import Operator, Choi, diamond_norm
 
 
-def _diamond_norm(circuit1, circuit2):
-    """Return the diamond norm of the difference of the two input circuits."""
-    return diamond_norm(Choi(circuit1) - Choi(circuit2))
+def _trace_distance(circuit1, circuit2):
+    """Return the trace distance of the two input circuits."""
+    op1, op2 = Operator(circuit1), Operator(circuit2)
+    return 0.5 * np.trace(scipy.linalg.sqrtm(np.conj(op1 - op2).T.dot(op1 - op2))).real
 
 
 def _generate_x_rotation(angle: float) -> np.ndarray:
@@ -131,12 +133,12 @@ class TestSolovayKitaev(QiskitTestCase):
 
         with self.subTest('1 recursion'):
             discretized = skd(transpiled)
-            self.assertLess(_diamond_norm(transpiled, discretized), 0.25)
+            self.assertLess(_trace_distance(transpiled, discretized), 15)
 
         skd.recursion_degree = 2
         with self.subTest('2 recursions'):
             discretized = skd(transpiled)
-            self.assertLess(_diamond_norm(transpiled, discretized), 0.1)
+            self.assertLess(_trace_distance(transpiled, discretized), 7)
 
 
 @ddt
