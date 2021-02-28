@@ -12,8 +12,7 @@
 
 """Tests for pass cancelling 2 consecutive SWAPs on the same qubits."""
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
+from qiskit import QuantumCircuit
 from qiskit.transpiler.passes import SWAPCancellation
 from qiskit.test import QiskitTestCase
 
@@ -23,14 +22,11 @@ class TestSWAPCancellation(QiskitTestCase):
 
     def test_pass_swap_cancellation_simple(self):
         """Test a simple swap cancellation pass, symmetric wires """
-        qr = QuantumRegister(2)
-        circuit = QuantumCircuit(qr)
-        circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[1], qr[0])
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        circuit.swap(1, 0)
 
-        pass_manager = PassManager()
-        pass_manager.append(SWAPCancellation())
-        out_circuit = pass_manager.run(circuit)
+        out_circuit = SWAPCancellation()(circuit)
         resources_after = out_circuit.count_ops()
 
         self.assertNotIn('swap', resources_after)
@@ -40,20 +36,17 @@ class TestSWAPCancellation(QiskitTestCase):
 
         It should cancel consecutive swap pairs on same qubits.
         """
-        qr = QuantumRegister(2)
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[0], qr[1])
-        circuit.swap(qr[1], qr[0])
-        circuit.swap(qr[1], qr[0])
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.h(0)
+        circuit.swap(0, 1)
+        circuit.swap(0, 1)
+        circuit.swap(0, 1)
+        circuit.swap(0, 1)
+        circuit.swap(1, 0)
+        circuit.swap(1, 0)
 
-        pass_manager = PassManager()
-        pass_manager.append(SWAPCancellation())
-        out_circuit = pass_manager.run(circuit)
+        out_circuit = SWAPCancellation()(circuit)
         resources_after = out_circuit.count_ops()
 
         self.assertNotIn('swap', resources_after)
