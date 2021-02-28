@@ -12,6 +12,7 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
+import os
 from typing import List, Union, Optional
 import itertools
 import numpy as np
@@ -291,7 +292,7 @@ class SolovayKitaevDecomposition(TransformationPass):
 
     """
 
-    def __init__(self, recursion_degree: int,
+    def __init__(self, recursion_degree: int = 3,
                  basis_gates: Optional[List[Union[str, Gate]]] = None,
                  depth: Optional[int] = None) -> None:
         """
@@ -312,8 +313,13 @@ class SolovayKitaevDecomposition(TransformationPass):
             depth: The maximum depth of the basic approximations.
         """
         super().__init__()
-        self._recursion_degree = recursion_degree
+        self.recursion_degree = recursion_degree
         self._sk = SolovayKitaev(basis_gates, depth)
+
+        # set default basic approximations
+        dirname = os.path.dirname(os.path.abspath(__file__))
+        filename = 'depth10_t_h_tdg.npy'
+        self._default_approximation_set = os.path.join(dirname, filename)
 
     @staticmethod
     def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
@@ -344,6 +350,9 @@ class SolovayKitaevDecomposition(TransformationPass):
         Returns:
             Output dag with 1q gates synthesized in the discrete target basis.
         """
+        if self._sk._basic_approximations is None:
+            self.load_basic_approximations(self._default_approximation_set)
+
         for node in dag.nodes():
             if node.type != 'op':
                 continue  # skip all nodes that do not represent operations
@@ -354,7 +363,7 @@ class SolovayKitaevDecomposition(TransformationPass):
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
-            approximation = self._sk.run(matrix, self._recursion_degree)
+            approximation = self._sk.run(matrix, self.recursion_degree)
 
             # convert to a dag and replace the gate by the approximation
             substitute = circuit_to_dag(approximation)

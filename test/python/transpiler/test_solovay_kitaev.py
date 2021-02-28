@@ -21,26 +21,20 @@ import scipy
 from scipy.optimize import minimize
 from ddt import ddt, data
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate
+from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
-from qiskit.quantum_info import Operator
-
-# pylint: disable=invalid-name, missing-class-docstring
+from qiskit.quantum_info import Operator, Choi, diamond_norm
 
 
-def distance(A, B):
-    """Find the distance in norm of A and B, ignoring global phase."""
-
-    def objective(global_phase):
-        return np.linalg.norm(A - np.exp(1j * global_phase) * B)
-    result1 = minimize(objective, [1], bounds=[(-np.pi, np.pi)])
-    result2 = minimize(objective, [0.5], bounds=[(-np.pi, np.pi)])
-    return min(result1.fun, result2.fun)
+def _diamond_norm(circuit1, circuit2):
+    """Return the diamond norm of the difference of the two input circuits."""
+    return diamond_norm(Choi(circuit1) - Choi(circuit2))
 
 
 def _generate_x_rotation(angle: float) -> np.ndarray:
@@ -61,64 +55,6 @@ def _generate_z_rotation(angle: float) -> np.ndarray:
                      [0, 0, 1]])
 
 
-def _generate_random_rotation() -> np.ndarray:
-    return np.array(scipy.stats.special_ortho_group.rvs(3))
-
-
-def _build_rotation(angle: float, axis: int) -> np.ndarray:
-    if axis == 0:
-        return _generate_x_rotation(angle)
-    elif axis == 1:
-        return _generate_y_rotation(angle)
-    elif axis == 2:
-        return _generate_z_rotation(angle)
-    else:
-        return _generate_random_rotation()
-
-
-def _build_axis(axis: int) -> np.ndarray:
-    if axis == 0:
-        return np.array([1.0, 0.0, 0.0])
-    elif axis == 1:
-        return np.array([0.0, 1.0, 0.0])
-    elif axis == 2:
-        return np.array([0.0, 0.0, 1.0])
-    else:
-        return np.array([1/math.sqrt(3), 1/math.sqrt(3), 1/math.sqrt(3)])
-
-
-def _generate_x_su2(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)*1j],
-                     [math.sin(angle/2)*1j, math.cos(angle/2)]], dtype=complex)
-
-
-def _generate_y_su2(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)],
-                     [-math.sin(angle/2), math.cos(angle/2)]], dtype=complex)
-
-
-def _generate_z_su2(angle: float) -> np.ndarray:
-    return np.array([[np.exp(-(1/2)*angle*1j), 0], [0, np.exp((1/2)*angle*1j)]], dtype=complex)
-
-
-def _generate_su2(alpha: complex, beta: complex) -> np.ndarray:
-    base = np.array([[alpha, beta], [-np.conj(beta), np.conj(alpha)]])
-    det = np.linalg.det(base)
-    if abs(det) < 1e10:
-        return np.array([[1, 0], [0, 1]])
-    else:
-        return np.linalg.det(base)*base
-
-
-def _build_unit_vector(a: float, b: float, c: float) -> np.ndarray:
-    vector = np.array([a, b, c])
-    if a != 0.0 or b != 0.0 or c != 0.0:
-        unit_vector = vector/np.linalg.norm(vector)
-        return unit_vector
-    else:
-        return np.array([1, 0, 0])
-
-
 def is_so3_matrix(array: np.ndarray) -> bool:
     """Check if the input array is a SO(3) matrix."""
     if array.shape != (3, 3):
@@ -133,16 +69,16 @@ def is_so3_matrix(array: np.ndarray) -> bool:
     return True
 
 
-def are_almost_equal_so3_matrices(a: np.ndarray, b: np.ndarray) -> bool:
-    """TODO"""
-    for t in itertools.product(range(2), range(2)):
-        if abs(a[t[0]][t[1]]-b[t[0]][t[1]]) > 1e-10:
-            return False
-    return True
-
-
 class TestSolovayKitaev(QiskitTestCase):
     """Test the Solovay Kitaev algorithm and transformation pass."""
+
+    def test_loading_default_approximation(self):
+        """Test the approximation set loaded by default."""
+        skd = SolovayKitaevDecomposition()
+        circuit = QuantumCircuit(1)
+        dummy = skd(circuit)
+
+        self.assertIsNotNone(skd._sk._basic_approximations)
 
     def test_i_returns_empty_circuit(self):
         """Test that ``SolovayKitaevDecomposition`` returns an empty circuit when
@@ -188,6 +124,22 @@ class TestSolovayKitaev(QiskitTestCase):
         reference.h(0)
 
         self.assertEqual(discretized, reference)
+
+    def test_approximation_on_qft(self):
+        """Test the Solovay-Kitaev decomposition on the QFT circuit."""
+        qft = QFT(3)
+        transpiled = transpile(qft, basis_gates=['u', 'cx'], optimization_level=1)
+
+        skd = SolovayKitaevDecomposition(1)
+
+        with self.subTest('1 recursion'):
+            discretized = skd(transpiled)
+            self.assertLess(_diamond_norm(transpiled, discretized), 0.25)
+
+        skd.recursion_degree = 2
+        with self.subTest('2 recursions'):
+            discretized = skd(transpiled)
+            self.assertLess(_diamond_norm(transpiled, discretized), 0.1)
 
 
 @ddt
