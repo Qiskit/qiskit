@@ -119,7 +119,7 @@ class GateSequence():
         """Get the complex conjugate."""
         adjoint = GateSequence()
         adjoint.gates = [gate.inverse() for gate in reversed(self.gates)]
-        adjoint.product = np.matrix.getH(self.product)
+        adjoint.product = np.conj(self.product).T
         adjoint.global_phase = -self.global_phase
 
         return adjoint
@@ -492,9 +492,8 @@ def _compute_commutator_so3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         raise ValueError(
             'Computation of trace SO(3) called on determinant of', np.linalg.det(b))
 
-    # pylint:disable=assignment-from-no-return
-    a_dagger = np.matrix.getH(a)
-    b_dagger = np.matrix.getH(b)
+    a_dagger = np.conj(a).T
+    b_dagger = np.conj(b).T
 
     return np.dot(np.dot(np.dot(a, b), a_dagger), b_dagger)
 

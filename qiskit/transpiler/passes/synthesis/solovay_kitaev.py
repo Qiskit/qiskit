@@ -425,7 +425,7 @@ def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
     commutator_axis = compute_rotation_axis(commutator)
 
     sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
-    sim_matrix_dagger = np.matrix.getH(sim_matrix)
+    sim_matrix_dagger = np.conj(sim_matrix).T
 
     v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
     w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
