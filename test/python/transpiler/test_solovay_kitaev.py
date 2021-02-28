@@ -12,13 +12,10 @@
 
 """Test the Solovay Kitaev transpilation pass."""
 
-import itertools
 import unittest
 import math
 import numpy as np
-import scipy
 
-from scipy.optimize import minimize
 from ddt import ddt, data
 
 from qiskit import transpile
