@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 
+
 class StabilizerState(QuantumState):
     """Statevector class"""
 
@@ -41,7 +42,7 @@ class StabilizerState(QuantumState):
 
         # Initialize from a Pauli
         elif isinstance(data, Pauli):
-            self._data = data
+            self._data = Clifford(data.to_instruction())
 
         # Initialize from another StabilizerState
         elif isinstance(data, StabilizerState):
@@ -82,6 +83,10 @@ class StabilizerState(QuantumState):
         """Return the conjugate of the operator."""
         return StabilizerState(Clifford.conjugate(self.data))
 
+    def transpose(self):
+        """Return the transpose of the operator."""
+        return StabilizerState(Clifford.transpose(self.data))
+
     def tensor(self, other):
         """Return the tensor product stabilzier state self ⊗ other.
 
@@ -98,11 +103,31 @@ class StabilizerState(QuantumState):
             other = StabilizerState(other)
         return StabilizerState((self.data).tensor(other.data))
 
-    def compose(self, other):
+    def expand(self, other):
+        """Return the tensor product stabilzier state other ⊗ self.
+
+        Args:
+            other (StabilizerState): a stabilizer state object.
+
+        Returns:
+            StabilizerState: the tensor product operator other ⊗ self.
+
+        Raises:
+            QiskitError: if other is not a StabilizerState.
+        """
+        if not isinstance(other, StabilizerState):
+            other = StabilizerState(other)
+        return StabilizerState((self.data).expand(other.data))
+
+    def compose(self, other, qargs=None, front=False):
         """Return the composed operator of self and other.
 
         Args:
             other (StabilizerState): a stabilizer state object.
+            qargs (list or None): a list of subsystem positions to apply other on.
+                                  If None apply on all subsystems [default: False].
+            front (bool): If True compose using right operator multiplication,
+                          instead of left multiplication [default: False].
 
         Returns:
             StabilizerState: the composed stabilizer state of self and other.
@@ -112,4 +137,92 @@ class StabilizerState(QuantumState):
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
-        return StabilizerState((self.data).compose(other.data))
+        return StabilizerState((self.data).compose(other.data, qargs, front))
+
+    def evolve(self, other, qargs=None):
+        """Evolve a stabilizer state by the operator.
+
+        Args:
+            other (Operator): The operator to evolve by.
+            qargs (list): a list of stabilizer subsystem positions to apply
+                          the operator on.
+
+        Returns:
+            StabilizerState: the output quantum state.
+
+        Raises:
+            QiskitError: if the operator dimension does not match the
+                         specified StabilizerState subsystem dimensions.
+        """
+        pass
+
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (BaseOperator): an operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        pass
+
+    def probabilities(self, qargs=None, decimals=None):
+        """Return the subsystem measurement probability vector.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        Args:
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            np.array: The Numpy vector array of probabilities.
+        """
+        pass
+
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            StabilizerState: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform a measurement on those subsystems and
+            evolve the subsystems so that the collapsed post-measurement
+            states are rotated to the 0-state. The RNG seed for this
+            sampling can be set using the :meth:`seed` method.
+        """
+        pass
+
+
+    def measure(self, qargs=None):
+        """Measure subsystems and return outcome and post-measure state.
+
+        Note that this function uses the QuantumStates internal random
+        number generator for sampling the measurement outcome. The RNG
+        seed can be set using the :meth:`seed` method.
+
+        Args:
+            qargs (list or None): subsystems to sample measurements for,
+                                  if None sample measurement of all
+                                  subsystems (Default: None).
+
+        Returns:
+            tuple: the pair ``(outcome, state)`` where ``outcome`` is the
+                   measurement outcome string label, and ``state`` is the
+                   collapsed post-measurement stabilizer state for the
+                   corresponding outcome.
+        """
+        pass
