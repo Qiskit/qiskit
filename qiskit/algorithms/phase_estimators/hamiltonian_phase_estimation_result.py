@@ -50,7 +50,7 @@ class HamiltonianPhaseEstimationResult(PhaseEstimationResult):
         super().__init__(num_evaluation_qubits, circuit_result, phases)
 
     # pylint: disable=arguments-differ
-    def filter_phases(self, cutoff: float = 0.0, scaled: bool = True,  # type: ignore
+    def filter_phases(self, cutoff: float = 0.0, scaled: bool = True,
                       as_float: bool = True) -> Dict[Union[str, float], float]:
         """Filter phases as does `PhaseEstimatorResult.filter_phases`, with
         the addition that `phi` is shifted and translated to return eigenvalues

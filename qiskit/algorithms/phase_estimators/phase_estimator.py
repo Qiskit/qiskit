@@ -60,10 +60,11 @@ class PhaseEstimator(ABC):
             self._num_unitary_qubits = num_unitary_qubits
 
         if state_preparation is not None:
-            self._pe_circuit = self._pe_circuit.compose(
+            self._pe_circuit.compose(
                 state_preparation,
                 qubits=range(self._num_evaluation_qubits,
                              self._num_evaluation_qubits + self._num_unitary_qubits),
+                inplace=True,
                 front=True)
 
         return PhaseEstimatorResult()

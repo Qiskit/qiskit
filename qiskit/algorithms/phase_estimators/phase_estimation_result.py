@@ -94,7 +94,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
                 phases = {_bit_string_to_phase(k): counts[k]
                           for k in counts.keys() if counts[k] > cutoff}
             else:
-                phases = {k: counts[k] for k in counts.keys() if counts[k] > cutoff}  # type: ignore
+                phases = {k: counts[k] for k in counts.keys() if counts[k] > cutoff}
 
         else:
             phases = {}

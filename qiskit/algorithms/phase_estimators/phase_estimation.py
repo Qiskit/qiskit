@@ -19,7 +19,7 @@ import numpy
 from qiskit.circuit import QuantumCircuit
 import qiskit
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.providers import BaseBackend
+from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
 from qiskit.result import Result
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -57,7 +57,8 @@ class PhaseEstimation(PhaseEstimator):
 
     def __init__(self,
                  num_evaluation_qubits: int,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+                 quantum_instance: Optional[Union[QuantumInstance,
+                                                  BaseBackend, Backend]] = None) -> None:
 
         """Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
@@ -73,6 +74,8 @@ class PhaseEstimation(PhaseEstimator):
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
 
+        if isinstance(quantum_instance, (Backend, BaseBackend)):
+            quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     def _add_classical_register(self) -> None:
@@ -170,10 +173,7 @@ class PhaseEstimation(PhaseEstimator):
         """
         super().estimate(num_evaluation_qubits, unitary, state_preparation,
                          pe_circuit, num_unitary_qubits)
-        if hasattr(self._quantum_instance, 'execute'):
-            circuit_result = self._quantum_instance.execute(self.construct_circuit())
-        else:
-            circuit_result = self._quantum_instance.run(self.construct_circuit())
+        circuit_result = self._quantum_instance.execute(self.construct_circuit())
         phases = self._compute_phases(circuit_result)
         return self._result(circuit_result, phases)
 

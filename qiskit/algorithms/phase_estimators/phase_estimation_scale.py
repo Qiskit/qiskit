@@ -50,11 +50,16 @@ class PhaseEstimationScale():
 
     @property
     def scale(self) -> float:
-        r"""Return the scale factor by which a Hermitian operator must be multiplied
+        r"""Return the Hamiltonian scaling factor.
+
+        Return the scale factor by which a Hermitian operator must be multiplied
         so that the phase of the corresponding unitary is restricted to :math:`[-\pi, \pi]`.
         This factor is computed from the bound on the absolute values of the eigenvalues
         of the operator. The methods `scale_phase` and `scale_phases` are used recover
         the eigenvalues corresponding the original (unscaled) Hermitian operator.
+
+        Returns:
+            The scale factor.
         """
         return numpy.pi / self._bound
 
@@ -77,7 +82,7 @@ class PhaseEstimationScale():
           id_coefficient: All eigenvalues are shifted by this value.
 
         Returns:
-          An eigenvalue computed from the input phase.
+            An eigenvalue computed from the input phase.
         """
         w = 2 * self._bound
         if phi <= 0.5:
@@ -99,7 +104,7 @@ class PhaseEstimationScale():
             id_coefficient: All eigenvalues are shifted by this value.
 
         Returns:
-           Eigenvalues computed from phases.
+            Eigenvalues computed from phases.
         """
         w = 2 * self._bound
         if isinstance(phases, list):
@@ -127,7 +132,7 @@ def from_pauli_sum(pauli_sum: SummedOp) -> PhaseEstimationScale:
         ValueError: if `pauli_sum` is not a sum of Pauli operators.'
 
     Returns:
-           A `PhaseEstimationScale` object
+        A `PhaseEstimationScale` object
     """
     if pauli_sum.primitive_strings() != {'Pauli'}:
         raise ValueError(
