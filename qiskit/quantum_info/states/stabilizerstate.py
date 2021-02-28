@@ -35,6 +35,7 @@ class StabilizerState(QuantumState):
 
     def __init__(self, data):
         """Initialize a StabilizerState object.
+
         Args:
             data (StabilizerState or Clifford or Pauli or QuantumCircuit or
                   qiskit.circuit.Instruction):
@@ -149,7 +150,6 @@ class StabilizerState(QuantumState):
             other = StabilizerState(other)
         return StabilizerState((self.data).compose(other.data, qargs))
 
-
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -199,7 +199,6 @@ class StabilizerState(QuantumState):
             sampling can be set using the :meth:`seed` method.
         """
         pass
-
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
