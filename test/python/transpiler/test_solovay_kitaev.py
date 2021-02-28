@@ -27,7 +27,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
-from qiskit.quantum_info import Operator, Choi, diamond_norm
+from qiskit.quantum_info import Operator
 
 
 def _trace_distance(circuit1, circuit2):
