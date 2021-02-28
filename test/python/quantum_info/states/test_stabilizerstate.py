@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class TestStabilizerState(QiskitTestCase):
     """Tests for StabilizerState class."""
 
-    rng = np.random.default_rng(1234)
+    rng = np.random.default_rng(12345)
     samples = 10
 
     @combine(num_qubits=[2, 3, 4, 5])
@@ -120,16 +120,29 @@ class TestStabilizerState(QiskitTestCase):
             state = stab1.expand(stab2)
             self.assertEqual(state, target)
 
-    @combine(num_qubits=[2, 3])
-    def test_compose(self, num_qubits):
-        """Test tensor method."""
+    @combine(num_qubits=[2, 3, 4])
+    def test_evolve(self, num_qubits):
+        """Test evolve method."""
         for _ in range(self.samples):
             cliff1 = random_clifford(num_qubits, seed=self.rng)
             cliff2 = random_clifford(num_qubits, seed=self.rng)
             stab1 = StabilizerState(cliff1)
             stab2 = StabilizerState(cliff2)
             target = StabilizerState(cliff1.compose(cliff2))
-            state = stab1.compose(stab2)
+            state = stab1.evolve(stab2)
+            self.assertEqual(state, target)
+
+    @combine(num_qubits_1=[4, 5, 6], num_qubits_2=[1, 2, 3])
+    def test_evolve_subsystem(self, num_qubits_1, num_qubits_2):
+        """Test subsystem evolve method."""
+        for _ in range(self.samples):
+            cliff1 = random_clifford(num_qubits_1, seed=self.rng)
+            cliff2 = random_clifford(num_qubits_2, seed=self.rng)
+            stab1 = StabilizerState(cliff1)
+            stab2 = StabilizerState(cliff2)
+            qargs = sorted(np.random.choice(range(num_qubits_1), num_qubits_2, replace=False))
+            target = StabilizerState(cliff1.compose(cliff2, qargs))
+            state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
 
 

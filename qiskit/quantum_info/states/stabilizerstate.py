@@ -33,8 +33,16 @@ from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 class StabilizerState(QuantumState):
     """Statevector class"""
 
-    def __init__(self, data, validate=True):
-        """Initialize a StabilizerState object."""
+    def __init__(self, data):
+        """Initialize a StabilizerState object.
+        Args:
+            data (StabilizerState or Clifford or Pauli or QuantumCircuit or
+                  qiskit.circuit.Instruction):
+                Data from which the stabilizer state can be constructed.
+
+        Raises:
+            QiskitError: if input data is not a valid stabilizer state (not a valid Clifford).
+        """
 
         # Initialize from a Clifford
         if isinstance(data, Clifford):
@@ -52,8 +60,8 @@ class StabilizerState(QuantumState):
         elif isinstance(data, (QuantumCircuit, Instruction)):
             self._data = Clifford.from_circuit(data)
 
-        # Validate table is a symplectic matrix
-        if validate and not self.is_valid():
+        # Validate that Clifford table is a symplectic matrix
+        if not self.is_valid():
             raise QiskitError(
                 'Invalid StabilizerState. Input is not a valid Clifford.')
 
@@ -119,42 +127,28 @@ class StabilizerState(QuantumState):
             other = StabilizerState(other)
         return StabilizerState((self.data).expand(other.data))
 
-    def compose(self, other, qargs=None, front=False):
-        """Return the composed operator of self and other.
+    def evolve(self, other, qargs=None):
+        """Evolve a stabilizer state by a Clifford operator.
 
         Args:
-            other (StabilizerState): a stabilizer state object.
-            qargs (list or None): a list of subsystem positions to apply other on.
-                                  If None apply on all subsystems [default: False].
-            front (bool): If True compose using right operator multiplication,
-                          instead of left multiplication [default: False].
+            other (Clifford or QuantumCircuit or Instruction): The Clifford operator to evolve by.
+            qargs (list): a list of stabilizer subsystem positions to apply the operator on.
 
         Returns:
-            StabilizerState: the composed stabilizer state of self and other.
+            StabilizerState: the output stabilizer state.
 
         Raises:
             QiskitError: if other is not a StabilizerState.
-        """
-        if not isinstance(other, StabilizerState):
-            other = StabilizerState(other)
-        return StabilizerState((self.data).compose(other.data, qargs, front))
-
-    def evolve(self, other, qargs=None):
-        """Evolve a stabilizer state by the operator.
-
-        Args:
-            other (Operator): The operator to evolve by.
-            qargs (list): a list of stabilizer subsystem positions to apply
-                          the operator on.
-
-        Returns:
-            StabilizerState: the output quantum state.
-
-        Raises:
             QiskitError: if the operator dimension does not match the
                          specified StabilizerState subsystem dimensions.
         """
-        pass
+        if qargs is None:
+            qargs = getattr(other, 'qargs', None)
+
+        if not isinstance(other, StabilizerState):
+            other = StabilizerState(other)
+        return StabilizerState((self.data).compose(other.data, qargs))
+
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
