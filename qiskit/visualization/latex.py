@@ -36,7 +36,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale,
+    def __init__(self, qubits, clbits, ops, scale, reverse_bits=False,
                  plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None):
         """QCircuitImage initializer.

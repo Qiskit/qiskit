@@ -113,7 +113,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         for node in dag.topological_op_nodes():
             ops.append([node])
     else:
-        ops = _LayerSpooler(dag, justify, measure_map)
+        ops = _LayerSpooler(dag, justify, measure_map, reverse_bits)
 
     if reverse_bits:
         qregs.reverse()
@@ -144,7 +144,7 @@ def _sorted_nodes(dag_layer):
     return dag_instructions
 
 
-def _get_gate_span(qregs, instruction):
+def _get_gate_span(qregs, instruction, reverse_bits):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -158,34 +158,35 @@ def _get_gate_span(qregs, instruction):
         if index > max_index:
             max_index = index
 
-    if instruction.cargs:
-        return qregs[min_index:]
-    if instruction.condition:
-        return qregs[min_index:]
-
+    if instruction.cargs or instruction.condition:
+        if reverse_bits:
+            return qregs[:max_index]
+        else:
+            return qregs[min_index:len(qregs)]
     return qregs[min_index:max_index + 1]
 
 
-def _any_crossover(qregs, node, nodes):
+def _any_crossover(qregs, node, nodes, reverse_bits):
     """Return True .IFF. 'node' crosses over any in 'nodes',"""
-    gate_span = _get_gate_span(qregs, node)
+    gate_span = _get_gate_span(qregs, node, reverse_bits)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qregs, check_node)
+            all_indices += _get_gate_span(qregs, check_node, reverse_bits)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, justification, measure_map, reverse_bits):
         """Create spool"""
         super().__init__()
         self.dag = dag
         self.qregs = dag.qubits
         self.justification = justification
         self.measure_map = measure_map
+        self.reverse_bits = reverse_bits
 
         if self.justification == 'left':
             for dag_layer in dag.layers():
@@ -217,7 +218,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qregs, node, nodes)
+        return not _any_crossover(self.qregs, node, nodes, self.reverse_bits)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""

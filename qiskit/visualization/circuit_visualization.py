@@ -433,7 +433,7 @@ def _generate_latex_source(circuit, filename=None,
         layout = None
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
+    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, reverse_bits=reverse_bits,
                                  plot_barriers=plot_barriers, layout=layout,
                                  initial_state=initial_state,
                                  cregbundle=cregbundle,
@@ -512,6 +512,7 @@ def _matplotlib_circuit_drawer(circuit,
 
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
+                                       reverse_bits=reverse_bits,
                                        plot_barriers=plot_barriers, layout=layout,
                                        fold=fold, ax=ax, initial_state=initial_state,
                                        cregbundle=cregbundle, global_phase=global_phase)
