@@ -1044,7 +1044,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "q_0: |0>┤0         ├",
                               "        │          │",
                               "q_1: |0>┤          ├",
-                              "        │  unitary │",
+                              "        │  UNITARY │",
                               "q_2: |0>┤          ├",
                               "        │          │",
                               "q_3: |0>┤1         ├",
@@ -1948,7 +1948,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["     ┌────────────────────────────────────┐",
                               "q_0: ┤0                                   ├",
-                              "     │  initialize(0.5+0.1j,0,0,0.86023j) │",
+                              "     │  INITIALIZE(0.5+0.1j,0,0,0.86023j) │",
                               "q_1: ┤1                                   ├",
                               "     └────────────────────────────────────┘"])
         ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
@@ -1961,7 +1961,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["        ┌────────────────────────────────┐",
                               "q_0: |0>┤0                               ├",
-                              "        │  initialize(π/10,0,0,0.94937j) │",
+                              "        │  INITIALIZE(π/10,0,0,0.94937j) │",
                               "q_1: |0>┤1                               ├",
                               "        └────────────────────────────────┘"
                               ])
@@ -1975,7 +1975,7 @@ class TestTextNonRational(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/3640 """
         expected = '\n'.join(["        ┌────────────────────────────────┐",
                               "q_0: |0>┤0                               ├",
-                              "        │  initialize(0.94937,0,0,π/10j) │",
+                              "        │  INITIALIZE(0.94937,0,0,π/10j) │",
                               "q_1: |0>┤1                               ├",
                               "        └────────────────────────────────┘"
                               ])
@@ -3089,7 +3089,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
     def test_draw_hamiltonian_single(self):
         """Text Hamiltonian gate with single qubit."""
         expected = '\n'.join(["      ┌─────────────┐",
-                              "q0_0: ┤ Hamiltonian ├",
+                              "q0_0: ┤ HAMILTONIAN ├",
                               "      └─────────────┘"])
 
         qr = QuantumRegister(1, 'q0')
@@ -3104,7 +3104,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         """Text Hamiltonian gate with mutiple qubits."""
         expected = '\n'.join(["      ┌──────────────┐",
                               "q0_0: ┤0             ├",
-                              "      │  Hamiltonian │",
+                              "      │  HAMILTONIAN │",
                               "q0_1: ┤1             ├",
                               "      └──────────────┘"])
 
