@@ -116,28 +116,28 @@ class PhaseEstimationScale():
 
         return phases
 
+    @classmethod
+    def from_pauli_sum(cls, pauli_sum: SummedOp):
+        """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
-def from_pauli_sum(pauli_sum: SummedOp) -> PhaseEstimationScale:
-    """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
+        It is assumed that the `SummedOp` `pauli_sum` is the sum of `PauliOp`s. The bound on
+        the absolute value of the eigenvalues of the sum is obtained as the sum of the
+        absolute values of the coefficients of the terms. This is the best bound available in
+        the generic case. A `PhaseEstimationScale` object is instantiated using this bound.
 
-    It is assumed that the `SummedOp` `pauli_sum` is the sum of `PauliOp`s. The bound on
-    the absolute value of the eigenvalues of the sum is obtained as the sum of the
-    absolute values of the coefficients of the terms. This is the best bound available in
-    the generic case. A `PhaseEstimationScale` object is instantiated using this bound.
+        Args:
+           pauli_sum:  A `SummedOp` whose terms are `PauliOp`s.
 
-    Args:
-        pauli_sum:  A `SummedOp` whose terms are `PauliOp`s.
+        Raises:
+           ValueError: if `pauli_sum` is not a sum of Pauli operators.'
 
-    Raises:
-        ValueError: if `pauli_sum` is not a sum of Pauli operators.'
+        Returns:
+           A `PhaseEstimationScale` object
+        """
+        if pauli_sum.primitive_strings() != {'Pauli'}:
+            raise ValueError(
+                '`pauli_sum` must be a sum of Pauli operators. Got primitives {}.'.format(
+                    pauli_sum.primitive_strings()))
 
-    Returns:
-        A `PhaseEstimationScale` object
-    """
-    if pauli_sum.primitive_strings() != {'Pauli'}:
-        raise ValueError(
-            '`pauli_sum` must be a sum of Pauli operators. Got primitives {}.'.format(
-                pauli_sum.primitive_strings()))
-
-    bound = sum([abs(pauli_sum.coeff * pauli.coeff) for pauli in pauli_sum])
-    return PhaseEstimationScale(bound)
+        bound = sum([abs(pauli_sum.coeff * pauli.coeff) for pauli in pauli_sum])
+        return PhaseEstimationScale(bound)

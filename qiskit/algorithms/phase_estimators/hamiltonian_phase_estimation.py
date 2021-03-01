@@ -18,7 +18,6 @@ from qiskit.utils import QuantumInstance
 from qiskit.opflow import EvolutionBase, OperatorBase, SummedOp, PauliSumOp
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
-from . import phase_estimation_scale
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 
@@ -63,7 +62,7 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
 
     def _set_scale(self) -> None:
         if self._bound is None:
-            pe_scale = phase_estimation_scale.from_pauli_sum(self._hamiltonian)
+            pe_scale = PhaseEstimationScale.from_pauli_sum(self._hamiltonian)
             self._pe_scale = pe_scale
         else:
             self._pe_scale = PhaseEstimationScale(self._bound)
