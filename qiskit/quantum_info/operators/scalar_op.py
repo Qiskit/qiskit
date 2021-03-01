@@ -17,6 +17,7 @@ ScalarOp class
 import copy
 from numbers import Number
 import numpy as np
+import plum
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -34,6 +35,9 @@ class ScalarOp(LinearOp):
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
     :meth:`tensor`, :meth:`expand` methods.
     """
+
+    dispatch = plum.Dispatcher(in_class=plum.Self)
+
     def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.
 
@@ -143,17 +147,19 @@ class ScalarOp(LinearOp):
         ret._coeff = self.coeff ** n
         return ret
 
-    def tensor(self, other):
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
+    @dispatch
+    def tensor(self, other): return self.tensor(Operator(other))
 
-        if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
-            ret._coeff = self.coeff * other.coeff
-            ret._op_shape = self._op_shape.tensor(other._op_shape)
-            return ret
-
+    @dispatch
+    def tensor(self, other: BaseOperator):
         return other.expand(self)
+
+    @dispatch
+    def tensor(self, other: plum.Self):
+        ret = copy.copy(self)
+        ret._coeff = self.coeff * other.coeff
+        ret._op_shape = self._op_shape.tensor(other._op_shape)
+        return ret
 
     def expand(self, other):
         if not isinstance(other, BaseOperator):

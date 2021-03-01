@@ -14,6 +14,7 @@
 Tolerances mixin class.
 """
 
+import plum
 from abc import ABCMeta
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
@@ -59,7 +60,13 @@ class TolerancesMeta(ABCMeta):
         cls._RTOL_DEFAULT = value
 
 
-class TolerancesMixin(metaclass=TolerancesMeta):
+# We need an ancestor of the class that uses `Self` (in this case ScalarOp)
+# to have metaclass Referentiable. The inheritance is a bit complicated,
+# so finding where to put it to avoid metaclass conflicts is not obvious
+# This is not a very pretty solution. It will likely break when we need
+# to make Referentiable a class that does not depend on TolerancesMixin.
+# class TolerancesMixin(metaclass=TolerancesMeta):
+class TolerancesMixin(metaclass=plum.Referentiable(TolerancesMeta)):
     """Mixin Class for tolerances"""
 
     @property
