@@ -15,9 +15,9 @@
 
 """ Test Operator construction, including OpPrimitives and singletons. """
 
-from ddt import ddt, data
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data
 import numpy
 
 from qiskit.circuit import QuantumCircuit, Parameter

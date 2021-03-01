@@ -414,9 +414,10 @@ def _filter_params(circuit, param_dict):
 
 
 class OperatorCache:
-    id = None
-    reduced_op_cache = None
-    circuit_ops_cache = None
-    transpiled_circ_cache = None
-    transpile_before_bind = True
-    transpiled_circ_templates = None
+    """A struct to cache an operator along with the circuits in contains."""
+
+    reduced_op_cache = None  # the reduced operator
+    circuit_ops_cache = None  # the extracted circuits
+    transpiled_circ_cache = None  # the transpiled circuits
+    transpile_before_bind = True  # whether to transpile before binding parameters in the operator
+    transpiled_circ_templates = None  # the transpiled circuit templates for Aer's simulator
