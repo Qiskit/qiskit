@@ -49,6 +49,7 @@ class ScalarOp(LinearOp):
         Raises:
             QiskitError: If the optional coefficient is invalid.
         """
+
         if not isinstance(coeff, Number):
             QiskitError("coeff {} must be a number.".format(coeff))
         self._coeff = coeff
@@ -239,7 +240,8 @@ class ScalarOp(LinearOp):
         return ret
 
     @staticmethod
-    def _pad_with_identity(current, other, qargs=None):
+    @dispatch
+    def _pad_with_identity(current, other, qargs):
         """Pad another operator with identities.
 
         Args:
@@ -250,9 +252,11 @@ class ScalarOp(LinearOp):
         Returns:
             BaseOperator: the padded operator.
         """
-        if qargs is None:
-            return other
         return ScalarOp(current.input_dims()).compose(other, qargs=qargs)
+
+    @staticmethod
+    @dispatch
+    def _pad_with_identity(current, other): return other
 
 
 # Update docstrings for API docs
