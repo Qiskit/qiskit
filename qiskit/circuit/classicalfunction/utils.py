@@ -40,6 +40,8 @@ def _convert_tweedledum_operator(op):
         ctrl_state = ''
         for qubit in qubits[:op.num_controls()]:
             ctrl_state += '{}'.format(int(qubit.polarity() == WireRef.Polarity.positive))
+        print('base_gate', base_gate)
+        print('ctrl_state', ctrl_state)
         return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
     return base_gate()
 
