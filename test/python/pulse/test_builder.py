@@ -367,6 +367,16 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_play_name_argument(self):
+        """Test name argument for play instruction."""
+        d0 = pulse.DriveChannel(0)
+        test_pulse = library.Constant(10, 1.0)
+
+        with pulse.build() as schedule:
+            pulse.play(test_pulse, channel = d0, name = 'new_name')
+
+        self.assertEqual(schedule.instructions[0][1].name, 'new_name')
+
     def test_acquire_memory_slot(self):
         """Test acquire instruction into memory slot."""
         acquire0 = pulse.AcquireChannel(0)
