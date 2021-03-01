@@ -160,7 +160,7 @@ def _get_gate_span(qregs, instruction, reverse_bits):
 
     if instruction.cargs or instruction.condition:
         if reverse_bits:
-            return qregs[:max_index]
+            return qregs[:max_index+1]
         else:
             return qregs[min_index:len(qregs)]
     return qregs[min_index:max_index + 1]
