@@ -62,12 +62,12 @@ class PhaseEstimation(PhaseEstimator):
 
         """Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
-                                   be estimated as a binary string with this many bits.
+                be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
 
            Raises:
                ValueError: unless only one of `unitary` and `pe_circuit` is `None`.
-                           `num_unitary_qubits` disagrees with size of `unitary`.
+                   `num_unitary_qubits` disagrees with size of `unitary`.
         """
 
         self._measurements_added = False
@@ -124,7 +124,7 @@ class PhaseEstimation(PhaseEstimator):
             circuit_result: the result object returned by the backend that ran the QPE circuit.
 
         Returns:
-               Either a dict or numpy.ndarray representing the frequencies of the phases.
+            Either a dict or numpy.ndarray representing the frequencies of the phases.
 
         """
         if self._quantum_instance.is_statevector:
@@ -156,17 +156,17 @@ class PhaseEstimation(PhaseEstimator):
 
            Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
-                                   be estimated as a binary string with this many bits.
+                be estimated as a binary string with this many bits.
             unitary: The circuit representing the unitary operator whose eigenvalues (via phase)
-                     will be measured. Exactly one of `pe_circuit` and `unitary` must be passed.
+                will be measured. Exactly one of `pe_circuit` and `unitary` must be passed.
             state_preparation: The circuit that prepares the state whose eigenphase will be
-                                 measured.  If this parameter is omitted, no preparation circuit
-                                 will be run and input state will be the all-zero state in the
-                                 computational basis.
+                measured.  If this parameter is omitted, no preparation circuit
+                will be run and input state will be the all-zero state in the
+                computational basis.
             pe_circuit: The phase estimation circuit.
             num_unitary_qubits: Must agree with the number of qubits in the unitary in `pe_circuit`
-                                if `pe_circuit` is passed. This parameter will be set from `unitary`
-                                if `unitary` is passed.
+                if `pe_circuit` is passed. This parameter will be set from `unitary`
+                if `unitary` is passed.
 
         Returns:
                An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
