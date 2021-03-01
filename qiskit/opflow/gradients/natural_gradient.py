@@ -140,17 +140,19 @@ class NaturalGradient(GradientBase):
             if not all(ew >= 0 for ew in w):
                 w = [max(0, ew) for ew in w]
                 a = v @ np.diag(w) @ np.linalg.inv(v)
-            try:
+
+            nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+            # try:
                 #             # Try to solve the system of linear equations Ax = C.
-                nat_grad = np.linalg.solve(a, c)
-
-                if np.linalg.norm(nat_grad) > 1e2:
-                    warnings.warn('Solution of the exact solver to big. Use Lstsq.')
-                    nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
-
-            except np.linalg.LinAlgError:  # singular matrix
-                warnings.warn('Singular matrix lstsq solver required')
-                nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+            #     nat_grad = np.linalg.solve(a, c)
+            #
+            #     if np.linalg.norm(nat_grad) > 1e2:
+            #         warnings.warn('Solution of the exact solver to big. Use Lstsq.')
+            #         nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
+            #
+            # except np.linalg.LinAlgError:  # singular matrix
+            #     warnings.warn('Singular matrix lstsq solver required')
+            #     nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
 
         return nat_grad
 

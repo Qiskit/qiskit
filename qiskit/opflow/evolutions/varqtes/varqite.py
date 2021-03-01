@@ -12,7 +12,7 @@
 
 """The Variational Quantum Imaginary Time Evolution"""
 
-from typing import List, Union, Dict, Iterable
+from typing import List, Union, Dict, Iterable, Tuple, Any
 import warnings
 
 import numpy as np
@@ -67,146 +67,145 @@ class VarQITE(VarQTE):
         self._operator = operator / operator.coeff # Remove the time from the operator
         self._operator_eval = operator / operator.coeff
 
-        self._init_grad_objects()
-
-        if self._snapshot_dir is not None:
-            # Compute the norm of the Hamiltonian
-            h_norm = np.linalg.norm(self._h_matrix, ord=2)
+        # if self._snapshot_dir is not None:
+        #     # Compute the norm of the Hamiltonian
+        #     h_norm = np.linalg.norm(self._h_matrix, ord=2)
 
         # Step size
         dt = np.abs(operator.coeff)*np.sign(operator.coeff) / self._num_time_steps
 
-        # ODE Solver
-
-        if self._ode_solver is not None:
-            self._parameter_values = self._run_ode_solver(dt * self._num_time_steps)
-            return self._state.assign_parameters(dict(zip(self._parameters,
-                                                          self._parameter_values)))
+        self._init_grad_objects()
+        # Run ODE Solver
+        parameter_values = self._run_ode_solver(dt * self._num_time_steps)
+        # return evolved
+        return self._state.assign_parameters(dict(zip(self._parameters,
+                                                      parameter_values)))
 
         # Initialize error bound
         # error_bound_en_diff = 0
         # error_bound_l2 = 0
 
-        # Zip the parameter values to the parameter objects
-        param_dict = dict(zip(self._parameters, self._parameter_values))
-
-        et_list = []
-        h_squared_factor_list = []
-        trained_energy_factor_list = []
-        stddev_factor_list = []
-
-        f, true_error, true_energy, trained_energy, exact_exact_euler_err, \
-        exact_euler_trained_err = self._distance_energy(0, param_dict)
-        for j in range(self._num_time_steps):
-            # Get the natural gradient - time derivative of the variational parameters - and
-            # the gradient w.r.t. H and the QFI/4.
-            nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-
-            if self._snapshot_dir:
-                # Get the residual for McLachlan's Variational Principle
-                resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) + 0.5 * grad_res)
-                print('Residual norm', resid)
-
-                # Get the error for the current step
-                et, h_squared, exp, dtdt_state, regrad = self._error_t(
-                    nat_grad_result, grad_res, metric_res)
-                if et < 0 and np.abs(et) > 1e-4:
-                    raise Warning('Non-neglectible negative et observed')
-                else:
-                    et = np.sqrt(np.real(et))
-                # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
-                # h_norm_factor = (1 + 2 * dt * h_norm) ** (operator.coeff - j - 1)
-                # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
-                # h_squared_factor = (1 + 2 * dt * np.sqrt(h_squared))
-                # h_squared_factor_list.append(h_squared_factor)
-                # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
-                # trained_energy_factor = (1 + 2 * dt * np.abs(exp))
-                # trained_energy_factor_list.append(trained_energy_factor)
-                et_list.append(et)
-                stddev_factor_list.append(1 + 2 * dt * np.sqrt(h_squared - exp**2))
-
-                if np.imag(et) > 1e-5:
-                    raise Warning(
-                        'The error of this step is imaginary. Thus, the SLE underlying '
-                        'McLachlan was not solved well. The residuum of the SLE is ', resid,
-                        '. Please use a regularized least square method to resolve this issue.')
-
-                print('et', et)
-
-                # Store the current status
-                self._store_params(j * dt, self._parameter_values, None, et,
-                                   resid, f, true_error, exact_exact_euler_err,
-                                   exact_euler_trained_err, true_energy,
-                                   trained_energy, h_norm, h_squared, dtdt_state, regrad)
-
-                # error_bound_l2 += dt / 2 * np.exp(2 * np.abs(operator.coeff) * h_norm) * \
-                #                        (et + et_prev)
-                # et_prev = et
-
-                # Propagate the Ansatz parameters step by step using explicit Euler
-                if self._backend is not None:
-                    state_for_grad = self._state_circ_sampler.convert(self._state,
-                                                                      params=param_dict)[0]
-                else:
-                    state_for_grad = self._state.assign_parameters(param_dict)
-                self._exact_euler_state += dt * \
-                                           self._exact_grad_state(
-                                               state_for_grad.eval().primitive.data)
-
-            # Propagate the Ansatz parameters step by step using explicit Euler
-            # Subtract is correct either
-            # omega_new = omega - A^(-1)Cdt or
-            # omega_new = omega + A^(-1)((-1)*C)dt
-
-            self._parameter_values = list(np.add(self._parameter_values, dt * np.real(
-                                          nat_grad_result)))
-            # Zip the parameter values to the parameter objects
-            param_dict = dict(zip(self._parameters, self._parameter_values))
-            if self._snapshot_dir:
-                # If initial parameter values were set compute the fidelity, the error between the
-                # prepared and the target state, the energy w.r.t. the target state and the energy
-                # w.r.t. the prepared state
-                f, true_error, true_energy, trained_energy, exact_exact_euler_err, \
-                exact_euler_trained_err = self._distance_energy((j + 1) * dt, param_dict)
-                #
-                # error_bound_en_diff += dt * (et + np.sqrt(np.linalg.norm(trained_energy -
-                #                                                          true_energy)))
-                #
-                # print('Error bound based on exact energy difference', np.round(error_bound_en_diff,
-                #                                                                6), 'after',
-                #       (j + 1) * dt)
-                # print('Error bound based on ||H||_2 and integration', np.round(error_bound_l2, 6),
-                #       'after', (j + 1) * dt)
-
-        # Store the current status
-        if self._snapshot_dir:
-            self._store_params((j+1) * dt, self._parameter_values, None, None,
-                               None, f, true_error, exact_exact_euler_err,
-                               exact_euler_trained_err, true_energy,
-                               trained_energy, h_norm, None, None, None)
-
-            # error_bound_h_squared = 0
-            # error_bound_trained_energy = 0
-            error_bound_stddev = 0
-            for l, grad_error in enumerate(et_list):
-                # error_bound_h_squared += grad_error * dt * np.prod(h_squared_factor_list[l:])
-                # error_bound_trained_energy += grad_error * dt * \
-                #                               np.prod(trained_energy_factor_list[l:])
-                error_bound_stddev += grad_error * dt * np.prod(stddev_factor_list[l:])
-                # print('Error bound based on sqrt(<H^2>)', np.round(error_bound_h_squared, 6),
-                #       'after', (l + 1) * dt)
-                # print('Error bound based on <H>', np.round(error_bound_trained_energy, 6),
-                #       'after', (l + 1) * dt)
-                print('Error bound based on stdev', np.round(error_bound_stddev, 6),
-                      'after', (l + 1) * dt)
+        # # Zip the parameter values to the parameter objects
+        # param_dict = dict(zip(self._parameters, self._parameter_values))
+        #
+        # et_list = []
+        # h_squared_factor_list = []
+        # trained_energy_factor_list = []
+        # stddev_factor_list = []
+        #
+        # f, true_error, true_energy, trained_energy = self._distance_energy(0, param_dict)
+        # for j in range(self._num_time_steps):
+        #     # Get the natural gradient - time derivative of the variational parameters - and
+        #     # the gradient w.r.t. H and the QFI/4.
+        #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
+        #
+        #     if self._snapshot_dir is not None:
+        #         # Get the residual for McLachlan's Variational Principle
+        #         resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) + 0.5 * grad_res)
+        #         print('Residual norm', resid)
+        #
+        #         # Get the error for the current step
+        #         et, h_squared, dtdt_state, regrad, exp, = self._error_t(
+        #             nat_grad_result, grad_res, metric_res)
+        #         if et < 0 and np.abs(et) > 1e-4:
+        #             raise Warning('Non-neglectible negative et observed')
+        #         else:
+        #             et = np.sqrt(np.real(et))
+        #         # h_norm_factor: (1 + 2 \delta_t | | H | |) ^ {T - t}
+        #         # h_norm_factor = (1 + 2 * dt * h_norm) ** (operator.coeff - j - 1)
+        #         # h_squared_factor: (1 + 2\delta_t \sqrt{| < trained | H ^ 2 | trained > |})
+        #         # h_squared_factor = (1 + 2 * dt * np.sqrt(h_squared))
+        #         # h_squared_factor_list.append(h_squared_factor)
+        #         # trained_energy_factor: (1 + 2 \delta_t | < trained | H | trained > |)
+        #         # trained_energy_factor = (1 + 2 * dt * np.abs(exp))
+        #         # trained_energy_factor_list.append(trained_energy_factor)
+        #         et_list.append(et)
+        #         stddev_factor_list.append(1 + 2 * dt * np.sqrt(h_squared - exp**2))
+        #
+        #         if np.imag(et) > 1e-5:
+        #             raise Warning(
+        #                 'The error of this step is imaginary. Thus, the SLE underlying '
+        #                 'McLachlan was not solved well. The residuum of the SLE is ', resid,
+        #                 '. Please use a regularized least square method to resolve this issue.')
+        #
+        #         print('et', et)
+        #
+        #         # Store the current status
+        #         self._store_params(j * dt, self._parameter_values, None, et,
+        #                            resid, f, true_error, None,
+        #                            None, true_energy,
+        #                            trained_energy, h_norm, h_squared, dtdt_state, regrad)
+        #
+        #         # error_bound_l2 += dt / 2 * np.exp(2 * np.abs(operator.coeff) * h_norm) * \
+        #         #                        (et + et_prev)
+        #         # et_prev = et
+        #
+        #         # Propagate the Ansatz parameters step by step using explicit Euler
+        #         # if self._backend is not None:
+        #         #     state_for_grad = self._state_circ_sampler.convert(self._state,
+        #         #                                                       params=param_dict)[0]
+        #         # else:
+        #         #     state_for_grad = self._state.assign_parameters(param_dict)
+        #         # self._exact_euler_state += dt * \
+        #         #                            self._exact_grad_state(
+        #         #                                state_for_grad.eval().primitive.data)
+        #
+        #     # Propagate the Ansatz parameters step by step using explicit Euler
+        #     # Subtract is correct either
+        #     # omega_new = omega - A^(-1)Cdt or
+        #     # omega_new = omega + A^(-1)((-1)*C)dt
+        #
+        #     self._parameter_values = list(np.add(self._parameter_values, dt * np.real(
+        #                                   nat_grad_result)))
+        #     # Zip the parameter values to the parameter objects
+        #     param_dict = dict(zip(self._parameters, self._parameter_values))
+        #     if self._snapshot_dir:
+        #         # If initial parameter values were set compute the fidelity, the error between the
+        #         # prepared and the target state, the energy w.r.t. the target state and the energy
+        #         # w.r.t. the prepared state
+        #         f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
+        #                                                                            param_dict)
+        #         #
+        #         # error_bound_en_diff += dt * (et + np.sqrt(np.linalg.norm(trained_energy -
+        #         #                                                          true_energy)))
+        #         #
+        #         # print('Error bound based on exact energy difference', np.round(error_bound_en_diff,
+        #         #                                                                6), 'after',
+        #         #       (j + 1) * dt)
+        #         # print('Error bound based on ||H||_2 and integration', np.round(error_bound_l2, 6),
+        #         #       'after', (j + 1) * dt)
+        #
+        # # Store the current status
+        # if self._snapshot_dir:
+        #     # error_bound_h_squared = 0
+        #     # error_bound_trained_energy = 0
+        #     error_bound_stddev = 0
+        #     for l, grad_error in enumerate(et_list):
+        #         # error_bound_h_squared += grad_error * dt * np.prod(h_squared_factor_list[l:])
+        #         # error_bound_trained_energy += grad_error * dt * \
+        #         #                               np.prod(trained_energy_factor_list[l:])
+        #         error_bound_stddev += grad_error * dt * np.prod(stddev_factor_list[l:])
+        #         # print('Error bound based on sqrt(<H^2>)', np.round(error_bound_h_squared, 6),
+        #         #       'after', (l + 1) * dt)
+        #         # print('Error bound based on <H>', np.round(error_bound_trained_energy, 6),
+        #         #       'after', (l + 1) * dt)
+        #         print('Error bound based on stdev', np.round(error_bound_stddev, 6),
+        #               'after', (l + 1) * dt)
+        #
+        #     self._store_params((j+1) * dt, self._parameter_values, error_bound_stddev, None,
+        #                        None, f, true_error, None,
+        #                        None, true_energy,
+        #                        trained_energy, h_norm, None, None, None)
 
         # Return variationally evolved operator
-        return self._state.assign_parameters(dict(zip(self._parameters, self._ode_solver.y)))
+        # return self._state.assign_parameters(param_dict)
 
     def _error_t(self,
          ng_res: Union[List, np.ndarray],
          grad_res: Union[List, np.ndarray],
-         metric: Union[List, np.ndarray]) -> float:
+         metric: Union[List, np.ndarray]) -> Tuple[
+         int, Union[np.ndarray, int, float, complex], Union[np.ndarray, complex, float], Union[
+            Union[complex, float], Any], Union[np.ndarray, int, float, complex]]:
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
@@ -256,7 +255,8 @@ class VarQITE(VarQTE):
         if eps_squared < 0:
             if np.abs(eps_squared) < 1e-10:
                 eps_squared = 0
-        return eps_squared, h_squared,  exp, dtdt_state, regrad2 * 0.5
+
+        return eps_squared, h_squared, dtdt_state, regrad2 * 0.5, exp
 
     def _grad_error_t(self,
                       ng_res: Union[List, np.ndarray],
@@ -281,37 +281,6 @@ class VarQITE(VarQTE):
         grad_eps_squared += grad_res
 
         return grad_eps_squared
-
-    # def _distance_energy(self,
-    #                      time: Union[float, complex],
-    #                      trained_param_dict: Dict)-> (float, float, float):
-    #     """
-    #     Evaluate the fidelity to the target state, the energy w.r.t. the target state and
-    #     the energy w.r.t. the trained state for a given time and the current parameter set
-    #     Args:
-    #         time: current evolution time
-    #         trained_param_dict: dictionary which matches the operator parameters to the current
-    #         values of parameters for the given time
-    #     Returns: fidelity to the target state, the energy w.r.t. the target state and
-    #     the energy w.r.t. the trained state
-    #     """
-    #
-    #     trained_state = self._state.assign_parameters(trained_param_dict)
-    #     target_state = self._exact_state(time)
-    #     trained_state = trained_state.eval().primitive.data
-    #     # Fidelity
-    #     f = state_fidelity(target_state, trained_state)
-    #     # Actual error
-    #     act_err = np.linalg.norm(target_state - trained_state, ord=2)
-    #     # Target Energy
-    #     act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
-    #     print('actual energy', act_en)
-    #     # Trained Energy
-    #     trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
-    #     print('trained_en', trained_en)
-    #     print('Fidelity', f)
-    #     print('True error', act_err)
-    #     return f, act_err, np.real(act_en), np.real(trained_en)
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:
