@@ -162,17 +162,20 @@ class ScalarOp(LinearOp):
         ret._op_shape = self._op_shape.tensor(other._op_shape)
         return ret
 
-    def expand(self, other):
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
-
-        if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
-            ret._coeff = self.coeff * other.coeff
-            ret._op_shape = self._op_shape.expand(other._op_shape)
-            return ret
-
+    @dispatch
+    def expand(self, other: BaseOperator):
         return other.tensor(self)
+
+    @dispatch
+    def expand(self, other: plum.Self):
+        ret = copy.copy(self)
+        ret._coeff = self.coeff * other.coeff
+        ret._op_shape = self._op_shape.expand(other._op_shape)
+        return ret
+
+    @dispatch
+    def expand(self, other): return self.expand(Operator(other))
+
 
     def _add(self, other, qargs=None):
         """Return the operator self + other.
@@ -221,7 +224,10 @@ class ScalarOp(LinearOp):
         # final dimensions.
         return other.reshape(self.input_dims(), self.output_dims())._add(self)
 
-    def _multiply(self, other):
+    # This will throw a method lookup error if other is not a Number.
+    # This may be preferrable/easier than the isinstance check in the code
+    @dispatch
+    def _multiply(self, other: Number):
         """Return the ScalarOp other * self.
 
         Args:
@@ -233,8 +239,8 @@ class ScalarOp(LinearOp):
         Raises:
             QiskitError: if other is not a valid complex number.
         """
-        if not isinstance(other, Number):
-            raise QiskitError("other ({}) is not a number".format(other))
+        # if not isinstance(other, Number):
+        #     raise QiskitError("other ({}) is not a number".format(other))
         ret = self.copy()
         ret._coeff = other * self.coeff
         return ret
