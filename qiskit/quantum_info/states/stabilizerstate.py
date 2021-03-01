@@ -14,19 +14,19 @@
 Stabilizer state class.
 """
 
-import copy
-import re
-from numbers import Number
+# import copy
+# import re
+# from numbers import Number
 
-import numpy as np
+# import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.predicates import matrix_equal
+# from qiskit.quantum_info.operators.operator import Operator
+# from qiskit.quantum_info.operators.op_shape import OpShape
+# from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
 
 
@@ -70,7 +70,7 @@ class StabilizerState(QuantumState):
         super().__init__()
 
     def __eq__(self, other):
-        return (self._data == other._data)
+        return self._data == other._data
 
     def __repr__(self):
         return 'StabilizerState({})'.format(repr(self._data))
@@ -83,6 +83,24 @@ class StabilizerState(QuantumState):
     def is_valid(self, atol=None, rtol=None):
         """Return True if a valid StabilizerState."""
         return Clifford.is_unitary(self.data)
+
+    def _add(self, other):
+        raise NotImplementedError(
+            "{} does not support addition".format(type(self)))
+
+    def _multiply(self, other):
+        raise NotImplementedError(
+            "{} does not support scalar multiplication".format(type(self)))
+
+    def trace(self):
+        """Return the trace of the stabilizer state as a density matrix,
+        which equals to 1, since it is always a pure state."""
+        return 1
+
+    def purity(self):
+        """Return the purity of the quantum state,
+        which equals to 1, since it is always a pure state."""
+        return 1
 
     def to_operator(self):
         """Convert state to matrix operator class"""

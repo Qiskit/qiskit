@@ -15,15 +15,15 @@
 
 import unittest
 from test import combine
+import logging
 from ddt import ddt
 
-import logging
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit import transpile
+# from qiskit import QiskitError
+# from qiskit import QuantumRegister, QuantumCircuit
+# from qiskit import transpile
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState
