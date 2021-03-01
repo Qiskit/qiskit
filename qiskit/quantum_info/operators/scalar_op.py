@@ -177,7 +177,13 @@ class ScalarOp(LinearOp):
     def expand(self, other): return self.expand(Operator(other))
 
 
-    def _add(self, other, qargs=None):
+    @dispatch
+    def _add(self, other):
+        qargs = getattr(other, 'qargs', None)
+        return self._add(other, qargs)
+
+    @dispatch
+    def _add(self, other, qargs):
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -195,8 +201,8 @@ class ScalarOp(LinearOp):
         Raises:
             QiskitError: if other has incompatible dimensions.
         """
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+        # if qargs is None:
+        #     qargs = getattr(other, 'qargs', None)
 
         if not isinstance(other, BaseOperator):
             other = Operator(other)
