@@ -24,8 +24,6 @@ from ..operator_base import OperatorBase
 from .list_op import ListOp
 
 
-# pylint: disable=invalid-name
-
 class ComposedOp(ListOp):
     """ A class for lazily representing compositions of Operators. Often Operators cannot be
     efficiently composed with one another, but may be manipulated further so that they can be
@@ -70,7 +68,7 @@ class ComposedOp(ListOp):
         Raises:
             OpflowError: for operators where a single underlying circuit can not be obtained.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..primitive_ops.primitive_op import PrimitiveOp
         circuit_op = self.to_circuit_op()
@@ -111,7 +109,7 @@ class ComposedOp(ListOp):
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
 
         def tree_recursive_eval(r, l_arg):

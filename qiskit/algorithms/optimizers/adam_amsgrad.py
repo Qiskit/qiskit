@@ -14,15 +14,12 @@
 """The Adam and AMSGRAD optimizers."""
 
 from typing import Optional, Callable, Tuple, List
-import logging
 import os
 
 import csv
 import numpy as np
 from qiskit.utils import algorithm_globals
 from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 

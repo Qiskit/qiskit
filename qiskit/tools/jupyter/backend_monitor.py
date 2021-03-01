@@ -9,23 +9,21 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """A module for monitoring backends."""
 
 import types
 import math
 import datetime
-from IPython.display import display                     # pylint: disable=import-error
-import matplotlib.pyplot as plt                         # pylint: disable=import-error
-from matplotlib.patches import Circle                   # pylint: disable=import-error
-import ipywidgets as widgets                            # pylint: disable=import-error
+from IPython.display import display
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+import ipywidgets as widgets
 from qiskit.exceptions import QiskitError
 from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
 from qiskit.test.mock import FakeBackend
 
 try:
-    # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
     pass
@@ -107,9 +105,8 @@ def _backend_monitor(backend):
         tabs.set_title(i, tab_contents[i])
 
     # Make backend accessible to tabs widget
-    tabs._backend = backend  # pylint: disable=attribute-defined-outside-init
+    tabs._backend = backend
     tabs._did_jobs = False
-    # pylint: disable=attribute-defined-outside-init
     tabs._update = types.MethodType(_load_jobs_data, tabs)
 
     tabs.observe(tabs._update, names='selected_index')
@@ -567,7 +564,7 @@ def plot_job_history(jobs, interval='year'):
         labels = ['{}-{}'.format(str(bins[b].year)[2:], MONTH_NAMES[bins[b].month]) for b in nz_idx]
     else:
         labels = ['{}-{}'.format(MONTH_NAMES[bins[b].month], bins[b].day) for b in nz_idx]
-    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))  # pylint: disable=invalid-name
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))
     ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
            rotatelabels=True, counterclock=False, radius=1)
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))

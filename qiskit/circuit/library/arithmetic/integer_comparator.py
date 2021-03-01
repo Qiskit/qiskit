@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Integer Comparator."""
 
@@ -135,7 +134,6 @@ class IntegerComparator(BlueprintCircuit):
                 q_compare = QuantumRegister(1, name='compare')
 
                 self.qregs = [qr_state, q_compare]
-                self._qubits = qr_state[:] + q_compare[:]
 
                 # add ancillas is required
                 num_ancillas = num_state_qubits - 1
