@@ -153,7 +153,8 @@ class CircuitSampler(ConverterBase):
             OpflowError: if extracted circuits are empty.
         """
         # check if the operator should be cached
-        op_id = id(operator)
+        op_id = hash(operator)
+        # op_id = id(operator)
         if op_id not in self._cached_ops.keys():
             # delete cache if we only want to cache one operator
             if self._caching == 'last':

@@ -37,6 +37,9 @@ class OperatorBase(ABC):
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
 
+    def __init__(self) -> None:
+        self._hash = None
+
     @property
     @abstractmethod
     def num_qubits(self) -> int:
@@ -135,6 +138,11 @@ class OperatorBase(ABC):
         if indented_str.endswith("\n{}".format(indentation)):
             indented_str = indented_str[:-len(indentation)]
         return indented_str
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(str(self))
+        return self._hash
 
     # Addition / Subtraction
 
