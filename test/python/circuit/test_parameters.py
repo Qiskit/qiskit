@@ -712,20 +712,25 @@ class TestParameters(QiskitTestCase):
             for param in vec:
                 self.assertIn(param, qc_aer.parameters)
 
-    def test_parameter_equality_through_serialization(self):
+    @data('single', 'vector')
+    def test_parameter_equality_through_serialization(self, ptype):
         """Verify parameters maintain their equality after serialization."""
 
-        x = Parameter('x')
-        x1 = Parameter('x')
+        if ptype == 'single':
+            x1 = Parameter('x')
+            x2 = Parameter('x')
+        else:
+            x1 = ParameterVector('x', 2)[0]
+            x2 = ParameterVector('x', 2)[0]
 
-        x_p = pickle.loads(pickle.dumps(x))
         x1_p = pickle.loads(pickle.dumps(x1))
+        x2_p = pickle.loads(pickle.dumps(x2))
 
-        self.assertEqual(x, x_p)
         self.assertEqual(x1, x1_p)
+        self.assertEqual(x2, x2_p)
 
-        self.assertNotEqual(x, x1_p)
-        self.assertNotEqual(x1, x_p)
+        self.assertNotEqual(x1, x2_p)
+        self.assertNotEqual(x2, x1_p)
 
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
