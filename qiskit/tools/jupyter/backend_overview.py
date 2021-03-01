@@ -262,7 +262,7 @@ def update_backend_info(self, interval=60):
             started = True
             current_interval = 0
         time.sleep(1)
-        all_dead = not any([wid._is_alive for wid in self.children])
+        all_dead = not any(wid._is_alive for wid in self.children)
         current_interval += 1
 
 

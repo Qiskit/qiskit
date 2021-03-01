@@ -431,8 +431,8 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
     if plotter == types.Plotter.Mpl2D.value:
         try:
             from qiskit.visualization.pulse_v2.plotters import Mpl2DPlotter
-        except ImportError:
-            raise ImportError('Must have Matplotlib installed.')
+        except ImportError as ex:
+            raise ImportError('Must have Matplotlib installed.') from ex
 
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
