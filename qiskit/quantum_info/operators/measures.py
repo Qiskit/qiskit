@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions for operators.
 """
@@ -194,11 +193,11 @@ def average_gate_fidelity(channel,
     if target is not None:
         try:
             target = Operator(target)
-        except QiskitError:
+        except QiskitError as ex:
             raise QiskitError(
                 'Target channel is not a unitary channel. To compare '
                 'two non-unitary channels use the '
-                '`qiskit.quantum_info.process_fidelity` function instead.')
+                '`qiskit.quantum_info.process_fidelity` function instead.') from ex
     dim, _ = channel.dim
     f_pro = process_fidelity(channel,
                              target=target,

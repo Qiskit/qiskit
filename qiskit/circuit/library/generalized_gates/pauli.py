@@ -67,7 +67,7 @@ class PauliGate(Gate):
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):
-            if all([c in ["I", "X", "Y", "Z"] for c in parameter]):
+            if all(c in ["I", "X", "Y", "Z"] for c in parameter):
                 return parameter
             else:
                 raise CircuitError("Parameter string {0} should contain only "

@@ -37,7 +37,7 @@ class ExperimentResultData:
                 memory enabled
             statevector (list or numpy.array): A list or numpy array of the
                 statevector result
-            unitary (list or numpy.array): A list or numpy arrray of the
+            unitary (list or numpy.array): A list or numpy array of the
                 unitary result
             kwargs (any): additional data key-value pairs.
         """
@@ -169,8 +169,8 @@ class ExperimentResult:
     def __getattr__(self, name):
         try:
             return self._metadata[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResult

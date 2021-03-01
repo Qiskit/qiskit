@@ -64,7 +64,7 @@ class ExpectationFactory:
         """
         backend_to_check = backend.backend if isinstance(backend, QuantumInstance) else backend
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         primitives = operator.primitive_strings()
         if primitives in ({'Pauli'}, {'SparsePauliOp'}):
 
@@ -79,7 +79,7 @@ class ExpectationFactory:
                     if operator.num_qubits <= 16:
                         backend_to_check = BasicAer.get_backend('statevector_simulator')
                     else:
-                        logging.warning(
+                        logger.warning(
                             '%d qubits is a very large expectation value. '
                             'Consider installing Aer to use '
                             'Aer\'s fast expectation, which will perform better here. We\'ll use '
@@ -101,7 +101,7 @@ class ExpectationFactory:
             # Matrix operator and compute using matmul
             elif is_statevector_backend(backend_to_check):
                 if operator.num_qubits >= 16:
-                    logging.warning(
+                    logger.warning(
                         'Note: Using a statevector_simulator with %d qubits can be very expensive. '
                         'Consider using the Aer qasm_simulator instead to take advantage of Aer\'s '
                         'built-in fast Pauli Expectation', operator.num_qubits)

@@ -24,7 +24,7 @@ from .qfi_base import QFIBase
 class QFI(QFIBase):
     r"""Compute the Quantum Fisher Information (QFI).
 
-    Computes the QFI given a pure, parametrized quantum state, where QFI is:
+    Computes the QFI given a pure, parameterized quantum state, where QFI is:
 
     .. math::
 

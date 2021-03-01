@@ -27,12 +27,12 @@ from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _log_schedule_time(start_time, end_time):
     log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
+    logger.info(log_msg)
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
