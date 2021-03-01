@@ -248,7 +248,7 @@ class VarQTE(EvolutionBase):
                     ||e_t||^2 for given for dω/dt
 
                 """
-                et_squared = self._error_t(dt_param_values, grad_res,
+                et_squared = self._error_t(params, dt_param_values, grad_res,
                                            metric_res)[0]
                 print('grad error', et_squared)
                 return et_squared
@@ -296,8 +296,9 @@ class VarQTE(EvolutionBase):
                 # Get the residual for McLachlan's Variational Principle
                 resid = np.linalg.norm(np.matmul(metric_res, dt_params) + 0.5 * grad_res)
                 # Get the error for the current step
-                et, h_squared, dtdt_state, reimgrad = self._error_t(dt_params, grad_res,
+                et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
                                                                     metric_res)[:4]
+                print('returned et', et)
                 try:
                     if et < 0 and np.abs(et) > 1e-4:
                         raise Warning('Non-neglectible negative et observed')
@@ -305,9 +306,11 @@ class VarQTE(EvolutionBase):
                         et = np.sqrt(np.real(et))
                 except Exception:
                     et = 'error'
+                print('after try except', et)
+
 
                 f, true_error, true_energy, trained_energy = self._distance_energy(t, param_dict)
-                # self._ode_solver_store(params, t)
+
                 self._store_params(t, params, None, None, et,
                                    resid, f, true_error, None,
                                    None, true_energy,
@@ -501,14 +504,15 @@ class VarQTE(EvolutionBase):
 
         """
         if self._backend is not None:
-            grad_res = self._grad_circ_sampler.convert(self._grad, params=param_dict).eval()[0]
+            grad_res = np.array(self._grad_circ_sampler.convert(self._grad,
+                                                                params=param_dict).eval())[0]
             # Get the QFI/4
-            metric_res = self._metric_circ_sampler.convert(self._metric,
-                                                           params=param_dict).eval()[0] * 0.25
+            metric_res = np.array(self._metric_circ_sampler.convert(self._metric,
+                                                           params=param_dict).eval()[0]) * 0.25
         else:
-            grad_res = self._grad.assign_parameters(param_dict).eval()
+            grad_res = np.array(self._grad.assign_parameters(param_dict).eval())
             # Get the QFI/4
-            metric_res = self._metric.assign_parameters(param_dict).eval() * 0.25
+            metric_res = np.array(self._metric.assign_parameters(param_dict).eval()) * 0.25
 
         w, v = np.linalg.eig(metric_res)
 

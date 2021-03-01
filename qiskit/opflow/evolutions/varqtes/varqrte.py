@@ -176,6 +176,7 @@ class VarQRTE(VarQTE):
         # return self._state.assign_parameters(param_dict)
 
     def _error_t(self,
+                 param_values: Union[List, np.ndarray],
                  ng_res: Union[List, np.ndarray],
                  grad_res: Union[List, np.ndarray],
                  metric: Union[List, np.ndarray]) -> [float]:
@@ -194,14 +195,14 @@ class VarQRTE(VarQTE):
         """
         eps_squared = 0
 
+        param_dict = dict(zip(self._parameters, param_values))
+
         # ⟨ψ(ω)|H^2|ψ(ω)〉
         if self._backend is not None:
             h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
-                                                             params=dict(zip(self._parameters,
-                                                             self._parameter_values)))[0]
+                                                             params=param_dict)[0]
         else:
-            h_squared = self._h_squared.assign_parameters(dict(zip(self._parameters,
-                                                             self._parameter_values)))
+            h_squared = self._h_squared.assign_parameters(param_dict)
         h_squared = np.real(h_squared.eval())
 
         eps_squared += h_squared

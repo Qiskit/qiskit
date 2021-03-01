@@ -201,6 +201,7 @@ class VarQITE(VarQTE):
         # return self._state.assign_parameters(param_dict)
 
     def _error_t(self,
+                 param_values: Union[List, np.ndarray],
          ng_res: Union[List, np.ndarray],
          grad_res: Union[List, np.ndarray],
          metric: Union[List, np.ndarray]) -> Tuple[
@@ -219,27 +220,22 @@ class VarQITE(VarQTE):
             square root of the l2 norm of the error
         """
         eps_squared = 0
+        param_dict = dict(zip(self._parameters, param_values))
 
         # ⟨ψ(ω)|H^2|ψ(ω)〉Hermitian
         if self._backend is not None:
             h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
-                                                             params=dict(zip(self._parameters,
-                                                                             self._parameter_values)
-                                                                         ))[0]
+                                                             params=param_dict)[0]
         else:
-            h_squared = self._h_squared.assign_parameters(dict(zip(self._parameters,
-                                                                   self._parameter_values)))
+            h_squared = self._h_squared.assign_parameters(param_dict)
         h_squared = np.real(h_squared.eval())
 
         # ⟨ψ(ω) | H | ψ(ω)〉^2 Hermitian
         if self._backend is not None:
             exp = self._operator_circ_sampler.convert(self._operator_eval,
-                                                             params=dict(zip(self._parameters,
-                                                                             self._parameter_values)
-                                                                         ))[0]
+                                                      params=param_dict)[0]
         else:
-            exp = self._operator_eval.assign_parameters(dict(zip(self._parameters,
-                                                                   self._parameter_values)))
+            exp = self._operator_eval.assign_parameters(param_dict)
         exp = np.real(exp.eval())
         eps_squared += h_squared
         eps_squared -= exp ** 2
@@ -253,7 +249,7 @@ class VarQITE(VarQTE):
         regrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared += regrad2
         if eps_squared < 0:
-            if np.abs(eps_squared) < 1e-10:
+            if np.abs(eps_squared) < 1e-6:
                 eps_squared = 0
 
         return eps_squared, h_squared, dtdt_state, regrad2 * 0.5, exp
