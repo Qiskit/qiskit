@@ -182,27 +182,7 @@ class CircuitSampler(ConverterBase):
             self._transpile_before_bind = self._cached_ops[op_id].transpile_before_bind
             self._transpiled_circ_templates = self._cached_ops[op_id].transpiled_circ_templates
 
-        # if self._last_op is None or id(operator) != id(self._last_op):
-        #     # Clear caches
-        #     self._last_op = operator
-        #     self._reduced_op_cache = None
-        #     self._circuit_ops_cache = None
-        #     self._transpiled_circ_cache = None
-        #     self._transpile_before_bind = True
-
-        # if not self._reduced_op_cache:
-        #     operator_dicts_replaced = operator.to_circuit_op()
-        #     self._reduced_op_cache = operator_dicts_replaced.reduce()
-
-        # if not self._circuit_ops_cache:
-        #     self._circuit_ops_cache = {}
-        #     self._extract_circuitstatefns(self._reduced_op_cache)
-        #     if not self._circuit_ops_cache:
-        #         raise OpflowError(
-        #             'Circuits are empty. '
-        #             'Check that the operator is an instance of CircuitStateFn or its ListOp.'
-        #         )
-
+        return_as_list = False
         if params is not None and len(params.keys()) > 0:
             p_0 = list(params.values())[0]  # type: ignore
             if isinstance(p_0, (list, np.ndarray)):
@@ -210,6 +190,7 @@ class CircuitSampler(ConverterBase):
                 param_bindings = [{param: value_list[i]  # type: ignore
                                    for (param, value_list) in params.items()}
                                   for i in range(num_parameterizations)]
+                return_as_list = True
             else:
                 num_parameterizations = 1
                 param_bindings = [params]  # type: ignore
@@ -243,7 +224,7 @@ class CircuitSampler(ConverterBase):
             op_cache.transpiled_circ_templates = self._transpiled_circ_templates
             self._cached_ops[op_id] = op_cache
 
-        if params and num_parameterizations > 1:
+        if return_as_list:
             return ListOp([replace_circuits_with_dicts(self._reduced_op_cache, param_index=i)
                            for i in range(num_parameterizations)])
         else:
