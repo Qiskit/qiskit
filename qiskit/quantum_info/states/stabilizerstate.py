@@ -150,7 +150,7 @@ class StabilizerState(QuantumState):
         """Evolve a stabilizer state by a Clifford operator.
 
         Args:
-            other (Clifford or QuantumCircuit or Instruction): The Clifford operator to evolve by.
+            other (Clifford or QuantumCircuit or qiskit.circuit.Instruction): The Clifford operator to evolve by.
             qargs (list): a list of stabilizer subsystem positions to apply the operator on.
 
         Returns:
