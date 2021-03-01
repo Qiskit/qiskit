@@ -106,13 +106,10 @@ class PhaseEstimationScale():
         Returns:
             Eigenvalues computed from phases.
         """
-        w = 2 * self._bound
         if isinstance(phases, list):
-            phases = [(x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient)
-                      for x in phases]
+            phases = [self.scale_phase(x, id_coefficient) for x in phases]
         else:
-            phases = {((x * w) + id_coefficient if x <= 0.5 else (((x - 1) * w) + id_coefficient)):
-                      phases[x] for x in phases.keys()}
+            phases = {self.scale_phase(x, id_coefficient): phases[x] for x in phases.keys()}
 
         return phases
 
