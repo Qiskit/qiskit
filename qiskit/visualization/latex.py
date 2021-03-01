@@ -38,7 +38,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale,
+    def __init__(self, qubits, clbits, ops, scale, reverse_bits=False,
                  plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
@@ -48,6 +48,7 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
+            reverse_bits: when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
@@ -102,6 +103,7 @@ class QCircuitImage:
         self.has_target = False
         self.layout = layout
         self.initial_state = initial_state
+        self.reverse_bits = reverse_bits
         self.plot_barriers = plot_barriers
 
         #################################
@@ -617,7 +619,9 @@ class QCircuitImage:
             # instead of the register wire
             cwire = self.img_regs[if_reg[cl_reg.index]]
 
-        if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])[::-1]
+        if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])
+        if not self.reverse_bits:
+            if_value = if_value[::-1]
         temp = wire_list + [cwire]
         temp.sort(key=int)
         bottom = temp[len(wire_list) - 1]
