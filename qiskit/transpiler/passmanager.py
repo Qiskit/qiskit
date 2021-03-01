@@ -23,9 +23,13 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
 
+from plum import Dispatcher, Referentiable, Self, dispatch
+import plum
 
-class PassManager:
+class PassManager(metaclass=Referentiable):
     """Manager for a set of Passes and their scheduling during transpilation."""
+
+    dispatch = Dispatcher(in_class=Self)
 
     def __init__(
             self,
@@ -77,7 +81,7 @@ class PassManager:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
 
-        passes = PassManager._normalize_passes(passes)
+        passes = _normalize_passes(passes)
         self._pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
 
     def replace(
@@ -107,7 +111,7 @@ class PassManager:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
 
-        passes = PassManager._normalize_passes(passes)
+        passes = _normalize_passes(passes)
 
         try:
             self._pass_sets[index] = {'passes': passes,
@@ -157,18 +161,6 @@ class PassManager:
             except TranspilerError:
                 raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
                                                                               other.__class__))
-
-    @staticmethod
-    def _normalize_passes(passes: Union[BasePass, List[BasePass], FlowController])\
-            -> List[BasePass]:
-        if isinstance(passes, FlowController):
-            return passes
-        if isinstance(passes, BasePass):
-            passes = [passes]
-        for pass_ in passes:
-            if not isinstance(pass_, BasePass):
-                raise TranspilerError('%s is not a pass instance' % pass_.__class__)
-        return passes
 
     def run(
             self,
@@ -316,3 +308,18 @@ class PassManager:
                 item['flow_controllers'] = {}
             ret.append(item)
         return ret
+
+## I was unable to make this work using staticmethod and dispatch at the same time.
+## The wrong method was chosen.
+
+@dispatch
+def _normalize_passes(pass_: BasePass):
+    return [pass_]
+
+@dispatch
+def _normalize_passes(x: {FlowController, plum.List(BasePass)}): return x
+
+# Alternatively, omit this method, in which case a NotFoundLookupError is raised.
+@dispatch
+def _normalize_passes(passes):
+    raise TranspilerError('Expecting a `BasePass` or list thereof')

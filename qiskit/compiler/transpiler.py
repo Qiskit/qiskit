@@ -16,6 +16,9 @@ import warnings
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 
+import plum
+from plum import dispatch
+
 from qiskit import user_config
 from qiskit.circuit import Delay
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -38,6 +41,8 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
+
+NoneType = type(None)
 
 logger = logging.getLogger(__name__)
 
@@ -488,17 +493,20 @@ def _create_faulty_qubits_map(backend):
                     faulty_qubits_map[qubit] = None
     return faulty_qubits_map
 
-
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
         if getattr(backend, 'configuration', None):
             basis_gates = getattr(backend.configuration(), 'basis_gates', None)
-    # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
-    if basis_gates is None or (isinstance(basis_gates, list) and
-                               all(isinstance(i, str) for i in basis_gates)):
-        basis_gates = [basis_gates] * len(circuits)
+    return _parse_basis_gates_helper(basis_gates, backend, circuits)
 
+@dispatch
+def _parse_basis_gates_helper(basis_gates: {NoneType, plum.List(str)}, backend, circuits):
+    basis_gates = [basis_gates] * len(circuits)
+    return basis_gates
+
+@dispatch
+def _parse_basis_gates_helper(basis_gates, backend, circuits):
     return basis_gates
 
 
@@ -563,15 +571,30 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
     return backend_properties
 
 
-def _parse_backend_num_qubits(backend, num_circuits):
-    if backend is None:
-        return [None] * num_circuits
-    if not isinstance(backend, list):
-        return [backend.configuration().n_qubits] * num_circuits
+@dispatch
+def _parse_backend_num_qubits(backend: NoneType, num_circuits):
+    return [None] * num_circuits
+
+@dispatch
+def _parse_backend_num_qubits(backend: list, num_circuits):
     backend_num_qubits = []
     for a_backend in backend:
         backend_num_qubits.append(a_backend.configuration().n_qubits)
     return backend_num_qubits
+
+@dispatch
+def _parse_backend_num_qubits(backend, num_circuits):
+    return [backend.configuration().n_qubits] * num_circuits
+
+# def _parse_backend_num_qubits(backend, num_circuits):
+#     if backend is None:
+#         return [None] * num_circuits
+#     if not isinstance(backend, list):
+#         return [backend.configuration().n_qubits] * num_circuits
+#     backend_num_qubits = []
+#     for a_backend in backend:
+#         backend_num_qubits.append(a_backend.configuration().n_qubits)
+#     return backend_num_qubits
 
 
 def _parse_initial_layout(initial_layout, circuits):
@@ -688,53 +711,60 @@ def _parse_optimization_level(optimization_level, num_circuits):
     return optimization_level
 
 
-def _parse_pass_manager(pass_manager, num_circuits):
-    if not isinstance(pass_manager, list):
-        pass_manager = [pass_manager] * num_circuits
-    return pass_manager
+@dispatch
+def _parse_pass_manager(pass_manager: list, num_circuits): return pass_manager
 
+@dispatch
+def _parse_pass_manager(pass_manager, num_circuits):
+    return [pass_manager] * num_circuits
 
 def _parse_callback(callback, num_circuits):
     if not isinstance(callback, list):
         callback = [callback] * num_circuits
     return callback
 
+@dispatch
+def _parse_faulty_qubits_map(backend: NoneType, num_circuits):
+    return [None] * num_circuits
 
-def _parse_faulty_qubits_map(backend, num_circuits):
-    if backend is None:
-        return [None] * num_circuits
-    if not isinstance(backend, list):
-        return [_create_faulty_qubits_map(backend)] * num_circuits
+@dispatch
+def _parse_faulty_qubits_map(backend: list, num_circuits):
     faulty_qubits_map = []
     for a_backend in backend:
         faulty_qubits_map.append(_create_faulty_qubits_map(a_backend))
     return faulty_qubits_map
 
+@dispatch
+def _parse_faulty_qubits_map(backend, num_circuits):
+    return [_create_faulty_qubits_map(backend)] * num_circuits
 
-def _parse_output_name(output_name, circuits):
-    # naming and returning circuits
-    # output_name could be either a string or a list
-    if output_name is not None:
-        if isinstance(output_name, str):
-            # single circuit
-            if len(circuits) == 1:
-                return [output_name]
-            # multiple circuits
-            else:
-                raise TranspilerError("Expected a list object of length equal " +
-                                      "to that of the number of circuits " +
-                                      "being transpiled")
-        elif isinstance(output_name, list):
-            if len(circuits) == len(output_name) and \
-                    all(isinstance(name, str) for name in output_name):
-                return output_name
-            else:
-                raise TranspilerError("The length of output_name list "
-                                      "must be equal to the number of "
-                                      "transpiled circuits and the output_name "
-                                      "list should be strings.")
-        else:
-            raise TranspilerError("The parameter output_name should be a string or a"
-                                  "list of strings: %s was used." % type(output_name))
+
+@dispatch
+def _parse_output_name(output_name: NoneType, circuits):
+    return [circuit.name for circuit in circuits]
+
+@dispatch
+def _parse_output_name(output_name: str, circuits):
+    # single circuit
+    if len(circuits) == 1:
+        return [output_name]
+    # multiple circuits
     else:
-        return [circuit.name for circuit in circuits]
+        raise TranspilerError("Expected a list object of length equal " +
+                              "to that of the number of circuits " +
+                              "being transpiled")
+
+@dispatch
+def _parse_output_name(output_name: plum.List(str), circuits):
+    if len(circuits) == len(output_name):
+        return output_name
+    else:
+        raise TranspilerError("The length of output_name list "
+                              "must be equal to the number of "
+                              "transpiled circuits and the output_name "
+                              "list should be strings.")
+
+@dispatch
+def _parse_output_name(output_name, circuits):
+    raise TranspilerError("The parameter output_name should be a string or a"
+                          "list of strings: %s was used." % type(output_name))

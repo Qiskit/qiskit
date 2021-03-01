@@ -22,9 +22,12 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
 
+from plum import Referentiable, Self, Dispatcher
 
-class Layout():
+class Layout(metaclass=Referentiable):
     """Two-ways dict to represent a Layout."""
+
+    dispatch = Dispatcher(in_class=Self)
 
     def __init__(self, input_dict=None):
         """construct a Layout from a bijective dictionary, mapping
@@ -115,16 +118,31 @@ class Layout():
         if virtual is not None:
             self._v2p[virtual] = physical
 
+    @dispatch
+    def __delitem__(self, key: int):
+        del self._p2v[key]
+        del self._v2p[self._p2v[key]]
+
+    @dispatch
+    def __delitem__(self, key: Qubit):
+        del self._p2v[key]
+        del self._v2p[self._p2v[key]]
+
+    @dispatch
     def __delitem__(self, key):
-        if isinstance(key, int):
-            del self._p2v[key]
-            del self._v2p[self._p2v[key]]
-        elif isinstance(key, Qubit):
-            del self._v2p[key]
-            del self._p2v[self._v2p[key]]
-        else:
-            raise LayoutError('The key to remove should be of the form'
-                              ' Qubit or integer) and %s was provided' % (type(key),))
+        raise LayoutError('The key to remove should be of the form'
+                          ' Qubit or integer) and %s was provided' % (type(key),))
+
+    # def __delitem__(self, key):
+    #     if isinstance(key, int):
+    #         del self._p2v[key]
+    #         del self._v2p[self._p2v[key]]
+    #     elif isinstance(key, Qubit):
+    #         del self._v2p[key]
+    #         del self._p2v[self._v2p[key]]
+    #     else:
+    #         raise LayoutError('The key to remove should be of the form'
+    #                           ' Qubit or integer) and %s was provided' % (type(key),))
 
     def __len__(self):
         return len(self._p2v)

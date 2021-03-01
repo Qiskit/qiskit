@@ -176,14 +176,21 @@ class ScalarOp(LinearOp):
     @dispatch
     def expand(self, other): return self.expand(Operator(other))
 
-
     @dispatch
     def _add(self, other):
         qargs = getattr(other, 'qargs', None)
         return self._add(other, qargs)
 
     @dispatch
-    def _add(self, other, qargs):
+    def _add(self, other, qargs): return self._add(BaseOperator(other), qargs)
+
+    @dispatch
+    def _add(self, other: plum.Self, qargs):
+        self._op_shape._validate_add(other._op_shape, qargs) # tests pass without this line
+        return ScalarOp(self.input_dims(), coeff=self.coeff+other.coeff)
+
+    @dispatch
+    def _add(self, other: BaseOperator, qargs):
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -201,17 +208,7 @@ class ScalarOp(LinearOp):
         Raises:
             QiskitError: if other has incompatible dimensions.
         """
-        # if qargs is None:
-        #     qargs = getattr(other, 'qargs', None)
-
-        if not isinstance(other, BaseOperator):
-            other = Operator(other)
-
         self._op_shape._validate_add(other._op_shape, qargs)
-
-        # Next if we are adding two ScalarOps we return a ScalarOp
-        if isinstance(other, ScalarOp):
-            return ScalarOp(self.input_dims(), coeff=self.coeff+other.coeff)
 
         # If qargs are specified we have to pad the other BaseOperator
         # with identities on remaining subsystems. We do this by
