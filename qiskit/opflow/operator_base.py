@@ -13,6 +13,7 @@
 """ OperatorBase Class """
 
 from typing import Set, Union, Dict, Optional, List, cast, Tuple
+import itertools
 from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
@@ -37,8 +38,10 @@ class OperatorBase(ABC):
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
 
+    count = itertools.count()
+
     def __init__(self) -> None:
-        self._hash = None
+        self._instance_count = next(self.count)
 
     @property
     @abstractmethod
@@ -140,9 +143,7 @@ class OperatorBase(ABC):
         return indented_str
 
     def __hash__(self):
-        if self._hash is None:
-            self._hash = hash(str(self))
-        return self._hash
+        return self._instance_count
 
     # Addition / Subtraction
 
