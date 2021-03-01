@@ -114,7 +114,8 @@ class CheckDecompositions(QiskitTestCase):
         decomp_unitary = op.data
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance,
-                        "Unitary {}: Worst distance {}".format(target_unitary, maxdist))
+                        f"{decomp}\nactual fid: {decomp.actual_fidelity()}\n"
+                        f"Unitary {target_unitary}:\nWorst distance {maxdist}")
 
     def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
         """Check exact decomposition for a particular target"""
