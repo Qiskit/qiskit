@@ -244,6 +244,19 @@ class VarQRTE(VarQTE):
         # print('E_t squared', np.round(eps_squared, 4))
         return grad_eps_squared
 
+    def _get_error_bound(self,
+                         gradient_errors: List,
+                         time_steps: List,
+                         stddevs: List) -> float:
+
+        if not len(gradient_errors) == len(time_steps) + 1:
+            raise Warning('The number of the gradient errors is incompatible with the number of '
+                          'the time steps.')
+        e_bound = [0]
+        for j, dt in enumerate(time_steps):
+            e_bound.append(e_bound[j]+(gradient_errors[j]+gradient_errors[j+1]) * 0.5 * dt)
+        return e_bound
+
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:
         """

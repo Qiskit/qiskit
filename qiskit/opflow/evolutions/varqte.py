@@ -134,7 +134,7 @@ class VarQTE(EvolutionBase):
         self._metric = None
         self._grad = None
         # Current gradient error
-        self._et = 0
+        # self._et = 0
         self._error_based_ode = error_based_ode
 
         self._exact_euler_state = None
@@ -177,6 +177,49 @@ class VarQTE(EvolutionBase):
 
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def _get_error_bound(self,
+                     gradient_errors: List,
+                     time_steps: List,
+                     stddevs: List) -> List:
+        """
+
+        Raises: NotImplementedError
+
+        """
+        raise NotImplementedError
+
+    def error_bound(self,
+                    data_dir: str) -> List:
+        # Read data
+        # if time already in data skip
+        with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
+            fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
+                          'error_bound_factor',
+                          'error_grad', 'resid', 'fidelity', 'true_error',
+                          'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
+                          'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                          'variance', 'dtdt_trained', 're_im_grad']
+            reader = csv.DictReader(csv_file, fieldnames=fieldnames)
+            first = True
+            grad_errors = []
+            time = []
+            time_steps = []
+            stddevs = []
+            for line in reader:
+                if first:
+                    first = False
+                    continue
+                t_line = float(line['t'])
+                if t_line in time:
+                    continue
+                time.append(t_line)
+                grad_errors.append(float(line['error_grad']))
+                # Method is not used.
+                stddevs.append(np.sqrt(float(line['variance'])))
+        e_bound = self._get_error_bound(grad_errors, time_steps, stddevs)
+        return e_bound
 
     def _init_grad_objects(self):
         # Adapt coefficients for the real part for McLachlan with 0.5
@@ -280,7 +323,7 @@ class VarQTE(EvolutionBase):
             #                   method='Newton-CG', tol=1e-10)
             print('initial natural gradient result', nat_grad_result)
             print('final dt_omega', argmin.x)
-            self._et = argmin_fun(argmin.x)
+            # self._et = argmin_fun(argmin.x)
             return argmin.x, grad_res, metric_res
 
         # Use either the argument that minimizes the gradient error or the result from McLachlan's
@@ -342,9 +385,9 @@ class VarQTE(EvolutionBase):
                 self._ode_solver.step()
                 # if self._snapshot_dir is not None:
                 #     self._ode_solver_store(param_values, t_old)
-                if self._et is None:
-                    warnings.warn('Time evolution failed.')
-                    break
+                # if self._et is None:
+                #     warnings.warn('Time evolution failed.')
+                #     break
                 t_old = self._ode_solver.t
                 print('ode time', self._ode_solver.t)
                 param_values = self._ode_solver.y

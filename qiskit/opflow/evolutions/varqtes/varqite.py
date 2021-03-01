@@ -278,6 +278,28 @@ class VarQITE(VarQTE):
 
         return grad_eps_squared
 
+    def _get_error_bound(self,
+                         gradient_errors: List,
+                         time_steps: List,
+                         stddevs: List) -> List:
+
+        if not len(gradient_errors) == len(time_steps) + 1:
+            raise Warning('The number of the gradient errors is incompatible with the number of '
+                          'the time steps.')
+        gradient_error_factors = []
+        for j, dt in enumerate(time_steps):
+            stddev_factor = 0
+            for k in range(j, len(time_steps)):
+                stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
+            gradient_error_factors.append(stddev_factor)
+
+        e_bound = [0]
+        for j, dt in enumerate(time_steps):
+            e_bound.append(e_bound[j]+(gradient_errors[j]+gradient_errors[j+1]) * 0.5 * dt * \
+                      np.exp(2*gradient_error_factors[j]))
+        return e_bound
+
+
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:
         """
