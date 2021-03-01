@@ -243,7 +243,7 @@ class CircuitSampler(ConverterBase):
             op_cache.transpiled_circ_templates = self._transpiled_circ_templates
             self._cached_ops[op_id] = op_cache
 
-        if params:
+        if params and num_parameterizations > 1:
             return ListOp([replace_circuits_with_dicts(self._reduced_op_cache, param_index=i)
                            for i in range(num_parameterizations)])
         else:
