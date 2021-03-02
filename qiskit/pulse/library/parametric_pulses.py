@@ -55,7 +55,9 @@ class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
+    def __init__(self,
+                 duration: Union[int, ParameterExpression],
+                 name: Optional[str] = None):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
@@ -81,12 +83,6 @@ class ParametricPulse(Pulse):
             PulseError: If the parameters passed are not valid.
         """
         raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
-        """Return a dictionary containing the pulse's parameters."""
-        pass
 
     def is_parameterized(self) -> bool:
         return any(_is_parameterized(val) for val in self.parameters.values())
@@ -138,7 +134,7 @@ class Gaussian(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  name: Optional[str] = None):
@@ -209,7 +205,7 @@ class GaussianSquare(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  width: Union[float, ParameterExpression],
@@ -306,7 +302,7 @@ class Drag(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  beta: Union[float, ParameterExpression],
@@ -399,7 +395,7 @@ class Constant(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  name: Optional[str] = None):
         """

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,9 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" QAOA packages """
+"""
+Clifford template 2_3:
+.. parsed-literal::
+             ┌───┐┌───┐
+        q_0: ┤ H ├┤ H ├
+             └───┘└───┘
+"""
 
-from .qaoa import QAOA
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
-__all__ = ['QAOA']
+def clifford_2_3():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.h(0)
+    return qc

@@ -35,7 +35,7 @@ class QasmLexer:
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
-    # pylint: disable=invalid-name,missing-docstring
+    # pylint: disable=invalid-name,missing-function-docstring
     # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):

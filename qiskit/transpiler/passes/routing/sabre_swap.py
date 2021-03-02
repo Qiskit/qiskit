@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 EXTENDED_SET_SIZE = 20     # Size of lookahead window. TODO: set dynamically to len(current_layout)
 EXTENDED_SET_WEIGHT = 0.5  # Weight of lookahead window compared to front_layer.
 
-DECAY_RATE = 0.001         # Decay cooefficient for penalizing serial swaps.
+DECAY_RATE = 0.001         # Decay coefficient for penalizing serial swaps.
 DECAY_RESET_INTERVAL = 5   # How often to reset all decay rates to 1.
 
 
@@ -36,7 +36,7 @@ class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The hueristic aims to minimize the number
+    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
     of lossy SWAPs inserted and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
@@ -52,7 +52,7 @@ class SabreSwap(TransformationPass):
     and update the mapping.
 
     The search for SWAPs is restricted, in the sense that we only consider
-    physical qubits in the neighoborhood of those qubits involved in
+    physical qubits in the neighborhood of those qubits involved in
     ``front_layer``. These give rise to a ``swap_candidate_list`` which is
     scored according to some heuristic cost function. The best SWAP is
     implemented and ``current_layout`` updated.
@@ -257,7 +257,7 @@ class SabreSwap(TransformationPass):
         """
         predecessors = dag.quantum_predecessors(node)
         predecessors = filter(lambda x: x.type == 'op', predecessors)
-        return all([n in self.applied_gates for n in predecessors])
+        return all(n in self.applied_gates for n in predecessors)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
@@ -352,6 +352,6 @@ def _transform_gate_for_layout(op_node, layout):
     device_qreg = op_node.qargs[0].register
     premap_qargs = op_node.qargs
     mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
-    mapped_op_node.qargs = mapped_op_node.op.qargs = list(mapped_qargs)
+    mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

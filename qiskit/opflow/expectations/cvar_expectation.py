@@ -12,7 +12,6 @@
 
 """The CVaR (Conditional Value at Risk) expectation class."""
 
-import logging
 from typing import Union, Optional
 
 from ..operator_base import OperatorBase
@@ -21,8 +20,6 @@ from ..state_fns import CVaRMeasurement, OperatorStateFn
 from .expectation_base import ExpectationBase
 from .pauli_expectation import PauliExpectation
 from .aer_pauli_expectation import AerPauliExpectation
-
-logger = logging.getLogger(__name__)
 
 
 class CVaRExpectation(ExpectationBase):
