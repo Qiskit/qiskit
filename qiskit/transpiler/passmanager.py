@@ -112,8 +112,8 @@ class PassManager:
         try:
             self._pass_sets[index] = {'passes': passes,
                                       'flow_controllers': flow_controller_conditions}
-        except IndexError:
-            raise TranspilerError('Index to replace %s does not exists' % index)
+        except IndexError as ex:
+            raise TranspilerError(f'Index to replace {index} does not exists') from ex
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -126,8 +126,8 @@ class PassManager:
         """
         try:
             del self._pass_sets[index]
-        except IndexError:
-            raise TranspilerError('Index to replace %s does not exists' % index)
+        except IndexError as ex:
+            raise TranspilerError(f'Index to replace {index} does not exists') from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -154,9 +154,10 @@ class PassManager:
                 new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
-            except TranspilerError:
-                raise TypeError('unsupported operand type + for %s and %s' % (self.__class__,
-                                                                              other.__class__))
+            except TranspilerError as ex:
+                raise TypeError(
+                    f'unsupported operand type + for {self.__class__} and {other.__class__}'
+                ) from ex
 
     @staticmethod
     def _normalize_passes(passes: Union[BasePass, List[BasePass], FlowController])\

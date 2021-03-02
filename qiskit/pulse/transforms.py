@@ -15,6 +15,7 @@
 """
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from typing import Callable
 from typing import List, Optional, Iterable, Union
 
@@ -24,7 +25,7 @@ from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleComponent
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -517,9 +518,43 @@ def align_func(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def flatten(schedule: Schedule) -> Schedule:
-    """Flatten any called nodes into a Schedule tree with no nested children."""
-    return schedule.flatten()
+def flatten(program: ScheduleComponent) -> ScheduleComponent:
+    """Flatten (inline) any called nodes into a Schedule tree with no nested children."""
+    if isinstance(program, instructions.Instruction):
+        return program
+    else:
+        return Schedule(*program.instructions,
+                        name=program.name,
+                        metadata=program.metadata)
+
+
+def inline_subroutines(program: Schedule) -> Schedule:
+    """Recursively remove call instructions and inline the respective subroutine instructions.
+
+    Assigned parameter values, which are stored in the parameter table, are also applied.
+    The subroutine is copied before the parameter assignment to avoid mutation problem.
+
+    Args:
+        program: A program which may contain the subroutine, i.e. ``Call`` instruction.
+
+    Returns:
+        A schedule without subroutine.
+    """
+    schedule = Schedule(name=program.name, metadata=program.metadata)
+    for t0, inst in program.instructions:
+        if isinstance(inst, instructions.Call):
+            # bind parameter
+            if bool(inst.arguments):
+                subroutine = deepcopy(inst.subroutine)
+                subroutine.assign_parameters(value_dict=inst.arguments)
+            else:
+                subroutine = inst.subroutine
+            # recursively inline the program
+            inline_schedule = inline_subroutines(subroutine)
+            schedule.insert(t0, inline_schedule, inplace=True)
+        else:
+            schedule.insert(t0, inst, inplace=True)
+    return schedule
 
 
 def remove_directives(schedule: Schedule) -> Schedule:

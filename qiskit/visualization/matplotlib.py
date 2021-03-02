@@ -471,9 +471,9 @@ class MatplotlibDrawer:
     def _sidetext(self, xy, tc=None, text=''):
         xpos, ypos = xy
 
-        # 0.08 = the initial gap, add 1/2 text width to place on the right
+        # 0.11 = the initial gap, add 1/2 text width to place on the right
         text_width = self._get_text_width(text, self._style['sfs'])
-        xp = xpos + 0.08 + text_width / 2
+        xp = xpos + 0.11 + text_width / 2
         self._ax.text(xp, ypos + HIG, text, ha='center', va='top',
                       fontsize=self._style['sfs'], color=tc,
                       clip_on=True, zorder=PORDER_TEXT)
@@ -809,7 +809,7 @@ class MatplotlibDrawer:
 
                 # get param_width, but 0 for gates with array params
                 if (hasattr(op.op, 'params')
-                        and not any([isinstance(param, np.ndarray) for param in op.op.params])
+                        and not any(isinstance(param, np.ndarray) for param in op.op.params)
                         and len(op.op.params) > 0):
                     param = self._param_parse(op.op.params)
                     if op.name == 'initialize':
@@ -820,8 +820,13 @@ class MatplotlibDrawer:
                 else:
                     param_width = 0.0
 
-                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
-                    tname = 'U1' if op.name == 'cu1' else 'zz'
+                if op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
+                    if op.name == 'cu1':
+                        tname = 'U1'
+                    elif op.name == 'cp':
+                        tname = 'P'
+                    else:
+                        tname = 'ZZ'
                     gate_width = (self._get_text_width(tname + ' ()',
                                                        fontsize=sfs)
                                   + param_width) * 1.5
@@ -888,7 +893,7 @@ class MatplotlibDrawer:
 
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
-                        and not any([isinstance(param, np.ndarray) for param in op.op.params])):
+                        and not any(isinstance(param, np.ndarray) for param in op.op.params)):
                     param = "{}".format(self._param_parse(op.op.params))
                 else:
                     param = ''
@@ -985,16 +990,21 @@ class MatplotlibDrawer:
                     self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
-                # cu1, rzz, and controlled rzz gates (sidetext gates)
-                elif (op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz'):
+                # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
+                elif op.name in ['cu1', 'cp', 'rzz'] or base_name == 'rzz':
                     num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     if op.name != 'rzz':
                         self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                             q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
-                    if op.name != 'cu1':
+                    if op.name not in ['cu1', 'cp']:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
-                    stext = self._style['disptex']['u1'] if op.name == 'cu1' else 'zz'
+                    if op.name == 'cu1':
+                        stext = self._style['disptex']['u1']
+                    elif op.name == 'cp':
+                        stext = 'P'
+                    else:
+                        stext = 'ZZ'
                     self._sidetext(qreg_b, tc=tc,
                                    text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -1037,7 +1047,7 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all([op.op._directive for op in layer]) else 0
+                barrier_offset = -1 if all(op.op._directive for op in layer) else 0
 
             prev_anc = this_anc + layer_width + barrier_offset - 1
         #
