@@ -46,6 +46,11 @@ class TestCalibrations(QiskitTestCase):
         self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
         self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
+        qc = qc_cal + QuantumCircuit(2)
+
+        self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
+        self.assertEqual(qc_cal.calibrations, qc.calibrations)
+
 
 if __name__ == '__main__':
     unittest.main()
