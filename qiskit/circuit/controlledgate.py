@@ -124,7 +124,7 @@ class ControlledGate(Gate):
 
         Args:
             excited_def: The circuit with all closed controls."""
-        super(Gate, self.__class__).definition.fset(self, excited_def)
+        self._definition = excited_def
 
     @property
     def name(self) -> str:

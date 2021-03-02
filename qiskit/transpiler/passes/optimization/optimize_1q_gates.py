@@ -92,7 +92,7 @@ class Optimize1qGates(TransformationPass):
                     right_global_phase += current_node.op.definition.global_phase
                 # If there are any sympy objects coming from the gate convert
                 # to numpy.
-                left_parameters = tuple([float(x) for x in left_parameters])
+                left_parameters = tuple(float(x) for x in left_parameters)
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple in (("u1", "u1"), ("p", "p")):
@@ -189,7 +189,7 @@ class Optimize1qGates(TransformationPass):
                                         right_parameters[2] +
                                         right_parameters[0])
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
-                if right_name == "u3" or 'u':
+                if right_name in ("u3", 'u'):
                     # theta = pi/2 + 2*k*pi
                     right_angle = right_parameters[0] - np.pi / 2
                     if abs(right_angle) < self.eps:

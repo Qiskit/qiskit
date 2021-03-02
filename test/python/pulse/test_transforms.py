@@ -860,5 +860,35 @@ class TestRemoveTrivialBarriers(QiskitTestCase):
         self.assertEqual(schedule, reference)
 
 
+class TestRemoveSubroutines(QiskitTestCase):
+    """Test removing of subroutines."""
+
+    def test_remove_subroutines(self):
+        """Test that nested subroutiens are removed."""
+        d0 = pulse.DriveChannel(0)
+
+        nested_routine = pulse.Schedule()
+        nested_routine.insert(10, pulse.Delay(10, d0), inplace=True)
+
+        subroutine = pulse.Schedule()
+        subroutine.insert(0, pulse.Delay(20, d0), inplace=True)
+        subroutine.insert(20, pulse.instructions.Call(nested_routine), inplace=True)
+        subroutine.insert(50, pulse.Delay(10, d0), inplace=True)
+
+        main_program = pulse.Schedule()
+        main_program.insert(0, pulse.Delay(10, d0), inplace=True)
+        main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
+
+        target = transforms.inline_subroutines(main_program)
+
+        reference = pulse.Schedule()
+        reference.insert(0, pulse.Delay(10, d0), inplace=True)
+        reference.insert(30, pulse.Delay(20, d0), inplace=True)
+        reference.insert(60, pulse.Delay(10, d0), inplace=True)
+        reference.insert(80, pulse.Delay(10, d0), inplace=True)
+
+        self.assertEqual(target, reference)
+
+
 if __name__ == '__main__':
     unittest.main()
