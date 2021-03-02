@@ -25,3 +25,31 @@ cpdef unsigned long long popcount(unsigned long long count):
   count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
   count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
   return count
+
+cpdef double expval_pauli_no_x(complex[:] data, unsigned long long z_mask, complex phase):
+    cpdef double val = 0
+    for i in range(len(data)):
+        current_val = (phase * data[i] * np.conj(data[i])).real
+        if popcount(i & z_mask) & 1 != 0:
+            current_val *= -1
+        val += current_val
+    return val
+
+cpdef expval_pauli_with_x(complex[:] data, unsigned long long z_mask,
+                          unsigned long long x_mask, complex phase,
+                          unsigned int x_max):
+        cpdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cpdef unsigned long long mask_l = 2**(x_max) - 1
+        cpdef double val = 0
+        for i in range(len(data) // 2):
+            index = ((i << 1) & mask_u) | (i & mask_l)
+            indices = [index, index ^ x_mask]
+            data_pair = [data[indices[k]] for k in range(2)]
+            current_val = [(phase * data_pair[1] * np.conj(data_pair[0])).real,
+                           (phase * data_pair[0] * np.conj(data_pair[1])).real]
+            for k in range(2):
+                if popcount(indices[k] & z_mask) & 1 != 0:
+                    val -= current_val[k]
+                else:
+                    val += current_val[k]
+        return val
