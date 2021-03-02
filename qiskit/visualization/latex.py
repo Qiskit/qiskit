@@ -107,10 +107,10 @@ class QCircuitImage:
         self.plot_barriers = plot_barriers
 
         #################################
-        self.qregs = self._get_register_specs(qubits)
+        self.qregs, _ = self._get_register_specs(qubits)
         self.qubit_list = qubits
         self.ordered_regs = qubits + clbits
-        self.cregs = self._get_register_specs(clbits)
+        self.cregs, self.cregs_bits = self._get_register_specs(clbits)
         self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
@@ -534,7 +534,7 @@ class QCircuitImage:
         if self.cregbundle:
             self._latex[wire2][col] = \
                 "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % \
-                (str(cregindex), str(wire2-wire1))
+                (str(cregindex), str(wire2 - wire1))
         else:
             self._latex[wire2][col] = \
                 "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
@@ -598,42 +598,30 @@ class QCircuitImage:
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
+        # if_value - a bit string for the condition
         # cwire - the wire number for the first wire for the condition register
         #      or if cregbundle, wire number of the condition register itself
-        # if_value - a bit string for the condition
-        # gap - the number of wires from cwire to the gate qubit
-        mask = self._get_mask(op.condition[0])
-        cl_reg = self.clbit_list[self._ffs(mask)]
-        if_reg = cl_reg.register
+        # gap - the number of wires from cwire to the bottom gate qubit
 
-        # for cregbundle, start at first register and increment cwire until it hits
-        # the conditional register
-        if self.cregbundle:
-            cwire = len(self.qubit_list)
-            for creg in self.cregs:
-                if if_reg == creg[0].register:
-                    break
-                cwire += 1
-        else:
-            # otherwise select the first bit wire for the condition register
-            # instead of the register wire
-            cwire = self.img_regs[if_reg[cl_reg.index]]
-
-        if_value = format(op.condition[1], 'b').zfill(self.cregs[if_reg])
+        creg_size = self.cregs[op.condition[0]]
+        if_value = format(op.condition[1], 'b').zfill(creg_size)
         if not self.reverse_bits:
             if_value = if_value[::-1]
-        temp = wire_list + [cwire]
-        temp.sort(key=int)
-        bottom = temp[len(wire_list) - 1]
-        gap = cwire - bottom
-        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
 
-        for i in range(creg_rng):
-            if self.cregbundle:
-                # Print the condition value at the bottom
-                self._latex[cwire + i][col] = \
-                    "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
-            else:
+        cwire = len(self.qubit_list)
+        iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
+        for creg in iter_cregs:
+            if (creg == op.condition[0]):
+                break
+            cwire += 1
+
+        gap = cwire - max(wire_list)
+        if self.cregbundle:
+            # Print the condition value at the bottom
+            self._latex[cwire][col] = \
+                "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
+        else:
+            for i in range(creg_size):
                 if if_value[i] == '1':
                     self._latex[cwire + i][col] = \
                         "\\control \\cw \\cwx[-" + str(gap) + "]"
@@ -642,14 +630,6 @@ class QCircuitImage:
                     self._latex[cwire + i][col] = \
                         "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                     gap = 1
-
-    def _get_mask(self, creg_name):
-        """Get the clbit bit mask"""
-        mask = 0
-        for index, cbit in enumerate(self.clbit_list):
-            if creg_name == cbit.register:
-                mask |= (1 << index)
-        return mask
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit."""
@@ -661,15 +641,11 @@ class QCircuitImage:
             raise exceptions.VisualizationError("unable to find bit for operation")
         return qindex
 
-    def _ffs(self, mask):
-        """Find index of first set bit."""
-        origin = (mask & (-mask)).bit_length()
-        return origin - 1
-
     def _get_register_specs(self, bits):
         """Get the number and size of unique registers from bits list."""
         regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
-        return regs
+        regs_bits = [bit.register for bit in bits]
+        return regs, regs_bits
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
