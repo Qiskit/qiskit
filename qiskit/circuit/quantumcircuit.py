@@ -23,7 +23,6 @@ import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 from typing import Union
-import itertools
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
