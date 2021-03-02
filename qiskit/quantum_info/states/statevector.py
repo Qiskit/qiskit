@@ -361,6 +361,15 @@ class Statevector(QuantumState, TolerancesMixin):
         return ret
 
     def expectation_value_pauli(self, pauli):
+        """Compute the expectation value of a Pauli.
+
+            Args:
+                pauli (Pauli): a Pauli operator to evaluate expval of.
+
+            Returns:
+                complex: the expectation value.
+            """
+        # pylint: disable=no-name-in-module
         from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
         x_mask = sum([2**k for k in range(len(pauli)) if pauli.x[k]])
         z_mask = sum([2 ** k for k in range(len(pauli)) if pauli.z[k]])
