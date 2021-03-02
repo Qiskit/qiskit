@@ -102,13 +102,14 @@ class SabreLayout(AnalysisPass):
                 pass_final_layout = pm.property_set['final_layout']
                 final_layout = self._compose_layouts(initial_layout,
                                                      pass_final_layout,
-                                                     new_circ.qregs)
+                                                     new_circ.qregs)  # pylint: disable=no-member
                 initial_layout = final_layout
                 circ = circ.reverse_ops()
 
             # Diagnostics
             logger.info('After round %d, num_swaps: %d',
-                        i+1, new_circ.count_ops().get('swap', 0))
+                        i+1, new_circ.count_ops().get('swap', 0))  # pylint: disable=no-member
+
             logger.info('new initial layout')
             logger.info(initial_layout)
 

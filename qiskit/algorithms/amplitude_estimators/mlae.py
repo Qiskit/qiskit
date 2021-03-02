@@ -13,7 +13,6 @@
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
 from typing import Optional, List, Union, Tuple, Dict, Callable
-import logging
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
@@ -26,8 +25,6 @@ from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
-
-logger = logging.getLogger(__name__)
 
 MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
 
@@ -84,7 +81,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
-            if any([value < 0 for value in evaluation_schedule]):
+            if any(value < 0 for value in evaluation_schedule):
                 raise ValueError('The elements of the evaluation schedule cannot be < 0.')
 
             self._evaluation_schedule = evaluation_schedule
@@ -169,7 +166,6 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                                     alpha: float,
                                     kind: str = 'fisher',
                                     apply_post_processing: bool = False) -> Tuple[float, float]:
-        # pylint: disable=wrong-spelling-in-docstring
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',
