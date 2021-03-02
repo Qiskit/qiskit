@@ -1416,7 +1416,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
 
 # Base Instructions
 def delay(duration: int,
-          channel: chans.Channel):
+          channel: chans.Channel, name: Optional[str] = None):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1433,8 +1433,9 @@ def delay(duration: int,
     Args:
         duration: Number of cycles to delay for on ``channel``.
         channel: Channel to delay on.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.Delay(duration, channel))
+    append_instruction(instructions.Delay(duration, channel, name=name))
 
 
 def play(pulse: Union[library.Pulse, np.ndarray],
@@ -1455,7 +1456,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
     Args:
         pulse: Pulse to play.
         channel: Channel to play pulse on.
-        name: Name of the pulse
+        name: Name of the pulse.
     """
     if not isinstance(pulse, library.Pulse):
         pulse = library.Waveform(pulse)
@@ -1516,7 +1517,7 @@ def acquire(duration: int,
 
 
 def set_frequency(frequency: float,
-                  channel: chans.PulseChannel):
+                  channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1533,12 +1534,13 @@ def set_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to set channel to.
         channel: Channel to set frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetFrequency(frequency, channel))
+    append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
 def shift_frequency(frequency: float,
-                    channel: chans.PulseChannel):
+                    channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1556,12 +1558,13 @@ def shift_frequency(frequency: float,
     Args:
         frequency: Frequency in Hz to shift channel frequency by.
         channel: Channel to shift frequency of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftFrequency(frequency, channel))
+    append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
 def set_phase(phase: float,
-              channel: chans.PulseChannel):
+              channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1581,12 +1584,13 @@ def set_phase(phase: float,
     Args:
         phase: Phase in radians to set channel carrier signal to.
         channel: Channel to set phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.SetPhase(phase, channel))
+    append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
 def shift_phase(phase: float,
-                channel: chans.PulseChannel):
+                channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1600,13 +1604,14 @@ def shift_phase(phase: float,
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as pulse_prog:
-            pulse.shift_phase(math.pi, d0)
+            pulse.shift_phase(math.pi, d0, name='pi phase-shift')
 
     Args:
         phase: Phase in radians to shift channel carrier signal by.
         channel: Channel to shift phase of.
+        name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftPhase(phase, channel))
+    append_instruction(instructions.ShiftPhase(phase, channel, name))
 
 
 def snapshot(label: str,
