@@ -605,5 +605,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+
 if __name__ == '__main__':
     unittest.main()
