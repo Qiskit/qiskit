@@ -361,7 +361,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return ret
 
     def expectation_value_pauli(self, pauli):
-        from qiskit.transpiler.passes.routing.cython.stochastic_swap.exp_value import popcount
+        from qiskit.quantum_info.states.cython.exp_value import popcount
         x_mask = sum([2**k for k in range(len(pauli)) if pauli.x[k]])
         z_mask = sum([2 ** k for k in range(len(pauli)) if pauli.z[k]])
         phase = (-1j)**len([k for k in range(len(pauli)) if pauli.x[k] and pauli.z[k]])
@@ -377,15 +377,15 @@ class Statevector(QuantumState, TolerancesMixin):
             return val
 
         x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
-        mask_u = ~(2**(x_max + 1) - 1) & 0xffffffffffffffff
+        mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
         mask_l = 2**(x_max) - 1
         val = 0
         for i in range(len(self.data) // 2):
             indices = [((i << 1) & mask_u) | (i & mask_l)]
             indices.append(indices[0] ^ x_mask)
             data = [self.data[indices[k]] for k in range(2)]
-            current_val = [(phase * data[0] * np.conj(data[1])).real,
-                           (phase * data[1] * np.conj(data[0])).real]
+            current_val = [(phase * data[1] * np.conj(data[0])).real,
+                           (phase * data[0] * np.conj(data[1])).real]
             for k in range(2):
                 if popcount(indices[k] & z_mask) & 1 != 0:
                     val -= current_val[k]

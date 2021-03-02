@@ -901,6 +901,15 @@ class TestStatevector(QiskitTestCase):
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
 
+        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1+1j]) / 2
+        for label, target in [
+            ('XXX', np.sqrt(2)/2), ('YYY', -np.sqrt(2)/2), ('ZZZ', 0),
+            ('XYZ', 0), ('YIY', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = psi.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
+
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
