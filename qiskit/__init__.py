@@ -46,6 +46,9 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
 
+# function to set user configuration
+from qiskit.user_config import set_config
+
 _config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues

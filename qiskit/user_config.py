@@ -146,6 +146,39 @@ class UserConfig:
                 self.settings['num_processes'] = num_processes
 
 
+def set_config(key, value, section=None):
+    """Adds or modifies a user configuration
+
+    It will add the configuration in either the default location
+    ~/.qiskit/settings.conf or if set the value of the `QISKIT_SETTINGS` env var.
+
+    Args:
+        key (str): name of the config
+        value (str): value of the config
+        section (str, optional): if not specified, adds it to the
+            `default` section of the config file.
+    """
+    file_name = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
+    sec_name = section if section is not None else 'default'
+
+    assert isinstance(key, str), 'Key must be string type'
+    assert isinstance(value, str), 'Value must be string type'
+
+    config = configparser.ConfigParser()
+    config.read(file_name)
+
+    if sec_name not in config.sections():
+        config.add_section(sec_name)
+
+    config.set(sec_name, key, value)
+
+    with open(file_name, 'w') as cfgfile:
+        config.write(cfgfile)
+
+    user_config = UserConfig(file_name)
+    user_config.read_config_file()
+
+
 def get_config():
     """Read the config file from the default location or env var
 
