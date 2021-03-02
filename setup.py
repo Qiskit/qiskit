@@ -26,7 +26,7 @@ with open('requirements.txt') as f:
     REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
-CYTHON_EXTS = ['utils', 'swap_trial']
+CYTHON_EXTS = ['utils', 'swap_trial', 'exp_value']
 CYTHON_MODULE = 'qiskit.transpiler.passes.routing.cython.stochastic_swap'
 CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/routing/cython/stochastic_swap'
 

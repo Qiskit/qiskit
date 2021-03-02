@@ -27,6 +27,7 @@ from qiskit.circuit.library import HGate, QFT
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 logger = logging.getLogger(__name__)
@@ -896,7 +897,7 @@ class TestStatevector(QiskitTestCase):
                 ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
                 ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
             with self.subTest(msg="<{}>".format(label)):
-                op = Operator.from_label(label)
+                op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
 
