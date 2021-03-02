@@ -361,7 +361,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return ret
 
     def expectation_value_pauli(self, pauli):
-        from qiskit.quantum_info.states.cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
+        from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
         x_mask = sum([2**k for k in range(len(pauli)) if pauli.x[k]])
         z_mask = sum([2 ** k for k in range(len(pauli)) if pauli.z[k]])
         phase = (-1j)**len([k for k in range(len(pauli)) if pauli.x[k] and pauli.z[k]])
