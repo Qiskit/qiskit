@@ -611,7 +611,7 @@ class QCircuitImage:
         cwire = len(self.qubit_list)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
-            if (creg == op.condition[0]):
+            if creg == op.condition[0]:
                 break
             cwire += 1
 
