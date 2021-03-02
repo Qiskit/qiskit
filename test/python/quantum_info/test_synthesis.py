@@ -17,7 +17,6 @@ from test import combine
 from ddt import ddt
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -78,8 +77,7 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
 class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, basis='U3', tolerance=1e-12,
-                                     phase_equal=True):
+    def check_one_qubit_euler_angles(self, operator, basis='U3', tolerance=1e-14, simplify=False):
         """Check OneQubitEulerDecomposer works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
@@ -87,18 +85,13 @@ class CheckDecompositions(QiskitTestCase):
             decomp_unitary = U3Gate(*angles).to_matrix()
         else:
             decomposer = OneQubitEulerDecomposer(basis)
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-        # Add global phase to make special unitary
-        target_unitary *= la.det(target_unitary) ** (-0.5)
-        decomp_unitary *= la.det(decomp_unitary) ** (-0.5)
+            decomp_unitary = Operator(decomposer(target_unitary, simplify=simplify)).data
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-        if not phase_equal and maxdist > 0.1:
-            maxdist = np.max(np.abs(target_unitary + decomp_unitary))
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Operator {}: Worst distance {}".format(operator, maxdist))
 
     # FIXME: should be possible to set this tolerance tighter after improving the function
-    def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-7):
+    def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
         decomp = TwoQubitWeylDecomposition(target_unitary)
@@ -117,9 +110,12 @@ class CheckDecompositions(QiskitTestCase):
                         f"{decomp}\nactual fid: {decomp.actual_fidelity()}\n"
                         f"Unitary {target_unitary}:\nWorst distance {maxdist}")
 
-    def check_exact_decomposition(self, target_unitary, decomposer, tolerance=1.e-7):
+    def check_exact_decomposition(self, target_unitary, decomposer,
+                                  tolerance=1.e-13, num_basis_uses=None):
         """Check exact decomposition for a particular target"""
-        decomp_circuit = decomposer(target_unitary)
+        decomp_circuit = decomposer(target_unitary, num_basis_uses=num_basis_uses)
+        if num_basis_uses is not None:
+            self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get('unitary', 0))
         result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
         decomp_unitary = result.get_unitary()
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
@@ -149,57 +145,35 @@ class TestEulerAngles1Q(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
 
 
+ONEQ_BASES = ['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
+SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]
 @ddt
 class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
 
-    def check_one_qubit_euler_angles(self, operator, basis='U3',
-                                     tolerance=1e-12,
-                                     phase_equal=True):
-        """Check euler_angles_1q works for the given unitary"""
-        decomposer = OneQubitEulerDecomposer(basis)
-        with self.subTest(operator=operator):
-            target_unitary = operator.data
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary) ** (-0.5)
-            decomp_unitary *= la.det(decomp_unitary) ** (-0.5)
-            maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if not phase_equal and maxdist > 0.1:
-                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
-
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
-             name='test_one_qubit_clifford_{basis}_basis')
-    def test_one_qubit_clifford_all_basis(self, basis):
+    @combine(basis=ONEQ_BASES, simp_tol=SIMP_TOL,
+             name='test_one_qubit_clifford_{basis}_basis_simplify_{simp_tol[0]}')
+    def test_one_qubit_clifford_all_basis(self, basis, simp_tol):
         """Verify for {basis} basis and all Cliffords."""
         for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, basis)
+            self.check_one_qubit_euler_angles(
+                clifford, basis, simplify=simp_tol[0], tolerance=simp_tol[1])
 
-    @combine(basis_tolerance=[('U3', 1e-12),
-                              ('XYX', 1e-12),
-                              ('ZXZ', 1e-12),
-                              ('ZYZ', 1e-12),
-                              ('U1X', 1e-7),
-                              ('PSX', 1e-7),
-                              ('ZSX', 1e-7),
-                              ('RR', 1e-12)],
-             name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
-    # Lower tolerance for U1X test since decomposition since it is
-    # less numerically accurate. This is due to it having 5 matrix
-    # multiplications and the X90 gates
-    def test_one_qubit_hard_thetas_all_basis(self, basis_tolerance):
-        """Verify for {basis_tolerance[0]} basis and close-to-degenerate theta."""
+    @combine(basis=ONEQ_BASES, simp_tol=SIMP_TOL,
+             name='test_one_qubit_hard_thetas_{basis}_basis_simplify_{simp_tol[0]}')
+    def test_one_qubit_hard_thetas_all_basis(self, basis, simp_tol):
+        """Verify for {basis} basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
-                                              basis_tolerance[1])
+            self.check_one_qubit_euler_angles(
+                Operator(gate), basis, simplify=simp_tol[0], tolerance=simp_tol[1])
 
-    @combine(basis=['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
-             name='test_one_qubit_random_{basis}_basis_{seed}')
-    def test_one_qubit_random_all_basis(self, basis, seed):
+    @combine(basis=ONEQ_BASES, simp_tol=SIMP_TOL, seed=range(50),
+             name='test_one_qubit_random_{basis}_basis_simplify_{simp_tol[0]}_{seed}')
+    def test_one_qubit_random_all_basis(self, basis, simp_tol, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, basis)
+        self.check_one_qubit_euler_angles(
+            unitary, basis, simplify=simp_tol[0], tolerance=simp_tol[1])
 
     def test_psx_zsx_special_cases(self):
         """Test decompositions of psx and zsx at special values of parameters"""
@@ -362,7 +336,7 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                     self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
     def test_two_qubit_weyl_decomposition_abc(self, smallest=1e-18, factor=9.8, steps=11):
-        """Verify Weyl KAK decomposition for U~Ud(a,a,b)"""
+        """Verify Weyl KAK decomposition for U~Ud(a,b,c)"""
         for aaa in ([smallest * factor ** i for i in range(steps)] +
                     [np.pi / 4 - smallest * factor ** i for i in range(steps)] +
                     [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]):
@@ -371,7 +345,7 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                     for k1l, k1r, k2l, k2r in K1K2S:
                         k1 = np.kron(k1l.data, k1r.data)
                         k2 = np.kron(k2l.data, k2r.data)
-                        a = Ud(aaa, aaa, ccc)
+                        a = Ud(aaa, bbb, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
 
@@ -412,6 +386,78 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
         self.check_exact_decomposition(random_unitary(4, seed=seed + 4).data, decomposer)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_exact_supercontrolled_decompose_phase_0_use_random(self, seed):
+        """Exact decomposition supercontrolled basis, random target (0 basis uses) (seed={seed})"""
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = state.random() * np.pi / 4
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(0, 0, 0) @ tgt_k2
+        self.check_exact_decomposition(tgt_unitary, decomposer, num_basis_uses=0)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_exact_supercontrolled_decompose_phase_1_use_random(self, seed):
+        """Exact decomposition supercontrolled basis, random tgt (1 basis uses) (seed={seed})"""
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = state.random() * np.pi / 4
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(np.pi / 4, basis_b, 0) @ tgt_k2
+        self.check_exact_decomposition(tgt_unitary, decomposer, num_basis_uses=1)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_exact_supercontrolled_decompose_phase_2_use_random(self, seed):
+        """Exact decomposition supercontrolled basis, random tgt (2 basis uses) (seed={seed})"""
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = state.random() * np.pi / 4
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        tgt_a, tgt_b = state.random(size=2) * np.pi / 4
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, 0) @ tgt_k2
+        self.check_exact_decomposition(tgt_unitary, decomposer, num_basis_uses=2)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_exact_supercontrolled_decompose_phase_3_use_random(self, seed):
+        """Exact decomposition supercontrolled basis, random tgt (3 basis uses) (seed={seed})"""
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = state.random() * np.pi / 4
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+
+        tgt_a, tgt_b, tgt_c = state.random(size=3) * np.pi / 4
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, tgt_c) @ tgt_k2
+        self.check_exact_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
 
     def test_exact_nonsupercontrolled_decompose(self):
         """Check that the nonsupercontrolled basis throws a warning"""
