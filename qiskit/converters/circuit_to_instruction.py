@@ -74,7 +74,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     instruction = Instruction(name=circuit.name,
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=sorted(parameter_dict.values(), key=lambda p: p.name))
+                              params=[*parameter_dict.values()])
     instruction.condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
