@@ -572,6 +572,10 @@ class QuantumCircuit:
             for key, sched in cals.items():
                 circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
 
+        for gate, cals in self.calibrations.items():
+            for key, sched in cals.items():
+                circuit.add_calibration(gate, qubits=key[0], schedule=sched, params=key[1])
+
         return circuit
 
     def extend(self, rhs):
