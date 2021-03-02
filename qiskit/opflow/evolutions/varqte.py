@@ -137,6 +137,8 @@ class VarQTE(EvolutionBase):
         # self._et = 0
         self._error_based_ode = error_based_ode
 
+        self._storage_params_tbd = None
+
         self._exact_euler_state = None
 
 
@@ -218,6 +220,18 @@ class VarQTE(EvolutionBase):
                 grad_errors.append(float(line['error_grad']))
                 # Method is not used.
                 stddevs.append(np.sqrt(float(line['variance'])))
+
+        zipped_lists = zip(time, grad_errors, stddevs)
+
+        sorted_pairs = sorted(zipped_lists)
+
+        triples = zip(*sorted_pairs)
+
+        time, grad_errors, stddevs = [list(triple) for triple in triples]
+
+        for j in range(len(time)-1):
+            time_steps.append(time[j+1]-time[j])
+
         e_bound = self._get_error_bound(grad_errors, time_steps, stddevs)
         return e_bound
 
@@ -246,18 +260,30 @@ class VarQTE(EvolutionBase):
         self._exact_euler_state = self._exact_state(0)
 
         if not self._faster:
+            # # VarQRTE
+            # if np.iscomplex(self._operator.coeff):
+            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+            #                                      qfi_method=self._qfi_method,
+            #                                      regularization=self._regularization
+            #                                     ).convert(self._operator * 0.5, self._parameters)
+            # # VarQITE
+            # else:
+            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+            #                                      qfi_method=self._qfi_method,
+            #                                      regularization=self._regularization
+            #                                      ).convert(self._operator * -0.5, self._parameters)
             # VarQRTE
             if np.iscomplex(self._operator.coeff):
                 self._nat_grad = NaturalGradient(grad_method=self._grad_method,
                                                  qfi_method=self._qfi_method,
                                                  regularization=self._regularization
-                                                ).convert(self._operator * 0.5, self._parameters)
+                                                ).convert(self._operator, self._parameters)
             # VarQITE
             else:
                 self._nat_grad = NaturalGradient(grad_method=self._grad_method,
                                                  qfi_method=self._qfi_method,
                                                  regularization=self._regularization
-                                                 ).convert(self._operator * -0.5, self._parameters)
+                                                 ).convert(self._operator * -1, self._parameters)
 
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
 
@@ -317,12 +343,12 @@ class VarQTE(EvolutionBase):
             #                      bounds=(0, 2 * np.pi), ftol=1e-2)
 
             # Use the natural gradient result as initial point for least squares solver
-            argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-                                   ftol=1e-10)
-            # argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-            #                   method='Newton-CG', tol=1e-10)
+            # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+            #                        ftol=1e-10)
+            argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+                              method='CG', tol=1e-8)
             print('initial natural gradient result', nat_grad_result)
-            print('final dt_omega', argmin.x)
+            print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
             return argmin.x, grad_res, metric_res
 
@@ -337,7 +363,12 @@ class VarQTE(EvolutionBase):
 
             if self._snapshot_dir is not None:
                 # Get the residual for McLachlan's Variational Principle
-                resid = np.linalg.norm(np.matmul(metric_res, dt_params) + 0.5 * grad_res)
+                if np.iscomplex(self._operator.coeff):
+                    # VarQRTE
+                    resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res)
+                else:
+                    # VarQITE
+                    resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res)
                 # Get the error for the current step
                 et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
                                                                     metric_res)[:4]
@@ -348,21 +379,23 @@ class VarQTE(EvolutionBase):
                     else:
                         et = np.sqrt(np.real(et))
                 except Exception:
-                    et = 'error'
+                    et = 1000
                 print('after try except', et)
-
 
                 f, true_error, true_energy, trained_energy = self._distance_energy(t, param_dict)
 
-                self._store_params(t, params, None, None, et,
-                                   resid, f, true_error, None,
-                                   None, true_energy,
-                                   trained_energy, None, h_squared, dtdt_state, reimgrad)
+                self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
+                                            trained_energy, h_squared, dtdt_state, reimgrad)
+                # self._store_params(t, params, None, None, et,
+                #                    resid, f, true_error, None,
+                #                    None, true_energy,
+                #                    trained_energy, None, h_squared, dtdt_state, reimgrad)
             return dt_params
 
         if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=self._parameter_values,
-                                              n=self._num_time_steps, atol=1e-8)
+                                              n=self._num_time_steps, atol=1e-6,
+                                              first_step=0.1)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
@@ -379,7 +412,6 @@ class VarQTE(EvolutionBase):
     def _run_ode_solver(self, t):
         self._init_ode_solver(t=t)
         param_values = self._parameter_values
-        t_old = 0
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
             while self._ode_solver.t < t:
                 self._ode_solver.step()
@@ -388,7 +420,13 @@ class VarQTE(EvolutionBase):
                 # if self._et is None:
                 #     warnings.warn('Time evolution failed.')
                 #     break
-                t_old = self._ode_solver.t
+                if self._snapshot_dir is not None:
+                    time, params, et, resid, f, true_error, true_energy, trained_energy, \
+                    h_squared, dtdt_state, reimgrad = self._storage_params_tbd
+                    self._store_params(time, params, None, None, et,
+                                       resid, f, true_error, None,
+                                       None, true_energy,
+                                       trained_energy, None, h_squared, dtdt_state, reimgrad)
                 print('ode time', self._ode_solver.t)
                 param_values = self._ode_solver.y
                 print('ode parameters', self._ode_solver.y)
@@ -401,9 +439,9 @@ class VarQTE(EvolutionBase):
             # if self._snapshot_dir is not None:
             #     self._ode_solver_store(param_values, self._ode_solver.t)
 
-        elif isinstance(self._ode_solver, backward_euler_fsolve):
-            while self._ode_solver._n_count < self._ode_solver._n:
-                param_values = self._ode_solver.step()
+        # elif isinstance(self._ode_solver, backward_euler_fsolve):
+        #     while self._ode_solver._n_count < self._ode_solver._n:
+        #         param_values = self._ode_solver.step()
                 # if self._snapshot_dir is not None:
                 #     self._ode_solver_store(param_values, self._ode_solver._t[-2])
                 # param_values = param_values_new
@@ -567,15 +605,27 @@ class VarQTE(EvolutionBase):
             metric_res = v @ np.diag(w) @ np.linalg.inv(v)
 
         if self._faster:
+            # if np.iscomplex(self._operator.coeff):
+            #     # VarQRTE
+            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * 0.5,
+            #                                                            metric_res],
+            #                                                         regularization=
+            #                                                         self._regularization)
+            # else:
+            #     # VarQITE
+            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -0.5,
+            #                                                            metric_res],
+            #                                                         regularization=
+            #                                                         self._regularization)
             if np.iscomplex(self._operator.coeff):
                 # VarQRTE
-                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * 0.5,
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res,
                                                                        metric_res],
                                                                     regularization=
                                                                     self._regularization)
             else:
                 # VarQITE
-                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -0.5,
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -1,
                                                                        metric_res],
                                                                     regularization=
                                                                     self._regularization)
@@ -598,13 +648,13 @@ class VarQTE(EvolutionBase):
 
     def _distance_energy(self,
                          time: Union[float, complex],
-                         trained_param_dict: Dict) -> (float, float, float):
+                         param_dict: Dict) -> (float, float, float):
         """
         Evaluate the fidelity to the target state, the energy w.r.t. the target state and
         the energy w.r.t. the trained state for a given time and the current parameter set
         Args:
             time: current evolution time
-            trained_param_dict: dictionary which matches the operator parameters to the current
+            param_dict: dictionary which matches the operator parameters to the current
             values of parameters for the given time
         Returns: fidelity to the target state, the energy w.r.t. the target state and
         the energy w.r.t. the trained state
@@ -613,9 +663,9 @@ class VarQTE(EvolutionBase):
         # |state_t>
         if self._backend is not None:
             trained_state = self._state_circ_sampler.convert(self._state,
-                                                             params=trained_param_dict)[0]
+                                                             params=param_dict)[0]
         else:
-            trained_state = self._state.assign_parameters(trained_param_dict)
+            trained_state = self._state.assign_parameters(param_dict)
         trained_state = trained_state.eval().primitive.data
         target_state = self._exact_state(time)
 
@@ -636,7 +686,99 @@ class VarQTE(EvolutionBase):
         # Error between Euler evolution using exact gradients and the trained state
         # exact_euler_trained_err = np.linalg.norm(trained_state - self._exact_euler_state, ord=2)
         # return f, act_err, act_en, trained_en, exact_exact_euler_err, exact_euler_trained_err
-        return f, act_err, act_en, trained_en
+        return f, act_err, np.real(act_en), np.real(trained_en)
+
+    @staticmethod
+    def print_results(data_directories: List[str],
+                      error_bound_directories: List[str],
+                      imag_reverse_bound: bool = False,
+                      H: Optional[Union[List, np.ndarray]] = None):
+        """
+
+        Args:
+            data_directories:
+            error_bound_directories:
+
+        Returns:
+
+        """
+        if len(data_directories) != len(error_bound_directories):
+            raise Warning('Please provide data and error bound directories of the same length '
+                          'corresponding to the same data.')
+        import matplotlib.pyplot as plt
+        for j, data_dir in enumerate(data_directories):
+            with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
+                fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
+                              'error_bound_factor',
+                              'error_grad', 'resid', 'fidelity', 'true_error',
+                              'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
+                              'trained_energy', 'energy_error', 'h_norm', 'h_squared',
+                              'variance', 'dtdt_trained', 're_im_grad']
+                reader = csv.DictReader(csv_file, fieldnames=fieldnames)
+                first = True
+                grad_errors = []
+                true_error = []
+                time = []
+                time_steps = []
+                fid = []
+                true_energy = []
+                trained_energy = []
+                stddevs = []
+
+                for line in reader:
+                    if first:
+                        first = False
+                        continue
+                    t_line = float(line['t'])
+                    if t_line in time:
+                        continue
+                    time.append(t_line)
+                    grad_errors.append(float(line['error_grad']))
+                    true_error.append(float(line['true_error']))
+                    fid.append(float(line['fidelity']))
+                    true_energy.append(float(line['target_energy']))
+                    trained_energy.append(float(line['trained_energy']))
+                    stddevs.append(np.sqrt(float(line['variance'])))
+
+                zipped_lists = zip(time, grad_errors, true_error, fid, true_energy, trained_energy)
+
+                sorted_pairs = sorted(zipped_lists)
+
+                zipped_sorted = zip(*sorted_pairs)
+
+                time, grad_errors, true_error, fid, true_energy, \
+                trained_energy = [list(zipped_items) for zipped_items in zipped_sorted]
+
+                for k in range(len(time) - 1):
+                    time_steps.append(time[k + 1] - time[k])
+
+            error_bounds = np.load(error_bound_directories[j])
+
+            if imag_reverse_bound:
+                if H is None:
+                    raise Warning('Please support the respective Hamiltonian.')
+                eigvals = sorted(list(set(np.linalg.eigvals(H))))
+                e0 = eigvals[0]
+                e1 = eigvals[1]
+                reverse_bounds = np.array(stddevs) / (e1 - e0)
+
+            plt.figure(1)
+            plt.title('Actual Error and Error Bound ')
+            plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
+                        label='error bound')
+            plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+            if imag_reverse_bound:
+                plt.scatter(time, reverse_bounds, color='green', marker='o', s=40,
+                            label='reverse error bound')
+            plt.legend(loc='best')
+            plt.xlabel('time')
+            plt.ylabel('error')
+            # plt.xticks(range(counter-1))
+            plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
+            plt.close()
+
+
+        return
 
 
 class ForwardEuler:

@@ -215,7 +215,7 @@ class VarQRTE(VarQTE):
         # 2 missing b.c. of Im
         imgrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared -= imgrad2
-        return eps_squared, h_squared, dtdt_state, imgrad2 * 0.5
+        return np.real(eps_squared), h_squared, dtdt_state, imgrad2 * 0.5
 
     def _grad_error_t(self,
                  ng_res: Union[List, np.ndarray],
@@ -242,7 +242,9 @@ class VarQRTE(VarQTE):
         grad_eps_squared = grad_res
 
         # print('E_t squared', np.round(eps_squared, 4))
-        return grad_eps_squared
+        if np.linalg.norm(np.imag(grad_eps_squared)) > 1e-6:
+            raise Warning('Error gradient complex part are not to be neglected.')
+        return np.real(grad_eps_squared)
 
     def _get_error_bound(self,
                          gradient_errors: List,

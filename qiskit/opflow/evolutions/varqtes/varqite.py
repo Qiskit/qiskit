@@ -237,8 +237,8 @@ class VarQITE(VarQTE):
         else:
             exp = self._operator_eval.assign_parameters(param_dict)
         exp = np.real(exp.eval())
-        eps_squared += h_squared
-        eps_squared -= exp ** 2
+        eps_squared += np.real(h_squared)
+        eps_squared -= np.real(exp ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
@@ -249,10 +249,12 @@ class VarQITE(VarQTE):
         regrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared += regrad2
         if eps_squared < 0:
-            if np.abs(eps_squared) < 1e-6:
+            if np.abs(eps_squared) < 1e-3:
                 eps_squared = 0
+            else:
+                raise Warning('Propagation failed')
 
-        return eps_squared, h_squared, dtdt_state, regrad2 * 0.5, exp
+        return np.real(eps_squared), h_squared, dtdt_state, regrad2 * 0.5, exp
 
     def _grad_error_t(self,
                       ng_res: Union[List, np.ndarray],
@@ -275,8 +277,7 @@ class VarQITE(VarQTE):
         grad_eps_squared += np.dot(metric, ng_res)
         # 2Re⟨dωψ(ω)|H | ψ(ω)〉
         grad_eps_squared += grad_res
-
-        return grad_eps_squared
+        return np.real(grad_eps_squared)
 
     def _get_error_bound(self,
                          gradient_errors: List,
@@ -284,6 +285,8 @@ class VarQITE(VarQTE):
                          stddevs: List) -> List:
 
         if not len(gradient_errors) == len(time_steps) + 1:
+            print(gradient_errors)
+            print()
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
         gradient_error_factors = []
@@ -292,11 +295,18 @@ class VarQITE(VarQTE):
             for k in range(j, len(time_steps)):
                 stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
             gradient_error_factors.append(stddev_factor)
+        gradient_error_factors.append(0)
+
+        print('Error factors ', gradient_error_factors)
+        print('Gradient Errors', gradient_errors)
 
         e_bound = [0]
         for j, dt in enumerate(time_steps):
-            e_bound.append(e_bound[j]+(gradient_errors[j]+gradient_errors[j+1]) * 0.5 * dt * \
-                      np.exp(2*gradient_error_factors[j]))
+            e_bound.append(e_bound[j]+(gradient_errors[j] * np.exp(2*gradient_error_factors[j])
+                                       + gradient_errors[j + 1] *
+                                       np.exp(2*gradient_error_factors[j + 1])
+                                       ) * 0.5 * dt)
+        print('Error bounds ', e_bound)
         return e_bound
 
 
