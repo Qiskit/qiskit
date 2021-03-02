@@ -373,7 +373,7 @@ class TestInstructions(TestBuilder):
         test_pulse = library.Constant(10, 1.0)
 
         with pulse.build() as schedule:
-            pulse.play(test_pulse, channel = d0, name = 'new_name')
+            pulse.play(test_pulse, channel=d0, name='new_name')
 
         self.assertEqual(schedule.instructions[0][1].name, 'new_name')
 

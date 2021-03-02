@@ -1460,7 +1460,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
     if not isinstance(pulse, library.Pulse):
         pulse = library.Waveform(pulse)
 
-    append_instruction(instructions.Play(pulse, channel, name = name))
+    append_instruction(instructions.Play(pulse, channel, name=name))
 
 
 def acquire(duration: int,
