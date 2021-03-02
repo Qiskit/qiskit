@@ -126,9 +126,8 @@ class Tridiagonal(LinearSystemMatrix):
         """
         self._evo_time = evo_time
         # Update the number of trotter steps. Max 7 for now, upper bounds too loose.
-        self.trotter = min(self.num_state_qubits + 1,
-                           int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3)
-                                               / 2 / self.tolerance))))
+        self.trotter = int(np.ceil(np.sqrt(((evo_time * np.abs(self.off_diag)) ** 3) / 2
+                                           / self.tolerance)))
 
     @property
     def trotter(self) -> int:
@@ -220,7 +219,7 @@ class Tridiagonal(LinearSystemMatrix):
         """
         qr = QuantumRegister(controls + 1)
         qr_ancilla = QuantumRegister(ancilla)
-        qc = QuantumCircuit(qr, qr_ancilla)
+        qc = QuantumCircuit(qr, qr_ancilla, name='cn_gate')
         q_tgt = qr[0]
         qr_controls = qr[1:]
         # The first Toffoli
@@ -246,14 +245,14 @@ class Tridiagonal(LinearSystemMatrix):
             The quantum circuit implementing the matrix consisting of entries in the main diagonal.
         """
         theta *= self.main_entry
-        qc = QuantumCircuit(self.num_state_qubits)
+        qc = QuantumCircuit(self.num_state_qubits, name='main_diag')
         qc.x(0)
         qc.p(theta, 0)
         qc.x(0)
         qc.p(theta, 0)
 
         def control():
-            qc_control = QuantumCircuit(self.num_state_qubits + 1)
+            qc_control = QuantumCircuit(self.num_state_qubits + 1, name='main_diag')
             qc_control.p(theta, 0)
             return qc_control
 
@@ -274,9 +273,9 @@ class Tridiagonal(LinearSystemMatrix):
         qr = QuantumRegister(self.num_state_qubits)
         if self.num_state_qubits > 1:
             qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 2))
-            qc = QuantumCircuit(qr, qr_ancilla)
+            qc = QuantumCircuit(qr, qr_ancilla, name='off_diags')
         else:
-            qc = QuantumCircuit(qr)
+            qc = QuantumCircuit(qr, name='off_diags')
             qr_ancilla = None
 
         # Gates for H2 with t
@@ -313,9 +312,9 @@ class Tridiagonal(LinearSystemMatrix):
             qr_state = QuantumRegister(self.num_state_qubits + 1)
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
-                qc_control = QuantumCircuit(qr_state, qr_ancilla)
+                qc_control = QuantumCircuit(qr_state, qr_ancilla, name='off_diags')
             else:
-                qc_control = QuantumCircuit(qr_state)
+                qc_control = QuantumCircuit(qr_state, name='off_diags')
                 qr_ancilla = None
             # Control will be qr[0]
             q_control = qr_state[0]
@@ -378,9 +377,9 @@ class Tridiagonal(LinearSystemMatrix):
             qr_state = QuantumRegister(self.num_state_qubits + 1, 'state')
             if self.num_state_qubits > 1:
                 qr_ancilla = AncillaRegister(max(1, self.num_state_qubits - 1))
-                qc = QuantumCircuit(qr_state, qr_ancilla)
+                qc = QuantumCircuit(qr_state, qr_ancilla, name='exp(iHk)')
             else:
-                qc = QuantumCircuit(qr_state)
+                qc = QuantumCircuit(qr_state, name='exp(iHk)')
                 qr_ancilla = None
             # Control will be qr[0]
             q_control = qr_state[0]
