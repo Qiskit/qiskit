@@ -50,8 +50,21 @@ def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
         for i in range(data.shape[0] // 2):
             index_0 = ((i << 1) & mask_u) | (i & mask_l)
             index_1 = index_0 ^ x_mask
-            current_val_0 = (phase * data[index_1] * np.conj(data[index_0])).real
-            current_val_1 = (phase * data[index_0] * np.conj(data[index_1])).real
+
+            current_val_0 = (phase *
+                    (data[index_1].real*data[index_0].real +
+                     data[index_1].imag*data[index_0].imag +
+                 1j*(data[index_1].imag*data[index_0].real -
+                     data[index_1].real*data[index_0].imag))
+                 ).real
+
+            current_val_1 = (phase *
+                    (data[index_0].real*data[index_1].real +
+                     data[index_0].imag*data[index_1].imag +
+                 1j*(data[index_0].imag*data[index_1].real -
+                     data[index_0].real*data[index_1].imag))
+                 ).real
+
             if popcount(index_0 & z_mask) & 1 != 0:
                 val -= current_val_0
             else:
