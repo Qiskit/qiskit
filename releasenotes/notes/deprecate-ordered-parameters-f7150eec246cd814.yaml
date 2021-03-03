@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Deprecated the ``NLocal.ordered_parameters`` method in favor of simply calling
+    ``NLocal.parameters``, since all unbound circuit parameters are now ordered.

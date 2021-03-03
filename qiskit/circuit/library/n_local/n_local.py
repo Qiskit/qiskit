@@ -791,6 +791,8 @@ class NLocal(BlueprintCircuit):
                              if isinstance(param, ParameterExpression))
             dest._parameters = set(param for param in new_params
                                    if isinstance(param, ParameterExpression))
+        elif isinstance(parameters, ParameterVector):
+            dest._parameters = parameters
         else:
             dest._parameters = set(param for param in parameters
                                    if isinstance(param, ParameterExpression))

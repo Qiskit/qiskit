@@ -431,19 +431,19 @@ class TestTwoLocal(QiskitTestCase):
         params_set = set(param for param in params if isinstance(param, Parameter))
 
         with self.subTest(msg='dict assign and copy'):
-            ordered = two.ordered_parameters
+            ordered = two.parameters
             bound = two.assign_parameters(dict(zip(ordered, params)), inplace=False)
             self.assertEqual(bound.parameters, params_set)
             self.assertEqual(two.num_parameters, 9)
 
         with self.subTest(msg='list assign and copy'):
-            ordered = two.ordered_parameters
+            ordered = two.parameters
             bound = two.assign_parameters(params, inplace=False)
             self.assertEqual(bound.parameters, params_set)
             self.assertEqual(two.num_parameters, 9)
 
         with self.subTest(msg='list assign inplace'):
-            ordered = two.ordered_parameters
+            ordered = two.parameters
             two.assign_parameters(params, inplace=True)
             self.assertEqual(two.parameters, params_set)
             self.assertEqual(two.num_parameters, 3)
@@ -452,7 +452,7 @@ class TestTwoLocal(QiskitTestCase):
     def test_parameters_settable_is_constant(self):
         """Test the attribute num_parameters_settable does not change on parameter change."""
         two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
-        ordered_params = two.ordered_parameters
+        ordered_params = two.parameters
 
         x = Parameter('x')
         two.assign_parameters(dict(zip(ordered_params, [x] * two.num_parameters)), inplace=True)
@@ -470,7 +470,7 @@ class TestTwoLocal(QiskitTestCase):
         circuit += two
 
         reference = QuantumCircuit(3)
-        param_iter = iter(two.ordered_parameters)
+        param_iter = iter(two.parameters)
         for i in range(3):
             reference.ry(next(param_iter), i)
         for i in range(3):
@@ -494,7 +494,7 @@ class TestTwoLocal(QiskitTestCase):
         circuit = two + two
 
         reference = QuantumCircuit(4)
-        params = two.ordered_parameters
+        params = two.parameters
         for _ in range(2):
             reference.cry(params[0], 0, 3)
             reference.cry(params[1], 0, 2)
@@ -663,6 +663,26 @@ class TestTwoLocal(QiskitTestCase):
         ref.ry(parameters[3], 1)
 
         self.assertCircuitEqual(two.assign_parameters(parameters), ref)
+
+    @data('vector', 'fixed')
+    def test_update_after_bound_parameters_fails(self, ptype):
+        """Test binding parameters inplace fails for fixed parameters and works for vectors."""
+        two = RealAmplitudes(2, reps=1)
+
+        if ptype == 'fixed':
+            new_params = [1, 2, 3, 4]
+        else:
+            new_params = ParameterVector('z', 4)
+
+        two.assign_parameters(new_params, inplace=True)
+        two.reps = 2
+
+        if ptype == 'fixed':
+            with self.assertRaises(ValueError):
+                _ = two.draw()
+        else:
+            new_params.resize(6)
+            self.assertListEqual(list(new_params), list(two.parameters))
 
 
 if __name__ == '__main__':
