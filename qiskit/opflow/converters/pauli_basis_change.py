@@ -16,6 +16,9 @@ from typing import Optional, Callable, Union, Tuple, cast
 from functools import partial, reduce
 import numpy as np
 
+import plum
+from plum import Dispatcher, Self, dispatch
+
 from qiskit.quantum_info import Pauli
 from qiskit import QuantumCircuit
 
@@ -55,6 +58,8 @@ class PauliBasisChange(ConverterBase):
     non-diagonal destination values. Many other methods are possible, as well as variations on
     this method, such as the placement of the CNOT chains.
     """
+
+    dispatch = Dispatcher(in_class=Self)
 
     def __init__(self,
                  destination_basis: Optional[Union[Pauli, PauliOp]] = None,
@@ -113,41 +118,60 @@ class PauliBasisChange(ConverterBase):
 
     # TODO see whether we should make this performant by handling ListOps of Paulis later.
     # pylint: disable=too-many-return-statements
-    def convert(self, operator: OperatorBase) -> OperatorBase:
-        r"""
-        Given a ``PauliOp``, or an Operator containing ``PauliOps`` if ``_traverse`` is True,
-        converts each Pauli into the basis specified by self._destination and a
-        basis-change-circuit, calls ``replacement_fn`` with these two Operators, and replaces
-        the ``PauliOps`` with the output of ``replacement_fn``. For example, for the built-in
-        ``operator_replacement_fn`` below, each PauliOp p will be replaced by the composition
-        of the basis-change Clifford ``CircuitOp`` c with the destination PauliOp d and c†,
-        such that p = c·d·c†, up to global phase.
 
-        Args:
-            operator: The Operator to convert.
+    @dispatch
+    def convert(self, operator: PauliSumOp):
+        return self.convert(operator.to_pauli_op())
 
-        Returns:
-            The converted Operator.
+    @dispatch.multi((Pauli,), (PrimitiveOp,))
+    def convert(self, operator):
+        cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator)
+        return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
 
-        """
+    @dispatch
+    def convert(self, operator: ListOp):
+        if self._traverse and \
+           'Pauli' in operator.primitive_strings():
+            # If ListOp is abelian we can find a single post-rotation circuit
+            # for the whole set. For now,
+            # assume operator can only be abelian if all elements are
+            # Paulis (enforced in AbelianGrouper).
+            if operator.abelian:
+                origin_pauli = self.get_tpb_pauli(operator)
+                cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
+                diag_ops = \
+                    [self.get_diagonal_pauli_op(op) for op in operator.oplist]  # type: ignore
+                dest_pauli_op = \
+                    operator.__class__(diag_ops, coeff=operator.coeff, abelian=True)  # type: ignore
+                return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
+            else:
+                return operator.traverse(self.convert)
+        else:
+            return operator
+
+    @dispatch
+    def convert(self, operator: OperatorStateFn):
+        if isinstance(operator.primitive, PauliSumOp):
+            if operator.primitive.grouping_type == "TPB":
+                primitive = operator.primitive.primitive.copy()
+                origin_x = reduce(np.logical_or, primitive.table.X)
+                origin_z = reduce(np.logical_or, primitive.table.Z)
+                origin_pauli = Pauli((origin_z, origin_x))
+                cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
+                primitive.table.Z = np.logical_or(primitive.table.X, primitive.table.Z)
+                primitive.table.X = False
+                dest_pauli_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
+                return self._replacement_fn(cob_instr_op, dest_pauli_op)
+
+            else:
+                operator = OperatorStateFn(
+                operator.primitive.to_pauli_op(),
+                coeff=operator.coeff,
+                is_measurement=operator.is_measurement
+                )
+
         if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, PauliSumOp)
-                and operator.primitive.grouping_type == "TPB"
-        ):
-            primitive = operator.primitive.primitive.copy()
-            origin_x = reduce(np.logical_or, primitive.table.X)
-            origin_z = reduce(np.logical_or, primitive.table.Z)
-            origin_pauli = Pauli((origin_z, origin_x))
-            cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
-            primitive.table.Z = np.logical_or(primitive.table.X, primitive.table.Z)
-            primitive.table.X = False
-            dest_pauli_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
-            return self._replacement_fn(cob_instr_op, dest_pauli_op)
-
-        if (
-                isinstance(operator, OperatorStateFn)
-                and isinstance(operator.primitive, SummedOp)
+                isinstance(operator.primitive, SummedOp)
                 and all(
                     isinstance(op, PauliSumOp) and op.grouping_type == "TPB"
                     for op in operator.primitive.oplist
@@ -160,20 +184,7 @@ class PauliBasisChange(ConverterBase):
             listop_of_statefns = SummedOp(oplist=sf_list, coeff=operator.coeff)
             return listop_of_statefns.traverse(self.convert)
 
-        if isinstance(operator, OperatorStateFn) and isinstance(operator.primitive, PauliSumOp):
-            operator = OperatorStateFn(
-                operator.primitive.to_pauli_op(),
-                coeff=operator.coeff,
-                is_measurement=operator.is_measurement
-            )
-
-        if isinstance(operator, PauliSumOp):
-            operator = operator.to_pauli_op()
-
-        if isinstance(operator, (Pauli, PrimitiveOp)):
-            cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator)
-            return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
-        if isinstance(operator, StateFn) and 'Pauli' in operator.primitive_strings():
+        if 'Pauli' in operator.primitive_strings():
             # If the StateFn/Meas only contains a Pauli, use it directly.
             if isinstance(operator.primitive, PrimitiveOp):
                 cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator.primitive)
@@ -194,24 +205,9 @@ class PauliBasisChange(ConverterBase):
                                                                       coeff=operator.coeff)
                     return listop_of_statefns.traverse(self.convert)
 
-        elif isinstance(operator, ListOp) and self._traverse and \
-                'Pauli' in operator.primitive_strings():
-            # If ListOp is abelian we can find a single post-rotation circuit
-            # for the whole set. For now,
-            # assume operator can only be abelian if all elements are
-            # Paulis (enforced in AbelianGrouper).
-            if operator.abelian:
-                origin_pauli = self.get_tpb_pauli(operator)
-                cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
-                diag_ops = \
-                    [self.get_diagonal_pauli_op(op) for op in operator.oplist]  # type: ignore
-                dest_pauli_op = \
-                    operator.__class__(diag_ops, coeff=operator.coeff, abelian=True)  # type: ignore
-                return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
-            else:
-                return operator.traverse(self.convert)
+        raise TypeError('Unable to convert operator')
 
-        return operator
+
 
     @staticmethod
     def measurement_replacement_fn(cob_instr_op: CircuitOp,
