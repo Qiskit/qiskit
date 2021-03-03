@@ -104,15 +104,9 @@ class CommutativeCancellation(TransformationPass):
                 for node in com_set:
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
-<<<<<<< HEAD
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ['z', 'u1', 'rz', 't', 's']:
-                        cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
-=======
-                        cancellation_sets[(node.name, wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['p', 'z', 'u1', 'rz', 't', 's']:
-                        cancellation_sets[('z_rotation', wire, com_set_idx)].append(node)
->>>>>>> 0d8575974... make commutative_cancellation basis aware (#5672)
+                        cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ['rx', 'x']:
                         cancellation_sets[('x_rotation', wire_name, com_set_idx)].append(node)
                     # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
