@@ -18,17 +18,27 @@ from ddt import ddt
 
 import numpy as np
 
-from qiskit import execute
+from qiskit import execute, QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate, UGate,
                                     XGate, YGate, ZGate, CXGate, CZGate,
-                                    iSwapGate, RXXGate)
+                                    iSwapGate, RXXGate, RXGate, RYGate, RZGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
+                                                               TwoQubitWeylIdEquiv,
+                                                               TwoQubitWeylSWAPEquiv,
+                                                               TwoQubitWeylPartialSWAPEquiv,
+                                                               TwoQubitWeylPartialSWAPFlipEquiv,
+                                                               TwoQubitWeylfSimaabEquiv,
+                                                               TwoQubitWeylfSimabbEquiv,
+                                                               TwoQubitWeylfSimabmbEquiv,
+                                                               TwoQubitWeylControlledEquiv,
+                                                               TwoQubitWeylMirrorControlledEquiv,
+                                                               TwoQubitWeylGeneral,
                                                                two_qubit_cnot_decompose,
                                                                TwoQubitBasisDecomposer,
                                                                Ud)
@@ -90,11 +100,24 @@ class CheckDecompositions(QiskitTestCase):
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Operator {}: Worst distance {}".format(operator, maxdist))
 
-    # FIXME: should be possible to set this tolerance tighter after improving the function
+    def check_oneq_special_cases(self, target, basis, expected_gates=None, tolerance=1.E-12,):
+        """Check OneQubitEulerDecomposer produces the expected gates"""
+        decomposer = OneQubitEulerDecomposer(basis)
+        circ = decomposer(target, simplify=True)
+        data = Operator(circ).data
+        maxdist = np.max(np.abs(target.data - data))
+        trace = np.trace(data.T.conj() @ target)
+        self.assertLess(np.abs(maxdist), tolerance,
+                        f"Worst case distance: {maxdist}, trace: {trace}\n"
+                        f"Target:\n{target}\nActual:\n{data}\n{circ}")
+        if expected_gates is not None:
+            self.assertDictEqual(dict(circ.count_ops()), expected_gates,
+                                 f"Circuit:\n{circ}")
+
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
-        decomp = TwoQubitWeylDecomposition(target_unitary)
+        decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
         for u, qs in (
                 (decomp.K2r, [0]),
@@ -106,9 +129,36 @@ class CheckDecompositions(QiskitTestCase):
             op = op.compose(u, qs)
         decomp_unitary = op.data
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-        self.assertTrue(np.abs(maxdist) < tolerance,
+        self.assertLess(np.abs(maxdist), tolerance,
                         f"{decomp}\nactual fid: {decomp.actual_fidelity()}\n"
                         f"Unitary {target_unitary}:\nWorst distance {maxdist}")
+
+    def check_two_qubit_weyl_specialization(self, target_unitary, fidelity,
+                                            expected_specialization, expected_gates):
+        """Check that the two qubit Weyl decomposition gets specialized as expected"""
+
+        # Loop to check both for implicit and explicity specialization
+        for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
+            decomp = decomposer(target_unitary, fidelity=fidelity)
+            self.assertEqual(np.max(np.abs(decomp.unitary_matrix - target_unitary)), 0,
+                             "Incorrect saved unitary in the decomposition.")
+            self.assertIsInstance(decomp, expected_specialization,
+                                  "Incorrect Weyl specialization.")
+            circ = decomp.circuit(simplify=True)
+            self.assertDictEqual(dict(circ.count_ops()), expected_gates,
+                                 f"Gate counts of {decomposer.__name__}")
+            actual_fid = decomp.actual_fidelity()
+            self.assertAlmostEqual(decomp.calculated_fidelity, actual_fid, places=13)
+            self.assertGreaterEqual(actual_fid, fidelity,
+                                    f"fidelity of {decomposer.__name__}")
+            actual_unitary = Operator(circ).data
+            trace = np.trace(actual_unitary.T.conj() @ target_unitary)
+            self.assertAlmostEqual(trace.imag, 0, places=13,
+                                   msg=f"Real trace for {decomposer.__name__}")
+        _ = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
+        if expected_specialization is not TwoQubitWeylGeneral:
+            with self.assertRaises(QiskitError):
+                _ = expected_specialization(target_unitary, fidelity=1.)
 
     def check_exact_decomposition(self, target_unitary, decomposer,
                                   tolerance=1.e-13, num_basis_uses=None):
@@ -145,8 +195,119 @@ class TestEulerAngles1Q(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
 
 
-ONEQ_BASES = ['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
-SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]
+class TestOneQubitEulerSpecial(CheckDecompositions):
+    """Test special cases for OneQubitEulerDecomposer.
+
+    FIXME: Currently these are more like smoke tests that exercise each of the code paths
+    and shapes of decompositions that can be made, but they don't check all the corner cases
+    where a wrap by 2*pi might happen, etc
+    """
+    def test_special_ZYZ(self):
+        """Special cases of ZYZ"""
+        self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, -0.1).to_matrix(), 'ZYZ', {})
+        self.check_oneq_special_cases(U3Gate(np.pi, 0.1, 0.2).to_matrix(), 'ZYZ',
+                                      {'rz': 2, 'ry': 1})
+        self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, 0.2).to_matrix(), 'ZYZ', {'rz': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 1.E-13).to_matrix(), 'ZYZ',
+                                      {'rz': 1, 'ry': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 1.E-13, 0.2).to_matrix(), 'ZYZ',
+                                      {'rz': 1, 'ry': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZYZ', {'rz': 2, 'ry': 1})
+
+    def test_special_ZXZ(self):
+        """Special cases of ZXZ"""
+        def myr(a, b, c):
+            return RZGate(b).to_matrix() @ RXGate(a).to_matrix() @ RZGate(c).to_matrix()
+        self.check_oneq_special_cases(myr(0.0, 0.1, -0.1), 'ZXZ', {})
+        self.check_oneq_special_cases(myr(np.pi, 0.1, 0.2), 'ZXZ', {'rz': 2, 'rx': 1})
+        self.check_oneq_special_cases(myr(0.0, 0.1, 0.2), 'ZXZ', {'rz': 1})
+        self.check_oneq_special_cases(myr(0.1, 0.2, 0.0), 'ZXZ', {'rz': 1, 'rx': 1})
+        self.check_oneq_special_cases(myr(0.1, 0.0, 0.2), 'ZXZ', {'rz': 1, 'rx': 1})
+        self.check_oneq_special_cases(myr(0.1, 0.2, 0.3), 'ZXZ', {'rz': 2, 'rx': 1})
+
+    def test_special_XYX(self):
+        """Special cases of XYX"""
+        def myr(a, b, c):
+            return RXGate(b).to_matrix() @ RYGate(a).to_matrix() @ RXGate(c).to_matrix()
+        self.check_oneq_special_cases(myr(0.0, 0.1, -0.1), 'XYX', {})
+        self.check_oneq_special_cases(myr(0.0, 0.1, 0.2), 'XYX', {'rx': 1})
+        self.check_oneq_special_cases(myr(-0.1, 0.2, 0.0), 'XYX', {'rx': 1, 'ry': 1})
+        self.check_oneq_special_cases(myr(-0.1, 0.0, 0.2), 'XYX', {'rx': 1, 'ry': 1})
+        self.check_oneq_special_cases(myr(0.1, 0.2, 0.3), 'XYX', {'rx': 2, 'ry': 1})
+
+    def test_special_U321(self):
+        """Special cases of U321"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U321', {})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.11, 0.2).to_matrix(), 'U321', {'u1': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.2, 0.0).to_matrix(), 'U321', {'u2': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.2).to_matrix(), 'U321', {'u2': 1})
+        self.check_oneq_special_cases(U3Gate(0.11, 0.27, 0.3).to_matrix(), 'U321', {'u3': 1})
+
+    def test_special_U3(self):
+        """Special cases of U3"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U3', {})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'U3', {'u3': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.2, 0.0).to_matrix(), 'U3', {'u3': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.2).to_matrix(), 'U3', {'u3': 1})
+        self.check_oneq_special_cases(U3Gate(0.11, 0.27, 0.3).to_matrix(), 'U3', {'u3': 1})
+
+    def test_special_U(self):
+        """Special cases of U"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U', {})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'U', {'u': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.2, 0.0).to_matrix(), 'U', {'u': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.2).to_matrix(), 'U', {'u': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'U', {'u': 1})
+
+    def test_special_RR(self):
+        """Special cases of RR"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'RR', {})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'RR', {'r': 2})
+        self.check_oneq_special_cases(U3Gate(-np.pi, 0.2, 0.0).to_matrix(), 'RR', {'r': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi, 0.0, 0.2).to_matrix(), 'RR', {'r': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'RR', {'r': 2})
+
+    def test_special_U1X(self):
+        """Special cases of U1X"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U1X', {'u1': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'U1X', {'u1': 1})
+        self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'U1X',
+                                      {'u1': 2, 'rx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.21).to_matrix(), 'U1X',
+                                      {'u1': 2, 'rx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.12, 0.2).to_matrix(), 'U1X',
+                                      {'u1': 2, 'rx': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'U1X', {'u1': 3, 'rx': 2})
+
+    def test_special_PSX(self):
+        """Special cases of PSX"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'PSX', {'p': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'PSX', {'p': 1})
+        self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'PSX',
+                                      {'p': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.21).to_matrix(), 'PSX',
+                                      {'p': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.12, 0.2).to_matrix(), 'PSX',
+                                      {'p': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'PSX', {'p': 3, 'sx': 2})
+
+    def test_special_ZSX(self):
+        """Special cases of ZSX"""
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'ZSX', {'rz': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'ZSX', {'rz': 1})
+        self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'ZSX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.21).to_matrix(), 'ZSX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.12, 0.2).to_matrix(), 'ZSX',
+                                      {'rz': 2, 'sx': 1})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZSX', {'rz': 3, 'sx': 2})
+
+
+ONEQ_BASES = ['U3', "U321", 'U', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
+SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]  # Please don't broaden the tolerance (fix the decomp)
+
+
 @ddt
 class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
@@ -349,6 +510,148 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
 
+K1K2Sb = [[Operator(U3Gate(*xyz)) for xyz in xyzs] for xyzs in
+          [[(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.1, 0.97, 2.2), (3.14, 2.1, 0.9)],
+           [(0.21, 0.13, 0.45), (2.1, 0.77, 0.88), (1.5, 2.3, 2.3), (2.1, 0.4, 1.7)]]]
+DELTAS = [(-0.019, 0.018, 0.021), (0.01, 0.015, 0.02), (-0.01, -0.009, 0.011),
+          (-0.002, -0.003, -0.004)]
+
+
+class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
+    """Check TwoQubitWeylDecomposition specialized subclasses"""
+
+    def test_weyl_specialize_id(self):
+        """Weyl specialization for Id gate"""
+        a, b, c = 0., 0., 0.
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylIdEquiv,
+                                                         {'rz': 4, 'ry': 2})
+
+    def test_weyl_specialize_swap(self):
+        """Weyl specialization for swap gate"""
+        a, b, c = np.pi/4, np.pi/4, np.pi/4
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylSWAPEquiv,
+                                                         {'rz': 4, 'ry': 2,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_flip_swap(self):
+        """Weyl specialization for flip swap gate"""
+        a, b, c = np.pi/4, np.pi/4, -np.pi/4
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylSWAPEquiv,
+                                                         {'rz': 4, 'ry': 2,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_pswap(self, theta=0.123):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = theta, theta, theta
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylPartialSWAPEquiv,
+                                                         {'rz': 6, 'ry': 3,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_flip_pswap(self, theta=0.123):
+        """Weyl specialization for flipped partial swap gate"""
+        a, b, c = theta, theta, -theta
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylPartialSWAPFlipEquiv,
+                                                         {'rz': 6, 'ry': 3,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_fsim_aab(self, aaa=0.456, bbb=0.132):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = aaa, aaa, bbb
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylfSimaabEquiv,
+                                                         {'rz': 7, 'ry': 4,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_fsim_abb(self, aaa=0.456, bbb=0.132):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = aaa, bbb, bbb
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylfSimabbEquiv,
+                                                         {'rx': 7, 'ry': 4,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_fsim_abmb(self, aaa=0.456, bbb=0.132):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = aaa, bbb, -bbb
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylfSimabmbEquiv,
+                                                         {'rx': 7, 'ry': 4,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_ctrl(self, aaa=0.456):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = aaa, 0., 0.
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylControlledEquiv,
+                                                         {'rx': 6, 'ry': 4,
+                                                          'rxx': 1})
+
+    def test_weyl_specialize_mirror_ctrl(self, aaa=-0.456):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = np.pi/4, np.pi/4, aaa
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylMirrorControlledEquiv,
+                                                         {'rz': 6, 'ry': 4,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+    def test_weyl_specialize_general(self, aaa=0.456, bbb=0.345, ccc=0.123):
+        """Weyl specialization for partial swap gate"""
+        a, b, c = aaa, bbb, ccc
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2Sb:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
+                                                         0.999, TwoQubitWeylGeneral,
+                                                         {'rz': 8, 'ry': 4,
+                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+
+
 @ddt
 class TestTwoQubitDecomposeExact(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact decompositions
@@ -455,7 +758,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_phase = state.random() * 2 * np.pi
 
-        tgt_a, tgt_b, tgt_c = state.random(size=3) * np.pi / 4
+        tgt_a, tgt_b = state.random(size=2) * np.pi / 4
+        tgt_c = state.random() * np.pi/2 - np.pi/4
         tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a, tgt_b, tgt_c) @ tgt_k2
         self.check_exact_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
 
@@ -592,7 +896,93 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
                 decomposition_basis.issubset(requested_basis))
 
 
-# FIXME: need to write tests for the approximate decompositions
+@ddt
+class TestTwoQubitDecomposeApprox(CheckDecompositions):
+    """Smoke tests for approximate decompositions"""
+
+    def check_approx_decomposition(self, target_unitary, decomposer, num_basis_uses):
+        """Check approx decomposition for a particular target"""
+        decomp_circuit = decomposer(target_unitary, num_basis_uses=num_basis_uses)
+        self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get('unitary', 0))
+        # Now check the fidelity?
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_approx_supercontrolled_decompose_phase_0_use_random(self, seed, delta=0.01):
+        """Approx decomposition supercontrolled basis, random target (0 basis uses) (seed={seed})
+        """
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = 0.4  # how to safely randomize?
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        d1, d2, d3 = state.random(size=3) * delta
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(d1, d2, d3) @ tgt_k2
+        self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=0)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_approx_supercontrolled_decompose_phase_1_use_random(self, seed, delta=0.01):
+        """Approximate decomposition supercontrolled basis, random tgt (1 basis uses) (seed={seed})
+        """
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = 0.4  # how to safely randomize?
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        d1, d2, d3 = state.random(size=3) * delta
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(np.pi / 4-d1, basis_b+d2, d3) @ tgt_k2
+        self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=1)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_approx_supercontrolled_decompose_phase_2_use_random(self, seed, delta=0.01):
+        """Approximate decomposition supercontrolled basis, random tgt (2 basis uses) (seed={seed})
+        """
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = 0.4  # how to safely randomize?
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        tgt_a, tgt_b = 0.3, 0.2  # how to safely randomize?
+        d1, d2, d3 = state.random(size=3) * delta
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a+d1, tgt_b+d2, d3) @ tgt_k2
+        self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=2)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_approx_supercontrolled_decompose_phase_3_use_random(self, seed, delta=0.01):
+        """Approximate decomposition supercontrolled basis, random tgt (3 basis uses) (seed={seed})
+        """
+        state = np.random.default_rng(seed)
+        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        basis_phase = state.random() * 2 * np.pi
+        basis_b = state.random() * np.pi / 4
+        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+
+        tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
+        tgt_phase = state.random() * 2 * np.pi
+        tgt_a, tgt_b, tgt_c = 0.5, 0.4, 0.3
+        d1, d2, d3 = state.random(size=3) * delta
+        tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a+d1, tgt_b+d2, tgt_c+d3) @ tgt_k2
+        self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
 
 
 if __name__ == '__main__':
