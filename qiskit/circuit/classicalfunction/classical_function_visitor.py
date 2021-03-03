@@ -15,10 +15,9 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 """
 
 import ast
-from .utils import HAS_TWEEDLEDUM
-if HAS_TWEEDLEDUM:
-    from tweedledum.classical import LogicNetwork  # pylint: disable=no-name-in-module
 import _ast
+
+from .utils import HAS_TWEEDLEDUM
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
 
