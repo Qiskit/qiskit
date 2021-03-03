@@ -44,7 +44,6 @@ class TestPhaseOracle(QiskitTestCase):
     @unpack
     def test_statevector(self, expression, good_states):
         """Circuit generation"""
-        print(expression)
         oracle = PhaseOracle(expression)
         num_qubits = oracle.num_qubits
         circuit = QuantumCircuit(num_qubits)
@@ -61,7 +60,6 @@ class TestPhaseOracle(QiskitTestCase):
 
         expected_invalid = [state not in good_states for state in states]
         result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
-        print(expression, '---')
         self.assertListEqual(expected_valid, result_valid)
         self.assertListEqual(expected_invalid, result_invalid)
 

@@ -14,16 +14,10 @@
 
 import ast
 
-try:
-    import tweedledum  # pylint: disable=unused-import
-
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
 from qiskit.circuit import quantumregister
 from qiskit.circuit import gate
 from qiskit.exceptions import QiskitError
-from .utils import tweedledum2qiskit
+from .utils import HAS_TWEEDLEDUM
 from .classical_function_visitor import ClassicalFunctionVisitor
 
 
@@ -141,6 +135,7 @@ class ClassicalFunction(gate.Gate):
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
         """
+        from .utils import tweedledum2qiskit
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
 
         if registerless:

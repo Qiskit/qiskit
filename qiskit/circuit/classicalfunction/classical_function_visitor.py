@@ -15,11 +15,9 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 """
 
 import ast
-try:
+from .utils import HAS_TWEEDLEDUM
+if HAS_TWEEDLEDUM:
     from tweedledum.classical import LogicNetwork  # pylint: disable=no-name-in-module
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
 import _ast
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
@@ -55,6 +53,12 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         """The function definition should have type hints"""
+        if HAS_TWEEDLEDUM:
+            from tweedledum.classical import LogicNetwork  # pylint: disable=no-name-in-module
+        else:
+            raise ImportError("To use the classicalfunction compiler, tweedledum "
+                              "must be installed. To install tweedledum run "
+                              '"pip install tweedledum".')
         if node.returns is None:
             raise ClassicalFunctionParseError("return type is needed")
         scope = {'return': (node.returns.id, None), node.returns.id: ('type', None)}

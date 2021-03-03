@@ -15,7 +15,7 @@
 from os.path import basename
 
 from qiskit.circuit import Gate
-from .classicalfunction import HAS_TWEEDLEDUM
+from .utils import HAS_TWEEDLEDUM
 
 
 class BooleanExpression(Gate):

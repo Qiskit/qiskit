@@ -12,8 +12,13 @@
 
 """Internal utils for Classical Function Compiler"""
 
-from tweedledum.ir import WireRef  # pylint: disable=no-name-in-module
-from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
+try:
+    from tweedledum.ir import WireRef  # pylint: disable=no-name-in-module
+    from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
+    HAS_TWEEDLEDUM = True
+except Exception:  # pylint: disable=broad-except
+    HAS_TWEEDLEDUM = False
+
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate, SwapGate, TGate, TdgGate,
@@ -40,8 +45,6 @@ def _convert_tweedledum_operator(op):
         ctrl_state = ''
         for qubit in qubits[:op.num_controls()]:
             ctrl_state += '{}'.format(int(qubit.polarity() == WireRef.Polarity.positive))
-        print('base_gate', base_gate)
-        print('ctrl_state', ctrl_state)
         return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
     return base_gate()
 
@@ -70,6 +73,5 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
     for instruction in parity_decomp(tweedledum_circuit):
         gate = _convert_tweedledum_operator(instruction)
         qubits = [qubit.uid() for qubit in instruction.qubits()]
-        print(gate.name, qubits)
         qiskit_qc.append(gate, qubits)
     return qiskit_qc
