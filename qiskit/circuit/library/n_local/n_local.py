@@ -14,12 +14,14 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+import functools
+import warnings
 
 import numpy
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, _compare_parameters
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterTable, ParameterView
 from qiskit.utils.deprecation import deprecate_arguments
 
 from ..blueprintcircuit import BlueprintCircuit
@@ -126,7 +128,7 @@ class NLocal(BlueprintCircuit):
         self._appended_entanglement = []
         self._entanglement = None
         self._entangler_maps = None
-        self._ordered_parameters = ParameterVector(name=parameter_prefix)
+        self._parameters = ParameterVector(name=parameter_prefix)
         self._overwrite_block_parameters = overwrite_block_parameters
         self._skip_final_rotation_layer = skip_final_rotation_layer
         self._skip_unentangled_qubits = skip_unentangled_qubits
@@ -330,6 +332,12 @@ class NLocal(BlueprintCircuit):
             if raise_on_failure:
                 raise ValueError('The blocks are not set.')
 
+        if not isinstance(self._parameters, ParameterVector):
+            if len(self._parameters) != self.num_parameters_settable:
+                if raise_on_failure:
+                    raise ValueError('The number of parameters does not match the number of '
+                                     'gate parameters.')
+
         return valid
 
     @property
@@ -353,11 +361,17 @@ class NLocal(BlueprintCircuit):
         Returns:
             The parameters objects used in the circuit.
         """
-        if isinstance(self._ordered_parameters, ParameterVector):
-            self._ordered_parameters.resize(self.num_parameters_settable)
-            return list(self._ordered_parameters)
+        warnings.warn(f'The {self.__class__.__name__}.ordered_parameters property is deprecated as '
+                      'of Qiskit Terra 0.17.0 and will be removed no earlier than 3 months after '
+                      'the release date. All circuit parameters are ordered now and you can just '
+                      f'use {self.__class__.__name__}.parameters instead.',
+                      DeprecationWarning, stacklevel=2)
 
-        return self._ordered_parameters
+        if isinstance(self._parameters, ParameterVector):
+            self._parameters.resize(self.num_parameters_settable)
+            return list(self._parameters)
+
+        return self._parameters
 
     @ordered_parameters.setter
     def ordered_parameters(self, parameters: Union[ParameterVector, List[Parameter]]) -> None:
@@ -371,13 +385,19 @@ class NLocal(BlueprintCircuit):
                 parameters in the circuit and they are not a ``ParameterVector`` (which could
                 be resized to fit the number of parameters).
         """
+        warnings.warn(f'The {self.__class__.__name__}.ordered_parameters property is deprecated as '
+                      'of Qiskit Terra 0.17.0 and will be removed no earlier than 3 months after '
+                      'the release date. To assign new parameters please use the '
+                      'assign_parameters method, which also accepts a list of parameters.',
+                      DeprecationWarning, stacklevel=2)
+
         if not isinstance(parameters, ParameterVector) \
                 and len(parameters) != self.num_parameters_settable:
             raise ValueError('The length of ordered parameters must be equal to the number of '
                              'settable parameters in the circuit ({}), but is {}'.format(
                                  self.num_parameters_settable, len(parameters)
                              ))
-        self._ordered_parameters = parameters
+        self._parameters = parameters
         self._invalidate()
 
     @property
@@ -457,14 +477,16 @@ class NLocal(BlueprintCircuit):
         return num
 
     @property
-    def parameters(self) -> Set[Parameter]:
+    def parameters(self) -> ParameterView:
         """Get the :class:`~qiskit.circuit.Parameter` objects in the circuit.
 
         Returns:
             A set containing the unbound circuit parameters.
         """
-        self._build()
-        return super().parameters
+        if self._data is None:
+            self._build()
+        name_sorted = sorted(self._parameters, key=functools.cmp_to_key(_compare_parameters))
+        return ParameterView(name_sorted)
 
     @property
     def reps(self) -> int:
@@ -726,7 +748,7 @@ class NLocal(BlueprintCircuit):
 
             layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
-                params = self.ordered_parameters[-len(get_parameters(block)):]
+                params = self.parameters[-len(get_parameters(block)):]
                 parameterized_block = self._parameterize_block(block, params=params)
                 layer.compose(parameterized_block, i)
 
@@ -760,31 +782,20 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(parameters, dict):
-            if len(parameters) != self.num_parameters:
-                raise AttributeError('If the parameters are provided as list, the size must match '
-                                     'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(parameters)
-                                     ))
-            unbound_parameters = [param for param in self._ordered_parameters if
-                                  isinstance(param, ParameterExpression)]
+        result = super().assign_parameters(parameters, inplace=inplace)
 
-            # to get a sorted list of unique parameters, keep track of the already used parameters
-            # in a set and add the parameters to the unique list only if not existing in the set
-            used = set()
-            unbound_unique_parameters = []
-            for param in unbound_parameters:
-                if param not in used:
-                    unbound_unique_parameters.append(param)
-                    used.add(param)
+        dest = self if inplace else result
 
-            parameters = dict(zip(unbound_unique_parameters, parameters))
+        if isinstance(parameters, dict):
+            new_params = set(parameters.get(param, param) for param in dest._parameters
+                             if isinstance(param, ParameterExpression))
+            dest._parameters = set(param for param in new_params
+                                   if isinstance(param, ParameterExpression))
+        else:
+            dest._parameters = set(param for param in parameters
+                                   if isinstance(param, ParameterExpression))
 
-        if inplace:
-            new = [parameters.get(param, param) for param in self.ordered_parameters]
-            self._ordered_parameters = new
-
-        return super().assign_parameters(parameters, inplace=inplace)
+        return result
 
     def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None,
                             indices=None, params=None):
@@ -886,7 +897,10 @@ class NLocal(BlueprintCircuit):
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
             self += circuit
 
-        param_iter = iter(self.ordered_parameters)
+        if isinstance(self._parameters, ParameterVector):
+            self._parameters.resize(self.num_parameters_settable)
+
+        param_iter = iter(self.parameters)
 
         # build the prepended layers
         self._build_additional_layers('prepended')
