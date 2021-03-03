@@ -127,7 +127,7 @@ class TwoQubitWeylDecomposition():
         cls.__new__ = (lambda cls, *a, fidelity=None, **k:
                        TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, **k))
 
-    def __new__(cls, unitary_matrix, fidelity=(1.-1.E-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.-1.E-9)):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -290,7 +290,7 @@ class TwoQubitWeylDecomposition():
         self.K1l, self.K1r = od.K1l, od.K1r
         self.K2l, self.K2r = od.K2l, od.K2r
         self.global_phase = od.global_phase
-        self.unitary_matrix = unitary_matrix
+        self.unitary_matrix = unitary_matrix.copy()
         self.requested_fidelity = fidelity
         self._is_flipped_from_original = False
         self.specialize()
@@ -305,8 +305,12 @@ class TwoQubitWeylDecomposition():
         self.global_phase += np.angle(tr)
         self.calculated_fidelity = trace_to_fid(tr)
         if logger.isEnabledFor(logging.DEBUG):
+            actual_fidelity = self.actual_fidelity()
             logger.debug("Requested fidelity: %s calculated fidelity: %s actual fidelity %s",
-                         self.requested_fidelity, self.calculated_fidelity, self.actual_fidelity())
+                         self.requested_fidelity, self.calculated_fidelity, actual_fidelity)
+            if abs(self.calculated_fidelity - actual_fidelity) > 1.E-12:
+                logger.warning("Requested fidelity different from actual by %s",
+                               self.calculated_fidelity - actual_fidelity)
         if self.requested_fidelity and self.calculated_fidelity + 1.E-13 < self.requested_fidelity:
             raise QiskitError(f"{self.__class__.__name__}: "
                               f"calculated fidelity: {self.calculated_fidelity} "
@@ -342,8 +346,6 @@ class TwoQubitWeylDecomposition():
         """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
-        if abs(np.imag(trace)) > 1.E-13:
-            logger.warning("Trace has a non-zero imaginary component: %s", trace)
         return trace_to_fid(trace)
 
     def __repr__(self):
