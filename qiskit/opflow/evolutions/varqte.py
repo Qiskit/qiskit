@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -261,29 +261,29 @@ class VarQTE(EvolutionBase):
 
         if not self._faster:
             # # VarQRTE
-            # if np.iscomplex(self._operator.coeff):
-            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-            #                                      qfi_method=self._qfi_method,
-            #                                      regularization=self._regularization
-            #                                     ).convert(self._operator * 0.5, self._parameters)
-            # # VarQITE
-            # else:
-            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-            #                                      qfi_method=self._qfi_method,
-            #                                      regularization=self._regularization
-            #                                      ).convert(self._operator * -0.5, self._parameters)
-            # VarQRTE
             if np.iscomplex(self._operator.coeff):
                 self._nat_grad = NaturalGradient(grad_method=self._grad_method,
                                                  qfi_method=self._qfi_method,
                                                  regularization=self._regularization
-                                                ).convert(self._operator, self._parameters)
+                                                ).convert(self._operator * 0.5, self._parameters)
             # VarQITE
             else:
                 self._nat_grad = NaturalGradient(grad_method=self._grad_method,
                                                  qfi_method=self._qfi_method,
                                                  regularization=self._regularization
-                                                 ).convert(self._operator * -1, self._parameters)
+                                                 ).convert(self._operator * -0.5, self._parameters)
+            # VarQRTE
+            # if np.iscomplex(self._operator.coeff):
+            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+            #                                      qfi_method=self._qfi_method,
+            #                                      regularization=self._regularization
+            #                                     ).convert(self._operator, self._parameters)
+            # # VarQITE
+            # else:
+            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
+            #                                      qfi_method=self._qfi_method,
+            #                                      regularization=self._regularization
+            #                                      ).convert(self._operator * -1, self._parameters)
 
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
 
@@ -346,7 +346,7 @@ class VarQTE(EvolutionBase):
             # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
             #                        ftol=1e-10)
             argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-                              method='CG', tol=1e-8)
+                              method='CG', tol=1e-6)
             print('initial natural gradient result', nat_grad_result)
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -394,8 +394,7 @@ class VarQTE(EvolutionBase):
 
         if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=self._parameter_values,
-                                              n=self._num_time_steps, atol=1e-6,
-                                              first_step=0.1)
+                                              n=self._num_time_steps, atol=1e-8)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
@@ -605,30 +604,30 @@ class VarQTE(EvolutionBase):
             metric_res = v @ np.diag(w) @ np.linalg.inv(v)
 
         if self._faster:
-            # if np.iscomplex(self._operator.coeff):
-            #     # VarQRTE
-            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * 0.5,
-            #                                                            metric_res],
-            #                                                         regularization=
-            #                                                         self._regularization)
-            # else:
-            #     # VarQITE
-            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -0.5,
-            #                                                            metric_res],
-            #                                                         regularization=
-            #                                                         self._regularization)
             if np.iscomplex(self._operator.coeff):
                 # VarQRTE
-                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res,
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * 0.5,
                                                                        metric_res],
                                                                     regularization=
                                                                     self._regularization)
             else:
                 # VarQITE
-                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -1,
+                nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -0.5,
                                                                        metric_res],
                                                                     regularization=
                                                                     self._regularization)
+            # if np.iscomplex(self._operator.coeff):
+            #     # VarQRTE
+            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res,
+            #                                                            metric_res],
+            #                                                         regularization=
+            #                                                         self._regularization)
+            # else:
+            #     # VarQITE
+            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -1,
+            #                                                            metric_res],
+            #                                                         regularization=
+            #                                                         self._regularization)
             print('nat grad result', nat_grad_result)
         else:
             if self._backend is not None:
@@ -767,14 +766,15 @@ class VarQTE(EvolutionBase):
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                         label='error bound')
             plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
-            if imag_reverse_bound:
-                plt.scatter(time, reverse_bounds, color='green', marker='o', s=40,
-                            label='reverse error bound')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
+            if imag_reverse_bound:
+                plt.scatter(time, reverse_bounds, color='green', marker='o', s=40,
+                            label='reverse error bound')
+                plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
             plt.close()
 
 

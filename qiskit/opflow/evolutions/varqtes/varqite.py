@@ -274,7 +274,8 @@ class VarQITE(VarQTE):
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q
-        grad_eps_squared += np.dot(metric, ng_res)
+        grad_eps_squared += np.dot(metric, ng_res) + np.dot(np.diag(np.diag(metric)),
+                                                            np.power(ng_res, 2))
         # 2Re⟨dωψ(ω)|H | ψ(ω)〉
         grad_eps_squared += grad_res
         return np.real(grad_eps_squared)
@@ -308,7 +309,6 @@ class VarQITE(VarQTE):
                                        ) * 0.5 * dt)
         print('Error bounds ', e_bound)
         return e_bound
-
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:

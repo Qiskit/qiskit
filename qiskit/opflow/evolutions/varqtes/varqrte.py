@@ -206,15 +206,19 @@ class VarQRTE(VarQTE):
         h_squared = np.real(h_squared.eval())
 
         eps_squared += h_squared
+        print('hsquared', h_squared)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
+        print('dtdt', dtdt_state)
         eps_squared += dtdt_state
 
         # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)
         # 2 missing b.c. of Im
         imgrad2 = self._inner_prod(grad_res, ng_res)
+        print('imgrad 2', imgrad2)
         eps_squared -= imgrad2
+        print('eps squared', eps_squared)
         return np.real(eps_squared), h_squared, dtdt_state, imgrad2 * 0.5
 
     def _grad_error_t(self,
@@ -236,7 +240,8 @@ class VarQRTE(VarQTE):
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q
-        grad_eps_squared += np.dot(metric, ng_res)
+        grad_eps_squared += np.dot(metric, ng_res) + np.dot(np.diag(np.diag(metric)),
+                                                            np.power(ng_res, 2))
 
         # 2Im⟨dωψ(ω)|H | ψ(ω)〉
         grad_eps_squared = grad_res
