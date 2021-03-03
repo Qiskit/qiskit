@@ -18,7 +18,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterTable
 
 
-class BlueprintCircuit(QuantumCircuit, ABC):
+class BlueprintCircuit(QuantumCircuit):
     """Blueprint circuit object.
 
     In many applications it is necessary to pass around the structure a circuit will have without
