@@ -170,11 +170,16 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
+<<<<<<< HEAD
     if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
                         'u3' in basis_gates):
         _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
     else:
         _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+=======
+    _opt = [Optimize1qGatesDecomposition(basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates)]
+>>>>>>> 0d8575974... make commutative_cancellation basis aware (#5672)
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
