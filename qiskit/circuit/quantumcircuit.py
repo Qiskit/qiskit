@@ -323,25 +323,6 @@ class QuantumCircuit(metaclass=plum.Referentiable(abc.ABCMeta)):
     def has_register(self, register: ClassicalRegister):
         return register in self.cregs
 
-    # def has_register(self, register):
-    #     """
-    #     Test if this circuit has the register r.
-
-    #     Args:
-    #         register (Register): a quantum or classical register.
-
-    #     Returns:
-    #         bool: True if the register is contained in this circuit.
-    #     """
-    #     has_reg = False
-    #     if (isinstance(register, QuantumRegister) and
-    #             register in self.qregs):
-    #         has_reg = True
-    #     elif (isinstance(register, ClassicalRegister) and
-    #           register in self.cregs):
-    #         has_reg = True
-    #     return has_reg
-
     def reverse_ops(self):
         """Reverse the circuit by reversing the order of instructions.
 

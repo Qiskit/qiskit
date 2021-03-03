@@ -13,7 +13,7 @@
 """Blueprint circuit object."""
 
 from typing import Optional
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterTable
 
@@ -41,7 +41,7 @@ class BlueprintCircuit(QuantumCircuit):
         self._cregs = []
         self._qubits = []
 
-    @abstractmethod
+
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration allows the circuit to be built.
 
