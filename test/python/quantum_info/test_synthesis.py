@@ -90,7 +90,6 @@ class CheckDecompositions(QiskitTestCase):
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Operator {}: Worst distance {}".format(operator, maxdist))
 
-    # FIXME: should be possible to set this tolerance tighter after improving the function
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
@@ -145,8 +144,11 @@ class TestEulerAngles1Q(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
 
 
+# Please think at least 3 times before making tolerances wider.
+# We want to avoid introducing inaccuracy that can build up.
 ONEQ_BASES = ['U3', 'U1X', 'PSX', 'ZSX', 'ZYZ', 'ZXZ', 'XYX', 'RR']
 SIMP_TOL = [(False, 1.e-14), (True, 1.E-12)]
+
 @ddt
 class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
@@ -350,10 +352,9 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
 
 
 @ddt
-class TestTwoQubitDecomposeExact(CheckDecompositions):
-    """Test TwoQubitBasisDecomposer() for exact decompositions
+class TestTwoQubitDecompose(CheckDecompositions):
+    """Test TwoQubitBasisDecomposer() for exact/approx decompositions
     """
-
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
         cnot = Operator(CXGate())
@@ -378,18 +379,8 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         unitary = Operator.from_label('XZ')
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
-    @combine(seed=range(10), name='test_exact_supercontrolled_decompose_random_{seed}')
-    def test_exact_supercontrolled_decompose_random(self, seed):
-        """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
-        k1 = np.kron(random_unitary(2, seed=seed).data, random_unitary(2, seed=seed + 1).data)
-        k2 = np.kron(random_unitary(2, seed=seed + 2).data, random_unitary(2, seed=seed + 3).data)
-        basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
-        self.check_exact_decomposition(random_unitary(4, seed=seed + 4).data, decomposer)
-
-    @combine(seed=range(10), name='seed_{seed}')
-    def test_exact_supercontrolled_decompose_phase_0_use_random(self, seed):
-        """Exact decomposition supercontrolled basis, random target (0 basis uses) (seed={seed})"""
+    def make_random_supercontrolled_decomposer(self, seed):
+        """Return a random supercontrolled unitary given a seed"""
         state = np.random.default_rng(seed)
         basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -397,6 +388,21 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         basis_b = state.random() * np.pi / 4
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        return decomposer
+        
+    @combine(seed=range(10), name='test_exact_supercontrolled_decompose_random_{seed}')
+    def test_exact_supercontrolled_decompose_random(self, seed):
+        """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
+        # pylint: disable=invalid-name
+        state = np.random.default_rng(seed)
+        decomposer = self.make_random_supercontrolled_decomposer(state)
+        self.check_exact_decomposition(random_unitary(4, seed=state).data, decomposer)
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_exact_supercontrolled_decompose_phase_0_use_random(self, seed):
+        """Exact decomposition supercontrolled basis, random target (0 basis uses) (seed={seed})"""
+        state = np.random.default_rng(seed)
+        decomposer = self.make_random_supercontrolled_decomposer(state)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -426,12 +432,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_exact_supercontrolled_decompose_phase_2_use_random(self, seed):
         """Exact decomposition supercontrolled basis, random tgt (2 basis uses) (seed={seed})"""
         state = np.random.default_rng(seed)
-        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
-        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
-        basis_phase = state.random() * 2 * np.pi
-        basis_b = state.random() * np.pi / 4
-        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = self.make_random_supercontrolled_decomposer(state)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -444,12 +445,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_exact_supercontrolled_decompose_phase_3_use_random(self, seed):
         """Exact decomposition supercontrolled basis, random tgt (3 basis uses) (seed={seed})"""
         state = np.random.default_rng(seed)
-        basis_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
-        basis_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
-        basis_phase = state.random() * 2 * np.pi
-        basis_b = state.random() * np.pi / 4
-        basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = self.make_random_supercontrolled_decomposer(state)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -463,6 +459,26 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         """Check that the nonsupercontrolled basis throws a warning"""
         with self.assertWarns(UserWarning, msg="Supposed to warn when basis non-supercontrolled"):
             TwoQubitBasisDecomposer(UnitaryGate(Ud(np.pi / 4, 0.2, 0.1)))
+
+    @combine(seed=range(10), name='seed_{seed}')
+    def test_approx_supercontrolled_decompose_random(self, seed):
+        """Check that n-uses of supercontrolled basis give the expected trace distance"""
+        state = np.random.default_rng(seed)
+        decomposer = self.make_random_supercontrolled_decomposer(state)
+
+        tgt_phase = state.random() * 2 * np.pi
+        tgt = random_unitary(4, seed=state).data
+        tgt *= np.exp(1j * tgt_phase)
+
+        traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
+        
+        for i in range(4):
+            decomp_circuit = decomposer(tgt, num_basis_uses=i)
+            result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
+            decomp_unitary = result.get_unitary()
+            tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
+            self.assertAlmostEqual(traces_pred[i], tr_actual, places=13,
+                msg=f"Trace doesn't match for {i}-basis decomposition")
 
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity
@@ -590,10 +606,6 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(
                 decomposition_basis.issubset(requested_basis))
-
-
-# FIXME: need to write tests for the approximate decompositions
-
 
 if __name__ == '__main__':
     unittest.main()
