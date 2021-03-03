@@ -31,7 +31,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
         Args:
             all_measurement (bool): If `True` (default is `False`)`, the SWAP to be removed
-                 has to be measure on both wires. Otherwise, it stays.
+                 has to be measured on both wires. Otherwise, it stays.
             move_swap (bool): If `True`, it moves the swap gate behind the measures instead of
                  removing it.
         """
