@@ -12,7 +12,7 @@
 
 """The Variational Quantum Imaginary Time Evolution"""
 
-from typing import List, Union, Dict, Iterable, Tuple, Any
+from typing import List, Union, Dict, Iterable, Tuple, Any, Optional
 import warnings
 
 import numpy as np
@@ -283,7 +283,10 @@ class VarQITE(VarQTE):
     def _get_error_bound(self,
                          gradient_errors: List,
                          time_steps: List,
-                         stddevs: List) -> List:
+                         stddevs: List,
+                         use_integral_approx: bool = True,
+                         imag_reverse_bound: bool = True,
+                         H: Optional[Union[List, np.ndarray]] = None) -> List:
 
         if not len(gradient_errors) == len(time_steps) + 1:
             print(gradient_errors)
@@ -292,23 +295,53 @@ class VarQITE(VarQTE):
                           'the time steps.')
         gradient_error_factors = []
         for j, dt in enumerate(time_steps):
-            stddev_factor = 0
+            if use_integral_approx:
+                stddev_factor = 0
+            else:
+                stddev_factor = 1
             for k in range(j, len(time_steps)):
-                stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
+                if use_integral_approx:
+                    stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
+                else:
+                    stddev_factor *= (1 + 2 * time_steps[k] * stddevs[k])
             gradient_error_factors.append(stddev_factor)
         gradient_error_factors.append(0)
 
         print('Error factors ', gradient_error_factors)
         print('Gradient Errors', gradient_errors)
 
-        e_bound = [0]
+        e_bounds = [0]
         for j, dt in enumerate(time_steps):
-            e_bound.append(e_bound[j]+(gradient_errors[j] * np.exp(2*gradient_error_factors[j])
-                                       + gradient_errors[j + 1] *
-                                       np.exp(2*gradient_error_factors[j + 1])
-                                       ) * 0.5 * dt)
-        print('Error bounds ', e_bound)
-        return e_bound
+            if use_integral_approx:
+                e_bounds.append(e_bounds[j]+(gradient_errors[j] * np.exp(2*gradient_error_factors[j])
+                                           + gradient_errors[j + 1] *
+                                           np.exp(2*gradient_error_factors[j + 1])
+                                           ) * 0.5 * dt)
+            else:
+                e_bounds.append(e_bounds[j] + (gradient_errors[j] * gradient_error_factors[j]) * dt)
+        print('Error bounds ', e_bounds)
+
+        if imag_reverse_bound:
+            if H is None:
+                raise Warning('Please support the respective Hamiltonian.')
+            eigvals = sorted(list(set(np.linalg.eigvals(H))))
+            e0 = eigvals[0]
+            e1 = eigvals[1]
+            reverse_bounds = np.zeros(len(e_bounds))
+            reverse_bounds[-1] = stddevs[-1] / (e1 - e0)
+            for j, dt in enumerate(time_steps):
+                if use_integral_approx:
+                    reverse_bounds[-j] = reverse_bounds[-(j+1)] - (gradient_errors[-j] * np.exp(2 *
+                                                                       gradient_error_factors[-j])
+                                      + gradient_errors[-(j + 1)] *
+                                      np.exp(2 * gradient_error_factors[-(j + 1)])) * 0.5 * \
+                                         time_steps[-j]
+                else:
+                    reverse_bounds[-j] = reverse_bounds[-(j + 1)] - \
+                                        (gradient_errors[-j] * gradient_error_factors[-j]) * \
+                                         time_steps[-j]
+            return e_bounds, reverse_bounds
+        return e_bounds
 
     def _exact_state(self,
                      time: Union[float, complex]) -> Iterable:

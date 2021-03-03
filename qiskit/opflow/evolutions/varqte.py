@@ -140,7 +140,7 @@ class VarQTE(EvolutionBase):
         self._storage_params_tbd = None
 
         self._exact_euler_state = None
-
+        self._store_now = False
 
     @abstractmethod
     def convert(self,
@@ -193,7 +193,10 @@ class VarQTE(EvolutionBase):
         raise NotImplementedError
 
     def error_bound(self,
-                    data_dir: str) -> List:
+                    data_dir: str,
+                    use_integral_approx: bool = True,
+                    imag_reverse_bound: bool = True,
+                    H: Optional[Union[List, np.ndarray]] = None) -> List:
         # Read data
         # if time already in data skip
         with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
@@ -232,7 +235,12 @@ class VarQTE(EvolutionBase):
         for j in range(len(time)-1):
             time_steps.append(time[j+1]-time[j])
 
-        e_bound = self._get_error_bound(grad_errors, time_steps, stddevs)
+        if not np.iscomplex(self._operator.coeff):
+            e_bound = self._get_error_bound(grad_errors, time_steps, stddevs,
+                                            use_integral_approx, imag_reverse_bound, H)
+
+        else:
+            e_bound = self._get_error_bound(grad_errors, time_steps, stddevs, use_integral_approx)
         return e_bound
 
     def _init_grad_objects(self):
@@ -346,7 +354,7 @@ class VarQTE(EvolutionBase):
             # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
             #                        ftol=1e-10)
             argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-                              method='CG', tol=1e-6)
+                              method='CG', tol=1e-8)
             print('initial natural gradient result', nat_grad_result)
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -361,35 +369,34 @@ class VarQTE(EvolutionBase):
             else:
                 dt_params, grad_res, metric_res = self._propagate(param_dict)
 
-            if self._snapshot_dir is not None:
+            if (self._snapshot_dir is not None) and (self._store_now):
                 # Get the residual for McLachlan's Variational Principle
-                if np.iscomplex(self._operator.coeff):
-                    # VarQRTE
-                    resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res)
-                else:
-                    # VarQITE
-                    resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res)
-                # Get the error for the current step
-                et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
-                                                                    metric_res)[:4]
-                print('returned et', et)
-                try:
-                    if et < 0 and np.abs(et) > 1e-4:
-                        raise Warning('Non-neglectible negative et observed')
+                # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
+                #                             trained_energy, h_squared, dtdt_state, reimgrad)
+                    if np.iscomplex(self._operator.coeff):
+                        # VarQRTE
+                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res)
                     else:
-                        et = np.sqrt(np.real(et))
-                except Exception:
-                    et = 1000
-                print('after try except', et)
-
-                f, true_error, true_energy, trained_energy = self._distance_energy(t, param_dict)
-
-                self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
-                                            trained_energy, h_squared, dtdt_state, reimgrad)
-                # self._store_params(t, params, None, None, et,
-                #                    resid, f, true_error, None,
-                #                    None, true_energy,
-                #                    trained_energy, None, h_squared, dtdt_state, reimgrad)
+                        # VarQITE
+                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res)
+                    # Get the error for the current step
+                    et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
+                                                                        metric_res)[:4]
+                    print('returned et', et)
+                    try:
+                        if et < 0 and np.abs(et) > 1e-4:
+                            raise Warning('Non-neglectible negative et observed')
+                        else:
+                            et = np.sqrt(np.real(et))
+                    except Exception:
+                        et = 1000
+                    print('after try except', et)
+                    f, true_error, true_energy, trained_energy = self._distance_energy(t,
+                                                                                       param_dict)
+                    self._store_params(t, params, None, None, et,
+                                       resid, f, true_error, None,
+                                       None, true_energy,
+                                       trained_energy, None, h_squared, dtdt_state, reimgrad)
             return dt_params
 
         if issubclass(self._ode_solver, OdeSolver):
@@ -413,19 +420,22 @@ class VarQTE(EvolutionBase):
         param_values = self._parameter_values
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
             while self._ode_solver.t < t:
+                self._store_now = False
                 self._ode_solver.step()
+                self._store_now = True
+                _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
                 # if self._snapshot_dir is not None:
                 #     self._ode_solver_store(param_values, t_old)
                 # if self._et is None:
                 #     warnings.warn('Time evolution failed.')
                 #     break
-                if self._snapshot_dir is not None:
-                    time, params, et, resid, f, true_error, true_energy, trained_energy, \
-                    h_squared, dtdt_state, reimgrad = self._storage_params_tbd
-                    self._store_params(time, params, None, None, et,
-                                       resid, f, true_error, None,
-                                       None, true_energy,
-                                       trained_energy, None, h_squared, dtdt_state, reimgrad)
+                # if self._snapshot_dir is not None:
+                #     time, params, et, resid, f, true_error, true_energy, trained_energy, \
+                #     h_squared, dtdt_state, reimgrad = self._storage_params_tbd
+                #     self._store_params(time, params, None, None, et,
+                #                        resid, f, true_error, None,
+                #                        None, true_energy,
+                #                        trained_energy, None, h_squared, dtdt_state, reimgrad)
                 print('ode time', self._ode_solver.t)
                 param_values = self._ode_solver.y
                 print('ode parameters', self._ode_solver.y)
@@ -690,8 +700,8 @@ class VarQTE(EvolutionBase):
     @staticmethod
     def print_results(data_directories: List[str],
                       error_bound_directories: List[str],
-                      imag_reverse_bound: bool = False,
-                      H: Optional[Union[List, np.ndarray]] = None):
+                      reverse_bound_directories: Optional[List[str]] = None,
+                      use_integral_approx: bool = True):
         """
 
         Args:
@@ -748,31 +758,34 @@ class VarQTE(EvolutionBase):
                 time, grad_errors, true_error, fid, true_energy, \
                 trained_energy = [list(zipped_items) for zipped_items in zipped_sorted]
 
+                true_errors_integral = [0]
                 for k in range(len(time) - 1):
                     time_steps.append(time[k + 1] - time[k])
+                    true_errors_integral.append(true_errors_integral[k]
+                                                + (true_error[k+1] + true_error[k]) * 0.5 *
+                                                time_steps[k])
 
             error_bounds = np.load(error_bound_directories[j])
 
-            if imag_reverse_bound:
-                if H is None:
-                    raise Warning('Please support the respective Hamiltonian.')
-                eigvals = sorted(list(set(np.linalg.eigvals(H))))
-                e0 = eigvals[0]
-                e1 = eigvals[1]
-                reverse_bounds = np.array(stddevs) / (e1 - e0)
+            if reverse_bound_directories is not None:
+                reverse_error_bounds = np.load(reverse_bound_directories[j])
 
             plt.figure(1)
             plt.title('Actual Error and Error Bound ')
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                         label='error bound')
-            plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+            if use_integral_approx:
+                plt.scatter(time, true_errors_integral, color='purple', marker='x', s=40,
+                            label='true error')
+            else:
+                plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
-            if imag_reverse_bound:
-                plt.scatter(time, reverse_bounds, color='green', marker='o', s=40,
+            if reverse_bound_directories is not None:
+                plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
                             label='reverse error bound')
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
             plt.close()
@@ -828,7 +841,7 @@ class ForwardEuler:
             step_size : float
                 Size of time steps
             """
-            self._fun = fun
+            self.fun = fun
             self.t = t0
             self.y = y0
             self.t_bound = t_bound
@@ -836,7 +849,7 @@ class ForwardEuler:
             self.status = 'running'
 
     def step(self):
-        self.y = list(np.add(self.y, self.step_size * self._fun(self.t, self.y)))
+        self.y = list(np.add(self.y, self.step_size * self.fun(self.t, self.y)))
         self.t += self.step_size
         if self.t == self.t_bound:
             self.status = 'finished'
