@@ -1865,6 +1865,27 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_measure_circuit_cargs(self):
+        """Measure with circuit appended using same carg"""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc_2 = QuantumCircuit(1, 1, name='add_circ')
+        qc_2.h(0).c_if(qc_2.cregs[0], 1)
+        qc_2.measure(0, 0)
+        qc.append(qc_2, [1], [0])
+        expected = '\n'.join(["        ┌───┐┌─┐             ",
+                              "q_0: |0>┤ H ├┤M├─────────────",
+                              "        └───┘└╥┘┌───────────┐",
+                              "q_1: |0>──────╫─┤0          ├",
+                              "              ║ │  add_circ │",
+                              " c_0: 0 ══════╩═╡0          ╞",
+                              "                └───────────┘",
+                              " c_1: 0 ═════════════════════",
+                              "                             "])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
+
 
 class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""
