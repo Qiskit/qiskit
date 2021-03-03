@@ -267,7 +267,7 @@ class BoxOnWireMid(MultiBox):
     """ A generic middle box"""
 
     def __init__(self, label, input_length, order, wire_label=''):
-        super().__init__(label, input_length, order)
+        super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
@@ -779,7 +779,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if any([isinstance(param, ndarray) for param in op.params]):
+        if any(isinstance(param, ndarray) for param in op.params):
             return None
 
         ret = []
