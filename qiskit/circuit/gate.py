@@ -21,9 +21,12 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
+from plum import Dispatcher, Self, dispatch
 
 class Gate(Instruction):
     """Unitary gate."""
+
+    dispatch = Dispatcher(in_class=Self)
 
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None) -> None:
@@ -234,25 +237,34 @@ class Gate(Instruction):
         else:
             raise CircuitError('This gate cannot handle %i arguments' % len(qargs))
 
-    def validate_parameter(self, parameter):
+
+    @dispatch
+    def validate_parameter(self, parameter: ParameterExpression):
         """Gate parameters should be int, float, or ParameterExpression"""
-        if isinstance(parameter, ParameterExpression):
-            if len(parameter.parameters) > 0:
-                return parameter  # expression has free parameters, we cannot validate it
-            if not parameter._symbol_expr.is_real:
-                raise CircuitError("Bound parameter expression is complex in gate {}".format(
-                    self.name))
-            return parameter  # per default assume parameters must be real when bound
-        if isinstance(parameter, (int, float)):
-            return parameter
-        elif isinstance(parameter, (np.integer, np.floating)):
-            return parameter.item()
-        elif isinstance(parameter, np.ndarray):
-            warn("Gate param type %s is being deprecated as of 0.16.0, and will be removed "
-                 "no earlier than 3 months after that release date. "
-                 "Considering creating your own Gate subclass with the method validate_parameter "
-                 " to allow this param type." % type(parameter), DeprecationWarning, 3)
-            return parameter
-        else:
-            raise CircuitError("Invalid param type {0} for gate {1}.".format(type(parameter),
-                                                                             self.name))
+        if len(parameter.parameters) > 0:
+            return parameter  # expression has free parameters, we cannot validate it
+        if not parameter._symbol_expr.is_real:
+            raise CircuitError("Bound parameter expression is complex in gate {}".format(
+                self.name))
+        return parameter  # per default assume parameters must be real when bound
+
+    @dispatch
+    def validate_parameter(self, parameter: {int, float}):
+        return parameter
+
+    @dispatch.multi((np.int64,), (np.float64,), (np.floating,), (np.integer,))
+    def validate_parameter(self, parameter):
+        return parameter.item()
+
+    @dispatch
+    def validate_parameter(self, parameter: np.ndarray):
+        warn("Gate param type %s is being deprecated as of 0.16.0, and will be removed "
+             "no earlier than 3 months after that release date. "
+             "Considering creating your own Gate subclass with the method validate_parameter "
+             " to allow this param type." % type(parameter), DeprecationWarning, 3)
+        return parameter
+
+    @dispatch
+    def validate_parameter(self, parameter):
+        raise CircuitError("Invalid param type {0} for gate {1}.".format(type(parameter),
+                                                                    self.name))

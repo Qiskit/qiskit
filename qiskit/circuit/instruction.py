@@ -35,6 +35,7 @@ import copy
 from itertools import zip_longest
 
 import numpy
+import plum
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -46,7 +47,7 @@ from .tools import pi_check
 _CUTOFF_PRECISION = 1E-10
 
 
-class Instruction:
+class Instruction(metaclass=plum.Referentiable):
     """Generic quantum instruction."""
 
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
