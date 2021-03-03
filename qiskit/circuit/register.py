@@ -21,8 +21,12 @@ import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
+import plum
+from plum import Dispatcher, Self, dispatch
 
-class Register:
+class Register(metaclass=plum.Referentiable):
+
+    dispatch = Dispatcher(in_class=Self)
     """Implement a generic register."""
 
     __slots__ = ['_name', '_size', '_bits', '_hash', '_repr']
@@ -153,7 +157,12 @@ class Register:
         """Return register size."""
         return self._size
 
+    @dispatch.multi((slice,), (object,), (int,), (np.integer,))
     def __getitem__(self, key):
+        return self._bits[key]
+
+    @dispatch
+    def __getitem__(self, key: list):
         """
         Arg:
             bit_type (Qubit or Clbit): a constructor type return element/s.
@@ -165,19 +174,11 @@ class Register:
 
         Raises:
             CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
-        if not isinstance(key, (int, np.integer, slice, list)):
-            raise CircuitError("expected integer or slice index into register")
-        if isinstance(key, slice):
-            return self._bits[key]
-        elif isinstance(key, list):  # list of qubit indices
-            if max(key) < len(self):
-                return [self._bits[idx] for idx in key]
-            else:
-                raise CircuitError('register index out of range')
+        if max(key) < len(self):
+            return [self._bits[idx] for idx in key]
         else:
-            return self._bits[key]
+            raise CircuitError('register index out of range')
 
     def __iter__(self):
         for idx in range(self._size):
