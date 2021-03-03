@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Tests for Statevector quantum state class."""
 
@@ -23,7 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, QFT
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
@@ -911,6 +910,26 @@ class TestStatevector(QiskitTestCase):
         expected = np.array([0.96891242-0.24740396j, 0])
         self.assertEqual(float(qc2.global_phase), -1/4)
         self.assertEqual(sv, Statevector(expected))
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = Statevector.from_instruction(circ1)
+        state2 = Statevector.from_instruction(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        sv = Statevector.from_instruction(qc1)
+        with self.subTest(msg='str(statevector)'):
+            str(sv)
+        for drawtype in ['text', 'latex', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                sv.draw(drawtype)
 
 
 if __name__ == '__main__':

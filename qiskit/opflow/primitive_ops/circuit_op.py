@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitOp Class """
+"""CircuitOp Class """
 
 from typing import Union, Optional, Set, List, Dict, cast
-import logging
 import numpy as np
 
 import qiskit
@@ -24,8 +23,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 from ..operator_base import OperatorBase
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
-
-logger = logging.getLogger(__name__)
 
 
 class CircuitOp(PrimitiveOp):
@@ -76,7 +73,7 @@ class CircuitOp(PrimitiveOp):
             return CircuitOp(self.primitive, coeff=self.coeff + other.coeff)
 
         # Covers all else.
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
         return SummedOp([self, other])
 
@@ -90,7 +87,7 @@ class CircuitOp(PrimitiveOp):
         return self.primitive == other.primitive
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .pauli_op import PauliOp
         from .matrix_op import MatrixOp
         if isinstance(other, (PauliOp, CircuitOp, MatrixOp)):
@@ -117,7 +114,7 @@ class CircuitOp(PrimitiveOp):
         if front:
             return other.compose(new_self)
         # ignore
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..operator_globals import Zero
         from ..state_fns import CircuitStateFn
         from .pauli_op import PauliOp
@@ -159,7 +156,6 @@ class CircuitOp(PrimitiveOp):
         if isinstance(self.coeff, ParameterExpression) or self.primitive.parameters:  # type: ignore
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=import-outside-toplevel
                 from ..list_ops.list_op import ListOp
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if isinstance(self.coeff, ParameterExpression) \
@@ -180,7 +176,6 @@ class CircuitOp(PrimitiveOp):
     def eval(self,
              front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
              ) -> Union[OperatorBase, float, complex]:
-        # pylint: disable=import-outside-toplevel
         from ..state_fns import CircuitStateFn
         from ..list_ops import ListOp
         from .pauli_op import PauliOp

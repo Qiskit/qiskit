@@ -21,7 +21,7 @@ from .two_local import TwoLocal
 
 
 class ExcitationPreserving(TwoLocal):
-    r"""The heurisitic excitation-preserving wave function ansatz.
+    r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``ExcitationPreserving`` circuit preserves the ratio of :math:`|00\rangle`,
     :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. The matrix representing

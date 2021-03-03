@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -438,7 +440,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -455,7 +457,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
         expected_qc.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
@@ -472,7 +474,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -490,7 +492,7 @@ class TestTranspile(QiskitTestCase):
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
-        expected_qc = QuantumCircuit(qr)
+        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
         expected_qc.append(U1Gate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -536,9 +538,9 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u3', 'cx'])
+                          basis_gates=['u3', 'u2', 'u1', 'cx'])
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
         self.assertEqual(after, expected)
 
     def test_pass_manager_empty(self):
@@ -575,8 +577,8 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
+            is_last_measure = all(after_measure.type == 'out'
+                                  for after_measure in out_dag.quantum_successors(meas_node))
             self.assertTrue(is_last_measure)
 
     def test_initialize_reset_should_be_removed(self):
@@ -636,7 +638,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.h(0)
 
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=np.pi/2)
         expected.append(RYGate(theta=np.pi/2), [0])
         expected.append(RXGate(theta=np.pi), [0])
 
@@ -982,20 +984,24 @@ class TestTranspile(QiskitTestCase):
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
         """Verify circuit cost always descends and optimization does not flip flop indefinitely."""
-
         qc = QuantumCircuit(1)
         qc.ry(0.2, 0)
 
         out = transpile(qc, basis_gates=['id', 'p', 'sx', 'cx'],
                         optimization_level=optimization_level)
 
-        expected = QuantumCircuit(1)
+        # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
+        # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
+        # for the second and third RZ gates in the U3 decomposition.
+        expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
         expected.p(np.pi + 0.2, 0)
         expected.sx(0)
         expected.p(np.pi, 0)
 
-        self.assertEqual(out, expected)
+        error_message = "\nOutput circuit:\n%s\nExpected circuit:\n%s" % (
+            str(out), str(expected))
+        self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):

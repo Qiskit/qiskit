@@ -91,9 +91,9 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
 
         # phase modulation
         if formatter['control.apply_phase_modulation']:
-            ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+            ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
         else:
-            ydata = np.asarray(ydata, dtype=np.complex)
+            ydata = np.asarray(ydata, dtype=complex)
 
         return _draw_shaped_waveform(xdata=xdata,
                                      ydata=ydata,
@@ -267,9 +267,9 @@ def gen_waveform_max_value(data: types.PulseInstruction,
 
     # phase modulation
     if formatter['control.apply_phase_modulation']:
-        ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
     else:
-        ydata = np.asarray(ydata, dtype=np.complex)
+        ydata = np.asarray(ydata, dtype=complex)
 
     texts = []
 
@@ -354,9 +354,10 @@ def _draw_shaped_waveform(xdata: np.ndarray,
 
     try:
         color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
-    except KeyError:
-        raise VisualizationError('Waveform color for channel type {name} is '
-                                 'not defined'.format(name=channel.prefix))
+    except KeyError as ex:
+        raise VisualizationError(
+            f"Waveform color for channel type {channel.prefix} is not defined"
+        ) from ex
 
     # create real part
     if np.any(re_y):

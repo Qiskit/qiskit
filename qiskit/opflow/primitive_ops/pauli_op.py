@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliOp Class """
+"""PauliOp Class """
 
 from typing import Union, Set, Dict, cast, List, Optional
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -28,9 +27,7 @@ from .primitive_op import PrimitiveOp
 from .pauli_sum_op import PauliSumOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
-from ..legacy.weighted_pauli_operator import WeightedPauliOperator
 
-logger = logging.getLogger(__name__)
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
 
 
@@ -105,7 +102,7 @@ class PauliOp(PrimitiveOp):
             op_copy = Pauli((other.primitive.z, other.primitive.x))  # type: ignore
             return PauliOp(self.primitive.tensor(op_copy), coeff=self.coeff * other.coeff)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .circuit_op import CircuitOp
         if isinstance(other, CircuitOp):
             return self.to_circuit_op().tensor(other)
@@ -153,7 +150,13 @@ class PauliOp(PrimitiveOp):
             product = new_self.primitive * other.primitive
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        if isinstance(other, PauliSumOp):
+            return PauliSumOp(
+                SparsePauliOp(new_self.primitive) * other.primitive,
+                coeff=new_self.coeff * other.coeff,
+            )
+
+        # pylint: disable=cyclic-import
         from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
         if isinstance(other, (CircuitOp, CircuitStateFn)):
@@ -174,7 +177,7 @@ class PauliOp(PrimitiveOp):
         Raises:
             ValueError: invalid parameters.
         """
-        return self.primitive.to_spmatrix() * self.coeff  # type: ignore
+        return self.primitive.to_matrix(sparse=True) * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -189,7 +192,7 @@ class PauliOp(PrimitiveOp):
         if front is None:
             return self.to_matrix_op()
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
         from ..state_fns.dict_state_fn import DictStateFn
         from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -221,7 +224,7 @@ class PauliOp(PrimitiveOp):
                 corrected_z_bits = self.primitive.z[::-1]  # type: ignore
 
                 for bstr, v in front.primitive.items():
-                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
                     new_str = ''.join(map(str, 1 * new_b_str))
                     z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
@@ -254,7 +257,6 @@ class PauliOp(PrimitiveOp):
         # if only one qubit is significant, we can perform the evolution
         corrected_x = self.primitive.x[::-1]  # type: ignore
         corrected_z = self.primitive.z[::-1]  # type: ignore
-        # pylint: disable=import-outside-toplevel,no-member
         sig_qubits = np.logical_or(corrected_x, corrected_z)
         if np.sum(sig_qubits) == 0:
             # e^I is just a global phase, but we can keep track of it! Should we?
@@ -285,23 +287,6 @@ class PauliOp(PrimitiveOp):
             from ..evolutions.evolved_op import EvolvedOp
             return EvolvedOp(self)
 
-    def commutes(self, other_op: OperatorBase) -> bool:
-        """ Returns whether self commutes with other_op.
-
-        Args:
-            other_op: An ``OperatorBase`` with which to evaluate whether self commutes.
-
-        Returns:
-            A bool equaling whether self commutes with other_op
-
-        """
-        if not isinstance(other_op, PauliOp):
-            return False
-        # Don't use compose because parameters will break this
-        self_bits = self.primitive.z + 2 * self.primitive.x  # type: ignore
-        other_bits = other_op.primitive.z + 2 * other_op.primitive.x  # type: ignore
-        return all((self_bits * other_bits) * (self_bits - other_bits) == 0)
-
     def to_circuit(self) -> QuantumCircuit:
         # If Pauli equals identity, don't skip the IGates
         is_identity = sum(self.primitive.x + self.primitive.z) == 0  # type: ignore
@@ -324,14 +309,3 @@ class PauliOp(PrimitiveOp):
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
         return self
-
-    def to_legacy_op(self, massive: bool = False) -> WeightedPauliOperator:
-        if isinstance(self.coeff, ParameterExpression):
-            try:
-                coeff = float(self.coeff)
-            except TypeError as ex:
-                raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff)) from ex
-        else:
-            coeff = cast(float, self.coeff)
-        return WeightedPauliOperator(paulis=[(coeff, self.primitive)])  # type: ignore

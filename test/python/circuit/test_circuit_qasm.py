@@ -16,7 +16,8 @@ from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info import random_unitary
+from qiskit.circuit import Parameter
+from qiskit.qasm.exceptions import QasmError
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -176,8 +177,7 @@ my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
         """Test circuit qasm() method with pi params.
         """
         circuit = QuantumCircuit(2)
-        circuit.append(random_unitary(4, seed=1234), [0, 1])
-        circuit = circuit.decompose()
+        circuit.cz(0, 1)
         circuit.u(2*pi, 3*pi, -5*pi, 0)
         qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
@@ -212,3 +212,19 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
+
+    def test_unbound_circuit_raises(self):
+        """Test circuits with unbound parameters raises."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('θ')
+        qc.rz(theta, 0)
+        with self.assertRaises(QasmError):
+            qc.qasm()
+
+    def test_gate_qasm_with_ctrl_state(self):
+        """Test gate qasm() with controlled gate that has ctrl_state setting."""
+        from qiskit.quantum_info import Operator
+        qc = QuantumCircuit(2)
+        qc.ch(0, 1, ctrl_state=0)
+        qasm_str = qc.qasm()
+        self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,10 +16,10 @@ from typing import Set, Union, Dict, Optional, List, cast, Tuple
 from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
+from scipy.sparse import spmatrix, csr_matrix
 
-from qiskit.utils import aqua_globals
+from qiskit.utils import algorithm_globals
 from qiskit.circuit import ParameterExpression, ParameterVector
-from .legacy.base_operator import LegacyBaseOperator
 from .exceptions import OpflowError
 
 
@@ -119,28 +119,14 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        r""" Attempt to return the Legacy Operator representation of the Operator. If self is a
-        ``SummedOp`` of ``PauliOps``, will attempt to convert to ``WeightedPauliOperator``,
-        and otherwise will simply convert to ``MatrixOp`` and then to ``MatrixOperator``. The
-        Legacy Operators cannot represent ``StateFns`` or proper ``ListOps`` (meaning not one of
-        the ``ListOp`` subclasses), so an error will be thrown if this method is called on such
-        an Operator. Also, Legacy Operators cannot represent unbound Parameter coeffs, so an error
-        will be thrown if any are present in self.
-
-        Warn if more than 16 qubits to force having to set ``massive=True`` if such a
-        large vector is desired.
+    def to_spmatrix(self) -> spmatrix:
+        r""" Return SciPy sparse matrix representation of the Operator. Represents the evaluation of
+        the Operator's underlying function on every combination of basis binary strings.
 
         Returns:
-            The ``LegacyBaseOperator`` representing this Operator.
-
-        Raises:
-            TypeError: self is an Operator which cannot be represented by a ``LegacyBaseOperator``,
-                such as ``StateFn``, proper (non-subclass) ``ListOp``, or an Operator with an
-                unbound coeff Parameter.
+              The SciPy ``spmatrix`` equivalent to this Operator.
         """
-        raise NotImplementedError
+        return csr_matrix(self.to_matrix())
 
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
@@ -535,7 +521,7 @@ class OperatorBase(ABC):
             other = other.permute(permutation)
         new_self = self
         if not self.num_qubits == other.num_qubits:
-            # pylint: disable=cyclic-import,import-outside-toplevel
+            # pylint: disable=cyclic-import
             from .operator_globals import Zero
             if other == Zero:
                 # Zero is special - we'll expand it to the correct qubit number.
@@ -623,7 +609,7 @@ class OperatorBase(ABC):
         Raises:
             ValueError: Massive is False and number of qubits is greater than 16
         """
-        if num_qubits > 16 and not massive and not aqua_globals.massive:
+        if num_qubits > 16 and not massive and not algorithm_globals.massive:
             dim = 2 ** num_qubits
             if matrix:
                 obj_type = 'matrix'
@@ -634,7 +620,7 @@ class OperatorBase(ABC):
             raise ValueError(
                 f"'{method}' will return an exponentially large {obj_type}, "
                 f"in this case '{dimensions}' elements. "
-                "Set aqua_globals.massive=True or the method argument massive=True "
+                "Set algorithm_globals.massive=True or the method argument massive=True "
                 "if you want to proceed.")
 
     # Printing

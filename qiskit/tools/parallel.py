@@ -63,10 +63,8 @@ if os.getenv('QISKIT_IN_PARALLEL') is None:
 
 if os.getenv("QISKIT_NUM_PROCS") is not None:
     CPU_COUNT = int(os.getenv('QISKIT_NUM_PROCS'))
-elif 'num_processes' in CONFIG:
-    CPU_COUNT = CONFIG['num_processes']
 else:
-    CPU_COUNT = local_hardware_info()['cpus']
+    CPU_COUNT = CONFIG.get('num_processes') or local_hardware_info()['cpus']
 
 
 def _task_wrapper(param):
@@ -135,7 +133,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
             if isinstance(error, KeyboardInterrupt):
                 Publisher().publish("terra.parallel.finish")
                 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-                raise QiskitError('Keyboard interrupt in parallel_map.')
+                raise QiskitError('Keyboard interrupt in parallel_map.') from error
             # Otherwise just reset parallel flag and error
             os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
             raise error

@@ -12,7 +12,6 @@
 """
 Circuit simulation for the Clifford class.
 """
-# pylint: disable=invalid-name
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
@@ -89,13 +88,14 @@ def _append_circuit(clifford, circuit, qargs=None):
     if not isinstance(gate.definition, QuantumCircuit):
         raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
             gate.name, type(gate.definition)))
+    qubit_indices = {bit: idx for idx, bit in enumerate(gate.definition.qubits)}
     for instr, qregs, cregs in gate.definition:
         if cregs:
             raise QiskitError(
                 'Cannot apply Instruction with classical registers: {}'.format(
                     instr.name))
         # Get the integer position of the flat register
-        new_qubits = [qargs[tup.index] for tup in qregs]
+        new_qubits = [qargs[qubit_indices[tup]] for tup in qregs]
         _append_circuit(clifford, instr, new_qubits)
     return clifford
 

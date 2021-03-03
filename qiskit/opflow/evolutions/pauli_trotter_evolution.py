@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class PauliTrotterEvolution(EvolutionBase):
     r"""
     An Evolution algorithm replacing exponentiated sums of Paulis by changing them each to the
-    Z basis, rotating with an rZ, changing back, and trotterizing.
+    Z basis, rotating with an rZ, changing back, and Trotterizing.
 
     More specifically, we compute basis change circuits for each Pauli into a single-qubit Z,
     evolve the Z by the desired evolution time with an rZ gate, and change the basis back using
@@ -86,7 +86,7 @@ class PauliTrotterEvolution(EvolutionBase):
     def convert(self, operator: OperatorBase) -> OperatorBase:
         r"""
         Traverse the operator, replacing ``EvolvedOps`` with ``CircuitOps`` containing
-        trotterized evolutions equalling the exponentiation of -i * operator.
+        Trotterized evolutions equalling the exponentiation of -i * operator.
 
         Args:
             operator: The Operator to convert.
@@ -130,7 +130,8 @@ class PauliTrotterEvolution(EvolutionBase):
                 trotterized = self.trotter.convert(new_primitive)
                 circuit_no_identities = self._recursive_convert(trotterized)
                 # Set the global phase of the QuantumCircuit to account for removed identity terms.
-                circuit_no_identities.primitive.global_phase = -sum(identity_phases)  # type: ignore
+                global_phase = -sum(identity_phases) * operator.primitive.coeff
+                circuit_no_identities.primitive.global_phase = global_phase
                 return circuit_no_identities
             elif isinstance(operator.primitive, PauliOp):
                 return self.evolution_for_pauli(operator.primitive)

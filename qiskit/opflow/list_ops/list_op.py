@@ -23,7 +23,6 @@ from qiskit.circuit import QuantumCircuit, ParameterExpression
 from qiskit.utils import arithmetic
 
 from ..exceptions import OpflowError
-from ..legacy.base_operator import LegacyBaseOperator
 from ..operator_base import OperatorBase
 
 
@@ -161,7 +160,7 @@ class ListOp(OperatorBase):
             return self.mul(2.0)
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .summed_op import SummedOp
         return SummedOp([self, other])
 
@@ -218,7 +217,7 @@ class ListOp(OperatorBase):
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .tensored_op import TensoredOp
         return TensoredOp([self, other])
 
@@ -230,7 +229,7 @@ class ListOp(OperatorBase):
             raise TypeError('Tensorpower can only take positive int arguments')
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .tensored_op import TensoredOp
         return TensoredOp([self] * other)
 
@@ -274,7 +273,7 @@ class ListOp(OperatorBase):
         for trans in transpositions:
             qc.swap(trans[0], trans[1])
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.circuit_op import CircuitOp
 
         return CircuitOp(qc.reverse_ops()) @ new_self @ CircuitOp(qc)
@@ -288,7 +287,7 @@ class ListOp(OperatorBase):
         if front:
             return other.compose(new_self)
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .composed_op import ComposedOp
         return ComposedOp([new_self, other])
 
@@ -297,7 +296,7 @@ class ListOp(OperatorBase):
             raise TypeError('power can only take positive int arguments')
 
         # Avoid circular dependency
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .composed_op import ComposedOp
         return ComposedOp([self] * exponent)
 
@@ -371,7 +370,7 @@ class ListOp(OperatorBase):
             raise NotImplementedError("ListOp's eval function is only defined for distributive "
                                       "ListOps.")
 
-        evals = [(self.coeff * op).eval(front) for op in self.oplist]  # type: ignore
+        evals = [op.eval(front) for op in self.oplist]  # type: ignore
 
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn != ListOp([])._combo_fn:
@@ -383,14 +382,22 @@ class ListOp(OperatorBase):
                 if not all(op.is_measurement == evals[0].is_measurement for op in evals):
                     raise NotImplementedError("Combo_fn not yet supported for mixed measurement "
                                               "and non-measurement StateFns")
-                return self.combo_fn(evals)
+                result = self.combo_fn(evals)
+                if isinstance(result, list):
+                    multiplied = self.coeff * np.array(result)
+                    return multiplied.tolist()
+                return self.coeff * result
 
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError('Cannot handle mixed scalar and Operator eval results.')
         else:
-            return self.combo_fn(evals)
+            result = self.combo_fn(evals)
+            if isinstance(result, list):
+                multiplied = self.coeff * np.array(result)
+                return multiplied.tolist()
+            return self.coeff * result
 
     def exp_i(self) -> OperatorBase:
         """ Return an ``OperatorBase`` equivalent to an exponentiation of self * -i, e^(-i*op)."""
@@ -399,7 +406,6 @@ class ListOp(OperatorBase):
             return ListOp([op.exp_i() for op in self.oplist],  # type: ignore
                           **self._state(abelian=False))
 
-        # pylint: disable=import-outside-toplevel
         from ..evolutions.evolved_op import EvolvedOp
         return EvolvedOp(self)
 
@@ -499,13 +505,6 @@ class ListOp(OperatorBase):
                                for op in self.oplist],
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
-
-    def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
-        mat_op = self.to_matrix_op(massive=massive).reduce()
-        if isinstance(mat_op, ListOp):
-            raise TypeError('A hierarchical (non-subclass) ListOp cannot be represented by '
-                            'LegacyBaseOperator.')
-        return mat_op.to_legacy_op(massive=massive)
 
     # Array operations:
 

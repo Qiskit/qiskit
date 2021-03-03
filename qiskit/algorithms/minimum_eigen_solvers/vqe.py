@@ -501,7 +501,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the optimal circuit. """
-        # pylint: disable=import-outside-toplevel
         from qiskit.utils.run_circuits import find_regs_by_name
 
         if self._ret.optimal_point is None:

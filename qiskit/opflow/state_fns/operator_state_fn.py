@@ -67,7 +67,7 @@ class OperatorStateFn(StateFn):
                 return StateFn(self.primitive,
                                coeff=self.coeff + other.coeff,
                                is_measurement=self.is_measurement)
-            # Covers MatrixOperator, Statevector and custom.
+            # Covers Statevector and custom.
             elif isinstance(other, OperatorStateFn):
                 # Also assumes scalar multiplication is available
                 return OperatorStateFn(
@@ -96,7 +96,7 @@ class OperatorStateFn(StateFn):
             return StateFn(self.primitive.tensor(other.primitive),
                            coeff=self.coeff * other.coeff,
                            is_measurement=self.is_measurement)
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from .. import TensoredOp
         return TensoredOp([self, other])
 
@@ -175,7 +175,6 @@ class OperatorStateFn(StateFn):
                 prim_str,
                 self.coeff)
 
-    # pylint: disable=too-many-return-statements
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
@@ -192,10 +191,13 @@ class OperatorStateFn(StateFn):
             front = StateFn(front)
 
         if isinstance(self.primitive, ListOp) and self.primitive.distributive:
-            coeff = self.coeff * self.primitive.coeff
-            evals = [OperatorStateFn(op, coeff=coeff, is_measurement=self.is_measurement).eval(
+            evals = [OperatorStateFn(op, is_measurement=self.is_measurement).eval(
                 front) for op in self.primitive.oplist]
-            return self.primitive.combo_fn(evals)
+            result = self.primitive.combo_fn(evals)
+            if isinstance(result, list):
+                multiplied = self.primitive.coeff * self.coeff * np.array(result)
+                return multiplied.tolist()
+            return result * self.coeff * self.primitive.coeff
 
         # Need an ListOp-specific carve-out here to make sure measurement over a ListOp doesn't
         # produce two-dimensional ListOp from composing from both sides of primitive.

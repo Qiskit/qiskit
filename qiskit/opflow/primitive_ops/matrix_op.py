@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" MatrixOp Class """
+"""MatrixOp Class """
 
 from typing import Union, Optional, Set, Dict, List, cast, get_type_hints
-import logging
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -29,9 +28,6 @@ from ..primitive_ops.circuit_op import CircuitOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
-from ..legacy.matrix_operator import MatrixOperator
-
-logger = logging.getLogger(__name__)
 
 
 class MatrixOp(PrimitiveOp):
@@ -186,7 +182,7 @@ class MatrixOp(PrimitiveOp):
         if front is None:
             return self
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..list_ops import ListOp
         from ..state_fns import StateFn, OperatorStateFn
 
@@ -219,6 +215,3 @@ class MatrixOp(PrimitiveOp):
 
     def to_instruction(self) -> Instruction:
         return (self.coeff * self.primitive).to_instruction()  # type: ignore
-
-    def to_legacy_op(self, massive: bool = False) -> MatrixOperator:
-        return MatrixOperator(self.to_matrix(massive=massive))
