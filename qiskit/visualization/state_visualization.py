@@ -705,9 +705,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     try:
         import seaborn as sns
-    except ImportError:
+    except ImportError as ex:
         raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip install seaborn".')
+                          'plot_state_qsphere. To install, run "pip install seaborn".') from ex
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:

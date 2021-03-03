@@ -79,9 +79,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """
     try:
         import pydot
-    except ImportError:
+    except ImportError as ex:
         raise ImportError("dag_drawer requires pydot. "
-                          "Run 'pip install pydot'.")
+                          "Run 'pip install pydot'.") from ex
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)

@@ -337,8 +337,8 @@ class QasmBackendConfiguration:
     def __getattr__(self, name):
         try:
             return self._data[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -758,14 +758,16 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             if isinstance(qubits, list):
                 qubits = tuple(qubits)
             return self._control_channels[qubits]
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the ControlChannel operating on qubits "
-                                            "{} on {}-qubit system. The ControlChannel information"
-                                            " is retrieved from the "
-                                            " backend.".format(qubits, self.n_qubits))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(
+                f"Couldn't find the ControlChannel operating on qubits {qubits} on "
+                f"{self.n_qubits}-qubit system. The ControlChannel information is retrieved "
+                "from the backend."
+            ) from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
@@ -780,11 +782,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """
         try:
             return self._channel_qubit_map[channel]
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(f"Couldn't find the Channel - {channel}") from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
         r"""Return a list of channels which operate on the given ``qubit``.
@@ -810,11 +813,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             elif isinstance(qubit, tuple):
                 channels.update(self._qubit_channel_map[qubit])
             return list(channels)
-        except KeyError:
-            raise BackendConfigurationError("Couldn't find the qubit - {}".format(qubit))
-        except AttributeError:
-            raise BackendConfigurationError("This backend - '{}' does not provide channel "
-                                            "information.".format(self.backend_name))
+        except KeyError as ex:
+            raise BackendConfigurationError(f"Couldn't find the qubit - {qubit}") from ex
+        except AttributeError as ex:
+            raise BackendConfigurationError(
+                f"This backend - '{self.backend_name}' does not provide channel information."
+            ) from ex
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """
@@ -896,5 +900,5 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         channel_prefix = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
         try:
             return channel_prefix.group('channel'), int(channel_prefix.group('index'))
-        except AttributeError:
-            raise BackendConfigurationError("Invalid channel name - '{}' found.".format(channel))
+        except AttributeError as ex:
+            raise BackendConfigurationError(f"Invalid channel name - '{channel}' found.") from ex
