@@ -17,7 +17,7 @@
 cimport cython
 import numpy as np
 
-cpdef unsigned long long popcount(unsigned long long count):
+cdef unsigned long long popcount(unsigned long long count):
   count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
   count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
   count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
@@ -26,30 +26,39 @@ cpdef unsigned long long popcount(unsigned long long count):
   count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
   return count
 
-cpdef double expval_pauli_no_x(complex[:] data, unsigned long long z_mask, complex phase):
-    cpdef double val = 0
-    for i in range(len(data)):
-        current_val = (phase * data[i] * np.conj(data[i])).real
+def expval_pauli_no_x(complex[::1] data, unsigned long long z_mask, complex phase):
+    cdef double val = 0
+    cdef int i
+    for i in range(data.shape[0]):
+        current_val = (phase * (data[i].real*data[i].real+data[i].imag*data[i].imag)).real
         if popcount(i & z_mask) & 1 != 0:
             current_val *= -1
         val += current_val
     return val
 
-cpdef expval_pauli_with_x(complex[:] data, unsigned long long z_mask,
+def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
                           unsigned long long x_mask, complex phase,
                           unsigned int x_max):
-        cpdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
-        cpdef unsigned long long mask_l = 2**(x_max) - 1
-        cpdef double val = 0
-        for i in range(len(data) // 2):
-            index = ((i << 1) & mask_u) | (i & mask_l)
-            indices = [index, index ^ x_mask]
-            data_pair = [data[indices[k]] for k in range(2)]
-            current_val = [(phase * data_pair[1] * np.conj(data_pair[0])).real,
-                           (phase * data_pair[0] * np.conj(data_pair[1])).real]
-            for k in range(2):
-                if popcount(indices[k] & z_mask) & 1 != 0:
-                    val -= current_val[k]
-                else:
-                    val += current_val[k]
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cdef unsigned long long mask_l = 2**(x_max) - 1
+        cdef double val = 0
+        cdef unsigned int i
+        cdef unsigned long long index_0
+        cdef unsigned long long index_1
+        cdef double current_val_0
+        cdef double current_val_1
+        for i in range(data.shape[0] // 2):
+            index_0 = ((i << 1) & mask_u) | (i & mask_l)
+            index_1 = index_0 ^ x_mask
+            current_val_0 = (phase * data[index_1] * np.conj(data[index_0])).real
+            current_val_1 = (phase * data[index_0] * np.conj(data[index_1])).real
+            if popcount(index_0 & z_mask) & 1 != 0:
+                val -= current_val_0
+            else:
+                val += current_val_0
+
+            if popcount(index_1 & z_mask) & 1 != 0:
+                val -= current_val_1
+            else:
+                val += current_val_1
         return val
