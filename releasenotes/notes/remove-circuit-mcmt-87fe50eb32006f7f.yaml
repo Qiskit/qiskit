@@ -6,17 +6,19 @@ upgrade:
     a multi-control multi-target gate and use `QuantumCircuit.append` or 
     `QuantumCircuit.compose` to add it to a circuit. 
 
-    For example, you can replace
+    For example, you can replace::
     
         circuit.mcmt(ZGate(), [0, 1, 2], [3, 4])
 
-    with
+    with::
 
         mcmt = MCMT(ZGate(), 3, 2)
         circuit.compose(mcmt, range(5))
   - |
-    Removed the `QuantumCircuit.diag_gate` method which has been deprecated with the 
-    Qiskit Terra 0.14.0 release in April 2020. Instead, use `QuantumCircuit.diagonal`.
+    Removed the ``QuantumCircuit.diag_gate`` method which has been deprecated since the 
+    Qiskit Terra 0.14.0 release in April 2020. Instead, use the
+    :meth:`~qiskit.circuit.QuantumCircuit.diagonal` method of :class:`~qiskit.circuit.QuantumCircuit`.
   - |
-    Removed the `QuantumCircuit.ucy` method which has been deprecated with the 
-    Qiskit Terra 0.14.0 release in April 2020. Instead, use `QuantumCircuit.ucry`.
+    Removed the ``QuantumCircuit.ucy`` method which has been deprecated since the 
+    Qiskit Terra 0.14.0 release in April 2020. Instead, use the
+    :meth:`~qiskit.circuit.QuantumCircuit.ucry` method of :class:`~qiskit.circuit.QuantumCircuit`.
