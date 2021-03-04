@@ -13,18 +13,22 @@
 """CVaRMeasurement class."""
 
 
-from typing import cast, Union, Optional, Callable, Tuple
+from typing import Callable, Optional, Tuple, Union, cast
+
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
 from qiskit.quantum_info import Statevector
 
 from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
 from ..list_ops import ListOp, SummedOp, TensoredOp
+from ..operator_base import OperatorBase
 from ..primitive_ops import PauliOp
-from .state_fn import StateFn
+from .circuit_state_fn import CircuitStateFn
+from .dict_state_fn import DictStateFn
 from .operator_state_fn import OperatorStateFn
+from .state_fn import StateFn
+from .vector_state_fn import VectorStateFn
 
 
 class CVaRMeasurement(OperatorStateFn):
@@ -210,10 +214,6 @@ class CVaRMeasurement(OperatorStateFn):
         Raises:
             ValueError: front isn't a DictStateFn or VectorStateFn
         """
-        from .dict_state_fn import DictStateFn
-        from .vector_state_fn import VectorStateFn
-        from .circuit_state_fn import CircuitStateFn
-
         if isinstance(front, CircuitStateFn):
             front = cast(StateFn, front.eval())
 
