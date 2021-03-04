@@ -26,7 +26,7 @@ arXiv:1811.12926 [quant-ph] (2018).
 import cmath
 import math
 import warnings
-from typing import Optional
+from typing import ClassVar, Optional
 import logging
 
 import numpy as np
@@ -98,8 +98,8 @@ class TwoQubitWeylDecomposition():
 
     This is an abstract factory class that instantiates itself as specialized subclasses based on
     the fidelity, such that the approximation error from specialization has an average gate fidelity
-    at least as high as requested. The specialized subclasses have canonical representations thus
-    avoiding problems of numerical stability.
+    at least as high as requested. The specialized subclasses have unique canonical representations
+    thus avoiding problems of numerical stability.
 
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
     the specialization is more approximate.
@@ -119,6 +119,7 @@ class TwoQubitWeylDecomposition():
 
     _original_decomposition: Optional["TwoQubitWeylDecomposition"]
     _is_flipped_from_original: bool
+    _default_1q_basis: ClassVar[str] = 'ZYZ'
 
     def __init_subclass__(cls, **kwargs):
         """Subclasses should be concrete, not factories.
@@ -326,25 +327,34 @@ class TwoQubitWeylDecomposition():
         Do not update the global phase, since gets done in generic __init__()"""
         raise NotImplementedError
 
-    def circuit(self, *, euler_basis='ZYZ', simplify=False, atol=DEFAULT_ATOL, **kwargs):
-        """Weyl decomposition in circuit form.
+    def circuit(self, *, euler_basis: Optional[str] = None,
+                simplify=False, atol=DEFAULT_ATOL, **kwargs) -> QuantumCircuit:
+        """Returns Weyl decomposition in circuit form.
 
-        Arguments are passed to OneQubitEulerDecomposer"""
+        Extra arguments are passed to OneQubitEulerDecomposer"""
+        if euler_basis is None:
+            euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
-        circ = QuantumCircuit(2, global_phase=self.global_phase)
         c1l, c1r, c2l, c2r = (oneq_decompose(k, simplify=simplify, atol=atol, **kwargs)
                               for k in (self.K1l, self.K1r, self.K2l, self.K2r))
+        circ = QuantumCircuit(2, global_phase=self.global_phase)
         circ.compose(c2r, [0], inplace=True)
         circ.compose(c2l, [1], inplace=True)
+        self._weyl_gate(simplify, circ, atol)
+        circ.compose(c1r, [0], inplace=True)
+        circ.compose(c1l, [1], inplace=True)
+        return circ
+
+    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+        """Appends Ud(a, b, c) to the circuit.
+
+        Override in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
             circ.rxx(-self.a*2, 0, 1)
         if not simplify or abs(self.b) > atol:
             circ.ryy(-self.b*2, 0, 1)
         if not simplify or abs(self.c) > atol:
             circ.rzz(-self.c*2, 0, 1)
-        circ.compose(c1r, [0], inplace=True)
-        circ.compose(c1l, [1], inplace=True)
-        return circ
 
     def actual_fidelity(self, **kwargs):
         """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
@@ -404,6 +414,11 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
         self.K2l = _id.copy()
         self.K2r = _id.copy()
 
+    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+        del self, simplify, atol  # unused
+        circ.swap(0, 1)
+        circ.global_phase -= 3*np.pi/4
+
 
 def _closest_partial_swap(a, b, c):
     """A good approximation to the best value x to get the minimum
@@ -460,6 +475,8 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         K2l = Ry(θl).Rx(λl) ,
         K2r = Ry(θr).Rx(λr) .
     """
+    _default_1q_basis = 'XYX'
+
     def specialize(self):
         self.b = self.c = 0
         k2ltheta, k2lphi, k2llambda = _oneq_xyx.angles(self.K2l)
@@ -468,9 +485,6 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
-
-    def circuit(self, *, euler_basis='XYX', **kwargs):
-        return super().circuit(euler_basis=euler_basis, **kwargs)
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
@@ -512,6 +526,8 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
     This gate binds 5 parameters, we make it canonical by setting:
         K2l = Ry(θl).Rx(λl) .
     """
+    _default_1q_basis = 'XYX'
+
     def specialize(self):
         self.b = self.c = (self.b + self.c)/2
         k2ltheta, k2lphi, k2llambda = _oneq_xyx.angles(self.K2l)
@@ -520,9 +536,6 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RXGate(-k2lphi)) @ self.K2r
 
-    def circuit(self, *, euler_basis='XYX', **kwargs):
-        return super().circuit(euler_basis=euler_basis, **kwargs)
-
 
 class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(α, β, -β), α ≥ β ≥ 0
@@ -530,6 +543,9 @@ class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
     This gate binds 5 parameters, we make it canonical by setting:
         K2l = Ry(θl).Rx(λl) .
     """
+
+    _default_1q_basis = 'XYX'
+
     def specialize(self):
         self.b = (self.b - self.c)/2
         self.c = -self.b
@@ -538,9 +554,6 @@ class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
         self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = _ipz @ np.asarray(RXGate(-k2lphi)) @ _ipz @ self.K2r
-
-    def circuit(self, *, euler_basis='XYX', **kwargs):
-        return super().circuit(euler_basis=euler_basis, **kwargs)
 
 
 class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):

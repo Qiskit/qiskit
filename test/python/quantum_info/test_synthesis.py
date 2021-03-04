@@ -548,8 +548,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
                                                          0.999, TwoQubitWeylSWAPEquiv,
-                                                         {'rz': 4, 'ry': 2,
-                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+                                                         {'rz': 4, 'ry': 2, 'swap': 1})
 
     def test_weyl_specialize_flip_swap(self):
         """Weyl specialization for flip swap gate"""
@@ -560,8 +559,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
                                                          0.999, TwoQubitWeylSWAPEquiv,
-                                                         {'rz': 4, 'ry': 2,
-                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+                                                         {'rz': 4, 'ry': 2, 'swap': 1})
 
     def test_weyl_specialize_pswap(self, theta=0.123):
         """Weyl specialization for partial swap gate"""
