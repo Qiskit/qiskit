@@ -134,9 +134,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         phases = result.filter_phases(cutoff, scaled=False)
         with self.subTest('test unscaled phases are correct'):
             self.assertEqual(list(phases.keys()), [0.25, 0.75])
-        with self.subTest('test most_likely_phase method'):
-            self.assertEqual(result.most_likely_eigenvalue, 1.5)
-            self.assertEqual(result.most_likely_phase, 0.25)
 
     def test_trotter_from_bound(self):
         """HamiltonianPhaseEstimation with bound and Trotterization"""

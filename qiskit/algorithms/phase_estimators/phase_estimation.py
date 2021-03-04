@@ -65,7 +65,7 @@ class PhaseEstimation(PhaseEstimator):
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
 
-           Raises:
+           Raises: # TODO: fix this while refactoring
                ValueError: unless only one of `unitary` and `pe_circuit` is `None`.
                    `num_unitary_qubits` disagrees with size of `unitary`.
         """
@@ -175,8 +175,5 @@ class PhaseEstimation(PhaseEstimator):
                          pe_circuit, num_unitary_qubits)
         circuit_result = self._quantum_instance.execute(self.construct_circuit())
         phases = self._compute_phases(circuit_result)
-        return self._result(circuit_result, phases)
-
-    def _result(self, circuit_result, phases) -> PhaseEstimationResult:
         return PhaseEstimationResult(self._num_evaluation_qubits, circuit_result=circuit_result,
                                      phases=phases)

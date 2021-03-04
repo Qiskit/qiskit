@@ -22,7 +22,7 @@ from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResul
 from .phase_estimation_scale import PhaseEstimationScale
 
 
-class HamiltonianPhaseEstimation(PhaseEstimation):
+class HamiltonianPhaseEstimation:
     r"""Run the Quantum Phase Estimation algorithm to find the eigenvalues of a Hermitian operator.
 
     This class is nearly the same as :class:`~qiskit.algorithms.PhaseEstimator`, differing only
@@ -49,16 +49,23 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
          `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
     """
 
+
     def __init__(self,
                  num_evaluation_qubits: int,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
+        """Args:
+            num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
+                be estimated as a binary string with this many bits.
+            quantum_instance: The quantum instance on which the circuit will be run.
+        """
         self._pe_scale = None
         self._bound = None
         self._evolution = None
         self._hamiltonian = None
         self._id_coefficient = None
-        super().__init__(num_evaluation_qubits=num_evaluation_qubits,
-                         quantum_instance=quantum_instance)
+        self._phase_estimation = PhaseEstimation(
+            num_evaluation_qubits=num_evaluation_qubits,
+            quantum_instance=quantum_instance)
 
     def _set_scale(self) -> None:
         if self._bound is None:
@@ -85,11 +92,6 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         # when using MatrixEvolution(), that otherwise would give incorrect results.
         # It does not break any others that we tested.
         return unitary_circuit.decompose().decompose()
-
-    def _result(self, circuit_result, phases) -> HamiltonianPhaseEstimationResult:
-        return HamiltonianPhaseEstimationResult(
-            self._num_evaluation_qubits, phases=phases, id_coefficient=self._id_coefficient,
-            circuit_result=circuit_result, phase_estimation_scale=self._pe_scale)
 
     # pylint: disable=arguments-differ
     def estimate(self, hamiltonian: OperatorBase,
@@ -134,9 +136,12 @@ class HamiltonianPhaseEstimation(PhaseEstimation):
         self._id_coefficient = id_coefficient
         self._set_scale()
         unitary = self._get_unitary()
-        return super().estimate(unitary=unitary,
-                                state_preparation=state_preparation)
-
+        phase_estimation_result = self._phase_estimation.estimate(
+            unitary=unitary, state_preparation=state_preparation)
+        return HamiltonianPhaseEstimationResult(
+            phase_estimation_result=phase_estimation_result,
+            id_coefficient=self._id_coefficient,
+            phase_estimation_scale=self._pe_scale)
 
 def _remove_identity(pauli_sum):
     """Remove any identity operators from `pauli_sum`. Return

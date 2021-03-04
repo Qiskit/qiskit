@@ -20,7 +20,7 @@ from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 
 
-class HamiltonianPhaseEstimationResult(PhaseEstimationResult):
+class HamiltonianPhaseEstimationResult:
     """Store and manipulate results from running `HamiltonianPhaseEstimation`.
 
     This API of this class is nearly the same as `PhaseEstimatorResult`, differing only in
@@ -28,26 +28,26 @@ class HamiltonianPhaseEstimationResult(PhaseEstimationResult):
     is `False`, then the phases are not translated and scaled to recover the
     eigenvalues of the Hamiltonian. Instead `phi` in :math:`[0, 1)` is returned,
     as is the case when then unitary is not derived from a Hamiltonian.
+
+    This class is meant to be instantiated via `HamiltonianPhaseEstimation.estimate`.
     """
-    def __init__(self, num_evaluation_qubits: int, circuit_result: Result,
+    def __init__(self,
+                 phase_estimation_result: PhaseEstimationResult,
                  phase_estimation_scale: PhaseEstimationScale,
                  id_coefficient: float,
-                 phases: Union[numpy.ndarray, Dict[str, float]]) -> None:
+                 ) -> None:
         """
         Args:
-            num_evaluation_qubits: number of qubits in phase-readout register.
-            circuit_result: result object returned by method running circuit.
+            phase_estimation_result: The result object returned by PhaseEstimation.estimate.
             phase_estimation_scale: object used to scale phases to obtain eigenvalues.
             id_coefficient: The coefficient of the identity term in the Hamiltonian.
                             Eigenvalues are computed without this term so that the
                             coefficient must added to give correct eigenvalues.
                             This is done automatically when retrieving eigenvalues.
-            phases: ndarray or dict of phases and frequencies determined by QPE.
         """
         self._phase_estimation_scale = phase_estimation_scale
         self._id_coefficient = id_coefficient
-
-        super().__init__(num_evaluation_qubits, circuit_result, phases)
+        self._phase_estimation_result = phase_estimation_result
 
     # pylint: disable=arguments-differ
     def filter_phases(self, cutoff: float = 0.0, scaled: bool = True,
@@ -73,7 +73,7 @@ class HamiltonianPhaseEstimationResult(PhaseEstimationResult):
         if scaled and not as_float:
             raise ValueError('`as_float` must be `True` if `scaled` is `True`.')
 
-        phases = super().filter_phases(cutoff, as_float=as_float)
+        phases = self._phase_estimation_result.filter_phases(cutoff, as_float=as_float)
         if scaled:
             return cast(Dict, self._phase_estimation_scale.scale_phases(phases,
                                                                         self._id_coefficient))
@@ -90,5 +90,5 @@ class HamiltonianPhaseEstimationResult(PhaseEstimationResult):
         Returns:
             The most likely eigenvalue of the Hamiltonian.
         """
-        phase = super().most_likely_phase
+        phase = self._phase_estimation_result.most_likely_phase
         return self._phase_estimation_scale.scale_phase(phase, self._id_coefficient)
