@@ -38,10 +38,15 @@ class OperatorBase(ABC):
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
 
-    count = itertools.count()
+    _count = itertools.count()
 
     def __init__(self) -> None:
-        self._instance_count = next(self.count)
+        self._instance_id = next(self._count)
+
+    @property
+    def instance_id(self) -> int:
+        """Return the unique instance id."""
+        return self._instance_id
 
     @property
     @abstractmethod
@@ -141,9 +146,6 @@ class OperatorBase(ABC):
         if indented_str.endswith("\n{}".format(indentation)):
             indented_str = indented_str[:-len(indentation)]
         return indented_str
-
-    def __hash__(self):
-        return self._instance_count
 
     # Addition / Subtraction
 
