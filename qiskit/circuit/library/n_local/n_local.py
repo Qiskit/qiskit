@@ -959,14 +959,22 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
 
     if entanglement == 'full':
         return list(combinations(list(range(n)), m))
+
     if entanglement in ['linear', 'circular', 'sca']:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == 'linear' or m == 1:
             return linear
 
-        # circular equals linear plus top-bottom entanglement
-        circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        if entanglement == 'pairwise':
+            return linear[::2] + linear[1::2]
+
+        # circular equals linear plus top-bottom entanglement (if there's space for it)
+        if n > m:
+            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        else:
+            circular = linear
+
         if entanglement == 'circular':
             return circular
 
