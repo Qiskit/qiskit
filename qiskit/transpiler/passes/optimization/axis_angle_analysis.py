@@ -33,8 +33,10 @@ class AxisAngleAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         self.cache = {}
+        self.property_set['axis-angle']
+        self.property_set['var_gate_class']
 
-    def run(self, dag, global_basis=True, decimals=12):
+    def run(self, dag, global_basis=True, decimals=12, rel_tol=1e-9, abs_tol=1e-9):
         """Run the axis-angle analysis pass.
 
         Run the pass on the DAG, and write the discovered commutation relations
@@ -47,6 +49,7 @@ class AxisAngleAnalysis(AnalysisPass):
                 the basis.
         """
         props = []
+        var_gate_class = dict()
         for node in dag.gate_nodes():
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
@@ -56,10 +59,17 @@ class AxisAngleAnalysis(AnalysisPass):
                     mat = Operator(node.op.definition).data
                 axis, angle, phase = _su2_axis_angle(mat)
                 quotient, remainder = divmod(2 * np.pi, angle)
-                symmetry_order = quotient if math.isclose(remainder, 0) else 1
-                props.append({'id': id(node.op),
+                if math.isclose(remainder, 0, rel_tol=rel_tol, abs_tol=abs_tol):
+                    symmetry_order = int(quotient)
+                elif math.isclose(remainder, angle, rel_tol=rel_tol, abs_tol=abs_tol):
+                    # divmod had a rounding error
+                    symmetry_order = int(quotient + 1)
+                else:
+                    symmetry_order = 1
+                nparams = len(node.op.params)
+                props.append({'id': node._node_id,
                               'name': node.name,
-                              'nparams': len(node.op.params),
+                              'nparams': nparams,
                               'qubit': node.qargs[0],
                               # needed for drop_duplicates; hashable type. Instead of rounding here
                               # could consider putting the effect into the dot product test below.
@@ -67,11 +77,12 @@ class AxisAngleAnalysis(AnalysisPass):
                               'angle': angle,
                               'phase': phase,
                               'symmetry_order': symmetry_order})
-        dfprop = pd.DataFrame.from_dict(props)
+                if node.name not in var_gate_class and nparams == 1:
+                    var_gate_class[node.name] = node.op.__class__
+        dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order':int})
         self.property_set['axis-angle'] = dfprop
-                          
-        breakpoint()
-        pass
+        self.property_set['var_gate_class'] = var_gate_class
+              
 
 def _su2_axis_angle(mat):
     """

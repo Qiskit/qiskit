@@ -17,12 +17,13 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate, RZGate
+from qiskit.circuit.library import U1Gate, RZGate, RXGate
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import _su2_axis_angle as su2
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis
+from qiskit.transpiler.passes.optimization.axis_angle_reduction import AxisAngleReduction
 
 class TestCommutativeCancellation(QiskitTestCase):
 
@@ -691,10 +692,44 @@ class TestCommutativeCancellation(QiskitTestCase):
         # cos(pi/3)x + sin(pi/3)y axis, qubit 1, 2 parameters
         circ.r(np.pi/2, np.pi/3, 1)
         circ.r(np.pi/3, np.pi/3, 1)
+        circ.cx(0, 1) # check interruption by cx
+        circ.r(np.pi/3, np.pi/3, 1)
         passmanager = PassManager()
-        passmanager.append(AxisAngleAnalysis())
+        passmanager.append(AxisAngleReduction())
         ccirc = passmanager.run(circ)
+        # TODO: set equal when fixing global phase
+        self.assertTrue(Operator(circ).equiv(ccirc))
         
-        
+        passmanager2 = PassManager()
+        passmanager2.append(CommutativeCancellation())
+        ccirc2 = passmanager2.run(circ)
+        breakpoint()
+
+
+    def test_symmetric_cancellation(self):
+        circ = QuantumCircuit(2)
+        rot3 = RXGate(2 * np.pi / 3)
+        circ.z(0)
+        circ.z(0)
+        circ.z(0)
+        circ.s(0)
+        circ.s(0)
+        circ.s(0)
+        circ.s(0)
+        circ.z(0)        
+        passmanager = PassManager()
+        passmanager.append(AxisAngleReduction())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(len(ccirc), 0)
+
+        passmanager2 = PassManager()
+        passmanager2.append(CommutativeCancellation())
+        ccirc2 = passmanager2.run(circ)
+
+        passmanager2 = PassManager()
+        passmanager2.append(CommutativeCancellation())
+        ccirc2 = passmanager2.run(circ)
+        breakpoint()
+
 if __name__ == '__main__':
     unittest.main()

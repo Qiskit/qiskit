@@ -104,7 +104,6 @@ class CommutativeCancellation(TransformationPass):
                 if com_set[0].type in ['in', 'out']:
                     continue
                 for node in com_set:
-                    breakpoint()
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
