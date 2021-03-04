@@ -85,7 +85,7 @@ class SummedOp(ListOp):
         Returns:
             A simplified ``SummedOp`` equivalent to self.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.primitive_op import PrimitiveOp
         oplist = []  # type: List[OperatorBase]
         coeffs = []  # type: List[Union[int, float, complex, ParameterExpression]]
@@ -125,7 +125,7 @@ class SummedOp(ListOp):
         if isinstance(reduced_ops, SummedOp):
             reduced_ops = reduced_ops.collapse_summands()
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.pauli_sum_op import PauliSumOp
         if isinstance(reduced_ops, PauliSumOp):
             reduced_ops = reduced_ops.reduce()
@@ -138,7 +138,7 @@ class SummedOp(ListOp):
     def to_circuit(self) -> QuantumCircuit:
         """Returns the quantum circuit, representing the SummedOp. In the first step,
         the SummedOp is converted to MatrixOp. This is straightforward for most operators,
-        but it is not supported for operators containing parametrized PrimitiveOps (in that case,
+        but it is not supported for operators containing parameterized PrimitiveOps (in that case,
         OpflowError is raised). In the next step, the MatrixOp representation of SummedOp is
         converted to circuit. In most cases, if the summands themselves are unitary operators,
         the SummedOp itself is non-unitary and can not be converted to circuit. In that case,
@@ -149,9 +149,9 @@ class SummedOp(ListOp):
 
         Raises:
             OpflowError: if SummedOp can not be converted to MatrixOp (e.g. SummedOp is composed of
-            parametrized PrimitiveOps).
+            parameterized PrimitiveOps).
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.matrix_op import MatrixOp
         matrix_op = self.to_matrix_op()
         if isinstance(matrix_op, MatrixOp):
@@ -169,7 +169,7 @@ class SummedOp(ListOp):
         return accum * self.coeff
 
     def to_pauli_op(self, massive: bool = False) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
         pauli_sum = SummedOp(
             [

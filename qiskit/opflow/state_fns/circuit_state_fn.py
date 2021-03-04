@@ -141,7 +141,7 @@ class CircuitStateFn(StateFn):
         if front:
             return other.compose(new_self)
 
-        # pylint: disable=cyclic-import,import-outside-toplevel
+        # pylint: disable=cyclic-import
         from ..primitive_ops.circuit_op import CircuitOp
         from ..primitive_ops.pauli_op import PauliOp
         from ..primitive_ops.matrix_op import MatrixOp
@@ -184,7 +184,6 @@ class CircuitStateFn(StateFn):
         Returns:
             An ``OperatorBase`` equivalent to the tensor product of self and other.
         """
-        # pylint: disable=import-outside-toplevel
         if isinstance(other, CircuitStateFn) and other.is_measurement == self.is_measurement:
             # Avoid reimplementing tensor, just use CircuitOp's
             from ..primitive_ops.circuit_op import CircuitOp
@@ -245,7 +244,6 @@ class CircuitStateFn(StateFn):
         if isinstance(self.coeff, ParameterExpression) or self.primitive.parameters:
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=import-outside-toplevel
                 from ..list_ops.list_op import ListOp
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if isinstance(self.coeff, ParameterExpression) \
@@ -275,7 +273,6 @@ class CircuitStateFn(StateFn):
                 'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
                 'sf.adjoint() first to convert to measurement.')
 
-        # pylint: disable=import-outside-toplevel
         from ..list_ops.list_op import ListOp
         from ..primitive_ops.pauli_op import PauliOp
         from ..primitive_ops.matrix_op import MatrixOp
