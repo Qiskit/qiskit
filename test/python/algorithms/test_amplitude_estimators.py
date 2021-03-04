@@ -181,7 +181,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                                     inplace=True)
 
             # fourier transform
-            iqft = QFT(m, do_swaps=False).inverse()
+            iqft = QFT(m, do_swaps=False).inverse().reverse_bits()
             circuit.append(iqft.to_instruction(), qr_eval)
 
             actual_circuit = qae.construct_circuit(problem, measurement=False)
