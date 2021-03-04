@@ -420,9 +420,10 @@ class TestInstructions(TestBuilder):
         """Test setting the name of an instruction."""
         d0 = pulse.DriveChannel(0)
 
-        for method in [pulse.delay, pulse.set_frequency, pulse.set_phase, pulse.shift_frequency, pulse.shift_phase]:
+        for method in [pulse.delay, pulse.set_frequency, pulse.set_phase,
+                       pulse.shift_frequency, pulse.shift_phase]:
             with pulse.build() as schedule:
-                method(0, d0, name = 'instruction_name')
+                method(0, d0, name='instruction_name')
             self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
 
     def test_set_frequency(self):
