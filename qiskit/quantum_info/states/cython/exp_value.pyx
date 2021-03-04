@@ -29,6 +29,7 @@ cdef unsigned long long popcount(unsigned long long count):
 def expval_pauli_no_x(complex[::1] data, unsigned long long z_mask, complex phase):
     cdef double val = 0
     cdef int i
+    cdef current_val
     for i in range(data.shape[0]):
         current_val = (phase * (data[i].real*data[i].real+data[i].imag*data[i].imag)).real
         if popcount(i & z_mask) & 1 != 0:
@@ -74,4 +75,35 @@ def expval_pauli_with_x(complex[::1] data, unsigned long long z_mask,
                 val -= current_val_1
             else:
                 val += current_val_1
+        return val
+
+def density_expval_pauli_no_x(complex[:, ::1] data, unsigned long long z_mask):
+    cdef double val = 0
+    cdef int i
+    cdef current_val
+    for i in range(data.shape[0]):
+        current_val = (data[i][i]).real
+        if popcount(i & z_mask) & 1 != 0:
+            current_val *= -1
+        val += current_val
+    return val
+
+
+def density_expval_pauli_with_x(complex[:, ::1] data, unsigned long long z_mask,
+                                unsigned long long x_mask, complex phase,
+                                unsigned int x_max):
+        cdef unsigned long long mask_u = ~(2 ** (x_max + 1) - 1) & 0xffffffffffffffff
+        cdef unsigned long long mask_l = 2**(x_max) - 1
+        cdef double val = 0
+        cdef unsigned int i
+        cdef unsigned long long index_0
+        cdef unsigned long long index_1
+        cdef double current_val
+        for i in range(data.shape[0] // 2):
+            index_0 = ((i << 1) & mask_u) | (i & mask_l)
+            index_1 = index_0 ^ x_mask
+            current_val = 2 * (phase * data[index_1][index_0]).real
+            if popcount(index_0 & z_mask) & 1 != 0:
+                current_val *= -1
+            val += current_val
         return val
