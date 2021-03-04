@@ -67,11 +67,9 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Optional[
-                        Union[Tuple[ParameterExpression, ParameterExpression],
-                              List[Tuple[ParameterExpression, ParameterExpression]],
-                              List[ParameterExpression],
-                              ParameterVector]] = None
+                    params: Optional[Union[Tuple[ParameterExpression, ParameterExpression],
+                                     List[Tuple[ParameterExpression, ParameterExpression]],
+                                     List[ParameterExpression], ParameterVector]] = None
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
