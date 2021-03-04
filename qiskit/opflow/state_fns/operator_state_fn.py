@@ -20,7 +20,6 @@ from qiskit.quantum_info import Statevector
 
 from ..operator_base import OperatorBase
 from .state_fn import StateFn
-from .vector_state_fn import VectorStateFn
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -186,6 +185,8 @@ class OperatorStateFn(StateFn):
     ) -> Union[OperatorBase, complex]:
         if front is None:
             matrix = cast(MatrixOp, self.primitive.to_matrix_op()).primitive.data
+            # pylint: disable=cyclic-import
+            from .vector_state_fn import VectorStateFn
             return VectorStateFn(matrix[0, :])
 
         if not self.is_measurement and isinstance(front, OperatorBase):

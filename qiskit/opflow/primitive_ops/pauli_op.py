@@ -67,6 +67,7 @@ class PauliOp(PrimitiveOp):
         if isinstance(other, PauliOp) and self.primitive == other.primitive:
             return PauliOp(self.primitive, coeff=self.coeff + other.coeff)
 
+        # pylint: disable=cyclic-import
         from .pauli_sum_op import PauliSumOp
         if (
             isinstance(other, PauliOp)
@@ -150,6 +151,7 @@ class PauliOp(PrimitiveOp):
             product = new_self.primitive * other.primitive
             return PrimitiveOp(product, coeff=new_self.coeff * other.coeff)
 
+        # pylint: disable=cyclic-import
         from .pauli_sum_op import PauliSumOp
         if isinstance(other, PauliSumOp):
             return PauliSumOp(

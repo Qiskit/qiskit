@@ -98,7 +98,8 @@ class VectorStateFn(StateFn):
         transpositions = arithmetic.transpositions(permutation)
         for trans in transpositions:
             qc.swap(trans[0], trans[1])
-        from .. import CircuitOp
+
+        from ..primitive_ops.circuit_op import CircuitOp
         matrix = CircuitOp(qc).to_matrix()
         vector = new_self.primitive.data
         new_vector = cast(np.ndarray, matrix.dot(vector))
@@ -145,6 +146,7 @@ class VectorStateFn(StateFn):
 
     def to_circuit_op(self) -> OperatorBase:
         """ Return ``StateFnCircuit`` corresponding to this StateFn."""
+        # pylint: disable=cyclic-import
         from .circuit_state_fn import CircuitStateFn
         csfn = CircuitStateFn.from_vector(self.primitive.data) * self.coeff
         return csfn.adjoint() if self.is_measurement else csfn
