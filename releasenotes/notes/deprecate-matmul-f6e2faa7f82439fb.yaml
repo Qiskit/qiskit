@@ -30,14 +30,9 @@ deprecations:
     Deprecates using ``@`` (``__matmul__``) for invoking the ``compose`` method
     of ``BaseOperator`` subclasses. The ``compose`` method can instead be
     invoked using the ``&`` (``__and__``) operator.
-    
-    In the future after the deprecation period is complete ``__matmul__`` will
-    be used for invoking the ``dot`` method of operator classes.
   - |
     Deprecates using ``*`` (``__mul__``) for calling the ``dot`` method of
-    ``BaseOperator`` subclasses. In the future this will be replaced
-    with the ``__matmul__`` method once the deprecation period for using
-    ``__matmul__`` for ``compose`` has finished.
+    ``BaseOperator`` subclasses.
   - |
     Deprecates using ``@`` (``__matmul__``) for invoking the ``evolve`` method
     of the :class:`qiskit.quantum_info.Statevector` and

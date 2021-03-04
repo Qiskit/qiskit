@@ -445,9 +445,9 @@ class Pauli(BasePauli):
                          incompatible dimensions for specified subsystems.
 
         .. note::
-            Composition (``>>``) by default is defined as `left` matrix multiplication for
+            Composition (``&``) by default is defined as `left` matrix multiplication for
             matrix operators, while :meth:`dot` is defined as `right` matrix
-            multiplication. That is that ``A >> B == A.compose(B)`` is equivalent to
+            multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
             ``B.dot(A)`` when ``A`` and ``B`` are the same type.
 
             Setting the ``front=True`` kwarg changes this to `right` matrix

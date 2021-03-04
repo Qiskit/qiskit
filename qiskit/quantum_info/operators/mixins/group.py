@@ -54,7 +54,7 @@ class GroupMixin(ABC):
         'Using the `__mul__` operator `A * B` as shorthand for'
         ' `A.dot(B)` is deprecated as of version 0.17.0 and will be '
         ' removed no earlier than 3 months after the release date.'
-        ' As an alternative use the compose operator `B & A`'
+        ' As an alternative, use the compose operator `B & A`'
         ' in place of `A * B` as a replacement.')
     def __mul__(self, other):
         return self.dot(other)
