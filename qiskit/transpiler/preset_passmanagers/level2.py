@@ -172,9 +172,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
                         'u3' in basis_gates):
-        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
+        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation(basis_gates=basis_gates)]
     else:
-        _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+        _opt = [Optimize1qGatesDecomposition(basis_gates),
+                CommutativeCancellation(basis_gates=basis_gates)]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
