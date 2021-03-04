@@ -24,7 +24,7 @@ For example::
 import warnings
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -75,13 +75,7 @@ class Instruction(ABC):
         self._hash = None
 
         self._parameter_table = defaultdict(list)
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
+        self._initialize_parameter_table(operands)
 
     @property
     def name(self) -> str:
@@ -172,6 +166,11 @@ class Instruction(ABC):
 
     def flatten(self) -> 'Instruction':
         """Return itself as already single instruction."""
+
+        warnings.warn('`This method is being deprecated. Please use '
+                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
+                      DeprecationWarning)
+
         return self
 
     def shift(self,
@@ -234,6 +233,21 @@ class Instruction(ABC):
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return bool(self.parameters)
+
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
+        """A helper method to initialize parameter table.
+
+        Args:
+            operands: List of operands associated with this instruction.
+        """
+        for idx, op in enumerate(operands):
+            if isinstance(op, ParameterExpression):
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
+            elif isinstance(op, Channel) and op.is_parameterized():
+                for param in op.parameters:
+                    self._parameter_table[param].append(idx)
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]

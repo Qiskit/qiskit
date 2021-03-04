@@ -394,8 +394,8 @@ def draw(program: circuit.QuantumCircuit,
     if plotter == types.Plotter.MPL.value:
         try:
             from qiskit.visualization.timeline.plotters import MplPlotter
-        except ImportError:
-            raise ImportError('Must have Matplotlib installed.')
+        except ImportError as ex:
+            raise ImportError('Must have Matplotlib installed.') from ex
 
         plotter_api = MplPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()

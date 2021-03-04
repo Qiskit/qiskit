@@ -633,6 +633,8 @@ stages:
             set -e
             cd qiskit-tutorials
             sphinx-build -b html . _build/html
+          env:
+            QISKIT_PARALLEL: False
         - task: ArchiveFiles@2
           inputs:
             rootFolderOrFile: 'qiskit-tutorials/_build/html'
