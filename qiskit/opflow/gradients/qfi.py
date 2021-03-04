@@ -46,7 +46,7 @@ class QFI(QFIBase):
             operator: The operator corresponding to the quantum state \|ψ(ω)〉for which we compute
                 the QFI
             params: The parameters we are computing the QFI wrt: ω
-                If not explicitly passed, params are inferred from operator and sorted by name.
+                If not explicitly passed, they are inferred from the operator and sorted by name.
 
         Returns:
             ListOp[ListOp] where the operator at position k,l corresponds to QFI_kl
