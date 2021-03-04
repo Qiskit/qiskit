@@ -421,7 +421,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         for instruction_method in [pulse.delay, pulse.set_frequency, pulse.set_phase,
-                       pulse.shift_frequency, pulse.shift_phase]:
+                                   pulse.shift_frequency, pulse.shift_phase]:
             with pulse.build() as schedule:
                 instruction_method(0, d0, name='instruction_name')
             self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
