@@ -12,6 +12,7 @@ upgrade:
 
     with::
 
+        from qiskit.circuit.library import MCMT
         mcmt = MCMT(ZGate(), 3, 2)
         circuit.compose(mcmt, range(5))
   - |
