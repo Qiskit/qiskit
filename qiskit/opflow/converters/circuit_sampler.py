@@ -153,12 +153,12 @@ class CircuitSampler(ConverterBase):
             OpflowError: if extracted circuits are empty.
         """
         # check if the operator should be cached
-        op_id = hash(operator)
+        op_id = operator.instance_id
         # op_id = id(operator)
         if op_id not in self._cached_ops.keys():
             # delete cache if we only want to cache one operator
             if self._caching == 'last':
-                self._cached_ops = {}
+                self.clear_cache()
 
             # convert to circuit and reduce
             operator_dicts_replaced = operator.to_circuit_op()
@@ -229,6 +229,10 @@ class CircuitSampler(ConverterBase):
                            for i in range(num_parameterizations)])
         else:
             return replace_circuits_with_dicts(self._reduced_op_cache, param_index=0)
+
+    def clear_cache(self) -> None:
+        """Clear the cache of sampled operator expressions."""
+        self._cached_ops = {}
 
     def _extract_circuitstatefns(self, operator: OperatorBase) -> None:
         r"""
