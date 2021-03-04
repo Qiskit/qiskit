@@ -22,6 +22,259 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.24.0
+*************
+
+Terra 0.16.4
+============
+
+No change
+
+Aer 0.7.6
+=========
+
+.. _Release Notes_Aer_0.7.6_New Features:
+
+New Features
+-------------
+
+- This is the first release of qiskit-aer that publishes precompiled binaries
+  to PyPI for Linux on aarch64 (arm64). From this release onwards Linux aarch64
+  packages will be published and supported.
+
+
+.. _Release Notes_Aer_0.7.6_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes a bug `#1153 <https://github.com/Qiskit/qiskit-aer/issues/1153>`__
+  where noise on conditional gates was always being applied regardless of
+  whether the conditional gate was actually applied based on the classical
+  register value. Now noise on a conditional gate will only be applied in
+  the case where the conditional gate is applied.
+
+- Fixed issue `#1126 <https://github.com/Qiskit/qiskit-aer/issues/1126>`__:
+  bug in reporting measurement of a single qubit. The bug occured when
+  copying the measured value to the output data structure.
+
+- There was previously a mismatch between the default reported number of qubits
+  the Aer backend objects would say were supported and the the maximum number
+  of qubits the simulator would actually run. This was due to a mismatch
+  between the Python code used for calculating the max number of qubits and
+  the C++ code used for a runtime check for the max number of qubits based on
+  the available memory. This has been correct so by default now Aer backends
+  will allow running circuits that can fit in all the available system memory.
+  Fixes `#1114 <https://github.com/Qiskit/qiskit-aer/issues/1126>`__
+
+
+No change
+
+Ignis 0.5.2
+===========
+
+No change
+
+Aqua 0.8.2
+==========
+
+No change
+
+IBM Q Provider 0.12.0
+=====================
+
+.. _Release Notes_IBMQ_0.12.0_Prelude:
+
+Prelude
+-------
+
+- :meth:`qiskit.providers.ibmq.IBMQBackend.run` method now takes one or more
+  :class:`~qiskit.circuit.QuantumCircuit` or :class:`~qiskit.pulse.Schedule`.
+  Use of :class:`~qiskit.qobj.QasmQobj` and :class:`~qiskit.qobj.PulseQobj` is
+  now deprecated. Runtime configuration options, such as the number of shots,
+  can be set via either the :meth:`~qiskit.providers.ibmq.IBMQBackend.run`
+  method, or the :meth:`qiskit.providers.ibmq.IBMQBackend.set_options` method.
+  The former is used as a one-time setting for the job, and the latter for all
+  jobs sent to the backend. If an option is set in both places, the value set
+  in :meth:`~qiskit.providers.ibmq.IBMQBackend.run` takes precedence.
+
+- IBM Quantum credentials are now loaded only from sections of the ``qiskitrc``
+  file that start with 'ibmq'.
+
+.. _Release Notes_IBMQ_0.12.0_New Features:
+
+New Features
+------------
+
+- The :func:`~qiskit.compiler.schedule` has been updated so that it can
+
+- Python 3.9 support has been added in this release. You can now run Qiskit
+  IBMQ provider using Python 3.9.
+
+- :meth:`qiskit.providers.ibmq.AccountProvider.backends` now has a new
+  parameter `min_num_qubits` that allows you to filter by the minimum number
+  of qubits.
+
+- :meth:`qiskit.providers.ibmq.IBMQBackend.run` method now takes one or more
+  :class:`~qiskit.circuit.QuantumCircuit` or :class:`~qiskit.pulse.Schedule`.
+  Runtime configuration options, such as the number of shots, can be set via
+  either the :meth:`~qiskit.providers.ibmq.IBMQBackend.run` method, or
+  the :meth:`qiskit.providers.ibmq.IBMQBackend.set_options` method. The former
+  is used as a one-time setting for the job, and the latter for all jobs
+  sent to the backend. If an option is set in both places, the value set
+  in :meth:`~qiskit.providers.ibmq.IBMQBackend.run` takes precedence. For
+  example:
+
+  .. code-block:: python
+
+      from qiskit import IBMQ, transpile
+      from qiskit.test.reference_circuits import ReferenceCircuits
+
+      provider = IBMQ.load_account()
+      backend = provider.get_backend('ibmq_vigo')
+      circuits = transpile(ReferenceCircuits.bell(), backend=backend)
+      default_shots = backend.options.shots  # Returns the backend default of 1024 shots.
+      backend.set_options(shots=2048)        # All jobs will now have use 2048 shots.
+      backend.run(circuits)                  # This runs with 2048 shots.
+      backend.run(circuits, shots=8192)      # This runs with 8192 shots.
+      backend.run(circuits)                  # This again runs with 2048 shots.
+
+
+- :class:`qiskit.providers.ibmq.experiment.Experiment` now has three
+  additional attributes, `hub`, `group`, and `project`, that identify
+  the provider used to create the experiment.
+
+- You can now assign an ``experiment_id`` to a job when submitting it using
+  :meth:`qiskit.providers.ibmq.IBMQBackend.run`. You can use this new field
+  to group together a collection of jobs that belong to the same experiment.
+  The :meth:`qiskit.providers.ibmq.IBMQBackendService.jobs` method was also
+  updated to allow filtering by ``experiment_id``.
+
+- :class:`qiskit.providers.ibmq.experiment.Experiment` now has two
+  additional attributes:
+
+  * share_level: The level at which the experiment is shared which determines
+    who can see it when listing experiments. This can be updated.
+  * owner: The ID of the user that uploaded the experiment. This is set by
+    the server and cannot be updated.
+
+- The method
+  :meth:`qiskit.providers.ibmq.experimentservice.ExperimentService.experiments`
+  now accepts ``hub``, ``group``, and ``project`` as filtering keywords.
+
+- Methods
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.experiments` and
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.analysis_results`
+  now support a ``limit`` parameter that allows you to limit the number of
+  experiments and analysis results returned.
+
+- The method
+  :meth:`qiskit.providers.ibmq.experimentservice.ExperimentService.experiments`
+  now accepts ``exclude_mine`` and ``mine_only`` as filtering keywords.
+
+- The method
+  :meth:`qiskit.providers.ibmq.experimentservice.ExperimentService.experiments`
+  now accepts ``exclude_public`` and ``public_only`` as filtering keywords.
+
+- :meth:`qiskit.providers.ibmq.managed.IBMQJobManager.run` now accepts a
+  single :class:`~qiskit.circuit.QuantumCircuit` or
+  :class:`~qiskit.pulse.Schedule` in addition to a list of them.
+
+- The :func:`~qiskit.providers.ibmq.least_busy` function now skips backends
+  that are operational but paused, meaning they are accepting but not
+  processing jobs.
+
+- You can now pickle an :class:`~qiskit.providers.ibmq.job.IBMQJob` instance,
+  as long as it doesn't contain custom data that is not picklable (e.g.
+  in Qobj header).
+
+- You can now use the two new methods,
+  :meth:`qiskit.providers.ibmq.AccountProvider.services` and
+  :meth:`qiskit.providers.ibmq.AccountProvider.service` to find out what
+  services are available to your account and get an instance of a
+  particular service.
+
+- The :meth:`qiskit.providers.ibmq.IBMQBackend.reservations` method
+  now always returns the reservation scheduling modes even for
+  reservations that you don't own.
+
+
+.. _Release Notes_IBMQ_0.12.0_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- A number of previously deprecated methods and features have been removed,
+  including:
+
+    * :meth:`qiskit.providers.ibmq.job.IBMQJob.to_dict`
+    * :meth:`qiskit.providers.ibmq.job.IBMQJob.from_dict`
+    * `Qconfig.py` support
+    * Use of proxy URLs that do not include protocols
+
+- A new parameter, ``limit`` is now the first parameter for both
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.experiments` and
+  :meth:`qiskit.providers.ibmq.experiment.ExperimentService.analysis_results`
+  methods. This ``limit`` has a default value of 10, meaning by deafult only
+  10 experiments and analysis results will be returned.
+
+- IBM Quantum credentials are now loaded only from sections of the ``qiskitrc``
+  file that start with 'ibmq'.
+  This allows the ``qiskitrc`` file to be used for other functionality.
+
+
+.. _Release Notes_IBMQ_0.12.0_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+- Use of :class:`~qiskit.qobj.QasmQobj` and :class:`~qiskit.qobj.PulseQobj` in
+  the :meth:`qiskit.providers.ibmq.IBMQBackend.run` method is now deprecated.
+  :class:`~qiskit.circuit.QuantumCircuit` and :class:`~qiskit.pulse.Schedule`
+  should now be used instead.
+
+- The ``backends`` attribute of :class:`qiskit.providers.ibmq.AccountProvider`
+  has been renamed to ``backend`` (sigular). For backward compatibility, you
+  can continue to use ``backends``, but it is deprecated and will be removed
+  in a future release. The :meth:`qiskit.providers.ibmq.AccountProvider.backends`
+  method remains unchanged. For example:
+
+  .. code-block:: python
+
+      backend = provider.backend.ibmq_vigo   # This is the new syntax.
+      backend = provider.backends.ibmq_vigo  # This is deprecated.
+      backends = provider.backends()         # This continues to work as before.
+
+- Setting of the :class:`~qiskit.providers.ibmq.job.IBMQJob`
+  ``client_version`` attribute has been deprecated. You can, however, continue
+  to read the value of attribute.
+
+- "The ``validate_qobj`` keyword in :meth:`qiskit.providers.ibmq.IBMQBackend.run`
+  is deprecated and will be removed in a future release.
+  If you're relying on this schema validation you should pull the schemas
+  from the `Qiskit/ibmq-schemas <https://github.com/Qiskit/ibm-quantum-schemas>`_
+  and directly validate your payloads with that.
+
+
+.. _Release Notes_IBMQ_0.12.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes the issue wherein a job could be left in the ``CREATING`` state if
+  job submit fails half-way through.
+
+- Fixes the issue wherein using Jupyter backend widget would fail if the
+  backend's basis gates do not include the traditional u1, u2, and u3.
+  Fixes `#844 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/844>`_
+
+- Fixes the infinite loop raised when passing an ``IBMQRandomService`` instance
+  to a child process.
+
+- Fixes the issue wherein a ``TypeError`` is raised if the server returns
+  an error code but the response data is not in the expected format.
+
+*************
 Qiskit 0.23.6
 *************
 

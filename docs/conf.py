@@ -45,7 +45,7 @@ author = 'Qiskit Development Team'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.23.6'
+release = '0.24.0'
 
 rst_prolog = """
 .. |version| replace:: {0}
