@@ -917,7 +917,6 @@ class TestStatevector(QiskitTestCase):
         target = 25.121320343559642+0.7071067811865476j
         self.assertAlmostEqual(expval, target)
 
-
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
