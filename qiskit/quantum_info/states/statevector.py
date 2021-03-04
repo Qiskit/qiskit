@@ -360,7 +360,7 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
-    def expectation_value_pauli(self, pauli):
+    def _expectation_value_pauli(self, pauli):
         """Compute the expectation value of a Pauli.
 
             Args:
@@ -371,9 +371,10 @@ class Statevector(QuantumState, TolerancesMixin):
             """
         # pylint: disable=no-name-in-module
         from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
-        x_mask = sum([2**k for k in range(len(pauli)) if pauli.x[k]])
-        z_mask = sum([2 ** k for k in range(len(pauli)) if pauli.z[k]])
-        phase = (-1j)**len([k for k in range(len(pauli)) if pauli.x[k] and pauli.z[k]])
+        n_pauli = len(pauli)
+        x_mask = np.dot(1 << np.arange(n_pauli), pauli.x)
+        z_mask = np.dot(1 << np.arange(n_pauli), pauli.z)
+        phase = (-1j) ** np.sum(pauli.x & pauli.z)
         if x_mask + z_mask == 0:
             return np.linalg.norm(self.data)
 
@@ -394,7 +395,7 @@ class Statevector(QuantumState, TolerancesMixin):
             complex: the expectation value.
         """
         if isinstance(oper, Pauli):
-            return self.expectation_value_pauli(oper)
+            return self._expectation_value_pauli(oper)
 
         val = self.evolve(oper, qargs=qargs)
         conj = self.conjugate()
