@@ -333,7 +333,8 @@ class Instruction:
                                 num_qubits=self.num_qubits,
                                 params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs,
+                                                 global_phase=-self.definition.global_phase)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
