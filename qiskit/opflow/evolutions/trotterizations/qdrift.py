@@ -15,6 +15,7 @@ QDrift Class
 
 """
 
+from typing import cast, Union, List
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -23,6 +24,7 @@ from ...list_ops.composed_op import ComposedOp
 from ...list_ops.summed_op import SummedOp
 from ...operator_base import OperatorBase
 from ...primitive_ops.pauli_sum_op import PauliSumOp
+from ...primitive_ops.primitive_op import PrimitiveOp
 from .trotterization_base import TrotterizationBase
 
 # pylint: disable=invalid-name
@@ -45,19 +47,28 @@ class QDrift(TrotterizationBase):
         if not isinstance(operator, (SummedOp, PauliSumOp)):
             raise TypeError("Trotterization converters can only convert SummedOp or PauliSumOp.")
 
+        if not isinstance(operator.coeff, (float, int)):
+            raise TypeError(
+                "Trotterization converters can only convert operators with real coefficients."
+            )
+
+        operator_iter: Union[PauliSumOp, List[PrimitiveOp]]
+
         if isinstance(operator, PauliSumOp):
             operator_iter = operator
-            coeffs = operator.coeffs
+            coeffs = operator.primitive.coeffs
+            coeff = operator.coeff
         else:
-            operator_iter = operator.oplist
+            operator_iter = cast(List[PrimitiveOp], operator.oplist)
             coeffs = [op.coeff for op in operator_iter]
+            coeff = operator.coeff
 
         # We artificially make the weights positive, TODO check approximation performance
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        N = 2 * (lambd ** 2) * (operator.coeff ** 2)
-        factor = lambd * operator.coeff / (N * self.reps)
+        N = 2 * (lambd ** 2) * (coeff ** 2)
+        factor = lambd * coeff / (N * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]

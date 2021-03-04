@@ -25,6 +25,7 @@ from ..state_fns.operator_state_fn import OperatorStateFn
 from ..converters.pauli_basis_change import PauliBasisChange
 from ..converters.abelian_grouper import AbelianGrouper
 from ..primitive_ops.pauli_sum_op import PauliSumOp
+from ..primitive_ops.primitive_op import PrimitiveOp
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,11 @@ class PauliExpectation(ExpectationBase):
         """
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
-            prim_str = operator.primitive_strings()
-            if not isinstance(operator.primitive, PauliSumOp) and {'Pauli'} != prim_str:
+            if (
+                isinstance(operator.primitive, (ListOp, PrimitiveOp))
+                and not isinstance(operator.primitive, PauliSumOp)
+                and {"Pauli"} != operator.primitive_strings()
+            ):
                 logger.warning('Measured Observable is not composed of only Paulis, converting to '
                                'Pauli representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this

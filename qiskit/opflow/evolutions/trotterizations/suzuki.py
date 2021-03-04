@@ -13,7 +13,10 @@
 """ Suzuki Class """
 
 from typing import List, Union, cast
-from qiskit.quantum_info import Pauli
+
+from numpy import isreal
+
+from qiskit.circuit import ParameterExpression
 
 from .trotterization_base import TrotterizationBase
 from ...operator_base import OperatorBase
@@ -57,21 +60,31 @@ class Suzuki(TrotterizationBase):
         if not isinstance(operator, (SummedOp, PauliSumOp)):
             raise TypeError('Trotterization converters can only convert SummedOp or PauliSumOp.')
 
+        if isinstance(operator.coeff, (float, ParameterExpression)):
+            coeff = operator.coeff
+        else:
+            if isreal(operator.coeff):
+                coeff = operator.coeff.real
+            else:
+                raise TypeError(
+                    "Coefficient of the operator must be float or ParameterExpression, "
+                    f"but {operator.coeff}:{type(operator.coeff)} is given."
+                )
+
         if isinstance(operator, PauliSumOp):
-            comp_list = self._recursive_expansion(operator, operator.coeff, self.order, self.reps)
+            comp_list = self._recursive_expansion(operator, coeff, self.order, self.reps)
         if isinstance(operator, SummedOp):
             comp_list = Suzuki._recursive_expansion(
-                cast(List[List[Union[complex, Pauli]]], operator.oplist),
-                cast(float, operator.coeff),
-                self.order, self.reps)
+                operator.oplist, coeff, self.order, self.reps
+            )
 
         single_rep = ComposedOp(cast(List[OperatorBase], comp_list))
         full_evo = single_rep.power(self.reps)
         return full_evo.reduce()
 
     @staticmethod
-    def _recursive_expansion(op_list: List[List[Union[complex, Pauli]]],
-                             evo_time: float,
+    def _recursive_expansion(op_list: Union[List[OperatorBase], PauliSumOp],
+                             evo_time: Union[float, ParameterExpression],
                              expansion_order: int,
                              reps: int) -> List[PrimitiveOp]:
         """

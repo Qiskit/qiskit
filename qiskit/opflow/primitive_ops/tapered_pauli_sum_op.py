@@ -27,6 +27,7 @@ from ..list_ops import ListOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.pauli_op import PauliOp
 from .pauli_sum_op import PauliSumOp
+from ..utils import commutator
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class TaperedPauliSumOp(PauliSumOp):
             self,
             primitive: SparsePauliOp,
             z2_symmetries: "Z2Symmetries",
-            coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+            coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> None:
         """
         Args:
@@ -75,7 +76,7 @@ class Z2Symmetries:
             self,
             symmetries: List[Pauli],
             sq_paulis: List[Pauli],
-            sq_list: List[Pauli],
+            sq_list: List[int],
             tapering_values: Optional[List[int]] = None,
     ):
         """
@@ -212,7 +213,7 @@ class Z2Symmetries:
             logger.info("Operator is empty.")
             return cls([], [], [], None)
 
-        for pauli in operator:  # type: ignore
+        for pauli in operator:
             stacked_paulis.append(
                 np.concatenate(
                     (pauli.primitive.table.X[0], pauli.primitive.table.Z[0]), axis=0
@@ -233,8 +234,10 @@ class Z2Symmetries:
 
             pauli_symmetries.append(
                 Pauli(
-                    stacked_symmetries[row, : symm_shape[1] // 2],
-                    stacked_symmetries[row, symm_shape[1] // 2:],
+                    (
+                        stacked_symmetries[row, : symm_shape[1] // 2],
+                        stacked_symmetries[row, symm_shape[1] // 2:],
+                    )
                 )
             )
 
@@ -257,7 +260,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = False
                         sq_paulis[row].x[col] = True
@@ -349,7 +352,7 @@ class Z2Symmetries:
                 self._taper(operator, list(coeff))
                 for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
             ]
-            tapered_ops = ListOp(tapered_ops_list)
+            tapered_ops: OperatorBase = ListOp(tapered_ops_list)
         else:
             tapered_ops = self._taper(operator, self._tapering_values)
 
@@ -388,18 +391,16 @@ class Z2Symmetries:
         Raises:
             OpflowError: The given operator does not commute with the symmetry
         """
-        if operator.is_empty():
-            raise OpflowError("Can not taper an empty operator.")
-
         for symmetry in self._symmetries:
-            if not operator.commute_with(symmetry):
+            commutator_op = cast(PauliSumOp, commutator(operator, PauliOp(symmetry)))
+            if not commutator_op.is_zero():
                 raise OpflowError(
                     "The given operator does not commute with " "the symmetry, can not taper it."
                 )
 
         return self.taper(operator)
 
-    def __eq__(self, other: "Z2Symmetries") -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Overload `==` operation to evaluate equality between Z2Symmetries.
 

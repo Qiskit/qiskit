@@ -80,7 +80,7 @@ class CircuitSampler(ConverterBase):
         self._check_quantum_instance_and_modes_consistent()
 
         # Object state variables
-        self._last_op = None
+        self._last_op = None  # type: Optional[OperatorBase]
         self._reduced_op_cache = None
         self._circuit_ops_cache = {}  # type: Dict[int, CircuitStateFn]
         self._transpiled_circ_cache = None  # type: Optional[List[Any]]
@@ -156,7 +156,7 @@ class CircuitSampler(ConverterBase):
             self._transpile_before_bind = True
 
         if not self._reduced_op_cache:
-            operator_dicts_replaced = operator.to_circuit_op()
+            operator_dicts_replaced = operator.to_circuit_op()  # type: ignore
             self._reduced_op_cache = operator_dicts_replaced.reduce()
 
         if not self._circuit_ops_cache:
@@ -218,7 +218,7 @@ class CircuitSampler(ConverterBase):
     def sample_circuits(self,
                         circuit_sfns: Optional[List[CircuitStateFn]] = None,
                         param_bindings: Optional[List[Dict[Parameter, float]]] = None
-                        ) -> Dict[int, Union[StateFn, List[StateFn]]]:
+                        ) -> Dict[int, List[StateFn]]:
         r"""
         Samples the CircuitStateFns and returns a dict associating their ``id()`` values to their
         replacement DictStateFn or VectorStateFn. If param_bindings is provided,

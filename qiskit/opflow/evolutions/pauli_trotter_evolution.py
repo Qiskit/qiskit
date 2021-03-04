@@ -110,7 +110,7 @@ class PauliTrotterEvolution(EvolutionBase):
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
-                pauli_ham = operator.primitive.to_pauli_op(massive=False)  # type: ignore
+                pauli_ham = operator.primitive.to_pauli_op(massive=False)
                 operator = EvolvedOp(pauli_ham, coeff=operator.coeff)
 
             if isinstance(operator.primitive, SummedOp):
@@ -120,11 +120,11 @@ class PauliTrotterEvolution(EvolutionBase):
                 # else:
                 # Collect terms that are not the identity.
                 oplist = [x for x in operator.primitive if not isinstance(x, PauliOp)
-                          or sum(x.primitive.x + x.primitive.z) != 0]  # type: ignore
+                          or sum(x.primitive.x + x.primitive.z) != 0]
                 # Collect the coefficients of any identity terms,
                 # which become global phases when exponentiated.
                 identity_phases = [x.coeff for x in operator.primitive if isinstance(x, PauliOp)
-                                   and sum(x.primitive.x + x.primitive.z) == 0]  # type: ignore
+                                   and sum(x.primitive.x + x.primitive.z) == 0]
                 # Construct sum without the identity operators.
                 new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
                 trotterized = self.trotter.convert(new_primitive)
@@ -163,7 +163,7 @@ class PauliTrotterEvolution(EvolutionBase):
 
         # Note: PauliBasisChange will pad destination with identities
         # to produce correct CoB circuit
-        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)  # type: ignore
+        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)
         a_sig_bit = int(max(np.extract(sig_bits, np.arange(pauli_op.num_qubits)[::-1])))
         destination = (I.tensorpower(a_sig_bit)) ^ (Z * pauli_op.coeff)
         cob = PauliBasisChange(destination_basis=destination, replacement_fn=replacement_fn)
