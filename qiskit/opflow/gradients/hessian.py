@@ -13,8 +13,10 @@
 """The module to compute Hessians."""
 
 from typing import Union, List, Tuple, Optional
-
+import functools
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
 from ..operator_globals import Zero, One
@@ -91,7 +93,7 @@ class Hessian(HessianBase):
             MissingOptionalLibraryError: jax not installed
         """
         if params is None:
-            params = sorted(operator.parameters, key=lambda p: p.name)
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs

@@ -13,8 +13,10 @@
 """The base interface for Opflow's gradient."""
 
 from typing import Union, List, Optional
-
+import functools
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ..expectations.pauli_expectation import PauliExpectation
@@ -56,7 +58,7 @@ class Gradient(GradientBase):
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
         if params is None:
-            params = sorted(operator.parameters, key=lambda p: p.name)
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.convert(operator, param) for param in params]
             absent_params = [params[i]

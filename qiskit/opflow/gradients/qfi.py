@@ -13,7 +13,9 @@
 """The module for Quantum the Fisher Information."""
 
 from typing import List, Union, Optional
+import functools
 
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import (ParameterExpression, ParameterVector)
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
@@ -52,5 +54,5 @@ class QFI(QFIBase):
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
 
         if params is None:
-            params = sorted(operator.parameters, key=lambda p: p.name)
+            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         return self.qfi_method.convert(cleaned_op, params)
