@@ -571,7 +571,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.reverse_bits(), expected)
 
     def test_reverse_bits_boxed(self):
-        """Test reversing order of bits in a hierarchiecal circuit."""
+        """Test reversing order of bits in a hierarchical circuit."""
         wide_cx = QuantumCircuit(3)
         wide_cx.cx(0, 1)
         wide_cx.cx(1, 2)

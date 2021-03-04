@@ -174,7 +174,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates)]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
