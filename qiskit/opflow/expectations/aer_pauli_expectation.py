@@ -52,7 +52,7 @@ class AerPauliExpectation(ExpectationBase):
         else:
             return operator
 
-    # pylint: disable=inconsistent-return-statements,import-outside-toplevel
+    # pylint: disable=inconsistent-return-statements
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:

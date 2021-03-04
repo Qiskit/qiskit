@@ -42,8 +42,8 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
-    # pylint: disable=unused-argument, invalid-name
-    @deprecate_arguments({'u': 'unitary'})
+    # pylint: disable=unused-argument
+    @deprecate_arguments({'u': 'unitary_matrix'})
     def __init__(self, unitary_matrix, mode='ZYZ', up_to_diagonal=False, u=None):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ['ZYZ']:

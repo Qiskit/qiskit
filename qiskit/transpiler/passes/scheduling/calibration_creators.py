@@ -66,7 +66,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
     The CX schedule must be an echoed cross-resonance gate optionally with rotary tones.
     The cross-resonance drive tones and rotary pulses must be Gaussian square pulses.
     The width of the Gaussian square pulse is adjusted so as to match the desired rotation angle.
-    If the rotation angle is small such that the width disapears then the amplitude of the
+    If the rotation angle is small such that the width disappears then the amplitude of the
     zero width Gaussian square pulse (i.e. a Gaussian) is reduced to reach the target rotation
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """

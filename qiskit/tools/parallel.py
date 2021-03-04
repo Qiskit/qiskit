@@ -151,7 +151,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
             if isinstance(error, KeyboardInterrupt):
                 Publisher().publish("terra.parallel.finish")
                 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-                raise QiskitError('Keyboard interrupt in parallel_map.')
+                raise QiskitError('Keyboard interrupt in parallel_map.') from error
             # Otherwise just reset parallel flag and error
             os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
             raise error

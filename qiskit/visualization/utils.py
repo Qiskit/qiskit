@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=anomalous-backslash-in-string
-
 """Common visualization utilities."""
 
 import re
@@ -20,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure
 
@@ -307,13 +305,13 @@ class _LayerSpooler(list):
 
 
 def _bloch_multivector_data(state):
-    """Return list of bloch vectors for each qubit
+    """Return list of Bloch vectors for each qubit
 
     Args:
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        list: list of bloch vectors (x, y, z) for each qubit.
+        list: list of Bloch vectors (x, y, z) for each qubit.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
@@ -342,7 +340,7 @@ def _paulivec_data(state):
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        tuple: (labels, values) for Pauli vec.
+        tuple: (labels, values) for Pauli vector.
 
     Raises:
         VisualizationError: if input is not an N-qubit state.

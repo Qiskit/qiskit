@@ -21,8 +21,6 @@ import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.algorithms.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
-# pylint: disable=unused-import,import-outside-toplevel
-
 
 @ddt
 class TestNLOptOptimizers(QiskitAlgorithmsTestCase):
