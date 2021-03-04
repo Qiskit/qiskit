@@ -67,8 +67,11 @@ class Hessian(HessianBase):
     # pylint: disable=too-many-return-statements
     def get_hessian(self,
                     operator: OperatorBase,
-                    params: Union[Tuple[ParameterExpression, ParameterExpression],
-                                  List[Tuple[ParameterExpression, ParameterExpression]]]
+                    params: Optional[
+                        Union[Tuple[ParameterExpression, ParameterExpression],
+                              List[Tuple[ParameterExpression, ParameterExpression]],
+                              List[ParameterExpression],
+                              ParameterVector]] = None
                     ) -> OperatorBase:
         """Get the Hessian for the given operator w.r.t. the given parameters
 
@@ -89,6 +92,8 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
+        if params is None:
+            params = sorted(operator.parameters, key=lambda p: p.name)
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
