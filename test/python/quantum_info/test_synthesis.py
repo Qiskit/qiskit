@@ -163,7 +163,7 @@ class CheckDecompositions(QiskitTestCase):
     def check_exact_decomposition(self, target_unitary, decomposer,
                                   tolerance=1.e-13, num_basis_uses=None):
         """Check exact decomposition for a particular target"""
-        decomp_circuit = decomposer(target_unitary, num_basis_uses=num_basis_uses)
+        decomp_circuit = decomposer(target_unitary, _num_basis_uses=num_basis_uses)
         if num_basis_uses is not None:
             self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get('unitary', 0))
         result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
@@ -205,6 +205,14 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_ZYZ(self):
         """Special cases of ZYZ"""
         self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, -0.1).to_matrix(), 'ZYZ', {})
+        self.check_oneq_special_cases(U3Gate(1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
+                                      {})
+        self.check_oneq_special_cases(-U3Gate(1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
+                                      {'rz': 1})  # XXX
+        self.check_oneq_special_cases(U3Gate(np.pi-1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
+                                      {'rz': 2, 'ry': 1})  # XXX
+        self.check_oneq_special_cases(-U3Gate(np.pi-1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
+                                      {'ry': 1})
         self.check_oneq_special_cases(U3Gate(np.pi, 0.1, 0.2).to_matrix(), 'ZYZ',
                                       {'rz': 2, 'ry': 1})
         self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, 0.2).to_matrix(), 'ZYZ', {'rz': 1})
@@ -269,7 +277,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
 
     def test_special_U1X(self):
         """Special cases of U1X"""
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U1X', {'u1': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'U1X', {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'U1X', {'u1': 1})
         self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'U1X',
                                       {'u1': 2, 'rx': 1})
@@ -281,7 +289,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
 
     def test_special_PSX(self):
         """Special cases of PSX"""
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'PSX', {'p': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'PSX', {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'PSX', {'p': 1})
         self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'PSX',
                                       {'p': 2, 'sx': 1})
@@ -293,7 +301,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
 
     def test_special_ZSX(self):
         """Special cases of ZSX"""
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'ZSX', {'rz': 1})
+        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'ZSX', {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'ZSX', {'rz': 1})
         self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'ZSX',
                                       {'rz': 2, 'sx': 1})
@@ -690,7 +698,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
         return decomposer
-        
+
     @combine(seed=range(10), name='test_exact_supercontrolled_decompose_random_{seed}')
     def test_exact_supercontrolled_decompose_random(self, seed):
         """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
@@ -773,14 +781,14 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt *= np.exp(1j * tgt_phase)
 
         traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
-        
+
         for i in range(4):
-            decomp_circuit = decomposer(tgt, num_basis_uses=i)
+            decomp_circuit = decomposer(tgt, _num_basis_uses=i)
             result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
             decomp_unitary = result.get_unitary()
             tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
             self.assertAlmostEqual(traces_pred[i], tr_actual, places=13,
-                msg=f"Trace doesn't match for {i}-basis decomposition")
+                                   msg=f"Trace doesn't match for {i}-basis decomposition")
 
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity
@@ -912,11 +920,12 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
 @ddt
 class TestTwoQubitDecomposeApprox(CheckDecompositions):
-    """Smoke tests for approximate decompositions"""
+    """Smoke tests for automatically-chosen approximate decompositions"""
 
     def check_approx_decomposition(self, target_unitary, decomposer, num_basis_uses):
         """Check approx decomposition for a particular target"""
-        decomp_circuit = decomposer(target_unitary, num_basis_uses=num_basis_uses)
+        self.assertEqual(decomposer.num_basis_gates(target_unitary), num_basis_uses)
+        decomp_circuit = decomposer(target_unitary)
         self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get('unitary', 0))
         # Now check the fidelity?
 
@@ -930,7 +939,7 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         basis_phase = state.random() * 2 * np.pi
         basis_b = 0.4  # how to safely randomize?
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary), basis_fidelity=0.99)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -949,7 +958,7 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         basis_phase = state.random() * 2 * np.pi
         basis_b = 0.4  # how to safely randomize?
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary), basis_fidelity=0.99)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -968,7 +977,7 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         basis_phase = state.random() * 2 * np.pi
         basis_b = 0.4  # how to safely randomize?
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary), basis_fidelity=0.99)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
@@ -988,7 +997,7 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         basis_phase = state.random() * 2 * np.pi
         basis_b = state.random() * np.pi / 4
         basis_unitary = np.exp(1j * basis_phase) * basis_k1 @ Ud(np.pi / 4, basis_b, 0) @ basis_k2
-        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
+        decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary), basis_fidelity=0.99)
 
         tgt_k1 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)
         tgt_k2 = np.kron(random_unitary(2, seed=state).data, random_unitary(2, seed=state).data)

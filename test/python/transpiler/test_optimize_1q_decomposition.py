@@ -344,7 +344,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(circuit)
         # decomposition of circuit will result in 3 gates instead of 2
         # assert optimization pass doesn't use it.
-        self.assertEqual(result, circuit)
+        self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
 
     def test_optimize_u_to_phase_gate(self):
         """U(0, 0, pi/4) ->  p(pi/4). Basis [p, sx]."""
@@ -361,7 +361,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, result, f"Expected:\n{expected}\nResult:\n{result}")
 
     def test_optimize_u_to_p_sx_p(self):
         """U(pi/2, 0, pi/4) ->  p(-pi/4)-sx-p(p/2). Basis [p, sx]."""
@@ -380,7 +380,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, result, f"Expected:\n{expected}\nResult:\n{result}")
 
     def test_optimize_u3_to_u1(self):
         """U3(0, 0, pi/4) ->  U1(pi/4). Basis [u1, u2, u3]."""

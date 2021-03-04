@@ -539,7 +539,8 @@ class TestTranspile(QiskitTestCase):
                           basis_gates=['u3', 'u2', 'u1', 'cx'])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
-        self.assertEqual(after, expected)
+        msg = f"after:\n{after}\nexpected:\n{expected}"
+        self.assertEqual(after, expected, msg=msg)
 
     def test_pass_manager_empty(self):
         """Test passing an empty PassManager() to the transpiler.
@@ -993,12 +994,12 @@ class TestTranspile(QiskitTestCase):
         # for the second and third RZ gates in the U3 decomposition.
         expected = QuantumCircuit(1, global_phase=-np.pi/2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi)
         expected.sx(0)
-        expected.p(np.pi + 0.2, 0)
+        expected.p(-np.pi + 0.2, 0)
         expected.sx(0)
-        expected.p(np.pi, 0)
+        expected.p(-np.pi, 0)
 
-        error_message = "\nOutput circuit:\n%s\nExpected circuit:\n%s" % (
-            str(out), str(expected))
+        error_message = (f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"
+                         f"Expected circuit:\n{expected!s}\n{Operator(expected).data}")
         self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
