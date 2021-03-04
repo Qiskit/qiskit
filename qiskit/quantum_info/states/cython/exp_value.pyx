@@ -88,7 +88,6 @@ def density_expval_pauli_no_x(complex[:, ::1] data, unsigned long long z_mask):
         val += current_val
     return val
 
-
 def density_expval_pauli_with_x(complex[:, ::1] data, unsigned long long z_mask,
                                 unsigned long long x_mask, complex phase,
                                 unsigned int x_max):
