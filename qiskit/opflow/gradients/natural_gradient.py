@@ -80,7 +80,8 @@ class NaturalGradient(GradientBase):
         r"""
         Args:
             operator: The operator we are taking the gradient of.
-            params: The parameters we are taking the gradient with respect to.
+            params: The parameters we are taking the gradient with respect to. If not explicitly
+                passed, params are inferred from operator and sorted by name.
 
         Returns:
             An operator whose evaluation yields the NaturalGradient.

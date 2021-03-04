@@ -56,7 +56,8 @@ class Hessian(HessianBase):
             params: The parameters we are computing the Hessian with respect to
                     Either give directly the tuples/list of tuples for which the second order
                     derivative is to be computed or give a list of parameters to build the
-                    full Hessian for those parameters.
+                    full Hessian for those parameters. If not explicitly passed, params are inferred
+                    from operator and sorted by name.
 
         Returns:
             OperatorBase: An operator whose evaluation yields the Hessian
