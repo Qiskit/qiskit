@@ -416,6 +416,15 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_instruction_name_argument(self):
+        """Test setting the name of an instruction."""
+        d0 = pulse.DriveChannel(0)
+
+        for method in [pulse.delay, pulse.set_frequency, pulse.set_phase, pulse.shift_frequency, pulse.shift_phase]:
+            with pulse.build() as schedule:
+                method(0, d0, name = 'instruction_name')
+            self.assertEqual(schedule.instructions[0][1].name, 'instruction_name')
+
     def test_set_frequency(self):
         """Test set frequency instruction."""
         d0 = pulse.DriveChannel(0)

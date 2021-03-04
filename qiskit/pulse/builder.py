@@ -1604,7 +1604,7 @@ def shift_phase(phase: float,
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as pulse_prog:
-            pulse.shift_phase(math.pi, d0, name='pi phase-shift')
+            pulse.shift_phase(math.pi, d0)
 
     Args:
         phase: Phase in radians to shift channel carrier signal by.
@@ -1794,7 +1794,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
 
 
 # Directives
-def barrier(*channels_or_qubits: Union[chans.Channel, int]):
+def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] = None):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
@@ -1860,10 +1860,11 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
     Args:
         channels_or_qubits: Channels or qubits to barrier.
+        name: Name for the barrier
     """
     channels = _qubits_to_channels(*channels_or_qubits)
     if len(channels) > 1:
-        append_instruction(directives.RelativeBarrier(*channels))
+        append_instruction(directives.RelativeBarrier(*channels, name=name))
 
 
 # Macros
