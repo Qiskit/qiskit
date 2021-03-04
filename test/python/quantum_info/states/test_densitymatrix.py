@@ -898,8 +898,8 @@ class TestDensityMatrix(QiskitTestCase):
         psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1 + 1j]) / 2
         rho = DensityMatrix(psi)
         for label, target in [
-            ('XXX', np.sqrt(2) / 2), ('YYY', -np.sqrt(2) / 2), ('ZZZ', 0),
-            ('XYZ', 0), ('YIY', 0)]:
+                ('XXX', np.sqrt(2) / 2), ('YYY', -np.sqrt(2) / 2), ('ZZZ', 0),
+                ('XYZ', 0), ('YIY', 0)]:
             with self.subTest(msg="<{}>".format(label)):
                 op = Pauli(label)
                 expval = rho.expectation_value(op)
