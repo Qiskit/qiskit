@@ -17,14 +17,13 @@ instruction occuring in parallel over multiple signal *channels*.
 
 import abc
 import copy
-import enum
 import functools
 import itertools
 import multiprocessing as mp
 import sys
 import warnings
 from collections import defaultdict
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any, NamedTuple
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
 
@@ -33,7 +32,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 # pylint: disable=cyclic-import, unused-import
-from qiskit.pulse.instructions import Instruction, Delay, RelativeBarrier
+from qiskit.pulse.instructions import Instruction, Delay
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -51,20 +50,8 @@ ScheduleComponent = Union['Schedule', Instruction]
 BlockComponent = Union['ScheduleBlock', Instruction]
 """An element that composes a pulse schedule block."""
 
-PulseProgram = Union['Schedule', 'ScheduleBlock', Instruction]
-"""Any program that represents a sequence of pulse instructions."""
 
-
-class AlignmentKind(str, enum.Enum):
-    """Type of alignment policy and mapping to the alignment function."""
-    Left = 'align_left'
-    Right = 'align_right'
-    Sequential = 'align_sequential'
-    Equispaced = 'align_equispaced'
-    Func = 'align_func'
-
-
-class ScheduleBase(abc.ABC):
+class PulseProgram(abc.ABC):
     """An abstract class for ``Schedule`` and ``ScheduleBlock``."""
 
     # Prefix to use for auto naming.
@@ -159,7 +146,7 @@ class ScheduleBase(abc.ABC):
         """Parameters which determine the schedule behavior."""
         return set(self._parameter_table.keys())
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Abstract method that returns the duration of the channels.
 
         Args:
@@ -167,7 +154,7 @@ class ScheduleBase(abc.ABC):
         """
         raise NotImplementedError
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Abstract method that returns the start time of the channels.
 
         Args:
@@ -175,7 +162,7 @@ class ScheduleBase(abc.ABC):
         """
         raise NotImplementedError
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Abstract method that returns the final time of the channels.
 
         Args:
@@ -187,7 +174,7 @@ class ScheduleBase(abc.ABC):
               time: int,
               name: Optional[str] = None,
               inplace: bool = False
-              ) -> 'ScheduleBase':
+              ) -> 'PulseProgram':
         """Abstract method that shifts absolute time of all attached components.
 
         Args:
@@ -203,7 +190,7 @@ class ScheduleBase(abc.ABC):
                schedule: Union['Schedule', Instruction],
                name: Optional[str] = None,
                inplace: bool = False
-               ) -> 'ScheduleBase':
+               ) -> 'PulseProgram':
         """Abstract method that appends new component to the program with absolute time.
 
         Args:
@@ -215,9 +202,9 @@ class ScheduleBase(abc.ABC):
         """
         raise NotImplementedError
 
-    def append(self, schedule: Union['ScheduleBase', Instruction],
+    def append(self, schedule: Union['PulseProgram', Instruction],
                name: Optional[str] = None,
-               inplace: bool = False) -> 'ScheduleBase':
+               inplace: bool = False) -> 'PulseProgram':
         """Abstract method that appends new component to the program.
 
         Args:
@@ -309,7 +296,7 @@ class ScheduleBase(abc.ABC):
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType],
-                          ) -> 'ScheduleBase':
+                          ) -> 'PulseProgram':
         """Assign the parameters in this schedule according to the input.
 
         Args:
@@ -501,16 +488,16 @@ class ScheduleBase(abc.ABC):
             instructions += ", ..."
         return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
 
-    def __add__(self, other: ScheduleComponent) -> 'ScheduleBase':
+    def __add__(self, other: ScheduleComponent) -> 'PulseProgram':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __lshift__(self, time: int) -> 'ScheduleBase':
+    def __lshift__(self, time: int) -> 'PulseProgram':
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
 
 
-class Schedule(ScheduleBase):
+class Schedule(PulseProgram):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
 
@@ -647,7 +634,7 @@ class Schedule(ScheduleBase):
 
         return tuple(sorted(self._instructions(), key=key))
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
 
         Args:
@@ -655,7 +642,7 @@ class Schedule(ScheduleBase):
         """
         return self.ch_stop_time(*channels)
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
 
         Args:
@@ -668,7 +655,7 @@ class Schedule(ScheduleBase):
             # If there are no instructions over channels
             return 0
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum start time over supplied channels.
 
         Args:
@@ -1120,7 +1107,7 @@ class Schedule(ScheduleBase):
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
 
-    def __or__(self, other: ScheduleComponent) -> 'ScheduleBase':
+    def __or__(self, other: ScheduleComponent) -> 'PulseProgram':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -1165,7 +1152,7 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         from qiskit.pulse.transforms import block_to_schedule
-        if self._check_duration():
+        if self.schedule_ready():
             return function(block_to_schedule(self), *args, **kwargs)
         raise UnassignedDurationError('This method requires all durations to be assigned with '
                                       'some integer value. Please check `.parameters` to find '
@@ -1173,7 +1160,20 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     return wrapper
 
 
-class ScheduleBlock(ScheduleBase):
+def _method_not_supported(function: Callable) -> Callable:
+    """A method decorator to raise PusleError with kind message."""
+    @functools.wraps(function)
+    def wrapper(self, *args, **kwargs):
+        raise PulseError(f'A method ``ScheduleBlock.{function.__name__}`` is not supported '
+                         'because this program does not have notion of instruction time. '
+                         'Apply ``qiskit.pulse.transforms.block_to_schedule`` function to this '
+                         'program to get ``Schedule`` representation supporting this method. '
+                         'This method is being deprecated.')
+
+    return wrapper
+
+
+class ScheduleBlock(PulseProgram):
     """A quantum program *schedule block* with alignment policy that allows lazy scheduling
     of underlying instructions. This representation is best used with the pulse builder.
 
@@ -1211,7 +1211,7 @@ class ScheduleBlock(ScheduleBase):
                 *blocks: BlockComponent,
                 name: Optional[str] = None,
                 metadata: Optional[dict] = None,
-                transform: str = AlignmentKind.Left.value,
+                transform: str = None,
                 **transform_opts):
         """Initialize instance counter."""
         if not cls.instances_counter:
@@ -1223,7 +1223,7 @@ class ScheduleBlock(ScheduleBase):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 transform: str = AlignmentKind.Left.value,
+                 transform: str = 'left',
                  **transform_opts):
         """Create an empty schedule block.
 
@@ -1235,6 +1235,7 @@ class ScheduleBlock(ScheduleBase):
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
             transform: String that represents alignment of this context.
+                The block defaults to left alignment.
             **transform_opts: Options used to align this context if available.
         Raises:
             TypeError: if metadata is not a dict.
@@ -1245,10 +1246,9 @@ class ScheduleBlock(ScheduleBase):
         self._transform_opts = transform_opts
 
         self._blocks = list()
-        if blocks:
-            if not isinstance(blocks, list):
-                blocks = [blocks]
-            map(functools.partial(self.append, inplace=True), blocks)
+
+        for block in blocks:
+            self.append(block, inplace=True)
 
     @property
     def transform(self) -> str:
@@ -1260,9 +1260,9 @@ class ScheduleBlock(ScheduleBase):
         """Return keyword arguments that is used for transformation."""
         return self._transform_opts
 
-    def _check_duration(self) -> bool:
+    def schedule_ready(self) -> bool:
         """Return ``True`` if all durations are assigned."""
-        return all(block._check_duration() if isinstance(block, ScheduleBlock) else
+        return all(block.schedule_ready() if isinstance(block, ScheduleBlock) else
                    isinstance(block.duration, int) for block in self.instructions)
 
     @property
@@ -1305,7 +1305,7 @@ class ScheduleBlock(ScheduleBase):
         return tuple(self._blocks)
 
     @_require_schedule_conversion
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
 
         Args:
@@ -1314,7 +1314,7 @@ class ScheduleBlock(ScheduleBase):
         return self.ch_duration(*channels)
 
     @_require_schedule_conversion
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
 
         Args:
@@ -1323,7 +1323,7 @@ class ScheduleBlock(ScheduleBase):
         return self.ch_start_time(*channels)
 
     @_require_schedule_conversion
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum start time over supplied channels.
 
         Args:
@@ -1331,19 +1331,14 @@ class ScheduleBlock(ScheduleBase):
         """
         return self.ch_stop_time(*channels)
 
+    @_method_not_supported
     def shift(self,
               time: int,
               name: Optional[str] = None,
-              inplace: bool = False
-              ) -> 'ScheduleBlock':
+              inplace: bool = False):
         """Return a schedule shifted forward by ``time``.
 
-        This operation is implemented by inserting ``Delay`` instructions ahead of the
-        current schedule block components. Because the shifted block should be left aligned to
-        insert correct time shift, this method always generates new block with left alignment
-        transformation wherein delays and the existing block are included.
-
-        .. note:: This method doesn't support ``inline=True``.
+        .. note:: This method is currently not supported.
 
         Args:
             time: Time to shift by.
@@ -1351,25 +1346,14 @@ class ScheduleBlock(ScheduleBase):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        if inplace:
-            raise PulseError('Inline time shift is not supported. '
-                             'Always new schedule is returned.')
+        pass
 
-        shifted_block = ScheduleBlock(name=name, metadata=self.metadata,
-                                      transform=AlignmentKind.Left)
-        for chan in self.channels:
-            shifted_block.append(Delay(time, chan), inplace=True)
-        shifted_block.append(RelativeBarrier(*self.channels), inplace=True)
-        shifted_block.append(self, inplace=True)
-
-        return shifted_block
-
+    @_method_not_supported
     def insert(self,
                start_time: int,
                schedule: ScheduleComponent,
                name: Optional[str] = None,
-               inplace: bool = False
-               ) -> Schedule:
+               inplace: bool = False):
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         .. note:: This method is currently not supported.
@@ -1381,10 +1365,7 @@ class ScheduleBlock(ScheduleBase):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        raise PulseError('Inserting new component with absolute time to ``ScheduleBlock`` is '
-                         'not currently supported. '
-                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
-                         'schedule to get ``Schedule`` representation supporting this method.')
+        pass
 
     def append(self, schedule: BlockComponent,
                name: Optional[str] = None,
@@ -1404,7 +1385,7 @@ class ScheduleBlock(ScheduleBase):
 
         if not inplace:
             new_block = ScheduleBlock(
-                blocks=list(self.instructions),
+                *self.instructions,
                 name=name or self.name,
                 metadata=self.metadata.copy(),
                 transform=self.transform,
@@ -1417,12 +1398,13 @@ class ScheduleBlock(ScheduleBase):
             self._blocks.append(schedule)
             self._update_parameter_table(schedule)
 
+    @_method_not_supported
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None,
-               check_subroutine: bool = True) -> 'Schedule':
+               check_subroutine: bool = True):
         """Return a new ``Schedule`` with only the instructions from this ``ScheduleBlock``
         which pass though the provided filters; i.e. an instruction will be retained iff
         every function in ``filter_funcs`` returns ``True``, the instruction occurs on
@@ -1447,16 +1429,15 @@ class ScheduleBlock(ScheduleBase):
         Returns:
             ``Schedule`` consisting of instructions that matches with filtering condition.
         """
-        raise PulseError('Filtering ``ScheduleBlock`` is not currently supported. '
-                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
-                         'schedule to get ``Schedule`` representation supporting this method.')
+        pass
 
+    @_method_not_supported
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
                 instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None,
-                check_subroutine: bool = True) -> 'Schedule':
+                check_subroutine: bool = True):
         """Return a ``Schedule`` with only the instructions from this Schedule *failing*
         at least one of the provided filters.
         This method is the complement of py:meth:`~self.filter`, so that::
@@ -1478,9 +1459,7 @@ class ScheduleBlock(ScheduleBase):
         Returns:
             ``Schedule`` consisting of instructions that are not matche with filtering condition.
         """
-        raise PulseError('Filtering ``ScheduleBlock`` is not currently supported. '
-                         'Apply `qiskit.pulse.transforms.block_to_schedule` function to this '
-                         'schedule to get ``Schedule`` representation supporting this method.')
+        pass
 
     def replace(self,
                 old: BlockComponent,
@@ -1511,7 +1490,9 @@ class ScheduleBlock(ScheduleBase):
 
         if inplace:
             self._blocks = new_blocks
-            map(self._update_parameter_table, new_blocks)
+            self._parameter_table.clear()
+            for new_block in new_blocks:
+                self._update_parameter_table(new_block)
             return self
         else:
             return ScheduleBlock(*new_blocks,
@@ -1532,8 +1513,7 @@ class ScheduleBlock(ScheduleBase):
 
     def __or__(self, other: ScheduleComponent) -> 'ScheduleBlock':
         """Return a new schedule which is the union of `self` and `other`."""
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata,
-                                    transform=AlignmentKind.Left)
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='left')
         union_block.append(self, inplace=True)
         union_block.append(other, inplace=True)
 
@@ -1576,6 +1556,18 @@ class ScheduleBlock(ScheduleBase):
         # 4. instruction check
         return all(self_inst == other_inst for self_inst, other_inst
                    in zip(self.instructions, other.instructions))
+
+    def __repr__(self):
+        name = format(self._name) if self._name else ""
+        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
+        if len(self.instructions) > 25:
+            instructions += ", ..."
+        return '{}({}, name="{}", transform="{}")'.format(
+            self.__class__.__name__,
+            instructions,
+            name,
+            self.transform
+        )
 
 
 class ParameterizedSchedule:

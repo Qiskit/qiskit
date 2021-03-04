@@ -13,9 +13,11 @@
 """Basic rescheduling functions which take schedules or instructions
 (and possibly some arguments) and return new schedules.
 """
+import enum
 import warnings
 from collections import defaultdict
 from copy import deepcopy
+from functools import partial
 from typing import Callable
 from typing import List, Optional, Iterable, Union
 
@@ -27,9 +29,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import (Schedule,
                                    ScheduleBlock,
-                                   PulseProgram,
-                                   ScheduleComponent,
-                                   AlignmentKind)
+                                   PulseProgram)
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -523,15 +523,23 @@ def align_func(schedule: Schedule,
 
 
 def flatten(program: PulseProgram) -> PulseProgram:
-    """Flatten (inline) any called nodes into a Schedule tree with no nested children."""
-    if isinstance(program, instructions.Instruction):
+    """Flatten (inline) any called nodes into a Schedule tree with no nested children.
+
+    Args:
+        program: Pulse program to remove nested structure.
+
+    Returns:
+        Flatten pulse program.
+
+    Raises:
+        PulseError: When invalid data format is given.
+    """
+    if isinstance(program, ScheduleBlock):
         return program
-    elif isinstance(program, ScheduleBlock):
-        return program
+    elif isinstance(program, Schedule):
+        return Schedule(*program.instructions, name=program.name, metadata=program.metadata)
     else:
-        return Schedule(*program.instructions,
-                        name=program.name,
-                        metadata=program.metadata)
+        raise PulseError(f'Invalid input program {program.__class__.__name__} is specified.')
 
 
 def inline_subroutines(program: Schedule) -> Schedule:
@@ -578,7 +586,17 @@ def remove_trivial_barriers(schedule: Schedule) -> Schedule:
 
 
 def block_to_schedule(block: ScheduleBlock) -> Schedule:
-    """Convert ScheduleBlock to Schedule."""
+    """Convert ScheduleBlock to Schedule.
+
+    Args:
+        block: A ScheduleBlock to convert.
+
+    Returns:
+        Scheduled pulse program.
+
+    Raises:
+        PulseError: When invalid transform is specified.
+    """
     schedule = Schedule(name=block.name, metadata=block.metadata)
 
     for op_data in block.instructions:
@@ -595,16 +613,24 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
                     f'Assign some integer value to {repr(op_data.duration)}.')
 
     # transform with defined policy
-    transform_map = {
-        AlignmentKind.Left.value: align_left,
-        AlignmentKind.Right.value: align_right,
-        AlignmentKind.Sequential.value: align_sequential,
-        AlignmentKind.Equispaced.value: align_equispaced,
-        AlignmentKind.Func.value: align_func
-    }
-    if block.transform not in transform_map:
-        raise PulseError('Specified transform policy {} is not defined. Define one of {}.'
-                         ''.format(block.transform, ', '.join(transform_map.keys())))
+    return AlignmentKind.transform(schedule, block.transform, **block.transform_opts)
 
-    transform_func = transform_map.get(block.transform)
-    return transform_func(schedule, **block.transform_opts)
+
+class AlignmentKind(enum.Enum):
+    """Type of alignment policy and mapping to the alignment function."""
+    left = partial(align_left)
+    right = partial(align_right)
+    sequential = partial(align_sequential)
+    equispaced = partial(align_equispaced)
+    func = partial(align_func)
+
+    @classmethod
+    def transform(cls, schedule, align_type, **kwargs) -> Schedule:
+        for align_def in AlignmentKind:
+            if align_def.name == align_type:
+                return align_def.value(schedule, **kwargs)
+
+        print([e.name for e in AlignmentKind])
+
+        raise PulseError('Specified alignment {} is not defined. Choose one of {}.'
+                         ''.format(align_type, ', '.join([e.name for e in AlignmentKind])))
