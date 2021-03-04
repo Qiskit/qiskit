@@ -26,7 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Pauli
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -396,6 +396,10 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if isinstance(oper, Pauli):
             return self._expectation_value_pauli(oper)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum([coeff * self._expectation_value_pauli(Pauli(p))
+                        for p, coeff in zip(oper.table.to_labels(), oper.coeffs)])
 
         val = self.evolve(oper, qargs=qargs)
         conj = self.conjugate()

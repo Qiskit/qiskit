@@ -27,7 +27,7 @@ from qiskit.circuit.library import HGate, QFT
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Pauli
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 logger = logging.getLogger(__name__)
@@ -909,6 +909,14 @@ class TestStatevector(QiskitTestCase):
                 op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+        labels = ['XXX', 'IXI', 'YYY', 'III']
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = psi.expectation_value(spp_op)
+        target = 25.121320343559642+0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
+
 
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
