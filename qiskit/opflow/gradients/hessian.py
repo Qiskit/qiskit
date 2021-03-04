@@ -79,7 +79,9 @@ class Hessian(HessianBase):
 
         Args:
             operator: Operator w.r.t. which we take the Hessian.
-            params: Parameters w.r.t. which we compute the Hessian.
+            params: Parameters w.r.t. which we compute the Hessian. If not explicitly passed,
+                    the full Hessian is constructed. The parameters are then inferred from
+                    the operator and sorted by name.
 
         Returns:
             Operator which represents the gradient w.r.t. the given params.
