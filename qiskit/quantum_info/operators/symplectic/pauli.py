@@ -448,7 +448,7 @@ class Pauli(BasePauli):
             Composition (``&``) by default is defined as `left` matrix multiplication for
             matrix operators, while :meth:`dot` is defined as `right` matrix
             multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
-            ``B.dot(A)`` when ``A`` and ``B`` are the same type.
+            ``B.dot(A)`` when ``A`` and ``B`` are of the same type.
 
             Setting the ``front=True`` kwarg changes this to `right` matrix
             multiplication and is equivalent to the :meth:`dot` method
