@@ -905,6 +905,13 @@ class TestDensityMatrix(QiskitTestCase):
                 expval = rho.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
 
+        labels = ['XXX', 'IXI', 'YYY', 'III']
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = rho.expectation_value(spp_op)
+        target = 25.121320343559642 + 0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
+
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
         circ1 = QFT(5)
