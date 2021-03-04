@@ -32,7 +32,6 @@ class PhaseEstimator(ABC):
 
     @abstractmethod
     def estimate(self,
-                 num_evaluation_qubits: Optional[int],
                  unitary: Optional[QuantumCircuit] = None,
                  state_preparation: Optional[QuantumCircuit] = None,
                  pe_circuit: Optional[QuantumCircuit] = None,
@@ -40,32 +39,6 @@ class PhaseEstimator(ABC):
         """
         Estimate the phase.
         """
-        if num_evaluation_qubits is not None:
-            self._num_evaluation_qubits = num_evaluation_qubits
-
-        if unitary is not None:
-            if pe_circuit is not None:
-                raise ValueError('Only one of `pe_circuit` and `unitary` may be passed.')
-            self._num_unitary_qubits = unitary.num_qubits
-            self._pe_circuit = circuit.library.PhaseEstimation(self._num_evaluation_qubits, unitary)
-            self._measurements_added = False
-
-        if pe_circuit is not None:
-            if unitary is not None:
-                raise ValueError('Only one of `pe_circuit` and `unitary` may be passed.')
-            self._pe_circuit = pe_circuit
-            self._measurements_added = False
-
-        if num_unitary_qubits is not None:
-            self._num_unitary_qubits = num_unitary_qubits
-
-        if state_preparation is not None:
-            self._pe_circuit.compose(
-                state_preparation,
-                qubits=range(self._num_evaluation_qubits,
-                             self._num_evaluation_qubits + self._num_unitary_qubits),
-                inplace=True,
-                front=True)
 
         return PhaseEstimatorResult()
 

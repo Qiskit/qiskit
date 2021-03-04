@@ -18,6 +18,7 @@ from typing import Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit
 import qiskit
+import qiskit.circuit as circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
@@ -147,7 +148,6 @@ class PhaseEstimation(PhaseEstimator):
         return phases
 
     def estimate(self,
-                 num_evaluation_qubits: Optional[int] = None,
                  unitary: Optional[QuantumCircuit] = None,
                  state_preparation: Optional[QuantumCircuit] = None,
                  pe_circuit: Optional[QuantumCircuit] = None,
@@ -155,8 +155,6 @@ class PhaseEstimation(PhaseEstimator):
         """Run the circuit and return and return `PhaseEstimationResult`.
 
            Args:
-            num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
-                be estimated as a binary string with this many bits.
             unitary: The circuit representing the unitary operator whose eigenvalues (via phase)
                 will be measured. Exactly one of `pe_circuit` and `unitary` must be passed.
             state_preparation: The circuit that prepares the state whose eigenphase will be
@@ -171,8 +169,31 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
                An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
-        super().estimate(num_evaluation_qubits, unitary, state_preparation,
-                         pe_circuit, num_unitary_qubits)
+
+        if unitary is not None:
+            if pe_circuit is not None:
+                raise ValueError('Only one of `pe_circuit` and `unitary` may be passed.')
+            self._num_unitary_qubits = unitary.num_qubits
+            self._pe_circuit = circuit.library.PhaseEstimation(self._num_evaluation_qubits, unitary)
+            self._measurements_added = False
+
+        if pe_circuit is not None:
+            if unitary is not None:
+                raise ValueError('Only one of `pe_circuit` and `unitary` may be passed.')
+            self._pe_circuit = pe_circuit
+            self._measurements_added = False
+
+        if num_unitary_qubits is not None:
+            self._num_unitary_qubits = num_unitary_qubits
+
+        if state_preparation is not None:
+            self._pe_circuit.compose(
+                state_preparation,
+                qubits=range(self._num_evaluation_qubits,
+                             self._num_evaluation_qubits + self._num_unitary_qubits),
+                inplace=True,
+                front=True)
+
         circuit_result = self._quantum_instance.execute(self.construct_circuit())
         phases = self._compute_phases(circuit_result)
         return PhaseEstimationResult(self._num_evaluation_qubits, circuit_result=circuit_result,
