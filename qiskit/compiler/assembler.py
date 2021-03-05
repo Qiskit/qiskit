@@ -29,6 +29,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse import Schedule
+from qiskit.pulse.frame import Frame
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
              parametric_pulses: Optional[List[str]] = None,
              init_qubits: bool = True,
+             frames_config: Dict[int, Dict] = None,
              **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
@@ -122,6 +124,11 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
                      Default: ``True``.
+        frames_config: Dictionary of user provided frames configuration. The key is the index
+            of the frame and the value is a dictionary with the configuration of the frame
+            which must be of the form {'frame': Frame, 'phase': float, 'frequency': float,
+            'channels': List[Channels]}. This object will be used to initialize ResolvedFrame
+            instance to resolve the frames in the Schedule.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -159,7 +166,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
                                        meas_map, memory_slot_size,
-                                       rep_time, parametric_pulses,
+                                       rep_time, parametric_pulses, frames_config,
                                        **run_config_common_dict)
 
         end_time = time()
@@ -259,7 +266,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
                       memory_slot_size,
-                      rep_time, parametric_pulses,
+                      rep_time, parametric_pulses, frames_config,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
@@ -301,6 +308,18 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
+    frames_config_ = None
+    if hasattr(backend_config, 'frames'):
+        frames_config_ = frames_configuration(backend_config.frames(), qubit_lo_freq)
+
+    if frames_config is None:
+        frames_config = frames_config_
+    else:
+        for index, config in frames_config_.items():
+            # Do not override the frames provided by the user.
+            if index not in frames_config:
+                frames_config[index] = config
+
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
@@ -326,6 +345,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
                            parametric_pulses=parametric_pulses,
+                           frames_config=frames_config,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
@@ -453,3 +473,40 @@ def _expand_parameters(circuits, run_config):
         run_config.parameter_binds = []
 
     return circuits, run_config
+
+def frames_configuration(frame_channels: List[List[PulseChannel]],
+                         frame_frequencies: List[float],
+                         frame_indices: List[int] = None) -> Union[dict, None]:
+    """
+    Ties together the frames of the backend and the frequencies of the frames.
+
+    Args:
+        frame_channels: A List of lists. Sublist i is a list of channel names
+            that frame i will broadcast on.
+        frame_frequencies: A list of starting frequencies for each frame.
+        frame_indices: The indices of the frames. If None is given these will be
+            in ascending order starting from 0.
+
+    Returns:
+        frames_config: A dictionary with the frame index as key and the values are
+            a dict which can be used to initialized a ResolvedFrame.
+    """
+    if len(frame_frequencies) != len(frame_channels):
+        raise QiskitError(f'Number of frames {len(frame_channels)} is incompatible with '
+                          f'the number of frame initial frequencies {len(frame_frequencies)}.')
+
+    frames_config = {}
+    for idx, channels in enumerate(frame_channels):
+        if frame_indices:
+            index = frame_indices[idx]
+        else:
+            index = idx
+
+        frames_config[index] = {
+            'frame': Frame(index),
+            'phase': 0.0,
+            'frequency': frame_frequencies[idx],
+            'channels': channels
+        }
+
+    return frames_config
