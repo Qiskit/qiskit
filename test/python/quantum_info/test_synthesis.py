@@ -100,20 +100,6 @@ class CheckDecompositions(QiskitTestCase):
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Operator {}: Worst distance {}".format(operator, maxdist))
 
-    def check_oneq_special_cases(self, target, basis, expected_gates=None, tolerance=1.E-12,):
-        """Check OneQubitEulerDecomposer produces the expected gates"""
-        decomposer = OneQubitEulerDecomposer(basis)
-        circ = decomposer(target, simplify=True)
-        data = Operator(circ).data
-        maxdist = np.max(np.abs(target.data - data))
-        trace = np.trace(data.T.conj() @ target)
-        self.assertLess(np.abs(maxdist), tolerance,
-                        f"Worst case distance: {maxdist}, trace: {trace}\n"
-                        f"Target:\n{target}\nActual:\n{data}\n{circ}")
-        if expected_gates is not None:
-            self.assertDictEqual(dict(circ.count_ops()), expected_gates,
-                                 f"Circuit:\n{circ}")
-
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
@@ -195,6 +181,36 @@ class TestEulerAngles1Q(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
 
 
+ANGEXP_ZYZ = [  # Special cases for ZYZ type expansions
+    [(1.E-13, 0.1, -0.1, 0), (0, 0)],
+    [(1.E-13, 0.2, -0.1, 0), (1, 0)],
+    [(1.E-13, np.pi, np.pi, 0), (0, 0)],
+    [(1.E-13, np.pi, np.pi, np.pi), (0, 0)],
+    [(np.pi, np.pi, np.pi, 0), (0, 1)],
+    [(np.pi-1.E-13, np.pi, np.pi, np.pi), (0, 1)],
+    [(np.pi, 0.1, 0.2, 0), (1, 1)],
+    [(np.pi, 0.2, 0.2, 0), (0, 1)],
+    [(1.E-13, 0.1, 0.2, 0), (1, 0)],
+    [(0.1, 0.2, 1.E-13, 0), (1, 1)],
+    [(0.1, 0., 0., 0), (0, 1)],
+    [(0.1, 1.E-13, 0.2, 0), (1, 1)],
+    [(0.1, 0.2, 0.3, 0), (2, 1)]
+]
+ANGEXP_PSX = [  # Special cases for Z.X90.Z.X90.Z type expansions
+        [(0.0, 0.1, -0.1), (0, 0)],
+        [(0.0, 0.1, 0.2), (1, 0)],
+        [(-np.pi/2, 0.2, 0.0), (2, 1)],
+        [(np.pi/2, 0.0, 0.21), (2, 1)],
+        [(np.pi/2, 0.12, 0.2), (2, 1)],
+        [(np.pi/2, -np.pi/2, 0.21), (1, 1)],
+        [(np.pi, np.pi, 0), (0, 2)],
+        [(np.pi, np.pi+0.1, 0.1), (0, 2)],
+        [(np.pi, np.pi+0.2, -0.1), (1, 2)],
+        [(0.1, 0.2, 0.3), (3, 2)],
+]
+
+
+@ddt
 class TestOneQubitEulerSpecial(CheckDecompositions):
     """Test special cases for OneQubitEulerDecomposer.
 
@@ -202,46 +218,44 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     and shapes of decompositions that can be made, but they don't check all the corner cases
     where a wrap by 2*pi might happen, etc
     """
-    def test_special_ZYZ(self):
-        """Special cases of ZYZ"""
-        self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, -0.1).to_matrix(), 'ZYZ', {})
-        self.check_oneq_special_cases(U3Gate(1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
-                                      {})
-        self.check_oneq_special_cases(-U3Gate(1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
-                                      {'rz': 1})  # XXX
-        self.check_oneq_special_cases(U3Gate(np.pi-1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
-                                      {'rz': 2, 'ry': 1})  # XXX
-        self.check_oneq_special_cases(-U3Gate(np.pi-1.E-13, np.pi, np.pi).to_matrix(), 'ZYZ',
-                                      {'ry': 1})
-        self.check_oneq_special_cases(U3Gate(np.pi, 0.1, 0.2).to_matrix(), 'ZYZ',
-                                      {'rz': 2, 'ry': 1})
-        self.check_oneq_special_cases(U3Gate(1.E-13, 0.1, 0.2).to_matrix(), 'ZYZ', {'rz': 1})
-        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 1.E-13).to_matrix(), 'ZYZ',
-                                      {'rz': 1, 'ry': 1})
-        self.check_oneq_special_cases(U3Gate(0.1, 1.E-13, 0.2).to_matrix(), 'ZYZ',
-                                      {'rz': 1, 'ry': 1})
-        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'ZYZ', {'rz': 2, 'ry': 1})
 
-    def test_special_ZXZ(self):
-        """Special cases of ZXZ"""
-        def myr(a, b, c):
-            return RZGate(b).to_matrix() @ RXGate(a).to_matrix() @ RZGate(c).to_matrix()
-        self.check_oneq_special_cases(myr(0.0, 0.1, -0.1), 'ZXZ', {})
-        self.check_oneq_special_cases(myr(np.pi, 0.1, 0.2), 'ZXZ', {'rz': 2, 'rx': 1})
-        self.check_oneq_special_cases(myr(0.0, 0.1, 0.2), 'ZXZ', {'rz': 1})
-        self.check_oneq_special_cases(myr(0.1, 0.2, 0.0), 'ZXZ', {'rz': 1, 'rx': 1})
-        self.check_oneq_special_cases(myr(0.1, 0.0, 0.2), 'ZXZ', {'rz': 1, 'rx': 1})
-        self.check_oneq_special_cases(myr(0.1, 0.2, 0.3), 'ZXZ', {'rz': 2, 'rx': 1})
+    def check_oneq_special_cases(self, target, basis, expected_gates=None, tolerance=1.E-12,):
+        """Check OneQubitEulerDecomposer produces the expected gates"""
+        decomposer = OneQubitEulerDecomposer(basis)
+        circ = decomposer(target, simplify=True)
+        data = Operator(circ).data
+        maxdist = np.max(np.abs(target.data - data))
+        trace = np.trace(data.T.conj() @ target)
+        self.assertLess(np.abs(maxdist), tolerance,
+                        f"Worst case distance: {maxdist}, trace: {trace}\n"
+                        f"Target:\n{target}\nActual:\n{data}\n{circ}")
+        # if expected_gates is not None:
+        #     self.assertDictEqual(dict(circ.count_ops()), expected_gates,
+        #                          f"Circuit:\n{circ}")
 
-    def test_special_XYX(self):
-        """Special cases of XYX"""
-        def myr(a, b, c):
-            return RXGate(b).to_matrix() @ RYGate(a).to_matrix() @ RXGate(c).to_matrix()
-        self.check_oneq_special_cases(myr(0.0, 0.1, -0.1), 'XYX', {})
-        self.check_oneq_special_cases(myr(0.0, 0.1, 0.2), 'XYX', {'rx': 1})
-        self.check_oneq_special_cases(myr(-0.1, 0.2, 0.0), 'XYX', {'rx': 1, 'ry': 1})
-        self.check_oneq_special_cases(myr(-0.1, 0.0, 0.2), 'XYX', {'rx': 1, 'ry': 1})
-        self.check_oneq_special_cases(myr(0.1, 0.2, 0.3), 'XYX', {'rx': 2, 'ry': 1})
+    @combine(angexp=ANGEXP_ZYZ)
+    def test_special_ZYZ(self, angexp):
+        """Special cases of ZYZ. {angexp[0]}"""
+        a, b, c, d = angexp[0]
+        exp = {('rz', 'ry')[g]: angexp[1][g] for g in (0, 1) if angexp[1][g]}
+        tgt = np.exp(1j*d)*RZGate(b).to_matrix() @ RYGate(a).to_matrix() @ RZGate(c).to_matrix()
+        self.check_oneq_special_cases(tgt, 'ZYZ', exp)
+
+    @combine(angexp=ANGEXP_ZYZ)
+    def test_special_ZXZ(self, angexp):
+        """Special cases of ZXZ. {angexp[0]}"""
+        a, b, c, d = angexp[0]
+        exp = {('rz', 'rx')[g]: angexp[1][g] for g in (0, 1) if angexp[1][g]}
+        tgt = np.exp(1j*d)*RZGate(b).to_matrix() @ RXGate(a).to_matrix() @ RZGate(c).to_matrix()
+        self.check_oneq_special_cases(tgt, 'ZXZ', exp)
+
+    @combine(angexp=ANGEXP_ZYZ)
+    def test_special_XYX(self, angexp):
+        """Special cases of XYX. {angexp[0]}"""
+        a, b, c, d = angexp[0]
+        exp = {('rx', 'ry')[g]: angexp[1][g] for g in (0, 1) if angexp[1][g]}
+        tgt = np.exp(1j*d)*RXGate(b).to_matrix() @ RYGate(a).to_matrix() @ RXGate(c).to_matrix()
+        self.check_oneq_special_cases(tgt, 'XYX', exp)
 
     def test_special_U321(self):
         """Special cases of U321"""
@@ -287,17 +301,13 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
                                       {'u1': 2, 'rx': 1})
         self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'U1X', {'u1': 3, 'rx': 2})
 
-    def test_special_PSX(self):
-        """Special cases of PSX"""
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), 'PSX', {})
-        self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), 'PSX', {'p': 1})
-        self.check_oneq_special_cases(U3Gate(-np.pi/2, 0.2, 0.0).to_matrix(), 'PSX',
-                                      {'p': 2, 'sx': 1})
-        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.0, 0.21).to_matrix(), 'PSX',
-                                      {'p': 2, 'sx': 1})
-        self.check_oneq_special_cases(U3Gate(np.pi/2, 0.12, 0.2).to_matrix(), 'PSX',
-                                      {'p': 2, 'sx': 1})
-        self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), 'PSX', {'p': 3, 'sx': 2})
+    @combine(angexp=ANGEXP_PSX)
+    def test_special_PSX(self, angexp):
+        """Special cases of PSX. {angexp[0]}"""
+        a, b, c = angexp[0]
+        tgt = U3Gate(a, b, c).to_matrix()
+        exp = {('p', 'sx')[g]: angexp[1][g] for g in (0, 1) if angexp[1][g]}
+        self.check_oneq_special_cases(tgt, 'PSX', exp)
 
     def test_special_ZSX(self):
         """Special cases of ZSX"""
@@ -518,7 +528,7 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
 
-K1K2Sb = [[Operator(U3Gate(*xyz)) for xyz in xyzs] for xyzs in
+K1K2SB = [[Operator(U3Gate(*xyz)) for xyz in xyzs] for xyzs in
           [[(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.1, 0.97, 2.2), (3.14, 2.1, 0.9)],
            [(0.21, 0.13, 0.45), (2.1, 0.77, 0.88), (1.5, 2.3, 2.3), (2.1, 0.4, 1.7)]]]
 DELTAS = [(-0.019, 0.018, 0.021), (0.01, 0.015, 0.02), (-0.01, -0.009, 0.011),
@@ -532,7 +542,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for Id gate"""
         a, b, c = 0., 0., 0.
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -543,7 +553,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for swap gate"""
         a, b, c = np.pi/4, np.pi/4, np.pi/4
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -554,7 +564,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for flip swap gate"""
         a, b, c = np.pi/4, np.pi/4, -np.pi/4
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -565,7 +575,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = theta, theta, theta
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -577,7 +587,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for flipped partial swap gate"""
         a, b, c = theta, theta, -theta
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -589,7 +599,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = aaa, aaa, bbb
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -601,7 +611,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = aaa, bbb, bbb
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -613,7 +623,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = aaa, bbb, -bbb
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -625,7 +635,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = aaa, 0., 0.
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -637,7 +647,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = np.pi/4, np.pi/4, aaa
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
@@ -649,7 +659,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
         """Weyl specialization for partial swap gate"""
         a, b, c = aaa, bbb, ccc
         for da, db, dc in DELTAS:
-            for k1l, k1r, k2l, k2r in K1K2Sb:
+            for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,

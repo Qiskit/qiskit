@@ -310,18 +310,29 @@ class OneQubitEulerDecomposer:
                      phi,
                      lam,
                      phase,
-                     simplify=True,
+                     simplify=False,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
+        gphase = phase - (phi+lam)/2
+        circuit = QuantumCircuit(1)
+
         if simplify and abs(theta) < atol:
-            if abs(phi + lam) > atol:
-                circuit.append(RXGate(phi + lam), [0])
+            tot = _mod_2pi(phi + lam)
+            if abs(tot) > atol:
+                circuit.append(RXGate(tot), [0])
+                gphase += tot/2
+            circuit.global_phase = gphase
             return circuit
+        if simplify and abs(theta - np.pi) < atol:
+            gphase += phi
+            lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
+            gphase += lam/2
             circuit.append(RXGate(lam), [0])
         circuit.append(RYGate(theta), [0])
         if not simplify or abs(phi) > atol:
+            gphase += phi/2
             circuit.append(RXGate(phi), [0])
+        circuit.global_phase = gphase
         return circuit
 
     @staticmethod
@@ -384,6 +395,9 @@ class OneQubitEulerDecomposer:
         # General two-SX gate decomposition
         # Shift theta and phi so decomposition is
         # P(phi).SX.P(theta).SX.P(lam)
+        if simplify and abs(theta-np.pi) < atol:
+            circuit.global_phase += lam
+            phi, lam = phi-lam, 0
         circuit.global_phase -= np.pi/2
         pfun(circuit, lam)
         xfun(circuit)

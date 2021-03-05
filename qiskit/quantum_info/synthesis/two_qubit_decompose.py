@@ -114,7 +114,7 @@ class TwoQubitWeylDecomposition():
     K1r: np.ndarray
     K2r: np.ndarray
     unitary_matrix: np.ndarray  # The unitary that was input
-    requested_fidelity: Optional[float]  # None for no automatic specialization
+    requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _original_decomposition: Optional["TwoQubitWeylDecomposition"]
@@ -348,7 +348,7 @@ class TwoQubitWeylDecomposition():
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit.
 
-        Override in subclasses for special cases"""
+        Can be overriden in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
             circ.rxx(-self.a*2, 0, 1)
         if not simplify or abs(self.b) > atol:
@@ -614,7 +614,7 @@ class TwoQubitBasisDecomposer():
             self._decomposer1q = OneQubitEulerDecomposer('U3')
 
         # FIXME: find good tolerances
-        self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)
+        self.is_supercontrolled = math.isclose(basis.a, np.pi/4) and math.isclose(basis.c, 0.)
 
         # Create some useful matrices U1, U2, U3 are equivalent to the basis,
         # expand as Ui = Ki1.Ubasis.Ki2
