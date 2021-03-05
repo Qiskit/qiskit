@@ -232,19 +232,28 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         QiskitError: If the instructions do not satisfy the measurement map.
     """
     meas_map_sets = [set(m) for m in meas_map]
+    for meas_set in meas_map_sets:
+        validate_time = defaultdict(list)
+        # Check each acquisition time individually
+        for time, instrs in instruction_map.items():  # time = (start_time, duration)
+            measured_qubits = set()
+            for inst in instrs:
+                validate_time[inst.channel.index].extend(time)
+                measured_qubits.add(inst.channel.index)
 
-    # Check each acquisition time individually
-    for _, instrs in instruction_map.items():
-        measured_qubits = set()
-        for inst in instrs:
-            measured_qubits.add(inst.channel.index)
-
-        for meas_set in meas_map_sets:
-            intersection = measured_qubits.intersection(meas_set)
-            if intersection and intersection != meas_set:
-                raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
-                                  'in measurement map: {}'.format(measured_qubits, meas_set))
-
+            if not measured_qubits.issubset(meas_set):
+                continue
+            if measured_qubits == meas_set:
+                continue
+            else:
+                if len(validate_time)>1:
+                    for qubit, (start_time, duration) in validate_time.items():
+                        end_time =  start_time + duration
+                        if qubit not in measured_qubits and \
+                            measured_qubits.issubset(meas_set) and \
+                                start_time < time[0] < end_time:
+                            raise QiskitError('Qubits in the measurement map: {} was '
+                                              'acquired disjointly'.format(meas_set))
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],

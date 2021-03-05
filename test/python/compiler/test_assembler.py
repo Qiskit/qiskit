@@ -789,11 +789,11 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_map=[[0], [1]])
         validate_qobj_against_schema(qobj)
 
-        with self.assertRaises(QiskitError):
-            assemble(schedule,
-                     qubit_lo_freq=self.default_qubit_lo_freq,
-                     meas_lo_freq=self.default_meas_lo_freq,
-                     meas_map=[[0, 1, 2]])
+        assemble(schedule,
+                 qubit_lo_freq=self.default_qubit_lo_freq,
+                 meas_lo_freq=self.default_meas_lo_freq,
+                 meas_map=[[0, 1, 2]])
+        validate_qobj_against_schema(qobj)
 
     def test_assemble_memory_slots(self):
         """Test assembling a schedule and inferring number of memoryslots."""
@@ -1182,6 +1182,53 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling schedules, no lo config."""
         inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
         qobj = assemble(inst, self.backend)
+        validate_qobj_against_schema(qobj)
+
+    def test_assemble_disjoint_time(self):
+        """Test that assembly error when disjoint time is provided."""
+
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+        )
+        # import ipdb; ipdb.set_trace()
+        with self.assertRaises(QiskitError):
+            qobj = assemble(schedule,
+                            qubit_lo_freq=self.default_qubit_lo_freq,
+                            meas_lo_freq=self.default_meas_lo_freq,
+                            meas_map=[[0, 1]])
+
+    def test_assemble_non_disjoint_time_single_meas_map(self):
+        """Test that assembly error when disjoint time is provided."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
+        )
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0, 1]])
+        validate_qobj_against_schema(qobj)
+
+    def test_assemble_non_disjoint_time(self):
+        """Test that assembly error when disjoint time is provided."""
+        schedule = Schedule()
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+        )
+        schedule = schedule.append(
+            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+        )
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
         validate_qobj_against_schema(qobj)
 
 
