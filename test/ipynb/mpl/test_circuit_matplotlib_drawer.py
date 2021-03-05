@@ -26,6 +26,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
@@ -483,6 +484,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename='meas_condition.png')
+
+    def test_multi_target_x(self):
+        """Tests measure with a condition"""
+
+        qr = QuantumRegister(6, 'qr')
+        cr = ClassicalRegister(2, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(MCXVChain(3, dirty_ancillas=True),
+                       [qr[0], qr[1], qr[2], qr[3], qr[5]], [])
+
+        self.circuit_drawer(circuit, filename='multi_target_x.png')
 
 
 if __name__ == '__main__':
