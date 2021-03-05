@@ -121,7 +121,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     self.swap_reliabs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
-                    for n in set(self.swap_graph.neighbors(j)):
+                    for n in self.swap_graph.neighbors(j):
                         if (n, j) in self.cx_reliability:
                             reliab = math.exp(-swap_reliabs_ro[i][n])*self.cx_reliability[(n, j)]
                         else:
@@ -192,7 +192,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """Select the best remaining hardware qubit for the next program qubit."""
         reliab_store = {}
         if prog_qubit not in self.prog_neighbors:
-            self.prog_neighbors[prog_qubit] = set(self.prog_graph.neighbors(prog_qubit))
+            self.prog_neighbors[prog_qubit] = self.prog_graph.neighbors(prog_qubit)
         for hw_qubit in self.available_hw_qubits:
             reliab = 1
             for n in self.prog_neighbors[prog_qubit]:
