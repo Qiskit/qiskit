@@ -23,7 +23,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, CHGate, CXGate
+from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -154,10 +154,10 @@ class TestOperator(OperatorTestCase):
             op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         op = Operator(circuit)
         target = np.diag([1, 1, 1, np.exp(1j * lam)])
         global_phase_equivalent = matrix_equal(
@@ -252,6 +252,20 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(reshaped1.input_dims(), (8,))
         self.assertEqual(reshaped2.output_dims(), (2, 4))
         self.assertEqual(reshaped2.input_dims(), (4, 2))
+
+    def test_reshape_num_qubits(self):
+        """Test Operator reshape method with num_qubits."""
+        op = Operator(self.rand_matrix(8, 8),
+                      input_dims=(4, 2), output_dims=(2, 4))
+        reshaped = op.reshape(num_qubits=3)
+        self.assertEqual(reshaped.num_qubits, 3)
+        self.assertEqual(reshaped.output_dims(), (2, 2, 2))
+        self.assertEqual(reshaped.input_dims(), (2, 2, 2))
+
+    def test_reshape_raise(self):
+        """Test Operator reshape method with invalid args."""
+        op = Operator(self.rand_matrix(3, 3))
+        self.assertRaises(QiskitError, op.reshape, num_qubits=2)
 
     def test_copy(self):
         """Test Operator copy method"""
@@ -514,8 +528,8 @@ class TestOperator(OperatorTestCase):
         assert_allclose(op12.data, Operator(mat12).data)
 
     def test_power_except(self):
-        """Test power method raises exceptions."""
-        op = Operator(self.rand_matrix(3, 3))
+        """Test power method raises exceptions if not square."""
+        op = Operator(self.rand_matrix(2, 3))
         # Non-integer power raises error
         self.assertRaises(QiskitError, op.power, 0.5)
 
@@ -665,6 +679,15 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(op.equiv(phase * mat))
         self.assertTrue(op.equiv(Operator(phase * mat)))
         self.assertFalse(op.equiv(2 * mat))
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = Operator(circ1)
+        state2 = Operator(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
 
 
 if __name__ == '__main__':

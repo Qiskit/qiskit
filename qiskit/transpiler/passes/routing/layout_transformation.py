@@ -44,7 +44,7 @@ class LayoutTransformation(TransformationPass):
                 If the type is str, look up `property_set` when this pass runs.
 
             to_layout (Union[Layout, str]):
-                The final layout of qubits on phyiscal qubits.
+                The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
@@ -54,10 +54,14 @@ class LayoutTransformation(TransformationPass):
                 How many randomized trials to perform, taking the best circuit as output.
         """
         super().__init__()
-        self.coupling_map = coupling_map
         self.from_layout = from_layout
         self.to_layout = to_layout
-        graph = coupling_map.graph.to_undirected()
+        if coupling_map:
+            self.coupling_map = coupling_map
+            graph = coupling_map.graph.to_undirected()
+        else:
+            self.coupling_map = CouplingMap.from_full(len(to_layout))
+            graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 
@@ -84,15 +88,15 @@ class LayoutTransformation(TransformationPass):
         if isinstance(from_layout, str):
             try:
                 from_layout = self.property_set[from_layout]
-            except Exception:
-                raise TranspilerError('No {} (from_layout) in property_set.'.format(from_layout))
+            except Exception as ex:
+                raise TranspilerError(f'No {from_layout} (from_layout) in property_set.') from ex
 
         to_layout = self.to_layout
         if isinstance(to_layout, str):
             try:
                 to_layout = self.property_set[to_layout]
-            except Exception:
-                raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
+            except Exception as ex:
+                raise TranspilerError(f'No {to_layout} (to_layout) in property_set.') from ex
 
         # Find the permutation between the initial physical qubits and final physical qubits.
         permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
@@ -100,7 +104,6 @@ class LayoutTransformation(TransformationPass):
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
-        edge_map = {vqubit: dag.qubits[pqubit]
-                    for (pqubit, vqubit) in perm_circ.inputmap.items()}
-        dag.compose(perm_circ.circuit, edge_map=edge_map)
+        qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
+        dag.compose(perm_circ.circuit, qubits=qubits)
         return dag

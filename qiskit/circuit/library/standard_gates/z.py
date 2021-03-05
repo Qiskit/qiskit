@@ -81,7 +81,7 @@ class ZGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Z gate.
+        """Return a (multi-)controlled-Z gate.
 
         One control returns a CZ gate.
 
@@ -104,10 +104,10 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
         return numpy.array([[1, 0],
-                            [0, -1]], dtype=complex)
+                            [0, -1]], dtype=dtype)
 
 
 class CZGate(ControlledGate):
@@ -169,15 +169,15 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, 1, 0],
-                                [0, 0, 0, -1]], dtype=complex)
+                                [0, 0, 0, -1]], dtype=dtype)
         else:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, -1, 0],
-                                [0, 0, 0, 1]], dtype=complex)
+                                [0, 0, 0, 1]], dtype=dtype)

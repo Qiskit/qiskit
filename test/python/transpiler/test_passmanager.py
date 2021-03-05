@@ -17,9 +17,9 @@ import copy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
-from qiskit.transpiler import PropertySet
+from qiskit.circuit.library import U2Gate
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test import QiskitTestCase
@@ -36,13 +36,13 @@ class TestPassManager(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
         expected_start = QuantumCircuit(qr)
-        expected_start.u2(0, np.pi, qr[0])
-        expected_start.u2(0, np.pi, qr[0])
-        expected_start.u2(0, np.pi, qr[0])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_dag = circuit_to_dag(expected_start)
 
         expected_end = QuantumCircuit(qr)
-        expected_end.u2(0, np.pi, qr[0])
+        expected_end.append(U2Gate(0, np.pi), [qr[0]])
         expected_end_dag = circuit_to_dag(expected_end)
 
         calls = []
@@ -97,7 +97,7 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(CommutativeCancellation())
+        passmanager.append(CommutativeCancellation(basis_gates=['u1', 'u2', 'u3', 'cx']))
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)

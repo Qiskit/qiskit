@@ -23,7 +23,7 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - have a descriptive name
   - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`) and validate them, if necessary
-  - implement a ``get_sample_pulse`` method which returns a corresponding Waveform in the case that
+  - implement a ``get_waveform`` method which returns a corresponding Waveform in the case that
     it is assembled for a backend which does not support it. Ends are zeroed to avoid steep jumps at
     pulse edges. By default, the ends are defined such that ``f(-1), f(duration+1) = 0``.
 
@@ -32,13 +32,13 @@ The new pulse must then be registered by the assembler in
 by following the existing pattern:
 
     class ParametricPulseShapes(Enum):
-        gaussian = pulse_lib.Gaussian
+        gaussian = library.Gaussian
         ...
-        new_supported_pulse_name = pulse_lib.YourPulseWaveformClass
+        new_supported_pulse_name = library.YourPulseWaveformClass
 """
-import warnings
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
+
 import math
 import numpy as np
 
@@ -48,13 +48,16 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.pulse.utils import format_parameter_value
 
 
 class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
+    def __init__(self,
+                 duration: Union[int, ParameterExpression],
+                 name: Optional[str] = None):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
@@ -71,12 +74,6 @@ class ParametricPulse(Pulse):
         """
         raise NotImplementedError
 
-    def get_sample_pulse(self) -> Waveform:
-        """Deprecated."""
-        warnings.warn('`get_sample_pulse` has been deprecated. '
-                      ' Use `get_waveform` instead.', DeprecationWarning)
-        return self.get_waveform()
-
     @abstractmethod
     def validate_parameters(self) -> None:
         """
@@ -87,11 +84,15 @@ class ParametricPulse(Pulse):
         """
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
-        """Return a dictionary containing the pulse's parameters."""
-        pass
+    def is_parameterized(self) -> bool:
+        return any(_is_parameterized(val) for val in self.parameters.values())
+
+    def assign(self, parameter: ParameterExpression,
+               value: ParameterValueType) -> 'ParametricPulse':
+        """Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+        """
+        return self.assign_parameters({parameter: value})
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression, ParameterValueType]
@@ -105,50 +106,22 @@ class ParametricPulse(Pulse):
         Returns:
             New pulse with updated parameters.
         """
-        if not any([_is_parameterized(val) for val in self.parameters.values()]):
+        if not self.is_parameterized():
             return self
 
         new_parameters = {}
         for op, op_value in self.parameters.items():
             for parameter, value in value_dict.items():
                 if _is_parameterized(op_value) and parameter in op_value.parameters:
-                    op_value = op_value.assign(parameter, value)
-                    try:
-                        # TODO: ParameterExpression doesn't support complex values
-                        op_value = float(op_value)
-                    except TypeError:
-                        pass
+                    op_value = format_parameter_value(op_value.assign(parameter, value))
                 new_parameters[op] = op_value
         return type(self)(**new_parameters)
-
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
-        """Plot the pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        return self.get_waveform().draw(dt=dt, style=style, filename=filename,
-                                        interp_method=interp_method, scale=scale,
-                                        interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
 
     def __hash__(self) -> int:
-        return hash(self.parameters[k] for k in sorted(self.parameters))
+        return hash(tuple(self.parameters[k] for k in sorted(self.parameters)))
 
 
 class Gaussian(ParametricPulse):
@@ -161,7 +134,7 @@ class Gaussian(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  name: Optional[str] = None):
@@ -232,7 +205,7 @@ class GaussianSquare(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  width: Union[float, ParameterExpression],
@@ -280,7 +253,7 @@ class GaussianSquare(ParametricPulse):
                              "found: {}".format(abs(self.amp)))
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(self.width) and self.width < 0 or self.width >= self.duration:
+        if not _is_parameterized(self.width) and (self.width < 0 or self.width >= self.duration):
             raise PulseError("The pulse width must be at least 0 and less than its duration.")
 
     @property
@@ -329,7 +302,7 @@ class Drag(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  sigma: Union[float, ParameterExpression],
                  beta: Union[float, ParameterExpression],
@@ -422,7 +395,7 @@ class Constant(ParametricPulse):
     """
 
     def __init__(self,
-                 duration: int,
+                 duration: Union[int, ParameterExpression],
                  amp: Union[complex, ParameterExpression],
                  name: Optional[str] = None):
         """
@@ -459,32 +432,6 @@ class Constant(ParametricPulse):
         return "{}(duration={}, amp={}{})" \
                "".format(self.__class__.__name__, self.duration, self.amp,
                          ", name='{}'".format(self.name) if self.name is not None else "")
-
-
-class ConstantPulse(Constant):
-    """
-    Deprecated. A simple constant pulse, with an amplitude value and a duration:
-
-    .. math::
-
-        f(x) = amp    ,  0 <= x < duration
-        f(x) = 0      ,  elsewhere
-    """
-
-    def __init__(self,
-                 duration: int,
-                 amp: Union[complex, ParameterExpression],
-                 name: Optional[str] = None):
-        """
-        Initialize the constant-valued pulse.
-
-        Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
-            amp: The amplitude of the constant square pulse.
-            name: Display name for this pulse envelope.
-        """
-        super().__init__(duration, amp, name)
-        warnings.warn("The ConstantPulse is deprecated. Use Constant instead", DeprecationWarning)
 
 
 def _is_parameterized(value: Any) -> bool:

@@ -30,15 +30,16 @@ class ParameterExpression:
     __slots__ = ['_parameter_symbols', '_parameters', '_symbol_expr', '_names']
 
     def __init__(self, symbol_map: Dict, expr):
-        """Create a new ParameterExpression.
+        """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
-        on other Parameter or ParameterExpression objects.
+        on other :class:`Parameter` or :class:`ParameterExpression` objects.
 
         Args:
-            symbol_map: Mapping of Parameter instances to the sympy.Symbol
-                        serving as their placeholder in expr.
-            expr (sympy.Expr): Expression of sympy.Symbols.
+            symbol_map (Dict[Parameter, [ParameterExpression, float, or int]]):
+                Mapping of :class:`Parameter` instances to the :class:`sympy.Symbol`
+                serving as their placeholder in expr.
+            expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
@@ -51,8 +52,9 @@ class ParameterExpression:
         return self._parameters
 
     def conjugate(self) -> 'ParameterExpression':
-        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+        """Return the conjugate."""
+        conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        return conjugated
 
     def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
         """
@@ -90,7 +92,7 @@ class ParameterExpression:
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_non_real_value(parameter_values)
+        self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -165,12 +167,12 @@ class ParameterExpression:
             raise CircuitError('Cannot bind Parameters ({}) not present in '
                                'expression.'.format([str(p) for p in unknown_parameters]))
 
-    def _raise_if_passed_non_real_value(self, parameter_values):
-        nonreal_parameter_values = {p: v for p, v in parameter_values.items()
-                                    if not isinstance(v, numbers.Real)}
-        if nonreal_parameter_values:
-            raise CircuitError('Expression cannot bind non-real or non-numeric '
-                               'values ({}).'.format(nonreal_parameter_values))
+    def _raise_if_passed_nan(self, parameter_values):
+        nan_parameter_values = {p: v for p, v in parameter_values.items()
+                                if not isinstance(v, numbers.Number)}
+        if nan_parameter_values:
+            raise CircuitError('Expression cannot bind non-numeric values ({})'.format(
+                nan_parameter_values))
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
@@ -211,7 +213,6 @@ class ParameterExpression:
         Returns:
             A new expression describing the result of the operation.
         """
-
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
@@ -219,7 +220,7 @@ class ParameterExpression:
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -231,6 +232,39 @@ class ParameterExpression:
             expr = operation(self_expr, other_expr)
 
         return ParameterExpression(parameter_symbols, expr)
+
+    def gradient(self, param) -> Union['ParameterExpression', float]:
+        """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
+
+        Args:
+            param (Parameter): Parameter w.r.t. which we want to take the derivative
+
+        Returns:
+            ParameterExpression representing the gradient of param_expr w.r.t. param
+        """
+        # Check if the parameter is contained in the parameter expression
+        if param not in self._parameter_symbols.keys():
+            # If it is not contained then return 0
+            return 0.0
+
+        # Compute the gradient of the parameter expression w.r.t. param
+        import sympy as sy
+        key = self._parameter_symbols[param]
+        # TODO enable nth derivative
+        expr_grad = sy.Derivative(self._symbol_expr, key).doit()
+
+        # generate the new dictionary of symbols
+        # this needs to be done since in the derivative some symbols might disappear (e.g.
+        # when deriving linear expression)
+        parameter_symbols = {}
+        for parameter, symbol in self._parameter_symbols.items():
+            if symbol in expr_grad.free_symbols:
+                parameter_symbols[parameter] = symbol
+        # If the gradient corresponds to a parameter expression then return the new expression.
+        if len(parameter_symbols) > 0:
+            return ParameterExpression(parameter_symbols, expr=expr_grad)
+        # If no free symbols left, return a float corresponding to the gradient.
+        return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
@@ -261,6 +295,52 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def _call(self, ufunc):
+        return ParameterExpression(
+            self._parameter_symbols,
+            ufunc(self._symbol_expr)
+        )
+
+    def sin(self):
+        """Sine of a ParameterExpression"""
+        from sympy import sin as _sin
+        return self._call(_sin)
+
+    def cos(self):
+        """Cosine of a ParameterExpression"""
+        from sympy import cos as _cos
+        return self._call(_cos)
+
+    def tan(self):
+        """Tangent of a ParameterExpression"""
+        from sympy import tan as _tan
+        return self._call(_tan)
+
+    def arcsin(self):
+        """Arcsin of a ParameterExpression"""
+        from sympy import asin as _asin
+        return self._call(_asin)
+
+    def arccos(self):
+        """Arccos of a ParameterExpression"""
+        from sympy import acos as _acos
+        return self._call(_acos)
+
+    def arctan(self):
+        """Arctan of a ParameterExpression"""
+        from sympy import atan as _atan
+        return self._call(_atan)
+
+    def exp(self):
+        """Exponential of a ParameterExpression"""
+        from sympy import exp as _exp
+        return self._call(_exp)
+
+    def log(self):
+        """Logarithm of a ParameterExpression"""
+        from sympy import log as _log
+        return self._call(_log)
+
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 
@@ -272,6 +352,12 @@ class ParameterExpression:
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
+
+    def __complex__(self):
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to a complex.'.format(self.parameters))
+        return complex(self._symbol_expr)
 
     def __int__(self):
         if self.parameters:
@@ -289,7 +375,18 @@ class ParameterExpression:
         return self
 
     def __eq__(self, other):
-        from sympy import srepr
-        return (isinstance(other, ParameterExpression)
-                and self.parameters == other.parameters
-                and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+        """Check if this parameter expression is equal to another parameter expression
+           or a fixed value (only if this is a bound expression).
+        Args:
+            other (ParameterExpression or a number):
+                Parameter expression or numeric constant used for comparison
+        Returns:
+            bool: result of the comparison
+        """
+        if isinstance(other, ParameterExpression):
+            return (self.parameters == other.parameters
+                    and self._symbol_expr.equals(other._symbol_expr))
+        elif isinstance(other, numbers.Number):
+            return (len(self.parameters) == 0
+                    and complex(self._symbol_expr) == other)
+        return False

@@ -17,14 +17,15 @@ from numbers import Number
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 
 
-class SparsePauliOp(BaseOperator):
+class SparsePauliOp(LinearOp):
     """Sparse N-qubit operator in a Pauli basis representation.
 
     This is a sparse representation of an N-qubit matrix
@@ -57,7 +58,7 @@ class SparsePauliOp(BaseOperator):
         else:
             table = PauliTable(data)
             if coeffs is None:
-                coeffs = np.ones(table.size, dtype=np.complex)
+                coeffs = np.ones(table.size, dtype=complex)
         # Initialize PauliTable
         self._table = table
 
@@ -67,8 +68,13 @@ class SparsePauliOp(BaseOperator):
             raise QiskitError("coeff vector is incorrect shape for number"
                               " of Paulis {} != {}".format(self._coeffs.shape,
                                                            self._table.size))
-        # Initialize BaseOperator
-        super().__init__(self._table._input_dims, self._table._output_dims)
+        # Initialize LinearOp
+        super().__init__(num_qubits=self._table.num_qubits)
+
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
 
     def __repr__(self):
         prefix = 'SparsePauliOp('
@@ -122,7 +128,7 @@ class SparsePauliOp(BaseOperator):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.int)):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
@@ -135,35 +141,10 @@ class SparsePauliOp(BaseOperator):
         self.coeffs[key] = value.coeffs
 
     # ---------------------------------------------------------------------
-    # BaseOperator Methods
+    # LinearOp Methods
     # ---------------------------------------------------------------------
 
-    def is_unitary(self, atol=None, rtol=None):
-        """Return True if operator is a unitary matrix.
-
-        Args:
-            atol (float): Optional. Absolute tolerance for checking if
-                          coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
-                          coefficients are zero (Default: 1e-5).
-
-        Returns:
-            bool: True if the operator is unitary, False otherwise.
-        """
-        # Get default atol and rtol
-        if atol is None:
-            atol = self.atol
-        if rtol is None:
-            rtol = self.rtol
-
-        # Compose with adjoint
-        val = self.compose(self.adjoint()).simplify()
-        # See if the result is an identity
-        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
-                and not np.any(val.table.X) and not np.any(val.table.Z))
-
     def conjugate(self):
-        """Return the conjugate of the operator."""
         # Conjugation conjugates phases and also Y.conj() = -Y
         # Hence we need to multiply conjugated coeffs by -1
         # for rows with an odd number of Y terms.
@@ -173,7 +154,6 @@ class SparsePauliOp(BaseOperator):
         return ret
 
     def transpose(self):
-        """Return the transpose of the operator."""
         # The only effect transposition has is Y.T = -Y
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
@@ -183,7 +163,6 @@ class SparsePauliOp(BaseOperator):
         return ret
 
     def adjoint(self):
-        """Return the adjoint of the operator."""
         # Pauli's are self adjoint, so we only need to
         # conjugate the phases
         ret = self.copy()
@@ -191,23 +170,6 @@ class SparsePauliOp(BaseOperator):
         return ret
 
     def compose(self, other, qargs=None, front=False):
-        """Return the composition channel self∘other.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (list or None): a list of subsystem positions to compose other on.
-            front (bool or None): If False compose in standard order other(self(input))
-                          otherwise compose in reverse order self(other(input))
-                          [default: False]
-
-        Returns:
-            SparsePauliOp: The composed operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
-        """
-        # pylint: disable=invalid-name
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
@@ -215,7 +177,7 @@ class SparsePauliOp(BaseOperator):
             other = SparsePauliOp(other)
 
         # Validate composition dimensions and qargs match
-        self._get_compose_dims(other, qargs, front)
+        self._op_shape.compose(other._op_shape, qargs, front)
 
         # Implement composition of the Pauli table
         x1, x2 = PauliTable._block_stack(self.table.X, other.table.X)
@@ -247,85 +209,30 @@ class SparsePauliOp(BaseOperator):
         coeffs *= (-1j) ** np.array(np.sum(minus_i, axis=1), dtype=int)
         return SparsePauliOp(table, coeffs)
 
-    def dot(self, other, qargs=None):
-        """Return the composition channel self∘other.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (list or None): a list of subsystem positions to compose other on.
-
-        Returns:
-            SparsePauliOp: The composed operator.
-
-        Raises:
-            QiskitError: if other cannot be converted to an Operator or has
-            incompatible dimensions.
-        """
-        return self.compose(other, qargs=qargs, front=True)
-
     def tensor(self, other):
-        """Return the tensor product operator self ⊗ other.
-
-        Args:
-            other (SparsePauliOp): a operator subclass object.
-
-        Returns:
-            SparsePauliOp: the tensor product operator self ⊗ other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         operator.
-        """
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
-        table = self.table.tensor(other.table)
-        coeffs = np.kron(self.coeffs, other.coeffs)
-        return SparsePauliOp(table, coeffs)
+        return self._tensor(self, other)
 
     def expand(self, other):
-        """Return the tensor product operator other ⊗ self.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-
-        Returns:
-            SparsePauliOp: the tensor product operator other ⊗ self.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         operator.
-        """
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
-        table = self.table.expand(other.table)
-        coeffs = np.kron(self.coeffs, other.coeffs)
+        return self._tensor(other, self)
+
+    @classmethod
+    def _tensor(cls, a, b):
+        table = a.table.tensor(b.table)
+        coeffs = np.kron(a.coeffs, b.coeffs)
         return SparsePauliOp(table, coeffs)
 
     def _add(self, other, qargs=None):
-        """Return the operator self + other.
-
-        If ``qargs`` are specified the other operator will be added
-        assuming it is identity on all other subsystems.
-
-        Args:
-            other (SparsePauliOp): an operator object.
-            qargs (None or list): optional subsystems to add on
-                                  (Default: None)
-
-        Returns:
-            SparsePauliOp: the operator self + other.
-
-        Raises:
-            QiskitError: if other cannot be converted to a SparsePauliOp
-                         or has incompatible dimensions.
-        """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
 
-        self._validate_add_dims(other, qargs)
+        self._op_shape._validate_add(other._op_shape, qargs)
 
         table = self.table._add(other.table, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
@@ -333,23 +240,12 @@ class SparsePauliOp(BaseOperator):
         return ret
 
     def _multiply(self, other):
-        """Return the operator other * self.
-
-        Args:
-            other (complex): a complex number.
-
-        Returns:
-            SparsePauliOp: the operator other * self.
-
-        Raises:
-            QiskitError: if other is not a valid complex number.
-        """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
-            table = np.zeros((1, 2 * self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2 * self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
             return SparsePauliOp(table, coeffs)
         # Otherwise we just update the phases
@@ -359,13 +255,37 @@ class SparsePauliOp(BaseOperator):
     # Utility Methods
     # ---------------------------------------------------------------------
 
+    def is_unitary(self, atol=None, rtol=None):
+        """Return True if operator is a unitary matrix.
+
+        Args:
+            atol (float): Optional. Absolute tolerance for checking if
+                          coefficients are zero (Default: 1e-8).
+            rtol (float): Optional. relative tolerance for checking if
+                          coefficients are zero (Default: 1e-5).
+
+        Returns:
+            bool: True if the operator is unitary, False otherwise.
+        """
+        # Get default atol and rtol
+        if atol is None:
+            atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
+
+        # Compose with adjoint
+        val = self.compose(self.adjoint()).simplify()
+        # See if the result is an identity
+        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
+                and not np.any(val.table.X) and not np.any(val.table.Z))
+
     def simplify(self, atol=None, rtol=None):
         """Simplify PauliTable by combining duplicaties and removing zeros.
 
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
+            rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -379,7 +299,7 @@ class SparsePauliOp(BaseOperator):
 
         table, indexes = np.unique(self.table.array,
                                    return_inverse=True, axis=0)
-        coeffs = np.zeros(len(table), dtype=np.complex)
+        coeffs = np.zeros(len(table), dtype=complex)
         for i, val in zip(indexes, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
@@ -391,7 +311,7 @@ class SparsePauliOp(BaseOperator):
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if coeffs.size == 0:
-            table = np.zeros((1, 2*self.num_qubits), dtype=np.bool)
+            table = np.zeros((1, 2*self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
         return SparsePauliOp(table, coeffs)
 
@@ -403,14 +323,14 @@ class SparsePauliOp(BaseOperator):
     def from_operator(obj, atol=None, rtol=None):
         """Construct from an Operator objector.
 
-        Note that the cost of this contruction is exponential as it involves
+        Note that the cost of this construction is exponential as it involves
         taking inner products with every element of the N-qubit Pauli basis.
 
         Args:
             obj (Operator): an N-qubit operator.
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optinoal. relative tolerance for checking if
+            rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -421,9 +341,9 @@ class SparsePauliOp(BaseOperator):
         """
         # Get default atol and rtol
         if atol is None:
-            atol = SparsePauliOp._ATOL_DEFAULT
+            atol = SparsePauliOp.atol
         if rtol is None:
-            rtol = SparsePauliOp._RTOL_DEFAULT
+            rtol = SparsePauliOp.rtol
 
         if not isinstance(obj, Operator):
             obj = Operator(obj)
@@ -567,3 +487,7 @@ class SparsePauliOp(BaseOperator):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(SparsePauliOp)

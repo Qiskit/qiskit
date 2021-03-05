@@ -10,11 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
-
 """
+Deprecated.
+
 Style sheets for pulse visualization.
 """
+import warnings
+
 from collections import namedtuple
 from typing import Optional, Tuple
 
@@ -52,11 +54,13 @@ class SchedStyle:
                  max_table_ratio: float = 0.5,
                  vertical_span: float = 0.2,
                  axis_formatter: str = '%s'):
-        """Create new style sheet.
+        """Deprecated.
+
+        Create new style sheet.
 
         For any of the Optional fields, if that field is None then it will revert to its
         matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
-        is optonal also describes it's mapped rcParam key below.
+        is optional also describes it's mapped rcParam key below.
 
         Args:
             figsize: Size of the figure.
@@ -119,6 +123,12 @@ class SchedStyle:
             If you want to show more events, increase figure height or
             reduce size of line height and table font size.
         """
+        warnings.warn('The legacy pulse drawer is deprecated along with this stylesheet. '
+                      'Please use new drawer `qiskit.visualization.pulse_drawer_v2` '
+                      'with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. '
+                      'You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.',
+                      DeprecationWarning)
+
         self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
         self.use_table = use_table
@@ -153,7 +163,9 @@ class SchedStyle:
 
 
 class PulseStyle:
-    """Style sheet for Qiskit-Pulse sample pulse drawer."""
+    """Deprecated.
+
+    Style sheet for Qiskit-Pulse sample pulse drawer."""
     def __init__(self, figsize: Optional[Tuple[float, float]] = (7.0, 5.0),
                  title_font_size: Optional[int] = 18,
                  wave_color: ComplexColors = ('#ff0000', '#0000ff'),
@@ -164,7 +176,7 @@ class PulseStyle:
 
         For any of the Optional fields, if that field is None then it will revert to its
         matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
-        is optonal also describes it's mapped rcParam key below.
+        is optional also describes it's mapped rcParam key below.
 
         Args:
             figsize: Size of the figure.
@@ -184,6 +196,12 @@ class PulseStyle:
                 If the output is ``matplotlib``, the default
                 parameter is ``rcParams['figure.dpi']``.
         """
+        warnings.warn('The legacy pulse drawer is deprecated along with this stylesheet. '
+                      'Please use new drawer `qiskit.visualization.pulse_drawer_v2` '
+                      'with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. '
+                      'You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.',
+                      DeprecationWarning)
+
         self.figsize = figsize
         self.title_font_size = title_font_size
         self.wave_color = wave_color

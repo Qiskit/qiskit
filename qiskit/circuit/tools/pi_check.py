@@ -67,7 +67,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         if abs(single_inpt) < 1e-14:
             return '0'
 
-        if output in ['text', 'qasm']:
+        if output == 'text':
+            pi = 'π'
+        elif output == 'qasm':
             pi = 'pi'
         elif output == 'latex':
             pi = '\\pi'

@@ -77,7 +77,7 @@ than plotting each operand value bound to the instruction.
 from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
-from qiskit import pulse
+from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 
@@ -133,6 +133,9 @@ class ChannelEvents:
         # parse instructions
         for t0, inst in program.filter(channels=[channel]).instructions:
             if isinstance(inst, cls._waveform_group):
+                if inst.duration == 0:
+                    # special case, duration of delay can be zero
+                    continue
                 waveforms[t0] = inst
             elif isinstance(inst, cls._frame_group):
                 frames[t0].append(inst)
@@ -150,9 +153,9 @@ class ChannelEvents:
             init_frequency: Modulation frequency in Hz.
             init_phase: Initial phase in rad.
         """
-        self._dt = dt
-        self._init_frequency = init_frequency
-        self._init_phase = init_phase
+        self._dt = dt or 1
+        self._init_frequency = init_frequency or 0
+        self._init_phase = init_phase or 0
 
     def get_waveforms(self) -> Iterator[PulseInstruction]:
         """Return waveform type instructions with frame."""
@@ -163,32 +166,59 @@ class ChannelEvents:
         phase = self._init_phase
         frequency = self._init_frequency
         for t0, inst in sorted_waveforms:
+            is_opaque = False
+
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 phase, frequency = ChannelEvents._calculate_current_frame(
                     frame_changes=frame_changes,
                     phase=phase,
                     frequency=frequency)
+
+            # Convert parameter expression into float
+            if isinstance(phase, circuit.ParameterExpression):
+                phase = float(phase.bind({param: 0 for param in phase.parameters}))
+            if isinstance(frequency, circuit.ParameterExpression):
+                frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
+
             frame = PhaseFreqTuple(phase, frequency)
 
-            yield PulseInstruction(t0, self._dt, frame, inst)
+            # Check if pulse has unbound parameters
+            if isinstance(inst, pulse.Play):
+                is_opaque = inst.is_parameterized()
+
+            yield PulseInstruction(t0, self._dt, frame, inst, is_opaque)
 
     def get_frame_changes(self) -> Iterator[PulseInstruction]:
         """Return frame change type instructions with total frame change amount."""
+        # TODO parse parametrised FCs correctly
+
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
         phase = self._init_phase
         frequency = self._init_frequency
         for t0, frame_changes in sorted_frame_changes:
+            is_opaque = False
+
             pre_phase = phase
             pre_frequency = frequency
             phase, frequency = ChannelEvents._calculate_current_frame(
                 frame_changes=frame_changes,
                 phase=phase,
                 frequency=frequency)
+
+            # keep parameter expression to check either phase or frequency is parameterized
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            yield PulseInstruction(t0, self._dt, frame, frame_changes)
+            # remove parameter expressions to find if next frame is parameterized
+            if isinstance(phase, circuit.ParameterExpression):
+                phase = float(phase.bind({param: 0 for param in phase.parameters}))
+                is_opaque = True
+            if isinstance(frequency, circuit.ParameterExpression):
+                frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
+                is_opaque = True
+
+            yield PulseInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
     @classmethod
     def _calculate_current_frame(cls,
@@ -196,6 +226,8 @@ class ChannelEvents:
                                  phase: float,
                                  frequency: float) -> Tuple[float, float]:
         """Calculate the current frame from the previous frame.
+
+        If parameter is unbound phase or frequency accumulation with this instruction is skipped.
 
         Args:
             frame_changes: List of frame change instructions at a specific time.

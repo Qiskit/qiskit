@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,method-hidden
+# pylint: disable=arguments-differ,method-hidden,no-member
 
 """ UnitaryGate tests """
 
@@ -90,8 +90,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertTrue(len(dag_nodes) == 1)
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1])
+        self.assertEqual(dnode.qargs, [qr[0]])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_2q_unitary(self):
@@ -117,8 +116,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1])
+        self.assertEqual(dnode.qargs, [qr[0], qr[1]])
         assert_allclose(dnode.op.to_matrix(), matrix)
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -141,8 +139,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        for qubit in dnode.qargs:
-            self.assertIn(qubit.index, [0, 1, 3])
+        self.assertEqual(dnode.qargs, [qr[0], qr[1], qr[3]])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_1q_unitary_int_qargs(self):
@@ -290,4 +287,9 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_decomposition_via_definition(self):
         """Test decomposition for 1Q unitary via definition."""
         mat = numpy.array([[0, 1], [1, 0]])
+        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
+
+    def test_unitary_decomposition_via_definition_2q(self):
+        """Test decomposition for 2Q unitary via definition."""
+        mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
         numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)

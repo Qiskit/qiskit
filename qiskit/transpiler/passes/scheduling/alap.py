@@ -66,16 +66,24 @@ class ALAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_front(Delay(idle_duration, unit), [q], [])
 
+        bit_indices = {bit: index
+                       for bits in [new_dag.qubits, new_dag.clbits]
+                       for index, bit in enumerate(bits)}
+
         for node in reversed(list(dag.topological_op_nodes())):
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time, unit=time_unit)
 
-            new_node = new_dag.apply_operation_front(node.op, node.qargs, node.cargs,
-                                                     node.condition)
-            duration = self.durations.get(node.op, node.qargs, unit=time_unit)
+            duration = self.durations.get(node.op,
+                                          [bit_indices[qarg] for qarg in node.qargs],
+                                          unit=time_unit)
+
             # set duration for each instruction (tricky but necessary)
-            new_node.op.duration = duration
-            new_node.op.unit = time_unit
+            new_op = node.op.copy()  # need different op instance to store duration
+            new_op.duration = duration
+            new_op.unit = time_unit
+
+            new_dag.apply_operation_front(new_op, node.qargs, node.cargs, node.condition)
 
             stop_time = start_time + duration
             # update time table
@@ -87,6 +95,7 @@ class ALAPSchedule(TransformationPass):
         pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
 
         new_dag.name = dag.name
+        new_dag.metadata = dag.metadata
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit
         return new_dag

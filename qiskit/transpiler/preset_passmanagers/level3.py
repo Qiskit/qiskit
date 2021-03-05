@@ -42,7 +42,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
@@ -54,6 +54,7 @@ from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -105,7 +106,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout_1 = CSPLayout(coupling_map, call_limit=10000, time_limit=60)
+    _choose_layout_1 = [] if pass_manager_config.layout_method \
+        else CSPLayout(coupling_map, call_limit=10000, time_limit=60)
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':
@@ -135,6 +137,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=6)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='decay', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
@@ -164,7 +169,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction = [CXDirection(coupling_map)]
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
-    # after reset and before measure, commutes gates and optimizes continguous blocks.
+    # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -178,7 +183,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates),
         UnitarySynthesis(basis_gates),
-        Optimize1qGates(basis_gates),
+        Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
     ]
 
@@ -196,7 +201,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3 = PassManager()
     pm3.append(_unroll3q)
     pm3.append(_reset + _meas)
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)

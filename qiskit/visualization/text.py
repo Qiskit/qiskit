@@ -22,17 +22,16 @@ from numpy import ndarray
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.circuit import Barrier as BarrierInstruction
 from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
-from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
+from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):
-    """The parameter "cregbundle" was set to True in an imposible situation. For example, an
+    """The parameter "cregbundle" was set to True in an impossible situation. For example, an
     instruction needs to refer to individual classical wires'"""
     pass
 
@@ -171,7 +170,7 @@ class BoxOnQuWire(DrawElement):
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
-        self.bot_connect = '┬' if conditional else '─'
+        self.bot_connect = '╥' if conditional else '─'
         self.mid_content = label
         self.top_connector = {"│": '┴'}
         self.bot_connector = {"│": '┬'}
@@ -268,7 +267,7 @@ class BoxOnWireMid(MultiBox):
     """ A generic middle box"""
 
     def __init__(self, label, input_length, order, wire_label=''):
-        super().__init__(label, input_length, order)
+        super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
@@ -302,7 +301,7 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         self.bot_format = "└─" + "s".center(self.left_fill + 1, '─') + "─┘"
         self.bot_format = self.bot_format.replace('s', '%s')
         bot_connect = bot_connect if bot_connect else '─'
-        self.bot_connect = '┬' if conditional else bot_connect
+        self.bot_connect = '╥' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
         if input_length <= 2:
@@ -395,7 +394,7 @@ class Ex(DirectOnQuWire):
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
-        self.bot_connect = "│" if conditional else bot_connect
+        self.bot_connect = "║" if conditional else bot_connect
         self.top_connect = top_connect
 
 
@@ -405,7 +404,7 @@ class Reset(DirectOnQuWire):
     def __init__(self, conditional=False):
         super().__init__("|0>")
         if conditional:
-            self.bot_connect = "│"
+            self.bot_connect = "║"
 
 
 class Bullet(DirectOnQuWire):
@@ -422,7 +421,7 @@ class Bullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('■')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -444,7 +443,7 @@ class OpenBullet(DirectOnQuWire):
                  label=None, bottom=False):
         super().__init__('o')
         self.top_connect = top_connect
-        self.bot_connect = '│' if conditional else bot_connect
+        self.bot_connect = '║' if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
         elif label:
@@ -543,7 +542,13 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        self.encoding = encoding if encoding else sys.stdout.encoding
+        if encoding:
+            self.encoding = encoding
+        else:
+            if sys.stdout.encoding:
+                self.encoding = sys.stdout.encoding
+            else:
+                self.encoding = 'utf8'
 
     def __str__(self):
         return self.single_string()
@@ -696,7 +701,7 @@ class TextDrawing():
         previous_creg = None
         for bit in self.cregs:
             if self.cregbundle:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 label = '{name}: {initial_value}{size}/'
@@ -716,7 +721,7 @@ class TextDrawing():
         if self.vertical_compression == 'low':
             return False
         for top, bot in zip(top_line, bot_line):
-            if top == '┴' and bot == '┬':
+            if top in ['┴', '╨'] and bot in ['┬', '╥']:
                 return False
         for line in (bot_line, top_line):
             no_spaces = line.replace(' ', '')
@@ -774,7 +779,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if any([isinstance(param, ndarray) for param in op.params]):
+        if any(isinstance(param, ndarray) for param in op.params):
             return None
 
         ret = []
@@ -959,7 +964,7 @@ class TextDrawing():
         if instruction.condition is not None:
             # conditional
             cllabel = TextDrawing.label_for_conditional(instruction)
-            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='┴')
+            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='╨')
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -993,7 +998,7 @@ class TextDrawing():
             else:
                 layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif isinstance(instruction.op, (BarrierInstruction, Snapshot)):
+        elif instruction.op._directive:
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label
@@ -1012,7 +1017,7 @@ class TextDrawing():
 
         elif isinstance(instruction.op, RZZGate):
             # rzz
-            connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+            connection_label = "ZZ(%s)" % TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
@@ -1032,9 +1037,10 @@ class TextDrawing():
             if base_gate.name == 'z':
                 # cz
                 gates.append(Bullet(conditional=conditional))
-            elif base_gate.name == 'u1':
+            elif base_gate.name in ['u1', 'p']:
                 # cu1
-                connection_label = TextDrawing.params_for_label(instruction)[0]
+                connection_label = "%s(%s)" % (base_gate.name.upper(),
+                                               TextDrawing.params_for_label(instruction)[0])
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == 'swap':
                 # cswap
@@ -1042,7 +1048,7 @@ class TextDrawing():
                 add_connected_gate(instruction, gates, layer, current_cons)
             elif base_gate.name == 'rzz':
                 # crzz
-                connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                connection_label = "ZZ(%s)" % TextDrawing.params_for_label(instruction)[0]
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
@@ -1120,7 +1126,7 @@ class Layer:
             self.cregs = []
             previous_creg = None
             for bit in cregs:
-                if previous_creg == bit.register:
+                if previous_creg and previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
                 self.cregs.append(bit.register)

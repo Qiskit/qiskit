@@ -45,7 +45,7 @@ class ForwardMatch:
             clbits (list): list of considered clbits in the circuit.
         """
 
-        # The dag depdendency representation of the circuit
+        # The dag dependency representation of the circuit
         self.circuit_dag_dep = circuit_dag_dep.copy()
 
         # The dag dependency representation of the template
@@ -251,7 +251,7 @@ class ForwardMatch:
         Returns:
             bool: True if the same, False otherwise.
         """
-        return node_circuit.op == node_template.op
+        return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template):
         """

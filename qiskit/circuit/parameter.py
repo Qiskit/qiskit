@@ -21,7 +21,7 @@ from .parameterexpression import ParameterExpression
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
 
-    def __new__(cls, name, uuid=None):  # pylint:disable=unused-argument
+    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes
         # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
         # or __eq__ functions.
@@ -41,20 +41,26 @@ class Parameter(ParameterExpression):
 
         return (self.name, self._uuid)
 
-    def __init__(self, name):
+    def __init__(self, name: str):
+        """Create a new named :class:`Parameter`.
+
+        Args:
+            name: name of the ``Parameter``, used for visual representation. This can
+                be any unicode string, e.g. "ϕ".
+        """
         self._name = name
 
         from sympy import Symbol
         symbol = Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
-    def subs(self, parameter_map):
-        """Substitute self with the corresponding parameter in parameter_map."""
+    def subs(self, parameter_map: dict):
+        """Substitute self with the corresponding parameter in ``parameter_map``."""
         return parameter_map[self]
 
     @property
     def name(self):
-        """Returns the name of the Parameter."""
+        """Returns the name of the :class:`Parameter`."""
         return self._name
 
     def __str__(self):

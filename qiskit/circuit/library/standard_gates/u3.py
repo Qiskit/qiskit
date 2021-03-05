@@ -51,7 +51,7 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{pi}{2}) = RX(\theta)
+        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
 
     .. math::
 
@@ -70,7 +70,7 @@ class U3Gate(Gate):
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-U3 gate.
+        """Return a (multi-)controlled-U3 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -87,7 +87,14 @@ class U3Gate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def to_matrix(self):
+    def _define(self):
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        qc.u(self.params[0], self.params[1], self.params[2], 0)
+        self.definition = qc
+
+    def __array__(self, dtype=None):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -96,7 +103,7 @@ class U3Gate(Gate):
         return numpy.array([
             [cos, -numpy.exp(1j * lam) * sin],
             [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
-        ], dtype=complex)
+        ], dtype=dtype)
 
 
 class CU3Gate(ControlledGate):
@@ -206,7 +213,7 @@ class CU3Gate(ControlledGate):
             ctrl_state=self.ctrl_state
         )
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
@@ -218,14 +225,14 @@ class CU3Gate(ControlledGate):
                  [0, cos, 0, -numpy.exp(1j * lam) * sin],
                  [0, 0, 1, 0],
                  [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-                dtype=complex)
+                dtype=dtype)
         else:
             return numpy.array(
                 [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
                  [0, 1, 0, 0],
                  [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
                  [0, 0, 0, 1]],
-                dtype=complex)
+                dtype=dtype)
 
 
 def _generate_gray_code(num_bits):

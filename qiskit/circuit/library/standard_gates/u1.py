@@ -93,7 +93,7 @@ class U1Gate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-U1 gate.
+        """Return a (multi-)controlled-U1 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -118,10 +118,10 @@ class U1Gate(Gate):
         r"""Return inverted U1 gate (:math:`U1(\lambda){\dagger} = U1(-\lambda)`)"""
         return U1Gate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the U1 gate."""
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
+        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
 
 class CU1Gate(ControlledGate):
@@ -213,22 +213,21 @@ class CU1Gate(ControlledGate):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
-
         eith = numpy.exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, 1, 0],
                                 [0, 0, 0, eith]],
-                               dtype=complex)
+                               dtype=dtype)
         else:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],
                                 [0, 0, eith, 0],
                                 [0, 0, 0, 1]],
-                               dtype=complex)
+                               dtype=dtype)
 
 
 class MCU1Gate(ControlledGate):

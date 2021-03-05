@@ -12,6 +12,7 @@
 
 # pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
 # pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
+# pylint: disable=inconsistent-return-statements
 
 """Base TestCases for the unit tests.
 
@@ -37,7 +38,7 @@ except ImportError:
     HAS_FIXTURES = False
 
 from .runtest import RunTest, MultipleExceptions
-from .utils import Path, _AssertNoLogsContext, setup_test_logging
+from .utils import Path, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -97,14 +98,6 @@ class BaseQiskitTestCase(unittest.TestCase):
             str: the absolute path to the resource.
         """
         return os.path.normpath(os.path.join(path.value, filename))
-
-    def assertNoLogs(self, logger=None, level=None):
-        """Assert that no message is sent to the specified logger and level.
-
-        Context manager to test that no message is sent to the specified
-        logger and level (the opposite of TestCase.assertLogs()).
-        """
-        return _AssertNoLogsContext(self, logger, level)
 
     def assertDictAlmostEqual(self, dict1, dict2, delta=None, msg=None,
                               places=None, default_value=0):

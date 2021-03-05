@@ -10,14 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Hidden Linear Function circuit."""
 
 from typing import Union, List
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 

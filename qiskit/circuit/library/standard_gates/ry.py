@@ -66,7 +66,7 @@ class RYGate(Gate):
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RY gate.
+        """Return a (multi-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -90,12 +90,12 @@ class RYGate(Gate):
         """
         return RYGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin],
-                            [sin, cos]], dtype=complex)
+                            [sin, cos]], dtype=dtype)
 
 
 class CRYGate(ControlledGate):
@@ -186,7 +186,7 @@ class CRYGate(ControlledGate):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
@@ -196,10 +196,10 @@ class CRYGate(ControlledGate):
                                 [0, cos, 0, -sin],
                                 [0, 0, 1, 0],
                                 [0, sin, 0, cos]],
-                               dtype=complex)
+                               dtype=dtype)
         else:
             return numpy.array([[cos, 0, -sin, 0],
                                 [0, 1, 0, 0],
                                 [sin, 0, cos, 0],
                                 [0, 0, 0, 1]],
-                               dtype=complex)
+                               dtype=dtype)

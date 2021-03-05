@@ -17,7 +17,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RZXGate(Gate):
-    r"""A parameteric 2-qubit :math:`Z \otimes X` interaction (rotation about ZX).
+    r"""A parametric 2-qubit :math:`Z \otimes X` interaction (rotation about ZX).
 
     This gate is maximally entangling at :math:`\theta = \pi/2`.
 
@@ -144,7 +144,7 @@ class RZXGate(Gate):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
         return RZXGate(-self.params[0])
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the RZX gate."""
         import numpy
         half_theta = float(self.params[0]) / 2
@@ -154,4 +154,4 @@ class RZXGate(Gate):
                             [0, cos, 0, isin],
                             [-isin, 0, cos, 0],
                             [0, isin, 0, cos]],
-                           dtype=complex)
+                           dtype=dtype)

@@ -19,20 +19,16 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
-try:
-    from matplotlib import pyplot as plt, gridspec
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
-
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
-from qiskit.pulse import (Waveform, SamplePulse, Snapshot, Play,
+from qiskit.pulse import (Waveform, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
+                          Instruction, ShiftFrequency, SetPhase)
+from qiskit.pulse.schedule import ScheduleComponent
 
 
 class EventsOutputChannels:
@@ -232,7 +228,7 @@ class EventsOutputChannels:
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
                     command = command.get_waveform()
-                if isinstance(command, (Waveform, SamplePulse)):
+                if isinstance(command, Waveform):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
                     self._labels[time] = (tf, command)
@@ -274,7 +270,7 @@ class WaveformDrawer:
     def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1):
+             scale: float = 1, draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -282,12 +278,22 @@ class WaveformDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
+
+        Raises:
+            ImportError: If matplotlib is not installed
         """
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
+        if not HAS_MATPLOTLIB:
+            raise ImportError("Matplotlib needs to be installed to use "
+                              "WaveformDrawer. It can be installed with "
+                              "'pip install matplotlib'")
+
+        from matplotlib import pyplot as plt
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
@@ -323,10 +329,9 @@ class WaveformDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(pulse.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
+            if draw_title:
+                figure.suptitle(pulse.name, fontsize=self.style.title_font_size, y=bbox.y1 + 0.02,
+                                va='bottom')
 
         return figure
 
@@ -339,7 +344,18 @@ class ScheduleDrawer:
 
         Args:
             style: Style sheet for pulse schedule visualization.
+        Raises:
+            ImportError: If matplotlib is not installed
         """
+        if not HAS_MATPLOTLIB:
+            raise ImportError("Matplotlib needs to be installed to use "
+                              "ScheduleDrawer. It can be installed with "
+                              "'pip install matplotlib'")
+
+        from matplotlib import pyplot as plt
+        self.plt_mod = plt
+        from matplotlib import gridspec
+        self.gridspec_mod = gridspec
         self.style = style or SchedStyle()
 
     def _build_channels(self, schedule: ScheduleComponent,
@@ -479,7 +495,7 @@ class ScheduleDrawer:
         """Draw event table if events exist.
 
         Args:
-            figure (matpotlib.figure.Figure): Figure object
+            figure (matplotlib.figure.Figure): Figure object
             channels: Dictionary of channel and event table
             dt: Time interval
 
@@ -509,9 +525,9 @@ class ScheduleDrawer:
             h_waves = (figure.get_size_inches()[1] - h_table)
 
             # create subplots
-            gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
-            tb = plt.subplot(gs[0])
-            ax = plt.subplot(gs[1])
+            gs = self.gridspec_mod.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
+            tb = self.plt_mod.subplot(gs[0])
+            ax = self.plt_mod.subplot(gs[1])
 
             # configure each cell
             tb.axis('off')
@@ -614,7 +630,7 @@ class ScheduleDrawer:
     @staticmethod
     def _prev_label_at_time(prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                             time: int) -> bool:
-        """Check overlap of pulses with pervious channels.
+        """Check overlap of pulses with previous channels.
 
         Args:
             prev_labels: List of labels in previous channels.
@@ -729,7 +745,7 @@ class ScheduleDrawer:
                 # plot frequency changes
                 sf = events.frequencychanges
                 if sf and frequencychange:
-                    self._draw_frequency_changes(ax, sf, y0 + scale)
+                    self._draw_frequency_changes(ax, sf, y0 + 0.05)
                 # plot labels
                 labels = events.labels
                 if labels and label:
@@ -763,7 +779,8 @@ class ScheduleDrawer:
              plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
              channels: List[Channel] = None,
-             show_framechange_channels: bool = True):
+             show_framechange_channels: bool = True,
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -786,6 +803,7 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
+            draw_title: Add a title to the plot when set to ``True``.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -793,7 +811,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
+        figure = self.plt_mod.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
             channels = []
@@ -863,9 +881,7 @@ class ScheduleDrawer:
         # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
         if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
-            figure.suptitle(str(schedule.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
-
+            if draw_title:
+                figure.suptitle(schedule.name, fontsize=self.style.title_font_size,
+                                y=bbox.y1 + 0.02, va='bottom')
         return figure

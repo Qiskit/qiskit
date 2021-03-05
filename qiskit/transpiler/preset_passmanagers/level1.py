@@ -40,7 +40,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import Layout2qDistance
@@ -50,6 +50,7 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitAnalysis
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
 
@@ -137,6 +138,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='lookahead', seed=seed_transpiler)]
+    elif routing_method == 'none':
+        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
+                            'CheckMap Error: {check_map_msg}', action='raise')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
@@ -174,7 +178,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [Optimize1qGates(basis_gates), CXCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
     # 10. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
@@ -188,7 +192,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm1 = PassManager()
-    if coupling_map:
+    if coupling_map or initial_layout:
         pm1.append(_given_layout)
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)

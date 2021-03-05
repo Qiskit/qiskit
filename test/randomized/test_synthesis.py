@@ -39,6 +39,8 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary)
         self.check_one_qubit_euler_angles(unitary, 'U3')
         self.check_one_qubit_euler_angles(unitary, 'U1X')
+        self.check_one_qubit_euler_angles(unitary, 'PSX')
+        self.check_one_qubit_euler_angles(unitary, 'ZSX')
         self.check_one_qubit_euler_angles(unitary, 'ZYZ')
         self.check_one_qubit_euler_angles(unitary, 'ZXZ')
         self.check_one_qubit_euler_angles(unitary, 'XYX')
@@ -54,7 +56,6 @@ class TestSynthesis(CheckDecompositions):
     @given(strategies.tuples(*[seed] * 5))
     def test_exact_supercontrolled_decompose_random(self, seeds):
         """Exact decomposition for random supercontrolled basis and random target"""
-        # pylint: disable=invalid-name
         k1 = np.kron(random_unitary(2, seed=seeds[0]).data, random_unitary(2, seed=seeds[1]).data)
         k2 = np.kron(random_unitary(2, seed=seeds[2]).data, random_unitary(2, seed=seeds[3]).data)
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
@@ -68,8 +69,8 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -82,13 +83,13 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -101,18 +102,18 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
@@ -125,23 +126,23 @@ class TestSynthesis(CheckDecompositions):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
 
-        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
-        qc.u3(rnd[3], rnd[4], rnd[5], qr[1])
+        qc.u(rnd[0], rnd[1], rnd[2], qr[0])
+        qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[6], rnd[7], rnd[8], qr[0])
-        qc.u3(rnd[9], rnd[10], rnd[11], qr[1])
+        qc.u(rnd[6], rnd[7], rnd[8], qr[0])
+        qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         qc.cx(qr[0], qr[1])
 
-        qc.u3(rnd[12], rnd[13], rnd[14], qr[0])
-        qc.u3(rnd[15], rnd[16], rnd[17], qr[1])
+        qc.u(rnd[12], rnd[13], rnd[14], qr[0])
+        qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         qc.cx(qr[1], qr[0])
 
-        qc.u3(rnd[18], rnd[19], rnd[20], qr[0])
-        qc.u3(rnd[21], rnd[22], rnd[23], qr[1])
+        qc.u(rnd[18], rnd[19], rnd[20], qr[0])
+        qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()

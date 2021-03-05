@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error
-
 """
 Visualization functions for measurement counts.
 """
@@ -21,11 +19,6 @@ import functools
 import numpy as np
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
-
-if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import MaxNLocator
 
 
 def hamming_distance(str1, str2):
@@ -100,6 +93,9 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
     if sort not in VALID_SORTS:
         raise VisualizationError("Value of sort option, %s, isn't a "
                                  "valid choice. Must be 'asc', "

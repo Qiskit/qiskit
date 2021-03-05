@@ -13,11 +13,13 @@
 """Durations of instructions, one of transpiler configurations."""
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
+import warnings
+
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.util import apply_prefix
+from qiskit.utils.units import apply_prefix
 from qiskit.circuit.duration import duration_in_dt
 
 
@@ -34,7 +36,7 @@ class InstructionDurations:
                  dt: float = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
-        self.dt = dt  # pylint: disable=invalid-name
+        self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
 
@@ -73,22 +75,15 @@ class InstructionDurations:
                 if 'gate_length' in props:
                     gate_length = props['gate_length'][0]  # Throw away datetime at index 1
                     instruction_durations.append((gate, qubits, gate_length, 's'))
+        for q, props in backend.properties()._qubits.items():
+            if 'readout_length' in props:
+                readout_length = props['readout_length'][0]  # Throw away datetime at index 1
+                instruction_durations.append(('measure', [q], readout_length, 's'))
 
         try:
-            dt = backend.configuration().dt  # pylint: disable=invalid-name
+            dt = backend.configuration().dt
         except AttributeError:
             dt = None
-
-        # TODO: backend.properties() should tell us durations of measurements
-        # TODO: Remove the following lines after that
-        try:
-            inst_map = backend.defaults().instruction_schedule_map
-            all_qubits = tuple(range(backend.configuration().num_qubits))
-            meas_duration = inst_map.get('measure', all_qubits).duration
-            for q in all_qubits:
-                instruction_durations.append(('measure', [q], meas_duration, 'dt'))
-        except AttributeError:
-            pass
 
         return InstructionDurations(instruction_durations, dt=dt)
 
@@ -167,13 +162,18 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
+            warnings.warn('Querying an InstructionDurations object with a Qubit '
+                          'has been deprecated and will be removed in a future '
+                          'release. Instead, query using the integer qubit '
+                          'index.', DeprecationWarning, stacklevel=2)
             qubits = [q.index for q in qubits]
 
         try:
             return self._get(inst_name, qubits, unit)
-        except TranspilerError:
-            raise TranspilerError("Duration of {} on qubits {} is not found."
-                                  .format(inst_name, qubits))
+        except TranspilerError as ex:
+            raise TranspilerError(
+                f"Duration of {inst_name} on qubits {qubits} is not found."
+            ) from ex
 
     def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
         """Get the duration of the instruction with the name and the qubits."""

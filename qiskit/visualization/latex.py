@@ -12,18 +12,16 @@
 
 # pylint: disable=invalid-name,consider-using-enumerate
 
-"""latex circuit visualization backends."""
+"""latex visualization backends."""
 
 import collections
 import io
-import json
 import math
 import re
 
 import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
@@ -38,8 +36,8 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
+    def __init__(self, qubits, clbits, ops, scale,
+                 plot_barriers=True, layout=None, initial_state=False,
                  cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
@@ -48,9 +46,6 @@ class QCircuitImage:
             clbits (list[Clbit]): list of clbits
             ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
-            style (dict or str): dictionary of style or file name of style file
-            reverse_bits (bool): When set to True reverse the bit order inside
-               registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
@@ -61,16 +56,6 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        # style sheet
-        self._style = _qcstyle.BWStyle()
-        if style:
-            if isinstance(style, dict):
-                self._style.set_style(style)
-            elif isinstance(style, str):
-                with open(style) as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
-
         # list of lists corresponding to layers of the circuit
         self.ops = ops
 
@@ -113,7 +98,6 @@ class QCircuitImage:
         # presence of "box" or "target" determines row spacing
         self.has_box = False
         self.has_target = False
-        self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
         self.plot_barriers = plot_barriers
@@ -266,7 +250,7 @@ class QCircuitImage:
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                                'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
                                'crz', 'cu3', 'id']
-                target_gates = ['cx', 'ccx']
+                target_gates = ['cx', 'ccx', 'cu1', 'cp', 'rzz']
                 if op.name in boxed_gates:
                     self.has_box = True
                 if op.name in target_gates:
@@ -308,8 +292,8 @@ class QCircuitImage:
         for layer in self.ops:
             column_width = 1
             for nd in layer:
-                if nd.name in ['cu1', 'rzz']:
-                    column_width = 2
+                if nd.name in ['cu1', 'cp', 'rzz']:
+                    column_width = 3
             columns += column_width
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
@@ -378,9 +362,6 @@ class QCircuitImage:
         """Returns an array of strings containing \\LaTeX for this circuit.
         """
 
-        qregdata = self.qregs
-        # Rename qregs if necessary
-
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (self.ops and self.ops[0] and
@@ -398,7 +379,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'cz', 'cu1', 'cp', 'cu3', 'crz',
                         'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
@@ -489,8 +470,7 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = ("\\ghost{%s}" % name)
 
-                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                     'save', 'noise']:
+                elif not op.op._directive and op.name not in ['measure']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
@@ -677,20 +657,22 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
                                 elif cond == '1':
                                     self._latex[pos_1][column] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                dname = 'U_1' if nm == 'cu1' else 'P'
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (dname, self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                # this is because this gate takes up 2 columns,
+                                # this is because this gate takes up 3 columns,
                                 # and we have just written to the next column
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
@@ -708,12 +690,15 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 # Based on the \cds command of the qcircuit package
+                                # self._latex[min(pos_1, pos_2)][column + 1] = \
+                                #    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
+                                    self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -763,18 +748,20 @@ class QCircuitImage:
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (self.parse_params(op.op.params[0]))
-                            elif nm == "cu1":
+                            elif nm in ['cu1', 'cp']:
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
                                         "\\ctrlo{" + str(pos_2 - pos_1) + "}"
                                 elif cond == '1':
                                     self._latex[pos_1][column] = \
                                         "\\ctrl{" + str(pos_2 - pos_1) + "}"
+                                dname = 'U_1' if nm == 'cu1' else 'P'
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}%s(%s)}\\qw" % \
+                                    (dname, self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                             elif nm == "cu3":
                                 if cond == '0':
                                     self._latex[pos_1][column] = \
@@ -792,12 +779,15 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 # Based on the \cds command of the qcircuit package
+                                # self._latex[min(pos_1, pos_2)][column + 1] = \
+                                #    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
+                                #    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
+                                #    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "*+<0em,0em>{\\hphantom{zz()}} \\POS [0,0].[%d,0]=" \
-                                    "\"e\",!C *{zz(%s)};\"e\"+ R \\qw" % \
-                                    (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
+                                    "\\dstick{\\hspace{12pt}ZZ(%s)}\\qw" % \
+                                    self.parse_params(op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                num_cols_used = 2
+                                num_cols_used = 3
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
@@ -958,8 +948,7 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
 
-                elif op.name in ['barrier', 'snapshot', 'load', 'save',
-                                 'noise']:
+                elif op.op._directive:
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]

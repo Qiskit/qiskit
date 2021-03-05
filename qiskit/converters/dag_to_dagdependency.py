@@ -25,7 +25,8 @@ def dag_to_dagdependency(dag):
     """
 
     dagdependency = DAGDependency()
-    DAGDependency.name = dag.name
+    dagdependency.name = dag.name
+    dagdependency.metadata = dag.metadata
 
     qregs = list(dag.qregs.values())
     cregs = list(dag.cregs.values())
@@ -43,5 +44,9 @@ def dag_to_dagdependency(dag):
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
 
     dagdependency._add_successors()
+
+    # copy metadata
+    dagdependency.global_phase = dag.global_phase
+    dagdependency.calibrations = dag.calibrations
 
     return dagdependency

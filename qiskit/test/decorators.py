@@ -10,20 +10,41 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-#  pylint: disable=E1101
 
 """Decorator for using with Qiskit unit tests."""
 
 import functools
 import os
+import socket
 import sys
 import unittest
 from warnings import warn
 
-from qiskit.util import _has_connection
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
+
+
+def _has_connection(hostname, port):
+    """Checks if internet connection exists to host via specified port.
+
+    If any exception is raised while trying to open a socket this will return
+    false.
+
+    Args:
+        hostname (str): Hostname to connect to.
+        port (int): Port to connect to
+
+    Returns:
+        bool: Has connection or not
+
+    """
+    try:
+        host = socket.gethostbyname(hostname)
+        socket.create_connection((host, port), 2).close()
+        return True
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 def is_aer_provider_available():
@@ -88,11 +109,11 @@ def _get_credentials():
     try:
         from qiskit.providers.ibmq.credentials import (Credentials,
                                                        discover_credentials)
-    except ImportError:
+    except ImportError as ex:
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
                                 'and is required for executing online tests. '
                                 'To install, run "pip install qiskit-ibmq-provider" '
-                                'or check your installation.')
+                                'or check your installation.') from ex
 
     if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))

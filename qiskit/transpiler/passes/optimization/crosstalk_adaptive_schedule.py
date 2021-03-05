@@ -13,7 +13,7 @@
 """
 Crosstalk mitigation through adaptive instruction scheduling.
 The scheduling algorithm is described in:
-Prakash Murali, David C. Mckay, Margaret Martonosi, Ali Javadi Abhari,
+Prakash Murali, David C. McKay, Margaret Martonosi, Ali Javadi Abhari,
 Software Mitigation of Crosstalk on Noisy Intermediate-Scale Quantum Computers,
 in International Conference on Architectural Support for Programming Languages
 and Operating Systems (ASPLOS), 2020.
@@ -668,7 +668,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 layers.append([triplet])
             else:
                 layers[layer_idx].append(triplet)
-        # Insert barries if necessary to enforce the above layers
+        # Insert barriers if necessary to enforce the above layers
         barriers = self.generate_barriers(layers)
         new_dag = self.create_updated_dag(layers, barriers)
         return new_dag

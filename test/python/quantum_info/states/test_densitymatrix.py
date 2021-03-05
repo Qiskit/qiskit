@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for DensityMatrix quantum state class."""
 
 import unittest
@@ -22,7 +20,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, QFT
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -98,7 +96,7 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix(Statevector(vec))
         self.assertEqual(rho, target)
 
-    def test_from_circuit(self):
+    def test_init_circuit(self):
         """Test initialization from a circuit."""
         # random unitaries
         u0 = random_unitary(2).data
@@ -110,7 +108,7 @@ class TestDensityMatrix(QiskitTestCase):
         circ.unitary(u1, [qr[1]])
         target_vec = Statevector(np.kron(u1, u0).dot([1, 0, 0, 0]))
         target = DensityMatrix(target_vec)
-        rho = DensityMatrix.from_instruction(circ)
+        rho = DensityMatrix(circ)
         self.assertEqual(rho, target)
 
         # Test tensor product of 1-qubit gates
@@ -119,18 +117,29 @@ class TestDensityMatrix(QiskitTestCase):
         circuit.x(1)
         circuit.ry(np.pi / 2, 2)
         target = DensityMatrix.from_label('000').evolve(Operator(circuit))
-        rho = DensityMatrix.from_instruction(circuit)
+        rho = DensityMatrix(circuit)
         self.assertEqual(rho, target)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.h(1)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         target = DensityMatrix.from_label('00').evolve(Operator(circuit))
-        rho = DensityMatrix.from_instruction(circuit)
+        rho = DensityMatrix(circuit)
         self.assertEqual(rho, target)
+
+    def test_from_circuit(self):
+        """Test initialization from a circuit."""
+        # random unitaries
+        u0 = random_unitary(2).data
+        u1 = random_unitary(2).data
+        # add to circuit
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.unitary(u0, [qr[0]])
+        circ.unitary(u1, [qr[1]])
 
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
@@ -884,6 +893,26 @@ class TestDensityMatrix(QiskitTestCase):
                 op = Operator.from_label(label)
                 expval = rho.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = DensityMatrix.from_instruction(circ1)
+        state2 = DensityMatrix.from_instruction(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        dm = DensityMatrix.from_instruction(qc1)
+        with self.subTest(msg='str(density_matrix)'):
+            str(dm)
+        for drawtype in ['text', 'latex', 'latex_source',
+                         'qsphere', 'hinton', 'bloch']:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                dm.draw(drawtype)
 
 
 if __name__ == '__main__':

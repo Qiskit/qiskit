@@ -12,14 +12,11 @@
 
 """Class for backend status."""
 
-import re
-
 from qiskit.exceptions import QiskitError
 
 
 class BackendStatus:
     """Class representing Backend Status."""
-    version_regex = re.compile("[0-9]+.[0-9]+.[0-9]+$")
 
     def __init__(self, backend_name, backend_version, operational,
                  pending_jobs, status_msg):
@@ -36,8 +33,6 @@ class BackendStatus:
             QiskitError: If the backend version is in an invalid format
         """
         self.backend_name = backend_name
-        if not self.version_regex.match(backend_version):
-            raise QiskitError('Backend version is invalid')
         self.backend_version = backend_version
         self.operational = operational
         if pending_jobs < 0:

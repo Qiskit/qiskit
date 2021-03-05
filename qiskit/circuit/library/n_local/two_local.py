@@ -14,7 +14,7 @@
 
 from typing import Union, Optional, List, Callable, Any
 
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
 
 from .n_local import NLocal
@@ -244,8 +244,8 @@ class TwoLocal(NLocal):
         if isinstance(layer, str):
             try:
                 layer = valid_layers[layer]
-            except KeyError:
-                raise ValueError('Unknown layer name `{}`.'.format(layer))
+            except KeyError as ex:
+                raise ValueError(f'Unknown layer name `{layer}`.') from ex
 
         # try to exchange `layer` from a type to a gate instance
         if isinstance(layer, type):

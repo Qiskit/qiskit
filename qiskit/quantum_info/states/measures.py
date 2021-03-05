@@ -16,7 +16,8 @@ Quantum information measures, metrics, and related functions for states.
 import numpy as np
 import scipy.linalg as la
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix, Statevector
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.utils import (partial_trace, shannon_entropy,
                                               _format_state, _funm_svd)
 
@@ -30,7 +31,7 @@ def state_fidelity(state1, state2, validate=True):
     .. math::
         F(\rho_1, \rho_2) = Tr[\sqrt{\sqrt{\rho_1}\rho_2\sqrt{\rho_1}}]^2.
 
-    If one of the states is a pure state this simplies to
+    If one of the states is a pure state this simplifies to
     :math:`F(\rho_1, \rho_2) = \langle\psi_1|\rho_2|\psi_1\rangle`, where
     :math:`\rho_1 = |\psi_1\rangle\!\langle\psi_1|`.
 
@@ -77,16 +78,16 @@ def purity(state, validate=True):
 
     The purity of a density matrix :math:`\rho` is
 
-    ..code:
+    .. math::
 
-        \text{Purity}(\rho) = \Tr[\rho^2]
+        \text{Purity}(\rho) = Tr[\rho^2]
 
     Args:
         state (Statevector or DensityMatrix): a quantum state.
         validate (bool): check if input state is valid [Default: True]
 
     Returns:
-        float: the purity :math:`\Tr[\rho^2]`.
+        float: the purity :math:`Tr[\rho^2]`.
 
     Raises:
         QiskitError: if the input isn't a valid quantum state.
@@ -100,7 +101,7 @@ def entropy(state, base=2):
 
     The entropy :math:`S` is given by
 
-    .. math:
+    .. math::
 
         S(\rho) = - Tr[\rho \log(\rho)]
 
@@ -114,7 +115,6 @@ def entropy(state, base=2):
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
     """
-    # pylint: disable=assignment-from-no-return
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
         return 0
@@ -128,7 +128,7 @@ def mutual_information(state, base=2):
 
     The mutual information :math:`I` is given by:
 
-    .. math:
+    .. math::
 
         I(\rho_{AB}) = S(\rho_A) + S(\rho_B) - S(\rho_{AB})
 
@@ -162,24 +162,24 @@ def concurrence(state):
     :class:`~qiskit.quantum_info.Statevector` :math:`|\psi\rangle` is
     given by
 
-    .. math:
+    .. math::
 
         C(|\psi\rangle) = \sqrt{2(1 - Tr[\rho_0^2])}
 
     where :math:`\rho_0 = Tr_1[|\psi\rangle\!\langle\psi|]` is the
     reduced state from by taking the
-    :math:`~qiskit.quantum_info.partial_trace` of the input state.
+    :func:`~qiskit.quantum_info.partial_trace` of the input state.
 
     For density matrices the concurrence is only defined for
     2-qubit states, it is given by:
 
-    .. math:
+    .. math::
 
-        C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lamda_3 - \lambda_4)
+        C(\rho) = \max(0, \lambda_1 - \lambda_2 - \lambda_3 - \lambda_4)
 
     where  :math:`\lambda _1 \ge \lambda _2 \ge \lambda _3 \ge \lambda _4`
     are the ordered eigenvalues of the matrix
-    :math:`R=\sqrt{\sqrt{\rho }(Y\otimes Y)\overline{\rho}(Y\otimes Y)\sqrt{\rho}}}`.
+    :math:`R=\sqrt{\sqrt{\rho }(Y\otimes Y)\overline{\rho}(Y\otimes Y)\sqrt{\rho}}`.
 
     Args:
         state (Statevector or DensityMatrix): a 2-qubit quantum state.

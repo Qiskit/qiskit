@@ -61,10 +61,10 @@ class TestSuperOp(ChannelTestCase):
         target = SuperOp(Operator(np.kron(y90, np.kron(self.UX, self.UH))))
         self.assertEqual(target, op)
 
-        # Test decomposition of Controlled-u1 gate
+        # Test decomposition of Controlled-Phase gate
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
-        circuit.cu1(lam, 0, 1)
+        circuit.cp(lam, 0, 1)
         op = SuperOp(circuit)
         target = SuperOp(Operator(np.diag([1, 1, 1, np.exp(1j * lam)])))
         self.assertEqual(target, op)
@@ -540,12 +540,6 @@ class TestSuperOp(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = SuperOp(self.depol_sop(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
 
     def test_add(self):
         """Test add method."""

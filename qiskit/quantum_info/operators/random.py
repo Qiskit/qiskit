@@ -16,12 +16,12 @@ Methods to create random operators.
 
 import numpy as np
 from numpy.random import default_rng
-from scipy import stats
 
 from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=unused-import
+from .symplectic.random import random_pauli
 from .symplectic.random import random_clifford
 from .symplectic.random import random_pauli_table
 from .symplectic.random import random_stabilizer_table
@@ -50,6 +50,7 @@ def random_unitary(dims, seed=None):
         random_state = default_rng(seed)
 
     dim = np.product(dims)
+    from scipy import stats
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
@@ -79,6 +80,7 @@ def random_hermitian(dims, traceless=False, seed=None):
 
     # Total dimension
     dim = np.product(dims)
+    from scipy import stats
 
     if traceless:
         mat = np.zeros((dim, dim), dtype=complex)
@@ -93,7 +95,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         scale=0.5, size=num_tril, random_state=rng)
     imag_tril = stats.norm.rvs(
         scale=0.5, size=num_tril, random_state=rng)
-    # Get lower triangular indicies
+    # Get lower triangular indices
     rows, cols = np.tril_indices(dim, -1)
     mat[(rows, cols)] = real_tril + 1j * imag_tril
     mat[(cols, rows)] = real_tril - 1j * imag_tril
@@ -141,6 +143,7 @@ def random_quantum_channel(input_dims=None,
         rank = d_in * d_out
     if rank < 1:
         raise QiskitError("Rank {} must be greater than 0.".format(rank))
+    from scipy import stats
 
     # Generate a random unitary matrix
     unitary = stats.unitary_group.rvs(
