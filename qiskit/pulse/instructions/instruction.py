@@ -24,12 +24,13 @@ For example::
 import warnings
 from abc import ABC
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.frame import Frame
 
 
 # pylint: disable=missing-return-doc
@@ -43,14 +44,14 @@ class Instruction(ABC):
     def __init__(self,
                  operands: Tuple,
                  duration: int,
-                 channels: Tuple[Channel],
+                 channels: Union[Tuple[Channel], Tuple[Frame]],
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
             duration: Deprecated.
-            channels: Tuple of pulse channels that this instruction operates on.
+            channels: Tuple of pulse channels or frames that this instruction operates on.
             name: Optional display name for this instruction.
 
         Raises:
@@ -59,7 +60,7 @@ class Instruction(ABC):
                 type :class:`Channel`.
         """
         for channel in channels:
-            if not isinstance(channel, Channel):
+            if not isinstance(channel, (Frame, Channel)):
                 raise PulseError("Expected a channel, got {} instead.".format(channel))
 
         if duration is not None:

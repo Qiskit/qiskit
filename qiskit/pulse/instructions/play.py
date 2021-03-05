@@ -19,6 +19,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.library.signal import Signal
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -31,7 +32,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse,
+    def __init__(self, pulse: Union[Pulse, Signal],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Create a new pulse instruction.
@@ -45,8 +46,9 @@ class Play(Instruction):
         Raises:
             PulseError: If pulse is not a Pulse type.
         """
-        if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+        if not isinstance(pulse, (Pulse, Signal)):
+            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse` or "
+                             "`library.Signal`.")
         if name is None:
             name = pulse.name
         super().__init__((pulse, channel), None, (channel,), name=name)
@@ -59,7 +61,7 @@ class Play(Instruction):
                         self._parameter_table[param].append(0)
 
     @property
-    def pulse(self) -> Pulse:
+    def pulse(self) -> [Pulse, Signal]:
         """A description of the samples that will be played."""
         return self.operands[0]
 

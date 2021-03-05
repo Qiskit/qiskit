@@ -17,6 +17,7 @@ from typing import Optional, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.frame import Frame
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -35,13 +36,13 @@ class SetFrequency(Instruction):
     """
 
     def __init__(self, frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
+                 channel: [PulseChannel, Frame],
                  name: Optional[str] = None):
         """Creates a new set channel frequency instruction.
 
         Args:
             frequency: New frequency of the channel in Hz.
-            channel: The channel this instruction operates on.
+            channel: The channel or frame this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
         if not isinstance(frequency, ParameterExpression):
@@ -54,8 +55,8 @@ class SetFrequency(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+    def channel(self) -> [PulseChannel, Frame]:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
         return self.operands[1]
@@ -71,13 +72,13 @@ class ShiftFrequency(Instruction):
 
     def __init__(self,
                  frequency: Union[float, ParameterExpression],
-                 channel: PulseChannel,
+                 channel: [PulseChannel, Frame],
                  name: Optional[str] = None):
         """Creates a new shift frequency instruction.
 
         Args:
             frequency: Frequency shift of the channel in Hz.
-            channel: The channel this instruction operates on.
+            channel: The channel or frame this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
         if not isinstance(frequency, ParameterExpression):
@@ -90,8 +91,8 @@ class ShiftFrequency(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+    def channel(self) -> [PulseChannel, Frame]:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
         return self.operands[1]
