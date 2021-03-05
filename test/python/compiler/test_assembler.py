@@ -1195,10 +1195,10 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
         )
         with self.assertRaises(QiskitError):
-            qobj = assemble(schedule,
-                            qubit_lo_freq=self.default_qubit_lo_freq,
-                            meas_lo_freq=self.default_meas_lo_freq,
-                            meas_map=[[0, 1]])
+            assemble(schedule,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     meas_map=[[0, 1]])
 
     def test_assemble_non_disjoint_time_single_meas_map(self):
         """Test that assembly error when disjoint time is provided."""
