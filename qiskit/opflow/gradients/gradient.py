@@ -15,7 +15,7 @@
 from typing import Union, List
 
 
-from multipledispatch import dispatch
+import plum
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
@@ -43,6 +43,8 @@ from .derivative_utils import is_coeff_c
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
 
+
+    dispatch = plum.Dispatcher(in_class=plum.Self)
     # Call _convert because of some multipledispatch bug, or s.t.
     # I'm unable to use MD with convert. It seems PauliExpectation.convert is confusing the MD?
     def convert(self, operator, params):
@@ -59,8 +61,8 @@ class Gradient(GradientBase):
         """
         return self._convert(operator, params)
 
-    @dispatch(object, (ParameterVector, list))
-    def _convert(self, operator, params):
+    @dispatch
+    def _convert(self, operator, params: {ParameterVector, list}):
         param_grads = [self._convert(operator, param) for param in params]
         absent_params = [params[i]
                          for i, grad_ops in enumerate(param_grads) if grad_ops is None]
@@ -71,15 +73,15 @@ class Gradient(GradientBase):
             )
         return ListOp(param_grads)
 
-    @dispatch(object, object)
+    @dispatch
     def _convert(self, operator, param):
         # Preprocessing
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
         return self.get_gradient(cleaned_op, param)
 
-    @dispatch((object, ComposedOp, SummedOp, TensoredOp, CircuitStateFn), (ParameterVector, list))
-    def get_gradient(self, operator, params):
+    @dispatch
+    def get_gradient(self, operator, params: {ParameterVector, list}): # why does this not need disambiguation? , precedence=1):
         param_grads = [self.get_gradient(operator, param) for param in params]
         # If get_gradient returns None, then the corresponding parameter was probably not
         # present in the operator. This needs to be looked at more carefully as other things can
@@ -92,7 +94,6 @@ class Gradient(GradientBase):
                 absent_params
             )
         return ListOp(param_grads)
-
 
     def handle_coeff_not_one(self, operator, param):
         # Separate the operator from the coefficient
@@ -117,8 +118,8 @@ class Gradient(GradientBase):
     # collected. Any operator measurements were converted to Pauli-Z measurements and rotation
     # circuits were applied. Additionally, all coefficients within ComposedOps were collected
     # and moved out front.
-    @dispatch(ComposedOp, object)
-    def get_gradient(self, operator, param):
+    @dispatch
+    def get_gradient(self, operator: ComposedOp, param):
         if not is_coeff_c(operator._coeff, 1.0):
             return self.handle_coeff_not_one(operator, param)
         # Do some checks to make sure operator is sensible
@@ -130,29 +131,29 @@ class Gradient(GradientBase):
 
         return self.grad_method.convert(operator, param)
 
-    @dispatch(CircuitStateFn, object)
-    def get_gradient(self, operator, param):
+    @dispatch
+    def get_gradient(self, operator: CircuitStateFn, param):
         # Gradient of an a state's sampling probabilities
         if not is_coeff_c(operator._coeff, 1.0):
             return self.handle_coeff_not_one(operator, param)
         return self.grad_method.convert(operator, param)
 
-    @dispatch(SummedOp, object)
-    def get_gradient(self, operator, param):
+    @dispatch
+    def get_gradient(self, operator: SummedOp, param):
         if not is_coeff_c(operator._coeff, 1.0):
             return self.handle_coeff_not_one(operator, param)
         grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
         return SummedOp(oplist=[grad for grad in grad_ops if grad != ZERO_EXPR]).reduce()
 
-    @dispatch(TensoredOp, object)
-    def get_gradient(self, operator, param):
+    @dispatch
+    def get_gradient(self, operator: TensoredOp, param):
         if not is_coeff_c(operator._coeff, 1.0):
             return self.handle_coeff_not_one(operator, param)
         grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
         return TensoredOp(oplist=grad_ops)
 
-    @dispatch(ListOp, object)
-    def get_gradient(self, operator, param) -> OperatorBase:
+    @dispatch
+    def get_gradient(self, operator: ListOp, param) -> OperatorBase:
         """Get the gradient for the given operator w.r.t. the given parameters
 
         Args:
