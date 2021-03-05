@@ -79,9 +79,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """
     try:
         import pydot
-    except ImportError:
+    except ImportError as ex:
         raise ImportError("dag_drawer requires pydot. "
-                          "Run 'pip install pydot'.")
+                          "Run 'pip install pydot'.") from ex
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -118,6 +118,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         edge_attr_func = None
 
     else:
+        bit_labels = {bit: "%s[%s]" % (reg.name, idx)
+                      for reg in list(dag.qregs.values()) + list(dag.cregs.values())
+                      for (idx, bit) in enumerate(reg)}
+
         graph_attrs = {'dpi': str(100 * scale)}
 
         def node_attr_func(node):
@@ -125,16 +129,18 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
                 return {}
             if style == 'color':
                 n = {}
-                n['label'] = node.name
                 if node.type == 'op':
+                    n['label'] = node.name
                     n['color'] = 'blue'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightblue'
                 if node.type == 'in':
+                    n['label'] = bit_labels[node.wire]
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
                 if node.type == 'out':
+                    n['label'] = bit_labels[node.wire]
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
@@ -144,7 +150,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
         def edge_attr_func(edge):
             e = {}
-            e['label'] = str(edge['name'])
+            e['label'] = bit_labels[edge]
             return e
 
     dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,
