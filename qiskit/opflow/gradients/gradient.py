@@ -57,7 +57,10 @@ class Gradient(GradientBase):
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
         """
+        if not operator.parameters:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
             params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         if isinstance(params, (ParameterVector, list)):

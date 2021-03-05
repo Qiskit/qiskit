@@ -50,7 +50,13 @@ class QFI(QFIBase):
 
         Returns:
             ListOp[ListOp] where the operator at position k,l corresponds to QFI_kl
+
+        Raises:
+            ValueError: If operator is not parameterized.
         """
+        if not operator.parameters:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
+
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
 

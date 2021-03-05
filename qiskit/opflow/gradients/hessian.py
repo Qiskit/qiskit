@@ -88,6 +88,7 @@ class Hessian(HessianBase):
 
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
+            ValueError: If ``operator`` is not parameterized.
             OpflowError: If the coefficient of the operator could not be reduced to 1.
             OpflowError: If the differentiation of a combo_fn
                          requires JAX but the package is not installed.
@@ -96,6 +97,8 @@ class Hessian(HessianBase):
             Exception: Unintended code is reached
             MissingOptionalLibraryError: jax not installed
         """
+        if not operator.parameters:
+            raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
             params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
         # if input is a tuple instead of a list, wrap it into a list
