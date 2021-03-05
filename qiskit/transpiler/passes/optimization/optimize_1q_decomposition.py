@@ -98,7 +98,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for gate in run[1:]:
                 operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator, check_unitary=False))
+                new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
                 if (len(run) > len(new_circ) or (single_u3 and
