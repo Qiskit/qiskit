@@ -38,7 +38,7 @@ except ImportError:
     HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
+from qiskit.circuit.library.standard_gates import RZGate, SXGate, XGate, CXGate
 from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.exceptions import TranspilerError
@@ -99,12 +99,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             self.input_measured_qubits = []
         else:
             self.input_measured_qubits = measured_qubits
-        self.bp_u1_err = {}
-        self.bp_u1_dur = {}
-        self.bp_u2_err = {}
-        self.bp_u2_dur = {}
-        self.bp_u3_err = {}
-        self.bp_u3_dur = {}
+        self.bp_rz_err = {}
+        self.bp_rz_dur = {}
+        self.bp_sx_err = {}
+        self.bp_sx_dur = {}
+        self.bp_x_err = {}
+        self.bp_x_dur = {}
         self.bp_cx_err = {}
         self.bp_cx_dur = {}
         self.bp_t1_time = {}
@@ -148,27 +148,27 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         for qid in range(len(backend_prop.qubits)):
             self.bp_t1_time[qid] = int(backend_prop.t1(qid)*10**9)
             self.bp_t2_time[qid] = int(backend_prop.t2(qid)*10**9)
-            self.bp_u1_dur[qid] = int(backend_prop.gate_length('u1', qid))*10**9
-            u1_err = backend_prop.gate_error('u1', qid)
-            if u1_err == 1.0:
-                u1_err = 0.9999
-            self.bp_u1_err = round(u1_err, NUM_PREC)
-            self.bp_u2_dur[qid] = int(backend_prop.gate_length('u2', qid))*10**9
-            u2_err = backend_prop.gate_error('u2', qid)
-            if u2_err == 1.0:
-                u2_err = 0.9999
-            self.bp_u2_err = round(u2_err, NUM_PREC)
-            self.bp_u3_dur[qid] = int(backend_prop.gate_length('u3', qid))*10**9
-            u3_err = backend_prop.gate_error('u3', qid)
-            if u3_err == 1.0:
-                u3_err = 0.9999
-            self.bp_u3_err = round(u3_err, NUM_PREC)
+            self.bp_rz_dur[qid] = int(backend_prop.gate_length('rz', qid))*10**9
+            rz_err = backend_prop.gate_error('rz', qid)
+            if rz_err == 1.0:
+                rz_err = 0.9999
+            self.bp_rz_err[qid] = round(rz_err, NUM_PREC)
+            self.bp_sx_dur[qid] = int(backend_prop.gate_length('sx', qid)*10**9)
+            sx_err = backend_prop.gate_error('sx', qid)
+            if sx_err == 1.0:
+                sx_err = 0.9999
+            self.bp_sx_err[qid] = round(sx_err, NUM_PREC)
+            self.bp_x_dur[qid] = int(backend_prop.gate_length('x', qid)*10**9)
+            x_err = backend_prop.gate_error('x', qid)
+            if x_err == 1.0:
+                x_err = 0.9999
+            self.bp_x_err[qid] = round(x_err, NUM_PREC)
         for ginfo in backend_prop.gates:
             if ginfo.gate == 'cx':
                 q_0 = ginfo.qubits[0]
                 q_1 = ginfo.qubits[1]
                 cx_tup = (min(q_0, q_1), max(q_0, q_1))
-                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length('cx', cx_tup))*10**9
+                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length('cx', cx_tup)*10**9)
                 cx_err = backend_prop.gate_error('cx', cx_tup)
                 if cx_err == 1.0:
                     cx_err = 0.9999
@@ -320,12 +320,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             self.opt.add(self.gate_start_time[gate] >= 0)
         for gate in self.gate_duration:
             q_0 = gate.qargs[0].index
-            if isinstance(gate.op, U1Gate):
-                dur = self.bp_u1_dur[q_0]
-            elif isinstance(gate.op, U2Gate):
-                dur = self.bp_u2_dur[q_0]
-            elif isinstance(gate.op, U3Gate):
-                dur = self.bp_u3_dur[q_0]
+            if isinstance(gate.op, RZGate):
+                dur = self.bp_rz_dur[q_0]
+            elif isinstance(gate.op, SXGate):
+                dur = self.bp_sx_dur[q_0]
+            elif isinstance(gate.op, XGate):
+                dur = self.bp_x_dur[q_0]
             elif isinstance(gate.op, CXGate):
                 dur = self.bp_cx_dur[self.cx_tuple(gate)]
             self.opt.add(self.gate_duration[gate] == dur)
@@ -376,12 +376,12 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             elif not self.xtalk_overlap_set[gate]:
                 no_xtalk = True
             if no_xtalk:
-                if isinstance(gate.op, U1Gate):
+                if isinstance(gate.op, RZGate):
                     fid = math.log(1.0)
-                elif isinstance(gate.op, U2Gate):
-                    fid = math.log(1.0 - self.bp_u2_err[q_0])
-                elif isinstance(gate.op, U3Gate):
-                    fid = math.log(1.0 - self.bp_u3_err[q_0])
+                elif isinstance(gate.op, SXGate):
+                    fid = math.log(1.0 - self.bp_sx_err[q_0])
+                elif isinstance(gate.op, XGate):
+                    fid = math.log(1.0 - self.bp_x_err[q_0])
                 elif isinstance(gate.op, CXGate):
                     fid = math.log(1.0 - self.bp_cx_err[self.cx_tuple(gate)])
                 self.opt.add(self.gate_fidelity[gate] == round(fid, NUM_PREC))

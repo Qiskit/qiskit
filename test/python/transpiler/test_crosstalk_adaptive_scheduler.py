@@ -57,30 +57,30 @@ def create_fake_machine():
     gcx23 = Gate(name="CX2_3", gate="cx", parameters=cx23, qubits=[2, 3])
     gcx34 = Gate(name="CX3_4", gate="cx", parameters=cx34, qubits=[3, 4])
     gcx45 = Gate(name="CX4_5", gate="cx", parameters=cx45, qubits=[4, 5])
-    u_1 = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
+    r_z = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
            Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
-    gu10 = Gate(name="u1_0", gate="u1", parameters=u_1, qubits=[0])
-    gu11 = Gate(name="u1_1", gate="u1", parameters=u_1, qubits=[1])
-    gu12 = Gate(name="u1_2", gate="u1", parameters=u_1, qubits=[2])
-    gu13 = Gate(name="u1_3", gate="u1", parameters=u_1, qubits=[3])
-    gu14 = Gate(name="u1_4", gate="u1", parameters=u_1, qubits=[4])
-    gu15 = Gate(name="u1_4", gate="u1", parameters=u_1, qubits=[5])
-    u_2 = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
+    gu10 = Gate(name="rz_0", gate="rz", parameters=r_z, qubits=[0])
+    gu11 = Gate(name="rz_1", gate="rz", parameters=r_z, qubits=[1])
+    gu12 = Gate(name="rz_2", gate="rz", parameters=r_z, qubits=[2])
+    gu13 = Gate(name="rz_3", gate="rz", parameters=r_z, qubits=[3])
+    gu14 = Gate(name="rz_4", gate="rz", parameters=r_z, qubits=[4])
+    gu15 = Gate(name="rz_4", gate="rz", parameters=r_z, qubits=[5])
+    s_x = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
            Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
-    gu20 = Gate(name="u2_0", gate="u2", parameters=u_2, qubits=[0])
-    gu21 = Gate(name="u2_1", gate="u2", parameters=u_2, qubits=[1])
-    gu22 = Gate(name="u2_2", gate="u2", parameters=u_2, qubits=[2])
-    gu23 = Gate(name="u2_3", gate="u2", parameters=u_2, qubits=[3])
-    gu24 = Gate(name="u2_4", gate="u2", parameters=u_2, qubits=[4])
-    gu25 = Gate(name="u2_4", gate="u2", parameters=u_2, qubits=[5])
-    u_3 = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
-           Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
-    gu30 = Gate(name="u3_0", gate="u3", parameters=u_3, qubits=[0])
-    gu31 = Gate(name="u3_1", gate="u3", parameters=u_3, qubits=[1])
-    gu32 = Gate(name="u3_2", gate="u3", parameters=u_3, qubits=[2])
-    gu33 = Gate(name="u3_3", gate="u3", parameters=u_3, qubits=[3])
-    gu34 = Gate(name="u3_4", gate="u3", parameters=u_3, qubits=[4])
-    gu35 = Gate(name="u3_5", gate="u3", parameters=u_3, qubits=[5])
+    gu20 = Gate(name="sx_0", gate="sx", parameters=s_x, qubits=[0])
+    gu21 = Gate(name="sx_1", gate="sx", parameters=s_x, qubits=[1])
+    gu22 = Gate(name="sx_2", gate="sx", parameters=s_x, qubits=[2])
+    gu23 = Gate(name="sx_3", gate="sx", parameters=s_x, qubits=[3])
+    gu24 = Gate(name="sx_4", gate="sx", parameters=s_x, qubits=[4])
+    gu25 = Gate(name="sx_4", gate="sx", parameters=s_x, qubits=[5])
+    x_ = [Nduv(date=calib_time, name='gate_error', unit='', value=0.001),
+          Nduv(date=calib_time, name='gate_length', unit='ns', value=100.0)]
+    gu30 = Gate(name="x_0", gate="x", parameters=x_, qubits=[0])
+    gu31 = Gate(name="x_1", gate="x", parameters=x_, qubits=[1])
+    gu32 = Gate(name="x_2", gate="x", parameters=x_, qubits=[2])
+    gu33 = Gate(name="x_3", gate="x", parameters=x_, qubits=[3])
+    gu34 = Gate(name="x_4", gate="x", parameters=x_, qubits=[4])
+    gu35 = Gate(name="x_5", gate="x", parameters=x_, qubits=[5])
 
     gate_list = [gcx01, gcx12, gcx23, gcx34, gcx45,
                  gu10, gu11, gu12, gu13, gu14, gu15,
@@ -114,7 +114,7 @@ class TestCrosstalk(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         mapping = [0, 1, 2, 3, 4, 5]
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
-        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['rz', 'sx', 'x', 'cx'])
         dag = circuit_to_dag(new_circ)
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
@@ -135,7 +135,7 @@ class TestCrosstalk(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         mapping = [0, 1, 2, 3, 4, 5]
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
-        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['rz', 'sx', 'x', 'cx'])
         dag = circuit_to_dag(new_circ)
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
@@ -156,7 +156,7 @@ class TestCrosstalk(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         mapping = [0, 1, 2, 3, 4, 5]
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
-        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['u1', 'u2', 'u3', 'cx'])
+        new_circ = transpile(circuit, initial_layout=layout, basis_gates=['rz', 'sx', 'x', 'cx'])
         dag = circuit_to_dag(new_circ)
         pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag1 = pass_.run(dag)
