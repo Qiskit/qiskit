@@ -17,7 +17,7 @@ import warnings
 from collections import defaultdict
 from copy import deepcopy
 from typing import Callable
-from typing import List, Optional, Iterable, Union
+from typing import Dict, List, Optional, Iterable, Tuple, Union
 
 import numpy as np
 
@@ -26,6 +26,9 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
+from qiskit.pulse.frame import Frame
+from qiskit.pulse.resolved_frame import ResolvedFrame, ChannelTracker
+from qiskit.pulse.library import Signal
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
@@ -318,8 +321,113 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
+def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedule:
+    """
+    Parse the schedule and replace instructions on Frames by instructions on the
+    appropriate channels.
+
+    Args:
+        schedule: The schedule for which to replace frames with the appropriate
+            channels.
+        frames_config: A dictionary with the frame index as key and the values are
+            a dict which can be used to initialized a ResolvedFrame.
+
+    Returns:
+        new_schedule: A new schedule where frames have been replaced with
+            their corresponding Drive, Control, and/or Measure channels.
+
+    Raises:
+        PulseError: if a frame is not configured.
+    """
+    if frames_config is None:
+        return schedule
+
+    resolved_frames = {}
+    for frame_index, frame_settings in frames_config.items():
+        frame = ResolvedFrame(**frame_settings)
+        frame.set_frame_instructions(schedule)
+        resolved_frames[frame.index] = frame
+
+    # Used to keep track of the frequency and phase of the channels
+    channel_trackers = {}
+    for ch in schedule.channels:
+        if isinstance(ch, chans.PulseChannel):
+            channel_trackers[ch] = ChannelTracker(ch)
+
+    # Add the channels that the frames broadcast on.
+    for frame in resolved_frames.values():
+        for ch in frame.channels:
+            if ch not in channel_trackers:
+                channel_trackers[ch] = ChannelTracker(ch)
+
+    sched = Schedule(name=schedule.name, metadata=schedule.metadata)
+
+    for time, inst in schedule.instructions:
+        chan = inst.channel
+
+        if isinstance(inst, instructions.Play):
+            if isinstance(inst.operands[0], Signal):
+                frame_idx = inst.operands[0].frame.index
+
+                if frame_idx not in resolved_frames:
+                    raise PulseError(f'{Frame(frame.index)} is not configured and cannot '
+                                     f'be resolved.')
+
+                frame = resolved_frames[frame_idx]
+
+                frame_freq = frame.frequency(time)
+                frame_phase = frame.phase(time)
+
+                # If the frequency and phase of the channel has already been set once in
+                # The past we compute shifts.
+                if channel_trackers[chan].is_initialized():
+                    freq_diff = frame_freq - channel_trackers[chan].frequency(time)
+                    phase_diff = frame_phase - channel_trackers[chan].phase(time)
+
+                    if freq_diff != 0.0:
+                        shift_freq = instructions.ShiftFrequency(freq_diff, chan)
+                        sched.insert(time, shift_freq, inplace=True)
+
+                    if phase_diff != 0.0:
+                        sched.insert(time, instructions.ShiftPhase(phase_diff, chan), inplace=True)
+
+                # If the channel's phase and frequency has not been set in the past
+                # we set t now
+                else:
+                    sched.insert(time, instructions.SetFrequency(frame_freq, chan), inplace=True)
+                    sched.insert(time, instructions.SetPhase(frame_phase, chan), inplace=True)
+
+                # Update the frequency and phase of this channel.
+                channel_trackers[chan].set_frequency(time, frame_freq)
+                channel_trackers[chan].set_phase(time, frame_phase)
+
+                play = instructions.Play(inst.operands[0].pulse, chan)
+                sched.insert(time, play, inplace=True)
+            else:
+                sched.insert(time, instructions.Play(inst.pulse, chan), inplace=True)
+
+        # Insert phase and frequency commands that are not applied to frames.
+        elif isinstance(inst, instructions.SetFrequency):
+            if isinstance(chan, chans.PulseChannel):
+                sched.insert(time, type(inst)(inst.frequency, chan))
+
+        elif isinstance(inst, instructions.ShiftFrequency):
+            if isinstance(chan, chans.PulseChannel):
+                sched.insert(time, type(inst)(inst.frequency, chan))
+
+        elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
+            if isinstance(chan, chans.PulseChannel):
+                sched.insert(time, type(inst)(inst.phase, chan))
+
+        else:
+            sched.insert(time, inst, inplace=True)
+
+    return sched
+
+
 def _push_left_append(this: Schedule,
                       other: Union['Schedule', instructions.Instruction],
+                      ignore_frames: bool
                       ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
@@ -327,6 +435,9 @@ def _push_left_append(this: Schedule,
     Args:
         this: Input schedule to which ``other`` will be inserted.
         other: Other schedule to insert.
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
         Push left appended schedule.
@@ -334,6 +445,14 @@ def _push_left_append(this: Schedule,
     this_channels = set(this.channels)
     other_channels = set(other.channels)
     shared_channels = list(this_channels & other_channels)
+
+    # Conservatively assume that a Frame instruction could impact all channels
+    if not ignore_frames:
+        for ch in this_channels | other_channels:
+            if isinstance(ch, Frame):
+                shared_channels = list(this_channels | other_channels)
+                break
+
     ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
                  for channel in shared_channels]
 
@@ -351,12 +470,15 @@ def _push_left_append(this: Schedule,
     return this.insert(insert_time, other, inplace=True)
 
 
-def align_left(schedule: Schedule) -> Schedule:
+def align_left(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
             rescheduled.
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -364,12 +486,13 @@ def align_left(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in schedule._children:
-        _push_left_append(aligned, child)
+        _push_left_append(aligned, child, ignore_frames)
     return aligned
 
 
 def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
                         other: Union['Schedule', instructions.Instruction],
+                        ignore_frames: bool
                         ) -> Schedule:
     r"""Return ``this`` with ``other`` inserted at the latest possible time
     such that ``other`` ends before it overlaps with any of ``this``.
@@ -380,6 +503,9 @@ def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
     Args:
        this: Input schedule to which ``other`` will be inserted.
        other: Other schedule to insert.
+       ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
        Push right prepended schedule.
@@ -387,6 +513,14 @@ def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
     this_channels = set(this.channels)
     other_channels = set(other.channels)
     shared_channels = list(this_channels & other_channels)
+
+    # Conservatively assume that a Frame instruction could impact all channels
+    if not ignore_frames:
+        for ch in this_channels | other_channels:
+            if isinstance(ch, Frame):
+                shared_channels = list(this_channels | other_channels)
+                break
+
     ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
                  for channel in shared_channels]
 
@@ -404,12 +538,15 @@ def _push_right_prepend(this: Union['Schedule', instructions.Instruction],
     return this
 
 
-def align_right(schedule: Schedule) -> Schedule:
+def align_right(schedule: Schedule, ignore_frames: bool = False) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
         schedule: Input schedule of which top-level ``child`` nodes will be
             rescheduled.
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -417,7 +554,7 @@ def align_right(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in reversed(schedule._children):
-        aligned = _push_right_prepend(aligned, child)
+        aligned = _push_right_prepend(aligned, child, ignore_frames)
     return aligned
 
 
