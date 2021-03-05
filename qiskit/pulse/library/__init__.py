@@ -38,3 +38,4 @@ from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
                                 Drag, Constant)
 from .pulse import Pulse
 from .waveform import Waveform
+from .signal import Signal
