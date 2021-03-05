@@ -31,6 +31,8 @@ class ExactReciprocal(QuantumCircuit):
             scaling: Scaling factor of the reciprocal function, i.e. to compute
              ::math:: `scaling / x`.
             name: The name of the object.
+        Note:
+            It is assumed that the binary string x represents a number < 1.
         """
 
         qr_state = QuantumRegister(num_state_qubits, 'state')

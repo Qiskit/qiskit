@@ -15,21 +15,22 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
-from scipy.sparse import diags
 import numpy as np
-from ddt import ddt, idata, data, unpack
-from qiskit import QuantumRegister, QuantumCircuit, BasicAer
+from ddt import ddt, idata, unpack
+from qiskit import QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal import Tridiagonal
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
 from qiskit.algorithms.linear_solvers.observables.matrix_functional import MatrixFunctional
-from qiskit.quantum_info import Operator, Statevector, partial_trace
-from qiskit.opflow import I, Z
+from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
+from qiskit.quantum_info import Operator, partial_trace
+from qiskit.opflow import I, Z, StateFn
+from qiskit import quantum_info
 
 
 @ddt
-class TestTridiagonal(QiskitAlgorithmsTestCase):
-    """Tests based on the Tridiagonal class.
+class TestMatrices(QiskitAlgorithmsTestCase):
+    """Tests based on the matrices classes.
 
     This class tests
         * the constructed circuits
@@ -39,8 +40,8 @@ class TestTridiagonal(QiskitAlgorithmsTestCase):
         [Tridiagonal(3, 2, 1), 1.1, 3]
     ])
     @unpack
-    def test_statevector(self, matrix, time=1.0, power=1):
-        """ statevector test """
+    def test_tridiagonal(self, matrix, time=1.0, power=1):
+        """Test the Tridiagonal class."""
         if time is not None:
             matrix.evo_time = time
 
@@ -49,17 +50,151 @@ class TestTridiagonal(QiskitAlgorithmsTestCase):
         circ_qubits = pow_circ.num_qubits
         qc = QuantumCircuit(circ_qubits)
         qc.append(matrix.power(power).control(), list(range(circ_qubits)))
-        circ_matrix = Operator(qc).data
         # extract the parts of the circuit matrix corresponding to Tridiagonal
-        ZeroOp = ((I + Z) / 2)
-        OneOp = ((I - Z) / 2)
-        proj = Operator((ZeroOp ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ OneOp).data
+        zero_op = ((I + Z) / 2)
+        one_op = ((I - Z) / 2)
+        proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
         circ_matrix = Operator(qc).data
         approx_exp = partial_trace(np.dot(proj, circ_matrix), [0] +
                                    list(range(num_qubits + 1, circ_qubits))).data
 
         exact_exp = expm(1j * matrix.evo_time * power * matrix.matrix)
         np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
+
+
+@ddt
+class TestObservables(QiskitAlgorithmsTestCase):
+    """Tests based on the observables classes.
+
+    This class tests
+        * the constructed circuits
+    """
+    @idata([
+        [AbsoluteAverage(), [1.0, -2.1, 3.2, -4.3]],
+        [AbsoluteAverage(), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12]]
+    ])
+    @unpack
+    def test_absolute_average(self, observable, vector):
+        """Test the absolute average observable."""
+        init_state = vector / np.linalg.norm(vector)
+        num_qubits = int(np.log2(len(vector)))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.initialize(init_state, list(range(num_qubits)))
+        qc.append(observable.observable_circuit(num_qubits), list(range(num_qubits)))
+
+        # Observable operator
+        observable_op = observable.observable(num_qubits)
+        state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
+
+        # Obtain result
+        result = observable.post_processing(state_vec, num_qubits)
+
+        # Obtain analytical evaluation
+        exact = observable.evaluate_classically(init_state)
+
+        np.testing.assert_almost_equal(result, exact, decimal=2)
+
+    @idata([
+        [MatrixFunctional(1, -1/3), [1.0, -2.1, 3.2, -4.3]],
+        [MatrixFunctional(2/3, 11/7), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]]
+    ])
+    @unpack
+    def test_matrix_functional(self, observable, vector):
+        """Test the matrix functional class."""
+        init_state = vector / np.linalg.norm(vector)
+        num_qubits = int(np.log2(len(vector)))
+
+        # Get observable circuits
+        obs_circuits = observable.observable_circuit(num_qubits)
+        for obs_circ in obs_circuits:
+            qc = QuantumCircuit(num_qubits)
+            qc.initialize(init_state, list(range(num_qubits)))
+            qc.append(obs_circ, list(range(num_qubits)))
+
+        # Get observables
+        observable_ops = observable.observable(num_qubits)
+        state_vecs = []
+        for observable_op in observable_ops:
+            state_vecs.append((~StateFn(observable_op) @ StateFn(qc)).eval())
+
+        # Obtain result
+        result = observable.post_processing(state_vecs, num_qubits)
+
+        # Obtain analytical evaluation
+        exact = observable.evaluate_classically(init_state)
+
+        np.testing.assert_almost_equal(result, exact, decimal=2)
+
+
+@ddt
+class TestReciprocal(QiskitAlgorithmsTestCase):
+    """Tests based on the reciprocal classes.
+
+    This class tests
+        * the constructed circuits
+    """
+    @idata([
+        [2, 0.1],
+        [3, 1/9]
+    ])
+    @unpack
+    def test_exact_reciprocal(self, num_qubits, scaling):
+        """Test the ExactReciprocal class."""
+        reciprocal = ExactReciprocal(num_qubits, scaling)
+
+        qc = QuantumCircuit(num_qubits + 1)
+        qc.h(list(range(num_qubits)))
+        qc.append(reciprocal, list(range(num_qubits + 1)))
+
+        # Create the operator 0
+        state_vec = quantum_info.Statevector.from_instruction(qc).data[2 ** num_qubits::]
+
+        # Remove the factor from the hadamards
+        state_vec *= np.sqrt(2) ** num_qubits
+
+        # Analytic value
+        exact = []
+        for i in range(0, 2 ** num_qubits):
+            if i == 0:
+                exact.append(0)
+            else:
+                exact.append(scaling * (2 ** num_qubits) / i)
+
+        np.testing.assert_array_almost_equal(state_vec, exact, decimal=2)
+
+
+@ddt
+class TestLinearSolver(QiskitAlgorithmsTestCase):
+    """Tests based on the linear solvers classes.
+
+    This class tests
+        * the constructed circuits
+    """
+    @idata([
+        [Tridiagonal(2, 1, 1/3, trotter=2), [1.0, -2.1, 3.2, -4.3], MatrixFunctional(1, 1/2)],
+        [Tridiagonal(3, 1, -1/2, trotter=2), [-9/4, -0.3, 8/7, 10, -5, 11.1, 13/11, -27/12],
+         AbsoluteAverage()]
+    ])
+    @unpack
+    def test_hhl(self, matrix, right_hand_side, observable):
+        """Test the HHL class."""
+        num_qubits = matrix.num_state_qubits
+        rhs = right_hand_side / np.linalg.norm(right_hand_side)
+
+        # Initial state circuit
+        qc = QuantumCircuit(num_qubits)
+        qc.initialize(rhs)
+
+        hhl = HHL()
+        solution = hhl.solve(matrix, qc, observable)
+        approx_result = solution.observable
+
+        # Calculate analytical value
+        exact_x = np.dot(np.linalg.inv(matrix.matrix), rhs)
+        exact_result = observable.evaluate_classically(exact_x)
+
+        np.testing.assert_almost_equal(approx_result, exact_result, decimal=2)
 
 
 if __name__ == '__main__':
