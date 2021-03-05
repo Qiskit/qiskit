@@ -246,14 +246,15 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
             if measured_qubits == meas_set:
                 continue
             else:
-                if len(validate_time)>1:
+                if len(validate_time) > 1:
                     for qubit, (start_time, duration) in validate_time.items():
-                        end_time =  start_time + duration
+                        end_time = start_time + duration
                         if qubit not in measured_qubits and \
                             measured_qubits.issubset(meas_set) and \
                                 start_time < time[0] < end_time:
                             raise QiskitError('Qubits in the measurement map: {} was '
                                               'acquired disjointly'.format(meas_set))
+
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
