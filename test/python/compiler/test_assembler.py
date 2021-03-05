@@ -1194,7 +1194,6 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.append(
             Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
         )
-        # import ipdb; ipdb.set_trace()
         with self.assertRaises(QiskitError):
             qobj = assemble(schedule,
                             qubit_lo_freq=self.default_qubit_lo_freq,
