@@ -241,6 +241,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         QiskitError: If the instructions do not satisfy the measurement map.
     """
     meas_map_sets = [set(m) for m in meas_map]
+    # import ipdb; ipdb.set_trace();
     for meas_set in meas_map_sets:
         time_mapping = defaultdict(list)
         # Check each acquisition time individually
@@ -251,7 +252,11 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                 measured_qubits.add(inst.channel.index)
 
             if not measured_qubits.issubset(meas_set):
-                continue
+                intersection = measured_qubits.intersection(meas_set)
+                if intersection and intersection != meas_set:
+                    raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
+                                      'in measurement map: {}'.format(measured_qubits, meas_set))
+
             if measured_qubits == meas_set:
                 continue
             if len(time_mapping) > 1:
@@ -260,6 +265,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                             and start_time < time[0] < start_time + duration:
                         raise QiskitError('Qubits in the measurement map: {} was '
                                           'acquired disjointly'.format(meas_set))
+
 
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,
