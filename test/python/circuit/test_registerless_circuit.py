@@ -234,6 +234,23 @@ class TestGatesOnWires(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
+    def test_mixed_register_and_registerless_indexing(self):
+        """Test indexing if circuit contains bits in and out of registers.
+        """
+
+        bits = [Qubit(), Qubit()]
+        qreg = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(bits, qreg)
+        for i in range(len(circuit.qubits)):
+            circuit.rz(i, i)
+
+        expected_qubit_order = bits + qreg[:]
+        expected_circuit = QuantumCircuit(bits, qreg)
+        for i in range(len(expected_circuit.qubits)):
+            expected_circuit.rz(i, expected_qubit_order[i])
+
+        self.assertEqual(circuit.data, expected_circuit.data)
+
 
 class TestGatesOnWireRange(QiskitTestCase):
     """Test gates on wire range."""

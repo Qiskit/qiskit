@@ -39,7 +39,7 @@ class Counts(dict):
                 integer the number of shots with that result.
                 The keys can be one of several formats:
 
-                     * A hexademical string of the form ``"0x4a"``
+                     * A hexadecimal string of the form ``"0x4a"``
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
@@ -138,7 +138,7 @@ class Counts(dict):
         return max_values_counts[0]
 
     def hex_outcomes(self):
-        """Return a counts dictionary with hexademical string keys
+        """Return a counts dictionary with hexadecimal string keys
 
         Returns:
             dict: A dictionary with the keys as hexadecimal strings instead of

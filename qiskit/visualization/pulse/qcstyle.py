@@ -60,7 +60,7 @@ class SchedStyle:
 
         For any of the Optional fields, if that field is None then it will revert to its
         matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
-        is optonal also describes it's mapped rcParam key below.
+        is optional also describes it's mapped rcParam key below.
 
         Args:
             figsize: Size of the figure.
@@ -176,7 +176,7 @@ class PulseStyle:
 
         For any of the Optional fields, if that field is None then it will revert to its
         matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
-        is optonal also describes it's mapped rcParam key below.
+        is optional also describes it's mapped rcParam key below.
 
         Args:
             figsize: Size of the figure.

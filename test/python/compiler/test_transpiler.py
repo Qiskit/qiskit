@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -536,9 +538,9 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
 
         after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
-                          basis_gates=['u3', 'cx'])
+                          basis_gates=['u3', 'u2', 'u1', 'cx'])
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        expected = QuantumCircuit(QuantumRegister(2, 'q'), global_phase=-np.pi/2)
         self.assertEqual(after, expected)
 
     def test_pass_manager_empty(self):
@@ -575,8 +577,8 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
+            is_last_measure = all(after_measure.type == 'out'
+                                  for after_measure in out_dag.quantum_successors(meas_node))
             self.assertTrue(is_last_measure)
 
     def test_initialize_reset_should_be_removed(self):
