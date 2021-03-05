@@ -894,7 +894,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
 
 
 @_transform_context(transforms.align_left)
-def align_left() -> ContextManager[None]:
+def align_left(ignore_frames: bool = False) -> ContextManager[None]:
     """Left alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as early as possible
@@ -917,11 +917,16 @@ def align_left() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
+
+    Args:
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
     """
 
 
 @_transform_context(transforms.align_right)
-def align_right() -> ContextManager[None]:
+def align_right(ignore_frames: bool = False) -> ContextManager[None]:
     """Right alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as late as possible
@@ -944,6 +949,11 @@ def align_right() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
+
+    Args:
+        ignore_frames: If true then frame instructions will be ignore. This
+            should be set to true if the played Signals in this context
+            do not share any frames.
     """
 
 
@@ -1456,7 +1466,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
         pulse: Pulse to play.
         channel: Channel to play pulse on.
     """
-    if not isinstance(pulse, library.Pulse):
+    if not isinstance(pulse, (library.Pulse, library.Signal)):
         pulse = library.Waveform(pulse)
 
     append_instruction(instructions.Play(pulse, channel))
