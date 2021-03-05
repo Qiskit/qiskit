@@ -233,7 +233,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     """
     meas_map_sets = [set(m) for m in meas_map]
     for meas_set in meas_map_sets:
-        validate_time = defaultdict(list)
+        time_mapping = defaultdict(list)
         # Check each acquisition time individually
         for time, instrs in instruction_map.items():  # time = (start_time, duration)
             measured_qubits = set()
@@ -243,15 +243,14 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
 
             if not measured_qubits.issubset(meas_set):
                 continue
-            if measured_qubits == meas_set:
+            elif measured_qubits == meas_set:
                 continue
             else:
-                if len(validate_time) > 1:
-                    for qubit, (start_time, duration) in validate_time.items():
-                        end_time = start_time + duration
+                if len(time_mapping) > 1:
+                    for qubit, (start_time, duration) in time_mapping.items():
                         if qubit not in measured_qubits and \
                             measured_qubits.issubset(meas_set) and \
-                                start_time < time[0] < end_time:
+                                start_time < time[0] < start_time + duration:
                             raise QiskitError('Qubits in the measurement map: {} was '
                                               'acquired disjointly'.format(meas_set))
 
