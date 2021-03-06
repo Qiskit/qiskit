@@ -20,7 +20,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate, Instruction, Clbit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization.qcstyle import DefaultStyle
@@ -107,20 +107,15 @@ class QCircuitImage:
         self.plot_barriers = plot_barriers
 
         #################################
-        self.qregs, _ = self._get_register_specs(qubits)
         self.qubit_list = qubits
         self.ordered_regs = qubits + clbits
         self.cregs, self.cregs_bits = self._get_register_specs(clbits)
-        self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         if cregbundle:
             self.img_width = len(qubits) + len(self.cregs)
         else:
             self.img_width = len(self.img_regs)
-        self.wire_type = {}
-        for bit in self.ordered_regs:
-            self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
         self.global_phase = global_phase
 
@@ -188,14 +183,14 @@ class QCircuitImage:
         else:
             self.wire_separation = 1.0
         self._latex = [
-            ["\\cw" if self.wire_type[self.ordered_regs[j]]
+            ["\\cw" if isinstance(self.ordered_regs[j], Clbit)
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
         if self.cregbundle:
             offset = 0
         for i in range(self.img_width):
-            if self.wire_type[self.ordered_regs[i]]:
+            if isinstance(self.ordered_regs[i], Clbit):
                 if self.cregbundle:
                     self._latex[i][0] = \
                         "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
@@ -391,10 +386,7 @@ class QCircuitImage:
                     gate_text, _ = self._get_gate_ctrl_text(op)
                     gate_text = self._add_params_to_gate_text(op, gate_text)
                     gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
-
-                    wire_list = []
-                    for wire in op.qargs:
-                        wire_list.append(self.img_regs[wire])
+                    wire_list = [self.img_regs[qarg] for qarg in op.qargs]
 
                     if op.condition:
                         self._add_condition(op, wire_list, column)
@@ -519,7 +511,7 @@ class QCircuitImage:
 
         wire1 = self.img_regs[op.qargs[0]]
         if self.cregbundle:
-            wire2 = self.img_regs[self.clbit_list[0]]
+            wire2 = len(self.qubit_list)
             cregindex = self.img_regs[op.cargs[0]] - wire2
             for creg_size in self.cregs.values():
                 if cregindex >= creg_size:
@@ -542,7 +534,7 @@ class QCircuitImage:
     def _build_barrier(self, op, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self.plot_barriers:
-            indexes = [self._get_qubit_index(x) for x in op.qargs]
+            indexes = [self.img_regs[qarg] for qarg in op.qargs]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
@@ -630,16 +622,6 @@ class QCircuitImage:
                     self._latex[cwire + i][col] = \
                         "\\controlo \\cw \\cwx[-" + str(gap) + "]"
                     gap = 1
-
-    def _get_qubit_index(self, qubit):
-        """Get the index number for a quantum bit."""
-        for i, bit in enumerate(self.qubit_list):
-            if qubit == bit:
-                qindex = i
-                break
-        else:
-            raise exceptions.VisualizationError("unable to find bit for operation")
-        return qindex
 
     def _get_register_specs(self, bits):
         """Get the number and size of unique registers from bits list."""
