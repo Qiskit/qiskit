@@ -106,8 +106,6 @@ Prelude
 New Features
 ------------
 
-- The :func:`~qiskit.compiler.schedule` has been updated so that it can
-
 - Python 3.9 support has been added in this release. You can now run Qiskit
   IBMQ provider using Python 3.9.
 
