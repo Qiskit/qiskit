@@ -223,13 +223,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
-        qr = QuantumRegister(5, 'q')
+        qr = QuantumRegister(6, 'q')
         circuit = QuantumCircuit(qr)
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
         circuit.append(XGate().control(3, ctrl_state='010'), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state='101'), [qr[0], qr[1], qr[2], qr[4]])
+        circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         self.circuit_drawer(circuit, filename='cnot.png')
 
@@ -484,17 +485,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename='meas_condition.png')
-
-    def test_multi_target_x(self):
-        """Tests measure with a condition"""
-
-        qr = QuantumRegister(6, 'qr')
-        cr = ClassicalRegister(2, 'cr')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.append(MCXVChain(3, dirty_ancillas=True),
-                       [qr[0], qr[1], qr[2], qr[3], qr[5]], [])
-
-        self.circuit_drawer(circuit, filename='multi_target_x.png')
 
 
 if __name__ == '__main__':
