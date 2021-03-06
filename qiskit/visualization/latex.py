@@ -22,7 +22,6 @@ import re
 import numpy as np
 from qiskit.circuit import Gate, Instruction, Clbit
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
