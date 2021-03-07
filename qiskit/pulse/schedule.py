@@ -502,11 +502,12 @@ class Schedule(PulseProgram):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
 
-    In Qiskit Pulse model, time overlap of pulse instructions is not allowed.
-    This program representation evaluates this overlap constant immediately when new
-    instruction is inserted. This means user always need to specify the duration of
-    instruction and time ``t0`` when it is issued. The ``Schedule`` performs strict allocation of
-    instructions on the time slot of assigned channel.
+    In Qiskit Pulse model [1], time overlap between pulse instructions on the same channel
+    is not allowed. This overlap constraint is immediately evaluated when new
+    instruction is added to the ``Schedule`` object.
+
+    This indicates we always need to specify absolute values for instruction start time ``t0``
+    and duration of the instruction to calculate ``timeslots`` occupation by the instruction.
 
     The ``Schedule`` program supports some syntax sugar for efficient programming.
 
@@ -535,9 +536,10 @@ class Schedule(PulseProgram):
         sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
         sched2 = sched1 | sched2
 
-    The ``PulseError` is immediately raised when instruction overlap is detected.
-    In this program representation, user can assign :py:class:`~qiskit.circuit.Parameter` object
-    to any parameter except for duration and ``t0``.
+    The ``PulseError` is immediately raised when the overlap constraint is violated.
+
+    In the schedule representation, we cannot parametrize duration of waveforms.
+    Thus we need to create new schedule object for every duration, i.e. Rabi experiment.
 
     References:
         [1] https://arxiv.org/abs/2004.06755
@@ -1169,34 +1171,50 @@ def _method_not_supported(function: Callable) -> Callable:
 
 class ScheduleBlock(PulseProgram):
     """A quantum program *schedule block* with alignment policy that allows lazy scheduling
-    of underlying instructions. This representation is best used with the pulse builder.
+    of instructions. This representation is best used with the pulse builder.
 
     This program representation doesn't have explicit notion of time slots in contrast to the
-    ``Schedule`` representation. This allows lazy scheduling of instruction, allowing
-    parametrization of duration of instructions as well.
-    The overlap constraint is not immediately evaluated.
+    ``Schedule`` representation. A timing of instruction is managed by its relative position
+    and ``transform`` argument. ``ScheduleBlock`` should be initialized with one of
+    following transform policies:
 
-    In the block representation, allocation of instructions is determined by
-    relative timing with delay and predefined context transformation policies.
-    Since ``ScheduleBlock`` holds this transformation preference rather than
-    instruction time ``t0``, this is more context-rich representation of a pulse program.
+        - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
+            Instructions are scheduled at the earliest possible time on the channel.
+        - ``right`` ... Align instructions in the `as-late-as-possible` manner.
+            Instructions are scheduled at the latest possible time on the channel.
+        - ``sequential`` ... Align instructions sequentially even though they are
+            allocated in different channels.
+        - ``equispaced`` ... Align instructions with equal interval within a specified duration.
+            Instructions on different channels are aligned sequentially.
+        - ``func`` ... Align instructions with arbitrary position within the given duration.
+            The position is specified by a callback function taking a pulse index ``j`` and
+            returning a fractional coordinate in [0, 1].
 
-    - ``align_left`` ... Align in the `as-soon-as-possible` manner.
+    The overlap constraint of pulses, i.e. ``timeslots``, is not immediately evaluated,
+    and thus we can assign a parameter object to the instruction duration.
+    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveform.
+    For example, Rabi schedule generator can be defined as
 
-    - ``align_right`` ... Align in the `as-late-as-possible` manner.
+    .. code-block:: python
 
-    - ``align_sequential`` ... Align sequentially even though on different channels.
+        duration = Parameter('rabi_dur')
+        amp = Parameter('rabi_amp')
 
-    - ``align_equispaced`` ... Align with equal separation within a specified duration.
+        block = ScheduleBlock()
+        rabi_pulse = pulse.Gaussian(duration=duration, amp=amp, sigma=duration/4)
 
-    - ``align_func`` ... Align with arbitrary separation specified by a callback function.
+        block += Play(rabi_pulse, pulse.DriveChannel(0))
+        block += Call(measure_schedule)
 
-    Note that instructions are order sensitive. User cannot reverse or interchange the
-    position of instructions once they are stored in the program.
+    Note that such waveform cannot be appended to the ``Schedule`` representation.
 
-    This program supports the same syntax sugar as the ``Schedule`` representation.
-    However, method such as :py:meth:`~Schedule.insert` is not supported because
-    this representation cannot define the absolute time when an instruction is issued.
+    In the block representation, interval between two instructions can be
+    managed with ``Delay`` instruction. Because the schedule block lacks instruction
+    start time ``t0``, we cannot ``insert`` or ``shift`` target instruction.
+    In addition, stored instructions are not interchangable because the schedule block is
+    sensitive to the relative position of instructions.
+    Apart from these differences, the block representation can provide compatible
+    functionality with ``Schedule`` representation.
     """
     # Prefix to use for auto naming.
     prefix = 'block'
