@@ -138,36 +138,65 @@ class UserConfig:
                 self.settings['num_processes'] = num_processes
 
 
-def set_config(key, value, section=None):
+def set_config(key, value, section=None, file=None):
     """Adds or modifies a user configuration
 
     It will add the configuration in either the default location
-    ~/.qiskit/settings.conf or if set the value of the `QISKIT_SETTINGS` env var.
+    ~/.qiskit/settings.conf or the value of file argument.
+
+    Only valid user config can be set in 'default' section. Custom
+    user config can be added in any other sections.
 
     Args:
         key (str): name of the config
         value (str): value of the config
         section (str, optional): if not specified, adds it to the
             `default` section of the config file.
-    """
-    file_name = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
-    sec_name = section if section is not None else 'default'
+        file (str, optional): the file to which config is added.
+            If not specified, adds it to the default config file.
 
-    assert isinstance(key, str), 'Key must be string type'
-    assert isinstance(value, str), 'Value must be string type'
+    Raises:
+        QiskitUserConfigError: if the config is invalid
+    """
+    filename = file or DEFAULT_FILENAME
+    sectname = 'default' if section is None else section
+
+    if not isinstance(key, str):
+        raise exceptions.QiskitUserConfigError('Key must be string type')
+    if not isinstance(value, str):
+        raise exceptions.QiskitUserConfigError('Value must be string type')
+
+    valid_config = ['circuit_drawer',
+                    'circuit_mpl_style',
+                    'circuit_mpl_style_path',
+                    'transpile_optimization_level',
+                    'parallel',
+                    'num_processes']
+
+    if section in [None, 'default']:
+        if key not in valid_config:
+            raise exceptions.QiskitUserConfigError(
+                "{} is not a valid user config.".format(key))
 
     config = configparser.ConfigParser()
-    config.read(file_name)
+    config.read(filename)
 
-    if sec_name not in config.sections():
-        config.add_section(sec_name)
+    if sectname not in config.sections():
+        config.add_section(sectname)
 
-    config.set(sec_name, key, value)
+    config.set(sectname, key, value)
 
-    with open(file_name, 'w') as cfgfile:
-        config.write(cfgfile)
+    try:
+        with open(filename, 'w') as cfgfile:
+            config.write(cfgfile)
+    except OSError as ex:
+        print("Unable to load the config file {}. Error: '{}'".format(
+            filename, str(ex)))
+        print("Provide a valid file path and make sure the "
+            "file or directory has read/write access.")
 
-    user_config = UserConfig(file_name)
+    filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
+    user_config = UserConfig(filename)
     user_config.read_config_file()
 
 
