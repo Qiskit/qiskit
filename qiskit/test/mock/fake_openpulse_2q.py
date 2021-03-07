@@ -117,6 +117,11 @@ class FakeOpenPulse2Q(FakeBackend):
                     'purpose': 'cross-resonance',
                     'type': 'control'
                 }
+            },
+            processor_type={
+                "family": "Canary",
+                "revision": 1,
+                "segment": "A",
             }
         )
 

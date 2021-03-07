@@ -482,7 +482,7 @@ class PulseProgram(abc.ABC):
         """Return number of instructions in the schedule."""
         return len(self.instructions)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
@@ -910,13 +910,13 @@ class Schedule(PulseProgram):
                     interval = (interval[0] + time, interval[1] + time)
                     index = _find_insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
-                except PulseError:
+                except PulseError as ex:
                     raise PulseError(
                         "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
                         "time {time} because its instruction on channel {ch} scheduled from time "
                         "{t0} to {tf} overlaps with an existing instruction."
                         "".format(new=schedule.name or '', old=self.name or '', time=time,
-                                  ch=channel, t0=interval[0], tf=interval[1]))
+                                  ch=channel, t0=interval[0], tf=interval[1])) from ex
 
         _check_nonnegative_timeslot(self._timeslots)
 
@@ -982,7 +982,7 @@ class Schedule(PulseProgram):
         """Return a ``Schedule`` with the ``old`` instruction replaced with a ``new``
         instruction.
 
-        The replacment matching is based on an instruction equality check.
+        The replacement matching is based on an instruction equality check.
 
         .. jupyter-kernel:: python3
             :id: replace
@@ -1512,7 +1512,7 @@ class ScheduleBlock(PulseProgram):
 
         return union_block
 
-    def __eq__(self, other: 'ScheduleBlock'):
+    def __eq__(self, other: 'ScheduleBlock') -> bool:
         """Test if two ScheduleBlocks are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -1552,7 +1552,7 @@ class ScheduleBlock(PulseProgram):
         return rx.is_isomorphic_node_match(block_to_dag(self), block_to_dag(other),
                                            lambda x, y: x == y)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
@@ -1631,7 +1631,7 @@ class ParameterizedSchedule:
             if isinstance(param_sched, type(self)):
                 predefined = param_sched.parameters
             else:
-                # assuming no other parametrized instructions
+                # assuming no other parameterized instructions
                 predefined = self.parameters
             sub_params = {k: v for k, v in named_parameters.items()
                           if k in predefined}

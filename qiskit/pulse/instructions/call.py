@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,7 +26,6 @@ class Call(instruction.Instruction):
 
     The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
     It enables code reuse both within the pulse representation and hardware (if supported).
-    Note that this instruction is not exposed to end users.
     """
     # Prefix to use for auto naming.
     prefix = 'call'
@@ -120,7 +119,7 @@ class Call(instruction.Instruction):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any([isinstance(value, ParameterExpression) for value in self.arguments.values()])
+        return any(isinstance(value, ParameterExpression) for value in self.arguments.values())
 
     @property
     def parameters(self) -> Set:

@@ -218,6 +218,7 @@ import numpy as np
 
 from qiskit import circuit
 from qiskit.circuit.library import standard_gates as gates
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import (
     channels as chans,
     configuration,
@@ -276,7 +277,7 @@ class _PulseBuilder():
         """Initialize the builder context.
 
         .. note::
-            At some point we may consider incorpating the builder into
+            At some point we may consider incorporating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -451,35 +452,49 @@ class _PulseBuilder():
     def call_subroutine(self,
                         subroutine: Union[circuit.QuantumCircuit, Schedule],
                         name: Optional[str] = None,
-                        **kw_params):
+                        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+                        **kw_params: ParameterValueType):
         """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
-        This logic generates a convenient program representation in the compiler.
+        This logic just generates a convenient program representation in the compiler.
         Thus this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
             subroutine: Target schedule or circuit to append to the current context.
             name: Name of subroutine if defined.
-            kw_params: Parameter values to bind to the target subroutine.
+            value_dict: Parameter object and assigned value mapping. This is more precise way to
+                identify a parameter since mapping is managed with unique object id rather than
+                name. Especially there is any name collision in a parameter table.
+            kw_params: Parameter values to bind to the target subroutine
+                with string parameter names. If there are parameter name overlapping,
+                these parameters are updated with the same assigned value.
+
+        Raises:
+            PulseError: If specified parameter is not contained in the subroutine.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
         if len(subroutine.instructions) > 0:
-            value_dict = dict()
+            if value_dict is None:
+                value_dict = dict()
+
+            param_value_map = dict()
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
                 if len(param_objs) > 0:
                     for param_obj in param_objs:
-                        value_dict[param_obj] = assigned_value
+                        param_value_map[param_obj] = assigned_value
                 else:
-                    warnings.warn(f'Parameter {param_name} is not defined in the '
-                                  'target subroutine. Parameter assignment is ignored.',
-                                  UserWarning)
-            call_def = instructions.Call(subroutine, value_dict, name)
+                    raise exceptions.PulseError(
+                        f'Parameter {param_name} is not defined in the target subroutine. '
+                        f'{", ".join(map(str, subroutine.parameters))} can be specified.')
+
+            param_value_map.update(value_dict)
+            call_def = instructions.Call(subroutine, param_value_map, name)
 
             self.append_instruction(call_def)
 
@@ -644,11 +659,11 @@ def _active_builder() -> _PulseBuilder:
     """
     try:
         return BUILDER_CONTEXTVAR.get()
-    except LookupError:
+    except LookupError as ex:
         raise exceptions.NoActiveBuilder(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with pulse.build() as schedule: ...".')
+            'context, eg., "with pulse.build() as schedule: ...".') from ex
 
 
 def active_backend():
@@ -831,7 +846,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context generator, decorator.
+    """A transform context generator, decorator.
 
     Decorator accepts a transformation function, and then decorates a new
     ContextManager function.
@@ -1009,7 +1024,7 @@ def align_func(duration: int,
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
-    the associated fractional location witin [0, 1].
+    the associated fractional location within [0, 1].
     Delay instruction is automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of arbitrary dynamical decoupling
@@ -1273,7 +1288,7 @@ def frequency_offset(frequency: float,
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
-            # Undo accumulated phase in the shifted freqeuncy frame
+            # Undo accumulated phase in the shifted frequency frame
             # when exiting the context.
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
@@ -1648,7 +1663,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -1689,7 +1704,10 @@ def call_circuit(circ: circuit.QuantumCircuit):
     call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
+def call(target: Union[circuit.QuantumCircuit, Schedule],
+         name: Optional[str] = None,
+         value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
+         **kw_params: ParameterValueType):
     """Call the ``target`` within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
@@ -1700,7 +1718,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
 
     Examples:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
         from qiskit import circuit, pulse, schedule, transpile
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1718,7 +1736,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
 
     This function can optionally take parameter dictionary with the parameterized target program.
 
-    .. jupyter-execute::
+    .. code-block:: python
 
         from qiskit import circuit, pulse
 
@@ -1731,9 +1749,33 @@ def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
             pulse.call(subroutine, amp=0.1)
             pulse.call(subroutine, amp=0.3)
 
+    If there is any parameter name collision, you can distinguish them by specifying
+    each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
+    updated with the same value.
+
+    .. code-block:: python
+
+        from qiskit import circuit, pulse
+
+        amp1 = circuit.Parameter('amp')
+        amp2 = circuit.Parameter('amp')
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
+
+        with pulse.build() as main_prog:
+            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+
     Args:
         target: Target circuit or pulse schedule to call.
-        kw_params: Parameter values to bind to the target subroutine.
+        name: Name of subroutine if defined.
+        value_dict: Parameter object and assigned value mapping. This is more precise way to
+            identify a parameter since mapping is managed with unique object id rather than
+            name. Especially there is any name collision in a parameter table.
+        kw_params: Parameter values to bind to the target subroutine
+            with string parameter names. If there are parameter name overlapping,
+            these parameters are updated with the same assigned value.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
@@ -1742,7 +1784,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule], **kw_params):
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
 
-    _active_builder().call_subroutine(target, **kw_params)
+    _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
 
 # Directives
@@ -1786,7 +1828,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
-    scheduling aligment operations across channels. For example
+    scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
@@ -1871,7 +1913,7 @@ def measure(qubits: Union[List[int], int],
     Args:
         qubits: Physical qubit to measure.
         registers: Register to store result in. If not selected the current
-            behaviour is to return the :class:`MemorySlot` with the same
+            behavior is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -1988,7 +2030,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     .. jupyter-kernel:: python3
@@ -2044,7 +2086,7 @@ def cx(control: int, target: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2069,7 +2111,7 @@ def u1(theta: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2096,7 +2138,7 @@ def u2(phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2123,7 +2165,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:
@@ -2150,7 +2192,7 @@ def x(qubit: int):
 
     .. note::
         Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favour of tight integration with a circuit
+        deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
     Examples:

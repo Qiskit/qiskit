@@ -43,6 +43,7 @@ Instructions (:mod:`qiskit.pulse.instructions`)
    ~qiskit.pulse.instructions
 
    Acquire
+   Call
    Delay
    Play
    SetFrequency
@@ -449,6 +450,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
+    Call,
     Delay,
     Instruction,
     Play,

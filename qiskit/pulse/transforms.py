@@ -75,7 +75,7 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
 
         assert aligned_sched == aligned_sched_shifted
 
-    If it is desired to only shift acqusition and measurement stimulus instructions
+    If it is desired to only shift acquisition and measurement stimulus instructions
     set the flag ``align_all=False``:
 
     .. jupyter-execute::
@@ -95,8 +95,8 @@ def align_measures(schedules: Iterable[Union['Schedule', instructions.Instructio
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
         align_all: Shift all instructions in the schedule such that they maintain
-            their relative alignment with the shifted acqusition instruction.
-            If ``False`` only the acqusition and measurement pulse instructions
+            their relative alignment with the shifted acquisition instruction.
+            If ``False`` only the acquisition and measurement pulse instructions
             will be shifted.
     Returns:
         The input list of schedules transformed to have their measurements aligned.
@@ -359,8 +359,7 @@ def align_left(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -412,8 +411,7 @@ def align_right(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -429,8 +427,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
     """Schedule all top-level nodes in parallel.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -447,8 +444,7 @@ def align_equispaced(schedule: Schedule,
     """Schedule a list of pulse instructions with equivalent interval.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
 
     Returns:
@@ -493,8 +489,7 @@ def align_func(schedule: Schedule,
     numerical expression.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
+        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
         func: A function that takes an index of sub-schedule and returns the
             fractional coordinate of of that sub-schedule.
