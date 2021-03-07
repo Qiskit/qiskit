@@ -20,13 +20,13 @@ import copy
 import functools
 import itertools
 import multiprocessing as mp
-import retworkx as rx
 import sys
 import warnings
 from collections import defaultdict
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -546,15 +546,8 @@ class Schedule(PulseProgram):
     # Prefix to use for auto naming.
     prefix = 'sched'
 
-    def __new__(cls,
-                *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
-                name: Optional[str] = None,
-                metadata: Optional[dict] = None):
-        """Initialize instance counter."""
-        if not cls.instances_counter:
-            cls.instances_counter = itertools.count()
-
-        return super().__new__(cls)
+    # Counter to count instance number.
+    instances_counter = itertools.count()
 
     def __init__(self,
                  *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
@@ -1208,17 +1201,8 @@ class ScheduleBlock(PulseProgram):
     # Prefix to use for auto naming.
     prefix = 'block'
 
-    def __new__(cls,
-                *blocks: BlockComponent,
-                name: Optional[str] = None,
-                metadata: Optional[dict] = None,
-                transform: str = None,
-                **transform_opts):
-        """Initialize instance counter."""
-        if not cls.instances_counter:
-            cls.instances_counter = itertools.count()
-
-        return super().__new__(cls)
+    # Counter to count instance number.
+    instances_counter = itertools.count()
 
     def __init__(self,
                  *blocks: BlockComponent,
@@ -1379,6 +1363,12 @@ class ScheduleBlock(PulseProgram):
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
+
+        Returns:
+            Schedule block with appended schedule.
+
+        Raises:
+            PulseError: When invalid schedule type is specified.
         """
         if not isinstance(schedule, (ScheduleBlock, Instruction)):
             raise PulseError(f'Appended `schedule` {type(schedule)} is invalid type. '
@@ -1398,6 +1388,8 @@ class ScheduleBlock(PulseProgram):
         else:
             self._blocks.append(schedule)
             self._update_parameter_table(schedule)
+
+            return self
 
     @_method_not_supported
     def filter(self, *filter_funcs: List[Callable],

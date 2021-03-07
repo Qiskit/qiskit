@@ -107,6 +107,9 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
 
         Args:
             time_inst (Tuple[int, Instruction]): Time
+
+        Returns:
+            If instruction matches with condition.
         """
         return any([chan in channels for chan in time_inst[1].channels])
     return channel_filter
@@ -128,6 +131,9 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
 
         Args:
             time_inst (Tuple[int, Instruction]): Time
+
+        Returns:
+            If instruction matches with condition.
         """
         return isinstance(time_inst[1], tuple(types))
 
@@ -149,6 +155,9 @@ def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
         """Filter interval.
         Args:
             time_inst (Tuple[int, Instruction]): Time
+
+        Returns:
+            If instruction matches with condition.
         """
         for t0, t1 in ranges:
             inst_start = time_inst[0]
@@ -160,7 +169,7 @@ def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
     return interval_filter
 
 
-def _if_scalar_cast_to_list(to_list: Any):
+def _if_scalar_cast_to_list(to_list: Any) -> List[Any]:
     """A helper function to create python list of input arguments.
 
     Args:

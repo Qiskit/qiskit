@@ -14,15 +14,14 @@
 (and possibly some arguments) and return new schedules.
 """
 import enum
-import retworkx as rx
 import warnings
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
-from typing import Callable
-from typing import List, Optional, Iterable, Union
+from typing import List, Optional, Iterable, Union, Any, Callable
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
@@ -596,22 +595,20 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
         Scheduled pulse program.
 
     Raises:
-        PulseError: When invalid transform is specified.
+        UnassignedDurationError: When any instruction duration is not assigned.
     """
-    schedule = Schedule(name=block.name, metadata=block.metadata)
+    if not block.schedule_ready():
+        raise UnassignedDurationError(
+            'All instruction durations should be assigned before creating `Schedule`.'
+            'Please check `.parameters` to find unassigned parameter objects.')
 
+    schedule = Schedule(name=block.name, metadata=block.metadata)
     for op_data in block.instructions:
         if isinstance(op_data, ScheduleBlock):
             context_schedule = block_to_schedule(op_data)
             schedule.append(context_schedule, inplace=True)
         else:
-            try:
-                schedule.append(op_data, inplace=True)
-            except UnassignedDurationError:
-                raise UnassignedDurationError(
-                    'Duration of instruction is not assigned. Conversion of `ScheduleBlock` to '
-                    '`Schedule` requires all durations to be assigned. '
-                    f'Assign some integer value to {repr(op_data.duration)}.')
+            schedule.append(op_data, inplace=True)
 
     # transform with defined policy
     return AlignmentKind.transform(schedule, block.transform, **block.transform_opts)
@@ -711,12 +708,26 @@ class AlignmentKind(enum.Enum):
     func = partial(align_func)
 
     @classmethod
-    def transform(cls, schedule, align_type, **kwargs) -> Schedule:
+    def transform(cls,
+                  schedule: Schedule,
+                  align_type: str,
+                  **kwargs: Any) -> Schedule:
+        """A method that transforms input schedule by specified alignment type.
+
+        Args:
+            schedule: Schedule to transform.
+            align_type: Type of alignment. This should be specified in ``AlignmentKind``.
+            kwargs: Options for the transform function if needed.
+
+        Returns:
+            Transformed schedule.
+
+        Raises:
+            PulseError: When invalid alignment type is specified.
+        """
         for align_def in AlignmentKind:
             if align_def.name == align_type:
                 return align_def.value(schedule, **kwargs)
-
-        print([e.name for e in AlignmentKind])
 
         raise PulseError('Specified alignment {} is not defined. Choose one of {}.'
                          ''.format(align_type, ', '.join([e.name for e in AlignmentKind])))

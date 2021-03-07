@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test cases for the pulse schedule block."""
 
 from qiskit import pulse, circuit
@@ -503,7 +505,8 @@ class TestBlockEquality(BaseTestBlock):
 
     def test_instruction_out_of_order_func(self):
         """Test equality is False if two blocks have instructions in different order."""
-        align_func = lambda j: 0.25 * j
+        def align_func(j):
+            return 0.25 * j
 
         self.assertNotEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform0, self.d1),
@@ -518,7 +521,8 @@ class TestBlockEquality(BaseTestBlock):
 
     def test_instruction_in_order_func(self):
         """Test equality is True if two blocks have instructions in same order."""
-        align_func = lambda j: 0.25 * j
+        def align_func(j):
+            return 0.25 * j
 
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
@@ -609,6 +613,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         block = pulse.ScheduleBlock(pulse.Play(self.test_par_waveform0, self.d0))
 
         with self.assertRaises(PulseError):
+            #  pylint: disable=pointless-statement
             block.duration
 
     def test_get_assigend_duration(self):
