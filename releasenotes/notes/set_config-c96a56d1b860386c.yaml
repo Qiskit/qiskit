@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds :func:`qiskit.user_config.set_config` function which allows users to set
+    the user config from Qiskit API. For Example::
+
+      from qiskit.user_config import set_config
+      set_config("circuit_drawer", "mpl", section="default")
+
+    Can add an optional file kwarg, to write the config to a specific file and without
+    one to write it to the default config file. Config files can be switched between,
+    by using QISKIT_SETTINGS env variable, else default config will be used.
