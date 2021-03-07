@@ -324,22 +324,27 @@ class VarQITE(VarQTE):
         if imag_reverse_bound:
             if H is None:
                 raise Warning('Please support the respective Hamiltonian.')
-            eigvals = sorted(list(set(np.linalg.eigvals(H))))
+            eigvals = sorted(list(set(sp.linalg.eigvals(H))))
             e0 = eigvals[0]
             e1 = eigvals[1]
             reverse_bounds = np.zeros(len(e_bounds))
             reverse_bounds[-1] = stddevs[-1] / (e1 - e0)
             for j, dt in enumerate(time_steps):
+                if j == 0:
+                    continue
                 if use_integral_approx:
-                    reverse_bounds[-j] = reverse_bounds[-(j+1)] - (gradient_errors[-j] * np.exp(2 *
-                                                                       gradient_error_factors[-j])
-                                      + gradient_errors[-(j + 1)] *
-                                      np.exp(2 * gradient_error_factors[-(j + 1)])) * 0.5 * \
-                                         time_steps[-j]
+                    # TODO check here if correct
+                    reverse_bounds[-(j+1)] = reverse_bounds[-j] - \
+                                         (gradient_errors[-j] *
+                                          np.exp(2 * gradient_error_factors[-j]) +
+                                          gradient_errors[-(j + 1)] *
+                                          np.exp(2 * gradient_error_factors[-(j + 1)])) * \
+                                          0.5 * time_steps[-(j+1)]
                 else:
-                    reverse_bounds[-j] = reverse_bounds[-(j + 1)] - \
-                                        (gradient_errors[-j] * gradient_error_factors[-j]) * \
-                                         time_steps[-j]
+                    # TODO check here if correct
+                    reverse_bounds[-(j+1)] = reverse_bounds[-j] - \
+                                        (gradient_errors[-(j+1)] * gradient_error_factors[-(
+                                                j+1)]) * time_steps[-(j+1)]
             return e_bounds, reverse_bounds
         return e_bounds
 
