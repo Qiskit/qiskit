@@ -99,7 +99,7 @@ Monospaced output
 """
 import warnings
 
-from IPython import get_ipython          # pylint: disable=import-error
+from IPython import get_ipython
 from qiskit.test.mock import FakeBackend
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)

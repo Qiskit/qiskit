@@ -460,7 +460,7 @@ def _parse_transpile_args(circuits, backend,
 
 def _create_faulty_qubits_map(backend):
     """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
-       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
+       from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
         if backend.properties():
@@ -547,7 +547,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     # remove gates using faulty edges or with faulty qubits (and remap the
                     # gates in terms of faulty_qubits_map)
                     faulty_qubits_map = _create_faulty_qubits_map(backend)
-                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
+                    if any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits) or \
                             gate.qubits in faulty_edges:
                         continue
                     gate_dict = gate.to_dict()
