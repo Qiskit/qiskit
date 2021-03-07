@@ -156,7 +156,6 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             raise QiskitError("Invalid input type for CNOTDihedral class.")
 
         # Initialize BaseOperator
-        dims = self._num_qubits * (2,)
         super().__init__(num_qubits=self._num_qubits)
 
         # Validate the CNOTDihedral element
