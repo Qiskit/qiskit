@@ -18,6 +18,9 @@ import copy
 import re
 from numbers import Number
 
+
+import plum
+from plum import Dispatcher, Self, dispatch
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -32,6 +35,32 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
+
+    dispatch = plum.Dispatcher(in_class=Self)
+
+    @dispatch
+    def _prep_data(self, data: {list, np.ndarray}, dims):
+        # Finally we check if the input is a raw vector in either a
+        # python list or numpy array format.
+        self._data = np.asarray(data, dtype=complex)
+
+    @dispatch
+    def _prep_data(self, data: Self, dims):
+        self._data = data._data
+        if dims is None:
+            dims = data._op_shape._dims_l
+
+    @dispatch
+    def _prep_data(self, data: Operator, dims):
+        # We allow conversion of column-vector operators to Statevectors
+        input_dim, _ = data.dim
+        if input_dim != 1:
+            raise QiskitError("Input Operator is not a column-vector.")
+        self._data = np.ravel(data.data)
+
+    @dispatch
+    def _prep_data(self, data: {QuantumCircuit, Instruction}, dims):
+        self._data = Statevector.from_instruction(data).data
 
     def __init__(self, data, dims=None):
         """Initialize a statevector object.
@@ -63,24 +92,8 @@ class Statevector(QuantumState, TolerancesMixin):
               If it is not a power of two the state will have a single
               d-dimensional subsystem.
         """
-        if isinstance(data, (list, np.ndarray)):
-            # Finally we check if the input is a raw vector in either a
-            # python list or numpy array format.
-            self._data = np.asarray(data, dtype=complex)
-        elif isinstance(data, Statevector):
-            self._data = data._data
-            if dims is None:
-                dims = data._op_shape._dims_l
-        elif isinstance(data, Operator):
-            # We allow conversion of column-vector operators to Statevectors
-            input_dim, _ = data.dim
-            if input_dim != 1:
-                raise QiskitError("Input Operator is not a column-vector.")
-            self._data = np.ravel(data.data)
-        elif isinstance(data, (QuantumCircuit, Instruction)):
-            self._data = Statevector.from_instruction(data).data
-        else:
-            raise QiskitError("Invalid input data format for Statevector")
+
+        self._prep_data(data, dims)
         # Check that the input is a numpy vector or column-vector numpy
         # matrix. If it is a column-vector matrix reshape to a vector.
         ndim = self._data.ndim
