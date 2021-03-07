@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    New pulse program representation :py:class:`~qiskit.pulse.ScheduleBlock` is added.
+    This representation is best suited for the builder syntax.
+
+    This representation takes `transform` instead of specifying starting time ``t0`` for
+    each instruction. The start time of instruction is implicitly allocated with
+    the specified transformation and relative position of instructions.
+
+    This representation allows lazy instruction scheduling, thus we can assign
+    arbitrary parameter expression object to the duration of instructions.
+
+    For example,
+
+    .. code-block:: python
+
+        dur = Parameter('rabi_duration')
+
+        block = ScheduleBlock(transform='right')
+        block += Play(Gaussian(dur, 0.1, dur/4), DriveChannel(0))
+        block += Call(measure_sched)
+
+    this code defines an experiment of scanning Gaussian pulse duration followed by
+    the measurement, i.e. Rabi experiment. You can reuse `block` object for every
+    scanned duration by assigning a target duration value.
