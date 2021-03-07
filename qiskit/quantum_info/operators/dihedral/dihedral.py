@@ -328,6 +328,11 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
+    def __array__(self, dtype=None):
+        if dtype:
+            return np.asarray(self.to_matrix(), dtype=dtype)
+        return self.to_matrix()
+
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
