@@ -20,6 +20,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, spmatrix
 
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
@@ -431,7 +432,7 @@ class OperatorBase(ABC):
 
     @property
     @abstractmethod
-    def parameters(self):
+    def parameters(self) -> ParameterView:
         r""" Return a set of Parameter objects contained in the Operator.
         """
         raise NotImplementedError

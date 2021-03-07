@@ -20,6 +20,7 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
@@ -451,7 +452,7 @@ class ListOp(OperatorBase):
                                                      self.abelian)
 
     @property
-    def parameters(self):
+    def parameters(self) -> ParameterView:
         params = set()
         for op in self.oplist:
             params.update(op.parameters)

@@ -110,7 +110,7 @@ class ParameterView(MappingView):
 
     def __init__(self, iterable=None):
         if iterable is not None:
-            self.data = list(iterable)
+            self.data = sorted(iterable)
         else:
             self.data = []
 

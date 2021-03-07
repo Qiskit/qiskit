@@ -57,6 +57,7 @@ Local Optimizers
    SLSQP
    SPSA
    TNC
+   SAM
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -119,6 +120,7 @@ from .nlopts.isres import ISRES
 from .snobfit import SNOBFIT
 from .bobyqa import BOBYQA
 from .imfil import IMFIL
+from .sam import SAM
 
 __all__ = ['Optimizer',
            'OptimizerSupportLevel',
@@ -135,5 +137,6 @@ __all__ = ['Optimizer',
            'SLSQP',
            'SPSA',
            'TNC',
+           'SAM',
            'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES',
            'SNOBFIT', 'BOBYQA', 'IMFIL']

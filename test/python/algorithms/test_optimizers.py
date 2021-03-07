@@ -13,13 +13,14 @@
 """ Test Optimizers """
 
 import unittest
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.optimize import rosen
 import numpy as np
 
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, P_BFGS, NELDER_MEAD,
-                                          POWELL, SLSQP, SPSA, TNC, GSLS)
+                                          POWELL, SLSQP, SPSA, TNC, GSLS, SAM)
 
 
 class TestOptimizers(QiskitAlgorithmsTestCase):
@@ -38,6 +39,12 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
     def test_adam(self):
         """ adam test """
         optimizer = ADAM(maxiter=10000, tol=1e-06)
+        res = self._optimize(optimizer)
+        self.assertLessEqual(res[2], 10000)
+
+    def test_sam(self):
+        """ sam test """
+        optimizer = SAM(maxiter=10000, tol=1e-06)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
