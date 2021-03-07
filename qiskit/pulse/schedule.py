@@ -20,6 +20,7 @@ import copy
 import functools
 import itertools
 import multiprocessing as mp
+import retworkx as rx
 import sys
 import warnings
 from collections import defaultdict
@@ -1554,8 +1555,10 @@ class ScheduleBlock(PulseProgram):
             return False
 
         # 4. instruction check
-        return all(self_inst == other_inst for self_inst, other_inst
-                   in zip(self.instructions, other.instructions))
+        from qiskit.pulse.transforms import block_to_dag
+
+        return rx.is_isomorphic_node_match(block_to_dag(self), block_to_dag(other),
+                                           lambda x, y: x == y)
 
     def __repr__(self):
         name = format(self._name) if self._name else ""

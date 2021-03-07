@@ -14,6 +14,7 @@
 (and possibly some arguments) and return new schedules.
 """
 import enum
+import retworkx as rx
 import warnings
 from collections import defaultdict
 from copy import deepcopy
@@ -614,6 +615,91 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     # transform with defined policy
     return AlignmentKind.transform(schedule, block.transform, **block.transform_opts)
+
+
+def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
+    """Convert schedule block instruction into DAG.
+
+    ``ScheduleBlock`` can be represented as a DAG as needed.
+    For example, equality of two programs are efficiently checked on DAG representation.
+
+    .. code-block:: python
+
+        with pulse.build() as sched1:
+          with pulse.align_left():
+            pulse.play(my_gaussian0, pulse.DriveChannel(0))
+            pulse.shift_phase(1.57, pulse.DriveChannel(2))
+            pulse.play(my_gaussian1, pulse.DriveChannel(1))
+
+        with pulse.build() as sched2:
+          with pulse.align_left():
+            pulse.shift_phase(1.57, pulse.DriveChannel(2))
+            pulse.play(my_gaussian1, pulse.DriveChannel(1))
+            pulse.play(my_gaussian0, pulse.DriveChannel(0))
+
+    Here the ``sched1 `` and ``sched2`` are different implementations of the same program,
+    but it is difficult to confirm on the list representation.
+
+    Another example is instruction optimization.
+
+    .. code-block:: python
+
+        with pulse.build() as sched:
+          with pulse.align_left():
+            pulse.shift_phase(1.57, pulse.DriveChannel(1))
+            pulse.play(my_gaussian0, pulse.DriveChannel(0))
+            pulse.shift_phase(-1.57, pulse.DriveChannel(1))
+
+    In above program two ``shift_phase`` instructions can be cancelled out because
+    they are consecutive on the same drive channel.
+    This can be easily found on the DAG representation.
+
+    Args:
+        block: A schedule block to be converted.
+
+    Returns:
+        Instructions in DAG representation.
+    """
+    if block.transform in [AlignmentKind.sequential.name,
+                           AlignmentKind.equispaced.name,
+                           AlignmentKind.func.name]:
+        return _sequential_allocation(block)
+    else:
+        return _parallel_allocation(block)
+
+
+def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
+    """A helper function to create DAG of sequential alignment context."""
+    dag_instructions = rx.PyDAG()
+
+    prev_node = None
+    edges = []
+    for inst in block.instructions:
+        current_node = dag_instructions.add_node(inst)
+        if prev_node is not None:
+            edges.append((prev_node, current_node))
+        prev_node = current_node
+    dag_instructions.add_edges_from_no_data(edges)
+
+    return dag_instructions
+
+
+def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
+    """A helper function to create DAG of parallel alignment context."""
+    dag_instructions = rx.PyDAG()
+
+    slots = dict()
+    edges = []
+    for inst in block.instructions:
+        current_node = dag_instructions.add_node(inst)
+        for chan in inst.channels:
+            prev_node = slots.pop(chan, None)
+            if prev_node is not None:
+                edges.append((prev_node, current_node))
+            slots[chan] = current_node
+    dag_instructions.add_edges_from_no_data(edges)
+
+    return dag_instructions
 
 
 class AlignmentKind(enum.Enum):
