@@ -251,17 +251,17 @@ class TestStatevector(QiskitTestCase):
             op = op0
             op_full = Operator(np.eye(4)).tensor(op)
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[0]), target)
+            self.assertEqual(state.evolve(op, [0]), target)
 
             # Evolve on qubit 1
             op_full = Operator(np.eye(2)).tensor(op).tensor(np.eye(2))
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[1]), target)
+            self.assertEqual(state.evolve(op, [1]), target)
 
             # Evolve on qubit 2
             op_full = op.tensor(np.eye(4))
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[2]), target)
+            self.assertEqual(state.evolve(op, [2]), target)
 
             # Test evolve on 2-qubits
             op = op1.tensor(op0)
@@ -269,12 +269,12 @@ class TestStatevector(QiskitTestCase):
             # Evolve on qubits [0, 2]
             op_full = op1.tensor(np.eye(2)).tensor(op0)
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[0, 2]), target)
+            self.assertEqual(state.evolve(op, [0, 2]), target)
 
             # Evolve on qubits [2, 0]
             op_full = op0.tensor(np.eye(2)).tensor(op1)
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[2, 0]), target)
+            self.assertEqual(state.evolve(op, [2, 0]), target)
 
             # Test evolve on 3-qubits
             op = op2.tensor(op1).tensor(op0)
@@ -282,12 +282,12 @@ class TestStatevector(QiskitTestCase):
             # Evolve on qubits [0, 1, 2]
             op_full = op
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[0, 1, 2]), target)
+            self.assertEqual(state.evolve(op, [0, 1, 2]), target)
 
             # Evolve on qubits [2, 1, 0]
             op_full = op0.tensor(op1).tensor(op2)
             target = Statevector(np.dot(op_full.data, vec))
-            self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
+            self.assertEqual(state.evolve(op, [2, 1, 0]), target)
 
     def test_evolve_global_phase(self):
         """Test evolve circuit with global phase."""
@@ -296,7 +296,7 @@ class TestStatevector(QiskitTestCase):
         phase = np.pi / 4
         circ = QuantumCircuit(qr, global_phase=phase)
         circ.x(0)
-        state_f = state_i.evolve(circ, qargs=[0])
+        state_f = state_i.evolve(circ, [0])
         target = Statevector([0, 1]) * np.exp(1j * phase)
         self.assertEqual(state_f, target)
 

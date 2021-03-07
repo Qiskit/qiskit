@@ -17,10 +17,8 @@ Statevector quantum state class.
 import copy
 import re
 from numbers import Number
-
-
 import plum
-from plum import Dispatcher, Self, dispatch
+from plum import Self
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -235,7 +233,27 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._data = other * self.data
         return ret
 
-    def evolve(self, other, qargs=None):
+    @dispatch
+    def evolve(self, other):
+        qargs = getattr(other, 'qargs', None)
+        return self.evolve(other, qargs)
+
+    @dispatch
+    def evolve(self, other: QuantumCircuit, qargs):
+        return self.evolve(other.to_instruction(), qargs)
+
+    @dispatch
+    def evolve(self, other: Instruction, qargs):
+        if self.num_qubits is None:
+            raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
+        return self._evolve_instruction(copy.copy(self), other, qargs=qargs)
+
+    @dispatch
+    def evolve(self, other, qargs):
+        return self.evolve(Operator(other), qargs)
+
+    @dispatch
+    def evolve(self, other: Operator, qargs): # = None
         """Evolve a quantum state by the operator.
 
         Args:
@@ -250,29 +268,13 @@ class Statevector(QuantumState, TolerancesMixin):
             QiskitError: if the operator dimension does not match the
                          specified Statevector subsystem dimensions.
         """
-        if qargs is None:
-            qargs = getattr(other, 'qargs', None)
-
-        # Get return vector
-        ret = copy.copy(self)
-
-        # Evolution by a circuit or instruction
-        if isinstance(other, QuantumCircuit):
-            other = other.to_instruction()
-        if isinstance(other, Instruction):
-            if self.num_qubits is None:
-                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
-            return self._evolve_instruction(ret, other, qargs=qargs)
-
-        # Evolution by an Operator
-        if not isinstance(other, Operator):
-            other = Operator(other)
-
         # check dimension
         if self.dims(qargs) != other.input_dims():
             raise QiskitError(
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
+        # Get return vector
+        ret = copy.copy(self)
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
     def equiv(self, other, rtol=None, atol=None):
@@ -336,7 +338,7 @@ class Statevector(QuantumState, TolerancesMixin):
         Returns:
             complex: the expectation value.
         """
-        val = self.evolve(oper, qargs=qargs)
+        val = self.evolve(oper, qargs)
         conj = self.conjugate()
         return np.dot(conj.data, val.data)
 
@@ -448,7 +450,7 @@ class Statevector(QuantumState, TolerancesMixin):
         reset = np.dot(reset, np.diag(proj))
         return self.evolve(
             Operator(reset, input_dims=dims, output_dims=dims),
-            qargs=qargs)
+            qargs)
 
     @classmethod
     def from_label(cls, label):
@@ -514,9 +516,9 @@ class Statevector(QuantumState, TolerancesMixin):
             y_mat = np.dot(np.diag([1, 1j]), x_mat)
             for qubit, char in enumerate(reversed(label)):
                 if char in ['+', '-']:
-                    state = state.evolve(x_mat, qargs=[qubit])
+                    state = state.evolve(x_mat, [qubit])
                 elif char in ['r', 'l']:
-                    state = state.evolve(y_mat, qargs=[qubit])
+                    state = state.evolve(y_mat, [qubit])
         return state
 
     @staticmethod

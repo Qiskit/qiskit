@@ -343,7 +343,7 @@ class QuantumState:  #(metaclass=plum.Referentiable(abc.ABCMeta)):
         # diagonal matrix multiplication
         ret = self.evolve(
             Operator(np.diag(proj), input_dims=dims, output_dims=dims),
-            qargs=qargs)
+            qargs)
 
         return outcome, ret
 
@@ -527,7 +527,7 @@ class QuantumState:  #(metaclass=plum.Referentiable(abc.ABCMeta)):
     def __matmul__(self, other):
         # Check for subsystem case return by __call__ method
         if isinstance(other, tuple) and len(other) == 2:
-            return self.evolve(other[0], qargs=other[1])
+            return self.evolve(other[0], other[1])
         return self.evolve(other)
 
     def __xor__(self, other):
