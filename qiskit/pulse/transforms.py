@@ -652,9 +652,9 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if block.transform in [AlignmentKind.SEQUENTIAL.name,
-                           AlignmentKind.EQUISPACED.name,
-                           AlignmentKind.FUNC.name]:
+    if block.transform in [AlignmentKind.SEQUENTIAL.name.casefold(),
+                           AlignmentKind.EQUISPACED.name.casefold(),
+                           AlignmentKind.FUNC.name.casefold()]:
         return _sequential_allocation(block)
     else:
         return _parallel_allocation(block)
