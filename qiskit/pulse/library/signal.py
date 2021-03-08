@@ -44,7 +44,7 @@ class Signal:
         self.name = name
 
     @property
-    def id(self) -> int:
+    def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this signal."""
         return id(self)
 
@@ -86,7 +86,7 @@ class Signal:
                 Parameter expression.
 
         Returns:
-            New signal with updated parameters.
+            Signal: a new signal with updated parameters.
         """
         pulse = self._pulse.assign_parameters(value_dict)
         frame = self._frame

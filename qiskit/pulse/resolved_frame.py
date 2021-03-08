@@ -152,6 +152,10 @@ class ResolvedFrame(Tracker):
 
         Args:
             schedule: The schedule from which to extract frame operations.
+
+        Raises:
+            PulseError: if the internal filtering does not contain the right
+                instructions.
         """
         frame_instruction_types = [ShiftPhase, SetPhase, ShiftFrequency, SetFrequency]
         frame_instructions = schedule.filter(instruction_types=frame_instruction_types)

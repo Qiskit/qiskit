@@ -491,6 +491,10 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
     Returns:
         frames_config: A dictionary with the frame index as key and the values are
             a dict which can be used to initialized a ResolvedFrame.
+
+    Raises:
+        QiskitError: if the number of frame frequencies is not the same as the number
+            of frames, i.e. the length of frame_channels.
     """
     if len(frame_frequencies) != len(frame_channels):
         raise QiskitError(f'Number of frames {len(frame_channels)} is incompatible with '

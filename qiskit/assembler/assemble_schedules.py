@@ -308,7 +308,7 @@ def _assemble_config(lo_converter: converters.LoConfigConverter,
     # frames config
     frames_config = qobj_config.get('frames_config', None)
     if frames_config:
-        for frame_idx, frame_config in frames_config.items():
+        for frame_config in frames_config.values():
             frame_config['channels'] = [ch.name for ch in frame_config['channels']]
             frame_config['frame'] = frame_config['frame'].name
 

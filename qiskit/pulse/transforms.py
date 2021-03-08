@@ -17,7 +17,7 @@ import warnings
 from collections import defaultdict
 from copy import deepcopy
 from typing import Callable
-from typing import Dict, List, Optional, Iterable, Tuple, Union
+from typing import Dict, List, Optional, Iterable, Union
 
 import numpy as np
 
@@ -343,7 +343,7 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
         return schedule
 
     resolved_frames = {}
-    for frame_index, frame_settings in frames_config.items():
+    for frame_settings in frames_config.values():
         frame = ResolvedFrame(**frame_settings)
         frame.set_frame_instructions(schedule)
         resolved_frames[frame.index] = frame

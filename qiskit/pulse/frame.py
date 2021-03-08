@@ -84,7 +84,7 @@ class Frame:
             value: The new value to bind to.
 
         Returns:
-            A new frame with updated parameters.
+            Frame: A new frame with updated parameters.
 
         Raises:
             PulseError: If the parameter is not present in the frame.
