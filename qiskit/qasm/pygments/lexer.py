@@ -17,9 +17,9 @@ try:
     from pygments.token import (Comment, String, Keyword,
                                 Name, Number, Text)
     from pygments.style import Style
-except ImportError:
+except ImportError as ex:
     raise ImportError("To use 'qiskit.qasm.pygments' pygments>2.4 must be "
-                      'installed. To install run "pip install pygments".')
+                      'installed. To install run "pip install pygments".') from ex
 
 
 class QasmTerminalStyle(Style):
