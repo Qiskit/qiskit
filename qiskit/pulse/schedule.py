@@ -1178,15 +1178,15 @@ class ScheduleBlock(PulseProgram):
     and ``transform`` argument. ``ScheduleBlock`` should be initialized with one of
     following transform policies:
 
-        - ``Left`` ... Align instructions in the `as-soon-as-possible` manner.
+        - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
             Instructions are scheduled at the earliest possible time on the channel.
-        - ``Right`` ... Align instructions in the `as-late-as-possible` manner.
+        - ``right`` ... Align instructions in the `as-late-as-possible` manner.
             Instructions are scheduled at the latest possible time on the channel.
-        - ``Sequential`` ... Align instructions sequentially even though they are
+        - ``sequential`` ... Align instructions sequentially even though they are
             allocated in different channels.
-        - ``Equispaced`` ... Align instructions with equal interval within a specified duration.
+        - ``equispaced`` ... Align instructions with equal interval within a specified duration.
             Instructions on different channels are aligned sequentially.
-        - ``Func`` ... Align instructions with arbitrary position within the given duration.
+        - ``func`` ... Align instructions with arbitrary position within the given duration.
             The position is specified by a callback function taking a pulse index ``j`` and
             returning a fractional coordinate in [0, 1].
 
@@ -1226,7 +1226,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 transform: str = 'Left',
+                 transform: str = 'left',
                  **transform_opts):
         """Create an empty schedule block.
 
@@ -1524,7 +1524,7 @@ class ScheduleBlock(PulseProgram):
 
     def __or__(self, other: ScheduleComponent) -> 'ScheduleBlock':
         """Return a new schedule which is the union of `self` and `other`."""
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='Left')
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='left')
         union_block.append(self, inplace=True)
         union_block.append(other, inplace=True)
 

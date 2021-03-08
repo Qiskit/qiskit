@@ -652,9 +652,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if block.transform in [AlignmentKind.SEQUENTIAL.name.casefold(),
-                           AlignmentKind.EQUISPACED.name.casefold(),
-                           AlignmentKind.FUNC.name.casefold()]:
+    if AlignmentKind.is_sequential(block.transform):
         return _sequential_allocation(block)
     else:
         return _parallel_allocation(block)
@@ -721,8 +719,35 @@ class AlignmentKind(enum.Enum):
             PulseError: When invalid alignment type is specified.
         """
         for align_def in AlignmentKind:
-            if align_def.name.casefold() == align_type.casefold():
+            if align_def.name.lower() == align_type:
                 return align_def.value(schedule, **kwargs)
 
         raise PulseError('Specified alignment {} is not defined. Choose one of {}.'
-                         ''.format(align_type, ', '.join([e.name for e in AlignmentKind])))
+                         ''.format(align_type, ', '.join([e.name.lower() for e in AlignmentKind])))
+
+    @classmethod
+    def is_sequential(cls, align_type: str):
+        """A helper method that evaluate general type of transformation.
+
+        This method returns ``False`` if alignment allows parallel scheduling of instructions
+        on different channels, otherwise this returns ``True``.
+
+        Args:
+            align_type: Type of alignment. This should be specified in ``AlignmentKind``.
+
+        Returns:
+            If alignment allows parallel instruction scheduling.
+
+        Raises:
+            PulseError: When invalid alignment type is specified.
+        """
+        if align_type in [AlignmentKind.SEQUENTIAL.name.lower(),
+                          AlignmentKind.EQUISPACED.name.lower(),
+                          AlignmentKind.FUNC.name.lower()]:
+            return True
+        elif align_type in [AlignmentKind.LEFT.name.lower(),
+                            AlignmentKind.RIGHT.name.lower()]:
+            return False
+
+        raise PulseError('Specified alignment {} is not defined. Choose one of {}.'
+                         ''.format(align_type, ', '.join([e.name.lower() for e in AlignmentKind])))
