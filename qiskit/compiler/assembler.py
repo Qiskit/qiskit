@@ -474,6 +474,7 @@ def _expand_parameters(circuits, run_config):
 
     return circuits, run_config
 
+
 def frames_configuration(frame_channels: List[List[PulseChannel]],
                          frame_frequencies: List[float],
                          frame_indices: List[int] = None) -> Union[dict, None]:
