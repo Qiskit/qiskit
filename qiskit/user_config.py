@@ -36,6 +36,7 @@ class UserConfig:
     num_processes = 4
 
     """
+
     def __init__(self, filename=None):
         """Create a UserConfig
 
@@ -192,8 +193,8 @@ def set_config(key, value, section=None, file=None):
     except OSError as ex:
         print("Unable to load the config file {}. Error: '{}'".format(
               filename, str(ex)))
-        print("Provide a valid file path and make sure the "
-              "file or directory has read/write access.")
+        print("Provide a valid file path and make sure "
+              "the file or directory has read/write access.")
 
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     user_config = UserConfig(filename)
