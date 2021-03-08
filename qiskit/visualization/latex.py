@@ -21,6 +21,8 @@ import re
 
 import numpy as np
 from qiskit.circuit import Gate, Instruction, Clbit
+from qiskit.circuit.library import (SwapGate, RZZGate, U1Gate, PhaseGate,
+                                    XGate, ZGate, Measure)
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
@@ -261,13 +263,14 @@ class QCircuitImage:
                                 (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             columns += 1
 
-        # all gates take up 1 column except from those with labels (ie cu1, cp, rzz)
-        # which take 3 columns
+        # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
+        # which take 4 columns
         for layer in self.ops:
             column_width = 1
             for op in layer:
-                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                if op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
+                base_type = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
+                if isinstance(op.op, RZZGate) or isinstance(base_type,
+                                                            (RZZGate, U1Gate, PhaseGate)):
                     column_width = 4
             columns += column_width
 
@@ -362,8 +365,8 @@ class QCircuitImage:
         return gate_text, ctrl_text
 
     def _build_latex_array(self):
-        """Returns an array of strings containing \\LaTeX for this circuit.
-        """
+        """Returns an array of strings containing LaTeX for this circuit."""
+
         column = 1
         # Leave a column to display number of classical registers if needed
         if self.cregbundle and (self.ops and self.ops[0] and
@@ -374,11 +377,10 @@ class QCircuitImage:
             num_cols_used = 1
 
             for op in layer:
-                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                if op.name == "measure":
+                if isinstance(op.op, Measure):
                     self._build_measure(op, column)
 
-                elif op.name in ['barrier', 'snapshot', 'load', 'save', 'noise']:
+                elif op.op._directive:  # barrier, snapshot, etc.
                     self._build_barrier(op, column)
 
                 else:
@@ -393,57 +395,33 @@ class QCircuitImage:
                     if len(wire_list) == 1:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
-                    elif len(wire_list) == 2:
-                        if op.name == "swap":
-                            self._build_swap(wire_list, column)
-
-                        elif op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
-                            symm_name = 'rzz' if op.name == 'rzz' else base_name
-                            num_cols_used = self._build_symmetric_gate(op, symm_name, gate_text,
-                                                                       wire_list, column,
-                                                                       num_cols_used)
-                        elif isinstance(op.op, ControlledGate):
-                            self._build_single_ctrl_gate(op, gate_text, wire_list, column)
-
-                        else:
-                            self._build_multi_gate(gate_text, wire_list, column)
-
                     elif isinstance(op.op, ControlledGate):
-                        num_cols_used = self._build_multi_ctrl_gate(op, gate_text,
-                                                                    wire_list, column,
-                                                                    num_cols_used)
+                        num_cols_used = self._build_ctrl_gate(op, gate_text,
+                                                              wire_list, column,
+                                                              num_cols_used)
                     else:
-                        self._build_multi_gate(gate_text, wire_list, column)
+                        num_cols_used = self._build_multi_gate(op, gate_text, wire_list,
+                                                               column, num_cols_used)
 
             column += num_cols_used
 
-    def _build_multi_gate(self, gate_text, wire_list, col):
+    def _build_multi_gate(self, op, gate_text, wire_list, col, num_cols_used):
         """Add a multiple wire gate to the _latex list"""
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
-        self._latex[wire1][col] = "\\multigate{%s}{%s}" % \
-            (wire2 - wire1, gate_text)
-        for wire in range(wire1 + 1, wire2 + 1):
-            self._latex[wire][col] = "\\ghost{%s}" % gate_text
-
-    def _build_single_ctrl_gate(self, op, gate_text, wire_list, col):
-        """Add a gate with a single control to the _latex list"""
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
-        cond = "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
-        if cond == '0':
-            self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
-        elif cond == '1':
-            self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
-
-        if op.op.base_gate.name == 'x':
-            self._latex[wire2][col] = "\\targ"
-        elif op.op.base_gate.name == 'z':
-            self._latex[wire2][col] = "\\control\\qw"
+        if isinstance(op.op, SwapGate):
+            self._build_swap(wire_list, col)
+        elif isinstance(op.op, RZZGate):
+            num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
+                                                       wire_list, col, num_cols_used)
         else:
-            self._latex[wire2][col] = "\\gate{%s}" % gate_text
+            wire1 = min(wire_list)
+            wire2 = max(wire_list)
+            self._latex[wire1][col] = "\\multigate{%s}{%s}" % \
+                (wire2 - wire1, gate_text)
+            for wire in range(wire1 + 1, wire2 + 1):
+                self._latex[wire][col] = "\\ghost{%s}" % gate_text
+        return num_cols_used
 
-    def _build_multi_ctrl_gate(self, op, gate_text, wire_list, col, num_cols_used):
+    def _build_ctrl_gate(self, op, gate_text, wire_list, col, num_cols_used):
         """Add a gate with multiple controls to the _latex list"""
         num_ctrl_qubits = op.op.num_ctrl_qubits
         wireqargs = wire_list[num_ctrl_qubits:]
@@ -452,19 +430,27 @@ class QCircuitImage:
         wire2 = max(wireqargs)
         ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
-        # First do single qubit gates
+        # First do single qubit target gates
         if len(wireqargs) == 1:
             self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
-            if op.op.base_gate.name == 'x':
+
+            # Check for cx, cz, cu1 and cp first, then do standard gate
+            if isinstance(op.op.base_gate, XGate):
                 self._latex[wireqargs[0]][col] = "\\targ"
+            elif isinstance(op.op.base_gate, ZGate):
+                self._latex[wireqargs[0]][col] = "\\control\\qw"
+            elif isinstance(op.op.base_gate, (U1Gate, PhaseGate)):
+                num_cols_used = self._build_symmetric_gate(op, op.op.base_gate.name, gate_text,
+                                                           wire_list, col, num_cols_used)
             else:
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
-            if op.op.base_gate.name in ['swap', 'rzz']:
+            # Treat special cases of swap and rzz gates
+            if isinstance(op.op.base_gate, (SwapGate, RZZGate)):
                 self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
-                if op.op.base_gate.name == 'swap':
+                if isinstance(op.op.base_gate, SwapGate):
                     self._build_swap(wireqargs, col)
-                elif op.op.base_gate.name == 'rzz':
+                else:
                     num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
                                                                wire_list, col, num_cols_used)
             else:
@@ -477,7 +463,7 @@ class QCircuitImage:
                 else:
                     self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
 
-                self._build_multi_gate(gate_text, wireqargs, col)
+                self._build_multi_gate(op, gate_text, wireqargs, col, num_cols_used)
         return num_cols_used
 
     def _build_swap(self, wire_list, col):
@@ -591,7 +577,7 @@ class QCircuitImage:
         """Add a condition to the _latex list"""
         # if_value - a bit string for the condition
         # cwire - the wire number for the first wire for the condition register
-        #      or if cregbundle, wire number of the condition register itself
+        #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
         creg_size = self.cregs[op.condition[0]]
