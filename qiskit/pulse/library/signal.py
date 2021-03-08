@@ -21,7 +21,10 @@ from qiskit.pulse.exceptions import PulseError
 
 
 class Signal:
-    """A Signal is a Pulse played in a given frame."""
+    """
+    A Signal is a Pulse, i.e. a complex-valued waveform envelope, played in a given
+    Frame, i.e. a frequency and a phase.
+    """
 
     def __init__(self, pulse: Pulse, frame: Frame, name: Optional[str] = None):
         """
