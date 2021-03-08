@@ -783,7 +783,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             frame_ = [DriveChannel(qubit)]
             for ctrl in range(n_qubits):
                 try:
-                    frame_ += [ch for ch in self.control((ctrl, qubit))]
+                    frame_ += list(self.control((ctrl, qubit)))
                 except BackendConfigurationError:
                     pass
 
