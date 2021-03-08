@@ -229,9 +229,9 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         self.assertLess(np.abs(maxdist), tolerance,
                         f"Worst case distance: {maxdist}, trace: {trace}\n"
                         f"Target:\n{target}\nActual:\n{data}\n{circ}")
-        # if expected_gates is not None:
-        #     self.assertDictEqual(dict(circ.count_ops()), expected_gates,
-        #                          f"Circuit:\n{circ}")
+        if expected_gates is not None:
+            self.assertDictEqual(dict(circ.count_ops()), expected_gates,
+                                 f"Circuit:\n{circ}")
 
     @combine(angexp=ANGEXP_ZYZ)
     def test_special_ZYZ(self, angexp):
@@ -640,8 +640,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
                                                          0.999, TwoQubitWeylControlledEquiv,
-                                                         {'rx': 6, 'ry': 4,
-                                                          'rxx': 1})
+                                                         {'rx': 6, 'ry': 4, 'rxx': 1})
 
     def test_weyl_specialize_mirror_ctrl(self, aaa=-0.456):
         """Weyl specialization for partial swap gate"""
@@ -652,8 +651,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 k2 = np.kron(k2l.data, k2r.data)
                 self.check_two_qubit_weyl_specialization(k1 @ Ud(a+da, b+db, c+dc) @ k2,
                                                          0.999, TwoQubitWeylMirrorControlledEquiv,
-                                                         {'rz': 6, 'ry': 4,
-                                                          'rxx': 1, 'ryy': 1, 'rzz': 1})
+                                                         {'rz': 6, 'ry': 4, 'rzz': 1, 'swap': 1})
 
     def test_weyl_specialize_general(self, aaa=0.456, bbb=0.345, ccc=0.123):
         """Weyl specialization for partial swap gate"""

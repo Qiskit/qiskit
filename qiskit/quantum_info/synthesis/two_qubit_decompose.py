@@ -27,9 +27,11 @@ import cmath
 import math
 import warnings
 from typing import ClassVar, Optional
+
 import logging
 
 import numpy as np
+from numpy.typing import ArrayLike
 import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -37,17 +39,17 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer, DEFAULT_ATOL
 
 logger = logging.getLogger(__name__)
 
 
-def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
+def decompose_two_qubit_product_gate(special_unitary_matrix: ArrayLike):
     """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
     Throws QiskitError if this isn't possible.
     """
+    special_unitary_matrix = np.asarray(special_unitary_matrix)
     # extract the right component
     R = special_unitary_matrix[:2, :2].copy()
     detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
@@ -119,6 +121,7 @@ class TwoQubitWeylDecomposition():
 
     _original_decomposition: Optional["TwoQubitWeylDecomposition"]
     _is_flipped_from_original: bool
+
     _default_1q_basis: ClassVar[str] = 'ZYZ'
 
     def __init_subclass__(cls, **kwargs):
@@ -129,7 +132,7 @@ class TwoQubitWeylDecomposition():
         cls.__new__ = (lambda cls, *a, fidelity=None, **k:
                        TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, **k))
 
-    def __new__(cls, unitary_matrix, *, fidelity=(1.-1.E-9)):
+    def __new__(cls, unitary_matrix: ArrayLike, *, fidelity=(1.-1.E-9)):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -146,7 +149,7 @@ class TwoQubitWeylDecomposition():
         pi4 = np.pi/4
 
         # Make U be in SU(4)
-        U = unitary_matrix.copy()
+        U = np.array(unitary_matrix, copy=True)
         detU = la.det(U)
         U *= detU**(-0.25)
         global_phase = cmath.phase(detU) / 4
@@ -251,6 +254,11 @@ class TwoQubitWeylDecomposition():
         od.global_phase = global_phase
         od.unitary_matrix = unitary_matrix
         od.requested_fidelity = fidelity
+        od.calculated_fidelity = 1.0
+        od.unitary_matrix = np.array(unitary_matrix, copy=True)
+        od.unitary_matrix.setflags(write=False)
+        od._original_decomposition = None
+        od._is_flipped_from_original = False
 
         def is_close(ap, bp, cp):
             da, db, dc = a-ap, b-bp, c-cp
@@ -286,14 +294,14 @@ class TwoQubitWeylDecomposition():
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix: np.ndarray, *args, fidelity=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, unitary_matrix: ArrayLike, *args, fidelity=None):
+        super().__init__(*args)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
         self.K1l, self.K1r = od.K1l, od.K1r
         self.K2l, self.K2r = od.K2l, od.K2r
         self.global_phase = od.global_phase
-        self.unitary_matrix = unitary_matrix.copy()
+        self.unitary_matrix = od.unitary_matrix
         self.requested_fidelity = fidelity
         self._is_flipped_from_original = False
         self.specialize()
@@ -363,6 +371,8 @@ class TwoQubitWeylDecomposition():
         return trace_to_fid(trace)
 
     def __repr__(self):
+        """Represent with enough precision to allow copy-paste debugging of all corner cases
+        """
         prefix = f"{self.__class__.__name__}("
         prefix_nd = " np.array("
         suffix = "),"
@@ -479,8 +489,9 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
     def specialize(self):
         self.b = self.c = 0
-        k2ltheta, k2lphi, k2llambda = _oneq_xyx.angles(self.K2l)
-        k2rtheta, k2rphi, k2rlambda = _oneq_xyx.angles(self.K2r)
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
+        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_xyx.angles_and_phase(self.K2r)
+        self.global_phase += k2lphase + k2rphase
         self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
         self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
@@ -496,12 +507,18 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
     """
     def specialize(self):
         self.a = self.b = np.pi/4
-        k2ltheta, k2lphi, k2llambda = _oneq_zyz.angles(self.K2l)
-        k2rtheta, k2rphi, k2rlambda = _oneq_zyz.angles(self.K2r)
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
+        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_zyz.angles_and_phase(self.K2r)
+        self.global_phase += k2lphase + k2rphase
         self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
         self.K1l = self.K1l @ np.asarray(RZGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RZGate(k2rlambda))
+
+    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+        circ.swap(0, 1)
+        circ.rzz((np.pi/4 - self.c) * 2, 0, 1)
+        circ.global_phase += np.pi/4
 
 
 # These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
@@ -513,7 +530,8 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
     """
     def specialize(self):
         self.a = self.b = (self.a + self.b)/2
-        k2ltheta, k2lphi, k2llambda = _oneq_zyz.angles(self.K2l)
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
         self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
         self.K1l = self.K1l @ np.asarray(RZGate(k2lphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
@@ -530,7 +548,8 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
 
     def specialize(self):
         self.b = self.c = (self.b + self.c)/2
-        k2ltheta, k2lphi, k2llambda = _oneq_xyx.angles(self.K2l)
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
         self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
         self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
@@ -549,7 +568,8 @@ class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
     def specialize(self):
         self.b = (self.b - self.c)/2
         self.c = -self.b
-        k2ltheta, k2lphi, k2llambda = _oneq_xyx.angles(self.K2l)
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
         self.K1r = self.K1r @ _ipz @ np.asarray(RXGate(k2lphi)) @ _ipz
         self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
@@ -762,29 +782,14 @@ class TwoQubitBasisDecomposer():
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target, basis_fidelity=None, *, _num_basis_uses=None):
+    def __call__(self, target: ArrayLike, basis_fidelity=None, *, _num_basis_uses=None):
         """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite fidelity.
 
         You can force a particular approximation by passing _num_basis_uses.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
-        if hasattr(target, 'to_operator'):
-            # If input is a BaseOperator subclass this attempts to convert
-            # the object to an Operator so that we can extract the underlying
-            # numpy matrix from `Operator.data`.
-            target = target.to_operator().data
-        if hasattr(target, 'to_matrix'):
-            # If input is Gate subclass or some other class object that has
-            # a to_matrix method this will call that method.
-            target = target.to_matrix()
-        # Convert to numpy array incase not already an array
         target = np.asarray(target, dtype=complex)
-        # Check input is a 2-qubit unitary
-        if target.shape != (4, 4):
-            raise QiskitError("TwoQubitBasisDecomposer: expected 4x4 matrix for target")
-        if not is_unitary_matrix(target):
-            raise QiskitError("TwoQubitBasisDecomposer: target matrix is not unitary.")
 
         target_decomposed = TwoQubitWeylDecomposition(target)
         traces = self.traces(target_decomposed)

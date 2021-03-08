@@ -241,7 +241,8 @@ class OneQubitEulerDecomposer:
              ]],
             dtype=complex)
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
-        return -theta, phi, lam, phase
+        newphi, newlam = _mod_2pi(phi+np.pi), _mod_2pi(lam+np.pi)
+        return theta, newphi, newlam, phase + (newphi + newlam - phi - lam)/2
 
     @staticmethod
     def _params_u3(mat):
@@ -269,19 +270,27 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
+        gphase = phase - (phi+lam)/2
+        circuit = QuantumCircuit(1)
 
         if simplify and abs(theta) < atol:
-            if abs(phi + lam) > atol:
-                circuit.append(RZGate(phi + lam), [0])
+            tot = _mod_2pi(phi + lam)
+            if abs(tot) > atol:
+                circuit.append(RZGate(tot), [0])
+                gphase += tot/2
+            circuit.global_phase = gphase
             return circuit
         if simplify and abs(theta - np.pi) < atol:
-            lam, phi = (lam-phi) / 2, -(lam-phi) / 2
+            gphase += phi
+            lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
+            gphase += lam/2
             circuit.append(RZGate(lam), [0])
         circuit.append(RYGate(theta), [0])
         if not simplify or abs(phi) > atol:
+            gphase += phi/2
             circuit.append(RZGate(phi), [0])
+        circuit.global_phase = gphase
         return circuit
 
     @staticmethod
@@ -291,18 +300,27 @@ class OneQubitEulerDecomposer:
                      phase,
                      simplify=True,
                      atol=DEFAULT_ATOL):
-        circuit = QuantumCircuit(1, global_phase=phase)
+        gphase = phase - (phi+lam)/2
+        circuit = QuantumCircuit(1)
+
         if simplify and abs(theta) < atol:
-            if abs(phi + lam) > atol:
-                circuit.append(RZGate(phi + lam), [0])
+            tot = _mod_2pi(phi + lam)
+            if abs(tot) > atol:
+                circuit.append(RZGate(tot), [0])
+                gphase += tot/2
+            circuit.global_phase = gphase
             return circuit
         if simplify and abs(theta - np.pi) < atol:
-            lam, phi = (lam-phi) / 2, -(lam-phi) / 2
+            gphase += phi
+            lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
+            gphase += lam/2
             circuit.append(RZGate(lam), [0])
         circuit.append(RXGate(theta), [0])
         if not simplify or abs(phi) > atol:
+            gphase += phi/2
             circuit.append(RZGate(phi), [0])
+        circuit.global_phase = gphase
         return circuit
 
     @staticmethod
