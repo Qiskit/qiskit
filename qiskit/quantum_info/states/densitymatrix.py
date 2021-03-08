@@ -351,17 +351,19 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         # pylint: disable=no-name-in-module
         from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
         n_pauli = len(pauli)
-        x_mask = np.dot(1 << np.arange(n_pauli), pauli.x)
-        z_mask = np.dot(1 << np.arange(n_pauli), pauli.z)
+        qubits = np.arange(n_pauli)
+        x_mask = np.dot(1 << qubits, pauli.x)
+        z_mask = np.dot(1 << qubits, pauli.z)
         phase = (-1j) ** np.sum(pauli.x & pauli.z)
         if x_mask + z_mask == 0:
             return self.trace()
 
+        data = np.ravel(self.data, order='F')
         if x_mask == 0:
-            return density_expval_pauli_no_x(self.data, z_mask)
-
-        x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
-        return density_expval_pauli_with_x(self.data, z_mask, x_mask, phase, x_max)
+            return density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+        x_max = qubits[pauli.x][-1]
+        return density_expval_pauli_with_x(
+            data, self.num_qubits, z_mask, x_mask, phase, x_max)
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.

@@ -379,10 +379,11 @@ class Statevector(QuantumState, TolerancesMixin):
             return np.linalg.norm(self.data)
 
         if x_mask == 0:
-            return expval_pauli_no_x(self.data, z_mask, phase)
+            return expval_pauli_no_x(self.data, self.num_qubits, z_mask, phase)
 
         x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
-        return expval_pauli_with_x(self.data, z_mask, x_mask, phase, x_max)
+        return expval_pauli_with_x(
+            self.data, self.num_qubits, z_mask, x_mask, phase, x_max)
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
