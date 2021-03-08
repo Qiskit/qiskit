@@ -216,7 +216,7 @@ class Z2Symmetries:
             stacked_paulis.append(
                 np.concatenate(
                     (pauli.primitive.table.X[0], pauli.primitive.table.Z[0]), axis=0
-                ).astype(np.int)
+                ).astype(int)
             )
 
         stacked_matrix = np.array(np.stack(stacked_paulis))

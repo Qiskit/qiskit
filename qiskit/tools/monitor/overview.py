@@ -29,10 +29,10 @@ def get_unique_backends():
     """
     try:
         from qiskit.providers.ibmq import IBMQ
-    except ImportError:
+    except ImportError as ex:
         raise ImportError("The IBMQ provider is necessary for this function "
                           " to work. Please ensure it's installed before "
-                          "using this function")
+                          "using this function") from ex
     backends = []
     for provider in IBMQ.providers():
         for backend in provider.backends():
@@ -59,10 +59,10 @@ def backend_monitor(backend):
     """
     try:
         from qiskit.providers.ibmq import IBMQBackend
-    except ImportError:
+    except ImportError as ex:
         raise ImportError("The IBMQ provider is necessary for this function "
                           " to work. Please ensure it's installed before "
-                          "using this function")
+                          "using this function") from ex
 
     if not isinstance(backend, IBMQBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
