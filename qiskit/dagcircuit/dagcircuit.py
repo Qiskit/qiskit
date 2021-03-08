@@ -889,7 +889,7 @@ class DAGCircuit:
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
-            if not np.isclose(self_phase, other_phase):
+            if (self_phase - other_phase) % (2 * np.pi) > 1.E-10:  # FIXME: tolerance?
                 return False
         except TypeError:
             if self.global_phase != other.global_phase:

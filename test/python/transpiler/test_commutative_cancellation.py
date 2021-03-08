@@ -417,7 +417,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
 
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(expected, new_circuit,
+                         msg=f'expected:\n{expected}\nnew_circuit:\n{new_circuit}')
 
     def test_cnot_cascade(self):
         """
