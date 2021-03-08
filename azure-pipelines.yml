@@ -407,10 +407,14 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            chcp.com 65001
             source test-job/Scripts/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+          env:
+            LANG: 'C.UTF-8'
+            PYTHONIOENCODING: 'utf-8:backslashreplace'
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
