@@ -25,6 +25,7 @@ from qiskit.circuit.library import HGate, QFT
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 
 logger = logging.getLogger(__name__)
 
@@ -890,9 +891,26 @@ class TestDensityMatrix(QiskitTestCase):
                 ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
                 ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
             with self.subTest(msg="<{}>".format(label)):
-                op = Operator.from_label(label)
+                op = Pauli(label)
                 expval = rho.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1 + 1j]) / 2
+        rho = DensityMatrix(psi)
+        for label, target in [
+                ('XXX', np.sqrt(2) / 2), ('YYY', -np.sqrt(2) / 2), ('ZZZ', 0),
+                ('XYZ', 0), ('YIY', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = rho.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
+
+        labels = ['XXX', 'IXI', 'YYY', 'III']
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = rho.expectation_value(spp_op)
+        target = 25.121320343559642 + 0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
