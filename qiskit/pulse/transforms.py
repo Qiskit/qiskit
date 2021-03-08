@@ -726,7 +726,7 @@ class AlignmentKind(enum.Enum):
                          ''.format(align_type, ', '.join([e.name.lower() for e in AlignmentKind])))
 
     @classmethod
-    def is_sequential(cls, align_type: str):
+    def is_sequential(cls, align_type: str) -> bool:
         """A helper method that evaluate general type of transformation.
 
         This method returns ``False`` if alignment allows parallel scheduling of instructions
