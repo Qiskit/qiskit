@@ -12,8 +12,9 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-import logging
 import copy
+import logging
+import math
 
 import numpy as np
 
@@ -82,10 +83,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
                                                       identity_matrix):
                     dag.remove_op_node(run[0])
                     continue
-                if (isinstance(run[0].op, U3Gate) and
-                        np.isclose(float(params[0]), [0, np.pi/2],
-                                   atol=1e-12, rtol=0).any()):
-                    single_u3 = True
+                if isinstance(run[0].op, U3Gate):
+                    param = float(params[0])
+                    if math.isclose(param, 0, rel_tol=0, abs_tol=1e-12) or math.isclose(
+                            param, np.pi/2, abs_tol=1e-12, rel_tol=0):
+                        single_u3 = True
+                    else:
+                        continue
                 else:
                     continue
 
@@ -94,7 +98,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for gate in run[1:]:
                 operator = gate.op.to_matrix().dot(operator)
             for decomposer in self.basis:
-                new_circs.append(decomposer(operator))
+                new_circs.append(decomposer._decompose(operator))
             if new_circs:
                 new_circ = min(new_circs, key=len)
                 if (len(run) > len(new_circ) or (single_u3 and

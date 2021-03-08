@@ -54,7 +54,8 @@ class CircuitSampler(ConverterBase):
                  backend: Union[Backend, BaseBackend, QuantumInstance],
                  statevector: Optional[bool] = None,
                  param_qobj: bool = False,
-                 attach_results: bool = False) -> None:
+                 attach_results: bool = False,
+                 caching: str = 'last') -> None:
         """
         Args:
             backend: The quantum backend or QuantumInstance to use to sample the circuits.
@@ -66,6 +67,8 @@ class CircuitSampler(ConverterBase):
                 ``DictStateFn`` or ``VectorStateFn``.
             param_qobj: Whether to use Aer's parameterized Qobj capability to avoid re-assembling
                 the circuits.
+            caching: The caching strategy. Can be `'last'` (default) to store the last operator
+                that was converted, set to `'all'` to cache all processed operators.
 
         Raises:
             ValueError: Set statevector or param_qobj True when not supported by backend.
@@ -80,13 +83,15 @@ class CircuitSampler(ConverterBase):
         self._check_quantum_instance_and_modes_consistent()
 
         # Object state variables
+        self._caching = caching
+        self._cached_ops = {}
+
         self._last_op = None
         self._reduced_op_cache = None
         self._circuit_ops_cache = {}  # type: Dict[int, CircuitStateFn]
         self._transpiled_circ_cache = None  # type: Optional[List[Any]]
         self._transpiled_circ_templates = None  # type: Optional[List[Any]]
         self._transpile_before_bind = True
-        self._binding_mappings = None
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """ Checks whether the statevector and param_qobj settings are compatible with the
@@ -147,19 +152,19 @@ class CircuitSampler(ConverterBase):
         Raises:
             OpflowError: if extracted circuits are empty.
         """
-        if self._last_op is None or id(operator) != id(self._last_op):
-            # Clear caches
-            self._last_op = operator
-            self._reduced_op_cache = None
-            self._circuit_ops_cache = None
-            self._transpiled_circ_cache = None
-            self._transpile_before_bind = True
+        # check if the operator should be cached
+        op_id = operator.instance_id
+        # op_id = id(operator)
+        if op_id not in self._cached_ops.keys():
+            # delete cache if we only want to cache one operator
+            if self._caching == 'last':
+                self.clear_cache()
 
-        if not self._reduced_op_cache:
+            # convert to circuit and reduce
             operator_dicts_replaced = operator.to_circuit_op()
             self._reduced_op_cache = operator_dicts_replaced.reduce()
 
-        if not self._circuit_ops_cache:
+            # extract circuits
             self._circuit_ops_cache = {}
             self._extract_circuitstatefns(self._reduced_op_cache)
             if not self._circuit_ops_cache:
@@ -167,7 +172,17 @@ class CircuitSampler(ConverterBase):
                     'Circuits are empty. '
                     'Check that the operator is an instance of CircuitStateFn or its ListOp.'
                 )
+            self._transpiled_circ_cache = None
+            self._transpile_before_bind = True
+        else:
+            # load the cached circuits
+            self._reduced_op_cache = self._cached_ops[op_id].reduced_op_cache
+            self._circuit_ops_cache = self._cached_ops[op_id].circuit_ops_cache
+            self._transpiled_circ_cache = self._cached_ops[op_id].transpiled_circ_cache
+            self._transpile_before_bind = self._cached_ops[op_id].transpile_before_bind
+            self._transpiled_circ_templates = self._cached_ops[op_id].transpiled_circ_templates
 
+        return_as_list = False
         if params is not None and len(params.keys()) > 0:
             p_0 = list(params.values())[0]  # type: ignore
             if isinstance(p_0, (list, np.ndarray)):
@@ -175,6 +190,7 @@ class CircuitSampler(ConverterBase):
                 param_bindings = [{param: value_list[i]  # type: ignore
                                    for (param, value_list) in params.items()}
                                   for i in range(num_parameterizations)]
+                return_as_list = True
             else:
                 num_parameterizations = 1
                 param_bindings = [params]  # type: ignore
@@ -198,11 +214,25 @@ class CircuitSampler(ConverterBase):
             else:
                 return operator
 
-        if params:
+        # store the operator we constructed, if it isn't stored already
+        if op_id not in self._cached_ops.keys():
+            op_cache = OperatorCache()
+            op_cache.reduced_op_cache = self._reduced_op_cache
+            op_cache.circuit_ops_cache = self._circuit_ops_cache
+            op_cache.transpiled_circ_cache = self._transpiled_circ_cache
+            op_cache.transpile_before_bind = self._transpile_before_bind
+            op_cache.transpiled_circ_templates = self._transpiled_circ_templates
+            self._cached_ops[op_id] = op_cache
+
+        if return_as_list:
             return ListOp([replace_circuits_with_dicts(self._reduced_op_cache, param_index=i)
                            for i in range(num_parameterizations)])
         else:
             return replace_circuits_with_dicts(self._reduced_op_cache, param_index=0)
+
+    def clear_cache(self) -> None:
+        """Clear the cache of sampled operator expressions."""
+        self._cached_ops = {}
 
     def _extract_circuitstatefns(self, operator: OperatorBase) -> None:
         r"""
@@ -385,3 +415,13 @@ class CircuitSampler(ConverterBase):
 def _filter_params(circuit, param_dict):
     """Remove all parameters from ``param_dict`` that are not in ``circuit``."""
     return {param: value for param, value in param_dict.items() if param in circuit.parameters}
+
+
+class OperatorCache:
+    """A struct to cache an operator along with the circuits in contains."""
+
+    reduced_op_cache = None  # the reduced operator
+    circuit_ops_cache = None  # the extracted circuits
+    transpiled_circ_cache = None  # the transpiled circuits
+    transpile_before_bind = True  # whether to transpile before binding parameters in the operator
+    transpiled_circ_templates = None  # the transpiled circuit templates for Aer's simulator
