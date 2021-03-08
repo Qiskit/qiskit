@@ -649,6 +649,21 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(library, expected)
 
+    def test_circular_on_same_block_and_circuit_size(self):
+        """Test circular entanglement works correctly if the circuit and block sizes match."""
+
+        two = TwoLocal(2, 'ry', 'cx', entanglement='circular', reps=1)
+        parameters = np.arange(two.num_parameters)
+
+        ref = QuantumCircuit(2)
+        ref.ry(parameters[0], 0)
+        ref.ry(parameters[1], 1)
+        ref.cx(0, 1)
+        ref.ry(parameters[2], 0)
+        ref.ry(parameters[3], 1)
+
+        self.assertCircuitEqual(two.assign_parameters(parameters), ref)
+
 
 if __name__ == '__main__':
     unittest.main()
