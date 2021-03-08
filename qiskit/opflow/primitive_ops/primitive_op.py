@@ -96,6 +96,7 @@ class PrimitiveOp(OperatorBase):
                 primitive: The operator primitive being wrapped.
                 coeff: A coefficient multiplying the primitive.
         """
+        super().__init__()
         self._primitive = primitive
         self._coeff = coeff
 
