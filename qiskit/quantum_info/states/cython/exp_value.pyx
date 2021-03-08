@@ -15,7 +15,6 @@
 # that they have been altered from the originals.
 
 cimport cython
-from libcpp cimport bool
 import numpy as np
 
 cdef unsigned long long popcount(unsigned long long count):
