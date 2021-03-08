@@ -654,6 +654,29 @@ class TestUtilities(TestBuilder):
 class TestMacros(TestBuilder):
     """Test builder macros."""
 
+    def test_macro(self):
+        """Test builder macro decorator."""
+        @pulse.macro
+        def nested(a):
+            pulse.play(pulse.Gaussian(100, a, 20), pulse.drive_channel(0))
+            return a*2
+
+        @pulse.macro
+        def test():
+            pulse.play(pulse.Constant(100, 1.0), pulse.drive_channel(0))
+            output = nested(0.5)
+            return output
+
+        with pulse.build(self.backend) as schedule:
+            output = test()
+            self.assertEqual(output, 0.5*2)
+
+        reference = pulse.Schedule()
+        reference += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), pulse.DriveChannel(0))
+
+        self.assertEqual(schedule, reference)
+
     def test_measure(self):
         """Test utility function - measure."""
         with pulse.build(self.backend) as schedule:
