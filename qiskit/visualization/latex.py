@@ -413,11 +413,11 @@ class QCircuitImage:
             num_cols_used = self._build_symmetric_gate(op, 'rzz', gate_text,
                                                        wire_list, col, num_cols_used)
         else:
-            wire1 = min(wire_list)
-            wire2 = max(wire_list)
-            self._latex[wire1][col] = "\\multigate{%s}{%s}" % \
-                (wire2 - wire1, gate_text)
-            for wire in range(wire1 + 1, wire2 + 1):
+            wire_min = min(wire_list)
+            wire_max = max(wire_list)
+            self._latex[wire_min][col] = "\\multigate{%s}{%s}" % \
+                (wire_max - wire_min, gate_text)
+            for wire in range(wire_min + 1, wire_max + 1):
                 self._latex[wire][col] = "\\ghost{%s}" % gate_text
         return num_cols_used
 
@@ -426,8 +426,8 @@ class QCircuitImage:
         num_ctrl_qubits = op.op.num_ctrl_qubits
         wireqargs = wire_list[num_ctrl_qubits:]
         ctrlqargs = wire_list[:num_ctrl_qubits]
-        wire1 = min(wireqargs)
-        wire2 = max(wireqargs)
+        wire_min = min(wireqargs)
+        wire_max = max(wireqargs)
         ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
         # First do single qubit target gates
@@ -457,7 +457,7 @@ class QCircuitImage:
                 # If any controls appear in the span of the multiqubit
                 # gate just treat the whole thing as a big gate
                 for ctrl in ctrlqargs:
-                    if ctrl in range(wire1, wire2):
+                    if ctrl in range(wire_min, wire_max):
                         wireqargs = wire_list
                         break
                 else:
@@ -468,24 +468,24 @@ class QCircuitImage:
 
     def _build_swap(self, wire_list, col):
         """Add a swap gate"""
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
-        self._latex[wire1][col] = "\\qswap"
-        self._latex[wire2][col] = "\\qswap \\qwx[" + str(wire1 - wire2) + "]"
+        wire_min = min(wire_list)
+        wire_max = max(wire_list)
+        self._latex[wire_min][col] = "\\qswap"
+        self._latex[wire_max][col] = "\\qswap \\qwx[" + str(wire_min - wire_max) + "]"
 
     def _build_symmetric_gate(self, op, symm_name, gate_text, wire_list, col, num_cols_used):
         """Add symmetric gates for cu1, cp, and rzz"""
-        wire1 = min(wire_list)
-        wire2 = max(wire_list)
+        wire_min = min(wire_list)
+        wire_max = max(wire_list)
         cond = '1' if symm_name == 'rzz' else "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
 
         if cond == '0':
-            self._latex[wire1][col] = "\\ctrlo{" + str(wire2 - wire1) + "}"
+            self._latex[wire_min][col] = "\\ctrlo{" + str(wire_max - wire_min) + "}"
         elif cond == '1':
-            self._latex[wire1][col] = "\\ctrl{" + str(wire2 - wire1) + "}"
+            self._latex[wire_min][col] = "\\ctrl{" + str(wire_max - wire_min) + "}"
 
-        self._latex[wire2][col] = "\\control \\qw"
-        self._latex[wire1][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
+        self._latex[wire_max][col] = "\\control \\qw"
+        self._latex[wire_min][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
         return max(num_cols_used, 4)
 
     def _build_measure(self, op, col):
