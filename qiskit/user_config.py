@@ -191,10 +191,9 @@ def set_config(key, value, section=None, file=None):
         with open(filename, 'w') as cfgfile:
             config.write(cfgfile)
     except OSError as ex:
-        print("Unable to load the config file {}. Error: '{}'".format(
-              filename, str(ex)))
-        print("Provide a valid file path and make sure "
-              "the file or directory has read/write access.")
+        raise exceptions.QiskitUserConfigError(
+            "Unable to load the config file {}. Error: '{}'".format(
+                filename, str(ex)))
 
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     user_config = UserConfig(filename)
