@@ -111,7 +111,7 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
         Returns:
             If instruction matches with condition.
         """
-        return any([chan in channels for chan in time_inst[1].channels])
+        return any(chan in channels for chan in time_inst[1].channels)
     return channel_filter
 
 

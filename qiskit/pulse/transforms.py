@@ -652,9 +652,9 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if block.transform in [AlignmentKind.sequential.name,
-                           AlignmentKind.equispaced.name,
-                           AlignmentKind.func.name]:
+    if block.transform in [AlignmentKind.SEQUENTIAL.name,
+                           AlignmentKind.EQUISPACED.name,
+                           AlignmentKind.FUNC.name]:
         return _sequential_allocation(block)
     else:
         return _parallel_allocation(block)
@@ -696,11 +696,11 @@ def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
 
 class AlignmentKind(enum.Enum):
     """Type of alignment policy and mapping to the alignment function."""
-    left = partial(align_left)
-    right = partial(align_right)
-    sequential = partial(align_sequential)
-    equispaced = partial(align_equispaced)
-    func = partial(align_func)
+    LEFT = partial(align_left)
+    RIGHT = partial(align_right)
+    SEQUENTIAL = partial(align_sequential)
+    EQUISPACED = partial(align_equispaced)
+    FUNC = partial(align_func)
 
     @classmethod
     def transform(cls,
@@ -721,7 +721,7 @@ class AlignmentKind(enum.Enum):
             PulseError: When invalid alignment type is specified.
         """
         for align_def in AlignmentKind:
-            if align_def.name == align_type:
+            if align_def.name.casefold() == align_type.casefold():
                 return align_def.value(schedule, **kwargs)
 
         raise PulseError('Specified alignment {} is not defined. Choose one of {}.'

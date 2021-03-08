@@ -45,7 +45,7 @@ class TestTransformation(BaseTestBlock):
 
     def test_left_alignment(self):
         """Test left alignment context."""
-        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.left.name)
+        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.LEFT.name)
         block = block.append(pulse.Play(self.test_waveform0, self.d0))
         block = block.append(pulse.Play(self.test_waveform1, self.d1))
 
@@ -57,7 +57,7 @@ class TestTransformation(BaseTestBlock):
 
     def test_right_alignment(self):
         """Test right alignment context."""
-        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.right.name)
+        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.RIGHT.name)
         block = block.append(pulse.Play(self.test_waveform0, self.d0))
         block = block.append(pulse.Play(self.test_waveform1, self.d1))
 
@@ -69,7 +69,7 @@ class TestTransformation(BaseTestBlock):
 
     def test_sequential_alignment(self):
         """Test sequential alignment context."""
-        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.sequential.name)
+        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.SEQUENTIAL.name)
         block = block.append(pulse.Play(self.test_waveform0, self.d0))
         block = block.append(pulse.Play(self.test_waveform1, self.d1))
 
@@ -81,7 +81,7 @@ class TestTransformation(BaseTestBlock):
 
     def test_equispace_alignment(self):
         """Test equispace alignment context."""
-        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.equispaced.name,
+        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.EQUISPACED.name,
                                     duration=1000)
         for _ in range(4):
             block = block.append(pulse.Play(self.test_waveform0, self.d0))
@@ -102,7 +102,7 @@ class TestTransformation(BaseTestBlock):
         def align_func(j):
             return {1: 0.1, 2: 0.25, 3: 0.7, 4: 0.85}.get(j)
 
-        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.func.name,
+        block = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.FUNC.name,
                                     duration=1000, func=align_func)
         for _ in range(4):
             block = block.append(pulse.Play(self.test_waveform0, self.d0))
@@ -122,11 +122,11 @@ class TestTransformation(BaseTestBlock):
 
     def test_nested_alignment(self):
         """Test nested block scheduling."""
-        block_sub = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.right.name)
+        block_sub = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.RIGHT.name)
         block_sub = block_sub.append(pulse.Play(self.test_waveform0, self.d0))
         block_sub = block_sub.append(pulse.Play(self.test_waveform1, self.d1))
 
-        block_main = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.sequential.name)
+        block_main = pulse.ScheduleBlock(transform=pulse.transforms.AlignmentKind.SEQUENTIAL.name)
         block_main = block_main.append(block_sub)
         block_main = block_main.append(pulse.Delay(10, self.d0))
         block_main = block_main.append(block_sub)
@@ -431,76 +431,76 @@ class TestBlockEquality(BaseTestBlock):
         """Test equality is True if two blocks have instructions in different order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='left'),
+                                             transform='Left'),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d1),
                                              pulse.Play(self.test_waveform0, self.d0),
-                                             transform='left'))
+                                             transform='Left'))
 
     def test_instruction_in_order_left(self):
         """Test equality is True if two blocks have instructions in same order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='left'),
+                                             transform='Left'),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='left'))
+                                             transform='Left'))
 
     def test_instruction_out_of_order_right(self):
         """Test equality is True if two blocks have instructions in different order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='right'),
+                                             transform='Right'),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d1),
                                              pulse.Play(self.test_waveform0, self.d0),
-                                             transform='right'))
+                                             transform='Right'))
 
     def test_instruction_in_order_right(self):
         """Test equality is True if two blocks have instructions in same order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='right'),
+                                             transform='Right'),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='right'))
+                                             transform='Right'))
 
     def test_instruction_out_of_order_sequential(self):
         """Test equality is False if two blocks have instructions in different order."""
         self.assertNotEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform0, self.d1),
-                                                transform='sequential'),
+                                                transform='Sequential'),
                             pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d1),
                                                 pulse.Play(self.test_waveform0, self.d0),
-                                                transform='sequential'))
+                                                transform='Sequential'))
 
     def test_instruction_in_order_sequential(self):
         """Test equality is True if two blocks have instructions in same order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='sequential'),
+                                             transform='Sequential'),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='sequential'))
+                                             transform='Sequential'))
 
     def test_instruction_out_of_order_equispaced(self):
         """Test equality is False if two blocks have instructions in different order."""
         self.assertNotEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform0, self.d1),
-                                                transform='equispaced',
+                                                transform='Equispaced',
                                                 duration=1000),
                             pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d1),
                                                 pulse.Play(self.test_waveform0, self.d0),
-                                                transform='equispaced',
+                                                transform='Equispaced',
                                                 duration=1000))
 
     def test_instruction_in_order_equispaced(self):
         """Test equality is True if two blocks have instructions in same order."""
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='equispaced',
+                                             transform='Equispaced',
                                              duration=1000),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='equispaced',
+                                             transform='Equispaced',
                                              duration=1000))
 
     def test_instruction_out_of_order_func(self):
@@ -510,12 +510,12 @@ class TestBlockEquality(BaseTestBlock):
 
         self.assertNotEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform0, self.d1),
-                                                transform='func',
+                                                transform='Func',
                                                 duration=1000,
                                                 func=align_func),
                             pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d1),
                                                 pulse.Play(self.test_waveform0, self.d0),
-                                                transform='func',
+                                                transform='Func',
                                                 duration=1000,
                                                 func=align_func))
 
@@ -526,12 +526,12 @@ class TestBlockEquality(BaseTestBlock):
 
         self.assertEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='func',
+                                             transform='Func',
                                              duration=1000,
                                              func=align_func),
                          pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                              pulse.Play(self.test_waveform0, self.d1),
-                                             transform='func',
+                                             transform='Func',
                                              duration=1000,
                                              func=align_func))
 
@@ -539,25 +539,25 @@ class TestBlockEquality(BaseTestBlock):
         """Test equality is False if two blocks have different instructions."""
         self.assertNotEqual(pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform1, self.d1),
-                                                transform='left'),
+                                                transform='Left'),
                             pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                                 pulse.Play(self.test_waveform0, self.d1),
-                                                transform='left'))
+                                                transform='Left'))
 
     def test_instruction_out_of_order_complex_equal(self):
         """Test complex schedule equality can be correctly evaluated."""
         block1_a = pulse.ScheduleBlock(pulse.Delay(10, self.d0),
                                        pulse.Play(self.test_waveform1, self.d1),
                                        pulse.Play(self.test_waveform0, self.d0),
-                                       transform='left')
+                                       transform='Left')
 
         block1_b = pulse.ScheduleBlock(pulse.Play(self.test_waveform1, self.d1),
                                        pulse.Delay(10, self.d0),
                                        pulse.Play(self.test_waveform0, self.d0),
-                                       transform='left')
+                                       transform='Left')
 
-        block2_a = pulse.ScheduleBlock(block1_a, block1_b, block1_a, transform='right')
-        block2_b = pulse.ScheduleBlock(block1_a, block1_a, block1_b, transform='right')
+        block2_a = pulse.ScheduleBlock(block1_a, block1_b, block1_a, transform='Right')
+        block2_b = pulse.ScheduleBlock(block1_a, block1_a, block1_b, transform='Right')
 
         self.assertEqual(block2_a, block2_b)
 
@@ -566,15 +566,15 @@ class TestBlockEquality(BaseTestBlock):
         block1_a = pulse.ScheduleBlock(pulse.Play(self.test_waveform0, self.d0),
                                        pulse.Play(self.test_waveform1, self.d1),
                                        pulse.Delay(10, self.d0),
-                                       transform='left')
+                                       transform='Left')
 
         block1_b = pulse.ScheduleBlock(pulse.Play(self.test_waveform1, self.d1),
                                        pulse.Delay(10, self.d0),
                                        pulse.Play(self.test_waveform0, self.d0),
-                                       transform='left')
+                                       transform='Left')
 
-        block2_a = pulse.ScheduleBlock(block1_a, block1_b, block1_a, transform='right')
-        block2_b = pulse.ScheduleBlock(block1_a, block1_a, block1_b, transform='right')
+        block2_a = pulse.ScheduleBlock(block1_a, block1_b, block1_a, transform='Right')
+        block2_b = pulse.ScheduleBlock(block1_a, block1_a, block1_b, transform='Right')
 
         self.assertNotEqual(block2_a, block2_b)
 
@@ -646,11 +646,11 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         block1 = pulse.ScheduleBlock(pulse.Play(self.test_waveform0, pulse.DriveChannel(par_ch)),
                                      pulse.Play(self.test_par_waveform0, self.d0),
-                                     transform='left')
+                                     transform='Left')
 
         block2 = pulse.ScheduleBlock(pulse.Play(self.test_par_waveform0, self.d0),
                                      pulse.Play(self.test_waveform0, pulse.DriveChannel(par_ch)),
-                                     transform='left')
+                                     transform='Left')
 
         self.assertEqual(block1, block2)
 

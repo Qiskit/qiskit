@@ -1178,15 +1178,15 @@ class ScheduleBlock(PulseProgram):
     and ``transform`` argument. ``ScheduleBlock`` should be initialized with one of
     following transform policies:
 
-        - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
+        - ``Left`` ... Align instructions in the `as-soon-as-possible` manner.
             Instructions are scheduled at the earliest possible time on the channel.
-        - ``right`` ... Align instructions in the `as-late-as-possible` manner.
+        - ``Right`` ... Align instructions in the `as-late-as-possible` manner.
             Instructions are scheduled at the latest possible time on the channel.
-        - ``sequential`` ... Align instructions sequentially even though they are
+        - ``Sequential`` ... Align instructions sequentially even though they are
             allocated in different channels.
-        - ``equispaced`` ... Align instructions with equal interval within a specified duration.
+        - ``Equispaced`` ... Align instructions with equal interval within a specified duration.
             Instructions on different channels are aligned sequentially.
-        - ``func`` ... Align instructions with arbitrary position within the given duration.
+        - ``Func`` ... Align instructions with arbitrary position within the given duration.
             The position is specified by a callback function taking a pulse index ``j`` and
             returning a fractional coordinate in [0, 1].
 
@@ -1226,7 +1226,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 transform: str = 'left',
+                 transform: str = 'Left',
                  **transform_opts):
         """Create an empty schedule block.
 
@@ -1238,7 +1238,7 @@ class ScheduleBlock(PulseProgram):
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
             transform: String that represents alignment of this context.
-                The block defaults to left alignment.
+                The block defaults to ``Left`` alignment.
             **transform_opts: Options used to align this context if available.
         Raises:
             TypeError: if metadata is not a dict.
@@ -1524,7 +1524,7 @@ class ScheduleBlock(PulseProgram):
 
     def __or__(self, other: ScheduleComponent) -> 'ScheduleBlock':
         """Return a new schedule which is the union of `self` and `other`."""
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='left')
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='Left')
         union_block.append(self, inplace=True)
         union_block.append(other, inplace=True)
 
