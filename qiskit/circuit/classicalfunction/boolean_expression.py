@@ -102,6 +102,7 @@ class BooleanExpression(Gate):
 
         Raises:
             ImportError: If tweedledum is not installed. Tweedledum is required.
+            FileNotFoundError: If filename is not found.
         """
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
