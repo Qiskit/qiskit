@@ -36,7 +36,7 @@ from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 from qiskit.circuit import ParameterExpression
 from qiskit.circuit.instruction import Instruction
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
+from qiskit.pulse.schedule import Schedule
 
 ScheduleArgumentsTuple = NamedTuple('ScheduleArgumentsTuple',
                                     [('schedule', Union[Callable, Schedule]),
@@ -233,21 +233,6 @@ class InstructionScheduleMap():
         qubits = _to_tuple(qubits)
         if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(instruction))
-
-        # TODO this block will be removed
-        if isinstance(schedule, ParameterizedSchedule):
-            warnings.warn('ParameterizedSchedule has been deprecated. '
-                          'Define Schedule with Parameter objects.', DeprecationWarning)
-
-            def sched_callback(**kwargs):
-                bind_dict = {pname: kwargs[pname] for pname in schedule.parameters}
-                return schedule.bind_parameters(**bind_dict)
-            arguments = tuple(schedule.parameters)
-
-            self._map[instruction][qubits] = ScheduleArgumentsTuple(sched_callback, arguments)
-            self._qubit_instructions[qubits].add(instruction)
-
-            return
 
         # validation of input data
         if not (isinstance(schedule, Schedule) or callable(schedule)):
