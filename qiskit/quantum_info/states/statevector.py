@@ -372,8 +372,9 @@ class Statevector(QuantumState, TolerancesMixin):
         # pylint: disable=no-name-in-module
         from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
         n_pauli = len(pauli)
-        x_mask = np.dot(1 << np.arange(n_pauli), pauli.x)
-        z_mask = np.dot(1 << np.arange(n_pauli), pauli.z)
+        qubits = np.arange(n_pauli)
+        x_mask = np.dot(1 << qubits, pauli.x)
+        z_mask = np.dot(1 << qubits, pauli.z)
         phase = (-1j) ** np.sum(pauli.x & pauli.z)
         if x_mask + z_mask == 0:
             return np.linalg.norm(self.data)
@@ -381,7 +382,7 @@ class Statevector(QuantumState, TolerancesMixin):
         if x_mask == 0:
             return expval_pauli_no_x(self.data, self.num_qubits, z_mask, phase)
 
-        x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
+        x_max = qubits[pauli.x][-1]
         return expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, phase, x_max)
 
