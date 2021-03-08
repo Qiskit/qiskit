@@ -267,7 +267,6 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
                                           'acquired disjointly'.format(meas_set))
 
 
-
 def _assemble_config(lo_converter: converters.LoConfigConverter,
                      experiment_config: Dict[str, Any],
                      run_config: RunConfig) -> qobj.PulseQobjConfig:
