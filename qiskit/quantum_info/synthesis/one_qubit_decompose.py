@@ -20,6 +20,7 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates import (UGate, PhaseGate, U3Gate,
                                                    U2Gate, U1Gate, RXGate, RYGate,
                                                    RZGate, RGate, SXGate)
@@ -117,9 +118,8 @@ class OneQubitEulerDecomposer:
         Args:
             unitary (Operator or Gate or array): 1-qubit unitary matrix
             simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (bool): absolute tolerance for checking angles when simplifing
+            atol (float): absolute tolerance for checking angles when simplifing
                          returnd circuit [Default: 1e-12].
-
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -145,6 +145,9 @@ class OneQubitEulerDecomposer:
         if not is_unitary_matrix(unitary):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
+        return self._decompose(unitary, simplify=simplify, atol=atol)
+
+    def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
         theta, phi, lam, phase = self._params(unitary)
         circuit = self._circuit(theta, phi, lam, phase,
                                 simplify=simplify,
@@ -276,7 +279,7 @@ class OneQubitEulerDecomposer:
         if simplify and abs(theta) < atol:
             tot = _mod_2pi(phi + lam)
             if abs(tot) > atol:
-                circuit.append(RZGate(tot), [0])
+                circuit._append(RZGate(tot), [0])
                 gphase += tot/2
             circuit.global_phase = gphase
             return circuit
@@ -285,11 +288,11 @@ class OneQubitEulerDecomposer:
             lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
             gphase += lam/2
-            circuit.append(RZGate(lam), [0])
-        circuit.append(RYGate(theta), [0])
+            circuit._append(RZGate(lam), [0])
+        circuit._append(RYGate(theta), [0])
         if not simplify or abs(phi) > atol:
             gphase += phi/2
-            circuit.append(RZGate(phi), [0])
+            circuit._append(RZGate(phi), [0])
         circuit.global_phase = gphase
         return circuit
 
@@ -306,7 +309,7 @@ class OneQubitEulerDecomposer:
         if simplify and abs(theta) < atol:
             tot = _mod_2pi(phi + lam)
             if abs(tot) > atol:
-                circuit.append(RZGate(tot), [0])
+                circuit._append(RZGate(tot), [0])
                 gphase += tot/2
             circuit.global_phase = gphase
             return circuit
@@ -315,11 +318,11 @@ class OneQubitEulerDecomposer:
             lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
             gphase += lam/2
-            circuit.append(RZGate(lam), [0])
-        circuit.append(RXGate(theta), [0])
+            circuit._append(RZGate(lam), [0])
+        circuit._append(RXGate(theta), [0])
         if not simplify or abs(phi) > atol:
             gphase += phi/2
-            circuit.append(RZGate(phi), [0])
+            circuit._append(RZGate(phi), [0])
         circuit.global_phase = gphase
         return circuit
 
@@ -336,7 +339,7 @@ class OneQubitEulerDecomposer:
         if simplify and abs(theta) < atol:
             tot = _mod_2pi(phi + lam)
             if abs(tot) > atol:
-                circuit.append(RXGate(tot), [0])
+                circuit._append(RXGate(tot), [0])
                 gphase += tot/2
             circuit.global_phase = gphase
             return circuit
@@ -345,11 +348,11 @@ class OneQubitEulerDecomposer:
             lam, phi = _mod_2pi(lam-phi), 0
         if not simplify or abs(lam) > atol:
             gphase += lam/2
-            circuit.append(RXGate(lam), [0])
-        circuit.append(RYGate(theta), [0])
+            circuit._append(RXGate(lam), [0])
+        circuit._append(RYGate(theta), [0])
         if not simplify or abs(phi) > atol:
             gphase += phi/2
-            circuit.append(RXGate(phi), [0])
+            circuit._append(RXGate(phi), [0])
         circuit.global_phase = gphase
         return circuit
 
@@ -362,7 +365,7 @@ class OneQubitEulerDecomposer:
                     atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1, global_phase=phase)
         if not simplify or abs(theta) > atol or abs(phi) > atol or abs(lam) > atol:
-            circuit.append(U3Gate(theta, phi, lam), [0])
+            circuit._append(U3Gate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -376,11 +379,11 @@ class OneQubitEulerDecomposer:
         if simplify and abs(theta) < atol:
             tot = _mod_2pi(phi + lam)
             if abs(tot) > atol:
-                circuit.append(U1Gate(tot), [0])
+                circuit._append(U1Gate(tot), [0])
         elif simplify and abs(theta - np.pi/2) < atol:
-            circuit.append(U2Gate(phi, lam), [0])
+            circuit._append(U2Gate(phi, lam), [0])
         else:
-            circuit.append(U3Gate(theta, phi, lam), [0])
+            circuit._append(U3Gate(theta, phi, lam), [qr[0]], [])
         return circuit
 
     @staticmethod
@@ -392,7 +395,7 @@ class OneQubitEulerDecomposer:
                    atol=DEFAULT_ATOL):
         circuit = QuantumCircuit(1, global_phase=phase)
         if not simplify or abs(theta) > atol or abs(phi) > atol or abs(lam) > atol:
-            circuit.append(UGate(theta, phi, lam), [0])
+            circuit._append(UGate(theta, phi, lam), [0])
         return circuit
 
     @staticmethod
@@ -434,10 +437,10 @@ class OneQubitEulerDecomposer:
         def fnz(circuit, phi):
             phi = _mod_2pi(phi)
             if not simplify or abs(phi) > atol:
-                circuit.append(PhaseGate(phi), [0])
+                circuit._append(PhaseGate(phi), [0])
 
         def fnx(circuit):
-            circuit.append(SXGate(), [0])
+            circuit._append(SXGate(), [0])
         return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, simplify, atol,
                                                         fnz, fnx)
 
@@ -451,11 +454,11 @@ class OneQubitEulerDecomposer:
         def fnz(circuit, phi):
             phi = _mod_2pi(phi)
             if not simplify or abs(phi) > atol:
-                circuit.append(RZGate(phi), [0])
+                circuit._append(RZGate(phi), [0])
                 circuit.global_phase += phi/2
 
         def fnx(circuit):
-            circuit.append(SXGate(), [0])
+            circuit._append(SXGate(), [0])
         return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, simplify, atol,
                                                         fnz, fnx)
 
@@ -469,11 +472,11 @@ class OneQubitEulerDecomposer:
         def fnz(circuit, phi):
             phi = _mod_2pi(phi)
             if not simplify or abs(phi) > atol:
-                circuit.append(U1Gate(phi), [0])
+                circuit._append(U1Gate(phi), [0])
 
         def fnx(circuit):
             circuit.global_phase += np.pi/4
-            circuit.append(RXGate(np.pi / 2), [0])
+            circuit._append(RXGate(np.pi / 2), [0])
         return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, simplify, atol,
                                                         fnz, fnx)
 
@@ -488,8 +491,8 @@ class OneQubitEulerDecomposer:
         if simplify and abs(theta) < atol and abs(phi) < atol and abs(lam) < atol:
             return circuit
         if not simplify or abs(theta - np.pi) > atol:
-            circuit.append(RGate(theta - np.pi, np.pi / 2 - lam), [0])
-        circuit.append(RGate(np.pi, 0.5 * (phi - lam + np.pi)), [0])
+            circuit._append(RGate(theta - np.pi, np.pi / 2 - lam), [0])
+        circuit._append(RGate(np.pi, 0.5 * (phi - lam + np.pi)), [0])
         return circuit
 
 
