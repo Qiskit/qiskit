@@ -107,6 +107,7 @@ class StateFn(OperatorBase):
             coeff: A coefficient by which the state function is multiplied.
             is_measurement: Whether the StateFn is a measurement operator
         """
+        super().__init__()
         self._primitive = primitive
         self._is_measurement = is_measurement
         self._coeff = coeff
