@@ -171,6 +171,7 @@ class QuantumCircuit:
             raise CircuitError("The circuit name should be a string "
                                "(or None to auto-generate a name).")
         else:
+            self._base_name = name
             self.name = name
         self._increment_instances()
 
