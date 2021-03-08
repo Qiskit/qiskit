@@ -311,6 +311,7 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    RippleCarryAdder
 )
 from .n_local import (
     NLocal,
