@@ -13,6 +13,7 @@
 """ OperatorBase Class """
 
 from typing import Set, Union, Dict, Optional, List, cast, Tuple
+import itertools
 from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
@@ -36,6 +37,16 @@ class OperatorBase(ABC):
     # Indentation used in string representation of list operators
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
+
+    _count = itertools.count()
+
+    def __init__(self) -> None:
+        self._instance_id = next(self._count)
+
+    @property
+    def instance_id(self) -> int:
+        """Return the unique instance id."""
+        return self._instance_id
 
     @property
     @abstractmethod
