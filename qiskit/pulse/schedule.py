@@ -536,13 +536,13 @@ class Schedule(PulseProgram):
         sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
         sched2 = sched1 | sched2
 
-    The ``PulseError` is immediately raised when the overlap constraint is violated.
+    The ``PulseError`` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize duration of waveforms.
     Thus we need to create new schedule object for every duration, i.e. Rabi experiment.
 
     References:
-        [1] https://arxiv.org/abs/2004.06755
+        [1]: https://arxiv.org/abs/2004.06755
 
     """
     # Prefix to use for auto naming.
