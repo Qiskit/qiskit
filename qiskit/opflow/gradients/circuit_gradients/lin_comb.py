@@ -603,7 +603,7 @@ class LinComb(CircuitGradient):
                     # Add phase fix according to
                     # https://quantum-journal.org/papers/q-2019-10-07-191/pdf/
                     def phase_fix_combo_fn(x):
-                        return -2j * x[0] * x[1] # 2 correct
+                        return 2j * x[0] * x[1] # 2 correct
                     phase_fix_exp_op = self._phase_fix_operator
                     phase_fix = ListOp([phase_fix_states[i], phase_fix_exp_op @ state_op],
                                        combo_fn=phase_fix_combo_fn)

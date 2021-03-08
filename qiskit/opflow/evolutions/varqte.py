@@ -236,11 +236,11 @@ class VarQTE(EvolutionBase):
             time_steps.append(time[j+1]-time[j])
 
         if not np.iscomplex(self._operator.coeff):
-            e_bound = self._get_error_bound(grad_errors, time_steps, stddevs,
+            e_bound = self._get_error_bound(grad_errors, time, stddevs,
                                             use_integral_approx, imag_reverse_bound, H)
 
         else:
-            e_bound = self._get_error_bound(grad_errors, time_steps, stddevs, use_integral_approx)
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, use_integral_approx)
         return e_bound
 
     def _init_grad_objects(self):
@@ -306,14 +306,14 @@ class VarQTE(EvolutionBase):
         def error_based_ode_fun(time, params):
             param_dict = dict(zip(self._parameters, params))
             nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            w, v = np.linalg.eig(metric_res)
-
-            if not all(ew >= -1e-8 for ew in w):
-                raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
-                              '. Please use a regularized least-square solver for this problem.')
-            if not all(ew >= 0 for ew in w):
-                w = [max(0, ew) for ew in w]
-                metric_res = v @ np.diag(w) @ np.linalg.inv(v)
+            # w, v = np.linalg.eig(metric_res)
+            #
+            # if not all(ew >= -1e-8 for ew in w):
+            #     raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
+            #                   '. Please use a regularized least-square solver for this problem.')
+            # if not all(ew >= 0 for ew in w):
+            #     w = [max(0, ew) for ew in w]
+            #     metric_res = v @ np.diag(w) @ np.linalg.inv(v)
 
             def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:
                 """
@@ -346,15 +346,13 @@ class VarQTE(EvolutionBase):
                 return dw_et_squared
 
             # return nat_grad_result
-
-            # ls = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-            #                      bounds=(0, 2 * np.pi), ftol=1e-2)
-
             # Use the natural gradient result as initial point for least squares solver
             # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-            #                        ftol=1e-10)
-            argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-                              method='CG', tol=1e-8)
+            #                        ftol=1e-8)
+            argmin = minimize(fun=argmin_fun, x0=nat_grad_result,
+                              method='COBYLA', tol=1e-6)
+            # argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+            #                   method='CG', tol=1e-8)
             print('initial natural gradient result', nat_grad_result)
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -368,7 +366,6 @@ class VarQTE(EvolutionBase):
                 dt_params, grad_res, metric_res = error_based_ode_fun(t, params)
             else:
                 dt_params, grad_res, metric_res = self._propagate(param_dict)
-
             if (self._snapshot_dir is not None) and (self._store_now):
                 # Get the residual for McLachlan's Variational Principle
                 # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
@@ -401,7 +398,7 @@ class VarQTE(EvolutionBase):
 
         if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=self._parameter_values,
-                                              n=self._num_time_steps, atol=1e-8)
+                                              n=self._num_time_steps, atol=1e-6)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
@@ -419,11 +416,14 @@ class VarQTE(EvolutionBase):
         self._init_ode_solver(t=t)
         param_values = self._parameter_values
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
+            self._store_now = True
+            _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
             while self._ode_solver.t < t:
                 self._store_now = False
                 self._ode_solver.step()
-                self._store_now = True
-                _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
+                if self._snapshot_dir is not None and self._ode_solver.t <= t:
+                    self._store_now = True
+                    _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
                 # if self._snapshot_dir is not None:
                 #     self._ode_solver_store(param_values, t_old)
                 # if self._et is None:
@@ -626,26 +626,13 @@ class VarQTE(EvolutionBase):
                                                                        metric_res],
                                                                     regularization=
                                                                     self._regularization)
-            # if np.iscomplex(self._operator.coeff):
-            #     # VarQRTE
-            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res,
-            #                                                            metric_res],
-            #                                                         regularization=
-            #                                                         self._regularization)
-            # else:
-            #     # VarQITE
-            #     nat_grad_result = NaturalGradient.nat_grad_combo_fn(x=[grad_res * -1,
-            #                                                            metric_res],
-            #                                                         regularization=
-            #                                                         self._regularization)
-            print('nat grad result', nat_grad_result)
         else:
             if self._backend is not None:
                 nat_grad_result = \
                     self._nat_grad_circ_sampler.convert(self._nat_grad, params=param_dict).eval()[0]
             else:
                 nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
-            print('nat grad result', nat_grad_result)
+        print('nat grad result', nat_grad_result)
 
         if any(np.abs(np.imag(grad_res_item)) > 1e-8 for grad_res_item in grad_res):
             raise Warning('The imaginary part of the gradient are non-negligible.')
@@ -700,8 +687,7 @@ class VarQTE(EvolutionBase):
     @staticmethod
     def print_results(data_directories: List[str],
                       error_bound_directories: List[str],
-                      reverse_bound_directories: Optional[List[str]] = None,
-                      use_integral_approx: bool = True):
+                      reverse_bound_directories: Optional[List[str]] = None):
         """
 
         Args:
@@ -758,13 +744,6 @@ class VarQTE(EvolutionBase):
                 time, grad_errors, true_error, fid, true_energy, \
                 trained_energy = [list(zipped_items) for zipped_items in zipped_sorted]
 
-                true_errors_integral = [0]
-                for k in range(len(time) - 1):
-                    time_steps.append(time[k + 1] - time[k])
-                    true_errors_integral.append(true_errors_integral[k]
-                                                + (true_error[k+1] + true_error[k]) * 0.5 *
-                                                time_steps[k])
-
             error_bounds = np.load(error_bound_directories[j])
 
             if reverse_bound_directories is not None:
@@ -774,11 +753,8 @@ class VarQTE(EvolutionBase):
             plt.title('Actual Error and Error Bound ')
             plt.scatter(time, error_bounds, color='blue', marker='o', s=40,
                         label='error bound')
-            if use_integral_approx:
-                plt.scatter(time, true_errors_integral, color='purple', marker='x', s=40,
-                            label='true error')
-            else:
-                plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+
+            plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
@@ -787,6 +763,7 @@ class VarQTE(EvolutionBase):
             if reverse_bound_directories is not None:
                 plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
                             label='reverse error bound')
+                plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
             plt.close()
 

@@ -212,9 +212,12 @@ class VarQRTE(VarQTE):
         dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
         print('dtdt', dtdt_state)
         eps_squared += dtdt_state
+        print('metric', np.round(metric, 3))
 
         # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)
         # 2 missing b.c. of Im
+        print('nat grad result', np.round(ng_res, 3))
+        print('grad res', np.round(grad_res, 3))
         imgrad2 = self._inner_prod(grad_res, ng_res)
         print('imgrad 2', imgrad2)
         eps_squared -= imgrad2
@@ -244,7 +247,7 @@ class VarQRTE(VarQTE):
                                                             np.power(ng_res, 2))
 
         # 2Im⟨dωψ(ω)|H | ψ(ω)〉
-        grad_eps_squared = grad_res
+        grad_eps_squared -= grad_res
 
         # print('E_t squared', np.round(eps_squared, 4))
         if np.linalg.norm(np.imag(grad_eps_squared)) > 1e-6:
@@ -253,17 +256,18 @@ class VarQRTE(VarQTE):
 
     def _get_error_bound(self,
                          gradient_errors: List,
-                         time_steps: List,
+                         times: List,
                          stddevs: List,
                          use_integral_approx: bool = True) -> float:
 
-        if not len(gradient_errors) == len(time_steps) + 1:
+        if not len(gradient_errors) == len(times):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
-        e_bound = [0]
-        for j, dt in enumerate(time_steps):
+        e_bound = []
+        for j, dt in enumerate(times):
             if use_integral_approx:
-                e_bound.append(e_bound[j] + (gradient_errors[j] + gradient_errors[j+1]) * 0.5 * dt)
+                e_bound.append(np.trapz(gradient_errors[:j+1], x=times[:j+1]))
+                # e_bound.append(e_bound[j] + (gradient_errors[j] + gradient_errors[j+1]) * 0.5 * dt)
             else:
                 e_bound.append(e_bound[j] + gradient_errors[j] * dt)
         return e_bound
