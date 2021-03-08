@@ -407,16 +407,12 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
                 sched.insert(time, instructions.Play(inst.pulse, chan), inplace=True)
 
         # Insert phase and frequency commands that are not applied to frames.
-        elif isinstance(inst, instructions.SetFrequency):
-            if isinstance(chan, chans.PulseChannel):
+        elif isinstance(type(inst), (instructions.SetFrequency, instructions.ShiftFrequency)):
+            if issubclass(chan, chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.frequency, chan))
 
-        elif isinstance(inst, instructions.ShiftFrequency):
-            if isinstance(chan, chans.PulseChannel):
-                sched.insert(time, type(inst)(inst.frequency, chan))
-
-        elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
-            if isinstance(chan, chans.PulseChannel):
+        elif isinstance(type(inst), (instructions.SetPhase, instructions.ShiftPhase)):
+            if issubclass(chan, chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan))
 
         else:
