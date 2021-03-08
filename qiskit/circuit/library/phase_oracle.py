@@ -37,15 +37,11 @@ class PhaseOracle(QuantumCircuit):
 
     def __init__(self, expression: str) -> None:  # pylint: disable=super-init-not-called
         self.boolean_expression = BooleanExpression(expression)
-        # input qubits for the oracle
-        self.state_qubits = range(self.boolean_expression.num_qubits - 1)
-
         self.compose(self._build_from_boolean_expression(), inplace=True)
 
     def _build_from_boolean_expression(self):
         # initialize the quantumcircuit
-        qr_state = QuantumRegister(len(self.state_qubits), 'state')
-
+        qr_state = QuantumRegister(self.boolean_expression.num_qubits - 1, 'state')
         super().__init__(qr_state, name='Phase Oracle')
 
         from tweedledum.passes import pkrm_synth  # pylint: disable=no-name-in-module
@@ -111,10 +107,6 @@ class PhaseOracle(QuantumCircuit):
         """
         phase_oracle = cls.__new__(cls)
         phase_oracle.boolean_expression = BooleanExpression.from_dimacs_file(filename)
-
-        # input qubits for the oracle
-        phase_oracle.state_qubits = range(phase_oracle.boolean_expression.num_qubits - 1)
-
         phase_oracle.compose(phase_oracle._build_from_boolean_expression(), inplace=True)
 
         return phase_oracle
