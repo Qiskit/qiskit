@@ -26,6 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -359,6 +360,30 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def _expectation_value_pauli(self, pauli):
+        """Compute the expectation value of a Pauli.
+
+            Args:
+                pauli (Pauli): a Pauli operator to evaluate expval of.
+
+            Returns:
+                complex: the expectation value.
+            """
+        # pylint: disable=no-name-in-module
+        from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
+        n_pauli = len(pauli)
+        x_mask = np.dot(1 << np.arange(n_pauli), pauli.x)
+        z_mask = np.dot(1 << np.arange(n_pauli), pauli.z)
+        phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        if x_mask + z_mask == 0:
+            return np.linalg.norm(self.data)
+
+        if x_mask == 0:
+            return expval_pauli_no_x(self.data, z_mask, phase)
+
+        x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
+        return expval_pauli_with_x(self.data, z_mask, x_mask, phase, x_max)
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -369,6 +394,13 @@ class Statevector(QuantumState, TolerancesMixin):
         Returns:
             complex: the expectation value.
         """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)))
+                        for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)])
+
         val = self.evolve(oper, qargs=qargs)
         conj = self.conjugate()
         return np.dot(conj.data, val.data)
