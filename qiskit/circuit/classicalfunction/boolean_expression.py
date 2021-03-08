@@ -12,7 +12,7 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
-from os.path import basename
+from os.path import basename, isfile
 
 from qiskit.circuit import Gate
 from .utils import HAS_TWEEDLEDUM
@@ -110,6 +110,8 @@ class BooleanExpression(Gate):
         from tweedledum import BoolFunction
 
         expr_obj = cls.__new__(cls)
+        if not isfile(filename):
+            raise FileNotFoundError('The file %s does not exists.' % filename)
         expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
 
         num_qubits = (expr_obj._tweedledum_bool_expression.num_inputs() +
