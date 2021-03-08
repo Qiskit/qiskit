@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removed ``ParameterizedSchedule`` class from :py:mod:`qiskit.pulse`, which
+    was deprecated in Qiskit Terra version 0.16.2. Use
+    :py:class:`~qiskit.pulse.Schedule`s directly with
+    :py:class:`~qiskit.circuit.ParameterExpression`s instead.
