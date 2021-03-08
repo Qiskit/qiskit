@@ -243,8 +243,8 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
         try:
             from IPython.display import Latex
         except ImportError as err:
-            raise ImportError("Try `pip install ipython` (If you just want the LaTeX"
-                              " source string, set `source=True`).") from err
+            raise ImportError(str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
+                                         " source string, set `source=True`).") from err
         return Latex(f"$${outstr}$$")
     else:
         return outstr
