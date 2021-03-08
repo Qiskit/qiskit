@@ -25,6 +25,7 @@ from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
@@ -338,6 +339,30 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def _expectation_value_pauli(self, pauli):
+        """Compute the expectation value of a Pauli.
+
+            Args:
+                pauli (Pauli): a Pauli operator to evaluate expval of.
+
+            Returns:
+                complex: the expectation value.
+            """
+        # pylint: disable=no-name-in-module
+        from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
+        n_pauli = len(pauli)
+        x_mask = np.dot(1 << np.arange(n_pauli), pauli.x)
+        z_mask = np.dot(1 << np.arange(n_pauli), pauli.z)
+        phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        if x_mask + z_mask == 0:
+            return self.trace()
+
+        if x_mask == 0:
+            return density_expval_pauli_no_x(self.data, z_mask)
+
+        x_max = max([k for k in range(len(pauli)) if pauli.x[k]])
+        return density_expval_pauli_with_x(self.data, z_mask, x_mask, phase, x_max)
+
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
 
@@ -348,6 +373,13 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             complex: the expectation value.
         """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum([coeff * self._expectation_value_pauli(Pauli((z, x)))
+                        for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)])
+
         if not isinstance(oper, Operator):
             oper = Operator(oper)
         return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
