@@ -25,7 +25,7 @@ import numpy as np
 from scipy import linalg
 from qiskit import user_config
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.visualization.array import _matrix_to_latex
+from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
@@ -1052,35 +1052,46 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def _repr_state_latex(state, max_size=(8, 8), dims=True, prefix=None):
-    if prefix is None:
-        prefix = ""
+def state_to_latex(state, dims=None, **args):
+    """Return a Latex representation of a state. Wrapper function
+    for `qiskit.visualization.array_to_latex` to add dims if necessary.
+    Intended for use within `state_drawer`.
+
+    Args:
+        state (`Statevector` or `DensityMatrix`): State to be drawn
+        dims (bool): Whether to display the state's `dims`
+        *args: Arguments to be passed directly to `array_to_latex`
+
+    Returns:
+        `str`: Latex representation of the state
+    """
+    if dims is None:  # show dims if state is not only qubits
+        if set(state.dims()) == {2}:
+            dims = False
+        else:
+            dims = True
+
+    prefix = ""
     suffix = ""
-    if dims or prefix != "":
-        prefix = "\\begin{align}\n" + prefix
-        suffix = "\\end{align}"
     if dims:
+        prefix = "\\begin{align}\n"
         dims_str = state._op_shape.dims_l()
-        suffix = f"\\\\\n\\text{{dims={dims_str}}}\n" + suffix
-    latex_str = _matrix_to_latex(state._data, max_size=max_size)
+        suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
+    latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
-
-
-def _repr_state_text(state):
-    prefix = '{}('.format(type(state).__name__)
-    pad = len(prefix) * ' '
-    return '{}{},\n{}dims={})'.format(
-        prefix, np.array2string(
-            state._data, separator=', ', prefix=prefix),
-        pad, state._dims)
 
 
 class TextMatrix():
     """Text representation of an array, with `__str__` method so it
     displays nicely in Jupyter notebooks"""
-    def __init__(self, state, max_size=8, dims=False, prefix='', suffix=''):
+    def __init__(self, state, max_size=8, dims=None, prefix='', suffix=''):
         self.state = state
         self.max_size = max_size
+        if dims is None:  # show dims if state is not only qubits
+            if set(state.dims()) == {2}:
+                dims = False
+            else:
+                dims = True
         self.dims = dims
         self.prefix = prefix
         self.suffix = suffix
@@ -1114,9 +1125,6 @@ class TextMatrix():
 
 def state_drawer(state,
                  output=None,
-                 max_size=None,
-                 dims=None,
-                 prefix=None,
                  **drawer_args
                  ):
     """Returns a visualization of the state.
@@ -1145,15 +1153,13 @@ def state_drawer(state,
                 be drawn in the output array, including elipses elements. For
                 ``text`` drawer, this is the ``threshold`` parameter in
                 ``numpy.array2string()``.
-            dims (bool): For `text`, `latex` and `latex_source`. Whether to
-                display the dimensions. If `None`, will only display if state
-                is not a qubit state.
-            prefix (str): For `text`, `latex`, and `latex_source`. Text to be
-                displayed before the rest of the state.
+            drawer_args: Arguments to be passed to the relevant drawer. For
+                'latex' and 'latex_source' see ``array_to_latex``
 
         Returns:
             :class:`matplotlib.figure` or :class:`str` or
-            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+            :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the state.
 
         Raises:
             ImportError: when `output` is `latex` and IPython is not installed.
@@ -1167,26 +1173,13 @@ def state_drawer(state,
             default_output = config.get('state_drawer', 'repr')
         output = default_output
     output = output.lower()
-    # Set 'dims'
-    if dims is None:  # show dims if state is not only qubits
-        if set(state.dims()) == {2}:
-            dims = False
-        else:
-            dims = True
-    if prefix is None:
-        prefix = ''
-    if max_size is None:
-        max_size = (8, 8)
-    if isinstance(max_size, int):
-        max_size = (max_size, max_size)
 
     # Choose drawing backend:
-    # format is {'key': (<drawer-function>, (<drawer-specific-args>))}
-    drawers = {'text': (TextMatrix, (max_size, dims, prefix)),
-               'latex_source': (_repr_state_latex, (max_size, dims, prefix)),
-               'qsphere': (plot_state_qsphere, ()),
-               'hinton': (plot_state_hinton, ()),
-               'bloch': (plot_bloch_multivector, ())}
+    drawers = {'text': TextMatrix,
+               'latex_source': state_to_latex,
+               'qsphere': plot_state_qsphere,
+               'hinton': plot_state_hinton,
+               'bloch': plot_bloch_multivector}
     if output == 'latex':
         try:
             from IPython.display import Latex
@@ -1195,17 +1188,15 @@ def state_drawer(state,
                               '"pip install ipython", or set output=\'latex_source\' '
                               'instead for an ASCII string.') from err
         else:
-            draw_func, args = drawers['latex_source']
-            return Latex(draw_func(state, *args))
+            draw_func = drawers['latex_source']
+            return Latex(f"$${draw_func(state, **drawer_args)}$$")
 
     if output == 'repr':
-        if prefix != '':
-            warnings.warn("Ignoring 'prefix' for 'repr' drawing")
         return state.__repr__()
 
     try:
-        draw_func, specific_args = drawers[output]
-        return draw_func(state, *specific_args, **drawer_args)
+        draw_func = drawers[output]
+        return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
             """'{}' is not a valid option for drawing {} objects. Please choose from:

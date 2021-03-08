@@ -111,7 +111,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 self._data, separator=', ', prefix=prefix),
             pad, self._op_shape.dims_l())
 
-    def draw(self, output=None, max_size=16, dims=None, prefix='', **drawer_args):
+    def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
         **repr**: ASCII TextMatrix of the state's ``__repr__``.
@@ -134,20 +134,10 @@ class Statevector(QuantumState, TolerancesMixin):
                 `qsphere`, `hinton`, or `bloch`. Default is `repr`. Default can
                 be changed by adding the line ``state_drawer = <default>`` to
                 ``~/.qiskit/settings.conf`` under ``[default]``.
-            max_size (int): Maximum number of elements before array is
-                summarized instead of fully represented. For `latex`
-                and `latex_source` drawers, this is also the maximum number
-                of elements that will be drawn along each axis of the output
-                array, including elipses elements. For `repr` and `text`
-                drawer, this is the `threshold` parameter in `numpy.array2string()`.
-            dims (bool): For `text` and `latex`. Whether to display the
-                dimensions.
-            prefix (str): For `text` and `latex`. Text to be displayed before
-                the state.
-            drawer_args: Arguments to be passed directly to the relevant drawer
-                function (`plot_state_qsphere()`, `plot_state_hinton()` or
-                `plot_bloch_multivector()`). See the relevant function under
-                `qiskit.visualization` for that function's documentation.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`,
+                `plot_state_qsphere()`, `plot_state_hinton()` or `plot_bloch_multivector()`).
+                See the relevant function under `qiskit.visualization` for that function's documentation.
 
         Returns:
             :class:`matplotlib.Figure` or :class:`str` or
@@ -159,8 +149,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer
-        return state_drawer(self, output=output, max_size=max_size, dims=dims,
-                            prefix=prefix, **drawer_args)
+        return state_drawer(self, output=output, **drawer_args)
 
     def _ipython_display_(self):
         out = self.draw()
