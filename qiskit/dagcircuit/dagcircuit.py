@@ -886,10 +886,11 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
+
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
-            if (self_phase - other_phase) % (2 * np.pi) > 1.E-10:  # FIXME: tolerance?
+            if (self_phase - other_phase + np.pi) % (2 * np.pi) - np.pi > 1.E-10:  # XXX: tolerance
                 return False
         except TypeError:
             if self.global_phase != other.global_phase:
@@ -913,7 +914,6 @@ class DAGCircuit:
                               for regname, reg in other.qregs.items()]
         other_creg_indices = [(regname, [other_bit_indices[bit] for bit in reg])
                               for regname, reg in other.cregs.items()]
-
         if (
                 self_qreg_indices != other_qreg_indices
                 or self_creg_indices != other_creg_indices
