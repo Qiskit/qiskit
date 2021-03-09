@@ -310,7 +310,9 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     frames_config_ = None
     if hasattr(backend_config, 'frames'):
-        frames_config_ = frames_configuration(backend_config.frames(), qubit_lo_freq)
+        frames_config_ = frames_configuration(backend_config.frames(),
+                                              qubit_lo_freq,
+                                              backend_config.dt)
 
     if frames_config is None:
         frames_config = frames_config_
@@ -476,6 +478,7 @@ def _expand_parameters(circuits, run_config):
 
 def frames_configuration(frame_channels: List[List[PulseChannel]],
                          frame_frequencies: List[float],
+                         sample_duration: float,
                          frame_indices: List[int] = None) -> Union[dict, None]:
     """
     Ties together the frames of the backend and the frequencies of the frames.
@@ -484,6 +487,7 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
         frame_channels: A List of lists. Sublist i is a list of channel names
             that frame i will broadcast on.
         frame_frequencies: A list of starting frequencies for each frame.
+        sample_duration: time of a sample.
         frame_indices: The indices of the frames. If None is given these will be
             in ascending order starting from 0.
 
@@ -510,7 +514,8 @@ def frames_configuration(frame_channels: List[List[PulseChannel]],
             'frame': Frame(index),
             'phase': 0.0,
             'frequency': frame_frequencies[idx],
-            'channels': channels
+            'channels': channels,
+            'sample_duration': sample_duration
         }
 
     return frames_config

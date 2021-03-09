@@ -13,10 +13,11 @@
 """Implements a Frame."""
 
 from abc import ABC
-from typing import Dict, List, Union
+from typing import List, Union
+import numpy as np
 
 from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel, PulseChannel
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.schedule import Schedule
@@ -31,16 +32,17 @@ class Tracker(ABC):
     or a pulse channel in a given schedule.
     """
 
-    def __init__(self, index: Union[int, Parameter]):
+    def __init__(self, index: Union[int, Parameter], sample_duration: float):
         """
         Args:
             index: The index of the Tracker. Corresponds to the index of a
-            :class:`~qiskit.pulse.Frame` or a channel.
+                :class:`~qiskit.pulse.Frame` or a channel.
+            sample_duration: Duration of a sample.
         """
         self._index = index
-        self._frequencies = []
-        self._phases = []
+        self._frequencies_phases = []  # Tuple of (time, frequency, phase)
         self._instructions = {}
+        self._sample_duration = sample_duration
 
         self._parameters = set()
         if isinstance(index, ParameterExpression):
@@ -61,8 +63,8 @@ class Tracker(ABC):
         Returns:
             frequency: The frequency of the frame up until time.
         """
-        frequency = self._frequencies[0][1]
-        for time_freq in self._frequencies:
+        frequency = self._frequencies_phases[0][1]
+        for time_freq in self._frequencies_phases:
             if time_freq[0] <= time:
                 frequency = time_freq[1]
             else:
@@ -80,42 +82,44 @@ class Tracker(ABC):
         Returns:
              phase: The phase of the frame up until time.
         """
-        phase = self._phases[0][1]
-        for time_freq in self._phases:
+        if len(self._frequencies_phases) == 0:
+            return 0.0
+        else:
+            phase = self._frequencies_phases[0][1]
+            last_time = self._frequencies_phases[0][0]
+
+        for time_freq in self._frequencies_phases:
             if time_freq[0] <= time:
-                phase = time_freq[1]
+                phase = time_freq[2]
+                last_time = time_freq[0]
             else:
                 break
 
-        return phase
+        freq = self.frequency(time)
+
+        return (phase + 2*np.pi*freq*(time-last_time)*self._sample_duration) % (2*np.pi)
 
     def set_frequency(self, time: int, frequency: float):
         """Insert a new frequency in the time-ordered frequencies."""
-
-        if time > 0 and time in set([_[0] for _ in self._frequencies]):
-            if self.frequency(time) != frequency:
-                raise PulseError(f'Frequency already added at time {time}.')
-
         insert_idx = 0
-        for idx, time_freq in enumerate(self._frequencies):
+        for idx, time_freq in enumerate(self._frequencies_phases):
             if time_freq[0] < time:
                 insert_idx = idx
 
-        self._frequencies.insert(insert_idx + 1, (time, frequency))
+        phase = self.phase(time)
+
+        self._frequencies_phases.insert(insert_idx + 1, (time, frequency, phase))
 
     def set_phase(self, time: int, phase: float):
         """Insert a new phase in the time-ordered phases."""
-
-        if time > 0 and time in set([_[0] for _ in self._phases]):
-            if self.phase(time) != phase:
-                raise PulseError(f'Phase already added at time {time} for Frame({self.index}).')
-
         insert_idx = 0
-        for idx, time_freq in enumerate(self._phases):
+        for idx, time_freq in enumerate(self._frequencies_phases):
             if time_freq[0] < time:
                 insert_idx = idx
 
-        self._phases.insert(insert_idx + 1, (time, phase))
+        frequency = self.frequency(time)
+
+        self._frequencies_phases.insert(insert_idx + 1, (time, frequency, phase))
 
 
 class ResolvedFrame(Tracker):
@@ -125,17 +129,23 @@ class ResolvedFrame(Tracker):
     """
 
     def __init__(self, frame: Frame, frequency: float, phase: float,
-                 channels: List[Channel]):
+                 sample_duration: float, channels: List[Channel]):
         """
         Args:
             frame: The frame to track.
             frequency: The initial frequency of the frame.
             phase: The initial phase of the frame.
+            sample_duration: Duration of a sample.
             channels: The list of channels on which the frame instructions apply.
+
+        Raises:
+            PulseError: If there are still parameters in the given frame.
         """
-        super().__init__(frame.index)
-        self._frequencies = [(0, frequency)]
-        self._phases = [(0, phase)]
+        if frame.is_parameterized():
+            raise PulseError('A parameterized frame cannot be given to ResolvedFrame.')
+
+        super().__init__(frame.index, sample_duration)
+        self._frequencies_phases = [(0, frequency, phase)]
         self._channels = channels
 
         for ch in self._channels:
@@ -173,63 +183,6 @@ class ResolvedFrame(Tracker):
                 else:
                     raise PulseError('Unexpected frame operation.')
 
-    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'ResolvedFrame':
-        """
-        Override the base class's assign method to handle any links between the
-        parameter of the frame and the parameters of the sub-channels.
-
-        Args:
-            parameter: The parameter to assign
-            value: The value of the parameter.
-        """
-        return self.assign_parameters({parameter: value})
-
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'ResolvedFrame':
-        """
-        Assign the value of the parameters.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-        """
-        assigned_sub_channels = self._assign_sub_channels(value_dict)
-
-        new_index = None
-        if isinstance(self._index, ParameterExpression):
-            for param, value in value_dict.items():
-                if param in self._index.parameters:
-                    new_index = self._index.assign(param, value)
-                    if not new_index.parameters:
-                        new_index = int(new_index)
-
-        if new_index is not None:
-            return type(self)(new_index, self._frequencies, self._phases, assigned_sub_channels)
-
-        return type(self)(self._index, self._frequencies, self._phases, assigned_sub_channels)
-
-    def _assign_sub_channels(self, value_dict: Dict[ParameterExpression,
-                                                    ParameterValueType]) -> List['Channel']:
-        """
-        Args:
-            value_dict: The keys are the parameters to assign and the values are the
-                values of the parameters.
-
-        Returns:
-             Frame: A Frame in which the parameter has been assigned.
-        """
-        sub_channels = []
-        for ch in self._channels:
-            if isinstance(ch.index, ParameterExpression):
-                for param, value in value_dict.items():
-                    if param in ch.parameters:
-                        ch = ch.assign(param, value)
-
-            sub_channels.append(ch)
-
-        return sub_channels
-
     def __repr__(self):
         sub_str = '[' + ', '.join([ch.__repr__() for ch in self._channels]) + ']'
         return f'{self.__class__.__name__}({self._index}, {sub_str})'
@@ -238,12 +191,13 @@ class ResolvedFrame(Tracker):
 class ChannelTracker(Tracker):
     """Class to track the phase and frequency of channels when resolving frames."""
 
-    def __init__(self, channel: PulseChannel):
+    def __init__(self, channel: PulseChannel, sample_duration: float):
         """
         Args:
             channel: The channel that this tracker tracks.
+            sample_duration: Duration of a sample.
         """
-        super().__init__(channel.index)
+        super().__init__(channel.index, sample_duration)
         self._channel = channel
         self._frequencies = []
         self._phases = []

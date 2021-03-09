@@ -343,22 +343,27 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
         return schedule
 
     resolved_frames = {}
+    sample_duration = None
     for frame_settings in frames_config.values():
         frame = ResolvedFrame(**frame_settings)
         frame.set_frame_instructions(schedule)
         resolved_frames[frame.index] = frame
+        sample_duration = frame_settings['sample_duration']
+
+    if sample_duration is None:
+        raise PulseError('Frame configuration does not have a sample duration.')
 
     # Used to keep track of the frequency and phase of the channels
     channel_trackers = {}
     for ch in schedule.channels:
         if isinstance(ch, chans.PulseChannel):
-            channel_trackers[ch] = ChannelTracker(ch)
+            channel_trackers[ch] = ChannelTracker(ch, sample_duration)
 
     # Add the channels that the frames broadcast on.
     for frame in resolved_frames.values():
         for ch in frame.channels:
             if ch not in channel_trackers:
-                channel_trackers[ch] = ChannelTracker(ch)
+                channel_trackers[ch] = ChannelTracker(ch, sample_duration)
 
     sched = Schedule(name=schedule.name, metadata=schedule.metadata)
 
@@ -392,7 +397,7 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
                         sched.insert(time, instructions.ShiftPhase(phase_diff, chan), inplace=True)
 
                 # If the channel's phase and frequency has not been set in the past
-                # we set t now
+                # we set it now
                 else:
                     sched.insert(time, instructions.SetFrequency(frame_freq, chan), inplace=True)
                     sched.insert(time, instructions.SetPhase(frame_phase, chan), inplace=True)
@@ -415,7 +420,9 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
             if issubclass(chan, chans.PulseChannel):
                 sched.insert(time, type(inst)(inst.phase, chan))
 
-        else:
+        if isinstance(type(inst), (instructions.Delay, instructions.Call,
+                                   instructions.Snapshot, instructions.Acquire,
+                                   instructions.Directive)):
             sched.insert(time, inst, inplace=True)
 
     return sched
