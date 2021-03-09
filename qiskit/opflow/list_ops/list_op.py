@@ -371,7 +371,7 @@ class ListOp(OperatorBase):
             raise NotImplementedError("ListOp's eval function is only defined for distributive "
                                       "ListOps.")
 
-        evals = [op.eval(front) for op in self.oplist]  # type: ignore
+        evals = [op.eval(front) if isinstance(op, OperatorBase) else op for op in self.oplist]  # type: ignore
 
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn != ListOp([])._combo_fn:
@@ -457,7 +457,14 @@ class ListOp(OperatorBase):
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))
-        return self.traverse(lambda x: x.assign_parameters(param_dict), coeff=param_value)
+
+        def _assign_parameters(x):
+            if isinstance(x, OperatorBase):
+                return x.assign_parameters(param_dict)
+            else:
+                 return x
+
+        return self.traverse(_assign_parameters, coeff=param_value)
 
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
