@@ -18,8 +18,6 @@
 from qiskit import transpile
 from qiskit.transpiler import CouplingMap
 
-from qiskit.providers.basicaer import QasmSimulatorPy
-
 from .utils import build_ripple_adder_circuit
 
 
@@ -43,16 +41,7 @@ class RippleAdderTranspile:
     def setup(self, size, _):
         edge_len = int((2*size + 2)**0.5)+1
         self.coupling_map = CouplingMap.from_grid(edge_len, edge_len)
-        self.sim_backend = QasmSimulatorPy()
         self.circuit = build_ripple_adder_circuit(size)
-
-    def time_transpile_simulator_ripple_adder(self, _, level):
-        transpile(self.circuit, self.sim_backend,
-                  optimization_level=level)
-
-    def track_depth_transpile_simulator_ripple_adder(self, _, level):
-        return transpile(self.circuit, self.sim_backend,
-                         optimization_level=level).depth()
 
     def time_transpile_square_grid_ripple_adder(self, _, level):
         transpile(self.circuit,

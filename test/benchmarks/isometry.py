@@ -36,17 +36,6 @@ class IsometryTranspileBench:
         qc.iso(iso, q[:m], q[m:])
         self.circuit = qc
 
-    def time_simulator_transpile(self, *unused):
-        transpile(self.circuit, basis_gates=['u1', 'u3', 'u2', 'cx'],
-                  seed_transpiler=0)
-
-    def track_cnot_counts(self, *unused):
-        circuit = transpile(self.circuit, basis_gates=['u1', 'u3', 'u2', 'cx'],
-                            seed_transpiler=0)
-        counts = circuit.count_ops()
-        cnot_count = counts.get('cx', 0)
-        return cnot_count
-
     def track_cnot_counts_after_mapping_to_ibmq_16_melbourne(self, *unused):
         coupling = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
                     [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
