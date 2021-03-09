@@ -1175,10 +1175,10 @@ class ScheduleBlock(PulseProgram):
     """A quantum program *schedule block* with alignment policy that allows lazy scheduling
     of instructions. The preferred usage is through the pulse builder.
 
-    This program representation doesn't have explicit notion of time slots in contrast to the
-    ``Schedule`` representation. A timing of instruction is managed by its relative position
-    and ``transform`` argument. ``ScheduleBlock`` should be initialized with one of
-    following transform policies:
+    This program representation doesn't track an explicit notion of timing, in contrast to the
+    ``Schedule`` representation. The timing of an instruction is managed by its relative position
+    and the ``transform`` argument. ``ScheduleBlock``s should be initialized with one of
+    the following transform policies:
 
         - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
             Instructions are scheduled at the earliest possible time on the channel.
