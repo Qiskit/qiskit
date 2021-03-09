@@ -15,6 +15,7 @@
 import os
 import configparser as cp
 
+from unittest import mock
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
 from qiskit import user_config
@@ -25,12 +26,6 @@ class TestUserConfig(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         cls.file_path = 'temp.txt'
-        cls._environ = dict(os.environ)
-
-    @classmethod
-    def tearDownClass(cls):
-        os.environ.clear()
-        os.environ.update(cls._environ)
 
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)
@@ -164,44 +159,62 @@ class TestUserConfig(QiskitTestCase):
     def test_set_config_all_options_valid(self):
         self.addCleanup(os.remove, self.file_path)
 
-        user_config.set_config("circuit_drawer", "latex", file_path=self.file_path)
-        user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
-        user_config.set_config("circuit_mpl_style_path", "~:~/.qiskit", file_path=self.file_path)
-        user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
-        user_config.set_config("suppress_packaging_warnings", "true", file_path=self.file_path)
-        user_config.set_config("parallel", "false", file_path=self.file_path)
-        user_config.set_config("num_processes", "15", file_path=self.file_path)
+        user_config.set_config("circuit_drawer", "latex",
+                               file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style", "default",
+                               file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style_path", "~:~/.qiskit",
+                               file_path=self.file_path)
+        user_config.set_config("transpile_optimization_level", "3",
+                               file_path=self.file_path)
+        user_config.set_config("suppress_packaging_warnings", "true",
+                               file_path=self.file_path)
+        user_config.set_config("parallel", "false",
+                               file_path=self.file_path)
+        user_config.set_config("num_processes", "15",
+                               file_path=self.file_path)
 
-        os.environ.clear()
-        os.environ['QISKIT_SETTINGS'] = self.file_path
-
-        config_settings = user_config.get_config()
+        config_settings = None
+        with mock.patch.dict(os.environ, {"QISKIT_SETTINGS":
+                                         self.file_path}, clear=True):
+            config_settings = user_config.get_config()
 
         self.assertEqual({'circuit_drawer': 'latex',
-                        'circuit_mpl_style': 'default',
-                        'circuit_mpl_style_path': ['~', '~/.qiskit'],
-                        'transpile_optimization_level': 3,
-                        'num_processes': 15,
-                        'parallel_enabled': False},
-                        config_settings)
+                          'circuit_mpl_style': 'default',
+                          'circuit_mpl_style_path': ['~', '~/.qiskit'],
+                          'transpile_optimization_level': 3,
+                          'num_processes': 15,
+                          'parallel_enabled': False},
+                         config_settings)
 
     def test_set_config_invalid_options(self):
+        self.addCleanup(os.remove, self.file_path)
+
+        # File created to ensure the file exists for cleanup
+        # because it may not be created by set_config
+        with open(self.file_path, 'w'):
+            pass
+
         self.assertRaises(exceptions.QiskitUserConfigError,
-                              user_config.set_config, "drawer", "mpl")
+                          user_config.set_config, "drawer", "mpl",
+                          file_path=self.file_path)
 
     def test_set_config_multiple_sections(self):
         self.addCleanup(os.remove, self.file_path)
 
-        user_config.set_config("circuit_drawer", "latex", file_path=self.file_path)
-        user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
-        user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
+        user_config.set_config("circuit_drawer", "latex",
+                               file_path=self.file_path)
+        user_config.set_config("circuit_mpl_style", "default",
+                               file_path=self.file_path)
+        user_config.set_config("transpile_optimization_level", "3",
+                               file_path=self.file_path)
 
         user_config.set_config("circuit_drawer", "latex", section="test",
-                              file_path=self.file_path)
+                               file_path=self.file_path)
         user_config.set_config("parallel", "false", section="test",
-                              file_path=self.file_path)
+                               file_path=self.file_path)
         user_config.set_config("num_processes", "15", section="test",
-                              file_path=self.file_path)
+                               file_path=self.file_path)
 
         config = cp.ConfigParser()
         config.read(self.file_path)
@@ -209,11 +222,11 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual(config.sections(), ['default', 'test'])
 
         self.assertEqual({'circuit_drawer': 'latex',
-                         'circuit_mpl_style': 'default',
-                         'transpile_optimization_level': '3'},
+                          'circuit_mpl_style': 'default',
+                          'transpile_optimization_level': '3'},
                          dict(config.items('default')))
 
         self.assertEqual({'circuit_drawer': 'latex',
-                         'num_processes': '15',
-                         'parallel': 'false'},
+                          'num_processes': '15',
+                          'parallel': 'false'},
                          dict(config.items('test')))
