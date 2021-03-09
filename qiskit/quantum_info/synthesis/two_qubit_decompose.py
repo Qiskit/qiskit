@@ -31,7 +31,6 @@ from typing import ClassVar, Optional
 import logging
 
 import numpy as np
-from numpy.typing import ArrayLike
 import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -45,7 +44,7 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecom
 logger = logging.getLogger(__name__)
 
 
-def decompose_two_qubit_product_gate(special_unitary_matrix: ArrayLike):
+def decompose_two_qubit_product_gate(special_unitary_matrix):
     """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
     Throws QiskitError if this isn't possible.
     """
@@ -119,7 +118,7 @@ class TwoQubitWeylDecomposition():
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
-    _original_decomposition: Optional["TwoQubitWeylDecomposition"]
+    _original_decomposition: "TwoQubitWeylDecomposition"
     _is_flipped_from_original: bool
 
     _default_1q_basis: ClassVar[str] = 'ZYZ'
@@ -132,7 +131,8 @@ class TwoQubitWeylDecomposition():
         cls.__new__ = (lambda cls, *a, fidelity=None, **k:
                        TwoQubitWeylDecomposition.__new__(cls, *a, fidelity=None, **k))
 
-    def __new__(cls, unitary_matrix: ArrayLike, *, fidelity=(1.-1.E-9)):
+    @staticmethod
+    def __new__(cls, unitary_matrix, *, fidelity=(1.-1.E-9)):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -294,8 +294,8 @@ class TwoQubitWeylDecomposition():
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix: ArrayLike, *args, fidelity=None):
-        super().__init__(*args)
+    def __init__(self, unitary_matrix, fidelity=None):
+        del unitary_matrix  # unused in __init__ (used in new)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
         self.K1l, self.K1r = od.K1l, od.K1r
@@ -336,14 +336,14 @@ class TwoQubitWeylDecomposition():
         raise NotImplementedError
 
     def circuit(self, *, euler_basis: Optional[str] = None,
-                simplify=False, atol=DEFAULT_ATOL, **kwargs) -> QuantumCircuit:
+                simplify=False, atol=DEFAULT_ATOL) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
         Extra arguments are passed to OneQubitEulerDecomposer"""
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
-        c1l, c1r, c2l, c2r = (oneq_decompose(k, simplify=simplify, atol=atol, **kwargs)
+        c1l, c1r, c2l, c2r = (oneq_decompose(k, simplify=simplify, atol=atol)
                               for k in (self.K1l, self.K1r, self.K2l, self.K2r))
         circ = QuantumCircuit(2, global_phase=self.global_phase)
         circ.compose(c2r, [0], inplace=True)
@@ -364,7 +364,7 @@ class TwoQubitWeylDecomposition():
         if not simplify or abs(self.c) > atol:
             circ.rzz(-self.c*2, 0, 1)
 
-    def actual_fidelity(self, **kwargs):
+    def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
@@ -430,7 +430,7 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
         circ.global_phase -= 3*np.pi/4
 
 
-def _closest_partial_swap(a, b, c):
+def _closest_partial_swap(a, b, c) -> float:
     """A good approximation to the best value x to get the minimum
     trace distance for Ud(x, x, x) from Ud(a, b, c)
     """
@@ -782,7 +782,7 @@ class TwoQubitBasisDecomposer():
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target: ArrayLike, basis_fidelity=None, *, _num_basis_uses=None):
+    def __call__(self, target, basis_fidelity=None, *, _num_basis_uses=None) -> QuantumCircuit:
         """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite fidelity.
 
@@ -795,7 +795,7 @@ class TwoQubitBasisDecomposer():
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
-        best_nbasis = np.argmax(expected_fidelities)
+        best_nbasis = int(np.argmax(expected_fidelities))
         if _num_basis_uses is not None:
             best_nbasis = _num_basis_uses
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
@@ -820,10 +820,6 @@ class TwoQubitBasisDecomposer():
         """ Computes the number of basis gates needed in
         a decomposition of input unitary
         """
-        if hasattr(unitary, 'to_operator'):
-            unitary = unitary.to_operator().data
-        if hasattr(unitary, 'to_matrix'):
-            unitary = unitary.to_matrix()
         unitary = np.asarray(unitary, dtype=complex)
         a, b, c = weyl_coordinates(unitary)[:]
         traces = [4*(math.cos(a)*math.cos(b)*math.cos(c)+1j*math.sin(a)*math.sin(b)*math.sin(c)),
