@@ -1157,7 +1157,9 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 
 def _method_not_supported(function: Callable) -> Callable:
-    """A method decorator to raise PusleError with kind message."""
+    """A method decorator to raise a PulseError with a graceful error message
+    for operations which do not work for ``ScheduleBlock``s.
+    """
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         raise PulseError(f'Method ``ScheduleBlock.{function.__name__}`` is not supported '
