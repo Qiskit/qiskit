@@ -354,16 +354,19 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         qubits = np.arange(n_pauli)
         x_mask = np.dot(1 << qubits, pauli.x)
         z_mask = np.dot(1 << qubits, pauli.z)
-        phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
+
         if x_mask + z_mask == 0:
-            return self.trace()
+            return pauli_phase * self.trace()
 
         data = np.ravel(self.data, order='F')
         if x_mask == 0:
-            return density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+            return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
+
         x_max = qubits[pauli.x][-1]
-        return density_expval_pauli_with_x(
-            data, self.num_qubits, z_mask, x_mask, phase, x_max)
+        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        return pauli_phase * density_expval_pauli_with_x(
+            data, self.num_qubits, z_mask, x_mask, y_phase, x_max)
 
     def expectation_value(self, oper, qargs=None):
         """Compute the expectation value of an operator.
@@ -384,7 +387,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         if not isinstance(oper, Operator):
             oper = Operator(oper)
-        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
+        return np.trace(Operator(self).dot(oper, qargs=qargs).data)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
