@@ -27,9 +27,7 @@ from qiskit.pulse import channels as chans, exceptions, instructions
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.schedule import (Schedule,
-                                   ScheduleBlock,
-                                   PulseProgram)
+from qiskit.pulse.schedule import Schedule, ScheduleBlock, PulseProgram
 
 
 def align_measures(schedules: Iterable[Union['Schedule', instructions.Instruction]],
