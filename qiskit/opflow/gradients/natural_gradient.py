@@ -141,7 +141,7 @@ class NaturalGradient(GradientBase):
                 w = [max(0, ew) for ew in w]
                 a = v @ np.diag(w) @ np.linalg.inv(v)
 
-            nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=None)
+            nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
             # try:
                 #             # Try to solve the system of linear equations Ax = C.
             #     nat_grad = np.linalg.solve(a, c)

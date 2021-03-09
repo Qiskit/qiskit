@@ -614,7 +614,6 @@ class LinComb(CircuitGradient):
 
         return ListOp(oplist) if len(oplist) > 1 else oplist[0]
 
-
     def _hessian_states(self,
                         state_op: StateFn,
                         meas_op: Optional[OperatorBase] = None,

@@ -347,13 +347,15 @@ class VarQTE(EvolutionBase):
 
             # return nat_grad_result
             # Use the natural gradient result as initial point for least squares solver
-            # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
+            # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result,
             #                        ftol=1e-8)
+            print('initial natural gradient result', nat_grad_result)
             argmin = minimize(fun=argmin_fun, x0=nat_grad_result,
                               method='COBYLA', tol=1e-6)
             # argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
             #                   method='CG', tol=1e-8)
-            print('initial natural gradient result', nat_grad_result)
+            #
+
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
             return argmin.x, grad_res, metric_res
