@@ -20,7 +20,6 @@
 import os
 import numpy as np
 import qiskit.ignis.verification.randomized_benchmarking as rb
-from qiskit.providers.basicaer import QasmSimulatorPy
 
 try:
     from qiskit.compiler import transpile
@@ -76,19 +75,9 @@ class RandomizedBenchmarkingBenchmark:
                                          length_vector=length_vector,
                                          rb_pattern=rb_pattern,
                                          seed=self.seed)
-        self.sim_backend = QasmSimulatorPy()
 
     def teardown(self, _):
         os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
-
-    def time_simulator_transpile(self, __):
-        transpile(self.circuits, self.sim_backend,
-                  **{TRANSPILER_SEED_KEYWORD: self.seed})
-
-    def time_simulator_transpile_single_thread(self, __):
-        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
-        transpile(self.circuits, self.sim_backend,
-                  **{TRANSPILER_SEED_KEYWORD: self.seed})
 
     def time_ibmq_backend_transpile(self, __):
         # Run with ibmq_16_melbourne configuration

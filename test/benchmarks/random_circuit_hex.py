@@ -19,7 +19,7 @@ import copy
 
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import BasicAer
+
 try:
     from qiskit.compiler import transpile
     TRANSPILER_SEED_KEYWORD = 'seed_transpiler'
@@ -77,15 +77,6 @@ class BenchRandomCircuitHex:
         depth = 2 * n
         self.seed = 0
         self.circuit = make_circuit_ring(n, depth, self.seed)[0]
-        self.sim_backend = BasicAer.get_backend('qasm_simulator')
-
-    def time_simulator_transpile(self, _):
-        transpile(self.circuit, self.sim_backend,
-                  **{TRANSPILER_SEED_KEYWORD: self.seed})
-
-    def track_depth_simulator_transpile(self, _):
-        return transpile(self.circuit, self.sim_backend,
-                         **{TRANSPILER_SEED_KEYWORD: self.seed}).depth()
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
