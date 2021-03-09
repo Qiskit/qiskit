@@ -398,7 +398,6 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         QISKIT_TEST_CAPTURE_STREAMS: 1
-        QISKIT_PARALLEL: TRUE
       steps:
         - task: UsePythonVersion@0
           inputs:
