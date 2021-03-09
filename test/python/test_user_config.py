@@ -187,18 +187,6 @@ class TestUserConfig(QiskitTestCase):
                           'parallel_enabled': False},
                          config_settings)
 
-    def test_set_config_invalid_options(self):
-        self.addCleanup(os.remove, self.file_path)
-
-        # File created to ensure the file exists for cleanup
-        # because it may not be created by set_config
-        with open(self.file_path, 'w'):
-            pass
-
-        self.assertRaises(exceptions.QiskitUserConfigError,
-                          user_config.set_config, "drawer", "mpl",
-                          file_path=self.file_path)
-
     def test_set_config_multiple_sections(self):
         self.addCleanup(os.remove, self.file_path)
 
