@@ -1173,7 +1173,7 @@ def _method_not_supported(function: Callable) -> Callable:
 
 class ScheduleBlock(PulseProgram):
     """A quantum program *schedule block* with alignment policy that allows lazy scheduling
-    of instructions. This representation is best used with the pulse builder.
+    of instructions. The preferred usage is through the pulse builder.
 
     This program representation doesn't have explicit notion of time slots in contrast to the
     ``Schedule`` representation. A timing of instruction is managed by its relative position
