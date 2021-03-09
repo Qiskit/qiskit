@@ -154,7 +154,8 @@ def set_config(key, value, section=None, file_path=None):
         section (str, optional): if not specified, adds it to the
             `default` section of the config file.
         file_path (str, optional): the file to which config is added.
-            If not specified, adds it to the default config file.
+            If not specified, adds it to the default config file or
+            if set, the value of `QISKIT_SETTINGS` env variable.
 
     Raises:
         QiskitUserConfigError: if the config is invalid
