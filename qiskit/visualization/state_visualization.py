@@ -20,7 +20,6 @@ Visualization functions for quantum states.
 
 from functools import reduce
 import colorsys
-import warnings
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
@@ -1147,12 +1146,6 @@ def state_drawer(state,
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
                 ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
-            max_size (int): Maximum number of elements before array is
-                summarized instead of fully represented. For ``latex``
-                drawer, this is also the maximum number of elements that will
-                be drawn in the output array, including elipses elements. For
-                ``text`` drawer, this is the ``threshold`` parameter in
-                ``numpy.array2string()``.
             drawer_args: Arguments to be passed to the relevant drawer. For
                 'latex' and 'latex_source' see ``array_to_latex``
 
