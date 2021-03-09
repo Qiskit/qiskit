@@ -1160,7 +1160,7 @@ def _method_not_supported(function: Callable) -> Callable:
     """A method decorator to raise PusleError with kind message."""
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
-        raise PulseError(f'A method ``ScheduleBlock.{function.__name__}`` is not supported '
+        raise PulseError(f'Method ``ScheduleBlock.{function.__name__}`` is not supported '
                          'because this program does not have notion of instruction time. '
                          'Apply ``qiskit.pulse.transforms.block_to_schedule`` function to this '
                          'program to get ``Schedule`` representation supporting this method. '
