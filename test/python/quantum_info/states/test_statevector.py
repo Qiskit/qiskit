@@ -13,9 +13,9 @@
 
 """Tests for Statevector quantum state class."""
 
-from ddt import ddt, data
 import unittest
 import logging
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
