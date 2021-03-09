@@ -489,7 +489,7 @@ class PulseProgram(abc.ABC):
             instructions += ", ..."
         return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
 
-    def __add__(self, other: ScheduleComponent) -> 'PulseProgram':
+    def __add__(self, other: 'PulseProgram') -> 'PulseProgram':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
