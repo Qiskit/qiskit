@@ -899,6 +899,35 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
         self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
 
+    def test_delay_removed_on_acq_ch(self):
+        """Test that delay instructions on acquire channels are skipped on assembly."""
+        delay0 = pulse.Delay(5, self.backend_config.acquire(0))
+        delay1 = pulse.Delay(7, self.backend_config.acquire(1))
+
+        sched0 = delay0
+        sched0 += self.schedule  # includes ``Acquire`` instr
+        sched0 += delay1
+
+        sched1 = self.schedule  # includes ``Acquire`` instr
+        sched1 += delay0
+        sched1 += delay1
+
+        sched2 = delay0
+        sched2 += delay1
+        sched2 += self.schedule  # includes ``Acquire`` instr
+
+        delay_qobj = assemble([sched0, sched1, sched2], self.backend)
+        validate_qobj_against_schema(delay_qobj)
+
+        # check that no delay instrs occur on acquire channels
+        is_acq_delay = False
+        for exp in delay_qobj.experiments:
+            for instr in exp.instructions:
+                if instr.name == "delay" and "a" in instr.ch:
+                    is_acq_delay = True
+
+        self.assertFalse(is_acq_delay)
+
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
         qobj = assemble(self.schedule,
