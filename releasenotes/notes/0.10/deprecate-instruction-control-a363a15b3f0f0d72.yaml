@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Using the ``control`` property of ``qiskit.circuit.Instruction`` for
+    classical control is now deprecated. In the future this property will be
+    used for quantum control. Classically conditioned operations will instead
+    be handled by the ``condition`` property of ``qiskit.circuit.Instruction``.

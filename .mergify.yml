@@ -1,0 +1,18 @@
+pull_request_rules:
+  - name: automatic merge on CI success and review
+    conditions:
+      - status-success=Qiskit.qiskit-terra
+      - "#approved-reviews-by>=1"
+      - label=automerge
+      - label!=on hold
+    actions:
+      merge:
+        method: squash
+        strict: true
+  - name: backport
+    conditions:
+      - label=stable backport potential
+    actions:
+      backport:
+        branches:
+          - stable/0.16

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -14,7 +12,7 @@
 
 """Node for an OPENQASM integer."""
 
-from sympy import N
+import warnings
 
 from .node import Node
 
@@ -36,22 +34,29 @@ class Int(Node):
         ind = indent * ' '
         print(ind, 'int', self.value)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
+        if prec is not None:
+            warnings.warn('Parameter \'Int.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return "%d" % self.value
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        # pylint: disable=unused-argument
+        if prec is not None:
+            warnings.warn('Parameter \'Int.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'Int.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         return "%d" % self.value
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        # pylint: disable=unused-argument
-        return N(self.value)
+        del nested_scope
+        return float(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        # pylint: disable=unused-argument
+        del nested_scope  # ignored
         return float(self.value)

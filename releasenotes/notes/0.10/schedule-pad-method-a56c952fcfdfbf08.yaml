@@ -1,0 +1,50 @@
+---
+features:
+  - |
+    Introduced a new pulse command ``Delay`` which may be inserted into a pulse
+    ``Schedule``. This command accepts a ``duration`` and may be added to any
+    ``Channel``. Other commands may not be scheduled on a channel during a delay.
+
+    The delay can be added just like any other pulse command. For example::
+
+      from qiskit import pulse
+      from qiskit.pulse.utils import pad
+
+      dc0 = pulse.DriveChannel(0)
+
+      delay = pulse.Delay(1)
+      test_pulse = pulse.SamplePulse([1.0])
+
+      sched = pulse.Schedule()
+      sched += test_pulse(dc0).shift(1)
+
+      # build padded schedule by hand
+      ref_sched = delay(dc0) | sched
+
+      # pad schedule
+      padded_sched = pad(sched)
+
+      assert padded_sched == ref_sched
+
+    One may also pass additional channels to be padded and a time to pad until,
+    for example::
+
+      from qiskit import pulse
+      from qiskit.pulse.utils import pad
+
+      dc0 = pulse.DriveChannel(0)
+      dc1 = pulse.DriveChannel(1)
+
+      delay = pulse.Delay(1)
+      test_pulse = pulse.SamplePulse([1.0])
+
+      sched = pulse.Schedule()
+      sched += test_pulse(dc0).shift(1)
+
+      # build padded schedule by hand
+      ref_sched = delay(dc0) | delay(dc1) |  sched
+
+      # pad schedule across both channels until up until the first time step
+      padded_sched = pad(sched, channels=[dc0, dc1], until=1)
+
+      assert padded_sched == ref_sched

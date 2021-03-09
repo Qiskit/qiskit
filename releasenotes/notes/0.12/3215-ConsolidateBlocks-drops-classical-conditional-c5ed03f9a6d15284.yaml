@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The ``Collect2qBlocks`` pass had previously not considered classical
+    conditions when determining whether to include a gate within an
+    existing block. In some cases, this resulted in classical
+    conditions being lost when transpiling with
+    ``optimization_level=3``. This has been resolved so that classically
+    conditioned gates are never included in a block.
+    Fixes `issue #3215 <https://github.com/Qiskit/qiskit-terra/issues/3215>`_

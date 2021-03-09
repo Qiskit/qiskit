@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Two new gate classes, :class:`qiskit.extensions.iSwapGate` and
+    :class:`qiskit.extensions.DCXGate`, along with their
+    :class:`~qiskit.circuit.QuantumCircuit` methods
+    :meth:`~qiskit.circuit.QuantumCircuit.iswap` and
+    :meth:`~qiskit.circuit.QuantumCircuit.dcx` have been added to the standard
+    extensions. These gates, which are locally equivalent to each other, can be
+    used to enact particular XY interactions. A brief motivation for these gates
+    can be found in:
+    `arxiv.org/abs/quant-ph/0209035 <https://arxiv.org/abs/quant-ph/0209035>`_

@@ -1,0 +1,34 @@
+---
+fixes:
+  - |
+    The function :func:`qiskit.compiler.transpile` now correctly handles when
+    the parameter ``basis_gates`` is set to ``None``. This will allow any gate
+    in the output tranpiled circuit, including gates added by the transpilation
+    process. Note that using this parameter may have some
+    unintended consequences during optimization. Some transpiler passes
+    depend on having a ``basis_gates`` set. For example,
+    :class:`qiskit.transpiler.passes.Optimize1qGates` only optimizes the chains
+    of u1, u2, and u3 gates and without ``basis_gates`` it is unable to unroll
+    gates that otherwise could be optimized:
+
+    .. code-block:: python
+
+      from qiskit import *
+      
+      q = QuantumRegister(1, name='q')
+      circuit = QuantumCircuit(q)
+      circuit.h(q[0])
+      circuit.u1(0.1, q[0])
+      circuit.u2(0.1, 0.2, q[0])
+      circuit.h(q[0])
+      circuit.u3(0.1, 0.2, 0.3, q[0])
+      
+      result = transpile(circuit, basis_gates=None, optimization_level=3)
+      result.draw()
+
+    .. parsed-literal::
+          ┌───┐┌─────────────┐┌───┐┌─────────────────┐
+     q_0: ┤ H ├┤ U2(0.1,0.3) ├┤ H ├┤ U3(0.1,0.2,0.3) ├
+          └───┘└─────────────┘└───┘└─────────────────┘
+
+    Fixes `#3017 <https://github.com/Qiskit/qiskit-terra/issues/3017>`_

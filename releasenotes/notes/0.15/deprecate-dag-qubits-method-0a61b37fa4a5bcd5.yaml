@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The :meth:`~qiskit.dagcircuit.DAGCircuit.qubits` and
+    :meth:`~qiskit.dagcircuit.DAGCircuit.clbits` methods of
+    :class:`qiskit.dagcircuit.DAGCircuit` have been deprecated and will be
+    removed in a future release. They have been replaced with properties of
+    the same name, :attr:`qiskit.dagcircuit.DAGCircuit.qubits` and
+    :attr:`qiskit.dagcircuit.DAGCircuit.clbits`, and are cached so
+    accessing them is much faster.

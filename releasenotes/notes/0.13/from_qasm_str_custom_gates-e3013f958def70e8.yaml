@@ -1,0 +1,28 @@
+---
+fixes:
+  - |
+    A bug in :meth`qiskit.circuit.QuantumCircuit.from_qasm_str` and
+    :meth`qiskit.circuit.QuantumCircuit.from_qasm_file` when
+    loading QASM with custom gates defined has been fixed. Now, loading
+    this QASM::
+
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        gate rinv q {sdg q; h q; sdg q; h q; }
+        qreg q[1];
+        rinv q[0];
+     
+    is equivalent to the following circuit::
+
+        rinv_q = QuantumRegister(1, name='q')
+        rinv_gate = QuantumCircuit(rinv_q, name='rinv')
+        rinv_gate.sdg(rinv_q)
+        rinv_gate.h(rinv_q)
+        rinv_gate.sdg(rinv_q)
+        rinv_gate.h(rinv_q)
+        rinv = rinv_gate.to_instruction()
+        qr = QuantumRegister(1, name='q')
+        expected = QuantumCircuit(qr, name='circuit')
+        expected.append(rinv, [qr[0]])
+
+    Fixes `#1566 <https://github.com/Qiskit/qiskit-terra/issues/1566>`_

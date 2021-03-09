@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,7 +25,7 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 
 import logging
 from math import log2
-from qiskit.util import local_hardware_info
+from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
 from qiskit.providers.models import QasmBackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
@@ -53,7 +51,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -81,9 +79,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {
-                'name': 'snapshot',
-                'parameters': ['slot'],
-                'qasm_def': 'gate snapshot(slot) q { TODO }'
+                'name': 'unitary',
+                'parameters': ['matrix'],
+                'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
     }
@@ -137,10 +135,10 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         1. No shots
         2. No measurements in the middle
         """
-        n_qubits = qobj.config.n_qubits
+        num_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
+        if num_qubits > max_qubits:
+            raise BasicAerError('Number of qubits {} '.format(num_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
         if qobj.config.shots != 1:

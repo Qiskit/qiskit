@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,6 +13,6 @@
 """Functionality and helpers for testing Qiskit."""
 
 from .base import QiskitTestCase
-from .decorators import requires_aer_provider, requires_qe_access, slow_test
+from .decorators import requires_aer_provider, online_test, slow_test, requires_qe_access
 from .reference_circuits import ReferenceCircuits
 from .utils import Path

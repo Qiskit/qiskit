@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -72,7 +70,7 @@ def cx_gate_matrix():
 
 
 def einsum_matmul_index(gate_indices, number_of_qubits):
-    """Return the index string for Numpy.eignsum matrix-matrix multiplication.
+    """Return the index string for Numpy.einsum matrix-matrix multiplication.
 
     The returned indices are to perform a matrix multiplication A.B where
     the matrix A is an M-qubit matrix, matrix B is an N-qubit matrix, and
@@ -103,7 +101,7 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
 
 
 def einsum_vecmul_index(gate_indices, number_of_qubits):
-    """Return the index string for Numpy.eignsum matrix-vector multiplication.
+    """Return the index string for Numpy.einsum matrix-vector multiplication.
 
     The returned indices are to perform a matrix multiplication A.v where
     the matrix A is an M-qubit matrix, vector v is an N-qubit vector, and
@@ -130,7 +128,7 @@ def einsum_vecmul_index(gate_indices, number_of_qubits):
 
 
 def _einsum_matmul_index_helper(gate_indices, number_of_qubits):
-    """Return the index string for Numpy.eignsum matrix multiplication.
+    """Return the index string for Numpy.einsum matrix multiplication.
 
     The returned indices are to perform a matrix multiplication A.v where
     the matrix A is an M-qubit matrix, matrix v is an N-qubit vector, and

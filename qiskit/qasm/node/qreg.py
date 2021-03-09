@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -12,9 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Node for an OPENQASM qreg statement."""
+import warnings
 
 from .node import Node
 
@@ -29,7 +26,7 @@ class Qreg(Node):
         """Create the qreg node."""
         super().__init__('qreg', children, None)
         # This is the indexed id, the full "id[n]" object
-        self.id = children[0]
+        self.id = children[0]  # pylint: disable=invalid-name
         # Name of the qreg
         self.name = self.id.name
         # Source line number
@@ -45,6 +42,9 @@ class Qreg(Node):
         print(ind, 'qreg')
         self.children[0].to_string(indent + 3)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return "qreg " + self.id.qasm(prec) + ";"
+        if prec is not None:
+            warnings.warn('Parameter \'Qreg.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return "qreg " + self.id.qasm() + ";"

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -15,5 +13,13 @@
 """Quantum Operators."""
 
 from .operator import Operator
-from .pauli import Pauli, pauli_group
+from .scalar_op import ScalarOp
 from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
+from .measures import (process_fidelity,
+                       average_gate_fidelity,
+                       gate_error,
+                       diamond_norm)
+from .symplectic import (Clifford, Pauli, SparsePauliOp, PauliTable, StabilizerTable)
+from .symplectic import pauli_basis
+from .pauli import pauli_group
+from .dihedral import CNOTDihedral

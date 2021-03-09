@@ -1,23 +1,16 @@
-# This file defines the persons that will be assigned as reviewers for PRs that
-# modify a particular file in the repo. Please note it is just a convention
-# for the GitHub interface, and any member of the Qiskit team can (and should!)
-# review as well.
+# This file defines the persons who will be assigned as reviewers for PRs that
+# modify particular files in the repo. The PR can be merged when approved by at 
+# least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
-# Real code owners.
-#* @jaygambetta @ismaelfaro
+# Global rule, unless specialized by a later one
+* @Qiskit/terra-core
 
-# Generic rule for the repository. This pattern is actually the one that will
-# apply unless specialized by a later rule
-* @ajavadia @ewinston @atilag @delapuente @diego-plan9 @nonhermitian @mtreinish @1ucian0 @taalexander @jaygambetta @kdk @chriseclectic
-
-# Individual folders on root directory
-# /cmake     @ajavadia @atilag @diego-plan9
-# /doc       @jaygambetta @ajavadia @atilag @diego-plan9
-# /examples  @jaygambetta @ajavadia @atilag @diego-plan9
-# /src       @chriseclectic @ajavadia @atilag @diego-plan9
-
-# qiskit folders
-# qiskit/qasm/*        @1ucian0 @ajavadia @ewinston @atilag @delapuente @diego-plan9
-# qiskit/tools/*       @antoniomezzacapo @chriseclectic @ajavadia @ewinston @atilag @delapuente @diego-plan9
-# qiskit/schemas/*     @jaygambetta @ajavadia @ewinston @atilag @delapuente @diego-plan9 @dcmckayibm
-# qiskit/transpiler/*  @1ucian0 @ajavadia @delapuente @atilag @diego-plan9 @nonhermitian @kdk
+# Qiskit folders (also their corresponding tests)
+algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
+opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm
+qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
+providers/            @Qiskit/terra-core @jyu00 @chriseclectic
+quantum_info/         @Qiskit/terra-core @chriseclectic
+pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
+scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
+visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod @nkanazawa1989

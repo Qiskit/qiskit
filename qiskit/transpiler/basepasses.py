@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module implements the base pass."""
+"""Base transpiler passes."""
 
 from abc import abstractmethod
 from collections.abc import Hashable
@@ -21,9 +19,10 @@ from .propertyset import PropertySet
 
 
 class MetaPass(type):
-    """
-    Enforces the creation of some fields in the pass
-    while allowing passes to override __init__
+    """Metaclass for transpiler passes.
+
+    Enforces the creation of some fields in the pass while allowing passes to
+    override ``__init__``.
     """
 
     def __call__(cls, *args, **kwargs):
@@ -56,6 +55,7 @@ class BasePass(metaclass=MetaPass):
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
         self._hash = None
 
+    # pylint: disable=invalid-hash-returned
     def __hash__(self):
         return self._hash
 
@@ -63,13 +63,13 @@ class BasePass(metaclass=MetaPass):
         return hash(self) == hash(other)
 
     def name(self):
-        """ The name of the pass. """
+        """Return the name of the pass."""
         return self.__class__.__name__
 
     @abstractmethod
     def run(self, dag):
-        """
-        Run a pass on the DAGCircuit. This is implemented by the pass developer.
+        """Run a pass on the DAGCircuit. This is implemented by the pass developer.
+
         Args:
             dag (DAGCircuit): the dag on which the pass is run.
         Raises:
@@ -79,23 +79,68 @@ class BasePass(metaclass=MetaPass):
 
     @property
     def is_transformation_pass(self):
-        """ If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
-        but cannot modify the property set (but it can be read). """
+        """Check if the pass is a transformation pass.
+
+        If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
+        but cannot modify the property set (but it can be read).
+        """
         return isinstance(self, TransformationPass)
 
     @property
     def is_analysis_pass(self):
-        """ If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
+        """Check if the pass is an analysis pass.
+
+        If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
         the results of that analysis in the property set. Modifications on the DAG are not allowed
-        by this kind of pass. """
+        by this kind of pass.
+        """
         return isinstance(self, AnalysisPass)
+
+    def __call__(self, circuit, property_set=None):
+        """Runs the pass on circuit.
+
+        Args:
+            circuit (QuantumCircuit): the dag on which the pass is run.
+            property_set (PropertySet or dict or None): input/output property set. An analysis pass
+                might change the property set in-place.
+
+        Returns:
+            QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
+                   pass, the input circuit.
+        """
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+        from qiskit.dagcircuit.dagcircuit import DAGCircuit
+
+        property_set_ = None
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
+            property_set_ = PropertySet(property_set)
+
+        if isinstance(property_set_, PropertySet):
+            self.property_set = property_set_
+
+        result = self.run(circuit_to_dag(circuit))
+
+        result_circuit = circuit
+
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
+            property_set.clear()
+            property_set.update(self.property_set)
+
+        if isinstance(result, DAGCircuit):
+            result_circuit = dag_to_circuit(result)
+
+        if result is None and self.property_set['layout']:
+            result_circuit = circuit.copy()
+            result_circuit._layout = self.property_set['layout']
+
+        return result_circuit
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
-    """ An analysis pass: change property set, not DAG. """
+    """An analysis pass: change property set, not DAG."""
     pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
-    """ A transformation pass: change DAG, not property set. """
+    """A transformation pass: change DAG, not property set."""
     pass

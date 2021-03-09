@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -12,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Node for an OPENQASM indexed id."""
+
+import warnings
 
 from .node import Node
 
@@ -29,7 +27,7 @@ class IndexedId(Node):
     def __init__(self, children):
         """Create the indexed id node."""
         super().__init__('indexed_id', children, None)
-        self.id = children[0]
+        self.id = children[0]  # pylint: disable=invalid-name
         self.name = self.id.name
         self.line = self.id.line
         self.file = self.id.file
@@ -40,7 +38,9 @@ class IndexedId(Node):
         ind = indent * ' '
         print(ind, 'indexed_id', self.name, self.index)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
+        if prec is not None:
+            warnings.warn('Parameter \'IndexedId.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.name + "[%d]" % self.index

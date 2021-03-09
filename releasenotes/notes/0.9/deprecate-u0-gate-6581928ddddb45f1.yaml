@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The ``u0`` gate has been deprecated in favor of using multiple ``iden``
+    gates and it will be removed in the future. If you're using the ``u0`` gate
+    in your circuit you should update your calls to use ``iden``. For example,
+    f you were using ``circuit.u0(2)`` in your circuit before that should be
+    updated to be::
+
+        circuit.iden()
+        circuit.iden()
+
+    instead.

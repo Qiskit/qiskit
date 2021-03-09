@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,8 +14,8 @@
 
 import logging
 import os
-import unittest
 from enum import Enum
+from itertools import product
 
 from qiskit import __path__ as qiskit_path
 
@@ -33,8 +31,6 @@ class Path(Enum):
     EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
-    # VCR cassettes path: qiskit/test/cassettes/
-    CASSETTES = os.path.normpath(os.path.join(TEST, '..', 'cassettes'))
     # Sample QASMs path: qiskit/test/python/qasm
     QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
 
@@ -57,33 +53,35 @@ def setup_test_logging(logger, log_level, filename):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+    if os.getenv('STREAM_LOG'):
+        # Set up the stream handler.
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
     # Set the logging level from the environment variable, defaulting
     # to INFO if it is not a valid level.
     level = logging._nameToLevel.get(log_level, logging.INFO)
     logger.setLevel(level)
 
 
-class _AssertNoLogsContext(unittest.case._AssertLogsContext):
-    """A context manager used to implement TestCase.assertNoLogs()."""
+class Case(dict):
+    """<no description>"""
+    pass
 
-    # pylint: disable=inconsistent-return-statements
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
-        """
-        self.logger.handlers = self.old_handlers
-        self.logger.propagate = self.old_propagate
-        self.logger.setLevel(self.old_level)
-        if exc_type is not None:
-            # let unexpected exceptions pass through
-            return False
 
-        if self.watcher.records:
-            msg = 'logs of level {} or higher triggered on {}:\n'.format(
-                logging.getLevelName(self.level), self.logger.name)
-            for record in self.watcher.records:
-                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
-                                                  record.lineno,
-                                                  record.getMessage())
-
-            self._raiseFailure(msg)
+def generate_cases(docstring, dsc=None, name=None, **kwargs):
+    """Combines kwargs in Cartesian product and creates Case with them"""
+    ret = []
+    keys = kwargs.keys()
+    vals = kwargs.values()
+    for values in product(*vals):
+        case = Case(zip(keys, values))
+        if docstring is not None:
+            setattr(case, "__doc__", docstring.format(**case))
+        if dsc is not None:
+            setattr(case, "__doc__", dsc.format(**case))
+        if name is not None:
+            setattr(case, "__name__", name.format(**case))
+        ret.append(case)
+    return ret

@@ -1,0 +1,27 @@
+---
+upgrade:
+  - |
+    The previously deprecated functions ``qiksit.visualization.plot_state`` and
+    ``qiskit.visualization.iplot_state`` have been removed. Instead you should
+    use the specific function for each plot type. You can refer to the
+    following tables to map the deprecated functions to their equivalent new
+    ones:
+
+    ==================================  ========================
+    Qiskit Terra 0.6                    Qiskit Terra 0.7+
+    ==================================  ========================
+    plot_state(rho)                     plot_state_city(rho)
+    plot_state(rho, method='city')      plot_state_city(rho)
+    plot_state(rho, method='paulivec')  plot_state_paulivec(rho)
+    plot_state(rho, method='qsphere')   plot_state_qsphere(rho)
+    plot_state(rho, method='bloch')     plot_bloch_multivector(rho)
+    plot_state(rho, method='hinton')    plot_state_hinton(rho)
+    ==================================  ========================
+  - |
+    The ``pylatexenc`` and ``pillow`` dependencies for the ``latex`` and
+    ``latex_source`` circuit drawer backends are no longer listed as
+    requirements. If you are going to use the latex circuit drawers ensure
+    you have both packages installed or use the setuptools extras to install
+    it along with qiskit-terra::
+
+        pip install qiskit-terra[visualization]

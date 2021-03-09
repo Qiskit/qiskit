@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM program."""
+import warnings
 
 from .node import Node
 
@@ -27,9 +26,12 @@ class Program(Node):
         """Create the program node."""
         super().__init__('program', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+        if prec is not None:
+            warnings.warn('Parameter \'Program.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         string = ""
         for children in self.children:
-            string += children.qasm(prec) + "\n"
+            string += children.qasm() + "\n"
         return string

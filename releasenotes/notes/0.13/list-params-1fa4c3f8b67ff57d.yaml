@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Allow quantum circuit Instructions to have list parameter values. This is
+    used in Aer for expectation value snapshot parameters for example
+    ``params = [[1.0, 'I'], [1.0, 'X']]]`` for :math:`\langle I + X\rangle`.

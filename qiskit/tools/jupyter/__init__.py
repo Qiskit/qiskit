@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,22 +10,133 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Initialize the Jupyter routines.
 """
+===========================================
+Jupyter Tools (:mod:`qiskit.tools.jupyter`)
+===========================================
 
-from IPython import get_ipython          # pylint: disable=import-error
+.. currentmodule:: qiskit.tools.jupyter
+
+A Collection of Jupyter magic functions and tools
+that extend the functionality of Qiskit.
+
+Overview of all available backends
+==================================
+
+.. code-block::
+
+    from qiskit import IBMQ
+    import qiskit.tools.jupyter
+    %matplotlib inline
+
+    IBMQ.load_account()
+
+    %qiskit_backend_overview
+
+
+Detailed information on a single backend
+========================================
+
+.. code-block::
+
+    from qiskit import IBMQ
+    import qiskit.tools.jupyter
+    %matplotlib inline
+
+    IBMQ.load_account()
+    provider = IBMQ.get_provider(hub='ibm-q')
+    backend = provider.get_backend('ibmq_vigo')
+    backend
+
+
+Load Qiskit Job Watcher
+=======================
+
+.. code-block::
+
+    import qiskit.tools.jupyter
+    %qiskit_job_watcher
+
+
+HTMLProgressBar
+===============
+
+.. jupyter-execute::
+
+    import numpy as np
+    from qiskit.tools.parallel import parallel_map
+    import qiskit.tools.jupyter
+
+    %qiskit_progress_bar
+    parallel_map(np.sin, np.linspace(0,10,100));
+
+
+Qiskit version table
+====================
+
+.. jupyter-execute::
+
+    import qiskit.tools.jupyter
+    %qiskit_version_table
+
+
+Qiskit copyright
+================
+
+.. jupyter-execute::
+
+    import qiskit.tools.jupyter
+    %qiskit_copyright
+
+Monospaced output
+=================
+
+.. jupyter-execute::
+
+    import qiskit.tools.jupyter
+    %monospaced_output
+
+"""
+import warnings
+
+from IPython import get_ipython
+from qiskit.test.mock import FakeBackend
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
+from .version_table import VersionTable
+from .copyright import Copyright
+from .monospace import MonospacedOutput
+from .job_watcher import JobWatcher, JobWatcherMagic
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
-    from .backend_monitor import BackendMonitor
+    from .backend_monitor import _backend_monitor
+
+try:
+    from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
+    HAS_IBMQ = True
+except ImportError:
+    HAS_IBMQ = False
+
 
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
-    _IP.register_magics(StatusMagic)
+    _IP.register_magics(VersionTable)
+    _IP.register_magics(MonospacedOutput)
+    _IP.register_magics(Copyright)
+    _IP.register_magics(JobWatcherMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
-        _IP.register_magics(BackendMonitor)
+        if HAS_IBMQ:
+            HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
+            # Make _backend_monitor the html repr for IBM Q backends
+            HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
+            HTML_FORMATTER.for_type(FakeBackend, _backend_monitor)
+    else:
+        warnings.warn(
+            "matplotlib can't be found, ensure you have matplotlib and other "
+            "visualization dependencies installed. You can run "
+            "'!pip install qiskit-terra[visualization]' to install it from "
+            "jupyter", RuntimeWarning)

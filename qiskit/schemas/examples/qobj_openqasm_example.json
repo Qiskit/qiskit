@@ -7,7 +7,8 @@
         "backend_name": "ibmqx2"},
     "config": {
         "shots": 1024,
-        "memory_slots": 1
+        "memory_slots": 1,
+        "init_qubits": true
         },
     "experiments": [
         {

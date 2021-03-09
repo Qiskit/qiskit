@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The SI unit use for constructing :py:class:`qiskit.pulse.SetFrequency`
+    objects is in Hz, but when a :class:`~qiskit.qobj.PulseQobjInstruction`
+    object is created from a :py:class:`~qiskit.pulse.SetFrequency` instance
+    it needs to be converted to GHz. This conversion was missing from previous
+    releases and has been fixed.

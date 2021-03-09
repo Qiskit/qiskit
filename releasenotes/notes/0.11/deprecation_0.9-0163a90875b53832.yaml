@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The previously deprecated representation of qubits and classical bits as
+    tuple, which was deprecated in the 0.9 release, has been removed. The use
+    of ``Qubit`` and ``Clbit`` objects is the new way to represent qubits and
+    classical bits.
+  - |
+    The previously deprecated representation of the basis set as single string
+    has been removed. A list of strings is the new preferred way.
+  - |
+    The method ``BaseModel.as_dict``, which was deprecated in the 0.9 release,
+    has been removed in favor of the method ``BaseModel.to_dict``.

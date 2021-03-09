@@ -1,0 +1,7 @@
+---
+prelude: >
+    The 0.11.0 release includes several new features and bug fixes. The biggest
+    change for this release is the addition of the pulse scheduler. This
+    allows users to define their quantum program as a ``QuantumCircuit`` and
+    then map it to the underlying pulse instructions that will control the
+    quantum hardware to implement the circuit.

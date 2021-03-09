@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The ``union`` method of :py:class:`~qiskit.pulse.Schedule` and
+    :py:class:`~qiskit.pulse.Instruction` have been deprecated since
+    the 0.12.0 release and have now been removed. Use
+    :meth:`qiskit.pulse.Schedule.insert` and
+    :meth:`qiskit.pulse.Instruction.meth` methods instead with the
+    kwarg``time=0``.
+  - |
+    The deprecated ``scaling`` argument to the ``draw`` method of
+    :py:class:`~qiskit.pulse.Schedule` and :py:class:`~qiskit.pulse.Instruction`
+    has been replaced with ``scale`` since the 0.12.0 release and now has been
+    removed. Use the ``scale`` kwarg instead.
+  - |
+    The deprecated ``period`` argument to :py:mod:`qiskit.pulse.library` functions
+    have been replaced by ``freq`` since the 0.13.0 release and now removed. Use the
+    ``freq`` kwarg instead of ``period``.

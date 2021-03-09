@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Instructions layering which underlies all types of circuit drawing has
+    changed to address right/left justification. This sometimes results in
+    output which is topologically equivalent to the rendering in prior versions
+    but visually different than previously rendered. Fixes
+    `issue #2802 <https://github.com/Qiskit/qiskit-terra/issues/2802>`_

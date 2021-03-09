@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -14,7 +12,9 @@
 
 """Node for an OPENQASM external function."""
 
-import sympy
+import warnings
+import numpy as np
+
 from .node import Node
 from .nodeexception import NodeException
 
@@ -30,31 +30,44 @@ class External(Node):
         """Create the external node."""
         super().__init__('external', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return self.children[0].qasm(prec) + "(" + \
-            self.children[1].qasm(prec) + ")"
+        if prec is not None:
+            warnings.warn('Parameter \'External.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return self.children[0].qasm() + "(" + self.children[1].qasm() + ")"
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        # pylint: disable=unused-argument
-        # TODO prec ignored
-        return sympy.latex(self.sym(nested_scope))
+        if prec is not None:
+            warnings.warn('Parameter \'External.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'External.latex(..., nested_scope)\' is no longer used and '
+                          'is being deprecated.', DeprecationWarning, 2)
+        try:
+            from pylatexenc.latexencode import utf8tolatex
+        except ImportError as ex:
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.") from ex
+        return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': sympy.sin,
-            'cos': sympy.cos,
-            'tan': sympy.tan,
-            'asin': sympy.asin,
-            'acos': sympy.acos,
-            'atan': sympy.atan,
-            'exp': sympy.exp,
-            'ln': sympy.log,
-            'sqrt': sympy.sqrt
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
         }
         if op in dispatch:
             arg = expr.real(nested_scope)
@@ -67,15 +80,15 @@ class External(Node):
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
-            'sin': sympy.sin,
-            'cos': sympy.cos,
-            'tan': sympy.tan,
-            'asin': sympy.asin,
-            'acos': sympy.acos,
-            'atan': sympy.atan,
-            'exp': sympy.exp,
-            'ln': sympy.log,
-            'sqrt': sympy.sqrt
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
         }
         if op in dispatch:
             arg = expr.sym(nested_scope)

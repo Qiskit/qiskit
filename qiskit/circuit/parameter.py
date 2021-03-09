@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -15,15 +13,54 @@
 Parameter Class for variable parameters.
 """
 
+from uuid import uuid4
 
-class Parameter():
-    """Parameter Class for variable parameters"""
-    def __init__(self, name):
+from .parameterexpression import ParameterExpression
+
+
+class Parameter(ParameterExpression):
+    """Parameter Class for variable parameters."""
+
+    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
+        # Parameter relies on self._uuid being set prior to other attributes
+        # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
+        # or __eq__ functions.
+        obj = object.__new__(cls)
+
+        if uuid is None:
+            obj._uuid = uuid4()
+        else:
+            obj._uuid = uuid
+
+        obj._hash = hash(obj._uuid)
+        return obj
+
+    def __getnewargs__(self):
+        # Unpickling won't in general call __init__ but will always call
+        # __new__. Specify arguments to be passed to __new__ when unpickling.
+
+        return (self.name, self._uuid)
+
+    def __init__(self, name: str):
+        """Create a new named :class:`Parameter`.
+
+        Args:
+            name: name of the ``Parameter``, used for visual representation. This can
+                be any unicode string, e.g. "ϕ".
+        """
         self._name = name
+
+        from sympy import Symbol
+        symbol = Symbol(name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
+
+    def subs(self, parameter_map: dict):
+        """Substitute self with the corresponding parameter in ``parameter_map``."""
+        return parameter_map[self]
 
     @property
     def name(self):
-        """Returns the name of the Parameter."""
+        """Returns the name of the :class:`Parameter`."""
         return self._name
 
     def __str__(self):
@@ -37,3 +74,14 @@ class Parameter():
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, self.name)
+
+    def __eq__(self, other):
+        if isinstance(other, Parameter):
+            return self._uuid == other._uuid
+        elif isinstance(other, ParameterExpression):
+            return super().__eq__(other)
+        else:
+            return False
+
+    def __hash__(self):
+        return self._hash

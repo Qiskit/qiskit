@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -20,10 +18,11 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+import io
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
-import networkx as nx
+import retworkx as rx
 from qiskit.transpiler.exceptions import CouplingError
 
 
@@ -35,31 +34,35 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    def __init__(self, couplinglist=None):
+    def __init__(self, couplinglist=None, description=None):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+            description (str): A string to describe the coupling map.
         """
-
+        self.description = description
         # the coupling map graph
-        self.graph = nx.DiGraph()
+        self.graph = rx.PyDiGraph()
         # a dict of dicts from node pairs to distances
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
+        # number of qubits in the graph
+        self._size = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._is_symmetric = None
 
         if couplinglist is not None:
-            for source, target in couplinglist:
-                self.add_edge(source, target)
+            self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
 
     def size(self):
         """Return the number of physical qubits in this graph."""
-        return len(self.graph.nodes)
+        if self._size is None:
+            self._size = len(self.graph)
+        return self._size
 
     def get_edges(self):
         """
@@ -68,7 +71,7 @@ class CouplingMap:
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
-        return [edge for edge in self.graph.edges()]
+        return self.graph.edge_list()
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -86,6 +89,7 @@ class CouplingMap:
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
+        self._size = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -98,7 +102,7 @@ class CouplingMap:
             self.add_physical_qubit(src)
         if dst not in self.physical_qubits:
             self.add_physical_qubit(dst)
-        self.graph.add_edge(src, dst)
+        self.graph.add_edge(src, dst, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -118,7 +122,7 @@ class CouplingMap:
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         if self._qubit_list is None:
-            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+            self._qubit_list = self.graph.node_indexes()
         return self._qubit_list
 
     def is_connected(self):
@@ -128,9 +132,24 @@ class CouplingMap:
         Return True if connected, False otherwise
         """
         try:
-            return nx.is_weakly_connected(self.graph)
-        except nx.exception.NetworkXException:
+            return rx.is_weakly_connected(self.graph)
+        except rx.NullGraph:
             return False
+
+    def neighbors(self, physical_qubit):
+        """Return the nearest neighbors of a physical qubit.
+
+        Directionality matters, i.e. a neighbor must be reachable
+        by going one hop in the direction of an edge.
+        """
+        return self.graph.neighbors(physical_qubit)
+
+    @property
+    def distance_matrix(self):
+        """Return the distance matrix for the coupling map."""
+        if self._dist_matrix is None:
+            self._compute_distance_matrix()
+        return self._dist_matrix
 
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
@@ -140,14 +159,7 @@ class CouplingMap:
         """
         if not self.is_connected():
             raise CouplingError("coupling graph not connected")
-        lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
-        lengths = dict(lengths)
-        size = len(lengths)
-        cmap = np.zeros((size, size))
-        for idx in range(size):
-            cmap[idx, np.fromiter(lengths[idx].keys(), dtype=int)] = np.fromiter(
-                lengths[idx].values(), dtype=int)
-        self._dist_matrix = cmap
+        self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -162,16 +174,17 @@ class CouplingMap:
         Raises:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
-        if physical_qubit1 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit1,))
-        if physical_qubit2 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
+        if physical_qubit1 >= self.size():
+            raise CouplingError("%s not in coupling graph" % physical_qubit1)
+        if physical_qubit2 >= self.size():
+            raise CouplingError("%s not in coupling graph" % physical_qubit2)
         if self._dist_matrix is None:
             self._compute_distance_matrix()
-        return self._dist_matrix[physical_qubit1, physical_qubit2]
+        return int(self._dist_matrix[physical_qubit1, physical_qubit2])
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
+
         Args:
             physical_qubit1 (int): A physical qubit
             physical_qubit2 (int): Another physical qubit
@@ -180,12 +193,12 @@ class CouplingMap:
         Raises:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
-        try:
-            return nx.shortest_path(self.graph.to_undirected(as_view=True), source=physical_qubit1,
-                                    target=physical_qubit2)
-        except nx.exception.NetworkXNoPath:
+        paths = rx.digraph_dijkstra_shortest_paths(
+            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True)
+        if not paths:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
+        return paths[physical_qubit2]
 
     @property
     def is_symmetric(self):
@@ -198,6 +211,17 @@ class CouplingMap:
             self._is_symmetric = self._check_symmetry()
         return self._is_symmetric
 
+    def make_symmetric(self):
+        """
+        Convert uni-directional edges into bi-directional.
+        """
+        edges = self.get_edges()
+        for src, dest in edges:
+            if (dest, src) not in edges:
+                self.add_edge(dest, src)
+        self._dist_matrix = None  # invalidate
+        self._is_symmetric = None  # invalidate
+
     def _check_symmetry(self):
         """
         Calculates symmetry
@@ -205,8 +229,7 @@ class CouplingMap:
         Returns:
             Bool: True if symmetric, False otherwise
         """
-        mat = nx.adjacency_matrix(self.graph)
-        return (mat - mat.T).nnz == 0
+        return self.graph.is_symmetric()
 
     def reduce(self, mapping):
         """Returns a reduced coupling map that
@@ -247,6 +270,48 @@ class CouplingMap:
 
         return CouplingMap(reduced_cmap)
 
+    @classmethod
+    def from_full(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='full')
+        if bidirectional:
+            cmap.graph = rx.generators.directed_mesh_graph(num_qubits)
+        else:
+            edge_list = []
+            for i in range(num_qubits):
+                for j in range(i):
+                    edge_list.append((j, i))
+            cmap.graph.extend_from_edge_list(edge_list)
+        return cmap
+
+    @classmethod
+    def from_line(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='line')
+        cmap.graph = rx.generators.directed_path_graph(
+            num_qubits, bidirectional=bidirectional)
+        return cmap
+
+    @classmethod
+    def from_ring(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='ring')
+        cmap.graph = rx.generators.directed_cycle_graph(
+            num_qubits, bidirectional=bidirectional)
+        return cmap
+
+    @classmethod
+    def from_grid(cls, num_rows, num_columns, bidirectional=True):
+        """Return qubits connected on a grid of num_rows x num_columns."""
+        cmap = cls(description='grid')
+        cmap.graph = rx.generators.directed_grid_graph(
+            num_rows, num_columns, bidirectional=bidirectional)
+        return cmap
+
+    def largest_connected_component(self):
+        """Return a set of qubits in the largest connected component."""
+        return max(rx.strongly_connected_components(self.graph), key=len)
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
@@ -255,3 +320,30 @@ class CouplingMap:
             string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
             string += "]"
         return string
+
+    def draw(self):
+        """Draws the coupling map.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
+        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
+        need to be installed.
+
+        Returns:
+            PIL.Image: Drawn coupling map.
+
+        Raises:
+            ImportError: when pydot or pillow are not installed.
+        """
+
+        try:
+            import pydot
+            from PIL import Image
+        except ImportError as ex:
+            raise ImportError("CouplingMap.draw requires pydot and pillow. "
+                              "Run 'pip install pydot pillow'.") from ex
+        dot_str = self.graph.to_dot()
+        dot = pydot.graph_from_dot_data(dot_str)[0]
+        png = dot.create_png(prog='neato')
+
+        return Image.open(io.BytesIO(png))

@@ -1,0 +1,148 @@
+---
+deprecations:
+  - |
+    The naming of gate objects and methods have been updated to be more
+    consistent. The following changes have been made:
+
+    * The Pauli gates all have one uppercase letter only (``I``, ``X``, ``Y``,
+      ``Z``)
+    * The parameterized Pauli gates (i.e. rotations) prepend the uppercase
+      letter ``R`` (``RX``, ``RY``, ``RZ``)
+    * A controlled version prepends the uppercase letter ``C`` (``CX``,
+      ``CRX``, ``CCX``)
+    * Gates are named according to their action, not their alternative names
+      (``CCX``, not ``Toffoli``)
+
+    The old names have been deprecated and will be removed in a future release.
+    This is a list of the changes showing the old and new class, name attribute,
+    and methods. If a new column is blank then there is no change for that.
+
+    .. list-table:: Gate Name Changes
+       :header-rows: 1
+
+       * - Old Class
+         - New Class
+         - Old Name Attribute
+         - New Name Attribute
+         - Old :class:`qiskit.circuit.QuantumCircuit` method
+         - New :class:`qiskit.circuit.QuantumCircuit` method
+       * - ``ToffoliGate``
+         - :class:`~qiskit.extensions.CCXGate`
+         - ``ccx``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.ccx` and
+           :meth:`~qiskit.circuit.QuantumCircuit.toffoli`
+         -
+       * - ``CrxGate``
+         - :class:`~qiskit.extensions.CRXGate`
+         - ``crx``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.crx`
+         -
+       * - ``CryGate``
+         - :class:`~qiskit.extensions.CRYGate`
+         - ``cry``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cry`
+         -
+       * - ``CrzGate``
+         - :class:`~qiskit.extensions.CRZGate`
+         - ``crz``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.crz`
+         -
+       * - ``FredkinGate``
+         - :class:`~qiskit.extensions.CSwapGate`
+         - ``cswap``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
+           :meth:`~qiskit.circuit.QuantumCircuit.fredkin`
+         -
+       * - ``Cu1Gate``
+         - :class:`~qiskit.extensions.CU1Gate`
+         - ``cu1``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cu1`
+         -
+       * - ``Cu3Gate``
+         - :class:`~qiskit.extensions.CU3Gate`
+         - ``cu3``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cu3`
+         -
+       * - ``CnotGate``
+         - :class:`~qiskit.extensions.CXGate`
+         - ``cx``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cx` and
+           :meth:`~qiskit.circuit.QuantumCircuit.cnot`
+         -
+       * - ``CyGate``
+         - :class:`~qiskit.extensions.CYGate`
+         - ``cy``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cy`
+         -
+       * - ``CzGate``
+         - :class:`~qiskit.extensions.CZGate`
+         - ``cz``
+         -
+         - :meth:`~qiskit.circuit.QuantumCircuit.cz`
+         -
+       * - ``DiagGate``
+         - :class:`~qiskit.extensions.DiagonalGate`
+         - ``diag``
+         - ``diagonal``
+         - ``diag_gate``
+         - :meth:`~qiskit.circuit.QuantumCircuit.diagonal`
+       * - ``IdGate``
+         - :class:`~qiskit.extensions.IGate`
+         - ``id``
+         -
+         - ``iden``
+         - :meth:`~qiskit.circuit.QuantumCircuit.i` and
+           :meth:`~qiskit.circuit.QuantumCircuit.id`
+       * - :class:`~qiskit.extensions.Isometry`
+         -
+         - ``iso``
+         - ``isometry``
+         - :meth:`~qiskit.circuit.QuantumCircuit.iso`
+         - :meth:`~qiskit.circuit.QuantumCircuit.isometry`
+           and :meth:`~qiskit.circuit.QuantumCircuit.iso`
+       * - ``UCG``
+         - :class:`~qiskit.extensions.UCGate`
+         - ``multiplexer``
+         -
+         - ``ucg``
+         - :meth:`~qiskit.circuit.QuantumCircuit.uc`
+       * - ``UCRot``
+         - :class:`~qiskit.extensions.UCPauliRotGate`
+         -
+         -
+         -
+         -
+       * - ``UCX``
+         - :class:`~qiskit.extensions.UCRXGate`
+         - ``ucrotX``
+         - ``ucrx``
+         - ``ucx``
+         - :meth:`~qiskit.circuit.QuantumCircuit.ucrx`
+       * - ``UCY``
+         - :class:`~qiskit.extensions.UCRYGate`
+         - ``ucroty``
+         - ``ucry``
+         - ``ucy``
+         - :meth:`~qiskit.circuit.QuantumCircuit.ucry`
+       * - ``UCZ``
+         - :class:`~qiskit.extensions.UCRZGate`
+         - ``ucrotz``
+         - ``ucrz``
+         - ``ucz``
+         - :meth:`~qiskit.circuit.QuantumCircuit.ucrz`
+
+features:
+  - The :class:`qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.iso` for adding an
+    :class:`~qiskit.extensions.Isometry` gate to the circuit has a new alias.
+    You can now call :meth:`qiskit.circuit.QuantumCircuit.isometry` in addition
+    to calling ``iso``.

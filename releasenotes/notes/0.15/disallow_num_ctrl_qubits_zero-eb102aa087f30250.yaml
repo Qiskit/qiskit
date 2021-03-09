@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Previously it was possible to set the number of control qubits to zero in
+    which case the the original, potentially non-controlled, operation would be
+    returned. This could cause an ``AttributeError`` to be raised if the caller
+    attempted to access an attribute which only
+    :class:`~qiskit.circuit.ControlledGate` object have. This has been fixed
+    by adding a getter and setter for
+    :attr:`~qiskit.circuit.ControlledGate.num_ctrl_qubits` to validate
+    that a valid value is being used.
+    Fixes `#4576 <https://github.com/Qiskit/qiskit-terra/issues/4576>`__

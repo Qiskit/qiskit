@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    When accessing a bit from a
+    :class:`qiskit.circuit.QuantumRegister` or
+    :class:`qiskit.circuit.ClassicalRegister` by index when using numpy
+    `integer types` <https://numpy.org/doc/stable/user/basics.types.html>`__
+    would previously raise a ``CircuitError`` exception. This has been
+    resolved so numpy types can be used in addition to Python's built-in
+    ``int`` type.
+    Fixes `#3929 <https://github.com/Qiskit/qiskit-terra/issues/3929>`__.
+    

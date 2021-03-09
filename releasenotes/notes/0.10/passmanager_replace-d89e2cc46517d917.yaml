@@ -1,0 +1,53 @@
+---
+features:
+  - |
+    A given pass manager now can be edited with the new method `replace`. This method allows to
+    replace a particular stage in a pass manager, which can be handy when dealing with preset
+    pass managers. For example, let's edit the layout selector of the pass manager used at
+    optimization level 0:
+
+    .. code-block:: python
+
+      from qiskit.transpiler.preset_passmanagers.level0 import level_0_pass_manager
+      from qiskit.transpiler.transpile_config import TranspileConfig
+
+      pass_manager = level_0_pass_manager(TranspileConfig(coupling_map=CouplingMap([[0,1]])))
+
+      pass_manager.draw()
+
+    .. code-block::
+
+      [0] FlowLinear: SetLayout
+      [1] Conditional: TrivialLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller
+
+    The layout selection is set in the stage `[1]`. Let's replace it with `DenseLayout`:
+
+    .. code-block:: python
+
+      from qiskit.transpiler.passes import DenseLayout
+
+      pass_manager.replace(1, DenseLayout(coupling_map), condition=lambda property_set: not property_set['layout'])
+      pass_manager.draw()
+
+    .. code-block::
+
+      [0] FlowLinear: SetLayout
+      [1] Conditional: DenseLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller
+
+    If you want to replace it without any condition, you can use set-item shortcut:
+
+    .. code-block:: python
+
+      pass_manager[1] = DenseLayout(coupling_map)
+      pass_manager.draw()
+
+    .. code-block::
+
+      [0] FlowLinear: SetLayout
+      [1] FlowLinear: DenseLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller

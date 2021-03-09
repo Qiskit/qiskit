@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    Introduced a new pass
+    :class:`qiskit.transpiler.passes.CrosstalkAdaptiveSchedule`.This pass
+    aims to reduce the impact of crosstalk noise on a program. It uses
+    crosstalk characterization data from the backend to schedule gates.
+    When a pair of gates has high crosstalk, they get serialized using a
+    barrier. Naive serialization is harmful because it incurs decoherence
+    errors. Hence, this pass uses a SMT optimization approach to compute a
+    schedule which minimizes the impact of crosstalk as well as decoherence
+    errors.
+
+    The pass takes as input a circuit which is already transpiled onto
+    the backend i.e., the circuit is expressed in terms of physical qubits and
+    swap gates have been inserted and decomposed into CNOTs if required. Using
+    this circuit and crosstalk characterization data, a
+    `Z3 optimization <https://github.com/Z3Prover/z3>`_ is used to construct a
+    new scheduled circuit as output.
+
+    To use the pass on a circuit circ::
+
+      dag = circuit_to_dag(circ)
+      pass_ = CrosstalkAdaptiveSchedule(backend_prop, crosstalk_prop)
+      scheduled_dag = pass_.run(dag)
+      scheduled_circ = dag_to_circuit(scheduled_dag)
+
+    ``backend_prop`` is a :class:`qiskit.providers.models.BackendProperties`
+    object for the target backend. ``crosstalk_prop`` is a dict which specifies
+    conditional error rates. For two gates ``g1`` and ``g2``,
+    ``crosstalk_prop[g1][g2]`` specifies the conditional error rate of ``g1``
+    when ``g1`` and ``g2`` are executed simultaneously. A method for generating
+    ``crosstalk_prop`` will be added in a future release of qiskit-ignis. Until
+    then you'll either have to already know the crosstalk properties of your
+    device, or manually write your own device characterization experiments.

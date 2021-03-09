@@ -1,0 +1,41 @@
+---
+upgrade:
+  - |
+    The ``qiskit.pulse.commands`` module containing ``Commands`` classes
+    was deprecated in the 0.13.0 release and has now been removed. You will
+    have to upgrade your Pulse code if you were still using commands. For
+    example:
+
+    .. list-table::
+      :header-rows: 2
+
+      * - Old
+        - New
+      * - ``Command(args)(channel)``
+        - ``Instruction(args, channel)``
+      * - .. code-block:: python
+
+            Acquire(duration)(AcquireChannel(0))
+        - .. code-block:: python
+
+            Acquire(duration, AcquireChannel(0))
+      * - .. code-block:: python
+
+            Delay(duration)(channel)
+        - .. code-block:: python
+
+            Delay(duration, channel)
+      * - .. code-block:: python
+
+            FrameChange(angle)(DriveChannel(0))
+        - .. code-block:: python
+
+            # FrameChange was also renamed
+            ShiftPhase(angle, DriveChannel(0))
+      * - .. code-block:: python
+
+            Gaussian(...)(DriveChannel(0))
+        - .. code-block:: python
+
+            # Pulses need to be `Play`d
+            Play(Gaussian(...), DriveChannel(0))

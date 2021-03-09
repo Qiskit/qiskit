@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    A new method :meth:`qiskit.transpiler.CouplingMap.draw` was added to
+    :class:`qiskit.transpiler.CouplingMap` to generate a graphviz images from
+    the coupling map graph. For example:
+
+    .. jupyter-execute::
+
+        from qiskit.transpiler import CouplingMap
+
+
+        coupling_map = CouplingMap(
+            [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]])
+        coupling_map.draw()

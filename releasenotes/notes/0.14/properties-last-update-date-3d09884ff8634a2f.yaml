@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The ``last_update_date`` parameter for
+    :class:`~qiskit.providers.models.BackendProperties` can now also be
+    passed in as a ``datetime`` object. Previously only a string in
+    ISO8601 format was accepted.
+upgrade:
+  - |
+    A new package,
+    `python-dateutil <https://pypi.org/project/python-dateutil/>`_, is now
+    required and has been added to the requirements list. It is being used
+    to parse datetime strings received from external providers in
+    :class:`~qiskit.providers.models.BackendProperties` objects.

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -27,6 +25,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
     """Tests the EnlargeWithAncilla pass."""
 
     def setUp(self):
+        super().setUp()
         self.qr3 = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(self.qr3)
         circuit.h(self.qr3)
@@ -36,7 +35,8 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         """There are no virtual qubits to extend."""
         layout = Layout({self.qr3[0]: 0, self.qr3[1]: 1, self.qr3[2]: 2})
 
-        pass_ = EnlargeWithAncilla(layout)
+        pass_ = EnlargeWithAncilla()
+        pass_.property_set['layout'] = layout
         after = pass_.run(self.dag)
 
         qregs = list(after.qregs.values())
@@ -51,7 +51,8 @@ class TestEnlargeWithAncilla(QiskitTestCase):
                          2: self.qr3[1], 3: ancilla[1],
                          4: self.qr3[2]})
 
-        pass_ = EnlargeWithAncilla(layout)
+        pass_ = EnlargeWithAncilla()
+        pass_.property_set['layout'] = layout
         after = pass_.run(self.dag)
 
         qregs = list(after.qregs.values())

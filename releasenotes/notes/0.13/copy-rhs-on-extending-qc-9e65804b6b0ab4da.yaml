@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    When extending a :class:`~qiskit.circuit.QuantumCircuit` instance
+    (extendee) with another circuit (extension), the circuit is taken via
+    reference. If a circuit is extended with itself that leads to an infinite
+    loop as extendee and extension are the same. This bug has been resolved by
+    copying the extension if it is the same object as the extendee.
+    Fixes `#3811 <https://github.com/Qiskit/qiskit-terra/issues/3811>`_

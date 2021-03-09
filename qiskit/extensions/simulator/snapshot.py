@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -15,17 +13,16 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-import warnings
-
-from qiskit import QuantumCircuit
-from qiskit.circuit import CompositeGate
-from qiskit import QuantumRegister
-from qiskit.circuit import Instruction
-from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.instruction import Instruction
+from qiskit.extensions.exceptions import QiskitError, ExtensionError
 
 
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
+
+    _directive = True
 
     def __init__(self,
                  label,
@@ -90,6 +87,9 @@ class Snapshot(Instruction):
         else:
             raise TypeError('label expects a string')
 
+    def c_if(self, classical, val):
+        raise QiskitError('Snapshots are simulator directives and cannot be conditional.')
+
 
 def snapshot(self,
              label,
@@ -102,7 +102,7 @@ def snapshot(self,
     For other types of snapshots use the Snapshot extension directly.
 
     Args:
-        label (str): a snapshot label to report the result
+        label (str): a snapshot label to report the result.
         snapshot_type (str): the type of the snapshot.
         qubits (list or None): the qubits to apply snapshot to [Default: None].
         params (list or None): the parameters for snapshot_type [Default: None].
@@ -113,12 +113,6 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
-    # Convert label to string for backwards compatibility
-    if not isinstance(label, str):
-        warnings.warn(
-            "Snapshot label should be a string, "
-            "implicit conversion is depreciated.", DeprecationWarning)
-        label = str(label)
     # If no qubits are specified we add all qubits so it acts as a barrier
     # This is needed for full register snapshots like statevector
     if isinstance(qubits, QuantumRegister):
@@ -134,7 +128,7 @@ def snapshot(self,
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):
                 for j in range(tuple_element.size):
-                    qubits.append((tuple_element, j))
+                    qubits.append(tuple_element[j])
             else:
                 qubits.append(tuple_element)
     return self.append(
@@ -145,6 +139,5 @@ def snapshot(self,
             params=params), qubits)
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.snapshot = snapshot
-CompositeGate.snapshot = snapshot

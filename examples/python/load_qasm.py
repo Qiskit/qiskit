@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,24 +13,19 @@
 """Example on how to load a file into a QuantumCircuit."""
 
 from qiskit import QuantumCircuit
-from qiskit import QiskitError, execute, BasicAer
+from qiskit import execute, BasicAer
 
-try:
-    circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
-    print(circ.draw())
+circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
+print(circ)
 
-    # See the backend
-    sim_backend = BasicAer.get_backend('qasm_simulator')
+# See the backend
+sim_backend = BasicAer.get_backend('qasm_simulator')
 
 
-    # Compile and run the Quantum circuit on a local simulator backend
-    job_sim = execute(circ, sim_backend)
-    sim_result = job_sim.result()
+# Compile and run the Quantum circuit on a local simulator backend
+job_sim = execute(circ, sim_backend)
+sim_result = job_sim.result()
 
-    # Show the results
-    print("simulation: ", sim_result)
-    print(sim_result.get_counts(circ))
-
-except QiskitError as ex:
-    print('There was an internal Qiskit error. Error = {}'.format(ex))
-
+# Show the results
+print("simulation: ", sim_result)
+print(sim_result.get_counts(circ))

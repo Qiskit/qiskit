@@ -1,0 +1,29 @@
+---
+upgrade:
+  - |
+    The ``TranspileConfig`` class which was previously used to set
+    run time configuration for a :class:`qiskit.transpiler.PassManager` has
+    been removed and replaced by a new class
+    :class:`qiskit.transpile.PassManagerConfig`. This new class has been
+    structured to include only the information needed to construct a
+    :class:`~qiskit.transpiler.PassManager`. The attributes of this class are:
+
+    * ``initial_layout``
+    * ``basis_gates``
+    * ``coupling_map``
+    * ``backend_properties``
+    * ``seed_transpiler``
+  - |
+    The function ``transpile_circuit`` in
+    :mod:`qiskit.transpiler` has been removed. To transpile a circuit with a
+    custom :class:`~qiskit.transpiler.PassManager` now you should use the
+    :meth:`~qiskit.transpiler.PassManager.run` method of the
+    :class:~qiskit.transpiler.PassManager` object.
+
+deprecations:
+  - |
+    The ``callback`` kwarg of the :class:`qiskit.transpiler.PassManager` class's
+    constructor has been deprecated and will be removed in a future release.
+    Instead of setting it at the object level during creation it should now
+    be set as a kwarg parameter on the :meth:`qiskit.transpiler.PassManager.run`
+    method.

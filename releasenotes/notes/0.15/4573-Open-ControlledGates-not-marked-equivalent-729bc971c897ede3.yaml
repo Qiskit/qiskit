@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`~qiskit.circuit.ControlledGate` instances with a set
+    ``ctrl_state`` were in some cases not being evaluated as equal, even if the
+    compared gates were equivalent. This has been resolved so that
+    Fixes `#4573 <https://github.com/Qiskit/qiskit-terra/issues/4573>`__

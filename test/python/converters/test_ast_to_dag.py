@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -26,6 +24,7 @@ class TestAstToDag(QiskitTestCase):
     """Test AST to DAG."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         self.circuit = QuantumCircuit(qr, cr)

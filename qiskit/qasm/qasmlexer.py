@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -21,8 +19,8 @@ by creating a stack of lexers.
 
 import os
 
+import numpy as np
 import ply.lex as lex
-from sympy import Number
 
 from . import node
 from .exceptions import QasmError
@@ -37,7 +35,7 @@ class QasmLexer:
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
-    # pylint: disable=invalid-name,missing-docstring,unused-argument
+    # pylint: disable=invalid-name,missing-function-docstring
     # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):
@@ -47,7 +45,7 @@ class QasmLexer:
         self.lineno = 1
 
         if filename:
-            with open(filename, 'r') as ifile:
+            with open(filename) as ifile:
                 self.data = ifile.read()
             self.lexer.input(self.data)
 
@@ -106,9 +104,10 @@ class QasmLexer:
 
     def t_REAL(self, t):
         r'(([0-9]+|([0-9]+)?\.[0-9]+|[0-9]+\.)[eE][+-]?[0-9]+)|(([0-9]+)?\.[0-9]+|[0-9]+\.)'
-        t.value = Number(t.value)
-        # tad nasty, see mkfloat.py to see how this is derived from python spec
-        return t
+        if np.iscomplex(t):
+            return t.real
+        else:
+            return t
 
     def t_NNINTEGER(self, t):
         r'[1-9]+[0-9]*|0'
@@ -127,9 +126,8 @@ class QasmLexer:
         r'\"([^\\\"]|\\.)*\"'
         return t
 
-    def t_INCLUDE(self, t):
+    def t_INCLUDE(self, _):
         'include'
-        #
         # Now eat up the next two tokens which must be
         # 1 - the name of the include file, and
         # 2 - a terminating semicolon
@@ -140,7 +138,6 @@ class QasmLexer:
         # When we hit eof (the t_eof) rule, we pop.
         next_token = self.lexer.token()
         lineno = next_token.lineno
-        # print('NEXT', next, "next.value", next.value, type(next))
         if isinstance(next_token.value, str):
             incfile = next_token.value.strip('"')
         else:
@@ -164,7 +161,7 @@ class QasmLexer:
         r'OPENQASM\s+(\d+)\.(\d+)'
         return t
 
-    def t_COMMENT(self, t):
+    def t_COMMENT(self, _):
         r'//.*'
         pass
 
@@ -189,7 +186,7 @@ class QasmLexer:
         self.lineno += len(t.value)
         t.lexer.lineno = self.lineno
 
-    def t_eof(self, t):
+    def t_eof(self, _):
         if self.stack:
             self.pop()
             return self.lexer.token()
@@ -198,6 +195,5 @@ class QasmLexer:
     t_ignore = ' \t\r'
 
     def t_error(self, t):
-        print("Unable to match any token rule, got -->%s<--" % t.value[0])
-        print("Check your OPENQASM source and any include statements.")
-        # t.lexer.skip(1)
+        raise QasmError("Unable to match any token rule, got -->%s<-- "
+                        "Check your OPENQASM source and any include statements." % t.value[0])

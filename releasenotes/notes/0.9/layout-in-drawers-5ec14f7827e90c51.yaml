@@ -1,0 +1,71 @@
+---
+features:
+  - |
+    Both ``qiskit.QuantumCircuit.draw()`` and
+    ``qiskit.visualization.circuit_drawer()`` now support annotating the
+    qubits in the visualization with layout information. If the
+    ``QuantumCircuit`` object being drawn includes layout metadata (which is
+    normally only set on the circuit output from ``transpile()`` calls) then
+    by default that layout will be shown on the diagram. This is done for all
+    circuit drawer backends. For example::
+
+        from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+        from qiskit.compiler import transpile
+
+        qr = QuantumRegister(2, 'userqr')
+        cr = ClassicalRegister(2, 'c0')
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.y(qr[0])
+        qc.x(qr[1])
+        qc.measure(qr, cr)
+
+        # Melbourne coupling map
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+        qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                              coupling_map=coupling_map, optimization_level=0)
+        qc.draw(output='text')
+
+    will yield a diagram like::
+
+                          ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐
+           (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───
+                          ├──────────┤└──────────┘└─┬─┘├──────────┤└─┬─────────────┬──┘└╥┘┌─┐
+           (userqr1) q1|0>┤ U2(0,pi) ├──────────────■──┤ U2(0,pi) ├──┤ U3(pi,0,pi) ├────╫─┤M├
+                          └──────────┘                 └──────────┘  └─────────────┘    ║ └╥┘
+          (ancilla0) q2|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla1) q3|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla2) q4|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla3) q5|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla4) q6|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla5) q7|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla6) q8|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+          (ancilla7) q9|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+         (ancilla8) q10|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+         (ancilla9) q11|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+        (ancilla10) q12|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+        (ancilla11) q13|0>──────────────────────────────────────────────────────────────╫──╫─
+                                                                                        ║  ║
+                  c0_0: 0 ══════════════════════════════════════════════════════════════╩══╬═
+                                                                                           ║
+                  c0_1: 0 ═════════════════════════════════════════════════════════════════╩═
+
+    If you do not want the layout to be shown on transpiled circuits (or any
+    other circuits with a layout set) there is a new boolean kwarg for both
+    functions, ``with_layout`` (which defaults ``True``), which when set
+    ``False`` will disable the layout annotation in the output circuits.

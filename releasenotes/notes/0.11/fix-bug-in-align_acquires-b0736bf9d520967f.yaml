@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The align_measures function had an issue where Measure stimulus
+    pulses weren't properly aligned with Acquire pulses, resulting in
+    an error. This has been fixed.

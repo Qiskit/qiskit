@@ -1,0 +1,96 @@
+---
+features:
+  - |
+    There has been a significant simplification to the style in which Pulse
+    instructions are built.
+
+    With the previous style, ``Command`` s were called with channels to make
+    an :py:class:`~qiskit.pulse.instructions.Instruction`. The usage of both
+    commands and instructions was a point of confusion. This was the previous
+    style::
+
+        sched += Delay(5)(DriveChannel(0))
+        sched += ShiftPhase(np.pi)(DriveChannel(0))
+        sched += SamplePulse([1.0, ...])(DriveChannel(0))
+        sched += Acquire(100)(AcquireChannel(0), MemorySlot(0))
+
+    or, equivalently (though less used)::
+
+        sched += DelayInstruction(Delay(5), DriveChannel(0))
+        sched += ShiftPhaseInstruction(ShiftPhase(np.pi), DriveChannel(0))
+        sched += PulseInstruction(SamplePulse([1.0, ...]), DriveChannel(0))
+        sched += AcquireInstruction(Acquire(100), AcquireChannel(0),
+                                    MemorySlot(0))
+
+    Now, rather than build a command *and* an instruction, each command has
+    been migrated into an instruction::
+
+        sched += Delay(5, DriveChannel(0))
+        sched += ShiftPhase(np.pi, DriveChannel(0))
+        sched += Play(SamplePulse([1.0, ...]), DriveChannel(0))
+        sched += SetFrequency(5.5, DriveChannel(0))  # New instruction!
+        sched += Acquire(100, AcquireChannel(0), MemorySlot(0))
+  - |
+    There is now a :py:class:`~qiskit.pulse.instructions.Play` instruction
+    which takes a description of a pulse envelope and a channel. There is a
+    new :py:class:`~qiskit.pulse.pulse_lib.Pulse` class in the
+    :mod:`~qiskit.pulse.pulse_lib` from which the pulse envelope description
+    should subclass.
+
+    For example::
+
+        Play(SamplePulse([0.1]*10), DriveChannel(0))
+        Play(ConstantPulse(duration=10, amp=0.1), DriveChannel(0))
+deprecations:
+  - |
+    :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    :py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s (e.g. ``Gaussian``)
+    now subclass from :py:class:`~qiskit.pulse.pulse_lib.Pulse` and have been
+    moved to the :mod:`qiskit.pulse.pulse_lib`. The previous path via
+    ``pulse.commands`` is deprecated and will be removed in a future release.
+  - |
+    ``DelayInstruction`` has been deprecated and replaced by
+    :py:class:`~qiskit.pulse.instruction.Delay`. This new instruction has been
+    taken over the previous ``Command`` ``Delay``. The migration pattern is::
+
+        Delay(<duration>)(<channel>) -> Delay(<duration>, <channel>)
+        DelayInstruction(Delay(<duration>), <channel>)
+            -> Delay(<duration>, <channel>)
+
+    Until the deprecation period is over, the previous ``Delay`` syntax of
+    calling a command on a channel will also be supported::
+
+        Delay(<phase>)(<channel>)
+
+    The new ``Delay`` instruction does not support a ``command`` attribute.
+  - |
+    ``FrameChange`` and ``FrameChangeInstruction`` have been deprecated and
+    replaced by :py:class:`~qiskit.pulse.instructions.ShiftPhase`. The changes
+    are::
+
+        FrameChange(<phase>)(<channel>) -> ShiftPhase(<phase>, <channel>)
+        FrameChangeInstruction(FrameChange(<phase>), <channel>)
+            -> ShiftPhase(<phase>, <channel>)
+
+    Until the deprecation period is over, the previous FrameChange syntax of
+    calling a command on a channel will be supported::
+
+        ShiftPhase(<phase>)(<channel>)
+  - |
+    The ``call`` method of :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` and
+    :py:class:`~qiskit.pulse.pulse_lib.ParametricPulse` s have been deprecated.
+    The migration is as follows::
+
+        Pulse(<*args>)(<channel>) -> Play(Pulse(*args), <channel>)
+  - |
+    ``AcquireInstruction`` has been deprecated and replaced by
+    :py:class:`~qiskit.pulse.instructions.Acquire`. The changes are::
+
+        Acquire(<duration>)(<**channels>) -> Acquire(<duration>, <**channels>)
+        AcquireInstruction(Acquire(<duration>), <**channels>)
+            -> Acquire(<duration>, <**channels>)
+
+    Until the deprecation period is over, the previous Acquire syntax of
+    calling the command on a channel will be supported::
+
+        Acquire(<duration>)(<**channels>)

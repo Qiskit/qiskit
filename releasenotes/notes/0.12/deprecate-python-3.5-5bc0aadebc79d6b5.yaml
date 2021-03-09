@@ -1,0 +1,54 @@
+---
+issues:
+  - |
+    Running functions that use :func:`qiskit.tools.parallel_map` (for example
+    :func:`qiskit.execute.execute`, :func:`qiskit.compiler.transpile`, and
+    :meth:`qiskit.transpiler.PassManager.run`) may not work when
+    called from a script running outside of a ``if __name__ == '__main__':``
+    block when using Python 3.8 on MacOS. Other environments are uneffected by
+    this issue. This is due to changes in how parallel processes are launched
+    by Python 3.8 on MacOS. If ``RuntimeError`` or ``AttributeError`` are
+    raised by scripts that are directly calling ``parallel_map()`` or when
+    calling a function that uses it internally with Python 3.8 on MacOS
+    embedding the script calls inside ``if __name__ == '__main__':`` should
+    workaround the issue. For example::
+
+        from qiskit import QuantumCircuit, QiskitError
+        from qiskit import execute, BasicAer
+
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+        qc1.cx(0, 1)
+        qc1.measure([0,1], [0,1])
+        # making another circuit: superpositions
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h([0,1])
+        qc2.measure([0,1], [0,1])
+        execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+
+    should be changed to::
+
+        from qiskit import QuantumCircuit, QiskitError
+        from qiskit import execute, BasicAer
+
+        def main():
+            qc1 = QuantumCircuit(2, 2)
+            qc1.h(0)
+            qc1.cx(0, 1)
+            qc1.measure([0,1], [0,1])
+            # making another circuit: superpositions
+            qc2 = QuantumCircuit(2, 2)
+            qc2.h([0,1])
+            qc2.measure([0,1], [0,1])
+            execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+
+        if __name__ == '__main__':
+            main()
+
+    if errors are encountered with Python 3.8 on MacOS.
+
+deprecations:
+  - |
+    Python 3.5 support in qiskit-terra is deprecated. Support will be
+    removed in the first release after the upstream Python community's end of
+    life date for the version, which is 09/13/2020.

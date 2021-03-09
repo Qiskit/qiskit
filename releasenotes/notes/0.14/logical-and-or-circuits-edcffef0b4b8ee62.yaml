@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    The circuit library module :mod:`qiskit.circuit.library` now provides a
+    new boolean logic AND circuit, :class:`qiskit.circuit.library.AND`, and
+    OR circuit, :class:`qiskit.circuit.library.OR`, which implement the
+    respective operations on a variable number of provided qubits.
+deprecations:
+  - |
+    The ``AND`` and ``OR`` methods of :class:`qiskit.circuit.QuantumCircuit`
+    are deprecated and will be removed in a future release. Instead you should
+    use the circuit library boolean logic classes
+    :class:`qiskit.circuit.library.AND` amd :class:`qiskit.circuit.library.OR`
+    and then append those objects to your class. For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.circuit.library import AND
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+
+      qc_and = AND(2)
+
+      qc.compose(qc_and, inplace=True)

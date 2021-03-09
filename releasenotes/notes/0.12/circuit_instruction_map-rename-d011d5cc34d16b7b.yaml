@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The attribute of the :class:`qiskit.providers.models.PulseDefaults` class
+    ``circuit_instruction_map`` has been deprecated and will be removed in a
+    future release. Instead you should use the new attribute
+    ``instruction_schedule_map``. This was done to match the type of the
+    value of the attribute, which is an ``InstructionScheduleMap``.

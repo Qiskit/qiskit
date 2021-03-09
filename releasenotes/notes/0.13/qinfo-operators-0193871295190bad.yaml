@@ -1,0 +1,159 @@
+---
+features:
+  - |
+    Adds :class:`qiskit.quantum_info.Clifford` operator class to the
+    `quantum_info` module. This operator is an efficient symplectic
+    representation an N-qubit unitary operator from the Clifford group. This
+    class includes a :meth:`~qiskit.quantum_info.Clifford.to_circuit` method
+    for compilation into a :class:`~qiskit.QuantumCircuit` of Clifford gates
+    with a minimal number of CX gates for up to 3-qubits. It also providers
+    general compilation for N > 3 qubits but this method is not optimal in
+    the number of two-qubit gates.
+  - |
+    Adds :class:`qiskit.quantum_info.SparsePauliOp` operator class. This is an
+    efficient representaiton of an N-qubit matrix that is sparse in the Pauli
+    basis and uses a :class:`qiskit.quantum_info.PauliTable` and vector of
+    complex coefficients for its data structure.
+    
+    This class supports much of the same functionality of the
+    :class:`qiskit.quantum_info.Operator` class so
+    :class:`~qiskit.quantum_info.SparsePauliOp` objects can be tensored,
+    composed, scalar multiplied, added and subtracted.
+
+    Numpy arrays or :class:`~qiskit.quantum_info.Operator` objects can be
+    converted to a :class:`~qiskit.quantum_info.SparsePauliOp` using the
+    `:class:`~qiskit.quantum_info.SparsePauliOp.from_operator` method.
+    :class:`~qiskit.quantum_info.SparsePauliOp` can be convered to a sparse
+    csr_matrix or dense Numpy array using the
+    :class:`~qiskit.quantum_info.SparsePauliOp.to_matrix` method, or to an
+    :class:`~qiskit.quantum_info.Operator` object using the
+    :class:`~qiskit.quantum_info.SparsePauliOp.to_operator` method.
+
+    A :class:`~qiskit.quantum_info.SparsePauliOp` can be iterated over
+    in terms of its :class:`~qiskit.quantum_info.PauliTable` components and
+    coefficients, its coefficients and Pauli string labels using the
+    :meth:`~qiskit.quantum_info.SparsePauliOp.label_iter` method, and the
+    (dense or sparse) matrix components using the
+    :meth:`~qiskit.quantum_info.SparsePauliOp.matrix_iter` method.
+  - |
+    Add :meth:`qiskit.quantum_info.diamond_norm` function for computing the
+    diamond norm (completely-bounded trace-norm) of a quantum channel. This
+    can be used to compute the distance between two quantum channels using
+    ``diamond_norm(chan1 - chan2)``.
+  - |
+    A new class :class:`qiskit.quantum_info.PauliTable` has been added. This
+    is an efficient symplectic representation of a list of N-qubit Pauli
+    operators. Some features of this class are:
+ 
+      * :class:`~qiskit.quantum_info.PauliTable` objects may be composed, and
+        tensored which will return a :class:`~qiskit.quantum_info.PauliTable`
+        object with the combination of the operation (
+        :meth:`~qiskit.quantum_info.PauliTable.compose`,
+        :meth:`~qiskit.quantum_info.PauliTable.dot`,
+        :meth:`~qiskit.quantum_info.PauliTable.expand`,
+        :meth:`~qiskit.quantum_info.PauliTable.tensor`) between each element
+        of  the first table, with each element of the second table.
+
+      * Addition of two tables acts as list concatination of the terms in each
+        table (``+``).
+      
+      * Pauli tables can be sorted by lexicographic (tensor product) order or
+        by Pauli weights (:meth:`~qiskit.quantum_info.PauliTable.sort`).
+
+      * Duplicate elements can be counted and deleted
+        (:meth:`~qiskit.quantum_info.PauliTable.unique`).
+
+      * The PauliTable may be iterated over in either its native symplectic
+        boolean array representation, as Pauli string labels
+        (:meth:`~qiskit.quantum_info.PauliTable.label_iter`), or as dense
+        Numpy array or sparse CSR matrices
+        (:meth:`~qiskit.quantum_info.PauliTable.matrix_iter`).
+
+      * Checking commutation between elements of the Pauli table and another
+        Pauli (:meth:`~qiskit.quantum_info.PauliTable.commutes`) or Pauli
+        table (:meth:`~qiskit.quantum_info.PauliTable.commutes_with_all`)
+    
+    See the :class:`qiskit.quantum_info.PauliTable` class API documentation for
+    additional details.
+  - |
+    Adds :class:`qiskit.quantum_info.StabilizerTable` class. This is a subclass
+    of the :class:`qiskit.quantum_info.PauliTable` class which includes a
+    boolean phase vector along with the Pauli table array. This represents a
+    list of Stabilizer operators which are real-Pauli operators with +1 or -1
+    coefficient. Because the stabilizer matrices are real the ``"Y"`` label
+    matrix is defined as ``[[0, 1], [-1, 0]]``. See the API documentation for
+    additional information.
+  - |
+    Adds :func:`qiskit.quantum_info.pauli_basis` function which returns an N-qubit
+    Pauli basis as a :class:`qiskit.quantum_info.PauliTable` object. The ordering
+    of this basis can either be by standard lexicographic (tensor product) order,
+    or by the number of non-identity Pauli terms (weight).
+  - |
+    Adds :class:`qiskit.quantum_info.ScalarOp` operator class that represents
+    a scalar multiple of an identity operator. This can be used to initialize
+    an identity on arbitrary dimension subsystems and it will be implicitly
+    converted to other ``BaseOperator`` subclasses (such as an
+    :class:`qiskit.quantum_info.Operator` or
+    :class:`qiskit.quantum_info.SuperOp`) when it is composed with,
+    or added to, them.
+
+    Example: Identity operator
+
+    .. code-block::
+
+        from qiskit.quantum_info import ScalarOp, Operator
+
+        X = Operator.from_label('X')
+        Z = Operator.from_label('Z')
+
+        init = ScalarOp(2 ** 3)  # 3-qubit identity
+        op = init @ X([0]) @ Z([1]) @ X([2])  # Op XZX
+  - |
+    A new method, :meth:`~qiskit.quantum_info.Operator.reshape`, has been added
+    to the :class:`qiskit.quantum_innfo.Operator` class that returns a shallow
+    copy of an operator subclass with reshaped subsystem input or output dimensions.
+    The combined dimensions of all subsystems must be the same as the original
+    operator or an exception will be raised.
+upgrade:
+  - |
+    The :class:`~qiskit.quantum_info.Operator`,
+    :class:`~qiskit.quantum_info.Clifford`,
+    :class:`~qiskit.quantum_info.SparsePauliOp`,
+    :class:`~qiskit.quantum_info.PauliTable`,
+    :class:`~qiskit.quantum_info.StabilizerTable`, operator classes have an added
+    ``call`` method that allows them to assign a `qargs` to the operator for use
+    with the :meth:`~qiskit.quantum_info.Operator.compose`,
+    :meth:`~qiskit.quantum_info.Operator.dot`, 
+    :meth:`~qiskit.quantum_info.Statevector.evolve`,``+``, and ``-`` operations.
+  - |
+    The addition method of the :class:`qiskit.quantum_info.Operator`, class now accepts a
+    ``qarg`` kwarg to allow adding a smaller operator to a larger one assuming identities
+    on the other subsystems (same as for ``qargs`` on
+    :meth:`~qiskit.quantum_info.Operator.compose` and
+    :meth:`~qiskit.quantum_info.Operator.dot` methods). This allows
+    subsystem addition using the call method as with composition. This support is
+    added to all BaseOperator subclasses (:class:`~qiskit.quantum_info.ScalarOp`,
+    :class:`~qiskit.quantum_info.Operator`,
+    :class:`~qiskit.quantum_info.QuantumChannel`).
+
+    For example:
+    
+    .. code-block::
+
+      from qiskit.quantum_info import Operator, ScalarOp
+
+      ZZ = Operator.from_label('ZZ')
+
+      # Initialize empty Hamiltonian
+      n_qubits = 10
+      ham = ScalarOp(2 ** n_qubits, coeff=0)
+
+      # Add 2-body nearest neighbour terms
+      for j in range(n_qubits - 1):
+          ham = ham + ZZ([j, j+1])
+  - |
+    The ``BaseOperator`` class has been updated so that addition,
+    subtraction and scalar multiplication are no longer abstract methods. This
+    means that they are no longer required to be implemented in subclasses if
+    they are not supported. The base class will raise a ``NotImplementedError``
+    when the methods are not defined.

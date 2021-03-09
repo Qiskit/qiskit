@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds :meth:`qiskit.quantum_info.Statevector.from_int` and
+    :meth:`qiskit.quantum_info.DensityMatrix.from_int` methods that allow
+    constructing a computational basis state for specified system dimensions.

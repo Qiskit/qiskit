@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -12,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """BasicAerJob creation and test suite."""
 
@@ -23,7 +21,9 @@ import unittest
 
 from unittest.mock import patch
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
+from qiskit.test.mock import FakeQobj, FakeRueschlikon
+from qiskit.providers.jobstatus import JobStatus
+from qiskit.providers.exceptions import JobTimeoutError
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -41,7 +41,7 @@ class TestSimulatorsJob(QiskitTestCase):
         backend = FakeRueschlikon()
         with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
-                job = SimulatorJob(backend, job_id, target_tasks[index], new_fake_qobj())
+                job = SimulatorJob(backend, job_id, target_tasks[index], FakeQobj())
                 job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -59,13 +59,49 @@ class TestSimulatorsJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
         with mocked_executor() as (BasicAerJob, executor):
-            job = BasicAerJob(backend, job_id, lambda: None, new_fake_qobj())
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
             job.submit()
             job.cancel()
 
         self.assertCalledOnce(executor.submit)
         mocked_future = executor.submit.return_value
         self.assertCalledOnce(mocked_future.cancel)
+
+    def test_wait_for_final_state(self):
+        """Test waiting for job to reach a final state."""
+        def _job_call_back(c_job_id, c_job_status, c_job):
+            """Job status query callback function."""
+            self.assertEqual(c_job_id, job_id)
+            self.assertEqual(c_job_status, JobStatus.RUNNING)
+            self.assertEqual(c_job, job)
+            mocked_future.running.return_value = False
+            mocked_future.done.return_value = True
+
+        job_id = str(uuid.uuid4())
+        backend = FakeRueschlikon()
+        with mocked_executor() as (BasicAerJob, executor):
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
+            job.submit()
+
+        mocked_future = executor.submit.return_value
+        mocked_future.running.return_value = True
+        mocked_future.cancelled.return_value = False
+        mocked_future.done.return_value = False
+        job.wait_for_final_state(callback=_job_call_back)
+
+    def test_wait_for_final_state_timeout(self):
+        """Test timeout waiting for job to reach a final state."""
+        job_id = str(uuid.uuid4())
+        backend = FakeRueschlikon()
+        with mocked_executor() as (BasicAerJob, executor):
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
+            job.submit()
+
+        mocked_future = executor.submit.return_value
+        mocked_future.running.return_value = True
+        mocked_future.cancelled.return_value = False
+        mocked_future.done.return_value = False
+        self.assertRaises(JobTimeoutError, job.wait_for_final_state, timeout=0.5)
 
     def assertCalledOnce(self, mocked_callable):
         """Assert a mocked callable has been called once."""

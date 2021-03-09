@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,7 +12,7 @@
 
 """Helper class used to convert a user lo configuration into a list of frequencies."""
 
-from qiskit.pulse.channels.pulse_channels import DriveChannel, MeasureChannel
+from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import LoConfig
 
 
@@ -25,15 +23,17 @@ class LoConfigConverter:
     """
 
     def __init__(self, qobj_model, qubit_lo_freq, meas_lo_freq,
-                 qubit_lo_range, meas_lo_range, **run_config):
+                 qubit_lo_range=None, meas_lo_range=None, **run_config):
         """Create new converter.
 
         Args:
             qobj_model (PulseQobjExperimentConfig): qobj model for experiment config.
-            qubit_lo_freq (list): List of default qubit lo frequencies.
-            meas_lo_freq (list): List of default meas lo frequencies.
-            qubit_lo_range (list): List of qubit lo ranges.
-            meas_lo_range (list): List of measurement lo ranges.
+            qubit_lo_freq (list): List of default qubit lo frequencies in Hz.
+            meas_lo_freq (list): List of default meas lo frequencies in Hz.
+            qubit_lo_range (list): List of qubit lo ranges,
+                each of form `[range_min, range_max]` in Hz.
+            meas_lo_range (list): List of measurement lo ranges,
+                each of form `[range_min, range_max]` in Hz.
             run_config (dict): experimental configuration.
         """
         self.qobj_model = qobj_model
@@ -43,10 +43,13 @@ class LoConfigConverter:
 
         self.default_lo_config = LoConfig()
 
-        for i, lo_range in enumerate(qubit_lo_range):
-            self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
-        for i, lo_range in enumerate(meas_lo_range):
-            self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
+        if qubit_lo_range:
+            for i, lo_range in enumerate(qubit_lo_range):
+                self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
+
+        if meas_lo_range:
+            for i, lo_range in enumerate(meas_lo_range):
+                self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
 
     def __call__(self, user_lo_config):
         """Return PulseQobjExperimentConfig
@@ -61,11 +64,11 @@ class LoConfigConverter:
 
         q_los = self.get_qubit_los(user_lo_config)
         if q_los:
-            lo_config['qubit_lo_freq'] = q_los
+            lo_config['qubit_lo_freq'] = [freq/1e9 for freq in q_los]
 
         m_los = self.get_meas_los(user_lo_config)
         if m_los:
-            lo_config['meas_lo_freq'] = m_los
+            lo_config['meas_lo_freq'] = [freq/1e9 for freq in m_los]
 
         return self.qobj_model(**lo_config)
 

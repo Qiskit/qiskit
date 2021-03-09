@@ -32,7 +32,7 @@ else
 	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
 endif
 
-.PHONY: env lint test test_record test_mock test_ci
+.PHONY: env lint test test_ci
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -46,28 +46,41 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test
+	tools/verify_headers.py qiskit test tools
+	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
+	python tools/find_optional_imports.py
 
 style:
-	pycodestyle --max-line-length=100 qiskit test
+	pycodestyle qiskit test
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -s test -v
+	@echo ================================================
+	@echo Consider using tox as suggested in the CONTRIBUTING.MD guideline. For running the tests as the CI, use test_ci
+	@echo ================================================
+	python3 -m unittest discover -s test/python -t . -v
+	@echo ================================================
+	@echo Consider using tox as suggested in the CONTRIBUTING.MD guideline. For running the tests as the CI, use test_ci
+	@echo ================================================
 
-test_mock:
-	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
+# Use pytest to run tests
+pytest:
+	pytest test/python
 
-test_recording:
-	-rm test/cassettes/*
-	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
+# Use pytest to run randomized tests
+pytest_randomized:
+	pytest test/randomized
 
 test_ci:
-	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
-	stestr run --concurrency $(CONCURRENCY)
+	@echo Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers
+	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run --concurrency $(CONCURRENCY)
+
+test_randomized:
+	python3 -m unittest discover -s test/randomized -t . -v
 
 coverage:
-	coverage3 run --source qiskit -m unittest discover -s test -q
+	coverage3 run --source qiskit -m unittest discover -s test/python -q
 	coverage3 report
 
 coverage_erase:

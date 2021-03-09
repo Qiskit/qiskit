@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -46,6 +44,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+# pylint: disable=unsubscriptable-object
 
 """Bloch sphere"""
 
@@ -53,9 +52,10 @@ __all__ = ['Bloch']
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt  # pylint: disable=import-error
-from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
-from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
+from matplotlib import get_backend
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import (Axes3D, proj3d)
 
 
 class Arrow3D(FancyArrowPatch):
@@ -173,7 +173,7 @@ class Bloch():
         self.zlpos = [1.2, -1.2]
         # ---font options---
         # Color of fonts, default = 'black'
-        self.font_color = 'black'
+        self.font_color = plt.rcParams['axes.labelcolor']
         # Size of fonts, default = 20
         self.font_size = 20
 
@@ -308,7 +308,8 @@ class Bloch():
         self.annotations = []
 
     def add_points(self, points, meth='s'):
-        """Add a list of data points to bloch sphere.
+        """Add a list of data points to Bloch sphere.
+
         Args:
             points (array_like):
                 Collection of data points.
@@ -350,7 +351,7 @@ class Bloch():
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """Add a text or LaTeX annotation to Bloch sphere,
-        parametrized by a qubit state or a vector.
+        parameterized by a qubit state or a vector.
 
         Args:
             state_or_vector (array_like):
@@ -411,6 +412,11 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
+        # Force aspect ratio
+        # MPL 3.2 or previous do not have set_box_aspect
+        if hasattr(self.axes, 'set_box_aspect'):
+            self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()
@@ -547,7 +553,7 @@ class Bloch():
                     np.real(self.points[k][2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
-                    edgecolor='none',
+                    edgecolor=None,
                     zdir='z',
                     color=self.point_color[np.mod(k, len(self.point_color))],
                     marker=self.point_marker[np.mod(k,
@@ -565,7 +571,7 @@ class Bloch():
                 self.axes.scatter(np.real(self.points[k][1][indperm]),
                                   -np.real(self.points[k][0][indperm]),
                                   np.real(self.points[k][2][indperm]),
-                                  s=pnt_size, alpha=1, edgecolor='none',
+                                  s=pnt_size, alpha=1, edgecolor=None,
                                   zdir='z', color=pnt_colors,
                                   marker=marker)
 
@@ -600,6 +606,7 @@ class Bloch():
 
     def save(self, name=None, output='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
+
         Args:
             name (str):
                 Name of saved image. Must include path and format as well.
@@ -626,7 +633,9 @@ class Bloch():
             self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
-            plt.close(self.fig)
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):

@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    The ``'mpl'`` output mode for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`~qiskit.visualization.circuit_drawer` now requires the
+    `pylatexenc <https://pylatexenc.readthedocs.io/en/latest/latexencode/>`__
+    library to be installed. This was already an optional dependency for
+    visualization, but was only required for the ``'latex'`` output mode
+    before. It is now also required for the matplotlib drawer because it is
+    needed to handle correctly sizing gates with matplotlib's
+    `mathtext <https://matplotlib.org/3.2.2/tutorials/text/mathtext.html>`__
+    labels for gates.
+

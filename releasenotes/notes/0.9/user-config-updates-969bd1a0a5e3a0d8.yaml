@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The user config file has several new options:
+     * The ``circuit_drawer`` field now accepts an `auto` value. When set as
+       the value for the ``circuit_drawer`` field the default drawer backend
+       will be `mpl` if it is available, otherwise the `text` backend will be
+       used.
+     * A new field ``circuit_mpl_style`` can be used to set the default style
+       used by the matplotlib circuit drawer. Valid values for this field are
+       ``bw`` and ``default`` to set the default to a black and white or the
+       default color style respectively.
+     * A new field ``transpile_optimization_level`` can be used to set the
+       default transpiler optimization level to use for calls to
+       ``qiskit.compiler.transpile()``. The value can be set to either 0, 1, 2,
+       or 3.

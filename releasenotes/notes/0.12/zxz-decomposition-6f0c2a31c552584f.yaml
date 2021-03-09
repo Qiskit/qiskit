@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The decomposition methods for single-qubit gates in
+    :class:`qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer` have been expanded to now
+    also include the ``'ZXZ'`` basis, characterized by three rotations about
+    the  Z,X,Z axis. This now means that a general 2x2 Operator can be
+    decomposed into following bases: ``U3``, ``U1X``, ``ZYZ``, ``ZXZ``,
+    ``XYX``, ``ZXZ``.

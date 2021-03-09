@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -14,9 +12,12 @@
 
 """Qobj utilities and enums."""
 
-from enum import Enum
+from enum import Enum, IntEnum
+import warnings
 
-from qiskit.validation.jsonschema import validate_json_against_schema
+from fastjsonschema.exceptions import JsonSchemaException
+
+from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
 
 class QobjType(str, Enum):
@@ -31,13 +32,33 @@ class MeasReturnType(str, Enum):
     SINGLE = 'single'
 
 
+class MeasLevel(IntEnum):
+    """MeasLevel allowed values."""
+    RAW = 0
+    KERNELED = 1
+    CLASSIFIED = 2
+
+
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against the .json schema.
 
     Args:
         qobj (Qobj): Qobj to be validated.
+
+    Raises:
+        SchemaValidationError: if the qobj fails schema validation
     """
-    validate_json_against_schema(
-        qobj.as_dict(), 'qobj',
-        err_msg='Qobj failed validation. Set Qiskit log level to DEBUG '
-                'for further information.')
+    warnings.warn(
+        "The jsonschema validation included in qiskit-terra is "
+        "deprecated and will be removed in a future release. "
+        "If you're relying on this schema validation you should "
+        "pull the schemas from the Qiskit/ibmq-schemas and directly "
+        "validate your payloads with that", DeprecationWarning,
+        stacklevel=2)
+    try:
+        qobj.to_dict(validate=True)
+    except JsonSchemaException as err:
+        raise SchemaValidationError(
+            f"Qobj validation failed. Specifically path: {err.path}"  # pylint: disable=no-member
+            f" failed to fulfil {err.definition}"  # pylint: disable=no-member
+        ) from err

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,9 +13,11 @@
 """Tests for qiskit/_util.py"""
 
 from unittest import mock
+import numpy as np
 
 from qiskit import util
 from qiskit.test import QiskitTestCase
+from qiskit.utils.arithmetic import triu_to_dense
 
 
 class TestUtil(QiskitTestCase):
@@ -29,6 +29,17 @@ class TestUtil(QiskitTestCase):
     def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock,
                                            platform_mock):
         """Test cpu count fallback to 1 when true value can't be determined"""
-        # pylint: disable=unused-argument
+        del cpu_count_mock, vmem_mock, platform_mock  # unused
         result = util.local_hardware_info()
         self.assertEqual(1, result['cpus'])
+
+    def test_triu_to_dense(self):
+        """ Test conversion of upper triangular matrix to dense matrix. """
+        np.random.seed(50)
+        n = np.random.randint(5, 15)
+        m = np.random.randint(-100, 100, size=(n, n))
+        symm = (m + m.T) / 2
+
+        triu = np.array([[symm[i, j] for i in range(j, n)] for j in range(n)])
+
+        self.assertTrue(np.array_equal(symm, triu_to_dense(triu)))

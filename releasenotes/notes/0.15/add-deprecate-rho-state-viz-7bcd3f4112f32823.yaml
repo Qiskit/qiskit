@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The name of the first positional parameter for the
+    :mod:`qiskit.visualization` functions
+    :func:`~qiskit.visualization.plot_state_hinton`,
+    :func:`~qiskit.visualization.plot_bloch_multivector`,
+    :func:`~qiskit.visualization.plot_state_city`,
+    :func:`~qiskit.visualization.plot_state_paulivec`, and
+    :func:`~qiskit.visualization.plot_state_qsphere` has been renamed from
+    ``rho`` to ``state``. Passing in the value by name to ``rho`` is deprecated
+    and will be removed in a future release. Instead you should either pass
+    the argument positionally or use the new parameter name ``state``.

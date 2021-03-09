@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The jupyter cell magic ``%%qiskit_progress_bar`` from
+    ``qiskit.tools.jupyter`` has been changed to a line magic. This was done
+    to better reflect how the magic is used and how it works. If you were using
+    the ``%%qiskit_progress_bar`` cell magic in an existing notebook, you will
+    have to update this to be a line magic by changing it to be
+    ``%qiskit_progress_bar`` instead. Everything else should behave
+    identically.

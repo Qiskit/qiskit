@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,16 +10,41 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """Decorator for using with Qiskit unit tests."""
 
 import functools
 import os
+import socket
 import sys
 import unittest
+from warnings import warn
 
-from .utils import Path
-from .http_recorder import http_recorder
 from .testing_options import get_test_options
+
+HAS_NET_CONNECTION = None
+
+
+def _has_connection(hostname, port):
+    """Checks if internet connection exists to host via specified port.
+
+    If any exception is raised while trying to open a socket this will return
+    false.
+
+    Args:
+        hostname (str): Hostname to connect to.
+        port (int): Port to connect to
+
+    Returns:
+        bool: Has connection or not
+
+    """
+    try:
+        host = socket.gethostbyname(hostname)
+        socket.create_connection((host, port), 2).close()
+        return True
+    except Exception:  # pylint: disable=broad-except
+        return False
 
 
 def is_aer_provider_available():
@@ -74,70 +97,67 @@ def slow_test(func):
     return _wrapper
 
 
-def _get_credentials(test_object, test_options):
+def _get_credentials():
     """Finds the credentials for a specific test and options.
-
-    Args:
-        test_object (QiskitTestCase): The test object asking for credentials
-        test_options (dict): Options after QISKIT_TESTS was parsed by
-            get_test_options.
 
     Returns:
         Credentials: set of credentials
 
     Raises:
-        ImportError: if the
-        Exception: when the credential could not be set and they are needed
-            for that set of options
+        SkipTest: when credentials can't be found
     """
     try:
         from qiskit.providers.ibmq.credentials import (Credentials,
                                                        discover_credentials)
-    except ImportError:
-        raise ImportError('qiskit-ibmq-provider could not be found, and is '
-                          'required for mocking or executing online tests.')
+    except ImportError as ex:
+        raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
+                                'and is required for executing online tests. '
+                                'To install, run "pip install qiskit-ibmq-provider" '
+                                'or check your installation.') from ex
 
-    dummy_credentials = Credentials(
-        'dummyapiusersloginWithTokenid01',
-        'https://quantumexperience.ng.bluemix.net/api')
-
-    if test_options['mock_online']:
-        return dummy_credentials
-
-    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
-        # Special case: instead of using the standard credentials mechanism,
-        # load them from different environment variables. This assumes they
-        # will always be in place, as is used by the Travis setup.
+    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
-    else:
+    elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
 
         if discovered_credentials:
             # Decide which credentials to use for testing.
             if len(discovered_credentials) > 1:
-                try:
-                    # Attempt to use QE credentials.
-                    return discovered_credentials[dummy_credentials.unique_id()]
-                except KeyError:
-                    pass
+                raise unittest.SkipTest(
+                    "More than 1 credential set found, use: "
+                    "IBMQ_TOKEN and IBMQ_URL env variables to "
+                    "set credentials explicitly")
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
-
-    # No user credentials were found.
-    if test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for '
-                        'recording tests against the remote API.')
-
-    test_object.log.warning('No user credentials were detected. '
-                            'Running with mocked data.')
-    test_options['mock_online'] = True
-    return dummy_credentials
+    raise unittest.SkipTest(
+        'No IBMQ credentials found for running the test. This is required for '
+        'running online tests.')
 
 
 def requires_qe_access(func):
-    """Decorator that signals that the test uses the online API:
+    """Deprecated in favor of `online_test`"""
+    warn("`requires_qe_access` is going to be replaced in favor of `online_test`",
+         DeprecationWarning)
+
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if TEST_OPTIONS['skip_online']:
+            raise unittest.SkipTest('Skipping online tests')
+
+        credentials = _get_credentials()
+        self.using_ibmq_credentials = credentials.is_ibmq()
+        kwargs.update({'qe_token': credentials.token,
+                       'qe_url': credentials.url})
+
+        return func(self, *args, **kwargs)
+
+    return _wrapper
+
+
+def online_test(func):
+    """Decorator that signals that the test uses the network (and the online API):
 
     It involves:
         * determines if the test should be skipped by checking environment
@@ -159,23 +179,24 @@ def requires_qe_access(func):
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
+        # To avoid checking the connection in each test
+        global HAS_NET_CONNECTION  # pylint: disable=global-statement
+
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
 
-        credentials = _get_credentials(self, TEST_OPTIONS)
+        if HAS_NET_CONNECTION is None:
+            HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
+
+        if not HAS_NET_CONNECTION:
+            raise unittest.SkipTest("Test requires internet connection.")
+
+        credentials = _get_credentials()
         self.using_ibmq_credentials = credentials.is_ibmq()
         kwargs.update({'qe_token': credentials.token,
                        'qe_url': credentials.url})
 
-        decorated_func = func
-        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
-            # For recording or for replaying existing cassettes, the test
-            # should be decorated with @use_cassette.
-            vcr_mode = 'new_episodes' if TEST_OPTIONS['rec'] else 'none'
-            decorated_func = http_recorder(
-                vcr_mode, Path.CASSETTES.value).use_cassette()(decorated_func)
-
-        return decorated_func(self, *args, **kwargs)
+        return func(self, *args, **kwargs)
 
     return _wrapper
 

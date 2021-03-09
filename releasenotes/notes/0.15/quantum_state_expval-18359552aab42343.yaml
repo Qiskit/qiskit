@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add :meth:`qiskit.quantum_info.Statevector.expectation_value` and 
+    :meth:`qiskit.quantum_info.DensityMatrix.expectation_value` methods for
+    computing the expectation value of an :class:`qiskit.quantum_info.Operator`.

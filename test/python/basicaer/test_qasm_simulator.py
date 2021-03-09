@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -15,6 +13,9 @@
 """Test QASM simulator."""
 
 import unittest
+import io
+from logging import StreamHandler, getLogger
+import sys
 
 import numpy as np
 
@@ -26,20 +27,53 @@ from qiskit.test import Path
 from qiskit.test import providers
 
 
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+
+    def handleError(self, record):
+        raise sys.exc_info()
+
+
 class TestBasicAerQasmSimulator(providers.BackendTestCase):
     """Test the Basic qasm_simulator."""
 
     backend_cls = QasmSimulatorPy
 
     def setUp(self):
-        super(TestBasicAerQasmSimulator, self).setUp()
+        super().setUp()
 
         self.seed = 88
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         transpiled_circuit.name = 'test'
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
-        self.qobj = assemble(transpiled_circuit, shots=1000)
+        self.qobj = assemble(transpiled_circuit, shots=1000, seed_simulator=self.seed)
+        logger = getLogger()
+        self.addCleanup(logger.setLevel, logger.level)
+        logger.setLevel('DEBUG')
+        self.log_output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.log_output))
+
+    def assertExecuteLog(self, log_msg):
+        """ Runs execute and check for logs containing specified message"""
+        shots = 100
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        self.log_output.seek(0)
+        # Filter unrelated log lines
+        output_lines = self.log_output.readlines()
+        execute_log_lines = [x for x in output_lines if log_msg in x]
+        self.assertTrue(len(execute_log_lines) > 0)
+
+    def test_submission_log_time(self):
+        """Check Total Job Submission Time is logged"""
+        self.assertExecuteLog('Total Job Submission Time')
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -47,6 +81,76 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.qobj.config.shots = shots
         result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
+
+    def test_measure_sampler_repeated_qubits(self):
+        """Test measure sampler if qubits measured more than once."""
+        shots = 100
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[1], cr[2])
+        circuit.measure(qr[0], cr[3])
+        target = {'0110': shots}
+        job = execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        result = job.result()
+        counts = result.get_counts(0)
+        self.assertEqual(counts, target)
+
+    def test_measure_sampler_single_qubit(self):
+        """Test measure sampler if single-qubit is measured."""
+        shots = 100
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+
+        for qubit in range(num_qubits):
+            circuit = QuantumCircuit(qr, cr)
+            circuit.x(qr[qubit])
+            circuit.measure(qr[qubit], cr[0])
+            target = {'1': shots}
+            job = execute(
+                circuit,
+                backend=self.backend,
+                shots=shots,
+                seed_simulator=self.seed)
+            result = job.result()
+            counts = result.get_counts(0)
+            self.assertEqual(counts, target)
+
+    def test_measure_sampler_partial_qubit(self):
+        """Test measure sampler if single-qubit is measured."""
+        shots = 100
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[3])
+        circuit.x(qr[1])
+        circuit.barrier(qr)
+        circuit.measure(qr[3], cr[1])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[2])
+        circuit.barrier(qr)
+        circuit.measure(qr[3], cr[3])
+        target = {'1011': shots}
+        job = execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        result = job.result()
+        counts = result.get_counts(0)
+        self.assertEqual(counts, target)
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
@@ -105,7 +209,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit = QuantumCircuit(qr, cr0, cr1, cr2, name='teleport')
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
-        circuit.ry(pi/4, qr[0])
+        circuit.ry(pi / 4, qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.barrier(qr)
@@ -132,8 +236,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.log.info('test_teleport: data %s', data)
         self.log.info('test_teleport: alice %s', alice)
         self.log.info('test_teleport: bob %s', bob)
-        alice_ratio = 1/np.tan(pi/8)**2
-        bob_ratio = bob['0']/float(bob['1'])
+        alice_ratio = 1 / np.tan(pi / 8) ** 2
+        bob_ratio = bob['0'] / float(bob['1'])
         error = abs(alice_ratio - bob_ratio) / alice_ratio
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
@@ -159,6 +263,31 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.assertEqual(len(memory), shots)
         for mem in memory:
             self.assertIn(mem, ['10 00', '10 11'])
+
+    def test_unitary(self):
+        """Test unitary gate instruction"""
+        max_qubits = 4
+        x_mat = np.array([[0, 1], [1, 0]])
+        # Test 1 to max_qubits for random n-qubit unitary gate
+        for i in range(max_qubits):
+            num_qubits = i + 1
+            # Apply X gate to all qubits
+            multi_x = x_mat
+            for _ in range(i):
+                multi_x = np.kron(multi_x, x_mat)
+            # Target counts
+            shots = 100
+            target_counts = {num_qubits * '1': shots}
+            # Test circuit
+            qr = QuantumRegister(num_qubits, 'qr')
+            cr = ClassicalRegister(num_qubits, 'cr')
+            circuit = QuantumCircuit(qr, cr)
+            circuit.unitary(multi_x, qr)
+            circuit.measure(qr, cr)
+            job = execute(circuit, self.backend, shots=shots)
+            result = job.result()
+            counts = result.get_counts(0)
+            self.assertEqual(counts, target_counts)
 
 
 if __name__ == '__main__':

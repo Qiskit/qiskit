@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -59,9 +57,10 @@ class BasicAerProvider(BaseProvider):
                     {}
                 )
                 name = resolved_name
-            except LookupError:
+            except LookupError as ex:
                 raise QiskitBackendNotFoundError(
-                    "The '{}' backend is not installed in your system.".format(name))
+                    f"The '{name}' backend is not installed in your system."
+                ) from ex
 
         return super().get_backend(name=name, **kwargs)
 
@@ -125,7 +124,7 @@ class BasicAerProvider(BaseProvider):
         Return an instance of a backend from its class.
 
         Args:
-            backend_cls (class): Backend class.
+            backend_cls (class): backend class.
         Returns:
             BaseBackend: a backend instance.
         Raises:
@@ -135,8 +134,7 @@ class BasicAerProvider(BaseProvider):
         try:
             backend_instance = backend_cls(provider=self)
         except Exception as err:
-            raise QiskitError('Backend %s could not be instantiated: %s' %
-                              (backend_cls, err))
+            raise QiskitError(f'Backend {backend_cls} could not be instantiated: {err}') from err
 
         return backend_instance
 

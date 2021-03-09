@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    PassManagers can now be sliced to create a new Passmanager containing a
+    subset of passes using the square bracket operator. This allow running or
+    drawing a portion of the Passmanager for easier testing and visualization.
+    For example let's try to draw the first 3 passes of a PassManager pm, or
+    run just the second pass on our circuit:
+
+    .. code-block:: python
+
+      pm[0:4].draw()
+      circuit2 = pm[1].run(circuit)
+
+    Also now, PassManagers can be created by adding two PassManagers or by
+    directly adding a pass/list of passes to a PassManager.
+
+    .. code-block:: python
+
+      pm = pm1[0] + pm2[1:3]
+      pm += [setLayout, unroller]

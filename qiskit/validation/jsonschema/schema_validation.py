@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,12 +14,11 @@
 
 import json
 import os
-import logging
+import warnings
+
 import jsonschema
 
 from .exceptions import SchemaValidationError, _SummaryValidationError
-
-logger = logging.getLogger(__name__)
 
 
 _DEFAULT_SCHEMA_PATHS = {
@@ -53,7 +50,7 @@ def _load_schema(file_path, name=None):
         # filename without extension
         name = os.path.splitext(os.path.basename(file_path))[0]
     if name not in _SCHEMAS:
-        with open(file_path, 'r') as schema_file:
+        with open(file_path) as schema_file:
             _SCHEMAS[name] = json.load(schema_file)
 
     return _SCHEMAS[name]
@@ -72,7 +69,7 @@ def _get_validator(name, schema=None, check_schema=True,
         validator_class (jsonschema.IValidator): jsonschema IValidator instance.
             Default behavior is to determine this from the schema `$schema`
             field.
-        **validator_kwargs (dict): Additional keyword arguments for validator.
+        **validator_kwargs: Additional keyword arguments for validator.
 
     Return:
         jsonschema.IValidator: Validator for JSON schema.
@@ -83,24 +80,20 @@ def _get_validator(name, schema=None, check_schema=True,
     if schema is None:
         try:
             schema = _SCHEMAS[name]
-        except KeyError:
-            raise SchemaValidationError("Valid schema name or schema must "
-                                        "be provided.")
+        except KeyError as ex:
+            raise SchemaValidationError("Valid schema name or schema must be provided.") from ex
 
     if name not in _VALIDATORS:
-
         # Resolve JSON spec from schema if needed
         if validator_class is None:
             validator_class = jsonschema.validators.validator_for(schema)
 
         # Generate and store validator in _VALIDATORS
         _VALIDATORS[name] = validator_class(schema, **validator_kwargs)
+        if check_schema:
+            _VALIDATORS[name].check_schema(schema)
 
     validator = _VALIDATORS[name]
-
-    if check_schema:
-        validator.check_schema(schema)
-
     return validator
 
 
@@ -133,22 +126,44 @@ def validate_json_against_schema(json_dict, schema,
     Raises:
         SchemaValidationError: Raised if validation fails.
     """
-
-    try:
-        if isinstance(schema, str):
-            schema_name = schema
-            schema = _SCHEMAS[schema_name]
-            validator = _get_validator(schema_name)
-            validator.validate(json_dict)
-        else:
+    warnings.warn("The jsonschema validation included in qiskit-terra is "
+                  "deprecated and will be removed in a future release. "
+                  "If you're relying on this schema validation you should "
+                  "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                  "validate your payloads with that", DeprecationWarning,
+                  stacklevel=2)
+    if isinstance(schema, str):
+        schema_name = schema
+        schema = _SCHEMAS[schema_name]
+        validator = _get_validator(schema_name)
+        errors = list(validator.iter_errors(json_dict))
+        if errors:
+            best_match_error = jsonschema.exceptions.best_match(errors)
+            failure_path = list(best_match_error.absolute_path)
+            if len(failure_path) > 1:
+                failure_path = failure_path[:-1]
+            error_path = ""
+            for component in failure_path:
+                if isinstance(component, int):
+                    error_path += "[%s]" % component
+                else:
+                    error_path += "['%s']" % component
+            if failure_path:
+                err_message = "Validation failed. Possibly at %s" % error_path
+                err_message += " because of %s" % best_match_error.message
+            else:
+                err_message = "Validation failed. "
+                err_message += "Possibly because %s" % best_match_error.message
+            raise SchemaValidationError(err_message)
+    else:
+        try:
             jsonschema.validate(json_dict, schema)
-    except jsonschema.ValidationError as err:
-        if err_msg is None:
-            err_msg = "JSON failed validation. Set Qiskit log level to DEBUG " \
-                      "for further information."
-        newerr = SchemaValidationError(err_msg)
-        newerr.__cause__ = _SummaryValidationError(err)
-        logger.debug('%s', _format_causes(err))
+        except jsonschema.ValidationError as err:
+            if err_msg is None:
+                err_msg = ("JSON failed validation. Set Qiskit log level to "
+                           "DEBUG for further information.")
+            newerr = SchemaValidationError(err_msg)
+            newerr.__cause__ = _SummaryValidationError(err)
         raise newerr
 
 

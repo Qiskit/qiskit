@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The :class:`qiskit.transpiler.Layout` has a new method
+    :meth:`~qiskit.transpiler.Layout.reorder_bits` that is used to reorder a
+    list of virtual qubits based on the layout object.
+deprecations:
+  - |
+    The ``combine_into_edge_map()`` method for the
+    :class:`qiskit.transpiler.Layout` class has been deprecated and will be
+    removed in a future release. Instead, the new method
+    :meth:`~qiskit.transpiler.Layout.reorder_bits` should be used to reorder
+    a list of virtual qubits according to the layout object.

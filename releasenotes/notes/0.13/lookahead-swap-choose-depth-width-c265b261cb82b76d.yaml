@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The ``search_width`` and ``search_depth`` attributes of the
+    :class:`qiskit.transpiler.passes.LookaheadSwap` pass are now settable when
+    initializing the pass. A larger search space can often lead to more
+    optimized circuits, at the cost of longer run time.

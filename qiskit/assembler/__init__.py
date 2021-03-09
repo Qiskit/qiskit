@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -12,11 +10,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for Qiskit assembler.
+"""
+========================================================
+Circuit and Schedule Assembler (:mod:`qiskit.assembler`)
+========================================================
 
+.. currentmodule:: qiskit.assembler
+
+Circuit Assembler
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   assemble_circuits
+
+Schedule Assembler
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   assemble_schedules
+
+Disassembler
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   disassemble
+
+RunConfig
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   RunConfig
 """
 
-from .assemble_circuits import assemble_circuits
-from .assemble_schedules import assemble_schedules
-from .disassemble import disassemble
-from .run_config import RunConfig
+from qiskit.assembler.assemble_circuits import assemble_circuits
+from qiskit.assembler.assemble_schedules import assemble_schedules
+from qiskit.assembler.disassemble import disassemble
+from qiskit.assembler.run_config import RunConfig

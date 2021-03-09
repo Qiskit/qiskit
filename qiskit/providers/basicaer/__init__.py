@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,7 +10,57 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""BasicAer Provider: Contains Python simulators."""
+"""
+====================================================================
+BasicAer: Python-based Simulators (:mod:`qiskit.providers.basicaer`)
+====================================================================
+
+.. currentmodule:: qiskit.providers.basicaer
+
+A module of Python-based quantum simulators.  Simulators are accessed
+via the `BasicAer` provider, e.g.:
+
+.. jupyter-execute::
+
+            from qiskit import BasicAer
+
+            backend = BasicAer.get_backend('qasm_simulator')
+
+
+Simulators
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QasmSimulatorPy
+   StatevectorSimulatorPy
+   UnitarySimulatorPy
+
+Provider
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicAerProvider
+
+Job Class
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicAerJob
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicAerError
+"""
 
 from .basicaerprovider import BasicAerProvider
 from .basicaerjob import BasicAerJob

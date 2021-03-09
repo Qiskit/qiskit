@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -19,6 +17,7 @@ import enum
 
 class JobStatus(enum.Enum):
     """Class for job status enumerated type."""
+
     INITIALIZING = 'job is being initialized'
     QUEUED = 'job is queued'
     VALIDATING = 'job is being validated'

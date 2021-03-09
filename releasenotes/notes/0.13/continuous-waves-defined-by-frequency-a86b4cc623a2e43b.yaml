@@ -1,0 +1,9 @@
+deprecations:
+  - |
+    The kwarg ``period`` for the function
+    :func:`~qiskit.pulse.pulse_lib.square`,
+    :func:`~qiskit.pulse.pulse_lib.sawtooth`, and
+    :func:`~qiskit.pulse.pulse_lib.triangle` in
+    :mod:`qiskit.pulse.pulse_lib` is now deprecated and will be removed in a
+    future release. Instead you should now use the ``freq`` kwarg to set
+    the frequency.

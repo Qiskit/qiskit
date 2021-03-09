@@ -1,0 +1,73 @@
+---
+prelude: |
+    The 0.13.0 release includes many big changes. Some highlights for this
+    release are:
+
+    For the transpiler we have switched the graph library used to build the
+    :class:`qiskit.dagcircuit.DAGCircuit` class which is the underlying data
+    structure behind all operations to be based on
+    `retworkx <https://pypi.org/project/retworkx/>`_ for greatly improved
+    performance. Circuit transpilation speed in the 0.13.0 release should
+    be significanlty faster than in previous releases.
+
+    There has been a significant simplification to the style in which Pulse
+    instructions are built. Now, ``Command`` s are deprecated and a unified
+    set of :class:`~qiskit.pulse.instructions.Instruction` s are supported.
+
+    The :mod:`qiskit.quantum_info` module includes several new functions
+    for generating random operators (such as Cliffords and quantum channels)
+    and for computing the diamond norm of quantum channels; upgrades to the
+    :class:`~qiskit.quantum_info.Statevector` and
+    :class:`~qiskit.quantum_info.DensityMatrix` classes to support
+    computing measurement probabilities and sampling measurements; and several
+    new classes are based on the symplectic representation
+    of Pauli matrices. These new classes include Clifford operators
+    (:class:`~qiskit.quantum_info.Clifford`), N-qubit matrices that are
+    sparse in the Pauli basis (:class:`~qiskit.quantum_info.SparsePauliOp`),
+    lists of Pauli's (:class:`~qiskit.quantum_info.PauliTable`),
+    and lists of stabilizers (:class:`~qiskit.quantum_info.StabilizerTable`).
+
+    This release also has vastly improved documentation across Qiskit,
+    including improved documentation for the :mod:`qiskit.circuit`,
+    :mod:`qiskit.pulse` and :mod:`qiskit.quantum_info` modules.
+
+    Additionally, the naming of gate objects and
+    :class:`~qiskit.circuit.QuantumCircuit` methods have been updated to be
+    more consistent. This has resulted in several classes and methods being
+    deprecated as things move to a more consistent naming scheme.
+
+    For full details on all the changes made in this release see the detailed
+    release notes below.
+
+upgrade:
+  - |
+    The :class:`qiskit.dagcircuit.DAGNode` method ``pop`` which was deprecated
+    in the 0.9.0 release has been removed. If you were using this method you
+    can leverage Python's ``del`` statement or ``delattr()`` function
+    to perform the same task.
+features:
+  - |
+    Added a new circuit library module :mod:`qiskit.circuit.library`. This will
+    be a place for constructors of commonly used circuits that can be used as
+    building blocks for larger circuits or applications.
+deprecations:
+  - |
+    Passing in the data to the constructor for
+    :class:`qiskit.dagcircuit.DAGNode` as a dictionary arg ``data_dict``
+    is deprecated and will be removed in a future release. Instead you should
+    now pass the fields in as kwargs to the constructor. For example the
+    previous behavior of::
+
+      from qiskit.dagcircuit import DAGNode
+
+      data_dict = {
+          'type': 'in',
+          'name': 'q_0',
+      }
+      node = DAGNode(data_dict)
+
+    should now be::
+
+      from qiskit.dagcircuit import DAGNode
+
+      node = DAGNode(type='in', name='q_0')

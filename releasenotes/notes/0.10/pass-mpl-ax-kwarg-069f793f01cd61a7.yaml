@@ -1,0 +1,37 @@
+---
+features:
+  - |
+    An ``ax`` kwarg has been added to the following visualization functions:
+
+     * ``qiskit.visualization.plot_histogram``
+     * ``qiskit.visualization.plot_state_paulivec``
+     * ``qiskit.visualization.plot_state_qsphere``
+     * ``qiskit.visualization.circuit_drawer`` (``mpl`` backend only)
+     * ``qiskit.QuantumCircuit.draw`` (``mpl`` backend only)
+
+    This kwarg is used to pass in a ``matplotlib.axes.Axes`` object to the
+    visualization functions. This enables integrating these visualization
+    functions into a larger visualization workflow. Also, if an `ax` kwarg is
+    specified then there is no return from the visualization functions.
+
+  - |
+    An ``ax_real`` and ``ax_imag`` kwarg has been added to the
+    following visualization functions:
+
+     * ``qiskit.visualization.plot_state_hinton``
+     * ``qiskit.visualization.plot_state_city``
+
+    These new kargs work the same as the newly added ``ax`` kwargs for other
+    visualization functions. However because these plots use two axes (one for
+    the real component, the other for the imaginary component). Having two
+    kwargs also provides the flexibility to only generate a visualization for
+    one of the components instead of always doing both. For example::
+
+        from matplotlib import pyplot as plt
+        from qiskit.visualization import plot_state_hinton
+
+        ax = plt.gca()
+
+        plot_state_hinton(psi, ax_real=ax)
+
+    will only generate a plot of the real component.

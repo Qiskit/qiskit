@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -14,6 +12,7 @@
 
 """Tests for the wrapper functionality."""
 
+import io
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
@@ -34,7 +33,8 @@ class TestJobMonitor(QiskitTestCase):
         qc.measure(qreg, creg)
         backend = BasicAer.get_backend('qasm_simulator')
         job_sim = execute([qc]*10, backend)
-        job_monitor(job_sim)
+        output = io.StringIO()
+        job_monitor(job_sim, output=output)
         self.assertEqual(job_sim.status().name, 'DONE')
 
 

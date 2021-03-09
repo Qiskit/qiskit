@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,12 +10,55 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for simplified Qiskit usage.
+"""
+=============================================
+Circuit Converters (:mod:`qiskit.converters`)
+=============================================
 
-The functions in this module provide convenience converters
+.. currentmodule:: qiskit.converters
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   circuit_to_dag
+   dag_to_circuit
+   circuit_to_instruction
+   circuit_to_gate
+   ast_to_dag
+   dagdependency_to_circuit
+   circuit_to_dagdependency
+   dag_to_dagdependency
+   dagdependency_to_dag
 """
 
 from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
-from .ast_to_dag import ast_to_dag
 from .circuit_to_instruction import circuit_to_instruction
+from .circuit_to_gate import circuit_to_gate
+from .ast_to_dag import ast_to_dag
+from .circuit_to_dagdependency import circuit_to_dagdependency
+from .dagdependency_to_circuit import dagdependency_to_circuit
+from .dag_to_dagdependency import dag_to_dagdependency
+from .dagdependency_to_dag import dagdependency_to_dag
+
+
+def isinstanceint(obj):
+    """ Like isinstance(obj,int), but with casting. Except for strings."""
+    if isinstance(obj, str):
+        return False
+    try:
+        int(obj)
+        return True
+    except TypeError:
+        return False
+
+
+def isinstancelist(obj):
+    """ Like isinstance(obj, list), but with casting. Except for strings and dicts."""
+    if isinstance(obj, (str, dict)):
+        return False
+    try:
+        list(obj)
+        return True
+    except TypeError:
+        return False

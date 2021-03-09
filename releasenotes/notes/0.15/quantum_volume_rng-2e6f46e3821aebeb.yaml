@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    For the ``seed`` kwarg in the constructor for
+    :class:`qiskit.circuit.library.QuantumVolume` `numpy random Generator
+    objects <https://numpy.org/doc/stable/reference/random/generator.html>`__
+    can now be used. Previously, only integers were a valid input. This is
+    useful when integrating :class:`~qiskit.circuit.library.QuantumVolume` as
+    part of a larger function with its own random number generation, e.g.
+    generating a sequence of
+    :class:`~qiskit.circuit.library.QuantumVolume` circuits.

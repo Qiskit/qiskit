@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -12,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-argument,too-many-return-statements,len-as-condition
+# pylint: disable=too-many-return-statements,unpacking-non-sequence
+
 
 """
 Transformations between QuantumChannel representations.
@@ -26,6 +25,27 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
 
+def _transform_rep(input_rep, output_rep, data, input_dim, output_dim):
+    """Transform a QuantumChannel between representation."""
+    if input_rep == output_rep:
+        return data
+    if output_rep == 'Choi':
+        return _to_choi(input_rep, data, input_dim, output_dim)
+    if output_rep == 'Operator':
+        return _to_operator(input_rep, data, input_dim, output_dim)
+    if output_rep == 'SuperOp':
+        return _to_superop(input_rep, data, input_dim, output_dim)
+    if output_rep == 'Kraus':
+        return _to_kraus(input_rep, data, input_dim, output_dim)
+    if output_rep == 'Chi':
+        return _to_chi(input_rep, data, input_dim, output_dim)
+    if output_rep == 'PTM':
+        return _to_ptm(input_rep, data, input_dim, output_dim)
+    if output_rep == 'Stinespring':
+        return _to_stinespring(input_rep, data, input_dim, output_dim)
+    raise QiskitError('Invalid QuantumChannel {}'.format(output_rep))
+
+
 def _to_choi(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Choi representation."""
     if rep == 'Choi':
@@ -35,11 +55,11 @@ def _to_choi(rep, data, input_dim, output_dim):
     if rep == 'SuperOp':
         return _superop_to_choi(data, input_dim, output_dim)
     if rep == 'Kraus':
-        return _kraus_to_choi(data, input_dim, output_dim)
+        return _kraus_to_choi(data)
     if rep == 'Chi':
-        return _chi_to_choi(data, input_dim, output_dim)
+        return _chi_to_choi(data, input_dim)
     if rep == 'PTM':
-        data = _ptm_to_superop(data, input_dim, output_dim)
+        data = _ptm_to_superop(data, input_dim)
         return _superop_to_choi(data, input_dim, output_dim)
     if rep == 'Stinespring':
         return _stinespring_to_choi(data, input_dim, output_dim)
@@ -55,12 +75,12 @@ def _to_superop(rep, data, input_dim, output_dim):
     if rep == 'Choi':
         return _choi_to_superop(data, input_dim, output_dim)
     if rep == 'Kraus':
-        return _kraus_to_superop(data, input_dim, output_dim)
+        return _kraus_to_superop(data)
     if rep == 'Chi':
-        data = _chi_to_choi(data, input_dim, output_dim)
+        data = _chi_to_choi(data, input_dim)
         return _choi_to_superop(data, input_dim, output_dim)
     if rep == 'PTM':
-        return _ptm_to_superop(data, input_dim, output_dim)
+        return _ptm_to_superop(data, input_dim)
     if rep == 'Stinespring':
         return _stinespring_to_superop(data, input_dim, output_dim)
     raise QiskitError('Invalid QuantumChannel {}'.format(rep))
@@ -71,7 +91,7 @@ def _to_kraus(rep, data, input_dim, output_dim):
     if rep == 'Kraus':
         return data
     if rep == 'Stinespring':
-        return _stinespring_to_kraus(data, input_dim, output_dim)
+        return _stinespring_to_kraus(data, output_dim)
     if rep == 'Operator':
         return _from_operator('Kraus', data, input_dim, output_dim)
     # Convert via Choi and Kraus
@@ -91,7 +111,7 @@ def _to_chi(rep, data, input_dim, output_dim):
     # Convert via Choi representation
     if rep != 'Choi':
         data = _to_choi(rep, data, input_dim, output_dim)
-    return _choi_to_chi(data, input_dim, output_dim)
+    return _choi_to_chi(data, input_dim)
 
 
 def _to_ptm(rep, data, input_dim, output_dim):
@@ -105,7 +125,7 @@ def _to_ptm(rep, data, input_dim, output_dim):
     # Convert via Superoperator representation
     if rep != 'SuperOp':
         data = _to_superop(rep, data, input_dim, output_dim)
-    return _superop_to_ptm(data, input_dim, output_dim)
+    return _superop_to_ptm(data, input_dim)
 
 
 def _to_stinespring(rep, data, input_dim, output_dim):
@@ -125,11 +145,11 @@ def _to_operator(rep, data, input_dim, output_dim):
     if rep == 'Operator':
         return data
     if rep == 'Stinespring':
-        return _stinespring_to_operator(data, input_dim, output_dim)
+        return _stinespring_to_operator(data, output_dim)
     # Convert via Kraus representation
     if rep != 'Kraus':
         data = _to_kraus(rep, data, input_dim, output_dim)
-    return _kraus_to_operator(data, input_dim, output_dim)
+    return _kraus_to_operator(data)
 
 
 def _from_operator(rep, data, input_dim, output_dim):
@@ -142,21 +162,21 @@ def _from_operator(rep, data, input_dim, output_dim):
         vec = np.ravel(data, order='F')
         return np.outer(vec, np.conj(vec))
     if rep == 'Kraus':
-        return ([data], None)
+        return [data], None
     if rep == 'Stinespring':
-        return (data, None)
+        return data, None
     if rep == 'Chi':
         _check_nqubit_dim(input_dim, output_dim)
         data = _from_operator('Choi', data, input_dim, output_dim)
-        return _choi_to_chi(data, input_dim, output_dim)
+        return _choi_to_chi(data, input_dim)
     if rep == 'PTM':
         _check_nqubit_dim(input_dim, output_dim)
         data = _from_operator('SuperOp', data, input_dim, output_dim)
-        return _superop_to_ptm(data, input_dim, output_dim)
+        return _superop_to_ptm(data, input_dim)
     raise QiskitError('Invalid QuantumChannel {}'.format(rep))
 
 
-def _kraus_to_operator(data, input_dim, output_dim):
+def _kraus_to_operator(data):
     """Transform Kraus representation to Operator representation."""
     if data[1] is not None or len(data[0]) > 1:
         raise QiskitError(
@@ -164,7 +184,7 @@ def _kraus_to_operator(data, input_dim, output_dim):
     return data[0][0]
 
 
-def _stinespring_to_operator(data, input_dim, output_dim):
+def _stinespring_to_operator(data, output_dim):
     """Transform Stinespring representation to Operator representation."""
     trace_dim = data[0].shape[0] // output_dim
     if data[1] is not None or trace_dim != 1:
@@ -185,7 +205,7 @@ def _choi_to_superop(data, input_dim, output_dim):
     return _reshuffle(data, shape)
 
 
-def _kraus_to_choi(data, input_dim, output_dim):
+def _kraus_to_choi(data):
     """Transform Kraus representation to Choi representation."""
     choi = 0
     kraus_l, kraus_r = data
@@ -204,7 +224,12 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     # Check if hermitian matrix
     if is_hermitian_matrix(data, atol=atol):
         # Get eigen-decomposition of Choi-matrix
-        w, v = la.eigh(data)
+        # This should be a call to la.eigh, but there is an OpenBlas
+        # threading issue that is causing segfaults.
+        # Need schur here since la.eig does not
+        # guarentee orthogonality in degenerate subspaces
+        w, v = la.schur(data, output='complex')
+        w = w.diagonal().real
         # Check eigenvalues are non-negative
         if len(w[w < -atol]) == 0:
             # CP-map Kraus representation
@@ -218,7 +243,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
             # with a single zero-element Kraus matrix
             if not kraus:
                 kraus.append(np.zeros((output_dim, input_dim), dtype=complex))
-            return (kraus, None)
+            return kraus, None
     # Non-CP-map generalized Kraus representation
     mat_u, svals, mat_vh = la.svd(data)
     kraus_l = []
@@ -228,10 +253,10 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
             np.sqrt(val) * vec_l.reshape((output_dim, input_dim), order='F'))
         kraus_r.append(
             np.sqrt(val) * vec_r.reshape((output_dim, input_dim), order='F'))
-    return (kraus_l, kraus_r)
+    return kraus_l, kraus_r
 
 
-def _stinespring_to_kraus(data, input_dim, output_dim):
+def _stinespring_to_kraus(data, output_dim):
     """Transform Stinespring representation to Kraus representation."""
     kraus_pair = []
     for stine in data:
@@ -291,7 +316,7 @@ def _kraus_to_stinespring(data, input_dim, output_dim):
     return tuple(stine_pair)
 
 
-def _kraus_to_superop(data, input_dim, output_dim):
+def _kraus_to_superop(data):
     """Transform Kraus representation to SuperOp representation."""
     kraus_l, kraus_r = data
     superop = 0
@@ -304,25 +329,25 @@ def _kraus_to_superop(data, input_dim, output_dim):
     return superop
 
 
-def _chi_to_choi(data, input_dim, output_dim):
+def _chi_to_choi(data, input_dim):
     """Transform Chi representation to a Choi representation."""
     num_qubits = int(np.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
-def _choi_to_chi(data, input_dim, output_dim):
+def _choi_to_chi(data, input_dim):
     """Transform Choi representation to the Chi representation."""
     num_qubits = int(np.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)
 
 
-def _ptm_to_superop(data, input_dim, output_dim):
+def _ptm_to_superop(data, input_dim):
     """Transform PTM representation to SuperOp representation."""
     num_qubits = int(np.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
-def _superop_to_ptm(data, input_dim, output_dim):
+def _superop_to_ptm(data, input_dim):
     """Transform SuperOp representation to PTM representation."""
     num_qubits = int(np.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)

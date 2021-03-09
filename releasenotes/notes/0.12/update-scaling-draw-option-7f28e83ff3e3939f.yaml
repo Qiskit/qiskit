@@ -1,0 +1,18 @@
+---
+deprecations:
+  - |
+    The ``scaling`` parameter of the ``draw()`` method for the ``Schedule`` and
+    ``Pulse`` objects was deprecated and will be removed in a future release.
+    Instead the new ``scale`` parameter should be used. This was done to have
+    a consistent argument between pulse and circuit drawings. For example::
+
+        #The consistency in parameters is seen below
+        #For circuits
+        circuit = QuantumCircuit()
+        circuit.draw(scale=0.2)
+        #For pulses
+        pulse = SamplePulse()
+        pulse.draw(scale=0.2)
+        #For schedules
+        schedule = Schedule()
+        schedule.draw(scale=0.2)

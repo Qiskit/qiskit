@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    The methods :meth:`qiskit.circuit.ParameterExpression.subs` and
+    :meth:`qiskit.circuit.QuantumCircuit.assign_parameters` now
+    accept :class:`~qiskit.circuit.ParameterExpression` as the target value
+    to be substituted.
+
+    For example,
+
+    .. code-block::
+
+        from qiskit.circuit import QuantumCircuit, Parameter
+
+        p = Parameter('p')
+        source = QuantumCircuit(1)
+        source.rz(p, 0)
+
+        x = Parameter('x')
+        source.assign_parameters({p: x*x})
+
+    .. parsed-literal::
+
+             ┌──────────┐
+        q_0: ┤ Rz(x**2) ├
+             └──────────┘

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,4 +12,8 @@
 
 """Quantum States."""
 
-from .states import basis_state, projector, purity
+from .statevector import Statevector
+from .densitymatrix import DensityMatrix
+from .utils import partial_trace, shannon_entropy
+from .measures import (state_fidelity, purity, entropy, concurrence,
+                       mutual_information, entanglement_of_formation)

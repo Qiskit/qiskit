@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The ``CompositeGate`` class has been removed. Instead you should
+    directly create a instruction object from a circuit and append that to your
+    circuit. For example, you can run something like::
+
+        custom_gate_circ = qiskit.QuantumCircuit(2)
+        custom_gate_circ.x(1)
+        custom_gate_circ.h(0)
+        custom_gate_circ.cx(0, 1)
+        custom_gate = custom_gate_circ.to_instruction()

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The matplotlib output backend for the
+    :func:`qiskit.visualization.circuit_drawer` function and
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method drawer has been fixed
+    to render :class:`~qiskit.extensions.CU1Gate` gates correctly.
+    Fixes `#3684 <https://github.com/Qiskit/qiskit-terra/issues/3684>`_

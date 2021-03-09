@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Schedule transformer :func:`qiskit.pulse.reschedule.compress_pulses`
+    performs an optimization pass to reduce the usage of waveform
+    memory in hardware by replacing multiple identical instances of
+    a pulse in a pulse schedule with a single pulse.
+    For example::
+
+        from qiskit.pulse import reschedule
+
+        schedules = []
+        for _ in range(2):
+            schedule = Schedule()
+            drive_channel = DriveChannel(0)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedules.append(schedule)
+
+        compressed_schedules = reschedule.compress_pulses(schedules)

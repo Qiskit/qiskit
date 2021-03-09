@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    Two new methods have been added to the
+    :class:`qiskit.providers.models.PulseBackendConfiguration` for
+    interacting with channels.
+
+    * :meth:`~qiskit.providers.models.PulseBackendConfiguration.get_channel_qubits`
+      to get a list of all qubits operated by the given channel and
+    * :meth:`~qiskit.providers.models.PulseBackendConfiguration.get_qubit_channel`
+      to get a list of channels operating on the given qubit.
+
+deprecations:
+  - |
+    Passing a :class:`qiskit.pulse.ControlChannel` object in via the
+    parameter ``channel`` for the
+    :class:`qiskit.providers.models.PulseBackendConfiguration` method
+    :meth:`~qiskit.providers.models.PulseBackendConfiguration.control` has been
+    deprecated and will be removed in a future release. The
+    ``ControlChannel`` objects are now generated from the backend configuration
+    ``channels`` attribute which has the information of all channels and the
+    qubits they operate on. Now, the method
+    :meth:`~qiskit.providers.models.PulseBackendConfiguration.control`
+    is expected to take the parameter ``qubits`` of the form
+    ``(control_qubit, target_qubit)`` and type ``list``
+    or ``tuple``, and returns a list of control channels.

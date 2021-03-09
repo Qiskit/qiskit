@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds the ability to set ``qargs`` to objects which are subclasses
+    of the abstract ``BaseOperator`` class. This is done by calling the
+    object ``op(qargs)`` (where ``op`` is an operator class) and will return
+    a shallow copy of the original object with a qargs property set. When
+    such an object is used with the
+    :meth:`~qiskit.quantum_info.Operator.compose` or
+    :meth:`~qiskit.quantum_info.Operator.dot` methods the internal value for
+    qargs will be used when the ``qargs`` method kwarg is not used. This
+    allows for subsystem composition using binary operators, for example::
+
+        from qiskit.quantum_info import Operator
+
+        init = Operator.from_label('III')
+        x = Operator.from_label('X')
+        h = Operator.from_label('H')
+        init @ x([0]) @ h([1])

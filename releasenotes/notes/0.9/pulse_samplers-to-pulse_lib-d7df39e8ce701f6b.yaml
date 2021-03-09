@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``qiskit.pulse.samplers`` module has been moved to
+    ``qiskit.pulse.pulse_lib.samplers``. You will need to update imports of
+    ``qiskit.pulse.samplers`` to ``qiskit.pulse.pulse_lib.samplers``.

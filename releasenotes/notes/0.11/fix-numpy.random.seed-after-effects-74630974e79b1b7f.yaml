@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Uses of ``numpy.random.seed`` have been removed so that calls of qiskit
+    functions do not affect results of future calls to ``numpy.random``

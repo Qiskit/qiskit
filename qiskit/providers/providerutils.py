@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -30,7 +28,7 @@ def filter_backends(backends, filters=None, **kwargs):
     Args:
         backends (list[BaseBackend]): list of backends.
         filters (callable): filtering conditions as a callable.
-        **kwargs (dict): dict of criteria.
+        **kwargs: dict of criteria.
 
     Returns:
         list[BaseBackend]: a list of backend instances matching the
@@ -98,6 +96,7 @@ def resolve_backend_name(name, backends, deprecated, aliased):
         raise LookupError("backend '{}' not found.".format(name))
 
     if name in deprecated:
-        logger.warning("WARNING: '%s' is deprecated. Use '%s'.", name, resolved_name)
+        logger.warning("Backend '%s' is deprecated. Use '%s'.", name,
+                       resolved_name)
 
     return resolved_name

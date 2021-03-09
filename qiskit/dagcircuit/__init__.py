@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -12,7 +10,34 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for DAG Circuits."""
+"""
+=======================================
+DAG Circuits (:mod:`qiskit.dagcircuit`)
+=======================================
+
+.. currentmodule:: qiskit.dagcircuit
+
+DAG Circuits
+============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DAGCircuit
+   DAGNode
+   DAGDepNode
+   DAGDependency
+
+Exceptions
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DAGCircuitError
+"""
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode
+from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
+from .dagdependency import DAGDependency

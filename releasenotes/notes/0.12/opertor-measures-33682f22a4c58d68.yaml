@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added :func:`qiskit.quantum_info.average_gate_fidelity` and
+    :func:`qiskit.quantum_info.gate_error` functions to the
+    :mod:`qiskit.quantum_info` module for working with
+    :class:`qiskit.quantum_info.Operator` and ``QuantumChannel``
+    (e.g., :class:`qiskit.quantum_info.Choi`) objects.
+upgrade:
+  - |
+    The second argument of the :func:`qiskit.quantum_info.process_fidelity`
+    function, ``target``, is now optional. If a target unitary is not
+    specified, then process fidelity of the input channel with the identity
+    operator will be returned.
+deprecations:
+  - |
+    The ``require_cptp`` kwarg of the
+    :func:`qiskit.quantum_info.process_fidelity` function has been
+    deprecated and will be removed in a future release. It is superseded by
+    two separate kwargs ``require_cp`` and ``require_tp``.

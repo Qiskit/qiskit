@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -12,21 +10,39 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
+import hashlib
 import re
-import math
+import warnings
 
-from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
-                                        implicit_multiplication_application,
-                                        function_exponentiation)
-from sympy import Symbol
+from enum import Enum
+from typing import Union
 
-from qiskit.pulse import commands, channels
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse import channels, instructions, library
+from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import QiskitError
+from qiskit.pulse.parser import parse_string_expr
+from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption
-from qiskit.exceptions import QiskitError
+from qiskit.qobj.utils import MeasLevel
+from qiskit.circuit import Parameter, ParameterExpression
+
+GIGAHERTZ_TO_SI_UNITS = 1e9
+
+
+class ParametricPulseShapes(Enum):
+    """Map the assembled pulse names to the pulse module waveforms.
+
+    The enum name is the transport layer name for pulse shapes, the
+    value is its mapping to the OpenPulse Command in Qiskit.
+    """
+    gaussian = library.Gaussian
+    gaussian_square = library.GaussianSquare
+    drag = library.Drag
+    constant = library.Constant
 
 
 class ConversionMethodBinder:
@@ -58,8 +74,8 @@ class ConversionMethodBinder:
         """Get conversion method for bound object."""
         try:
             return self._bound_instructions[bound]
-        except KeyError:
-            raise PulseError('Bound method for %s is not found.' % bound)
+        except KeyError as ex:
+            raise QiskitError(f'Bound method for {bound} is not found.') from ex
 
 
 class InstructionToQobjConverter:
@@ -72,24 +88,23 @@ class InstructionToQobjConverter:
     providing custom converter methods.
 
 
-    To create a custom converter for custom instruction
-    ```
-    class CustomConverter(InstructionToQobjConverter):
+    To create a custom converter for custom instruction::
 
-        @bind_instruction(CustomInstruction)
-        def convert_custom_command(self, shift, instruction):
-            command_dict = {
-                'name': 'custom_command',
-                't0': shift+instruction.start_time,
-                'param1': instruction.param1,
-                'param2': instruction.param2
-            }
-            if self._run_config('option1', True):
-                command_dict.update({
-                    'param3': instruction.param3
-                })
-            return self.qobj_model(**command_dict)
-    ```
+        class CustomConverter(InstructionToQobjConverter):
+
+            @bind_instruction(CustomInstruction)
+            def convert_custom_command(self, shift, instruction):
+                command_dict = {
+                    'name': 'custom_command',
+                    't0': shift + instruction.start_time,
+                    'param1': instruction.param1,
+                    'param2': instruction.param2
+                }
+                if self._run_config('option1', True):
+                    command_dict.update({
+                        'param3': instruction.param3
+                    })
+                return self.qobj_model(**command_dict)
     """
     # class level tracking of conversion methods
     bind_instruction = ConversionMethodBinder()
@@ -109,106 +124,273 @@ class InstructionToQobjConverter:
         method = self.bind_instruction.get_bound_method(type(instruction))
         return method(self, shift, instruction)
 
-    @bind_instruction(commands.AcquireInstruction)
+    @bind_instruction(instructions.Acquire)
     def convert_acquire(self, shift, instruction):
-        """Return converted `AcquireInstruction`.
+        """Return converted `Acquire`.
 
         Args:
             shift(int): Offset time.
-            instruction (AcquireInstruction): acquire instruction.
+            instruction (Acquire): acquire instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
-            't0': shift+instruction.start_time,
+            't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': [instruction.channel.index],
+            'memory_slot': mem_slot
         }
-        if meas_level == 2:
+        if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
-            if instruction.command.discriminator:
+            if instruction.discriminator:
                 command_dict.update({
                     'discriminators': [
                         QobjMeasurementOption(
-                            name=instruction.command.discriminator.name,
-                            params=instruction.command.discriminator.params)
+                            name=instruction.discriminator.name,
+                            params=instruction.discriminator.params)
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slots:
+            if instruction.reg_slot:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [instruction.reg_slot.index]
                 })
-        if meas_level >= 1:
+        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
-            if instruction.command.kernel:
+            if instruction.kernel:
                 command_dict.update({
                     'kernels': [
                         QobjMeasurementOption(
-                            name=instruction.command.kernel.name,
-                            params=instruction.command.kernel.params)
+                            name=instruction.kernel.name,
+                            params=instruction.kernel.params)
                     ]
                 })
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.FrameChangeInstruction)
-    def convert_frame_change(self, shift, instruction):
-        """Return converted `FrameChangeInstruction`.
+    def convert_bundled_acquires(
+            self,
+            shift,
+            instructions_,
+    ):
+        """Bundle a list of acquires instructions at the same time into a single
+        Qobj acquire instruction.
+
+        Args:
+            shift (int): Offset time.
+            instructions_ (List[Acquire]): List of acquire instructions to bundle.
+        Returns:
+            dict: Dictionary of required parameters.
+        Raises:
+            QiskitError: If ``instructions`` is empty.
+        """
+        if not instructions_:
+            raise QiskitError('"instructions" may not be empty.')
+
+        meas_level = self._run_config.get('meas_level', 2)
+
+        t0 = instructions_[0].start_time
+        duration = instructions_[0].duration
+        memory_slots = []
+        register_slots = []
+        qubits = []
+        discriminators = []
+        kernels = []
+
+        for instruction in instructions_:
+            qubits.append(instruction.channel.index)
+
+            if instruction.start_time != t0:
+                raise QiskitError(
+                    'The supplied acquire instructions have different starting times. '
+                    'Something has gone wrong calling this code. Please report this '
+                    'issue.'
+                )
+
+            if instruction.duration != duration:
+                raise QiskitError(
+                    'Acquire instructions beginning at the same time must have '
+                    'same duration.'
+                )
+
+            if instruction.mem_slot:
+                memory_slots.append(instruction.mem_slot.index)
+
+            if meas_level == MeasLevel.CLASSIFIED:
+                # setup discriminators
+                if instruction.discriminator:
+                    discriminators.append(QobjMeasurementOption(
+                        name=instruction.discriminator.name,
+                        params=instruction.discriminator.params))
+                # setup register_slots
+                if instruction.reg_slot:
+                    register_slots.append(instruction.reg_slot.index)
+
+            if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+                # setup kernels
+                if instruction.kernel:
+                    kernels.append(QobjMeasurementOption(
+                        name=instruction.kernel.name,
+                        params=instruction.kernel.params))
+        command_dict = {
+            'name': 'acquire',
+            't0': t0 + shift,
+            'duration': duration,
+            'qubits': qubits,
+        }
+        if memory_slots:
+            command_dict['memory_slot'] = memory_slots
+
+        if register_slots:
+            command_dict['register_slot'] = register_slots
+
+        if discriminators:
+            num_discriminators = len(discriminators)
+            if num_discriminators == len(qubits) or num_discriminators == 1:
+                command_dict['discriminators'] = discriminators
+            else:
+                raise QiskitError(
+                    'A discriminator must be supplied for every acquisition or a single '
+                    'discriminator for all acquisitions.'
+                    )
+
+        if kernels:
+            num_kernels = len(kernels)
+            if num_kernels == len(qubits) or num_kernels == 1:
+                command_dict['kernels'] = kernels
+            else:
+                raise QiskitError(
+                    'A kernel must be supplied for every acquisition or a single '
+                    'kernel for all acquisitions.'
+                    )
+
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.SetFrequency)
+    def convert_set_frequency(self, shift, instruction):
+        """ Return converted `SetFrequencyInstruction`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (SetFrequency): set frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'setf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency / 1e9
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.ShiftFrequency)
+    def convert_shift_frequency(self, shift, instruction):
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (ShiftFrequency): Shift frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'shiftf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency / 1e9
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.SetPhase)
+    def convert_set_phase(self, shift, instruction):
+        """Return converted `SetPhase`.
 
         Args:
             shift(int): Offset time.
-            instruction (FrameChangeInstruction): frame change instruction.
+            instruction (SetPhase): Set phase instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'setp',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'phase': instruction.phase
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.ShiftPhase)
+    def convert_shift_phase(self, shift, instruction):
+        """Return converted `ShiftPhase`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (ShiftPhase): Shift phase instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'fc',
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'phase': instruction.command.phase
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'phase': instruction.phase
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.PersistentValueInstruction)
-    def convert_persistent_value(self, shift, instruction):
-        """Return converted `PersistentValueInstruction`.
+    @bind_instruction(instructions.Delay)
+    def convert_delay(self, shift, instruction):
+        """Return converted `Delay`.
 
         Args:
             shift(int): Offset time.
-            instruction (PersistentValueInstruction): persistent value instruction.
+            instruction (Delay): Delay instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'pv',
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'val': instruction.command.value
+            'name': 'delay',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'duration': instruction.duration
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.PulseInstruction)
-    def convert_drive(self, shift, instruction):
-        """Return converted `PulseInstruction`.
+    @bind_instruction(instructions.Play)
+    def convert_play(self, shift, instruction):
+        """Return the converted `Play`.
 
         Args:
-            shift(int): Offset time.
-            instruction (PulseInstruction): drive instruction.
+            shift (int): Offset time.
+            instruction (Play): An instance of Play.
         Returns:
             dict: Dictionary of required parameters.
         """
-        command_dict = {
-            'name': instruction.command.name,
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name
-        }
+        if isinstance(instruction.pulse, library.ParametricPulse):
+            command_dict = {
+                'name': 'parametric_pulse',
+                'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name,
+                'parameters': instruction.pulse.parameters
+            }
+        else:
+            command_dict = {
+                'name': instruction.name,
+                't0': shift + instruction.start_time,
+                'ch': instruction.channel.name
+            }
+
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.Snapshot)
+    @bind_instruction(instructions.Snapshot)
     def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
@@ -220,165 +402,82 @@ class InstructionToQobjConverter:
         """
         command_dict = {
             'name': 'snapshot',
-            't0': shift+instruction.start_time,
-            'label': instruction.name,
+            't0': shift + instruction.start_time,
+            'label': instruction.label,
             'type': instruction.type
         }
         return self._qobj_model(**command_dict)
 
 
-# pylint: disable=invalid-name
-
-# get math operations valid in python. Presumably these are valid in sympy
-_math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__')]
-# only allow valid math ops
-_math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
-# match consecutive alphanumeric, and single consecutive math ops +-/.()
-# and multiple * for exponentiation
-_allowedchars = re.compile(r'(([+\/\-]?|\*{0,2})?[\(\)\s]*'  # allow to start with math/bracket
-                           r'([a-zA-Z][a-zA-Z\d]*|'  # match word
-                           r'[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
-# match any sequence of chars and numbers
-_expr_regex = r'([a-zA-Z]+\d*)'
-# and valid params
-_param_regex = r'(P\d+)'
-# only valid sequences are P# for parameters and valid math operations above
-_valid_sub_expr = re.compile(_param_regex+'|'+_math_ops_regex)
-# pylint: enable=invalid-name
-
-
-def _is_math_expr_safe(expr):
-    r"""Verify mathematical expression is sanitized.
-
-    Only allow strings of form 'P\d+' and operations from `math`.
-    Allowed chars are [a-zA-Z]. Allowed math operators are '+*/().'
-    where only '*' are allowed to be consecutive.
-
-    Args:
-        expr (str): Expression to sanitize
-
-    Returns:
-        bool: Whether the string is safe to parse math from
-
-    Raise:
-        QiskitError: If math expression is not sanitized
-    """
-
-    only_allowed_chars = _allowedchars.match(expr)
-    if not only_allowed_chars:
-        return False
-    elif not only_allowed_chars.group(0) == expr:
-        return False
-
-    sub_expressions = re.findall(_expr_regex, expr)
-    if not all([_valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
-        return False
-
-    return True
-
-
-def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
-    """Parse a mathematical string expression and extract free parameters.
-
-    Args:
-        expr (str): String expression to parse
-
-    Returns:
-        (Callable, Tuple[str]): Returns a callable function and tuple of string symbols
-
-    Raises:
-        QiskitError: If expression is not safe
-    """
-    # remove these strings from expression and hope sympy knows these math expressions
-    # these are effectively reserved keywords
-    subs = [('numpy.', ''), ('np.', ''), ('math.', '')]
-    for match, sub in subs:
-        expr = expr.replace(match, sub)
-    if not _is_math_expr_safe(expr):
-        raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
-    params = sorted(re.findall(_param_regex, expr))
-    local_dict = {param: Symbol(param) for param in params}
-    symbols = list(local_dict.keys())
-    transformations = (standard_transformations + (implicit_multiplication_application,) +
-                       (function_exponentiation,))
-
-    parsed_expr = parse_expr(expr, local_dict=local_dict, transformations=transformations)
-
-    def parsed_fun(*args, **kwargs):
-        subs = {}
-        matched_params = []
-        if args:
-            subs.update({symbols[i]: arg for i, arg in enumerate(args)})
-            matched_params += list(params[i] for i in range(len(args)))
-        elif kwargs:
-            subs.update({local_dict[key]: value for key, value in kwargs.items()
-                         if key in local_dict})
-            matched_params += list(key for key in kwargs if key in params)
-
-        if not set(matched_params).issuperset(set(params)):
-            raise PulseError('Supplied params ({args}, {kwargs}) do not match '
-                             '{params}'.format(args=args, kwargs=kwargs, params=params))
-
-        return complex(parsed_expr.evalf(subs=subs))
-    return parsed_fun, params
-
-
 class QobjToInstructionConverter:
     """Converts Qobj models to pulse Instructions
     """
-    # pylint: disable=invalid-name,missing-return-type-doc
     # class level tracking of conversion methods
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, pulse_library, buffer=0, **run_config):
+    def __init__(self, pulse_library, **run_config):
         """Create new converter.
 
         Args:
              pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
-             buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        self.buffer = buffer
         self._run_config = run_config
-
         # bind pulses to conversion methods
         for pulse in pulse_library:
             self.bind_pulse(pulse)
 
     def __call__(self, instruction):
-
         method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
-    def get_channel(self, channel):
+    def get_channel(self, channel: str) -> channels.PulseChannel:
         """Parse and retrieve channel from ch string.
 
         Args:
-            channel (str): Channel to match
+            channel: Channel to match
 
         Returns:
-            (Channel, int): Matched channel
+            Matched channel
 
         Raises:
-            PulseError: Is raised if valid channel is not matched
+            QiskitError: Is raised if valid channel is not matched
         """
         match = self.chan_regex.match(channel)
         if match:
             prefix, index = match.group(1), int(match.group(2))
 
             if prefix == channels.DriveChannel.prefix:
-                return channels.DriveChannel(index, buffer=self.buffer)
+                return channels.DriveChannel(index)
             elif prefix == channels.MeasureChannel.prefix:
-                return channels.MeasureChannel(index, buffer=self.buffer)
+                return channels.MeasureChannel(index)
             elif prefix == channels.ControlChannel.prefix:
-                return channels.ControlChannel(index, buffer=self.buffer)
+                return channels.ControlChannel(index)
 
-        raise PulseError('Channel %s is not valid' % channel)
+        raise QiskitError('Channel %s is not valid' % channel)
+
+    @staticmethod
+    def disassemble_value(value_expr: Union[float, str]) -> Union[float, ParameterExpression]:
+        """A helper function to format instruction operand.
+
+        If parameter in string representation is specified, this method parses the
+        input string and generates Qiskit ParameterExpression object.
+
+        Args:
+            value_expr: Operand value in Qobj.
+
+        Returns:
+            Parsed operand value. ParameterExpression object is returned if value is not number.
+        """
+        if isinstance(value_expr, str):
+            str_expr = parse_string_expr(value_expr, partial_binding=False)
+            value_expr = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
+        return value_expr
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
-        """Return converted `AcquireInstruction`.
+        """Return converted `Acquire`.
 
         Args:
             instruction (PulseQobjInstruction): acquire qobj
@@ -388,96 +487,126 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
+        acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
+
+        mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
+
+        if hasattr(instruction, 'register_slot'):
+            register_slots = [channels.RegisterSlot(instruction.register_slot[i])
+                              for i in range(len(qubits))]
+        else:
+            register_slots = [None] * len(qubits)
+
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
+        if not isinstance(discriminators, list):
+            discriminators = [discriminators]
+        if any(discriminators[i] != discriminators[0] for i in range(len(discriminators))):
+            warnings.warn("Can currently only support one discriminator per acquire. Defaulting "
+                          "to first discriminator entry.")
+        discriminator = discriminators[0]
+        if discriminator:
+            discriminator = Discriminator(name=discriminators[0].name, **discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
-
-        mem_slots = instruction.memory_slot
-        reg_slots = (instruction.register_slot
-                     if hasattr(instruction, 'register_slot') else None)
-
-        if not isinstance(discriminators, list):
-            discriminators = [discriminators for _ in range(len(qubits))]
-
         if not isinstance(kernels, list):
-            kernels = [kernels for _ in range(len(qubits))]
+            kernels = [kernels]
+        if any(kernels[0] != kernels[i] for i in range(len(kernels))):
+            warnings.warn("Can currently only support one kernel per acquire. Defaulting to first "
+                          "kernel entry.")
+        kernel = kernels[0]
+        if kernel:
+            kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
         schedule = Schedule()
 
-        for i, qubit in enumerate(qubits):
-            kernel = kernels[i]
-            if kernel:
-                kernel = commands.Kernel(name=kernel.name,
-                                         params=kernel.params)
-
-            discriminator = discriminators[i]
-            if discriminator:
-                discriminator = commands.Discriminator(name=discriminator.name,
-                                                       params=discriminator.params)
-
-            channel = channels.AcquireChannel(qubit, buffer=self.buffer)
-            if reg_slots:
-                register_slot = channels.RegisterSlot(reg_slots[i])
-            else:
-                register_slot = None
-            memory_slot = channels.MemorySlot(mem_slots[i])
-
-            cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
-            schedule |= commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
+        for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
+            schedule |= instructions.Acquire(duration, acquire_channel, mem_slot=mem_slot,
+                                             reg_slot=reg_slot, kernel=kernel,
+                                             discriminator=discriminator) << t0
 
         return schedule
 
+    @bind_name('setp')
+    def convert_set_phase(self, instruction):
+        """Return converted `SetPhase`.
+
+        Args:
+            instruction (PulseQobjInstruction): phase set qobj instruction
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        phase = self.disassemble_value(instruction.phase)
+
+        return instructions.SetPhase(phase, channel) << t0
+
     @bind_name('fc')
-    def convert_frame_change(self, instruction):
-        """Return converted `FrameChangeInstruction`.
+    def convert_shift_phase(self, instruction):
+        """Return converted `ShiftPhase`.
 
         Args:
-            instruction (PulseQobjInstruction): frame change qobj
+            instruction (PulseQobjInstruction): phase shift qobj instruction
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        phase = instruction.phase
+        phase = self.disassemble_value(instruction.phase)
 
-        # This is parameterized
-        if isinstance(phase, str):
-            phase_expr, params = _parse_string_expr(phase)
+        return instructions.ShiftPhase(phase, channel) << t0
 
-            def gen_fc_sched(*args, **kwargs):
-                phase = abs(phase_expr(*args, **kwargs))
-                return commands.FrameChange(phase)(channel) << t0
-
-            return ParameterizedSchedule(gen_fc_sched, parameters=params)
-
-        return commands.FrameChange(phase)(channel) << t0
-
-    @bind_name('pv')
-    def convert_persistent_value(self, instruction):
-        """Return converted `PersistentValueInstruction`.
+    @bind_name('setf')
+    def convert_set_frequency(self, instruction):
+        """Return converted `SetFrequencyInstruction`.
 
         Args:
-            instruction (PulseQobjInstruction): persistent value qobj
+            instruction (PulseQobjInstruction): set frequency qobj instruction
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
         Returns:
             Schedule: Converted and scheduled Instruction
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        val = instruction.val
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
-        # This is parameterized
-        if isinstance(val, str):
-            val_expr, params = _parse_string_expr(val)
+        return instructions.SetFrequency(frequency, channel) << t0
 
-            def gen_fc_sched(*args, **kwargs):
-                val = complex(val_expr(*args, **kwargs))
-                return commands.PersistentValue(val)(channel) << t0
+    @bind_name('shiftf')
+    def convert_shift_frequency(self, instruction):
+        """Return converted `ShiftFrequency`.
 
-            return ParameterizedSchedule(gen_fc_sched, parameters=params)
+        Args:
+            instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+                                                The input frequency is expressed  in GHz,
+                                                so it will be scaled by a factor 1e9.
 
-        return commands.PersistentValue(val)(channel) << t0
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
+
+        return instructions.ShiftFrequency(frequency, channel) << t0
+
+    @bind_name('delay')
+    def convert_delay(self, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            instruction (Delay): Delay qobj instruction
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        duration = instruction.duration
+        return instructions.Delay(duration, channel) << t0
 
     def bind_pulse(self, pulse):
         """Bind the supplied pulse to a converter method by pulse name.
@@ -486,11 +615,11 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = commands.SamplePulse(pulse.samples, pulse.name)
+        pulse = library.Waveform(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
-            """Return converted `PulseInstruction`.
+            """Return converted `Play`.
 
             Args:
                 instruction (PulseQobjInstruction): pulse qobj
@@ -499,7 +628,42 @@ class QobjToInstructionConverter:
             """
             t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
-            return pulse(channel) << t0
+            return instructions.Play(pulse, channel) << t0
+
+    @bind_name('parametric_pulse')
+    def convert_parametric(self, instruction):
+        """Return the ParametricPulse implementation that is described by the instruction.
+
+        If parametric pulse label is not provided by the backend, this method naively generates
+        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+        to, for example, `gaussian_a4e3`, here the last four digits are a part of
+        the hash string generated based on the pulse shape and the parameters.
+        Because we are using a truncated hash for readability,
+        there may be a small risk of pulse name collision with other pulses.
+        Basically the parametric pulse name is used just for visualization purpose and
+        the pulse module should not have dependency on the parametric pulse names.
+
+        Args:
+            instruction (PulseQobjInstruction): pulse qobj
+        Returns:
+            Schedule: Schedule containing the converted pulse
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+
+        try:
+            pulse_name = instruction.label
+        except AttributeError:
+            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            base_str = '{pulse}_{params}'.format(
+                pulse=instruction.pulse_shape,
+                params=str(sorted_params))
+            short_pulse_id = hashlib.md5(base_str.encode('utf-8')).hexdigest()[:4]
+            pulse_name = '{0}_{1}'.format(instruction.pulse_shape, short_pulse_id)
+
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters,
+                                                                     name=pulse_name)
+        return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
     def convert_snapshot(self, instruction):
@@ -511,4 +675,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type) << t0
+        return instructions.Snapshot(instruction.label, instruction.type) << t0

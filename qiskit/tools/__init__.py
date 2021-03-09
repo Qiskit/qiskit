@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,12 +10,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper module for simplified Qiskit usage.
+"""
+==================================
+Qiskit Tools (:mod:`qiskit.tools`)
+==================================
 
-The functions in this module provide convenience helpers for accessing commonly
-used features of the SDK in a simplified way. They support a small subset of
-scenarios and flows: for more advanced usage, it is encouraged to instead
-refer to the documentation of each component and use them separately.
+.. currentmodule:: qiskit.tools
+
+Parallel Routines
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   parallel_map
+
+Monitoring
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   job_monitor
+   backend_monitor
+   backend_overview
+
 """
 
 from .parallel import parallel_map
+from .monitor import (job_monitor, backend_monitor, backend_overview)

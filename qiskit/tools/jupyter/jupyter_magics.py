@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,17 +14,23 @@
 
 import time
 import threading
-from IPython.display import display                              # pylint: disable=import-error
-from IPython.core import magic_arguments                         # pylint: disable=import-error
-from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
+from IPython import get_ipython
+from IPython.display import display
+from IPython.core import magic_arguments
+from IPython.core.magic import (cell_magic, line_magic,
+                                Magics, magics_class,
+                                register_line_magic)
+
 try:
-    import ipywidgets as widgets           # pylint: disable=import-error
-except ImportError:
+    import ipywidgets as widgets
+except ImportError as ex:
     raise ImportError('These functions  need ipywidgets. '
-                      'Run "pip install ipywidgets" before.')
+                      'Run "pip install ipywidgets" before.') from ex
 import qiskit
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
+from .library import circuit_library_widget
 
 
 def _html_checker(job_var, interval, status, header,
@@ -37,7 +41,7 @@ def _html_checker(job_var, interval, status, header,
     Args:
         job_var (BaseJob): The job to keep track of.
         interval (int): The status check interval
-        status (widget): HTML ipywidget for output ot screen
+        status (widget): HTML ipywidget for output to screen
         header (str): String representing HTML code for status.
         _interval_set (bool): Was interval set by user?
     """
@@ -52,15 +56,16 @@ def _html_checker(job_var, interval, status, header,
         job_status_msg = job_status.value
         if job_status_name == 'ERROR':
             break
+        if job_status_name == 'QUEUED':
+            job_status_msg += ' (%s)' % job_var.queue_position()
+            if job_var.queue_position() is None:
+                interval = 2
+            elif not _interval_set:
+                interval = max(job_var.queue_position(), 2)
         else:
-            if job_status_name == 'QUEUED':
-                job_status_msg += ' (%s)' % job_var.queue_position()
-                if not _interval_set:
-                    interval = max(job_var.queue_position(), 2)
-            else:
-                if not _interval_set:
-                    interval = 2
-            status.value = header % (job_status_msg)
+            if not _interval_set:
+                interval = 2
+        status.value = header % (job_status_msg)
 
     status.value = header % (job_status_msg)
 
@@ -162,7 +167,7 @@ class StatusMagic(Magics):
 class ProgressBarMagic(Magics):
     """A class of progress bar magic functions.
     """
-    @cell_magic
+    @line_magic
     @magic_arguments.magic_arguments()
     @magic_arguments.argument(
         '-t',
@@ -171,15 +176,28 @@ class ProgressBarMagic(Magics):
         default='html',
         help="Type of progress bar, 'html' or 'text'."
     )
-    def qiskit_progress_bar(self, line='', cell=None):
+    def qiskit_progress_bar(self, line='', cell=None):  # pylint: disable=unused-argument
         """A Jupyter magic function to generate progressbar.
         """
         args = magic_arguments.parse_argstring(self.qiskit_progress_bar, line)
         if args.type == 'html':
-            HTMLProgressBar()
+            pbar = HTMLProgressBar()
         elif args.type == 'text':
-            TextProgressBar()
+            pbar = TextProgressBar()
         else:
             raise qiskit.QiskitError('Invalid progress bar type.')
 
-        self.shell.ex(cell)
+        return pbar
+
+
+if HAS_MATPLOTLIB and get_ipython():
+    @register_line_magic
+    def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:
+        """Displays library information for a quantum circuit.
+
+        Args:
+            circuit: Input quantum circuit.
+        """
+        shell = get_ipython()
+        circ = shell.ev(circuit)
+        circuit_library_widget(circ)

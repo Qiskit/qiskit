@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM idlist."""
+import warnings
 
 from .node import Node
 
@@ -31,7 +30,10 @@ class IdList(Node):
         """Return the length of the list."""
         return len(self.children)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return ",".join([self.children[j].qasm(prec)
+        if prec is not None:
+            warnings.warn('Parameter \'IdList.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return ",".join([self.children[j].qasm()
                          for j in range(self.size())])

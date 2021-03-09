@@ -1,0 +1,99 @@
+---
+deprecations:
+  - |
+    Methods for adding gates to a :class:`qiskit.circuit.QuantumCircuit` with
+    abbreviated keyword arguments (e.g. ``ctl``, ``tgt``) have had their keyword
+    arguments renamed to be more descriptive (e.g. ``control_qubit``,
+    ``target_qubit``). The old names have been deprecated. A table including the
+    old and new calling signatures for the ``QuantumCircuit`` methods is included below.
+
+    .. list-table:: New signatures for ``QuantumCircuit`` gate methods
+       :header-rows: 1
+
+       * - Instruction Type
+         - Former Signature
+         - New Signature
+       * - :class:`qiskit.extensions.HGate`
+         - ``qc.h(q)``
+         - ``qc.h(qubit)``
+       * - :class:`qiskit.extensions.CHGate`
+         - ``qc.ch(ctl, tgt)``
+         - ``qc.ch((control_qubit, target_qubit))``
+       * - :class:`qiskit.extensions.IdGate`
+         - ``qc.iden(q)``
+         - ``qc.iden(qubit)``
+       * - :class:`qiskit.extensions.RGate`
+         - ``qc.iden(q)``
+         - ``qc.iden(qubit)``
+       * - :class:`qiskit.extensions.RGate`
+         - ``qc.r(theta, phi, q)``
+         - ``qc.r(theta, phi, qubit)``
+       * - :class:`qiskit.extensions.RXGate`
+         - ``qc.rx(theta, q)``
+         - ``qc.rx(theta, qubit)``
+       * - :class:`qiskit.extensions.CrxGate`
+         - ``qc.crx(theta, ctl, tgt)``
+         - ``qc.crx(theta, control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.RYGate`
+         - ``qc.ry(theta, q)``
+         - ``qc.ry(theta, qubit)``
+       * - :class:`qiskit.extensions.CryGate`
+         - ``qc.cry(theta, ctl, tgt)``
+         - ``qc.cry(theta, control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.RZGate`
+         - ``qc.rz(phi, q)``
+         - ``qc.rz(phi, qubit)``
+       * - :class:`qiskit.extensions.CrzGate`
+         - ``qc.crz(theta, ctl, tgt)``
+         - ``qc.crz(theta, control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.SGate`
+         - ``qc.s(q)``
+         - ``qc.s(qubit)``
+       * - :class:`qiskit.extensions.SdgGate`
+         - ``qc.sdg(q)``
+         - ``qc.sdg(qubit)``
+       * - :class:`qiskit.extensions.FredkinGate`
+         - ``qc.cswap(ctl, tgt1, tgt2)``
+         - ``qc.cswap(control_qubit, target_qubit1, target_qubit2)``
+       * - :class:`qiskit.extensions.TGate`
+         - ``qc.t(q)``
+         - ``qc.t(qubit)``
+       * - :class:`qiskit.extensions.TdgGate`
+         - ``qc.tdg(q)``
+         - ``qc.tdg(qubit)``
+       * - :class:`qiskit.extensions.U1Gate`
+         - ``qc.u1(theta, q)``
+         - ``qc.u1(theta, qubit)``
+       * - :class:`qiskit.extensions.Cu1Gate`
+         - ``qc.cu1(theta, ctl, tgt)``
+         - ``qc.cu1(theta, control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.U2Gate`
+         - ``qc.u2(phi, lam, q)``
+         - ``qc.u2(phi, lam, qubit)``
+       * - :class:`qiskit.extensions.U3Gate`
+         - ``qc.u3(theta, phi, lam, q)``
+         - ``qc.u3(theta, phi, lam, qubit)``
+       * - :class:`qiskit.extensions.Cu3Gate`
+         - ``qc.cu3(theta, phi, lam, ctl, tgt)``
+         - ``qc.cu3(theta, phi, lam, control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.XGate`
+         - ``qc.x(q)``
+         - ``qc.x(qubit)``
+       * - :class:`qiskit.extensions.CnotGate`
+         - ``qc.cx(ctl, tgt)``
+         - ``qc.cx(control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.ToffoliGate`
+         - ``qc.ccx(ctl1, ctl2, tgt)``
+         - ``qc.ccx(control_qubit1, control_qubit2, target_qubit)``
+       * - :class:`qiskit.extensions.YGate`
+         - ``qc.y(q)``
+         - ``qc.y(qubit)``
+       * - :class:`qiskit.extensions.CyGate`
+         - ``qc.cy(ctl, tgt)``
+         - ``qc.cy(control_qubit, target_qubit)``
+       * - :class:`qiskit.extensions.ZGate`
+         - ``qc.z(q)``
+         - ``qc.z(qubit)``
+       * - :class:`qiskit.extensions.CzGate`
+         - ``qc.cz(ctl, tgt)``
+         - ``qc.cz(control_qubit, target_qubit)``

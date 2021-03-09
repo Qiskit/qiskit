@@ -1,0 +1,186 @@
+---
+features:
+  - |
+    Add a ``num_qubits`` attribute to :class:`qiskit.quantum_info.StateVector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes. This returns the number of
+    qubits for N-qubit states and returns ``None`` for non-qubit states.
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.to_dict` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.to_dict` methods to convert
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` objects into Bra-Ket notation
+    dictionary.
+
+    Example
+      
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.to_dict())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.to_dict())
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.probabilities` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities` to
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes which return an
+    array of measurement outcome probabilities in the computational
+    basis for the specified subsystems.
+
+    Example
+      
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.probabilities())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.probabilities())
+
+  - |
+    Adds :meth:`~qiskit.quantum_info.Statevector.probabilities_dict` and
+    :meth:`~qiskit.quantum_info.DensityMatrix.probabilities_dict` to
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes which return a
+    count-style dictionary array of measurement outcome probabilities
+    in the computational basis for the specified subsystems.
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+
+      state = Statevector.from_label('+0')
+      print(state.probabilities_dict())
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import DensityMatrix
+
+      state = DensityMatrix.from_label('+0')
+      print(state.probabilities_dict())
+  - |
+    Add :meth:`~qiskit.quantum_info.Statevector.sample_counts` and
+    :meth:`~qiskit.quantum_info.Statevector.sample_memory` methods to the :class:`~qiskit.quantum_info.Statevector`
+    and :class:`~qiskit.quantum_info.DensityMatrix` classes for sampling
+    measurement outcomes on subsystems.
+
+    Example:
+
+      Generate a counts dictionary by sampling from a statevector
+
+      .. jupyter-execute::
+
+        from qiskit.quantum_info import Statevector
+
+        psi = Statevector.from_label('+0')
+        shots = 1024
+  
+        # Sample counts dictionary
+        counts = psi.sample_counts(shots)
+        print('Measure both:', counts)
+
+        # Qubit-0
+        counts0 = psi.sample_counts(shots, [0])
+        print('Measure Qubit-0:', counts0)
+
+        # Qubit-1
+        counts1 = psi.sample_counts(shots, [1])
+        print('Measure Qubit-1:', counts1)
+
+      Return the array of measurement outcomes for each sample
+    
+      .. jupyter-execute::
+
+        from qiskit.quantum_info import Statevector
+
+        psi = Statevector.from_label('-1')
+        shots = 10
+  
+        # Sample memory
+        mem = psi.sample_memory(shots)
+        print('Measure both:', mem)
+
+        # Qubit-0
+        mem0 = psi.sample_memory(shots, [0])
+        print('Measure Qubit-0:', mem0)
+
+        # Qubit-1
+        mem1 = psi.sample_memory(shots, [1])
+        print('Measure Qubit-1:', mem1)
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Statevector.measure` method to the
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` quantum state classes. This
+    allows sampling a single measurement outcome from the specified subsystems
+    and collapsing the statevector to the post-measurement computational basis
+    state. For example
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+      
+      psi = Statevector.from_label('+1')
+  
+      # Measure both qubits
+      outcome, psi_meas = psi.measure()
+      print("measure([0, 1]) outcome:", outcome, "Post-measurement state:")
+      print(psi_meas)
+
+      # Measure qubit-1 only
+      outcome, psi_meas = psi.measure([1])
+      print("measure([1]) outcome:", outcome, "Post-measurement state:")
+      print(psi_meas)
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Statevector.reset` method to the
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` quantum state classes. This
+    allows reseting some or all subsystems to the :math:`|0\rangle` state.
+    For example
+
+    .. jupyter-execute::
+
+      from qiskit.quantum_info import Statevector
+      
+      psi = Statevector.from_label('+1')
+
+      # Reset both qubits
+      psi_reset = psi.reset()
+      print("Post reset state: ")
+      print(psi_reset)
+
+      # Reset qubit-1 only
+      psi_reset = psi.reset([1])
+      print("Post reset([1]) state: ")
+      print(psi_reset)
+upgrade:
+  - |
+    The :class:`qiskit.quantum_info.Statevector` and 
+    :class:`qiskit.quantum_info.DensityMatrix` classes no longer copy the
+    input array if it is already the correct dtype.
+deprecations:
+  - |
+    The ``add``, ``subtract``, and ``multiply`` methods of the
+    :class:`qiskit.quantum_info.Statevector` and 
+    :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated and will
+    be removed in a future release. Instead you shoulde use ``+``, ``-``, ``*``
+    binary operators instead.
+  - |
+    Deprecates :meth:`qiskit.quantum_info.Statevector.to_counts`,
+    :meth:`qiskit.quantum_info.DensityMatrix.to_counts`, and
+    :func:`qiskit.quantum_info.counts.state_to_counts`. These functions
+    are superseded by the class methods
+    :meth:`qiskit.quantum_info.Statevector.probabilities_dict` and
+    :meth:`qiskit.quantum_info.DensityMatrix.probabilities_dict`.

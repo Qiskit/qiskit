@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Two new classes, :class:`~qiskit.circuit.AncillaRegister` and
+    :class:`~qiskit.circuit.AncillaQubit` have been added to the
+    :mod:`qiskit.circuit` module. These are subclasses of
+    :class:`~qiskit.circuit.QuantumRegister` and :class:`~qiskit.circuit.Qubit`
+    respectively and enable marking qubits being ancillas. This will allow
+    these qubits to be re-used in larger circuits and algorithms.

@@ -1,0 +1,140 @@
+---
+features:
+  - |
+    A new kwarg, ``cregbundle`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    cregs will be bundled into a single line in circuit visualizations for the
+    ``text`` and ``mpl`` drawers. The default value is ``True``.
+    Addresses issue `#4290 <https://github.com/Qiskit/qiskit-terra/issues/4290>`_.
+    
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', cregbundle=True)
+  - |
+    A new kwarg, ``initial_state`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    initial state will now be included in circuit visualizations for all drawers.
+    Addresses issue `#4293 <https://github.com/Qiskit/qiskit-terra/issues/4293>`_.
+    
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', initial_state=True)
+  - |
+    Labels will now be displayed when using the 'mpl' drawer. There are 2
+    types of labels - gate labels and control labels. Gate labels will
+    replace the gate name in the display. Control labels will display
+    above or below the controls for a gate.
+    Fixes issues #3766, #4580
+    Addresses issues `#3766 <https://github.com/Qiskit/qiskit-terra/issues/3766>`_
+    and `#4580 <https://github.com/Qiskit/qiskit-terra/issues/4580>`_.
+
+    For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.standard_gates import YGate
+        circuit = QuantumCircuit(2)
+        circuit.append(YGate(label='A Y Gate').control(label='Y Control'), [0, 1])
+        circuit.draw(output='mpl')
+deprecations:
+  - |
+    The style dictionary key ``cregbundle`` has been deprecated and will be
+    removed in a future release. This has been replaced by the
+    kwarg ``cregbundle`` added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`.
+fixes:
+  - |
+    In some situations long gate and register names would overflow, or leave
+    excessive empty space around them when using the ``'mpl'`` output backend
+    for the :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function. This has been fixed
+    by using correct text widths for a proportional font. Fixes
+    `#4611 <https://github.com/Qiskit/qiskit-terra/issues/4611>`__,
+    `#4605 <https://github.com/Qiskit/qiskit-terra/issues/4605>`__,
+    `#4545 <https://github.com/Qiskit/qiskit-terra/issues/4545>`__,
+    `#4497 <https://github.com/Qiskit/qiskit-terra/issues/4497>`__,
+    `#4449 <https://github.com/Qiskit/qiskit-terra/issues/4449>`__, and
+    `#3641 <https://github.com/Qiskit/qiskit-terra/issues/3641>`__.
+  - |
+    When using the ``style` kwarg on the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` or
+    :func:`qiskit.visualization.circuit_drawer` with the ``'mpl'`` output
+    backend the dictionary key ``'showindex'`` set to ``True``, the index
+    numbers at the top of the column did not line up properly. This has been
+    fixed.
+  - |
+    When using ``cregbunde=True`` with the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function and measuring onto
+    a second fold, the measure arrow would overwrite the creg count. The count
+    was moved to the left to prevent this. Fixes
+    `#4148 <https://github.com/Qiskit/qiskit-terra/issues/4148>`__.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    :class:`~qiskit.circuit.library.CSwapGate` gates and a controlled
+    :class:`~qiskit.circuit.library.RZZGate` gates now display with their
+    appropriate symbols instead of in a box.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function controlled gates
+    created using the :meth:`~qiskit.circuit.QuantumCircuit.to_gate` method
+    were not properly spaced and could overlap with other gates in the circuit
+    diagram. This issue has been fixed.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    gates with arrays as parameters, such as
+    :class:`~qiskit.extensions.HamiltonianGate`, no longer display with
+    excessive space around them. Fixes
+    `#4352 <https://github.com/Qiskit/qiskit-terra/issues/4352>`__.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    generic gates created by directly instantiating :class:`qiskit.circuit.Gate`
+    method now display the proper background color for the gate. Fixes
+    `#4496 <https://github.com/Qiskit/qiskit-terra/issues/4496>`__.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    an ``AttributeError`` that occurred when using
+    :class:`~qiskit.extensions.Isometry` or :class:`~qiskit.extensions.Initialize`
+    has been fixed. Fixes
+    `#4439 <https://github.com/Qiskit/qiskit-terra/issues/4439>`__.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    some open-controlled gates did not properly display the open controls.
+    This has been corrected so that open controls are properly displayed
+    as open circles. Fixes
+    `#4248 <https://github.com/Qiskit/qiskit-terra/issues/4248>`__.
+  - |
+    When using the ``'mpl'`` output backend for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`qiskit.visualization.circuit_drawer` function
+    setting the ``fold`` kwarg to -1 will now properly display the circuit
+    without folding. Fixes
+    `#4506 <https://github.com/Qiskit/qiskit-terra/issues/4506>`__.

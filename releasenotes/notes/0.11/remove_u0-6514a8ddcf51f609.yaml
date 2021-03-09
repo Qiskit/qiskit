@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The previously deprecated gate ``U0Gate``, which was deprecated
+    in the 0.9 release, has been removed. The gate ``IdGate``
+    should be used instead to insert delays.

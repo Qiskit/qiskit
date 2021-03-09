@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -32,18 +30,18 @@ class Qasm:
         self._filename = filename
         self._data = data
 
-    def get_filename(self):
+    def return_filename(self):
         """Return the filename."""
         return self._filename
 
-    def get_tokens(self):
+    def generate_tokens(self):
         """Returns a generator of the tokens."""
         if self._filename:
             with open(self._filename) as ifile:
                 self._data = ifile.read()
 
         with QasmParser(self._filename) as qasm_p:
-            return qasm_p.get_tokens()
+            return qasm_p.read_tokens()
 
     def parse(self):
         """Parse the data."""

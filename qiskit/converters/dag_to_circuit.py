@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -12,12 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a dag to a circuit"""
-import collections
+"""Helper function for converting a dag to a circuit."""
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def dag_to_circuit(dag):
@@ -28,35 +23,41 @@ def dag_to_circuit(dag):
 
     Return:
         QuantumCircuit: the circuit representing the input dag.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.dagcircuit import DAGCircuit
+            from qiskit.converters import circuit_to_dag
+            from qiskit.circuit.library.standard_gates import CHGate, U2Gate, CXGate
+            from qiskit.converters import dag_to_circuit
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            dag = circuit_to_dag(circ)
+            circuit = dag_to_circuit(dag)
+            circuit.draw()
     """
-    qregs = collections.OrderedDict()
-    for qreg in dag.qregs.values():
-        qreg_tmp = QuantumRegister(qreg.size, name=qreg.name)
-        qregs[qreg.name] = qreg_tmp
-    cregs = collections.OrderedDict()
-    for creg in dag.cregs.values():
-        creg_tmp = ClassicalRegister(creg.size, name=creg.name)
-        cregs[creg.name] = creg_tmp
 
     name = dag.name or None
-    circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
+    circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name,
+                             global_phase=dag.global_phase)
+    circuit.metadata = dag.metadata
+    circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
-        qubits = []
-        for qubit in node.qargs:
-            qubits.append(qregs[qubit[0].name][qubit[1]])
-
-        clbits = []
-        for clbit in node.cargs:
-            clbits.append(cregs[clbit[0].name][clbit[1]])
-
         # Get arguments for classical control (if any)
-        if node.condition is None:
-            control = None
-        else:
-            control = (node.condition[0], node.condition[1])
-
         inst = node.op.copy()
-        inst.control = control
-        circuit.append(inst, qubits, clbits)
+        inst.condition = node.condition
+        circuit._append(inst, node.qargs, node.cargs)
+
+    circuit.duration = dag.duration
+    circuit.unit = dag.unit
     return circuit

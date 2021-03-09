@@ -1,0 +1,51 @@
+---
+features:
+  - |
+    Parametric pulses have been added to OpenPulse. These are pulse commands
+    which are parameterized and understood by the backend. Arbitrary pulse
+    shapes are still supported by the SamplePulse Command. The new supported
+    pulse classes are:
+
+      - :class:`qiskit.pulse.ConstantPulse`
+      - :class:`qiskit.pulse.Drag`
+      - :class:`qiskit.pulse.Gaussian`
+      - :class:`qiskit.pulse.GaussianSquare`
+
+    They can be used like any other Pulse command. An example::
+
+        from qiskit.pulse import (Schedule, Gaussian, Drag, ConstantPulse,
+                                  GaussianSquare)
+
+        sched = Schedule(name='parametric_demo')
+        sched += Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
+        sched += Drag(duration=25, amp=0.1, sigma=5, beta=4)(DriveChannel(1))
+        sched += ConstantPulse(duration=25, amp=0.3+0.1j)(DriveChannel(1))
+        sched += GaussianSquare(duration=1500, amp=0.2, sigma=8,
+                                width=140)(MeasureChannel(0)) << sched.duration
+
+    The resulting schedule will be similar to a SamplePulse schedule built
+    using :mod:`qiskit.pulse.pulse_lib`, however, waveform sampling will be
+    performed by the backend. The method :meth:`qiskit.pulse.Schedule.draw`
+    can still be used as usual. However, the command will be converted to a
+    ``SamplePulse`` with the
+    :meth:`qiskit.pulse.ParametricPulse.get_sample_pulse` method, so the
+    pulse shown may not sample the continuous function the same way that the
+    backend will.
+
+    This feature can be used to construct Pulse programs for any backend, but
+    the pulses will be converted to ``SamplePulse`` objects if the backend does
+    not support parametric pulses. Backends which support them will have the
+    following new attribute::
+
+        backend.configuration().parametric_pulses: List[str]
+        # e.g. ['gaussian', 'drag', 'constant']
+
+    Note that the backend does not need to support all of the parametric
+    pulses defined in Qiskit.
+
+    When the backend supports parametric pulses, and the Pulse schedule is
+    built with them, the assembled Qobj is significantly smaller. The size
+    of a PulseQobj built entirely with parametric pulses is dependent only
+    on the number of instructions, whereas the size of a PulseQobj built
+    otherwise will grow with the duration of the instructions (since every
+    sample must be specified with a value).

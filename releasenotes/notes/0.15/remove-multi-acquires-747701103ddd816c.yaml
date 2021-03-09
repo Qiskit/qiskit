@@ -1,0 +1,20 @@
+---
+deprecations:
+  - |
+    The properties ``acquires``, ``mem_slots``, and ``reg_slots`` of the
+    :class:`qiskit.pulse.instructions.Acquire` pulse instruction have been
+    deprecated and will be removed in a future release. They are just
+    duplicates of :attr:`~qiskit.pulse.instructions.Acquire.channel`,
+    :attr:`~qiskit.pulse.instructions.Acquire.mem_slot`,
+    and :attr:`~qiskit.pulse.instructions.Acquire.reg_slot` respectively
+    now that previously deprecated support for using multiple qubits in a
+    single :class:`~qiskit.pulse.instructions.Acquire` instruction has been
+    removed.
+
+upgrade:
+  - |
+    The option to acquire multiple qubits at once was deprecated in the 0.12.0
+    release and is now removed. Specifically, the init args ``mem_slots`` and
+    ``reg_slots`` have been removed from
+    :class:`qiskit.pulse.instructions.Acquire`, and ``channel``, ``mem_slot``
+    and ``reg_slot`` will raise an error if a list is provided as input.

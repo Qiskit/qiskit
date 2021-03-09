@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -14,6 +12,8 @@
 
 """Node for an OPENQASM barrier statement."""
 
+import warnings
+
 from .node import Node
 
 
@@ -27,6 +27,9 @@ class Barrier(Node):
         """Create the barrier node."""
         super().__init__('barrier', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return "barrier " + self.children[0].qasm(prec) + ";"
+        if prec is not None:
+            warnings.warn('Parameter \'Barrier.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return "barrier " + self.children[0].qasm() + ";"
