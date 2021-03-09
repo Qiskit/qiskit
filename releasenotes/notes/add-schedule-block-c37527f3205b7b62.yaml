@@ -4,7 +4,7 @@ features:
     New pulse program representation :py:class:`~qiskit.pulse.ScheduleBlock` is added.
     This representation is best suited for the builder syntax.
 
-    This representation takes `transform` instead of specifying starting time ``t0`` for
+    This representation takes ``transform`` instead of specifying starting time ``t0`` for
     each instruction. The start time of instruction is implicitly allocated with
     the specified transformation and relative position of instructions.
 
