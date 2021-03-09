@@ -506,7 +506,7 @@ class Schedule(PulseProgram):
     is not allowed. This overlap constraint is immediately evaluated when a new
     instruction is added to the ``Schedule`` object.
 
-    This indicates we always need to specify absolute values for instruction start time ``t0``
+    This indicates that we always need to specify absolute values for the instruction start time
     and duration to calculate what timesteps are occupied by each instruction.
 
     The ``Schedule`` program supports some syntax sugar for efficient programming.
