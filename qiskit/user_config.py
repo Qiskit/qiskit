@@ -196,6 +196,9 @@ def set_config(key, value, section=None, file_path=None):
             "Unable to load the config file {}. Error: '{}'".format(
                 filename, str(ex)))
 
+    # Confirms the config is set from QISKIT_SETTINGS or default config file
+    # New config changes is reflected only if the file is default config
+    # file or the value of QISKIT_SETTINGS env variable
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     user_config = UserConfig(filename)
     user_config.read_config_file()

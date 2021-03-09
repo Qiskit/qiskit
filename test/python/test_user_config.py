@@ -175,8 +175,8 @@ class TestUserConfig(QiskitTestCase):
                                file_path=self.file_path)
 
         config_settings = None
-        with mock.patch.dict(os.environ, {"QISKIT_SETTINGS":
-                                         self.file_path}, clear=True):
+        with mock.patch.dict(os.environ,
+                             {"QISKIT_SETTINGS": self.file_path}, clear=True):
             config_settings = user_config.get_config()
 
         self.assertEqual({'circuit_drawer': 'latex',
