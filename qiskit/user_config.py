@@ -139,7 +139,7 @@ class UserConfig:
                 self.settings['num_processes'] = num_processes
 
 
-def set_config(key, value, section=None, file=None):
+def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
 
     It will add the configuration in either the default location
@@ -153,14 +153,14 @@ def set_config(key, value, section=None, file=None):
         value (str): value of the config
         section (str, optional): if not specified, adds it to the
             `default` section of the config file.
-        file (str, optional): the file to which config is added.
+        file_path (str, optional): the file to which config is added.
             If not specified, adds it to the default config file.
 
     Raises:
         QiskitUserConfigError: if the config is invalid
     """
-    filename = file or DEFAULT_FILENAME
-    sectname = 'default' if section is None else section
+    filename = file_path or os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
+    section = 'default' if section is None else section
 
     if not isinstance(key, str):
         raise exceptions.QiskitUserConfigError('Key must be string type')
@@ -171,6 +171,7 @@ def set_config(key, value, section=None, file=None):
                     'circuit_mpl_style',
                     'circuit_mpl_style_path',
                     'transpile_optimization_level',
+                    'suppress_packaging_warnings',
                     'parallel',
                     'num_processes']
 
@@ -182,10 +183,10 @@ def set_config(key, value, section=None, file=None):
     config = configparser.ConfigParser()
     config.read(filename)
 
-    if sectname not in config.sections():
-        config.add_section(sectname)
+    if section not in config.sections():
+        config.add_section(section)
 
-    config.set(sectname, key, value)
+    config.set(section, key, value)
 
     try:
         with open(filename, 'w') as cfgfile:
