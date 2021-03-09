@@ -74,7 +74,7 @@ def measure(qubits: List[int],
                 "argument. For assistance, the instructions which are defined are: "
                 "{}".format(measure_name, inst_map.instructions)) from ex
         for time, inst in default_sched.instructions:
-            if not inst.channel.index in qubits:
+            if inst.channel.index not in qubits:
                 continue
             if qubit_mem_slots and isinstance(inst, instructions.Acquire):
                 if inst.channel.index in qubit_mem_slots:
