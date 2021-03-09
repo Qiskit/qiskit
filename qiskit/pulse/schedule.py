@@ -507,7 +507,7 @@ class Schedule(PulseProgram):
     instruction is added to the ``Schedule`` object.
 
     This indicates we always need to specify absolute values for instruction start time ``t0``
-    and duration of the instruction to calculate ``timeslots`` occupation by the instruction.
+    and duration to calculate what timesteps are occupied by each instruction.
 
     The ``Schedule`` program supports some syntax sugar for efficient programming.
 
