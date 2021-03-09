@@ -23,7 +23,7 @@ features:
     :meth:`qiskit.circuit.classicalfunction.boolean_expression.BooleanExpression.from_dimacs_file`
     allows loading formulas described in the DIMACS-CNF format.  
 
-    .. code-block:: python
+    .. code-block::
 
       from qiskit.circuit import BooleanExpression, QuantumCircuit
       boolean_exp = BooleanExpression.from_dimacs_file("simple_v3_c2.cnf")
@@ -39,7 +39,7 @@ features:
            │                   │
       q_3: ┤3                  ├
            └───────────────────┘
-       
+
       circuit.decompose().draw('text')
       q_0: ──o────o────────────
              │    │            
@@ -82,7 +82,7 @@ features:
     :meth:`qiskit.algorithms.amplitude_amplifiers.amplification_problem.AmplificationProblem.from_dimacs_file`
     allows to construct a phase oracle from a file describing a formula in the DIMACS-CNF format.  
 
-    .. code-block:: python
+    .. code-block::
 
       from qiskit.circuit.library.phase_oracle import PhaseOracle
       oracle = PhaseOracle.from_dimacs_file("simple_v3_c2.cnf")
