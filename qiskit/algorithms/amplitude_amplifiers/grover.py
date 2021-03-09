@@ -12,22 +12,20 @@
 
 """Grover's search algorithm."""
 
-from typing import Optional, Union, List, Iterator
 import itertools
 import logging
-import operator
 import math
+import operator
+from typing import Iterator, List, Optional, Union
+
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
-
-from qiskit.utils import QuantumInstance
+from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import partial_trace
+from qiskit.utils import QuantumInstance
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
-
 
 logger = logging.getLogger(__name__)
 
@@ -202,10 +200,14 @@ class Grover(AmplitudeAmplifier):
         iterations = []
         top_measurement = '0' * len(amplification_problem.objective_qubits)
         oracle_evaluation = False
+        all_circuit_results = []
+        max_probability = 0
+        shots = 0
 
         for _ in range(max_iterations):  # iterate at most to the max number of iterations
             # get next power and check if allowed
             power = next(iterator)
+
             if power > max_power:
                 break
 
@@ -214,11 +216,34 @@ class Grover(AmplitudeAmplifier):
             # sample from [0, power) if specified
             if self._sample_from_iterations:
                 power = np.random.randint(power)
+            # Run a grover experiment for a given power of the Grover operator.
+            if self._quantum_instance.is_statevector:
+                qc = self.construct_circuit(amplification_problem, power, measurement=False)
+                circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                num_bits = len(amplification_problem.objective_qubits)
 
-            # run Grover for this power
-            top_measurement, oracle_evaluation = self._single_experiment(amplification_problem,
-                                                                         power)
+                # trace out work qubits
+                if qc.width() != num_bits:
+                    indices = [i for i in range(qc.num_qubits)
+                               if i not in amplification_problem.objective_qubits]
+                    rho = partial_trace(circuit_results, indices)
+                    circuit_results = np.diag(rho.data)
 
+                max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
+                max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
+                top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
+                max_probability = np.abs(max_amplitude)**2
+                shots = 1
+            else:
+                qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
+                top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
+                shots = sum(circuit_results.values())
+                max_probability = max(circuit_results.items(), key=operator.itemgetter(1))[1] \
+                    / shots
+
+            all_circuit_results.append(circuit_results)
+            oracle_evaluation = amplification_problem.is_good_state(top_measurement)
             if oracle_evaluation is True:
                 break  # we found a solution
 
@@ -226,6 +251,9 @@ class Grover(AmplitudeAmplifier):
         result.top_measurement = top_measurement
         result.assignment = amplification_problem.post_processing(top_measurement)
         result.oracle_evaluation = oracle_evaluation
+        result.circuit_results = all_circuit_results
+        result.max_probability = max_probability
+
         return result
 
     @staticmethod
@@ -240,31 +268,6 @@ class Grover(AmplitudeAmplifier):
             The optimal number of iterations for Grover's algorithm to succeed.
         """
         return math.floor(np.pi * np.sqrt(2 ** num_qubits / num_solutions) / 4)
-
-    def _single_experiment(self, problem, power):
-        """Run a grover experiment for a given power of the Grover operator."""
-        if self._quantum_instance.is_statevector:
-            qc = self.construct_circuit(problem, power, measurement=False)
-            result = self._quantum_instance.execute(qc)
-            statevector = result.get_statevector(qc)
-            num_bits = len(problem.objective_qubits)
-
-            # trace out work qubits
-            if qc.width() != num_bits:
-                indices = [i for i in range(qc.num_qubits) if i not in problem.objective_qubits]
-                rho = partial_trace(statevector, indices)
-                statevector = np.diag(rho.data)
-
-            max_amplitude = max(statevector.max(), statevector.min(), key=abs)
-            max_amplitude_idx = np.where(statevector == max_amplitude)[0][0]
-            top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-
-        else:
-            qc = self.construct_circuit(problem, power, measurement=True)
-            measurement = self._quantum_instance.execute(qc).get_counts(qc)
-            top_measurement = max(measurement.items(), key=operator.itemgetter(1))[0]
-
-        return top_measurement, problem.is_good_state(top_measurement)
 
     def construct_circuit(self, problem: AmplificationProblem,
                           power: Optional[int] = None,
@@ -307,6 +310,8 @@ class GroverResult(AmplitudeAmplifierResult):
     def __init__(self) -> None:
         super().__init__()
         self._iterations = None
+        self._circuit_results = None
+        self._shots = None
 
     @property
     def iterations(self) -> List[int]:
