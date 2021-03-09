@@ -15,104 +15,41 @@
 # limitations under the License.
 # =============================================================================
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
+# pylint: disable=missing-class-docstring,missing-function-docstring
+# pylint: disable=attribute-defined-outside-init
 
 """Module for estimating quantum volume.
 See arXiv:1811.12926 [quant-ph]"""
 
 import numpy as np
 
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.compiler import transpile
+
 from .utils import build_qv_model_circuit
-
-try:
-    from qiskit.mapper import two_qubit_kak
-    NO_KAK = False
-except ImportError:
-    NO_KAK = True
-
-try:
-    from qiskit.circuit import QuantumCircuit, QuantumRegister
-except ImportError:
-    from qiskit import QuantumCircuit, QuantumRegister
-
-try:
-    from qiskit.compiler import transpile
-except ImportError:
-    from qiskit.transpiler import transpile
-
-if not NO_KAK:
-    from qiskit.quantum_info import random_unitary as random_unitary_matrix
-
-
-def build_model_circuit_kak(width, depth, seed=None):
-    """Create quantum volume model circuit on quantum register qreg of given
-    depth (default depth is equal to width) and random seed.
-    The model circuits consist of layers of Haar random
-    elements of U(4) applied between corresponding pairs
-    of qubits in a random bipartition.
-    """
-    qreg = QuantumRegister(width)
-    depth = depth or width
-
-    np.random.seed(seed)
-    circuit = QuantumCircuit(
-        qreg, name="Qvolume: %s by %s, seed: %s" % (width, depth, seed))
-
-    for _ in range(depth):
-        # Generate uniformly random permutation Pj of [0...n-1]
-        perm = np.random.permutation(width)
-
-        # For each pair p in Pj, generate Haar random U(4)
-        # Decompose each U(4) into CNOT + SU(2)
-        for k in range(width // 2):
-            U = random_unitary_matrix(4)
-            for gate in two_qubit_kak(U):
-                qs = [qreg[int(perm[2 * k + i])] for i in gate["args"]]
-                pars = gate["params"]
-                name = gate["name"]
-                if name == "cx":
-                    circuit.cx(qs[0], qs[1])
-                elif name == "u1":
-                    circuit.u1(pars[0], qs[0])
-                elif name == "u2":
-                    circuit.u2(*pars[:2], qs[0])
-                elif name == "u3":
-                    circuit.u3(*pars[:3], qs[0])
-                elif name == "id":
-                    pass  # do nothing
-                else:
-                    raise Exception("Unexpected gate name: %s" % name)
-    return circuit
 
 
 class QuantumVolumeBenchmark:
-    params = ([1, 2, 3, 5, 8, 13, 14], [1, 2, 3, 5, 8, 13, 21, 34])
-    param_names = ['width', 'depth']
-    version = 2
-    timeout = 600
+    params = ([1, 2, 3, 5, 8, 14, 20, 27], ['translator', 'synthesis'])
+    param_names = ['Number of Qubits', 'Basis Translation Method']
+    version = 3
 
-    def setup(self, width, depth):
+    def setup(self, width, _):
         random_seed = np.random.seed(10)
-        if NO_KAK:
-            self.circuit = build_qv_model_circuit(
-                width=width, depth=depth, seed=random_seed)
-        else:
-            self.circuit = build_model_circuit_kak(width, depth, random_seed)
+        self.circuit = build_qv_model_circuit(width, width, random_seed)
+        self.coupling_map = [
+            [0, 1], [1, 0], [1, 2], [1, 4], [2, 1], [2, 3], [3, 2], [3, 5],
+            [4, 1], [4, 7], [5, 3], [5, 8], [6, 7], [7, 4], [7, 6], [7, 10],
+            [8, 5], [8, 9], [8, 11], [9, 8], [10, 7], [10, 12], [11, 8],
+            [11, 14], [12, 10], [12, 13], [12, 15], [13, 12], [13, 14],
+            [14, 11], [14, 13], [14, 16], [15, 12], [15, 18], [16, 14],
+            [16, 19], [17, 18], [18, 15], [18, 17], [18, 21], [19, 16],
+            [19, 20], [19, 22], [20, 19], [21, 18], [21, 23], [22, 19],
+            [22, 25], [23, 21], [23, 24], [24, 23], [24, 25], [25, 22],
+            [25, 24], [25, 26], [26, 25]]
+        self.basis = ['id', 'rz', 'sx', 'x', 'cx', 'reset']
 
-        self.sim_backend = QasmSimulatorPy()
-
-    def time_simulator_transpile(self, _, __):
-        transpile(self.circuit, self.sim_backend)
-
-    def time_ibmq_backend_transpile(self, _, __):
-        # Run with ibmq_16_melbourne configuration
-        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
-                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
-                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
-                        [13, 12]]
-
+    def time_ibmq_backend_transpile(self, _, translation):
         transpile(self.circuit,
-                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=coupling_map)
+                  basis_gates=self.basis,
+                  coupling_map=self.coupling_map,
+                  translation_method=translation)
