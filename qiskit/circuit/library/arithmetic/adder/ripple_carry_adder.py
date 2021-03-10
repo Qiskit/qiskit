@@ -19,9 +19,9 @@ class RippleCarryAdder(QuantumCircuit):
     r"""A ripple-carry circuit to perform addition on two qubit registers.
 
     Circuit to compute the sum of two qubit registers using the approach from [1].
-    Given two input registers that store quantum states :math:`|a\rangle` and :math:`|b\rangle`,
-    performs addition of numbers that can be represented by the states, storing the resulting
-    state in-place in the second register:
+    Given two equally sized input registers that store quantum states
+    :math:`|a\rangle` and :math:`|b\rangle`, performs addition of numbers that
+    can be represented by the states, storing the resulting state in-place in the second register:
 
     .. math::
 
@@ -61,10 +61,6 @@ class RippleCarryAdder(QuantumCircuit):
     This is different ordering as compared to Figure 4 in [1], which leads to a different
     drawing of the circuit.
 
-    Additionally, in case the two input registers are not equally sized, the smaller
-    register is padded with extra qubits to match the size of the larger register.
-    In such case, the padded qubits are appended to the end of the circuit.
-
     **References:**
 
     [1] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
@@ -75,32 +71,24 @@ class RippleCarryAdder(QuantumCircuit):
     """
 
     def __init__(self,
-                 num_qubits_a: int,
-                 num_qubits_b: int,
+                 num_state_qubits: int,
                  name: str = 'ripple_carry_adder'
                  ) -> None:
         r"""Create a new ripple-carry adder circuit.
 
                 Args:
-                    num_qubits_a: The number of qubits in the first input register,
-                        representing the state :math:`|a\rangle`.
-                    num_qubits_b: The number of qubits in the second input register,
-                        representing the state :math:`|b\rangle`.
+                    num_state_qubits: The number of qubits in either input register for
+                        state :math:`|a\rangle` or :math:`|b\rangle`. The two input
+                        registers must have the same number of qubits.
                     name: The name of the circuit object.
                 """
-        qr_a = QuantumRegister(num_qubits_a, name='input_a')
-        qr_b = QuantumRegister(num_qubits_b, name='input_b')
+        qr_a = QuantumRegister(num_state_qubits, name='input_a')
+        qr_b = QuantumRegister(num_state_qubits, name='input_b')
         qr_c = AncillaRegister(1, name='carry_in')
         qr_z = AncillaRegister(1, name='carry_out')
-        qr_list = [qr_a, qr_b, qr_c, qr_z]
-
-        # create pad register if input registers are not equally sized
-        if num_qubits_a != num_qubits_b:
-            qr_pad = QuantumRegister(abs(num_qubits_a-num_qubits_b), name='pad')
-            qr_list.append(qr_pad)
 
         # initialize quantum circuit with register list
-        super().__init__(*qr_list, name=name)
+        super().__init__(qr_a, qr_b, qr_c, qr_z, name=name)
 
         # build carry circuit for majority of 3 bits in-place
         # corresponds to MAJ gate in [1]
@@ -118,15 +106,11 @@ class RippleCarryAdder(QuantumCircuit):
         qc_uma.cnot(2, 1)
         qc_instruction_uma = qc_uma.to_instruction()
 
-        # prepare padded registers
-        qr_a_padded = qr_a if num_qubits_a >= num_qubits_b else qr_a[:] + qr_pad[:]
-        qr_b_padded = qr_b if num_qubits_a <= num_qubits_b else qr_b[:] + qr_pad[:]
-
         # build ripple-carry adder circuit
-        self.append(qc_instruction_mac, [qr_a_padded[0], qr_b_padded[0], qr_c[0]])
-        for i in range(max(num_qubits_a, num_qubits_b)-1):
-            self.append(qc_instruction_mac, [qr_a_padded[i+1], qr_b_padded[i+1], qr_a_padded[i]])
-        self.cnot(qr_a_padded[-1], qr_z[0])
-        for i in reversed(range(max(num_qubits_a, num_qubits_b)-1)):
-            self.append(qc_instruction_uma, [qr_a_padded[i+1], qr_b_padded[i+1], qr_a_padded[i]])
-        self.append(qc_instruction_uma, [qr_a_padded[0], qr_b_padded[0], qr_c[0]])
+        self.append(qc_instruction_mac, [qr_a[0], qr_b[0], qr_c[0]])
+        for i in range(num_state_qubits-1):
+            self.append(qc_instruction_mac, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+        self.cnot(qr_a[-1], qr_z[0])
+        for i in reversed(range(num_state_qubits-1)):
+            self.append(qc_instruction_uma, [qr_a[i+1], qr_b[i+1], qr_a[i]])
+        self.append(qc_instruction_uma, [qr_a[0], qr_b[0], qr_c[0]])
