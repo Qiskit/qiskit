@@ -302,7 +302,7 @@ class TestBlockOperation(BaseTestBlock):
         replaced = pulse.Play(pulse.Constant(300, 0.1), self.d1)
         target = pulse.Delay(50, self.d0)
 
-        block_replaced = block.replace(target, replaced)
+        block_replaced = block.replace(target, replaced, inplace=False)
 
         # original schedule is not destroyed
         self.assertListEqual(list(block.instructions), self.test_blocks)
