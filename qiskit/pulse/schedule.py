@@ -539,7 +539,7 @@ class Schedule(PulseProgram):
     The ``PulseError`` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize the duration of waveforms.
-    Thus we need to create new schedule object for every duration, i.e. Rabi experiment.
+    Thus we need to create a new schedule object for every duration.
 
     References:
         [1]: https://arxiv.org/abs/2004.06755
