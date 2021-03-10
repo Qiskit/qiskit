@@ -97,64 +97,52 @@ class CSPLayout(AnalysisPass):
         self.strict_direction = strict_direction
         self.call_limit = call_limit
         self.time_limit = time_limit
-        self.seed = seed or 42
-
-        random.seed(self.seed)
+        self.seed = seed
 
     def run(self, dag):
-        """ run the layouting method """
-        logical_qubits = dag.qubits
+        """ run the layout method """
+        qubits = dag.qubits
+        cxs = set()
+
+        for gate in dag.two_qubit_ops():
+            cxs.add((qubits.index(gate.qargs[0]),
+                     qubits.index(gate.qargs[1])))
+        edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
-            csp_solver = RecursiveBacktrackingSolver()
+            solver = RecursiveBacktrackingSolver()
         else:
-            csp_solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
+            solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
-        problem = self._get_constraint_satisfaction_problem(dag, self.coupling_map, csp_solver)
+        variables = list(range(len(qubits)))
+        variable_domains = list(self.coupling_map.physical_qubits).copy()
+        random.Random(self.seed).shuffle(variable_domains)
+
+        problem = Problem(solver)
+        problem.addVariables(variables, variable_domains)
+        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
+
+        if self.strict_direction:
+            def constraint(control, target):
+                return (control, target) in edges
+        else:
+            def constraint(control, target):
+                return (control, target) in edges or (target, control) in edges
+
+        for pair in cxs:
+            problem.addConstraint(constraint, [pair[0], pair[1]])
+
         solution = problem.getSolution()
 
         if solution is None:
             stop_reason = 'nonexistent solution'
-            if isinstance(csp_solver, CustomSolver):
-                if csp_solver.time_current is not None and csp_solver.time_current >= self.time_limit:
+            if isinstance(solver, CustomSolver):
+                if solver.time_current is not None and solver.time_current >= self.time_limit:
                     stop_reason = 'time limit reached'
-                elif csp_solver.call_current is not None and csp_solver.call_current >= self.call_limit:
+                elif solver.call_current is not None and solver.call_current >= self.call_limit:
                     stop_reason = 'call limit reached'
         else:
             stop_reason = 'solution found'
-            self.property_set['layout'] = Layout({v: logical_qubits[k] for k, v in solution.items()})
+            self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
 
         self.property_set['CSPLayout_stop_reason'] = stop_reason
-
-    def _get_constraint_satisfaction_problem(self, dag, coupling_map, csp_solver):
-        """ Create a Constraint Satisfaction Problem """
-        logical_edges = self._get_logical_edges(dag)
-        physical_edges = set(coupling_map.get_edges())
-
-        variables = list(range(len(dag.qubits)))
-        variable_domains = list(self.coupling_map.physical_qubits).copy()
-        random.shuffle(variable_domains)
-
-        problem = Problem(csp_solver)
-        problem.addVariables(variables, variable_domains)
-        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
-
-        if self.strict_direction:
-            def constraint(control, target):
-                return (control, target) in physical_edges
-        else:
-            def constraint(control, target):
-                return (control, target) in physical_edges or (target, control) in physical_edges
-
-        for edge in logical_edges:
-            problem.addConstraint(constraint, [edge[0], edge[1]])
-
-        return problem
-
-    def _get_logical_edges(self, dag):
-        """Extract the logical edges from the CNOT interactions"""
-        logical_edges = set()
-        for gate in dag.two_qubit_ops():
-            logical_edges.add((dag.qubits.index(gate.qargs[0]),
-                               dag.qubits.index(gate.qargs[1])))
-        return logical_edges
