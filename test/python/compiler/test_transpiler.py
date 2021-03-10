@@ -29,7 +29,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
-from qiskit.circuit import Parameter, Gate
+from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate
@@ -437,7 +437,7 @@ class TestTranspile(QiskitTestCase):
         with self.assertRaises(TranspilerError) as cm:
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
-        self.assertEqual("FullAncillaAllocation: The layout refers to a quantum register that does "
+        self.assertEqual("FullAncillaAllocation: The layout refers to a qubit that does "
                          "not exist in circuit.", cm.exception.message)
 
     def test_parameterized_circuit_for_simulator(self):
@@ -1029,6 +1029,27 @@ class TestTranspile(QiskitTestCase):
                         coupling_map=cmap,
                         optimization_level=optimization_level)
         self.assertEqual(circuit.metadata, res.metadata)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_optional_registers(self, optimization_level):
+        """Verify transpile accepts circuits without registers end-to-end."""
+
+        qubits = [Qubit() for _ in range(3)]
+        clbits = [Clbit() for _ in range(3)]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        qc.measure(qubits, clbits)
+
+        out = transpile(qc,
+                        FakeAlmaden(),
+                        optimization_level=optimization_level)
+
+        self.assertEqual(len(out.qubits), FakeAlmaden().configuration().num_qubits)
+        self.assertEqual(out.clbits, clbits)
 
 
 class StreamHandlerRaiseException(StreamHandler):
