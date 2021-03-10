@@ -1163,10 +1163,10 @@ def _method_not_supported(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         raise PulseError(f'Method ``ScheduleBlock.{function.__name__}`` is not supported '
-                         'because this program does not have notion of instruction time. '
+                         'as this program representationdoes not have the notion of instruction time. '
                          'Apply ``qiskit.pulse.transforms.block_to_schedule`` function to this '
-                         'program to get ``Schedule`` representation supporting this method. '
-                         'This method is being deprecated.')
+                         'program to obtain the ``Schedule`` representation supporting this method. '
+                         'This method will soon be deprecated.')
 
     return wrapper
 
