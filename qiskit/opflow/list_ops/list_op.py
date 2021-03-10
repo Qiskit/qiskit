@@ -72,6 +72,7 @@ class ListOp(OperatorBase):
             Note that the default "recombination function" lambda above is essentially the
             identity - it accepts the list of values, and returns them in a list.
         """
+        super().__init__()
         self._oplist = oplist
         self._combo_fn = combo_fn
         self._coeff = coeff

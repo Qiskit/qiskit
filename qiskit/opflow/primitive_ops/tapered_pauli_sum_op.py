@@ -202,7 +202,6 @@ class Z2Symmetries:
         Returns:
             a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
         """
-        # pylint: disable=invalid-name
         pauli_symmetries = []
         sq_paulis = []
         sq_list = []

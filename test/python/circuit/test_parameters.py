@@ -997,6 +997,20 @@ class TestParameters(QiskitTestCase):
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
 
+    def test_execute_result_names(self):
+        """Test unique names for list of parameter binds."""
+        theta = Parameter('θ')
+        reps = 5
+        qc = QuantumCircuit(1, 1)
+        qc.rx(theta, 0)
+        qc.measure(0, 0)
+
+        plist = [{theta: i} for i in range(reps)]
+        simulator = BasicAer.get_backend('qasm_simulator')
+        result = execute(qc, backend=simulator, parameter_binds=plist).result()
+        result_names = {res.name for res in result.results}
+        self.assertEqual(reps, len(result_names))
+
     def test_to_instruction_after_inverse(self):
         """Verify converting an inverse generates a valid ParameterTable"""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/4235

@@ -12,14 +12,17 @@
 
 """ OperatorBase Class """
 
-from typing import Set, Union, Dict, Optional, List, cast, Tuple
+import itertools
 from abc import ABC, abstractmethod
-import numpy as np
-from scipy.sparse import spmatrix, csr_matrix
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
-from qiskit.utils import algorithm_globals
+import numpy as np
+from scipy.sparse import csr_matrix, spmatrix
+
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.quantum_info import Statevector
+from qiskit.utils import algorithm_globals
+
 from .exceptions import OpflowError
 
 
@@ -36,6 +39,16 @@ class OperatorBase(ABC):
     # Indentation used in string representation of list operators
     # Can be changed to use another indentation than two whitespaces
     INDENTATION = '  '
+
+    _count = itertools.count()
+
+    def __init__(self) -> None:
+        self._instance_id = next(self._count)
+
+    @property
+    def instance_id(self) -> int:
+        """Return the unique instance id."""
+        return self._instance_id
 
     @property
     @abstractmethod

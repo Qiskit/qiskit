@@ -450,7 +450,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_euler = [self._decomposer1q(x) for x in decomposition]
+        decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
