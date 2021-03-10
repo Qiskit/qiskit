@@ -271,7 +271,7 @@ class QCircuitImage:
             for op in layer:
                 base_type = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
                 if isinstance(op.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate,
-                                                                          RZZGate)):
+                                                                        RZZGate)):
                     column_width = 4
             columns += column_width
 
