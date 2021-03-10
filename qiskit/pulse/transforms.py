@@ -421,8 +421,8 @@ def resolve_frames(schedule: Schedule, frames_config: Dict[int, Dict]) -> Schedu
                 sched.insert(time, type(inst)(inst.phase, chan), inplace=True)
 
         if isinstance(inst, (instructions.Delay, instructions.Call,
-                                   instructions.Snapshot, instructions.Acquire,
-                                   instructions.Directive)):
+                             instructions.Snapshot, instructions.Acquire,
+                             instructions.Directive)):
             sched.insert(time, inst, inplace=True)
 
     return sched
