@@ -1172,12 +1172,12 @@ def _method_not_supported(function: Callable) -> Callable:
 
 
 class ScheduleBlock(PulseProgram):
-    """A quantum program *schedule block* with alignment policy that allows lazy scheduling
-    of instructions. The preferred usage is through the pulse builder.
+    """A quantum program's *schedule block* with alignment policies that allow lazy the scheduling
+    of instructions. This is the representation constructed by the pulse builder by default.
 
     This program representation doesn't track an explicit notion of timing, in contrast to the
     ``Schedule`` representation. The timing of an instruction is managed by its relative position
-    and the ``transform`` argument. ``ScheduleBlock``s should be initialized with one of
+    and the stored ``transform`` argument. ``ScheduleBlock``s should be initialized with one of
     the following transform policies:
 
         - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
@@ -1210,9 +1210,9 @@ class ScheduleBlock(PulseProgram):
 
     Note that such waveform cannot be appended to the ``Schedule`` representation.
 
-    In the block representation, interval between two instructions can be
-    managed with ``Delay`` instruction. Because the schedule block lacks instruction
-    start time ``t0``, we cannot ``insert`` or ``shift`` target instruction.
+    In the block representation, the interval between two instructions can be
+    managed with the ``Delay`` instruction. Because the schedule block lacks an instruction
+    start time ``t0``, we cannot ``insert`` or ``shift`` the target instruction.
     In addition, stored instructions are not interchangable because the schedule block is
     sensitive to the relative position of instructions.
     Apart from these differences, the block representation can provide compatible
