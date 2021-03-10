@@ -124,6 +124,7 @@ class VarQTE(EvolutionBase):
                     fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
                                   'error_bound_factor',
                                   'error_grad', 'resid', 'fidelity', 'true_error',
+                                  'phase_agnostic_true_error',
                                   'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
                                   'trained_energy', 'energy_error', 'h_norm', 'h_squared',
                                   'variance', 'dtdt_trained', 're_im_grad']
@@ -203,6 +204,7 @@ class VarQTE(EvolutionBase):
             fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
                           'error_bound_factor',
                           'error_grad', 'resid', 'fidelity', 'true_error',
+                          'phase_agnostic_true_error',
                           'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
                           'trained_energy', 'energy_error', 'h_norm', 'h_squared',
                           'variance', 'dtdt_trained', 're_im_grad']
@@ -374,10 +376,10 @@ class VarQTE(EvolutionBase):
                 #                             trained_energy, h_squared, dtdt_state, reimgrad)
                     if np.iscomplex(self._operator.coeff):
                         # VarQRTE
-                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res)
+                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) - grad_res * 0.5)
                     else:
                         # VarQITE
-                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res)
+                        resid = np.linalg.norm(np.matmul(metric_res, dt_params) + grad_res * 0.5)
                     # Get the error for the current step
                     et, h_squared, dtdt_state, reimgrad = self._error_t(params, dt_params, grad_res,
                                                                         metric_res)[:4]
@@ -390,10 +392,10 @@ class VarQTE(EvolutionBase):
                     except Exception:
                         et = 1000
                     print('after try except', et)
-                    f, true_error, true_energy, trained_energy = self._distance_energy(t,
-                                                                                       param_dict)
+                    f, true_error, phase_agnostic_true_error, true_energy, trained_energy = \
+                        self._distance_energy(t, param_dict)
                     self._store_params(t, params, None, None, et,
-                                       resid, f, true_error, None,
+                                       resid, f, true_error, phase_agnostic_true_error, None,
                                        None, true_energy,
                                        trained_energy, None, h_squared, dtdt_state, reimgrad)
             return dt_params
@@ -435,7 +437,7 @@ class VarQTE(EvolutionBase):
                 #     time, params, et, resid, f, true_error, true_energy, trained_energy, \
                 #     h_squared, dtdt_state, reimgrad = self._storage_params_tbd
                 #     self._store_params(time, params, None, None, et,
-                #                        resid, f, true_error, None,
+                #                        resid, f, true_error,  phase_agnostic_true_error, None,
                 #                        None, true_energy,
                 #                        trained_energy, None, h_squared, dtdt_state, reimgrad)
                 print('ode time', self._ode_solver.t)
@@ -469,32 +471,6 @@ class VarQTE(EvolutionBase):
 
         return param_values
 
-    # def _ode_solver_store(self,
-    #                       param_values: Iterable,
-    #                       t: float,
-    #                       resid: float):
-    #     try:
-    #         if self._et < 0 and np.abs(self._et) > 1e-4:
-    #             self._et = None
-    #         else:
-    #             self._et = np.sqrt(self._et)
-    #     except Exception:
-    #         self._et = 'error'
-    #     param_dict = dict(zip(self._parameters, param_values))
-    #     f, true_error, true_energy, trained_energy = self._distance_energy(t, param_dict)
-    #     if self._backend is not None:
-    #         h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
-    #                                                          params=param_dict)[0]
-    #     else:
-    #         h_squared = self._h_squared.assign_parameters(param_dict)
-    #     h_squared = np.real(h_squared.eval())
-    #
-    #     self._store_params(t, param_values, self._error_bound, self._et,
-    #                        resid, f, true_error, None,
-    #                        None, true_energy,
-    #                        trained_energy, None, h_squared, None, None)
-    #     return
-
     def _inner_prod(self,
                     x: Iterable,
                     y: Iterable) -> Union[np.ndarray, np.complex, np.float]:
@@ -517,6 +493,7 @@ class VarQTE(EvolutionBase):
                       resid: Optional[float] = None,
                       fidelity_to_target: Optional[float] = None,
                       true_error: Optional[float] = None,
+                      phase_agnostic_true_error: Optional[float] = None,
                       true_to_euler_error: Optional[float] = None,
                       trained_to_euler_error: Optional[float] = None,
                       target_energy: Optional[float] = None,
@@ -535,6 +512,7 @@ class VarQTE(EvolutionBase):
             params: Current parameter values
             fidelity_to_target: fidelity between trained and target trained |<target|trained>|^2
             true_error: |||target> - |trained>||_2
+            phase_agnostic_true_error: min_phi|||target> - exp(i*phi)|trained>||_2
             target_energy: <target|H|target>
             trained_energy: <trained|H|trained>
             h_norm: ||H||_2
@@ -552,7 +530,8 @@ class VarQTE(EvolutionBase):
         with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='a') as csv_file:
             fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
                           'error_bound_factor',
-                          'error_grad', 'resid', 'fidelity', 'true_error', 'true_to_euler_error',
+                          'error_grad', 'resid', 'fidelity', 'true_error',
+                          'phase_agnostic_true_error', 'true_to_euler_error',
                           'trained_to_euler_error', 'target_energy', 'trained_energy',
                           'energy_error', 'h_norm', 'h_squared', 'variance',
                           'dtdt_trained', 're_im_grad']
@@ -572,6 +551,7 @@ class VarQTE(EvolutionBase):
                              'resid': resid,
                              'fidelity': np.round(fidelity_to_target, 8),
                              'true_error': np.round(true_error, 8),
+                             'phase_agnostic_true_error': np.round(phase_agnostic_true_error, 8),
                              'true_to_euler_error': true_to_euler_error,
                              'trained_to_euler_error': trained_to_euler_error,
                              'target_energy': np.round(target_energy, 8),
@@ -644,6 +624,24 @@ class VarQTE(EvolutionBase):
 
         return np.real(nat_grad_result), np.real(grad_res), np.real(metric_res)
 
+    def _l2_norm_phase_agnostic(self,
+                                target_state: Union[List, np.ndarray],
+                                trained_state: Union[List, np.ndarray]) -> float:
+        """
+        Find a global phase agnostic l2 norm between the target and trained state
+        Args:
+            target_state: Target state
+            trained_state: Trained state with potential phase mismatch
+
+        Returns:
+            global phase agnostic l2 norm value
+
+        """
+        def phase_agnostic(phi):
+            return np.linalg.norm(np.subtract(target_state, np.exp(1j*phi) * trained_state), ord=2)
+        l2_norm_pa = minimize(fun=phase_agnostic, x0=0, method='COBYLA', tol=1e-6)
+        return l2_norm_pa.fun
+
     def _distance_energy(self,
                          time: Union[float, complex],
                          param_dict: Dict) -> (float, float, float):
@@ -670,13 +668,15 @@ class VarQTE(EvolutionBase):
         # Fidelity
         f = state_fidelity(target_state, trained_state)
         # Actual error
-        act_err = np.linalg.norm(target_state - trained_state, ord=2)
+        act_err = np.linalg.norm(np.subtract(target_state, trained_state), ord=2)
+        phase_agnostic_act_err = self._l2_norm_phase_agnostic(target_state, trained_state)
         # Target Energy
         act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
         # Trained Energy
         trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
         print('Fidelity', f)
         print('True error', act_err)
+        print('Global phase agnostic true error', phase_agnostic_act_err)
         print('actual energy', act_en)
         print('trained_en', trained_en)
         # Error between exact evolution and Euler evolution using exact gradients
@@ -684,12 +684,12 @@ class VarQTE(EvolutionBase):
         # Error between Euler evolution using exact gradients and the trained state
         # exact_euler_trained_err = np.linalg.norm(trained_state - self._exact_euler_state, ord=2)
         # return f, act_err, act_en, trained_en, exact_exact_euler_err, exact_euler_trained_err
-        return f, act_err, np.real(act_en), np.real(trained_en)
+        return f, act_err, phase_agnostic_act_err, np.real(act_en), np.real(trained_en)
 
     @staticmethod
-    def print_results(data_directories: List[str],
-                      error_bound_directories: List[str],
-                      reverse_bound_directories: Optional[List[str]] = None):
+    def plot_results(data_directories: List[str],
+                     error_bound_directories: List[str],
+                     reverse_bound_directories: Optional[List[str]] = None):
         """
 
         Args:
@@ -708,6 +708,7 @@ class VarQTE(EvolutionBase):
                 fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
                               'error_bound_factor',
                               'error_grad', 'resid', 'fidelity', 'true_error',
+                              'phase_agnostic_true_error',
                               'true_to_euler_error', 'trained_to_euler_error', 'target_energy',
                               'trained_energy', 'energy_error', 'h_norm', 'h_squared',
                               'variance', 'dtdt_trained', 're_im_grad']
@@ -715,6 +716,7 @@ class VarQTE(EvolutionBase):
                 first = True
                 grad_errors = []
                 true_error = []
+                phase_agnostic_true_error = []
                 time = []
                 time_steps = []
                 fid = []
@@ -730,9 +732,10 @@ class VarQTE(EvolutionBase):
                     if t_line in time:
                         continue
                     time.append(t_line)
+                    fid.append(float(line['fidelity']))
                     grad_errors.append(float(line['error_grad']))
                     true_error.append(float(line['true_error']))
-                    fid.append(float(line['fidelity']))
+                    phase_agnostic_true_error.append(float(line['phase_agnostic_true_error']))
                     true_energy.append(float(line['target_energy']))
                     trained_energy.append(float(line['trained_energy']))
                     stddevs.append(np.sqrt(float(line['variance'])))
@@ -757,6 +760,8 @@ class VarQTE(EvolutionBase):
                         label='error bound')
 
             plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
+            plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
+                        label='true error')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
@@ -768,6 +773,29 @@ class VarQTE(EvolutionBase):
                 plt.legend(loc='best')
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
             plt.close()
+
+            plt.figure(2)
+            plt.title('Fidelity')
+            plt.scatter(time, fid, color='grey', marker='o', s=40,
+                        label='fidelity')
+            plt.xlabel('time')
+            plt.ylabel('fidelity')
+            # plt.xticks(range(counter-1))
+            plt.savefig(os.path.join(data_dir, 'fidelity.png'))
+            plt.close()
+
+            plt.figure(3)
+            plt.title('Energy')
+            plt.scatter(time, true_energy, color='black', marker='o', s=40,
+                        label='true energy')
+            plt.scatter(time, trained_energy, color='grey', marker='x', s=40,
+                        label='trained energy')
+            plt.xlabel('time')
+            plt.ylabel('energy')
+            # plt.xticks(range(counter-1))
+            plt.savefig(os.path.join(data_dir, 'energy.png'))
+            plt.close()
+
 
 
         return
