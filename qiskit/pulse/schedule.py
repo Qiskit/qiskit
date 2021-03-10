@@ -518,7 +518,7 @@ class Schedule(PulseProgram):
         sched = Schedule()
         sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
-    - Appending instruction with time shift
+    - Appending an instruction shifted in time by an amount
 
     .. code-block:: python
 
