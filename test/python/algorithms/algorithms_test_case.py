@@ -12,8 +12,6 @@
 
 """ Algorithms Test Case """
 
-import platform
-import logging
 from qiskit.test import QiskitTestCase
 
 
