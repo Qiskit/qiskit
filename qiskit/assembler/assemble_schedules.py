@@ -241,7 +241,9 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         QiskitError: If the instructions do not satisfy the measurement map.
     """
     meas_map_sets = [set(m) for m in meas_map]
-    # import ipdb; ipdb.set_trace();
+
+    # 1. sort the instr_map with time
+    # intersection - same q
     for meas_set in meas_map_sets:
         time_mapping = defaultdict(list)
         # Check each acquisition time individually
