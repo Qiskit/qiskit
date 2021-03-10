@@ -323,7 +323,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
 def _push_left_append(this: Schedule,
                       other: Union['Schedule', instructions.Instruction],
                       ) -> Schedule:
-    r"""Return ``this`` with ``other`` inserted at the maximum time over
+    """Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
 
     Args:
@@ -357,7 +357,7 @@ def align_left(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the left.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
+        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -409,7 +409,7 @@ def align_right(schedule: Schedule) -> Schedule:
     """Align a list of pulse instructions on the right.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
+        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -425,7 +425,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
     """Schedule all top-level nodes in parallel.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
+        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
 
     Returns:
         New schedule with input `schedule`` child schedules and instructions
@@ -442,7 +442,7 @@ def align_equispaced(schedule: Schedule,
     """Schedule a list of pulse instructions with equivalent interval.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
+        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
 
     Returns:
@@ -487,7 +487,7 @@ def align_func(schedule: Schedule,
     numerical expression.
 
     Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be rescheduled.
+        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
         duration: Duration of context. This should be larger than the schedule duration.
         func: A function that takes an index of sub-schedule and returns the
             fractional coordinate of of that sub-schedule.
@@ -590,7 +590,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
     Raises:
         UnassignedDurationError: When any instruction duration is not assigned.
     """
-    if not block.schedule_ready():
+    if not block.is_schedulable():
         raise UnassignedDurationError(
             'All instruction durations should be assigned before creating `Schedule`.'
             'Please check `.parameters` to find unassigned parameter objects.')
@@ -604,7 +604,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
             schedule.append(op_data, inplace=True)
 
     # transform with defined policy
-    return AlignmentKind.transform(schedule, block.transform, **block.transform_opts)
+    return AlignmentKind.transform(schedule, block.transform_policy, **block.transform_opts)
 
 
 def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
@@ -650,7 +650,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if AlignmentKind.is_sequential(block.transform):
+    if AlignmentKind.is_sequential(block.transform_policy):
         return _sequential_allocation(block)
     else:
         return _parallel_allocation(block)

@@ -24,17 +24,17 @@ from qiskit.pulse.schedule import Interval
 
 def filter_instructions(sched: Schedule,
                         filters: List[Callable],
-                        accept: bool = True,
-                        check_subroutine: bool = True) -> Schedule:
+                        negate: bool = False,
+                        recurse_subroutines: bool = True) -> Schedule:
     """A filtering function that takes a schedule and return a schedule consisting of
     filtered instructions.
 
     Args:
         sched: A pulse schedule to be filtered.
         filters: List of callback functions that take an instruction and return boolean.
-        accept: Set `True` to accept an instruction if a filter function returns `True`.
+        negate: Set `True` to accept an instruction if a filter function returns `False`.
             Otherwise the instruction is accepted when the filter function returns `False`.
-        check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+        recurse_subroutines: Set `True` to individually filter instructions inside of a subroutine
             defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
     Returns:
@@ -43,7 +43,7 @@ def filter_instructions(sched: Schedule,
     from qiskit.pulse.transforms import flatten, inline_subroutines
 
     target_sched = flatten(sched)
-    if check_subroutine:
+    if recurse_subroutines:
         target_sched = inline_subroutines(target_sched)
 
     time_inst_tuples = np.array(target_sched.instructions)
@@ -52,7 +52,7 @@ def filter_instructions(sched: Schedule,
     for filt in filters:
         valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
 
-    if not accept and len(filters) > 0:
+    if negate and len(filters) > 0:
         valid_insts = ~valid_insts
 
     return Schedule(*time_inst_tuples[valid_insts], name=sched.name, metadata=sched.metadata)
@@ -92,7 +92,7 @@ def composite_filter(channels: Optional[Union[Iterable[Channel], Channel]] = Non
 
 
 def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
-    """A generator of channel filter.
+    """Channel filter generator.
 
     Args:
         channels: List of channels to filter.
@@ -116,7 +116,7 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
 
 
 def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
-    """A generator of instruction type filter.
+    """Instruction type filter generator.
 
     Args:
         types: List of instruction types to filter.
@@ -141,7 +141,7 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
 
 
 def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
-    """A generator of interval filter.
+    """Interval filter generator.
 
     Args:
         ranges: List of intervals ``[t0, t1]`` to filter.

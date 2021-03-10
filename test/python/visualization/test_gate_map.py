@@ -77,10 +77,10 @@ class TestGraphDist(QiskitTestCase):
         ax2.axis("off")
         self.ax1 = ax1
         self.ax2 = ax2
-        self.ax1_x0, self.ax1_y0 = ax1.transAxes.transform((0, 0))
-        self.ax1_x1, self.ax1_y1 = ax1.transAxes.transform((1, 1))
-        self.ax2_x0, self.ax2_y0 = ax2.transAxes.transform((0, 0))
-        self.ax2_x1, self.ax2_y1 = ax2.transAxes.transform((1, 1))
+        self.ax1_x0, self.ax1_y0 = ax1.transAxes.transform_policy((0, 0))
+        self.ax1_x1, self.ax1_y1 = ax1.transAxes.transform_policy((1, 1))
+        self.ax2_x0, self.ax2_y0 = ax2.transAxes.transform_policy((0, 0))
+        self.ax2_x1, self.ax2_y1 = ax2.transAxes.transform_policy((1, 1))
         self.ax1_bounds_x, self.ax1_bounds_y = ax1.get_xlim(), ax1.get_ylim()
         self.ax2_bounds_x, self.ax2_bounds_y = ax2.get_xlim(), ax2.get_ylim()
         self.size = 4

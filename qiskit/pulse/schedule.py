@@ -188,7 +188,7 @@ class PulseProgram(abc.ABC):
 
     def insert(self,
                start_time: int,
-               schedule: Union['Schedule', Instruction],
+               schedule: Union['PulseProgram', Instruction],
                name: Optional[str] = None,
                inplace: bool = False
                ) -> 'PulseProgram':
@@ -216,7 +216,7 @@ class PulseProgram(abc.ABC):
         """
         raise NotImplementedError
 
-    def flatten(self) -> 'Schedule':
+    def flatten(self) -> 'PulseProgram':
         """Deprecated."""
         from qiskit.pulse.transforms import flatten
 
@@ -231,7 +231,7 @@ class PulseProgram(abc.ABC):
                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None,
-               check_subroutine: bool = True) -> 'Schedule':
+               check_subroutine: bool = True) -> 'PulseProgram':
         """Abstract method that includes specified components by provided conditions.
 
         If no arguments are provided, ``self`` is returned.
@@ -256,7 +256,7 @@ class PulseProgram(abc.ABC):
                 instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
                 time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                 intervals: Optional[Iterable[Interval]] = None,
-                check_subroutine: bool = True) -> 'Schedule':
+                check_subroutine: bool = True) -> 'PulseProgram':
         """Abstract method that excludes specified components by provided conditions.
 
         Args:
@@ -275,8 +275,8 @@ class PulseProgram(abc.ABC):
         raise NotImplementedError
 
     def replace(self,
-                old: Union['Schedule', Instruction],
-                new: Union['Schedule', Instruction],
+                old: Union['PulseProgram', Instruction],
+                new: Union['PulseProgram', Instruction],
                 inplace: bool = False,
                 ) -> 'Schedule':
         """Abstract method that replaces a component by another.
@@ -335,7 +335,7 @@ class PulseProgram(abc.ABC):
         """
         return [param for param in self.parameters if param.name == parameter_name]
 
-    def _update_parameter_table(self, schedule: 'Schedule'):
+    def _update_parameter_table(self, schedule: 'PulseProgram'):
         """A helper function to update parameter table with given schedule component.
 
         Args:
@@ -502,9 +502,9 @@ class Schedule(PulseProgram):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
 
-    In Qiskit Pulse model [1], time overlap between pulse instructions on the same channel
-    is not allowed. This overlap constraint is immediately evaluated when a new
-    instruction is added to the ``Schedule`` object.
+    In the Qiskit Pulse model [1], instructions are not allowed to overlap in time
+    on the same channel is not allowed. This overlap constraint is immediately
+    evaluated when a new instruction is added to the ``Schedule`` object.
 
     This indicates that we always need to specify absolute values for the instruction start time
     and duration to calculate what timesteps are occupied by each instruction.
@@ -835,13 +835,13 @@ class Schedule(PulseProgram):
             check_subroutine: Set `True` to individually filter instructions inside of a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
         """
-        from qiskit.pulse.filter_utils import composite_filter, filter_instructions
+        from qiskit.pulse.filters import composite_filter, filter_instructions
 
         filters = composite_filter(channels, instruction_types, time_ranges, intervals)
         filters.extend(filter_funcs)
 
-        return filter_instructions(self, filters=filters, accept=True,
-                                   check_subroutine=check_subroutine)
+        return filter_instructions(self, filters=filters, negate=False,
+                                   recurse_subroutines=check_subroutine)
 
     def exclude(self, *filter_funcs: Callable,
                 channels: Optional[Iterable[Channel]] = None,
@@ -865,13 +865,13 @@ class Schedule(PulseProgram):
             check_subroutine: Set `True` to individually filter instructions inside of a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
         """
-        from qiskit.pulse.filter_utils import composite_filter, filter_instructions
+        from qiskit.pulse.filters import composite_filter, filter_instructions
 
         filters = composite_filter(channels, instruction_types, time_ranges, intervals)
         filters.extend(filter_funcs)
 
-        return filter_instructions(self, filters=filters, accept=False,
-                                   check_subroutine=check_subroutine)
+        return filter_instructions(self, filters=filters, negate=True,
+                                   recurse_subroutines=check_subroutine)
 
     def _add_timeslots(self,
                        time: int,
@@ -1103,7 +1103,7 @@ class Schedule(PulseProgram):
             for param in inst.parameters:
                 self._parameter_table[param].append(inst)
 
-    def __or__(self, other: ScheduleComponent) -> 'PulseProgram':
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -1148,7 +1148,7 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         from qiskit.pulse.transforms import block_to_schedule
-        if self.schedule_ready():
+        if self.is_schedulable():
             return function(block_to_schedule(self), *args, **kwargs)
         raise UnassignedDurationError('This method requires all durations to be assigned with '
                                       'some integer value. Please check `.parameters` to find '
@@ -1163,22 +1163,22 @@ def _method_not_supported(function: Callable) -> Callable:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         raise PulseError(f'Method ``ScheduleBlock.{function.__name__}`` is not supported '
-                         'as this program representationdoes not have the notion of instruction time. '
-                         'Apply ``qiskit.pulse.transforms.block_to_schedule`` function to this '
-                         'program to obtain the ``Schedule`` representation supporting this method. '
-                         'This method will soon be deprecated.')
+                         'as this program representationdoes not have the notion of instruction '
+                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
+                         'this program to obtain the ``Schedule`` representation supporting '
+                         'this method. This method will soon be deprecated.')
 
     return wrapper
 
 
 class ScheduleBlock(PulseProgram):
-    """A quantum program's *schedule block* with alignment policies that allow lazy the scheduling
+    """A quantum program's *schedule block* with transform policies that allow lazy the scheduling
     of instructions. This is the representation constructed by the pulse builder by default.
 
     This program representation doesn't track an explicit notion of timing, in contrast to the
     ``Schedule`` representation. The timing of an instruction is managed by its relative position
-    and the stored ``transform`` argument. ``ScheduleBlock``s should be initialized with one of
-    the following transform policies:
+    and the stored ``transform_policy`` argument. ``ScheduleBlock``s should be initialized
+    with one of the following transform policies:
 
         - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
             Instructions are scheduled at the earliest possible time on the channel.
@@ -1192,8 +1192,10 @@ class ScheduleBlock(PulseProgram):
             The position is specified by a callback function taking a pulse index ``j`` and
             returning a fractional coordinate in [0, 1].
 
-    The overlap constraint of pulses, i.e. ``timeslots``, is not immediately evaluated,
+    The ``ScheduleBlock`` defaults to the ``left`` transform policy.
+    The timing overlap constraint of instructions is not immediately evaluated,
     and thus we can assign a parameter object to the instruction duration.
+    Instructions are implicitly scheduled at optimum time when the program is executed.
     By using ``ScheduleBlock`` representation we can fully parametrize pulse waveform.
     For example, Rabi schedule generator can be defined as
 
@@ -1228,7 +1230,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 transform: str = 'left',
+                 transform_policy: str = 'left',
                  **transform_opts):
         """Create an empty schedule block.
 
@@ -1239,15 +1241,14 @@ class ScheduleBlock(PulseProgram):
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            transform: String that represents alignment of this context.
-                The block defaults to ``Left`` alignment.
+            transform_policy: String that represents alignment of this context.
             **transform_opts: Options used to align this context if available.
         Raises:
             TypeError: if metadata is not a dict.
         """
         super().__init__(name=name, metadata=metadata)
 
-        self._transform_policy = transform
+        self._transform_policy = transform_policy
         self._transform_opts = transform_opts
 
         self._blocks = list()
@@ -1256,8 +1257,8 @@ class ScheduleBlock(PulseProgram):
             self.append(block, inplace=True)
 
     @property
-    def transform(self) -> str:
-        """Return callback function that align block component to generate schedule."""
+    def transform_policy(self) -> str:
+        """Return alignment kind that allocates block component to generate schedule."""
         return self._transform_policy
 
     @property
@@ -1265,9 +1266,9 @@ class ScheduleBlock(PulseProgram):
         """Return keyword arguments that is used for transformation."""
         return self._transform_opts
 
-    def schedule_ready(self) -> bool:
+    def is_schedulable(self) -> bool:
         """Return ``True`` if all durations are assigned."""
-        return all(block.schedule_ready() if isinstance(block, ScheduleBlock) else
+        return all(block.is_schedulable() if isinstance(block, ScheduleBlock) else
                    isinstance(block.duration, int) for block in self.instructions)
 
     @property
@@ -1340,7 +1341,7 @@ class ScheduleBlock(PulseProgram):
     def shift(self,
               time: int,
               name: Optional[str] = None,
-              inplace: bool = False):
+              inplace: bool = True):
         """Return a schedule shifted forward by ``time``.
 
         .. note:: This method is currently not supported.
@@ -1358,7 +1359,7 @@ class ScheduleBlock(PulseProgram):
                start_time: int,
                schedule: ScheduleComponent,
                name: Optional[str] = None,
-               inplace: bool = False):
+               inplace: bool = True):
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         .. note:: This method is currently not supported.
@@ -1374,7 +1375,7 @@ class ScheduleBlock(PulseProgram):
 
     def append(self, schedule: BlockComponent,
                name: Optional[str] = None,
-               inplace: bool = False) -> 'ScheduleBlock':
+               inplace: bool = True) -> 'ScheduleBlock':
         """Return a new schedule block with ``block`` appended to the context block.
         The execution time is automatically assigned when the block is converted into schedule.
 
@@ -1399,7 +1400,7 @@ class ScheduleBlock(PulseProgram):
                 *self.instructions,
                 name=name or self.name,
                 metadata=self.metadata.copy(),
-                transform=self.transform,
+                transform_policy=self.transform_policy,
                 **self.transform_opts
             )
             new_block.append(schedule, inplace=True)
@@ -1477,7 +1478,7 @@ class ScheduleBlock(PulseProgram):
     def replace(self,
                 old: BlockComponent,
                 new: BlockComponent,
-                inplace: bool = False,
+                inplace: bool = True,
                 ) -> 'ScheduleBlock':
         """Return a ``ScheduleBlock`` with the ``old`` component replaced with a ``new``
         component.
@@ -1511,7 +1512,7 @@ class ScheduleBlock(PulseProgram):
             return ScheduleBlock(*new_blocks,
                                  name=self.name,
                                  metadata=self.metadata.copy(),
-                                 transform=self.transform,
+                                 transform_policy=self.transform_policy,
                                  **self.transform_opts)
 
     def _update_parameter_table(self, schedule: BlockComponent):
@@ -1524,9 +1525,9 @@ class ScheduleBlock(PulseProgram):
             for param in schedule.parameters:
                 self._parameter_table[param].append(schedule)
 
-    def __or__(self, other: ScheduleComponent) -> 'ScheduleBlock':
+    def __or__(self, other: BlockComponent) -> 'ScheduleBlock':
         """Return a new schedule which is the union of `self` and `other`."""
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform='left')
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform_policy='left')
         union_block.append(self, inplace=True)
         union_block.append(other, inplace=True)
 
@@ -1554,7 +1555,7 @@ class ScheduleBlock(PulseProgram):
             return False
 
         # 1. transformation check
-        if self.transform != other.transform or \
+        if self.transform_policy != other.transform_policy or \
                 self.transform_opts != other.transform_opts:
             return False
 
@@ -1581,7 +1582,7 @@ class ScheduleBlock(PulseProgram):
             self.__class__.__name__,
             instructions,
             name,
-            self.transform
+            self.transform_policy
         )
 
 

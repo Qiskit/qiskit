@@ -32,9 +32,9 @@ class _GraphDist():
     def dist_real(self):
         """Compute distance.
         """
-        x0, y0 = self.ax.transAxes.transform(
+        x0, y0 = self.ax.transAxes.transform_policy(
             (0, 0))
-        x1, y1 = self.ax.transAxes.transform(
+        x1, y1 = self.ax.transAxes.transform_policy(
             (1, 1))
         value = x1 - x0 if self.x else y1 - y0
         return value
