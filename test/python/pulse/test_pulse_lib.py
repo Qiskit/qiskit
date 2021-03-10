@@ -16,8 +16,9 @@ import unittest
 import numpy as np
 
 from qiskit.pulse.library import (Waveform, Constant, Gaussian, GaussianSquare, Drag,
-                                  gaussian, gaussian_square, drag as pl_drag)
+                                  Signal, gaussian, gaussian_square, drag as pl_drag)
 
+from qiskit.pulse.frame import Frame
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
@@ -86,6 +87,16 @@ class TestWaveform(QiskitTestCase):
             Waveform(recombined_pulse)
         except PulseError:
             self.fail('Waveform incorrectly failed to approximately unit norm samples.')
+
+
+class TestSignal(QiskitTestCase):
+    """Tests for Signals."""
+
+    def test_construction(self):
+        """Test the basics of the signal class."""
+        signal = Signal(Gaussian(160, 0.1, 40), Frame(123))
+        self.assertEqual(signal.pulse, Gaussian(160, 0.1, 40))
+        self.assertEqual(signal.frame, Frame(123))
 
 
 class TestParametricPulses(QiskitTestCase):

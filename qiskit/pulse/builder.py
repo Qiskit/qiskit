@@ -1448,7 +1448,7 @@ def delay(duration: int,
     append_instruction(instructions.Delay(duration, channel, name=name))
 
 
-def play(pulse: Union[library.Pulse, np.ndarray],
+def play(pulse: Union[library.Pulse, library.Signal, np.ndarray],
          channel: chans.PulseChannel, name: Optional[str] = None):
     """Play a ``pulse`` on a ``channel``.
 

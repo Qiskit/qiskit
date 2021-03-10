@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import channels, configuration, instructions, library
+from qiskit.pulse import channels, configuration, instructions, library, Frame
 from qiskit.test import QiskitTestCase
 
 
@@ -149,6 +149,12 @@ class TestSetFrequency(QiskitTestCase):
         self.assertEqual(repr(set_freq),
                          "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
 
+    def test_frame(self):
+        """Test the basic shift phase on a Frame."""
+        set_freq = instructions.SetFrequency(4.5e9, Frame(123))
+
+        self.assertEqual(set_freq.channel, Frame(123))
+
 
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -171,6 +177,12 @@ class TestShiftPhase(QiskitTestCase):
                                                     channels.DriveChannel(0),
                                                     name='test'))
         self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
+
+    def test_frame(self):
+        """Test the basic shift phase on a Frame."""
+        shift_phase = instructions.ShiftPhase(1.57, Frame(123))
+
+        self.assertEqual(shift_phase.channel, Frame(123))
 
 
 class TestSnapshot(QiskitTestCase):

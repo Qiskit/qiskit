@@ -1197,3 +1197,66 @@ class TestSubroutineCall(TestBuilder):
         self.assertEqual(play_0.pulse.sigma, 40)
         self.assertEqual(play_1.pulse.amp, 0.2)
         self.assertEqual(play_1.pulse.sigma, 40)
+
+
+class TestBuilderFrames(TestBuilder):
+    """Test that the builder works with frames."""
+
+    def test_simple_frame_schedule(self):
+        """Test basic schedule construction with frames."""
+
+        signal = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame(0))
+        with pulse.build() as sched:
+            with pulse.align_left():
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame(0))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], pulse.ShiftPhase(1.57, pulse.Frame(0)))
+        self.assertEqual(sched.instructions[2][0], 160)
+        self.assertEqual(sched.instructions[2][1], play_gaus)
+
+    def test_ignore_frames(self):
+        """Test the behavior of ignoring frames in the alignments context."""
+
+        signal = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame(0))
+
+        with pulse.build() as sched:
+            with pulse.align_right(ignore_frames=True):
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame(0))
+                pulse.shift_phase(1.57, pulse.Frame(1))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], play_gaus)
+        self.assertEqual(sched.instructions[2][0], 320)
+        self.assertEqual(sched.instructions[2][1], pulse.ShiftPhase(1.57, pulse.Frame(0)))
+        self.assertEqual(sched.instructions[3][0], 320)
+        self.assertEqual(sched.instructions[3][1], pulse.ShiftPhase(1.57, pulse.Frame(1)))
+
+        with pulse.build() as sched:
+            with pulse.align_right(ignore_frames=False):
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame(0))
+                pulse.shift_phase(1.57, pulse.Frame(1))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], pulse.ShiftPhase(1.57, pulse.Frame(0)))
+        self.assertEqual(sched.instructions[2][0], 160)
+        self.assertEqual(sched.instructions[2][1], pulse.ShiftPhase(1.57, pulse.Frame(1)))
+        self.assertEqual(sched.instructions[3][0], 160)
+        self.assertEqual(sched.instructions[3][1], play_gaus)
