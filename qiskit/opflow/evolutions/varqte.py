@@ -761,7 +761,7 @@ class VarQTE(EvolutionBase):
 
             plt.scatter(time, true_error, color='purple', marker='x', s=40, label='true error')
             plt.scatter(time, phase_agnostic_true_error, color='orange', marker='x', s=40,
-                        label='true error')
+                        label='phase agnostic true error')
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
