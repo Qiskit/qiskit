@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The collection of functions that filter instructions in a pulse program."""
+"""A collection of functions that filter instructions in a pulse program."""
 
 import abc
 from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
