@@ -18,12 +18,9 @@ import numpy as np
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis
+from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis, _su2_axis_angle
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit import Gate
 
 
 _CUTOFF_PRECISION = 1E-5
@@ -43,7 +40,6 @@ class AxisAngleReduction(TransformationPass):
         else:
             self.basis = set()
 
-        self._var_z_map = {'rz': RZGate, 'p': PhaseGate, 'u1': U1Gate}
         self.requires.append(AxisAngleAnalysis())
 
 
@@ -63,7 +59,7 @@ class AxisAngleReduction(TransformationPass):
             node_it = dag.nodes_on_wire(wire)
             stack = list()  # list of (node, dfprop index)
             for node in node_it:
-                if node.type != 'op':
+                if node.type != 'op' or not isinstance(node.op, Gate):
                     delList += self._eval_stack(stack, dag)
                     stack = list()
                     continue
@@ -98,7 +94,7 @@ class AxisAngleReduction(TransformationPass):
         topnode = stack[-1][0]
         topIndex = self._get_index(topnode._node_id)
         var_gate = dfprop.iloc[topIndex].var_gate
-        if var_gate:
+        if var_gate and not self._symmetry_complete(stack):
             delList = self._reduce_stack(stack, var_gate, dag)
         else:
             delList = self._symmetry_cancellation(stack, dag)
@@ -112,8 +108,16 @@ class AxisAngleReduction(TransformationPass):
         return dfprop.index[dfprop.id == idnode][0]
 
     def _symmetry_cancellation(self, stack, dag):
-        """elliminate gates by symmetry. This doesn't require a
-        variable rotation gate for the axis"""
+        """Elliminate gates by symmetry. This doesn't require a
+        variable rotation gate for the axis.
+        Args:
+            stack (list(DAGNode, int)): All nodes share a rotation axis and the int
+                indexes the node in the dataframe.
+            dag (DAGCircuit): the whole dag. Will not be modified.
+
+        Returns:
+            list(DAGNode): List of dag nodes to delete from dag ultimately.
+        """
         if len(stack) <= 1:
             return []
         dfprop = self.property_set['axis-angle']
@@ -126,9 +130,16 @@ class AxisAngleReduction(TransformationPass):
             (dfsubset.symmetry_order.shift() != dfsubset.symmetry_order).cumsum())
         for _, dfsym in symmetry_groups:
             sym_order = dfsym.iloc[0].symmetry_order
+            #breakpoint()
+            if sym_order == 1:
+                # no rotational symmetry
+                continue
             num_cancellation_groups, _ = divmod(len(dfsym), sym_order)
             if num_cancellation_groups == 0:
+                # not enough members to satisfy symmetry cancellation
                 continue
+            # elif num_cancellation_groups % 2:  # double cover
+            #     dag.global_phase += np.pi
             del_ids = dfsym.iloc[0:num_cancellation_groups * sym_order].id
             thisDelList = [dag.node(delId) for delId in del_ids]
             delList += thisDelList
@@ -140,7 +151,7 @@ class AxisAngleReduction(TransformationPass):
             delList += self._symmetry_cancellation(redStack, dag)
         return delList
 
-    def _reduce_stack(self, stack, var_gate, dag):
+    def _reduce_stack(self, stack, var_gate_name, dag):
         """reduce common axis rotations to single rotation. This requires
         a single parameter rotation gate for the axis. Multiple parameter would
         be possible (e.g. RGate, RVGate) if one had a generic way of identifying how to rotate
@@ -154,9 +165,19 @@ class AxisAngleReduction(TransformationPass):
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
         params = dfsubset[['var_gate_angle', 'phase']].sum()
         if np.mod(params.var_gate_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
-            var_gate = self.property_set['var_gate_class'][var_gate](params.var_gate_angle)
+            var_gate = self.property_set['var_gate_class'][var_gate_name](params.var_gate_angle)
             new_qarg = QuantumRegister(1, 'q')
             new_dag = DAGCircuit()
+            # the variable gate for the axis may not be in this stack
+            df_gate = dfprop[dfprop.name == var_gate_name]
+            df_gate_phase = df_gate.phase
+            if df_gate_phase_factor.nunique() == 1 or df_gate_angle != 0:
+                df_gate_phase_factor = df_gate_phase / df_gate.angle
+                gate_phase_factor = df_gate_phase_factor.iloc[0]
+            else:
+                _, _, gate_phase_factor = _su2_
+            #new_dag.global_phase = sum(old_phase - dfsubset.phase)
+            new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
             new_dag.apply_operation_back(var_gate, [new_qarg[0]])
             dag.substitute_node_with_dag(stack[0][0], new_dag)
@@ -228,4 +249,9 @@ class AxisAngleReduction(TransformationPass):
             basis_counter += 1
                                              
             
-        
+    def _symmetry_complete(self, stack):
+        """Determine whether complete cancellation is possible due to symmetry"""
+        dfprop = self.property_set['axis-angle']
+        _, stack_indices = zip(*stack)
+        sym_order = dfprop.iloc[list(stack_indices)].symmetry_order
+        return all(sym_order.iloc[0] == sym_order)

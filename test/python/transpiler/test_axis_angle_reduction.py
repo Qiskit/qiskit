@@ -110,6 +110,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         
 
     def test_symmetric_cancellation(self):
+        """Test symmetry-based cancellation works."""
         circ = QuantumCircuit(2)
         rot3 = RXGate(2 * np.pi / 3)
         circ.z(0)
@@ -126,6 +127,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(len(ccirc), 0)
 
     def test_unitary_gate(self):
+        """Test unitary gate doesn't cause issues in params."""
         circ = QuantumCircuit(1)
         uxgate = UnitaryGate([[0, 1], [1, 0]])
         uzgate = UnitaryGate([[1, 0], [0, -1]])
@@ -139,6 +141,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.assertEqual(Operator(ccirc), Operator(expected))        
 
     def test_non_gate(self):
+        """Test non-gate (barrier)."""
         circ = QuantumCircuit(1)
         circ.x(0)
         circ.x(0)
@@ -150,6 +153,78 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected.x(0)
         self.assertEqual(ccirc, expected)
         
+    def test_global_phase_01(self):
+        """Test no specified basis, rz"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_global_phase_02(self):
+        """Test no specified basis, p"""
+        circ = QuantumCircuit(1)
+        circ.p(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_global_phase_custom_gate_first(self):
+        """Test custom gate applied first.
+
+        Currently, pass prioritizes first variable gate as replacement gate."""
+        altp = QuantumCircuit(1, global_phase=np.pi/3)
+        altp.p(np.pi/3, [0])
+        mygate = altp.to_gate()
+        circ = QuantumCircuit(1)
+        circ.append(mygate, [0])
+        circ.p(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), (Operator(ccirc)))
+
+    def test_global_phase_custom_gate_second(self):
+        """Test custom gate applied not first."""
+        altp = QuantumCircuit(1, global_phase=np.pi/3)
+        altp.p(np.pi/3, [0])        
+        mygate = altp.to_gate()
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/2, 0)
+        circ.append(mygate, [0])
+        circ.p(np.pi/2, 0)
+        circ.p(np.pi/2, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_global_phase_symmetry(self):
+        """Test global phase for symmetry cancellation"""
+        altp = QuantumCircuit(1, global_phase=np.pi/3)
+        altp
+        mygate = altp.to_gate()
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi/3, 0)
+        circ.append(mygate, [0])
+        circ.p(np.pi/3, 0)
+        circ.p(np.pi/3, 0)
+        ccirc = self.pmr.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_global_phase_cancellation(self):
+        """Test global phase for complete symmetry cancellation"""
+        circ = QuantumCircuit(1, global_phase=np.pi/2)
+        circ.rz(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)
+        circ.rz(np.pi/2, 0)        
+        ccirc = self.pmr.run(circ)
+        np.set_printoptions(precision=3, linewidth=250, suppress=True)
+        print('')
+        print(Operator(circ).data)
+        print(Operator(ccirc).data)
+        self.assertEqual(Operator(circ), Operator(ccirc))
 
 def axis_angle_phase_equal(tup1, tup2):
     """tup is 3 component tuple of (np.array, angle, phase)"""

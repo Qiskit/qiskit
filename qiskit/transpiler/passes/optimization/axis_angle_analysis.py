@@ -54,14 +54,19 @@ class AxisAngleAnalysis(AnalysisPass):
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
                 try:
+                    # Operator does this to but maybe this is slightly more direct.
                     mat = node.op.to_matrix()
                 except CircuitError:
                     mat = Operator(node.op.definition).data
                 axis, angle, phase = _su2_axis_angle(mat)
-                quotient, remainder = divmod(2 * np.pi, angle)
+                if angle > np.pi:
+                    sym_angle = 2 * np.pi - angle
+                else:
+                    sym_angle = angle
+                quotient, remainder = divmod(2 * np.pi, sym_angle)
                 if math.isclose(remainder, 0, rel_tol=rel_tol, abs_tol=abs_tol):
                     symmetry_order = int(quotient)
-                elif math.isclose(remainder, angle, rel_tol=rel_tol, abs_tol=abs_tol):
+                elif math.isclose(remainder, sym_angle, rel_tol=rel_tol, abs_tol=abs_tol):
                     # divmod had a rounding error
                     symmetry_order = int(quotient + 1)
                 else:
@@ -100,9 +105,9 @@ def _su2_axis_angle(mat):
     """
     axis = np.zeros(3)
     det = np.linalg.det(mat)
-    mat = mat / np.sqrt(det)
-    u00 = mat[0, 0]
-    u10 = mat[1, 0]
+    umat = mat / np.sqrt(det)
+    u00 = umat[0, 0]
+    u10 = umat[1, 0]
 
     phase = (-1j * np.log(det)).real / 2
     angle = 2 * np.arccos(u00.real)
