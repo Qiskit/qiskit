@@ -893,6 +893,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     return wrap
 
 
+# pylint: disable=unused-argument
 @_transform_context(transforms.align_left)
 def align_left(ignore_frames: bool = False) -> ContextManager[None]:
     """Left alignment pulse scheduling context.
@@ -925,6 +926,7 @@ def align_left(ignore_frames: bool = False) -> ContextManager[None]:
     """
 
 
+# pylint: disable=unused-argument
 @_transform_context(transforms.align_right)
 def align_right(ignore_frames: bool = False) -> ContextManager[None]:
     """Right alignment pulse scheduling context.
