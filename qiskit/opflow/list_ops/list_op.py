@@ -72,11 +72,18 @@ class ListOp(OperatorBase):
             identity - it accepts the list of values, and returns them in a list.
         """
         super().__init__()
-        self._oplist = oplist
+        self._oplist = self._get_op_list(oplist)
         self._combo_fn = combo_fn
         self._coeff = coeff
         self._abelian = abelian
         self._grad_combo_fn = grad_combo_fn
+
+    def _get_op_list(self, oplist):
+        if all(isinstance(x, (OperatorBase, float)) for x in oplist):
+            return list(oplist)
+        else:
+            badval = next(x for x in oplist if not isinstance(x, (OperatorBase, float)))
+            raise ValueError(f'ListOp expecting OperatorBase objects, got {badval}')
 
     def _state(self,
                coeff: Optional[Union[int, float, complex, ParameterExpression]] = None,
