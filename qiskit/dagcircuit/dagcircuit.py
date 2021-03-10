@@ -695,6 +695,9 @@ class DAGCircuit:
             dag = copy.deepcopy(self)
         dag.global_phase += other.global_phase
 
+        for gate, cals in other.calibrations.items():
+            dag._calibrations[gate].update(cals)
+
         for nd in other.topological_nodes():
             if nd.type == "in":
                 # if in edge_map, get new name, else use existing name
