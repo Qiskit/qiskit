@@ -15,7 +15,7 @@
 from typing import Any, Dict, Optional, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.library import Pulse
+from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.frame import Frame
 from qiskit.pulse.exceptions import PulseError
 
