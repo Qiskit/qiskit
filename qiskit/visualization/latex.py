@@ -22,6 +22,9 @@ import re
 import numpy as np
 from qiskit.circuit import Gate, Instruction, Clbit
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.library.standard_gates import (SwapGate, XGate, ZGate, RZZGate,
+                                                   U1Gate, PhaseGate)
+from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import DefaultStyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
@@ -266,8 +269,9 @@ class QCircuitImage:
         for layer in self.ops:
             column_width = 1
             for op in layer:
-                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                if op.name == 'rzz' or base_name in ['u1', 'p', 'rzz']:
+                base_type = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
+                if isinstance(op.op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate,
+                                                                          RZZGate)):
                     column_width = 4
             columns += column_width
 
@@ -375,7 +379,7 @@ class QCircuitImage:
 
             for op in layer:
                 num_cols_op = 1
-                if op.name == 'measure':
+                if isinstance(op.op, Measure):
                     self._build_measure(op, column)
 
                 elif op.op._directive:  # barrier, snapshot, etc.
@@ -405,9 +409,9 @@ class QCircuitImage:
     def _build_multi_gate(self, op, gate_text, wire_list, col):
         """Add a multiple wire gate to the _latex list"""
         num_cols_op = 1
-        if op.name == 'swap':
+        if isinstance(op.op, SwapGate):
             self._build_swap(wire_list, col)
-        elif op.name == 'rzz':
+        elif isinstance(op.op, RZZGate):
             self._build_symmetric_gate(op, gate_text, wire_list, col, is_rzz=True)
             num_cols_op = 4
         else:
@@ -434,20 +438,20 @@ class QCircuitImage:
             self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
 
             # Check for cx, cz, cu1 and cp first, then do standard gate
-            if op.op.base_gate.name == 'x':
+            if isinstance(op.op.base_gate, XGate):
                 self._latex[wireqargs[0]][col] = "\\targ"
-            elif op.op.base_gate.name == 'z':
+            elif isinstance(op.op.base_gate, ZGate):
                 self._latex[wireqargs[0]][col] = "\\control\\qw"
-            elif op.op.base_gate.name in ['u1', 'p']:
+            elif isinstance(op.op.base_gate, (U1Gate, PhaseGate)):
                 self._build_symmetric_gate(op, gate_text, wire_list, col)
                 num_cols_op = 4
             else:
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
             # Treat special cases of swap and rzz gates
-            if op.op.base_gate.name in ['swap', 'rzz']:
+            if isinstance(op.op.base_gate, (SwapGate, RZZGate)):
                 self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
-                if op.op.base_gate.name == 'swap':
+                if isinstance(op.op.base_gate, SwapGate):
                     self._build_swap(wireqargs, col)
                 else:
                     self._build_symmetric_gate(op, gate_text, wire_list, col, is_rzz=True)
