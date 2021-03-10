@@ -509,7 +509,7 @@ class Schedule(PulseProgram):
     This indicates that we always need to specify absolute values for the instruction start time
     and duration to calculate what timesteps are occupied by each instruction.
 
-    The ``Schedule`` program supports some syntax sugar for efficient programming.
+    The ``Schedule`` program supports some syntax sugar for easier programming.
 
     - Appending instruction at the end of channel
 
