@@ -511,7 +511,7 @@ class Schedule(PulseProgram):
 
     The ``Schedule`` program supports some syntax sugar for easier programming.
 
-    - Appending instruction at the end of channel
+    - Appending an instruction to the end of a channel
 
     .. code-block:: python
 
