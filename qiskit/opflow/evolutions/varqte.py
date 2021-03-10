@@ -792,6 +792,7 @@ class VarQTE(EvolutionBase):
                         label='trained energy')
             plt.xlabel('time')
             plt.ylabel('energy')
+            plt.legend(loc='best')
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'energy.png'))
             plt.close()
