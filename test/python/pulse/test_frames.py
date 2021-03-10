@@ -14,11 +14,29 @@
 
 import numpy as np
 
+from qiskit.circuit import Parameter
 from qiskit.compiler.assembler import frames_configuration
 import qiskit.pulse as pulse
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.transforms import resolve_frames
 from qiskit.pulse.resolved_frame import ResolvedFrame
+
+
+class TestFrame(QiskitTestCase):
+
+    def basic(self):
+        """Test basic functionality of frames."""
+
+        frame = pulse.Frame(123)
+        self.assertEqual(frame.index, 123)
+        self.assertEqual(frame.name, 'f123')
+
+    def test_parameter(self):
+        """Test parameter assignment."""
+        param = Parameter('a')
+        frame = pulse.Frame(param)
+        self.assertTrue(frame.is_parameterized())
+        self.assertEqual(frame.assign(param, 123), pulse.Frame(123))
 
 
 class TestResolvedFrames(QiskitTestCase):
@@ -99,10 +117,10 @@ class TestResolvedFrames(QiskitTestCase):
         frame.set_frequency(10, self.f1)
         frame.set_frequency(10, self.f1)
 
-        self.assertAlmostEqual(frame.frequency(0), self.f1)
-        self.assertAlmostEqual(frame.frequency(10), self.f1)
-        self.assertAlmostEqual(frame.frequency(15), self.f1)
-        self.assertAlmostEqual(frame.frequency(16), self.f0)
+        self.assertAlmostEqual(frame.frequency(0), self.f1, places=8)
+        self.assertAlmostEqual(frame.frequency(10), self.f1, places=8)
+        self.assertAlmostEqual(frame.frequency(15), self.f1, places=8)
+        self.assertAlmostEqual(frame.frequency(16), self.f0, places=8)
 
     def test_broadcasting(self):
         """Test that resolved frames broadcast to control channels."""
