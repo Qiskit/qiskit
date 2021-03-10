@@ -33,6 +33,8 @@ class Path(Enum):
     SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
     # Sample QASMs path: qiskit/test/python/qasm
     QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
+    # Sample QASM2s path: qiskit/test/python/qasm2
+    QASM2 = os.path.normpath(os.path.join(TEST, 'qasm2'))
 
 
 def setup_test_logging(logger, log_level, filename):
