@@ -12,7 +12,7 @@
 
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
 
 class RippleCarryAdder(QuantumCircuit):
@@ -90,8 +90,8 @@ class RippleCarryAdder(QuantumCircuit):
                 """
         qr_a = QuantumRegister(num_qubits_a, name='input_a')
         qr_b = QuantumRegister(num_qubits_b, name='input_b')
-        qr_c = QuantumRegister(1, name='carry_in')
-        qr_z = QuantumRegister(1, name='carry_out')
+        qr_c = AncillaRegister(1, name='carry_in')
+        qr_z = AncillaRegister(1, name='carry_out')
         qr_list = [qr_a, qr_b, qr_c, qr_z]
 
         # create pad register if input registers are not equally sized
