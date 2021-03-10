@@ -12,22 +12,18 @@
 
 """ ExpectationFactory Class """
 
-from typing import Union, Optional
 import logging
+from typing import Optional, Union
 
 from qiskit import BasicAer
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
-from qiskit.utils.backend_utils import (is_statevector_backend,
-                                        is_aer_qasm,
-                                        has_aer)
+from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.expectations.matrix_expectation import MatrixExpectation
+from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.providers import Backend, BaseBackend
+from qiskit.utils.backend_utils import has_aer, is_aer_qasm, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
-
-from .expectation_base import ExpectationBase
-from .aer_pauli_expectation import AerPauliExpectation
-from .pauli_expectation import PauliExpectation
-from .matrix_expectation import MatrixExpectation
-from ..operator_base import OperatorBase
 
 logger = logging.getLogger(__name__)
 
