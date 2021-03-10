@@ -12,21 +12,19 @@
 
 """ OperatorStateFn Class """
 
-from typing import cast, Union, Set, List, Optional
+from typing import List, Optional, Set, Union, cast
+
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Statevector
 
-from ..operator_base import OperatorBase
-from .state_fn import StateFn
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from ..primitive_ops.matrix_op import MatrixOp
-
-
-# pylint: disable=invalid-name
 
 class OperatorStateFn(StateFn):
     r"""
@@ -153,11 +151,11 @@ class OperatorStateFn(StateFn):
         # ListOp primitives can return lists of matrices (or trees for nested ListOps),
         # so we need to recurse over the
         # possible tree.
-        def diag_over_tree(t):
-            if isinstance(t, list):
-                return [diag_over_tree(o) for o in t]
+        def diag_over_tree(op):
+            if isinstance(op, list):
+                return [diag_over_tree(o) for o in op]
             else:
-                vec = np.diag(t) * self.coeff
+                vec = np.diag(op) * self.coeff
                 # Reshape for measurements so np.dot still works for composition.
                 return vec if not self.is_measurement else vec.reshape(1, -1)
 

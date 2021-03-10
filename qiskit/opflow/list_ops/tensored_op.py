@@ -12,15 +12,16 @@
 
 """ TensoredOp Class """
 
+from functools import partial, reduce
 from typing import List, Union, cast
-from functools import reduce, partial
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ParameterExpression
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .list_op import ListOp
 
 
 class TensoredOp(ListOp):

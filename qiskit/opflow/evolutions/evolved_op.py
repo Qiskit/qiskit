@@ -18,16 +18,15 @@ import numpy as np
 import scipy
 
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.quantum_info import Statevector
-
 from qiskit.opflow.exceptions import OpflowError
-from ..operator_base import OperatorBase
-from ..primitive_ops.primitive_op import PrimitiveOp
-from ..list_ops.composed_op import ComposedOp
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from ..primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.quantum_info import Statevector
 
 
 class EvolvedOp(PrimitiveOp):

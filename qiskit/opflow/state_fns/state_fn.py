@@ -12,15 +12,15 @@
 
 """ StateFn Class """
 
-from typing import Union, Optional, Callable, Set, Dict, Tuple, List
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+
 import numpy as np
 
-from qiskit.quantum_info import Statevector
-from qiskit.result import Result
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-
-from ..operator_base import OperatorBase
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.quantum_info import Statevector
+from qiskit.result import Result
 
 
 class StateFn(OperatorBase):
@@ -375,6 +375,10 @@ class StateFn(OperatorBase):
         # pylint: disable=cyclic-import
         from .vector_state_fn import VectorStateFn
         return VectorStateFn(self.to_matrix(massive=massive), is_measurement=self.is_measurement)
+
+    def to_circuit_op(self) -> OperatorBase:
+        """ Returns a ``CircuitOp`` equivalent to this Operator. """
+        raise NotImplementedError
 
     # TODO to_dict_op
 

@@ -12,17 +12,17 @@
 
 """ ComposedOp Class """
 
-from typing import List, Union, cast, Optional
-from functools import reduce, partial
+from functools import partial, reduce
+from typing import List, Optional, Union, cast
+
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .list_op import ListOp
 
 
 class ComposedOp(ListOp):

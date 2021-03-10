@@ -18,17 +18,16 @@ from typing import Callable, Optional, Tuple, Union, cast
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops import ListOp, SummedOp, TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-
-from ..exceptions import OpflowError
-from ..list_ops import ListOp, SummedOp, TensoredOp
-from ..operator_base import OperatorBase
-from ..primitive_ops import PauliOp
-from .circuit_state_fn import CircuitStateFn
-from .dict_state_fn import DictStateFn
-from .operator_state_fn import OperatorStateFn
-from .state_fn import StateFn
-from .vector_state_fn import VectorStateFn
 
 
 class CVaRMeasurement(OperatorStateFn):
@@ -37,6 +36,7 @@ class CVaRMeasurement(OperatorStateFn):
 
     Used in :class:`~qiskit.opflow.CVaRExpectation`, see there for more details.
     """
+
     primitive: OperatorBase
 
     # TODO allow normalization somehow?

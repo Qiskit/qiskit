@@ -12,21 +12,21 @@
 
 """ DictStateFn Class """
 
-from typing import Optional, Union, Set, Dict, cast, List
 import itertools
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
 from scipy import sparse
 
-from qiskit.result import Result
 from qiskit.circuit import ParameterExpression
-from qiskit.utils import algorithm_globals
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .state_fn import StateFn
-from ..list_ops.list_op import ListOp
-from .vector_state_fn import VectorStateFn
+from qiskit.result import Result
+from qiskit.utils import algorithm_globals
 
 
 class DictStateFn(StateFn):

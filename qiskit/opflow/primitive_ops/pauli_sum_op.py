@@ -19,27 +19,27 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
-
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from ..exceptions import OpflowError
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from ..operator_base import OperatorBase
-from .pauli_op import PauliOp
-from .primitive_op import PrimitiveOp
+from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 
 
 class PauliSumOp(PrimitiveOp):
     """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
+
     primitive: SparsePauliOp
 
     def __init__(
-            self,
-            primitive: SparsePauliOp,
-            coeff: Union[complex, ParameterExpression] = 1.0,
-            grouping_type: str = "None",
+        self,
+        primitive: SparsePauliOp,
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        grouping_type: str = "None",
     ) -> None:
         """
         Args:
@@ -92,15 +92,16 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             MatrixIterator: matrix iterator object for the PauliTable.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
                 return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
 
             def __getitem__(self, key):
                 sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
-                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key],
-                                            sparse=sparse)
+                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key], sparse=sparse)
                 return sumopcoeff * mat
 
         return MatrixIterator(self)
@@ -113,14 +114,11 @@ class PauliSumOp(PrimitiveOp):
             )
 
         if isinstance(other, PauliSumOp):
-            return PauliSumOp(
-                self.coeff * self.primitive + other.coeff * other.primitive, coeff=1
-            )
+            return PauliSumOp(self.coeff * self.primitive + other.coeff * other.primitive, coeff=1)
 
         if isinstance(other, PauliOp):
             return PauliSumOp(
-                self.coeff * self.primitive
-                + other.coeff * SparsePauliOp(other.primitive)
+                self.coeff * self.primitive + other.coeff * SparsePauliOp(other.primitive)
             )
 
         return SummedOp([self, other])
@@ -132,9 +130,7 @@ class PauliSumOp(PrimitiveOp):
         return super().mul(scalar)
 
     def adjoint(self) -> "PauliSumOp":
-        return PauliSumOp(
-            self.primitive.adjoint(), coeff=self.coeff.conjugate()
-        )
+        return PauliSumOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
@@ -143,7 +139,7 @@ class PauliSumOp(PrimitiveOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
-                other_reduced.coeff, ParameterExpression
+            other_reduced.coeff, ParameterExpression
         ):
             return (
                 self_reduced.coeff == other_reduced.coeff
@@ -156,9 +152,7 @@ class PauliSumOp(PrimitiveOp):
 
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
         return PauliSumOp(
-            self.primitive.tensor(
-                SparsePauliOp(Pauli("I" * num_qubits))
-            ),
+            self.primitive.tensor(SparsePauliOp(Pauli("I" * num_qubits))),
             coeff=self.coeff,
         )
 
@@ -186,8 +180,9 @@ class PauliSumOp(PrimitiveOp):
             OpflowError: if indices do not define a new index for each qubit.
         """
         if len(permutation) != self.num_qubits:
-            raise OpflowError("List of indices to permute must have the "
-                              "same size as Pauli Operator")
+            raise OpflowError(
+                "List of indices to permute must have the " "same size as Pauli Operator"
+            )
         length = max(permutation) + 1
         spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         permutation = [i for i in range(length) if i not in permutation] + permutation
@@ -197,10 +192,10 @@ class PauliSumOp(PrimitiveOp):
         return PauliSumOp(spop, self.coeff)
 
     def compose(
-            self,
-            other: OperatorBase,
-            permutation: Optional[List[int]] = None,
-            front: bool = False,
+        self,
+        other: OperatorBase,
+        permutation: Optional[List[int]] = None,
+        front: bool = False,
     ) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
@@ -336,7 +331,6 @@ class PauliSumOp(PrimitiveOp):
         return self.to_matrix_op().to_circuit().to_instruction()  # type: ignore
 
     def to_pauli_op(self, massive: bool = False) -> Union[PauliOp, SummedOp]:
-
         def to_native(x):
             return x.item() if isinstance(x, np.generic) else x
 
@@ -410,9 +404,9 @@ class PauliSumOp(PrimitiveOp):
 
     @classmethod
     def from_list(
-            cls,
-            pauli_list: List[Tuple[str, Union[complex]]],
-            coeff: Union[complex, ParameterExpression] = 1.0,
+        cls,
+        pauli_list: List[Tuple[str, Union[complex]]],
+        coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 

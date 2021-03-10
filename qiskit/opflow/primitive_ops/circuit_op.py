@@ -12,23 +12,24 @@
 
 """CircuitOp Class """
 
-from typing import Union, Optional, Set, List, Dict, cast
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
 
 import qiskit
 from qiskit import QuantumCircuit
-from qiskit.circuit.library import IGate
 from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit.library import IGate
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
-
-from ..operator_base import OperatorBase
-from ..list_ops.tensored_op import TensoredOp
-from .primitive_op import PrimitiveOp
 
 
 class CircuitOp(PrimitiveOp):
     """ Class for Operators backed by Terra's ``QuantumCircuit`` module.
     """
+
     primitive: QuantumCircuit
 
     def __init__(self,

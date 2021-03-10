@@ -12,16 +12,16 @@
 
 """ PrimitiveOp Class """
 
-from typing import cast, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
-from scipy.sparse import spmatrix
 import scipy.linalg
+from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.quantum_info import Pauli, SparsePauliOp, Operator, Statevector
-
-from ..operator_base import OperatorBase
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, Statevector
 
 
 class PrimitiveOp(OperatorBase):

@@ -14,12 +14,12 @@
 
 import logging
 
-from ..operator_base import OperatorBase
-from .evolution_base import EvolutionBase
-from .evolved_op import EvolvedOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.matrix_op import MatrixOp
-from ..list_ops.list_op import ListOp
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.evolved_op import EvolvedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 
 logger = logging.getLogger(__name__)
 

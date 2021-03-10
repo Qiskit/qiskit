@@ -13,25 +13,25 @@
 """ CircuitStateFn Class """
 
 
-from typing import Union, Set, List, Optional, Dict, cast
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
 
-from qiskit import QuantumCircuit, BasicAer, execute, ClassicalRegister
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, execute
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.extensions import Initialize
 from qiskit.circuit.library import IGate
+from qiskit.extensions import Initialize
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-
-from ..operator_base import OperatorBase
-from ..list_ops.composed_op import ComposedOp
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from .state_fn import StateFn
-from .vector_state_fn import VectorStateFn
-from ..primitive_ops.circuit_op import CircuitOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.matrix_op import MatrixOp
 
 
 class CircuitStateFn(StateFn):

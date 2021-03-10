@@ -12,27 +12,28 @@
 
 """MatrixOp Class """
 
-from typing import Union, Optional, Set, Dict, List, cast, get_type_hints
+from typing import Dict, List, Optional, Set, Union, cast, get_type_hints
+
 import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Operator, Statevector
-from qiskit.circuit import ParameterExpression, Instruction
+from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.quantum_info import Operator, Statevector
 from qiskit.utils import arithmetic
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from ..primitive_ops.circuit_op import CircuitOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
-from .primitive_op import PrimitiveOp
 
 
 class MatrixOp(PrimitiveOp):
     """ Class for Operators represented by matrices, backed by Terra's ``Operator`` module.
     """
+
     primitive: Operator
 
     def __init__(self,

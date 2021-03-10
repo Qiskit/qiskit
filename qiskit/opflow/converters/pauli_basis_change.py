@@ -12,24 +12,24 @@
 
 """ PauliBasisChange Class """
 
-from typing import Optional, Callable, Union, Tuple, cast, List
 from functools import partial, reduce
+from typing import Callable, List, Optional, Tuple, Union, cast
+
 import numpy as np
 
-from qiskit.quantum_info import Pauli
 from qiskit import QuantumCircuit
-
-from ..operator_base import OperatorBase
-from ..primitive_ops.primitive_op import PrimitiveOp
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.composed_op import ComposedOp
-from ..state_fns.state_fn import StateFn
-from ..state_fns.operator_state_fn import OperatorStateFn
-from ..operator_globals import H, S, I
-from .converter_base import ConverterBase
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.list_ops.composed_op import ComposedOp
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.operator_globals import H, I, S
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.quantum_info import Pauli
 
 
 class PauliBasisChange(ConverterBase):

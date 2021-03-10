@@ -12,20 +12,20 @@
 
 """PauliOp Class """
 
-from typing import Union, Set, Dict, cast, List, Optional
+from typing import Dict, List, Optional, Set, Union, cast
+
 import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterExpression, Instruction
+from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit.library import IGate, RXGate, RYGate, RZGate, XGate, YGate, ZGate
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.list_ops.tensored_op import TensoredOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
-from qiskit.circuit.library import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
-
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .primitive_op import PrimitiveOp
-from ..list_ops.summed_op import SummedOp
-from ..list_ops.tensored_op import TensoredOp
 
 PAULI_GATE_MAPPING = {'X': XGate(), 'Y': YGate(), 'Z': ZGate(), 'I': IGate()}
 

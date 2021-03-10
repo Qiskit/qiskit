@@ -17,9 +17,9 @@ Operator Globals
 from qiskit.quantum_info import Pauli
 from qiskit.circuit.library import CXGate, SGate, TGate, HGate, SwapGate, CZGate
 
-from .primitive_ops.pauli_op import PauliOp
-from .primitive_ops.circuit_op import CircuitOp
-from .state_fns.dict_state_fn import DictStateFn
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 
 # pylint: disable=invalid-name
 

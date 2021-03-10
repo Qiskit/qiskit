@@ -20,10 +20,9 @@ import numpy as np
 from scipy.sparse import csr_matrix, spmatrix
 
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.opflow.exceptions import OpflowError
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
-
-from .exceptions import OpflowError
 
 
 class OperatorBase(ABC):
@@ -138,6 +137,11 @@ class OperatorBase(ABC):
     @abstractmethod
     def to_matrix_op(self, massive: bool = False) -> "OperatorBase":
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
+        raise NotImplementedError
+
+    @abstractmethod
+    def to_circuit_op(self) -> "OperatorBase":
+        """ Returns a ``CircuitOp`` equivalent to this Operator. """
         raise NotImplementedError
 
     def to_spmatrix(self) -> spmatrix:
@@ -510,12 +514,12 @@ class OperatorBase(ABC):
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
-            if isinstance(param, ParameterVector):
-                if not len(param) == len(value):  # type: ignore
+            if isinstance(param, ParameterVector) and isinstance(value, (list, np.ndarray)):
+                if not len(param) == len(value):
                     raise ValueError(
                         'ParameterVector {} has length {}, which differs from value list {} of '
-                        'len {}'.format(param, len(param), value, len(value)))  # type: ignore
-                unrolled_value_dict.update(zip(param, value))  # type: ignore
+                        'len {}'.format(param, len(param), value, len(value)))
+                unrolled_value_dict.update(zip(param, value))
         if isinstance(list(unrolled_value_dict.values())[0], list):
             # check that all are same length
             unrolled_value_dict_list = []
