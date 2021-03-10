@@ -53,7 +53,7 @@ BlockComponent = Union['ScheduleBlock', Instruction]
 
 
 class PulseProgram(abc.ABC):
-    """An abstract class for ``Schedule`` and ``ScheduleBlock``."""
+    """An abstract class for a pulse-level description of a quantum program."""
 
     # Prefix to use for auto naming.
     prefix = 'base'
