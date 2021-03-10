@@ -525,7 +525,7 @@ class Schedule(PulseProgram):
         sched = Schedule()
         sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
-    - Merging two schedule
+    - Merger of two schedules
 
     .. code-block:: python
 
