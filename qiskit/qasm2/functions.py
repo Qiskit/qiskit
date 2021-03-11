@@ -25,6 +25,15 @@ from qiskit import QuantumCircuit, QiskitError
 from qiskit.qasm import Qasm
 from .funhelp import qasm_load, qasm_export
 
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    HAS_PYGMENTS = True
+except Exception:  # pylint: disable=broad-except
+    HAS_PYGMENTS = False
+
 
 def _load_from_string(qasm_src: str or List[str],
                       loader: str = None,
@@ -161,6 +170,7 @@ def load(data: str or List[str] = None,
 
 
 def export(qc: QuantumCircuit,
+           formatted: bool = False,
            exporter: str = None,
            file: BinaryIO or TextIO = None,
            filename: str = None,
@@ -172,6 +182,10 @@ def export(qc: QuantumCircuit,
     ----------
     qc : QuantumCircuit
         Circuit to decompile ("export")
+
+    formatted : bool
+        Print Qasm string formatted by Pygments if present.
+
     exporter : str, optional
         Name of module with functional attribute
             export(qc: QuantumCircuit,
@@ -179,16 +193,19 @@ def export(qc: QuantumCircuit,
         ... to use for qasm translation.
         None means "use Qiskit qasm"
         The default is None.
+
     file : BinaryIO or TextIO, optional
         File object to write to as well as return str
         Written in UTF-8
         Caller must close file.
         Mutually exclusive with filename=
         The default is None.
+
     filename : str, optional
         Name of file to write export to as well as return str
         Mutually exclusive with file=
         The default is None.
+
     include_path: str, optional
         Unloader-specific include path for qasm include directives
 
@@ -196,6 +213,12 @@ def export(qc: QuantumCircuit,
     ------
     QiskitError
         If both filename and file
+
+    ImportError
+        If pygments is not installed and ``formatted`` is ``True``.
+
+    QasmError
+        If circuit has free parameters.
 
     Returns
     -------
@@ -222,4 +245,13 @@ def export(qc: QuantumCircuit,
             file.write(bytes(qasm_src, 'utf-8'))
         else:
             file.write(qasm_src)
+    if formatted:
+        if not HAS_PYGMENTS:
+            raise ImportError("To use the formatted output pygments>2.4 "
+                              "must be installed. To install pygments run "
+                              '"pip install pygments".')
+        code = pygments.highlight(qasm_src,
+                                  OpenQASMLexer(),
+                                  Terminal256Formatter(style=QasmTerminalStyle))
+        print(code)
     return qasm_src
