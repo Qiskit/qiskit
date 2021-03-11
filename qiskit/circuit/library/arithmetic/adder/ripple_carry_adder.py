@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
 
 class RippleCarryAdder(QuantumCircuit):
-    r"""A ripple-carry circuit to perform addition on two qubit registers.
+    r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
     Circuit to compute the sum of two qubit registers using the approach from [1].
     Given two equally sized input registers that store quantum states
@@ -72,16 +72,18 @@ class RippleCarryAdder(QuantumCircuit):
 
     def __init__(self,
                  num_state_qubits: int,
-                 name: str = 'ripple_carry_adder'
+                 name: str = 'RippleCarryAdder'
                  ) -> None:
-        r"""Create a new ripple-carry adder circuit.
+        r"""
+        Args:
+            num_state_qubits: The number of qubits in either input register for
+                state :math:`|a\rangle` or :math:`|b\rangle`. The two input
+                registers must have the same number of qubits.
+            name: The name of the circuit object.
+        """
+        if num_state_qubits < 1:
+            raise ValueError('The number of qubits must be at least 1.')
 
-                Args:
-                    num_state_qubits: The number of qubits in either input register for
-                        state :math:`|a\rangle` or :math:`|b\rangle`. The two input
-                        registers must have the same number of qubits.
-                    name: The name of the circuit object.
-                """
         qr_a = QuantumRegister(num_state_qubits, name='input_a')
         qr_b = QuantumRegister(num_state_qubits, name='input_b')
         qr_c = AncillaRegister(1, name='carry_in')
