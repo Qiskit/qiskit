@@ -982,12 +982,12 @@ class MatplotlibDrawer:
                     self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec, ac=tgt)
                     self._line(qreg_b, qreg_t, lc=lc)
 
-                # cz gate
-                elif op.name == 'cz':
+                # cz and mcz gates
+                elif op.name != 'z' and base_name == 'z':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
-                    self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
+                    self._ctrl_qubit(q_xy[-1], fc=ec, ec=ec, tc=tc)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
                 # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
