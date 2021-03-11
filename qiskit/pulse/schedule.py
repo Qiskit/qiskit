@@ -1347,7 +1347,7 @@ class ScheduleBlock(PulseProgram):
         """
         warnings.warn('This method will be soon removed.', DeprecationWarning)
 
-        raise PulseError(f'Method ``ScheduleBlock.shift`` is not supported as this program '
+        raise PulseError('Method ``ScheduleBlock.shift`` is not supported as this program '
                          'representation does not have the notion of instruction '
                          'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
                          'this program to obtain the ``Schedule`` representation supporting '
@@ -1374,7 +1374,7 @@ class ScheduleBlock(PulseProgram):
         """
         warnings.warn('This method will be soon removed.', DeprecationWarning)
 
-        raise PulseError(f'Method ``ScheduleBlock.insert`` is not supported as this program '
+        raise PulseError('Method ``ScheduleBlock.insert`` is not supported as this program '
                          'representation does not have the notion of instruction '
                          'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
                          'this program to obtain the ``Schedule`` representation supporting '
@@ -1399,7 +1399,7 @@ class ScheduleBlock(PulseProgram):
             PulseError: When invalid schedule type is specified.
         """
         if not isinstance(schedule, (ScheduleBlock, Instruction)):
-            raise PulseError(f'Appended `schedule` {type(schedule)} is invalid type. '
+            raise PulseError(f'Appended `schedule` {schedule.__class__.__name__} is invalid type. '
                              'Only `Instruction` and `ScheduleBlock` can be accepted.')
 
         if not inplace:
@@ -1450,7 +1450,7 @@ class ScheduleBlock(PulseProgram):
         Raises:
             PulseError: When this method is called. This method will be supported soon.
         """
-        raise PulseError(f'Method ``ScheduleBlock.filter`` is not supported as this program '
+        raise PulseError('Method ``ScheduleBlock.filter`` is not supported as this program '
                          'representation does not have the notion of instruction '
                          'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
                          'this program to obtain the ``Schedule`` representation supporting '
@@ -1486,7 +1486,7 @@ class ScheduleBlock(PulseProgram):
         Raises:
             PulseError: When this method is called. This method will be supported soon.
         """
-        raise PulseError(f'Method ``ScheduleBlock.exclude`` is not supported as this program '
+        raise PulseError('Method ``ScheduleBlock.exclude`` is not supported as this program '
                          'representation does not have the notion of instruction '
                          'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
                          'this program to obtain the ``Schedule`` representation supporting '
