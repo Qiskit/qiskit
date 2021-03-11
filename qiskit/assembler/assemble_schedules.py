@@ -203,7 +203,8 @@ def _assemble_instructions(
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
 
-        # ignore delay instrs on acq channels (don't matter w/ absolute timing)
+        # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
+        # timing of other instrs will still be shifted appropriately
         if (isinstance(instruction, instructions.Delay) and
                 isinstance(instruction.channel, channels.AcquireChannel)):
             continue
