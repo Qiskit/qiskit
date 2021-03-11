@@ -118,15 +118,13 @@ Configuration
 Schedule Transforms
 ===================
 
-These functions take :class:`Schedule` s as input and return modified
+Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
 
 .. autosummary::
    :toctree: ../stubs/
 
-   transforms.align_measures
-   transforms.add_implicit_acquires
-   transforms.pad
+   transforms
 
 
 Exceptions

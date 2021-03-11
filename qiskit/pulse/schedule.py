@@ -1156,46 +1156,40 @@ def _require_schedule_conversion(function: Callable) -> Callable:
     return wrapper
 
 
-def _method_not_supported(function: Callable) -> Callable:
-    """A method decorator to raise a PulseError with a graceful error message
-    for operations which do not work for ``ScheduleBlock``s.
-    """
-    @functools.wraps(function)
-    def wrapper(self, *args, **kwargs):
-        raise PulseError(f'Method ``ScheduleBlock.{function.__name__}`` is not supported '
-                         'as this program representationdoes not have the notion of instruction '
-                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
-                         'this program to obtain the ``Schedule`` representation supporting '
-                         'this method. This method will soon be deprecated.')
-
-    return wrapper
-
-
 class ScheduleBlock(PulseProgram):
-    """A quantum program's *schedule block* with transform policies that allow lazy the scheduling
+    """A quantum program's *schedule block* with context alignment that allow lazy the scheduling
     of instructions. This is the representation constructed by the pulse builder by default.
 
     This program representation doesn't track an explicit notion of timing, in contrast to the
     ``Schedule`` representation. The timing of an instruction is managed by its relative position
-    and the stored ``transform_policy`` argument. ``ScheduleBlock``s should be initialized
-    with one of the following transform policies:
+    and the stored ``context_alignment`` argument. ``ScheduleBlock``s should be initialized
+    with one of the following alignment:
 
-        - ``left`` ... Align instructions in the `as-soon-as-possible` manner.
-            Instructions are scheduled at the earliest possible time on the channel.
-        - ``right`` ... Align instructions in the `as-late-as-possible` manner.
-            Instructions are scheduled at the latest possible time on the channel.
-        - ``sequential`` ... Align instructions sequentially even though they are
-            allocated in different channels.
-        - ``equispaced`` ... Align instructions with equal interval within a specified duration.
-            Instructions on different channels are aligned sequentially.
-        - ``func`` ... Align instructions with arbitrary position within the given duration.
-            The position is specified by a callback function taking a pulse index ``j`` and
-            returning a fractional coordinate in [0, 1].
+        - :class:`~qiskit.pulse.transforms.AlignLeft` ... Align instructions in the
+            `as-soon-as-possible` manner. Instructions are scheduled at the earliest
+            possible time on the channel.
+        - :class:`~qiskit.pulse.transforms.AlignRight` ... Align instructions in the
+            `as-late-as-possible` manner. Instructions are scheduled at the latest
+            possible time on the channel.
+        - :class:`~qiskit.pulse.transforms.AlignSequential` ... Align instructions sequentially
+            even though they are allocated in different channels.
+        - :class:`~qiskit.pulse.transforms.AlignEquispaced` ... Align instructions with
+            equal interval within a specified duration. Instructions on different channels
+            are aligned sequentially.
+        - :class:`~qiskit.pulse.transforms.AlignFunc` ... Align instructions with
+            arbitrary position within the given duration. The position is specified by
+            a callback function taking a pulse index ``j`` and returning a
+            fractional coordinate in [0, 1].
 
-    The ``ScheduleBlock`` defaults to the ``left`` transform policy.
+    The ``ScheduleBlock`` defaults to the ``AlignLeft`` alignment.
     The timing overlap constraint of instructions is not immediately evaluated,
     and thus we can assign a parameter object to the instruction duration.
     Instructions are implicitly scheduled at optimum time when the program is executed.
+
+    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`s
+    and other ``ScheduleBlock``s to build an experimental program, but ``Schedule`` is not
+    supported. This should be added as a :class:`~qiskit.pulse.instructions.Call` instruction.
+
     By using ``ScheduleBlock`` representation we can fully parametrize pulse waveform.
     For example, Rabi schedule generator can be defined as
 
@@ -1230,8 +1224,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 transform_policy: str = 'left',
-                 **transform_opts):
+                 context_alignment: 'qiskit.pulse.transforms.AlignmentTransform' = None):
         """Create an empty schedule block.
 
         Args:
@@ -1241,15 +1234,18 @@ class ScheduleBlock(PulseProgram):
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            transform_policy: String that represents alignment of this context.
-            **transform_opts: Options used to align this context if available.
+            context_alignment: ``AlignmentTransform`` instance that manages scheduling of
+                instructions in this block.
         Raises:
             TypeError: if metadata is not a dict.
         """
         super().__init__(name=name, metadata=metadata)
 
-        self._transform_policy = transform_policy
-        self._transform_opts = transform_opts
+        if context_alignment is None:
+            from qiskit.pulse.transforms import AlignLeft
+            self._context_alignment = AlignLeft()
+        else:
+            self._context_alignment = context_alignment
 
         self._blocks = list()
 
@@ -1257,14 +1253,9 @@ class ScheduleBlock(PulseProgram):
             self.append(block, inplace=True)
 
     @property
-    def transform_policy(self) -> str:
-        """Return alignment kind that allocates block component to generate schedule."""
-        return self._transform_policy
-
-    @property
-    def transform_opts(self) -> Dict[str, Any]:
-        """Return keyword arguments that is used for transformation."""
-        return self._transform_opts
+    def context_alignment(self) -> 'qiskit.pulse.transforms.AlignmentTransform':
+        """Return alignment instance that allocates block component to generate schedule."""
+        return self._context_alignment
 
     def is_schedulable(self) -> bool:
         """Return ``True`` if all durations are assigned."""
@@ -1337,32 +1328,39 @@ class ScheduleBlock(PulseProgram):
         """
         return self.ch_stop_time(*channels)
 
-    @_method_not_supported
     def shift(self,
               time: int,
               name: Optional[str] = None,
               inplace: bool = True):
-        """Return a schedule shifted forward by ``time``.
+        """This method will be removed. Temporarily added for backward compatibility.
 
-        .. note:: This method is currently not supported.
+        .. note:: This method is not supported and being deprecated.
 
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
-        """
-        pass
 
-    @_method_not_supported
+        Raises:
+            PulseError: When this method is called. This method is not supported.
+        """
+        warnings.warn('This method will be soon removed.', DeprecationWarning)
+
+        raise PulseError(f'Method ``ScheduleBlock.shift`` is not supported as this program '
+                         'representation does not have the notion of instruction '
+                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
+                         'this program to obtain the ``Schedule`` representation supporting '
+                         'this method.')
+
     def insert(self,
                start_time: int,
                schedule: ScheduleComponent,
                name: Optional[str] = None,
                inplace: bool = True):
-        """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
+        """This method will be removed. Temporarily added for backward compatibility.
 
-        .. note:: This method is currently not supported.
+        .. note:: This method is not supported and being deprecated.
 
         Args:
             start_time: Time to insert the schedule.
@@ -1370,8 +1368,17 @@ class ScheduleBlock(PulseProgram):
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
+
+        Raises:
+            PulseError: When this method is called. This method is not supported.
         """
-        pass
+        warnings.warn('This method will be soon removed.', DeprecationWarning)
+
+        raise PulseError(f'Method ``ScheduleBlock.insert`` is not supported as this program '
+                         'representation does not have the notion of instruction '
+                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
+                         'this program to obtain the ``Schedule`` representation supporting '
+                         'this method.')
 
     def append(self, schedule: BlockComponent,
                name: Optional[str] = None,
@@ -1400,9 +1407,7 @@ class ScheduleBlock(PulseProgram):
                 *self.instructions,
                 name=name or self.name,
                 metadata=self.metadata.copy(),
-                transform_policy=self.transform_policy,
-                **self.transform_opts
-            )
+                context_alignment=self.context_alignment)
             new_block.append(schedule, inplace=True)
 
             return new_block
@@ -1412,7 +1417,6 @@ class ScheduleBlock(PulseProgram):
 
             return self
 
-    @_method_not_supported
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
                instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
@@ -1428,7 +1432,7 @@ class ScheduleBlock(PulseProgram):
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method is currently not supported.
+        .. note:: This method is currently not supported, but the support will be soon added.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1442,10 +1446,16 @@ class ScheduleBlock(PulseProgram):
 
         Returns:
             ``Schedule`` consisting of instructions that matches with filtering condition.
-        """
-        pass
 
-    @_method_not_supported
+        Raises:
+            PulseError: When this method is called. This method will be supported soon.
+        """
+        raise PulseError(f'Method ``ScheduleBlock.filter`` is not supported as this program '
+                         'representation does not have the notion of instruction '
+                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
+                         'this program to obtain the ``Schedule`` representation supporting '
+                         'this method.')
+
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
                 instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
@@ -1458,7 +1468,7 @@ class ScheduleBlock(PulseProgram):
 
             self.filter(args) | self.exclude(args) == self
 
-        .. note:: This method is currently not supported.
+        .. note:: This method is currently not supported, but the support will be soon added.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1472,8 +1482,15 @@ class ScheduleBlock(PulseProgram):
 
         Returns:
             ``Schedule`` consisting of instructions that are not matche with filtering condition.
+
+        Raises:
+            PulseError: When this method is called. This method will be supported soon.
         """
-        pass
+        raise PulseError(f'Method ``ScheduleBlock.exclude`` is not supported as this program '
+                         'representation does not have the notion of instruction '
+                         'time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to '
+                         'this program to obtain the ``Schedule`` representation supporting '
+                         'this method.')
 
     def replace(self,
                 old: BlockComponent,
@@ -1512,8 +1529,7 @@ class ScheduleBlock(PulseProgram):
             return ScheduleBlock(*new_blocks,
                                  name=self.name,
                                  metadata=self.metadata.copy(),
-                                 transform_policy=self.transform_policy,
-                                 **self.transform_opts)
+                                 context_alignment=self.context_alignment)
 
     def _update_parameter_table(self, schedule: BlockComponent):
         """A helper function to update parameter table with given schedule component.
@@ -1527,7 +1543,9 @@ class ScheduleBlock(PulseProgram):
 
     def __or__(self, other: BlockComponent) -> 'ScheduleBlock':
         """Return a new schedule which is the union of `self` and `other`."""
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata, transform_policy='left')
+        from qiskit.pulse.transforms import AlignLeft
+        union_block = ScheduleBlock(name=self.name, metadata=self.metadata,
+                                    context_alignment=AlignLeft())
         union_block.append(self, inplace=True)
         union_block.append(other, inplace=True)
 
@@ -1555,8 +1573,7 @@ class ScheduleBlock(PulseProgram):
             return False
 
         # 1. transformation check
-        if self.transform_policy != other.transform_policy or \
-                self.transform_opts != other.transform_opts:
+        if self.context_alignment != other.context_alignment:
             return False
 
         # 2. channel check
@@ -1582,7 +1599,7 @@ class ScheduleBlock(PulseProgram):
             self.__class__.__name__,
             instructions,
             name,
-            self.transform_policy
+            self.context_alignment.__class__.__name__
         )
 
 

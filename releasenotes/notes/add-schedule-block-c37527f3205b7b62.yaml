@@ -16,12 +16,18 @@ features:
 
     .. code-block:: python
 
+        from qiskit.pulse import ScheduleBlock, DriveChannel, Gaussian
+        from qiskit.pulse.instructions import Play, Call
+        from qiskit.pulse.transforms import AlignRight
+        from qiskit.circuit import Parameter
+
         dur = Parameter('rabi_duration')
 
-        block = ScheduleBlock(transform='right')
+        block = ScheduleBlock(transform=AlignRight())
         block += Play(Gaussian(dur, 0.1, dur/4), DriveChannel(0))
         block += Call(measure_sched)
 
     this code defines an experiment scanning a Gaussian pulse's duration followed by
-    a measurement, i.e. a Rabi experiment. You can reuse the ``block`` object for every
-    scanned duration by assigning a target duration value.
+    a measurement ``measure_sched``, i.e. a Rabi experiment.
+    You can reuse the ``block`` object for every scanned duration
+    by assigning a target duration value.
