@@ -19,8 +19,8 @@ from collections import OrderedDict, defaultdict
 import numpy as np
 import retworkx as rx
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
@@ -170,6 +170,28 @@ class DAGDependency:
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
 
+    def add_qubits(self, qubits):
+        """Add individual qubit wires."""
+        if any(not isinstance(qubit, Qubit) for qubit in qubits):
+            raise DAGDependencyError("not a Qubit instance.")
+
+        duplicate_qubits = set(self.qubits).intersection(qubits)
+        if duplicate_qubits:
+            raise DAGDependencyError("duplicate qubits %s" % duplicate_qubits)
+
+        self.qubits.extend(qubits)
+
+    def add_clbits(self, clbits):
+        """Add individual clbit wires."""
+        if any(not isinstance(clbit, Clbit) for clbit in clbits):
+            raise DAGDependencyError("not a Clbit instance.")
+
+        duplicate_clbits = set(self.clbits).intersection(clbits)
+        if duplicate_clbits:
+            raise DAGDependencyError("duplicate clbits %s" % duplicate_clbits)
+
+        self.clbits.extend(clbits)
+
     def add_qreg(self, qreg):
         """Add qubits in a quantum register."""
         if not isinstance(qreg, QuantumRegister):
@@ -177,8 +199,10 @@ class DAGDependency:
         if qreg.name in self.qregs:
             raise DAGDependencyError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
+        existing_qubits = set(self.qubits)
         for j in range(qreg.size):
-            self.qubits.append(qreg[j])
+            if qreg[j] not in existing_qubits:
+                self.qubits.append(qreg[j])
 
     def add_creg(self, creg):
         """Add clbits in a classical register."""
@@ -187,8 +211,10 @@ class DAGDependency:
         if creg.name in self.cregs:
             raise DAGDependencyError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
+        existing_clbits = set(self.clbits)
         for j in range(creg.size):
-            self.clbits.append(creg[j])
+            if creg[j] not in existing_clbits:
+                self.clbits.append(creg[j])
 
     def _add_multi_graph_node(self, node):
         """
