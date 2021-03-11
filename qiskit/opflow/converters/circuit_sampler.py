@@ -12,25 +12,26 @@
 
 """ CircuitSampler Class """
 
-from typing import Optional, Dict, List, Union, cast, Any, Tuple
+
 import logging
 from functools import partial
 from time import time
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
 import numpy as np
 
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
-from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit import QiskitError
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
+from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.providers import Backend, BaseBackend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
-from ..operator_base import OperatorBase
-from ..list_ops.list_op import ListOp
-from ..state_fns.state_fn import StateFn
-from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..state_fns.dict_state_fn import DictStateFn
-from .converter_base import ConverterBase
-from ..exceptions import OpflowError
+from qiskit.utils.quantum_instance import QuantumInstance
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +85,13 @@ class CircuitSampler(ConverterBase):
 
         # Object state variables
         self._caching = caching
-        self._cached_ops = {}
+        self._cached_ops: Dict[int, OperatorCache] = {}
 
-        self._last_op = None
+        self._last_op: Optional[OperatorBase] = None
         self._reduced_op_cache = None
-        self._circuit_ops_cache = {}  # type: Dict[int, CircuitStateFn]
-        self._transpiled_circ_cache = None  # type: Optional[List[Any]]
-        self._transpiled_circ_templates = None  # type: Optional[List[Any]]
+        self._circuit_ops_cache: Dict[int, CircuitStateFn] = {}
+        self._transpiled_circ_cache: Optional[List[Any]] = None
+        self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
@@ -184,16 +185,17 @@ class CircuitSampler(ConverterBase):
 
         return_as_list = False
         if params is not None and len(params.keys()) > 0:
-            p_0 = list(params.values())[0]  # type: ignore
+            p_0 = list(params.values())[0]
             if isinstance(p_0, (list, np.ndarray)):
-                num_parameterizations = len(cast(List, p_0))
-                param_bindings = [{param: value_list[i]  # type: ignore
-                                   for (param, value_list) in params.items()}
-                                  for i in range(num_parameterizations)]
+                num_parameterizations = len(p_0)
+                param_bindings = [
+                    {param: value_list[i] for param, value_list in params.items()}  # type: ignore
+                    for i in range(num_parameterizations)
+                ]
                 return_as_list = True
             else:
                 num_parameterizations = 1
-                param_bindings = [params]  # type: ignore
+                param_bindings = [params]
 
         else:
             param_bindings = None
@@ -248,7 +250,7 @@ class CircuitSampler(ConverterBase):
     def sample_circuits(self,
                         circuit_sfns: Optional[List[CircuitStateFn]] = None,
                         param_bindings: Optional[List[Dict[Parameter, float]]] = None
-                        ) -> Dict[int, Union[StateFn, List[StateFn]]]:
+                        ) -> Dict[int, List[StateFn]]:
         r"""
         Samples the CircuitStateFns and returns a dict associating their ``id()`` values to their
         replacement DictStateFn or VectorStateFn. If param_bindings is provided,
@@ -395,7 +397,7 @@ class CircuitSampler(ConverterBase):
             ]
 
         for circ in self._transpiled_circ_cache:
-            building_param_tables = {}  # type: Dict[Tuple[int, int], List[float]]
+            building_param_tables: Dict[Tuple[int, int], List[float]] = {}
             for param_binding in param_bindings:
                 self._build_aer_params(circ, building_param_tables, param_binding)
             param_tables = []
@@ -421,7 +423,7 @@ class OperatorCache:
     """A struct to cache an operator along with the circuits in contains."""
 
     reduced_op_cache = None  # the reduced operator
-    circuit_ops_cache = None  # the extracted circuits
+    circuit_ops_cache: Optional[Dict[int, CircuitStateFn]] = None  # the extracted circuits
     transpiled_circ_cache = None  # the transpiled circuits
     transpile_before_bind = True  # whether to transpile before binding parameters in the operator
-    transpiled_circ_templates = None  # the transpiled circuit templates for Aer's simulator
+    transpiled_circ_templates: Optional[List[Any]] = None  # transpiled circuit templates for Aer
