@@ -14,21 +14,12 @@
 
 import configparser
 import os
-import sys
 from warnings import warn
 
 from qiskit import exceptions
 
 DEFAULT_FILENAME = os.path.join(os.path.expanduser("~"),
                                 '.qiskit', 'settings.conf')
-
-if os.getenv('QISKIT_PARALLEL', None) is not None:
-    PARALLEL_DEFAULT = os.getenv('QISKIT_PARALLEL', None).lower() == 'true'
-else:
-    if sys.platform in {'darwin', 'win32'}:
-        PARALLEL_DEFAULT = False
-    else:
-        PARALLEL_DEFAULT = True
 
 
 class UserConfig:
@@ -132,8 +123,9 @@ class UserConfig:
 
             # Parse parallel
             parallel_enabled = self.config_parser.getboolean(
-                'default', 'parallel', fallback=PARALLEL_DEFAULT)
-            self.settings['parallel_enabled'] = parallel_enabled
+                'default', 'parallel', fallback=None)
+            if parallel_enabled is not None:
+                self.settings['parallel_enabled'] = parallel_enabled
 
             # Parse num_processes
             num_processes = self.config_parser.getint(
@@ -158,7 +150,7 @@ def get_config():
     """
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     if not os.path.isfile(filename):
-        return {'parallel_enabled': PARALLEL_DEFAULT}
+        return {}
     user_config = UserConfig(filename)
     user_config.read_config_file()
     return user_config.settings

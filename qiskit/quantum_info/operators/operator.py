@@ -380,6 +380,27 @@ class Operator(LinearOp):
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 
+    def reverse_qargs(self):
+        r"""Return an Operator with reversed subsystem ordering.
+
+        For a tensor product operator this is equivalent to reversing
+        the order of tensor product subsystems. For an operator
+        :math:`A = A_{n-1} \otimes ... \otimes A_0`
+        the returned operator will be
+        :math:`A_0 \otimes ... \otimes A_{n-1}`.
+
+        Returns:
+            Operator: the operator with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        axes = axes + tuple(len(axes) + i for i in axes)
+        ret._data = np.reshape(np.transpose(
+            np.reshape(self.data, self._op_shape.tensor_shape), axes),
+                               self._op_shape.shape)
+        ret._op_shape = self._op_shape.reverse()
+        return ret
+
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
         """Perform a contraction using Numpy.einsum

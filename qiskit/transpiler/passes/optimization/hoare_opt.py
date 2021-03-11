@@ -16,7 +16,7 @@ from qiskit.circuit import ControlledGate, Gate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.exceptions import TranspilerError
-from . import _gate_extension  # pylint: disable=W0611
+from . import _gate_extension  # pylint: disable=unused-import
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
     HAS_Z3 = True
