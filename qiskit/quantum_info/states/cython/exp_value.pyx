@@ -17,14 +17,20 @@
 cimport cython
 import numpy as np
 
+cdef unsigned long long m1 = 0x5555555555555555
+cdef unsigned long long m2 = 0x3333333333333333
+cdef unsigned long long m4 = 0x0f0f0f0f0f0f0f0f
+cdef unsigned long long m8 = 0x00ff00ff00ff00ff
+cdef unsigned long long m16 = 0x0000ffff0000ffff
+cdef unsigned long long m32 = 0x00000000ffffffff
 
 cdef unsigned long long popcount(unsigned long long count):
-  count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-  count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-  count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-  count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-  count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-  count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+  count = (count & m1) + ((count >> 1) & m1);
+  count = (count & m2) + ((count >> 2) & m2);
+  count = (count & m4) + ((count >> 4) & m4);
+  count = (count & m8) + ((count >> 8) & m8);
+  count = (count & m16) + ((count >> 16) & m16);
+  count = (count & m32) + ((count >> 32) & m32);
   return count
 
 
