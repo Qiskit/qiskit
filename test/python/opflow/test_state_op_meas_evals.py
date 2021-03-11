@@ -184,6 +184,14 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         else:
             self.assertEqual(len(sampler._cached_ops.keys()), 2)
 
+    def test_global_phase_in_circuit_state_fn(self):
+        """Test that circuits using isometry are evaluated correctly in CircuitStateFn."""
+        vector = numpy.array([1, 2, 3, 1])
+        circuit = QuantumCircuit(2)
+        circuit.isometry(vector / numpy.linalg.norm(vector), [0, 1], None)
+        result = (~StateFn(I ^ I) @ StateFn(circuit)).eval()
+        self.assertAlmostEqual(result, 1+0j)
+
 
 if __name__ == '__main__':
     unittest.main()
