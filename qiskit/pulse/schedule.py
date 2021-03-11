@@ -98,7 +98,7 @@ class PulseProgram(abc.ABC):
 
         The metadata for the schedule is a user provided ``dict`` of metadata
         for the schedule. It will not be used to influence the execution or
-        operation of the schedule, but it is expected to be passed betweeen
+        operation of the schedule, but it is expected to be passed between
         all transforms of the schedule and that providers will associate any
         schedule metadata with the results it returns from execution of that
         schedule.
