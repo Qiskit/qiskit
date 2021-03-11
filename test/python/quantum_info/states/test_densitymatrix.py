@@ -14,6 +14,7 @@
 
 import unittest
 import logging
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -22,7 +23,7 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_density_matrix
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -30,6 +31,7 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 logger = logging.getLogger(__name__)
 
 
+@ddt
 class TestDensityMatrix(QiskitTestCase):
     """Tests for DensityMatrix class."""
 
@@ -910,6 +912,44 @@ class TestDensityMatrix(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
         expval = rho.expectation_value(spp_op)
         target = 25.121320343559642 + 0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli_f_contiguous(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
+        rho._data = np.reshape(rho.data.flatten(order='F'),
+                               rho.data.shape, order='F')
+        target = rho.expectation_value(op.to_matrix())
+        expval = rho.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli_c_contiguous(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
+        rho._data = np.reshape(rho.data.flatten(order='C'),
+                               rho.data.shape, order='C')
+        target = rho.expectation_value(op.to_matrix())
+        expval = rho.expectation_value(op)
         self.assertAlmostEqual(expval, target)
 
     def test_reverse_qargs(self):
