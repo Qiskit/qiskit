@@ -1263,10 +1263,10 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.append(
             Acquire(5, AcquireChannel(3), MemorySlot(3)),
         )
-        assemble(schedule,
-                 qubit_lo_freq=self.default_qubit_lo_freq,
-                 meas_lo_freq=self.default_meas_lo_freq,
-                 meas_map=[[0, 1, 2], [3]])
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0, 1, 2], [3]])
         validate_qobj_against_schema(qobj)
 
 
