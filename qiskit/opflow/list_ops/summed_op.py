@@ -18,9 +18,9 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .list_op import ListOp
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
 
 
 class SummedOp(ListOp):
@@ -32,7 +32,7 @@ class SummedOp(ListOp):
 
     def __init__(self,
                  oplist: List[OperatorBase],
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
+                 coeff: Union[complex, ParameterExpression] = 1.0,
                  abelian: bool = False) -> None:
         """
         Args:
@@ -53,7 +53,7 @@ class SummedOp(ListOp):
     def distributive(self) -> bool:
         return True
 
-    def add(self, other: OperatorBase) -> OperatorBase:
+    def add(self, other: OperatorBase) -> "SummedOp":
         """Return Operator addition of ``self`` and ``other``, overloaded by ``+``.
 
         Note:
@@ -106,7 +106,7 @@ class SummedOp(ListOp):
                 else:
                     oplist.append(op)
                     coeffs.append(self.coeff)
-        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])  # type: ignore
+        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])
 
     # TODO be smarter about the fact that any two ops in oplist could be evaluated for sum.
     def reduce(self) -> OperatorBase:
@@ -159,16 +159,16 @@ class SummedOp(ListOp):
         raise OpflowError("The SummedOp can not be converted to circuit, because to_matrix_op did "
                           "not return a MatrixOp.")
 
-    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
+    def to_matrix_op(self, massive: bool = False) -> "SummedOp":
         """ Returns an equivalent Operator composed of only NumPy-based primitives, such as
         ``MatrixOp`` and ``VectorStateFn``. """
-        accum = self.oplist[0].to_matrix_op(massive=massive)  # type: ignore
+        accum = self.oplist[0].to_matrix_op(massive=massive)
         for i in range(1, len(self.oplist)):
-            accum += self.oplist[i].to_matrix_op(massive=massive)  # type: ignore
+            accum += self.oplist[i].to_matrix_op(massive=massive)
 
-        return accum * self.coeff
+        return cast(SummedOp, accum * self.coeff)
 
-    def to_pauli_op(self, massive: bool = False) -> OperatorBase:
+    def to_pauli_op(self, massive: bool = False) -> "SummedOp":
         # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
         pauli_sum = SummedOp(
@@ -220,11 +220,9 @@ class SummedOp(ListOp):
 
         # absorb coeffs into the operators
         if self_reduced.coeff != 1:
-            self_reduced = SummedOp(
-                [op * self_reduced.coeff for op in self_reduced.oplist])  # type: ignore
+            self_reduced = SummedOp([op * self_reduced.coeff for op in self_reduced.oplist])
         if other_reduced.coeff != 1:
-            other_reduced = SummedOp(
-                [op * other_reduced.coeff for op in other_reduced.oplist])  # type: ignore
+            other_reduced = SummedOp([op * other_reduced.coeff for op in other_reduced.oplist])
 
         # compare independent of order
         return all(any(i == j for j in other_reduced) for i in self_reduced)

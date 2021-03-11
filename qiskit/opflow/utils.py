@@ -12,7 +12,7 @@
 
 """ Utility functions for OperatorFlow """
 
-from .operator_base import OperatorBase
+from qiskit.opflow.operator_base import OperatorBase
 
 
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
