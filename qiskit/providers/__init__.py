@@ -119,7 +119,7 @@ method to get available :class:`~qiskit.provider.BackendV1` objects. The
 :class:`~qiskit.provider.BackendV1` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
-backend and also the :meth:`~qiskit.providers.BackendV1.run` method which can
+backend. It also provides the :meth:`~qiskit.providers.BackendV1.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
 APIs, such as :func:`~qiskit.execute.execute` and higher level algorithms in
