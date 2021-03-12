@@ -124,8 +124,9 @@ Schedule transforms take :class:`Schedule` s as input and return modified
 .. autosummary::
    :toctree: ../stubs/
 
-   transforms
-
+   transforms.align_measures
+   transforms.add_implicit_acquires
+   transforms.pad
 
 Exceptions
 ==========
