@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import, missing-return-doc
+# pylint: disable=cyclic-import, missing-return-doc, missing-return-type-doc
 
 """The Schedule is one of the most fundamental objects to this pulse-level programming module.
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
@@ -35,7 +35,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instructions import Instruction, Delay
-from qiskit.pulse.transforms.alignments import AlignmentTransform
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -1225,7 +1224,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 context_alignment: 'AlignmentTransform' = None):
+                 context_alignment=None):
         """Create an empty schedule block.
 
         Args:
@@ -1235,7 +1234,7 @@ class ScheduleBlock(PulseProgram):
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            context_alignment: ``AlignmentTransform`` instance that manages
+            context_alignment (AlignmentTransform): ``AlignmentTransform`` instance that manages
                 scheduling of instructions in this block.
         Raises:
             TypeError: if metadata is not a dict.
@@ -1254,7 +1253,7 @@ class ScheduleBlock(PulseProgram):
             self.append(block, inplace=True)
 
     @property
-    def context_alignment(self) -> 'AlignmentTransform':
+    def context_alignment(self):
         """Return alignment instance that allocates block component to generate schedule."""
         return self._context_alignment
 
