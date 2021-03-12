@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
-# pylint: disable=R0401
+# pylint: disable=cyclic-import
 from typing import Optional, cast, Set, List, Tuple
 
 import numpy as np
@@ -121,6 +121,7 @@ class QAOAAnsatz(BlueprintCircuit):
         """Set the registers and qubits to the new size."""
         self._qregs = []
         self._qubits = []
+        self._qubit_set = set()
 
         if num_qubits > 0:
             qr = QuantumRegister(num_qubits, 'q')

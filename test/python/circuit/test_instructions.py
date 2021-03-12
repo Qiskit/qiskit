@@ -323,6 +323,17 @@ class TestInstructions(QiskitTestCase):
         empty_gate = empty_circ.to_instruction()
         self.assertEqual(empty_gate.inverse().definition, empty_gate.definition)
 
+    def test_inverse_with_global_phase(self):
+        """test inverting instruction with global phase in definition."""
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q, name='circ', global_phase=np.pi / 3)
+        circ.x(q)
+        gate = circ.to_instruction()
+        circ = QuantumCircuit(q, name='circ', global_phase=-np.pi / 3)
+        circ.x(q)
+        gate_inverse = circ.to_instruction()
+        self.assertEqual(gate.inverse().definition, gate_inverse.definition)
+
     def test_no_broadcast(self):
         """See https://github.com/Qiskit/qiskit-terra/issues/2777
         When creating custom instructions, do not broadcast parameters"""

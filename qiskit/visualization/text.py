@@ -267,7 +267,7 @@ class BoxOnWireMid(MultiBox):
     """ A generic middle box"""
 
     def __init__(self, label, input_length, order, wire_label=''):
-        super().__init__(label, input_length, order)
+        super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
@@ -779,7 +779,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if any([isinstance(param, ndarray) for param in op.params]):
+        if any(isinstance(param, ndarray) for param in op.params):
             return None
 
         ret = []
@@ -1017,7 +1017,7 @@ class TextDrawing():
 
         elif isinstance(instruction.op, RZZGate):
             # rzz
-            connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+            connection_label = "ZZ(%s)" % TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
@@ -1037,9 +1037,10 @@ class TextDrawing():
             if base_gate.name == 'z':
                 # cz
                 gates.append(Bullet(conditional=conditional))
-            elif base_gate.name == 'u1':
+            elif base_gate.name in ['u1', 'p']:
                 # cu1
-                connection_label = TextDrawing.params_for_label(instruction)[0]
+                connection_label = "%s(%s)" % (base_gate.name.upper(),
+                                               TextDrawing.params_for_label(instruction)[0])
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == 'swap':
                 # cswap
@@ -1047,7 +1048,7 @@ class TextDrawing():
                 add_connected_gate(instruction, gates, layer, current_cons)
             elif base_gate.name == 'rzz':
                 # crzz
-                connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                connection_label = "ZZ(%s)" % TextDrawing.params_for_label(instruction)[0]
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None

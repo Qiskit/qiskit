@@ -20,6 +20,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
+from qiskit.utils.deprecation import deprecate_arguments
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -154,10 +155,11 @@ class NLocal(BlueprintCircuit):
                 if not isinstance(initial_state, InitialState):
                     raise TypeError('initial_state must be of type InitialState, but is '
                                     '{}.'.format(type(initial_state)))
-            except ImportError:
-                raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
-                                  'InitialState. To use this feature Qiskit Aqua must be installed.'
-                                  )
+            except ImportError as ex:
+                raise ImportError(
+                    'Could not import the qiskit.aqua.components.initial_states.'
+                    'InitialState. To use this feature Qiskit Aqua must be installed.'
+                ) from ex
             self.initial_state = initial_state
 
     @property
@@ -735,9 +737,12 @@ class NLocal(BlueprintCircuit):
 
         return self
 
-    def assign_parameters(self, param_dict: Union[dict, List[float], List[Parameter],
+    @deprecate_arguments({'param_dict': 'parameters'})
+    def assign_parameters(self, parameters: Union[dict, List[float], List[Parameter],
                                                   ParameterVector],
-                          inplace: bool = False) -> Optional[QuantumCircuit]:
+                          inplace: bool = False,
+                          param_dict: Optional[dict] = None  # pylint: disable=unused-argument
+                          ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
         This method also supports passing a list instead of a dictionary. If a list
@@ -755,27 +760,31 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(param_dict, dict):
-            if len(param_dict) != self.num_parameters:
+        if not isinstance(parameters, dict):
+            if len(parameters) != self.num_parameters:
                 raise AttributeError('If the parameters are provided as list, the size must match '
                                      'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(param_dict)
+                                         self.num_parameters, len(parameters)
                                      ))
-            unbound_params = [param for param in self._ordered_parameters if
-                              isinstance(param, ParameterExpression)]
+            unbound_parameters = [param for param in self._ordered_parameters if
+                                  isinstance(param, ParameterExpression)]
 
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = [param for param in unbound_params
-                                     if param not in used and (used.add(param) or True)]
-            param_dict = dict(zip(unbound_unique_params, param_dict))
+            unbound_unique_parameters = []
+            for param in unbound_parameters:
+                if param not in used:
+                    unbound_unique_parameters.append(param)
+                    used.add(param)
+
+            parameters = dict(zip(unbound_unique_parameters, parameters))
 
         if inplace:
-            new = [param_dict.get(param, param) for param in self.ordered_parameters]
+            new = [parameters.get(param, param) for param in self.ordered_parameters]
             self._ordered_parameters = new
 
-        return super().assign_parameters(param_dict, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace)
 
     def _parameterize_block(self, block, param_iter=None, rep_num=None, block_num=None,
                             indices=None, params=None):
@@ -851,7 +860,7 @@ class NLocal(BlueprintCircuit):
         else:
             raise ValueError('`which` must be either `appended` or `prepended`.')
 
-        for (block, ent) in zip(blocks, entanglements):
+        for block, ent in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
@@ -976,8 +985,11 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         if entanglement == 'pairwise':
             return linear[::2] + linear[1::2]
 
-        # circular equals linear plus top-bottom entanglement
-        circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        # circular equals linear plus top-bottom entanglement (if there's space for it)
+        if n > m:
+            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        else:
+            circular = linear
         if entanglement == 'circular':
             return circular
 
