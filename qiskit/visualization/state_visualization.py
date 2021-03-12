@@ -218,7 +218,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({'rho': 'state'})
-def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
+def plot_bloch_multivector(state, title='', figsize=None, *, rho=None, reverse_order=False):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -227,6 +227,7 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Has no effect, here for compatibility only.
+        reverse_order (bool): If True, plots qubits following Qiskit's convention [Default:False].
 
     Returns:
         matplotlib.Figure:
@@ -249,7 +250,7 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
             qc.cx(0, 1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector")
+            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_order=False)
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
@@ -257,13 +258,13 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
-    # Data gets reversed to account for qubit ordering
-    bloch_data = _bloch_multivector_data(state)[::-1]
+    # Data
+    bloch_data = _bloch_multivector_data(state)[::-1] if reverse_order else _bloch_multivector_data(state)
     num = len(bloch_data)
     width, height = plt.figaspect(1/num)
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
-        pos = num - 1 - i
+        pos = num - 1 - i if reverse_order else i
         ax = fig.add_subplot(1, num, i + 1, projection='3d')
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax,
                           figsize=figsize)
