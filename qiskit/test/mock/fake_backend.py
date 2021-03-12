@@ -23,7 +23,7 @@ from qiskit.providers import BaseBackend
 from qiskit.exceptions import QiskitError
 
 try:
-    from qiskit import Aer
+    from qiskit.providers.aer import Aer
     HAS_AER = True
 except ImportError:
     HAS_AER = False

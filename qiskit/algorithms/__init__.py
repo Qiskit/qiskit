@@ -45,8 +45,28 @@ Amplitude Amplifiers
    :toctree: ../stubs/
    :nosignatures:
 
+   AmplificationProblem
    Grover
    GroverResult
+
+Amplitude Estimators
+++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   AmplitudeEstimator
+   AmplitudeEstimatorResult
+   AmplitudeEstimation
+   AmplitudeEstimationResult
+   EstimationProblem
+   FasterAmplitudeEstimation
+   FasterAmplitudeEstimationResult
+   IterativeAmplitudeEstimation
+   IterativeAmplitudeEstimationResult
+   MaximumLikelihoodAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimationResult
 
 Eigensolvers
 ++++++++++++
@@ -108,7 +128,15 @@ Exceptions
 
 from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
+from .amplitude_estimators import (
+    AmplitudeEstimator, AmplitudeEstimatorResult,
+    AmplitudeEstimation, AmplitudeEstimationResult,
+    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
+    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem
+)
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
 from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
@@ -120,8 +148,20 @@ __all__ = [
     'AlgorithmResult',
     'VariationalAlgorithm',
     'VariationalResult',
+    'AmplificationProblem',
     'Grover',
     'GroverResult',
+    'AmplitudeEstimator',
+    'AmplitudeEstimatorResult',
+    'AmplitudeEstimation',
+    'AmplitudeEstimationResult',
+    'FasterAmplitudeEstimation',
+    'FasterAmplitudeEstimationResult',
+    'IterativeAmplitudeEstimation',
+    'IterativeAmplitudeEstimationResult',
+    'MaximumLikelihoodAmplitudeEstimation',
+    'MaximumLikelihoodAmplitudeEstimationResult',
+    'EstimationProblem',
     'NumPyEigensolver',
     'Eigensolver',
     'EigensolverResult',

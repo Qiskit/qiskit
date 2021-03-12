@@ -255,7 +255,7 @@ class InstructionScheduleMap():
                              'callable that outputs a schedule.')
 
         # initialize parameter list
-        if isinstance(schedule, Callable):
+        if callable(schedule):
             func_parameters = list(inspect.signature(schedule).parameters.keys())
         else:
             func_parameters = set(param.name for param in schedule.parameters)
@@ -367,6 +367,6 @@ def _get_instruction_string(inst: Union[str, Instruction]):
     else:
         try:
             return inst.name
-        except AttributeError:
+        except AttributeError as ex:
             raise PulseError('Input "inst" has no attribute "name".'
-                             'This should be a circuit "Instruction".')
+                             'This should be a circuit "Instruction".') from ex

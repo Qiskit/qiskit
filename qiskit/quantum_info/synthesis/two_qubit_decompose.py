@@ -32,6 +32,7 @@ import scipy.linalg as la
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.tools import pi_check
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -63,6 +64,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     if abs(detL) < 0.9:
         raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
     L /= np.sqrt(detL)
+    phase = np.angle(detL) / 2
 
     temp = np.kron(L, R)
     deviation = np.abs(np.abs(temp.conj(temp).T.dot(special_unitary_matrix).trace()) - 4)
@@ -70,7 +72,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
         raise QiskitError("decompose_two_qubit_product_gate: decomposition failed: "
                           "deviation too large: {}".format(deviation))
 
-    return L, R
+    return L, R, phase
 
 
 _B = (1.0/math.sqrt(2)) * np.array([[1, 1j, 0, 0],
@@ -102,12 +104,15 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
+        pi = np.pi
         pi2 = np.pi/2
         pi4 = np.pi/4
 
         # Make U be in SU(4)
         U = unitary_matrix.copy()
-        U *= la.det(U)**(-0.25)
+        detU = la.det(U)
+        U *= detU**(-0.25)
+        global_phase = np.angle(detU) / 4
 
         Up = _Bd.dot(U).dot(_B)
         M2 = Up.T.dot(Up)
@@ -151,8 +156,9 @@ class TwoQubitWeylDecomposition:
         K2.real[abs(K2.real) < eps] = 0.0
         K2.imag[abs(K2.imag) < eps] = 0.0
 
-        K1l, K1r = decompose_two_qubit_product_gate(K1)
-        K2l, K2r = decompose_two_qubit_product_gate(K2)
+        K1l, K1r, phase_l = decompose_two_qubit_product_gate(K1)
+        K2l, K2r, phase_r = decompose_two_qubit_product_gate(K2)
+        global_phase += phase_l + phase_r
 
         K1l = K1l.copy()
 
@@ -161,33 +167,44 @@ class TwoQubitWeylDecomposition:
             cs[0] -= 3*pi2
             K1l = K1l.dot(_ipy)
             K1r = K1r.dot(_ipy)
+            global_phase += pi2
         if cs[1] > pi2:
             cs[1] -= 3*pi2
             K1l = K1l.dot(_ipx)
             K1r = K1r.dot(_ipx)
+            global_phase += pi2
         conjs = 0
         if cs[0] > pi4:
             cs[0] = pi2-cs[0]
             K1l = K1l.dot(_ipy)
             K2r = _ipy.dot(K2r)
             conjs += 1
+            global_phase -= pi2
         if cs[1] > pi4:
             cs[1] = pi2-cs[1]
             K1l = K1l.dot(_ipx)
             K2r = _ipx.dot(K2r)
             conjs += 1
+            global_phase += pi2
+            if conjs == 1:
+                global_phase -= pi
         if cs[2] > pi2:
             cs[2] -= 3*pi2
             K1l = K1l.dot(_ipz)
             K1r = K1r.dot(_ipz)
+            global_phase += pi2
+            if conjs == 1:
+                global_phase -= pi
         if conjs == 1:
             cs[2] = pi2-cs[2]
             K1l = K1l.dot(_ipz)
             K2r = _ipz.dot(K2r)
+            global_phase += pi2
         if cs[2] > pi4:
             cs[2] -= pi2
             K1l = K1l.dot(_ipz)
             K1r = K1r.dot(_ipz)
+            global_phase -= pi2
         self.a = cs[1]
         self.b = cs[0]
         self.c = cs[2]
@@ -195,10 +212,12 @@ class TwoQubitWeylDecomposition:
         self.K1r = K1r
         self.K2l = K2l
         self.K2r = K2r
+        self.global_phase = global_phase
 
     def __repr__(self):
         # FIXME: this is worth making prettier since it's very useful for debugging
-        return ("{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
+        return ("{}\n{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
+            pi_check(self.global_phase),
             np.array_str(self.K1l),
             np.array_str(self.K1r),
             self.a, self.b, self.c,
@@ -431,10 +450,14 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_euler = [self._decomposer1q(x) for x in decomposition]
+        decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
+        return_circuit.global_phase = target_decomposed.global_phase
+        return_circuit.global_phase -= best_nbasis * self.basis.global_phase
+        if best_nbasis == 2:
+            return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
             return_circuit.compose(decomposition_euler[2*i], [q[0]], inplace=True)
             return_circuit.compose(decomposition_euler[2*i+1], [q[1]], inplace=True)

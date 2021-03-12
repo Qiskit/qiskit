@@ -96,9 +96,7 @@ Operators
 +++++++++
 
 The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
-represent the primary Operator modules. The :mod:`.legacy` submodule includes older
-Operator classes which are currently being migrate out of usage, but are still used in
-some places.
+represent the primary Operator modules.
 
 .. autosummary::
    :toctree:
@@ -106,7 +104,6 @@ some places.
    primitive_ops
    list_ops
    state_fns
-   legacy
 
 Converters
 ++++++++++
@@ -126,6 +123,16 @@ only diagonal Paulis.
    expectations
    gradients
 
+Utility functions
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   commutator
+   anti_commutator
+   double_commutator
+
 Exceptions
 ==========
 
@@ -135,28 +142,21 @@ Exceptions
    OpflowError
 """
 
-from .legacy import (evolution_instruction,
-                     suzuki_expansion_slice_pauli_list,
-                     pauli_measurement,
-                     measure_pauli_z, covariance, row_echelon_F2,
-                     kernel_F2, commutator, check_commutativity)
-from .legacy import (LegacyBaseOperator, WeightedPauliOperator, Z2Symmetries,
-                     TPBGroupedWeightedPauliOperator, MatrixOperator,
-                     PauliGraph, op_converter)
-
 # New Operators
 from .operator_base import OperatorBase
-from .primitive_ops import PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp
+from .primitive_ops import (PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp,
+                            TaperedPauliSumOp, Z2Symmetries)
 from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
                         CircuitStateFn, OperatorStateFn)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
 from .converters import (ConverterBase, CircuitSampler, PauliBasisChange,
-                         DictToCircuitSum, AbelianGrouper)
+                         DictToCircuitSum, AbelianGrouper, TwoQubitReduction)
 from .expectations import (ExpectationBase, ExpectationFactory, PauliExpectation,
                            MatrixExpectation, AerPauliExpectation, CVaRExpectation)
 from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotterEvolution,
                          MatrixEvolution, TrotterizationBase, TrotterizationFactory, Trotter,
                          Suzuki, QDrift)
+from .utils import commutator, anti_commutator, double_commutator
 
 # Convenience immutable instances
 from .operator_globals import (EVAL_SIG_DIGITS,
@@ -171,17 +171,9 @@ from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
 from .exceptions import OpflowError
 
 __all__ = [
-    # Common
-    'evolution_instruction', 'suzuki_expansion_slice_pauli_list',
-    'pauli_measurement', 'measure_pauli_z',
-    'covariance', 'row_echelon_F2', 'kernel_F2', 'commutator', 'check_commutativity',
-    # Legacy
-    'PauliGraph', 'LegacyBaseOperator', 'WeightedPauliOperator',
-    'Z2Symmetries', 'TPBGroupedWeightedPauliOperator',
-    'MatrixOperator',
     # Operators
     'OperatorBase',
-    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp',
+    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp', 'TaperedPauliSumOp',
     'StateFn', 'DictStateFn', 'VectorStateFn', 'CircuitStateFn', 'OperatorStateFn',
     'CVaRMeasurement',
     'ListOp', 'SummedOp', 'ComposedOp', 'TensoredOp',
@@ -191,10 +183,13 @@ __all__ = [
     'AerPauliExpectation', 'CVaRExpectation',
     'EvolutionBase', 'EvolvedOp', 'EvolutionFactory', 'PauliTrotterEvolution', 'MatrixEvolution',
     'TrotterizationBase', 'TrotterizationFactory', 'Trotter', 'Suzuki', 'QDrift',
+    'TwoQubitReduction', 'Z2Symmetries',
     # Convenience immutable instances
     'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
     # Gradients
     'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
     'HessianBase', 'Hessian', 'QFIBase', 'QFI',
     'OpflowError',
+    # utils
+    'commutator', 'anti_commutator', 'double_commutator',
 ]

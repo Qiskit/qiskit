@@ -23,7 +23,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, CHGate, CXGate
+from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -528,8 +528,8 @@ class TestOperator(OperatorTestCase):
         assert_allclose(op12.data, Operator(mat12).data)
 
     def test_power_except(self):
-        """Test power method raises exceptions."""
-        op = Operator(self.rand_matrix(3, 3))
+        """Test power method raises exceptions if not square."""
+        op = Operator(self.rand_matrix(2, 3))
         # Non-integer power raises error
         self.assertRaises(QiskitError, op.power, 0.5)
 
@@ -679,6 +679,15 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(op.equiv(phase * mat))
         self.assertTrue(op.equiv(Operator(phase * mat)))
         self.assertFalse(op.equiv(2 * mat))
+
+    def test_reverse_qargs(self):
+        """Test reverse_qargs method"""
+        circ1 = QFT(5)
+        circ2 = circ1.reverse_bits()
+
+        state1 = Operator(circ1)
+        state2 = Operator(circ2)
+        self.assertEqual(state1.reverse_qargs(), state2)
 
 
 if __name__ == '__main__':

@@ -41,7 +41,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
@@ -64,7 +63,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     This pass manager applies the user-given initial layout. If none is given, a search
     for a perfect layout (i.e. one that satisfies all 2-qubit interactions) is conducted.
     If no such layout is found, qubits are laid out on the most densely connected subset
-    which also exhibits the best gate fidelitites.
+    which also exhibits the best gate fidelities.
 
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
@@ -175,11 +174,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    if basis_gates and ('u1' in basis_gates or 'u2' in basis_gates or
-                        'u3' in basis_gates):
-        _opt = [Optimize1qGates(basis_gates), CommutativeCancellation()]
-    else:
-        _opt = [Optimize1qGatesDecomposition(basis_gates), CommutativeCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates)]
 
     # 9. Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
@@ -206,7 +202,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt, do_while=_opt_control)
+    pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if scheduling_method:
         pm2.append(_scheduling)
 

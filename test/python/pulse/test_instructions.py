@@ -14,7 +14,8 @@
 
 import numpy as np
 
-from qiskit.pulse import channels, configuration, instructions, library
+from qiskit import pulse, circuit
+from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from qiskit.test import QiskitTestCase
 
 
@@ -112,6 +113,19 @@ class TestDelay(QiskitTestCase):
         self.assertEqual(delay.duration, 10)
         self.assertIsInstance(delay.duration, np.integer)
 
+    def test_operator_delay(self):
+        """Test Operator(delay)."""
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.quantum_info import Operator
+        circ = QuantumCircuit(1)
+        circ.delay(10)
+        op_delay = Operator(circ)
+
+        expected = QuantumCircuit(1)
+        expected.i(0)
+        op_identity = Operator(expected)
+        self.assertEqual(op_delay, op_identity)
+
 
 class TestSetFrequency(QiskitTestCase):
     """Set frequency tests."""
@@ -177,18 +191,27 @@ class TestSnapshot(QiskitTestCase):
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    def setUp(self):
+        """Setup play tests."""
+        super().setUp()
+        self.duration = 4
+        self.pulse_op = library.Waveform([1.0] * self.duration, name='test')
+
     def test_play(self):
         """Test basic play instruction."""
-        duration = 4
-        pulse = library.Waveform([1.0] * duration, name='test')
-        play = instructions.Play(pulse, channels.DriveChannel(1))
+        play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, pulse.name)
-        self.assertEqual(play.duration, duration)
+        self.assertEqual(play.name, self.pulse_op.name)
+        self.assertEqual(play.duration, self.duration)
         self.assertEqual(repr(play),
                          "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
                          " DriveChannel(1), name='test')")
+
+    def test_play_non_pulse_ch_raises(self):
+        """Test that play instruction on non-pulse channel raises a pulse error."""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channels.AcquireChannel(0))
 
 
 class TestDirectives(QiskitTestCase):
@@ -196,7 +219,6 @@ class TestDirectives(QiskitTestCase):
 
     def test_relative_barrier(self):
         """Test the relative barrier directive."""
-        # pylint: disable=invalid-name
         a0 = channels.AcquireChannel(0)
         d0 = channels.DriveChannel(0)
         m0 = channels.MeasureChannel(0)
@@ -211,3 +233,49 @@ class TestDirectives(QiskitTestCase):
         self.assertEqual(barrier.duration, 0)
         self.assertEqual(barrier.channels, chans)
         self.assertEqual(barrier.operands, chans)
+
+
+class TestCall(QiskitTestCase):
+    """Test call instruction."""
+
+    def setUp(self):
+        super().setUp()
+
+        with pulse.build() as _subroutine:
+            pulse.delay(10, pulse.DriveChannel(0))
+        self.subroutine = _subroutine
+
+        self.param1 = circuit.Parameter('amp1')
+        self.param2 = circuit.Parameter('amp2')
+        with pulse.build() as _function:
+            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, self.param2, 40), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
+        self.function = _function
+
+    def test_call(self):
+        """Test basic call instruction."""
+        call = instructions.Call(subroutine=self.subroutine)
+
+        self.assertEqual(call.duration, 10)
+        self.assertEqual(call.subroutine, self.subroutine)
+
+    def test_parameterized_call(self):
+        """Test call instruction with parameterized subroutine."""
+        call = instructions.Call(subroutine=self.function)
+
+        self.assertTrue(call.is_parameterized())
+        self.assertEqual(len(call.parameters), 2)
+
+    def test_assign_parameters(self):
+        """Test assigning parameter doesn't immediately update program."""
+        call = instructions.Call(subroutine=self.function)
+        call.assign_parameters({self.param1: 0.1, self.param2: 0.2})
+
+        self.assertFalse(call.is_parameterized())
+
+        subroutine = call.subroutine
+        self.assertTrue(subroutine.is_parameterized())
+
+        arguments = call.arguments
+        self.assertDictEqual(arguments, {self.param1: 0.1, self.param2: 0.2})

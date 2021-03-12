@@ -14,10 +14,8 @@
 
 from typing import Union, Callable, List, Tuple, Optional
 
-import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_arguments
 from ..standard_gates import (
     XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 )
@@ -254,68 +252,3 @@ class MCMTVChain(MCMT):
 
     def inverse(self):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
-
-
-# pylint:disable=unused-argument
-@deprecate_arguments({'single_control_gate_fun': 'gate',
-                      'q_controls': 'control_qubits',
-                      'q_ancillae': 'ancilla_qubits',
-                      'q_targets': 'target_qubits'})
-def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='noancilla',
-         *, single_control_gate_fun=None, q_controls=None, q_ancillae=None, q_targets=None):
-    """Apply a multi-control, multi-target using a generic gate.
-
-    This can also be used to implement a generic multi-control gate, as the target could also be of
-    length 1.
-    """
-    warnings.warn('The multi-control multi-target gate has moved to the circuit library as of '
-                  '0.14.0 and will not be useable as circuit method anymore. This method will be '
-                  'removed no earlier than 3 months after the release date. '
-                  'You should create the qiskit.circuit.library.MCMT or MCMTVChain circuits and '
-                  'add then to your circuit using append, extend, or compose.',
-                  DeprecationWarning, stacklevel=3)
-
-    deprecated_modes = {'no-ancilla': 'noancilla',
-                        'basic': 'v-chain'}
-
-    if mode in deprecated_modes.keys():
-        warnings.warn('The mode supplied mode for ``QuantumCircuit.mcmt`` is deprecated, use '
-                      '{} instead of {}.'.format(deprecated_modes[mode], mode))
-        mode = deprecated_modes[mode]
-
-    # for backward compatibility; the previous signature was
-    # `def mcmt(self, q_controls, q_ancillae, single_control_gate_fun, q_targets, mode="basic")`
-    if callable(target_qubits):
-        # swap arguments in the right order
-        tmp = gate
-        gate = target_qubits
-        target_qubits = ancilla_qubits
-        ancilla_qubits = control_qubits
-        control_qubits = tmp
-
-    if isinstance(control_qubits, (int, Qubit)):
-        control_qubits = [control_qubits]
-    if isinstance(target_qubits, (int, Qubit)):
-        target_qubits = [target_qubits]
-
-    if mode == 'noancilla':
-        mcmt_gate = MCMT(gate, len(control_qubits), len(target_qubits))
-        return self.append(mcmt_gate, control_qubits[:] + target_qubits[:], [])
-
-    if mode == 'v-chain':
-        mcmt_gate = MCMTVChain(gate, len(control_qubits), len(target_qubits))
-        num_ancillas = mcmt_gate.num_ancilla_qubits
-        ancilla_qubits = ancilla_qubits or []
-        if isinstance(ancilla_qubits, (int, Qubit)):
-            ancilla_qubits = [ancilla_qubits]
-        elif len(ancilla_qubits) < num_ancillas:
-            raise QiskitError('Insufficient number of ancilla qubits, need {}'.format(num_ancillas))
-
-        return self.append(mcmt_gate,
-                           control_qubits[:] + target_qubits[:] + ancilla_qubits[:num_ancillas],
-                           [])
-
-    raise QiskitError('Invalid mode specified: {}'.format(mode))
-
-
-QuantumCircuit.mcmt = mcmt

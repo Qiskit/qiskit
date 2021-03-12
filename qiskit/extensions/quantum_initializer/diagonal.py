@@ -51,9 +51,9 @@ class DiagonalGate(Gate):
         for z in diag:
             try:
                 complex(z)
-            except TypeError:
+            except TypeError as ex:
                 raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.")
+                                  "complex numbers.") from ex
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
@@ -99,6 +99,7 @@ class DiagonalGate(Gate):
             target_qubit = q[self.num_qubits - num_act_qubits]
             circuit.ucrz(angles_rz, contr_qubits, target_qubit)
             n //= 2
+        circuit.global_phase += diag_phases[0]
         return circuit
 
 
@@ -150,15 +151,4 @@ def diagonal(self, diag, qubit):
     return self.append(DiagonalGate(diag), qubit)
 
 
-def diag_gate(self, diag, qubit):
-    """Deprecated version of QuantumCircuit.diagonal."""
-    import warnings
-    warnings.warn('The QuantumCircuit.diag_gate() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.diagonal() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return diagonal(self, diag, qubit)
-
-
 QuantumCircuit.diagonal = diagonal
-QuantumCircuit.diag_gate = diag_gate  # deprecated
