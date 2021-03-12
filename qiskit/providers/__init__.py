@@ -177,14 +177,14 @@ method matches the required interface. The rest is up to the specific provider o
 Backend
 =======
 
-The backend classes are the core to the provider. These class definitions
-define the interface between Qiskit and the hardware or simulator that will
-execute circuits. They also define the interface for a backend to provide the
-necessary information describing the backend to the compiler so that it can
-embed and optimize any circuit to the backend. There are 3 required things
-in every backend object: a backend configuration property,
-a ``run()`` method, and a ``_default_options()`` method.
-For example, a minimum working example would be something like::
+The backend classes are the core to the provider. These classes are what
+provide the interface between Qiskit and the hardware or simulator that will
+execute circuits. This includes providing the necessary information to
+describe a backend to the compiler so that it can embed and optimize any
+circuit for the backend. There are 3 required things in every backend object: a
+backend configuration property, a ``run()`` method, and a
+``_default_options()`` method. For example, a minimum working example would be
+something like::
 
     from qiskit.providers import BackendV1 as Backend
     from qiskit.providers.models import BackendConfiguration
@@ -244,20 +244,19 @@ map, etc), the :class:`~qiskit.providers.models.BackendProperties` which
 describes measured properties of the device (such as current error rates), and
 the :class:`~qiskit.providers.models.PulseDefaults` which defines the
 default pulse behavior for the backend (such as the pulse sequences for gates).
-Of these the only required piece for a backend is the
-:class:`~qiskit.providers.models.BackendConfiguration`, the other information
-is only used if the backend either returns the necessary information.
+Of these only :class:`~qiskit.providers.models.BackendConfiguration` is
+required.
 
 It's worth noting that this interface will likely evolve over time as the
-compiler grows and improves, thus requiring new information from the backends. This is
-a key reason why the providers interfaces are versioned to enable making these
-changes in a controlled manner. The details here will change and reflect the
-latest version of this interface.
+compiler grows and improves, thus requiring new information from the backends.
+This is a key reason why the providers interfaces are versioned to enable
+making these changes in a controlled manner. The details here will change and
+reflect the latest version of this interface.
 
 Custom Basis Gates
 ^^^^^^^^^^^^^^^^^^
 
-If your backend doesn't use gates in the Qiskit circuit library
+1. If your backend doesn't use gates in the Qiskit circuit library
 (:mod:`qiskit.circuit.library`) you can integrate support for this into your
 provider. The basic method for doing this is first to define a
 :class:`~qiskit.circuit.Gate` class for all the custom gates in the basis
@@ -277,26 +276,27 @@ set. For example::
             q.ry(np.pi / 2, 0)
             self.definition = qc
 
-The key thing to ensure that any custom gates in your Backend's basis set
+The key thing to ensure is that any custom gates in your Backend's basis set
 is that your custom gate's name attribute (the first param on
-``super().__init__()`` in the ``__init__`` defintion above does not conflict
+``super().__init__()`` in the ``__init__`` defintion above) does not conflict
 with the name of any other gates. The name attribute is what is used to
 identify the gate in the basis set for the transpiler. If there is a conflict
 the transpiler will not know which gate to use.
 
-After you've defined the custom gates to use for the Backend's basis set
+2. After you've defined the custom gates to use for the Backend's basis set
 then you need to add equivalence rules to the standard equivalence library
-so that the :class:`~qiskit.transpiler.passes.BasisTranslator` used in the
-:func:`~qiskit.compiler.transpile` function and :mod:`~qiskit.transpiler`
-module can convert an arbitrary circuit using the custom basis set. This
-can be done by defining equivalent circuits, in terms of the custom gate,
-for standard gates. Typically if you can convert from a
+so that the :funnc:`~qiskit.compiler.transpile` function and
+:mod:`~qiskit.transpiler` module can convert an arbitrary circuit using the
+custom basis set. This can be done by defining equivalent circuits, in terms
+of the custom gate, for standard gates. Typically if you can convert from a
 :class:`~qiskit.circuit.library.CXGate` (if your basis doesn't include a
-standard 2 qubit gate) and some commonly used single
-qubit rotation gates like :class:`~qiskit.ciruit.library.HGate`. Typically
-the more equivalence rules that are defined from standard gates to your basis
-the more efficient translation from an arbitrary circuit to the target
-basis will be (although not always, and there is a diminishing margin of return).
+standard 2 qubit gate) and some commonly used single qubit rotation gates like
+the :class:`~qiskit.ciruit.library.HGate` and
+:class:`~qiskit.circuit.library.UGate` that should be sufficient for the
+transpiler to translate any circuit into the custom basis gates. But, the more
+equivalence rules that are defined from standard gates to your basis the more
+efficient translation from an arbitrary circuit to the target basis will be
+(although not always, and there is a diminishing margin of return).
 
 For example, if you were to add some rules for the above custom ``SYGate``
 we could define the :class:`~qiskit.circuit.library.U2Gate` and
