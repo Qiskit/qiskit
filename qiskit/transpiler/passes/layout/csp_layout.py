@@ -115,7 +115,7 @@ class CSPLayout(AnalysisPass):
             solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
         variables = list(range(len(qubits)))
-        variable_domains = list(self.coupling_map.physical_qubits).copy()
+        variable_domains = list(self.coupling_map.physical_qubits)
         random.Random(self.seed).shuffle(variable_domains)
 
         problem = Problem(solver)
