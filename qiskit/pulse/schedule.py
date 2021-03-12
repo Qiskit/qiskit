@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=cyclic-import, missing-return-doc
+
 """The Schedule is one of the most fundamental objects to this pulse-level programming module.
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
 instruction occuring in parallel over multiple signal *channels*.
@@ -32,12 +34,11 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-# pylint: disable=cyclic-import, unused-import
 from qiskit.pulse.instructions import Instruction, Delay
+from qiskit.pulse.transforms.alignments import AlignmentTransform
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
-# pylint: disable=missing-return-doc
 
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
@@ -492,10 +493,6 @@ class PulseProgram(abc.ABC):
     def __add__(self, other: 'PulseProgram') -> 'PulseProgram':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
-
-    def __lshift__(self, time: int) -> 'PulseProgram':
-        """Return a new schedule which is shifted forward by ``time``."""
-        return self.shift(time)
 
 
 class Schedule(PulseProgram):
@@ -1107,6 +1104,10 @@ class Schedule(PulseProgram):
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
+    def __lshift__(self, time: int) -> 'PulseProgram':
+        """Return a new schedule which is shifted forward by ``time``."""
+        return self.shift(time)
+
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two Schedule are equal.
 
@@ -1224,7 +1225,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 context_alignment: 'qiskit.pulse.transforms.AlignmentTransform' = None):
+                 context_alignment: 'AlignmentTransform' = None):
         """Create an empty schedule block.
 
         Args:
@@ -1234,8 +1235,8 @@ class ScheduleBlock(PulseProgram):
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            context_alignment: ``AlignmentTransform`` instance that manages scheduling of
-                instructions in this block.
+            context_alignment: ``AlignmentTransform`` instance that manages
+                scheduling of instructions in this block.
         Raises:
             TypeError: if metadata is not a dict.
         """
@@ -1253,7 +1254,7 @@ class ScheduleBlock(PulseProgram):
             self.append(block, inplace=True)
 
     @property
-    def context_alignment(self) -> 'qiskit.pulse.transforms.AlignmentTransform':
+    def context_alignment(self) -> 'AlignmentTransform':
         """Return alignment instance that allocates block component to generate schedule."""
         return self._context_alignment
 
@@ -1540,16 +1541,6 @@ class ScheduleBlock(PulseProgram):
         if schedule.is_parameterized():
             for param in schedule.parameters:
                 self._parameter_table[param].append(schedule)
-
-    def __or__(self, other: BlockComponent) -> 'ScheduleBlock':
-        """Return a new schedule which is the union of `self` and `other`."""
-        from qiskit.pulse.transforms import AlignLeft
-        union_block = ScheduleBlock(name=self.name, metadata=self.metadata,
-                                    context_alignment=AlignLeft())
-        union_block.append(self, inplace=True)
-        union_block.append(other, inplace=True)
-
-        return union_block
 
     def __eq__(self, other: 'ScheduleBlock') -> bool:
         """Test if two ScheduleBlocks are equal.
