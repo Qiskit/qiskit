@@ -70,7 +70,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     phase = cmath.phase(detL) / 2
 
     temp = np.kron(L, R)
-    deviation = abs(abs(temp.conj(temp).T.dot(special_unitary_matrix).trace()) - 4)
+    deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
     if deviation > 1.E-13:
         raise QiskitError("decompose_two_qubit_product_gate: decomposition failed: "
                           "deviation too large: {}".format(deviation))
@@ -103,9 +103,10 @@ class TwoQubitWeylDecomposition():
     thus avoiding problems of numerical stability.
 
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
-    the specialization is more approximate.
+    forcing the specialization is more approximate than asserted.
     """
 
+    # The parameters of the decomposition:
     a: float
     b: float
     c: float
@@ -114,14 +115,15 @@ class TwoQubitWeylDecomposition():
     K2l: np.ndarray
     K1r: np.ndarray
     K2r: np.ndarray
+
     unitary_matrix: np.ndarray  # The unitary that was input
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _original_decomposition: "TwoQubitWeylDecomposition"
-    _is_flipped_from_original: bool
+    _is_flipped_from_original: bool  # The approx is closest to a Weyl reflection of the original?
 
-    _default_1q_basis: ClassVar[str] = 'ZYZ'
+    _default_1q_basis: ClassVar[str] = 'ZYZ'  # Default one qubit basis (explicit parameterization)
 
     def __init_subclass__(cls, **kwargs):
         """Subclasses should be concrete, not factories.
@@ -252,7 +254,6 @@ class TwoQubitWeylDecomposition():
         od.K2l = K2l
         od.K2r = K2r
         od.global_phase = global_phase
-        od.unitary_matrix = unitary_matrix
         od.requested_fidelity = fidelity
         od.calculated_fidelity = 1.0
         od.unitary_matrix = np.array(unitary_matrix, copy=True)
@@ -332,7 +333,9 @@ class TwoQubitWeylDecomposition():
     def specialize(self):
         """Make changes to the decomposition to comply with any specialization.
 
-        Do not update the global phase, since gets done in generic __init__()"""
+        Do update a, b, c, k1l, k1r, k2l, k2r, _is_flipped_from_original to round to the
+        specialization. Do not update the global phase, since this gets done in generic
+        __init__()"""
         raise NotImplementedError
 
     def circuit(self, *, euler_basis: Optional[str] = None,

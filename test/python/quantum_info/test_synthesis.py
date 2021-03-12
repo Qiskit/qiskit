@@ -13,6 +13,8 @@
 """Tests for quantum synthesis methods."""
 
 import unittest
+import contextlib
+import logging
 from test import combine
 from ddt import ddt
 
@@ -41,7 +43,9 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecom
                                                                TwoQubitWeylGeneral,
                                                                two_qubit_cnot_decompose,
                                                                TwoQubitBasisDecomposer,
-                                                               Ud)
+                                                               Ud,
+                                                               decompose_two_qubit_product_gate)
+
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
 
@@ -100,10 +104,20 @@ class CheckDecompositions(QiskitTestCase):
         self.assertTrue(np.abs(maxdist) < tolerance,
                         "Operator {}: Worst distance {}".format(operator, maxdist))
 
+    @contextlib.contextmanager
+    def assertDebugOnly(self):  # FIXME: when at python 3.10+ replace with assertNoLogs
+        """Context manager, asserts log is emitted at level DEBUG but no higher"""
+        with self.assertLogs("qiskit.quantum_info.synthesis", "DEBUG") as ctx:
+            yield
+        for i in range(len(ctx.records)):
+            self.assertLessEqual(ctx.records[i].levelno, logging.DEBUG,
+                                 msg=f"Unexpected logging entry: {ctx.output[i]}")
+
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
-        decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
+        with self.assertDebugOnly():
+            decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
         for u, qs in (
                 (decomp.K2r, [0]),
@@ -125,7 +139,8 @@ class CheckDecompositions(QiskitTestCase):
 
         # Loop to check both for implicit and explicity specialization
         for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
-            decomp = decomposer(target_unitary, fidelity=fidelity)
+            with self.assertDebugOnly():
+                decomp = decomposer(target_unitary, fidelity=fidelity)
             self.assertEqual(np.max(np.abs(decomp.unitary_matrix - target_unitary)), 0,
                              "Incorrect saved unitary in the decomposition.")
             self.assertIsInstance(decomp, expected_specialization,
@@ -141,10 +156,12 @@ class CheckDecompositions(QiskitTestCase):
             trace = np.trace(actual_unitary.T.conj() @ target_unitary)
             self.assertAlmostEqual(trace.imag, 0, places=13,
                                    msg=f"Real trace for {decomposer.__name__}")
-        _ = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
+        with self.assertDebugOnly():
+            _ = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
         if expected_specialization is not TwoQubitWeylGeneral:
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(QiskitError) as exc:
                 _ = expected_specialization(target_unitary, fidelity=1.)
+            self.assertIn("worse than requested", exc.exception.message)
 
     def check_exact_decomposition(self, target_unitary, decomposer,
                                   tolerance=1.e-13, num_basis_uses=None):
@@ -786,7 +803,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt = random_unitary(4, seed=state).data
         tgt *= np.exp(1j * tgt_phase)
 
-        traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
+        with self.assertDebugOnly():
+            traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
 
         for i in range(4):
             decomp_circuit = decomposer(tgt, _num_basis_uses=i)
@@ -933,7 +951,6 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         self.assertEqual(decomposer.num_basis_gates(target_unitary), num_basis_uses)
         decomp_circuit = decomposer(target_unitary)
         self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get('unitary', 0))
-        # Now check the fidelity?
 
     @combine(seed=range(10), name='seed_{seed}')
     def test_approx_supercontrolled_decompose_phase_0_use_random(self, seed, delta=0.01):
@@ -1012,6 +1029,65 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
         d1, d2, d3 = state.random(size=3) * delta
         tgt_unitary = np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a+d1, tgt_b+d2, tgt_c+d3) @ tgt_k2
         self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
+
+
+class TestDecomposeProductRaises(QiskitTestCase):
+    """Check that exceptions are raised when 2q matrix is not a product of 1q unitaries"""
+    def test_decompose_two_qubit_product_gate_detr_too_small(self):
+        """Check that exception raised for too-small right component"""
+        kl = np.eye(2)
+        kr = 0.05*np.eye(2)
+        klkr = np.kron(kl, kr)
+        with self.assertRaises(QiskitError) as exc:
+            decompose_two_qubit_product_gate(klkr)
+        self.assertIn("detR <", exc.exception.message)
+
+    def test_decompose_two_qubit_product_gate_detl_too_small(self):
+        """Check that exception raised for too-small left component"""
+        kl = np.array([[1, 0], [0, 0]])
+        kr = np.eye(2)
+        klkr = np.kron(kl, kr)
+        with self.assertRaises(QiskitError) as exc:
+            decompose_two_qubit_product_gate(klkr)
+        self.assertIn("detL <", exc.exception.message)
+
+    def test_decompose_two_qubit_product_gate_not_product(self):
+        """Check that exception raised for non-product unitary"""
+        klkr = Ud(1.E-6, 0, 0)
+        with self.assertRaises(QiskitError) as exc:
+            decompose_two_qubit_product_gate(klkr)
+        self.assertIn("decomposition failed", exc.exception.message)
+
+
+class TestTwoQubitWeylDecompositionMisc(QiskitTestCase):
+    """Miscellaneous checks for TwoQubitWeylDecomposition"""
+
+    def test_TwoQubitWeylDecomposition_log_debug_fidelity(self, fidelity=0.99):
+        """Check DEBUG log issued"""
+        target = Ud(0.3, 0.2, 0.1)
+        with self.assertLogs("qiskit.quantum_info.synthesis", "DEBUG") as ctx:
+            TwoQubitWeylDecomposition(target, fidelity=fidelity)
+        self.assertIn("Requested fidelity:", ctx.records[0].getMessage())
+
+    def test_TwoQubitWeylDecomposition_repr(self, seed=42):
+        """Check that eval(__repr__) is exact round trip"""
+        target = random_unitary(4, seed=seed)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
+        weyl2: TwoQubitWeylDecomposition = eval(repr(weyl1))  # pylint: disable=eval-used
+        maxdiff = np.max(abs(weyl1.unitary_matrix-weyl2.unitary_matrix))
+        self.assertEqual(maxdiff, 0, msg=f"Unitary matrix element differs by {maxdiff}")
+        self.assertEqual(weyl1.a, weyl2.a)
+        self.assertEqual(weyl1.b, weyl2.b)
+        self.assertEqual(weyl1.c, weyl2.c)
+        maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
+        self.assertEqual(maxdiff, 0, msg=f"K1l matrix element differs by {maxdiff}")
+        maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
+        self.assertEqual(maxdiff, 0, msg=f"K1r matrix element differs by {maxdiff}")
+        maxdiff = np.max(np.abs(weyl1.K2l - weyl2.K2l))
+        self.assertEqual(maxdiff, 0, msg=f"K2l matrix element differs by {maxdiff}")
+        maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
+        self.assertEqual(maxdiff, 0, msg=f"K2r matrix element differs by {maxdiff}")
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity)
 
 
 if __name__ == '__main__':
