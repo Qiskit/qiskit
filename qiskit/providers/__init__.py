@@ -281,7 +281,7 @@ The key thing to ensure that any custom gates in your Backend's basis set
 is that your custom gate's name attribute (the first param on
 ``super().__init__()`` in the ``__init__`` defintion above does not conflict
 with the name of any other gates. The name attribute is what is used to
-identify the gate in the basis set for the transpiler and if there is a conflict
+identify the gate in the basis set for the transpiler. If there is a conflict
 the transpiler will not know which gate to use.
 
 After you've defined the custom gates to use for the Backend's basis set
