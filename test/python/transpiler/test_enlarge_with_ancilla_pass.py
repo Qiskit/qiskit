@@ -53,6 +53,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
 
         pass_ = EnlargeWithAncilla()
         pass_.property_set['layout'] = layout
+        pass_.property_set['layout_ancilla_register'] = ancilla
         after = pass_.run(self.dag)
 
         qregs = list(after.qregs.values())
