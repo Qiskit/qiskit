@@ -138,7 +138,7 @@ class AxisAngleReduction(TransformationPass):
             if num_cancellation_groups == 0:
                 # not enough members to satisfy symmetry cancellation
                 continue
-            elif num_cancellation_groups % 2:  # double cover
+            elif num_cancellation_groups % 2:  # double cover (improve conditionals)
                 dag.global_phase += np.pi
             if math.cos(groups_phase) == -1:
                 dag.global_phase += np.pi

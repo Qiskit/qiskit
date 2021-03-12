@@ -17,15 +17,14 @@ import math
 import numpy as np
 from qiskit.test import QiskitTestCase
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate, RZGate, RXGate
+from qiskit import QuantumCircuit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.transpiler import PassManager, PropertySet
-from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import _su2_axis_angle
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis
 from qiskit.transpiler.passes.optimization.axis_angle_reduction import AxisAngleReduction
+
 
 class TestAxisAngleReduction(QiskitTestCase):
 
@@ -112,7 +111,6 @@ class TestAxisAngleReduction(QiskitTestCase):
     def test_symmetric_cancellation(self):
         """Test symmetry-based cancellation works."""
         circ = QuantumCircuit(2)
-        rot3 = RXGate(2 * np.pi / 3)
         circ.z(0)
         circ.z(0)
         circ.z(0)
