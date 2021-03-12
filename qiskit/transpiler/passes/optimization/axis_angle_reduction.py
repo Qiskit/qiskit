@@ -130,16 +130,18 @@ class AxisAngleReduction(TransformationPass):
             (dfsubset.symmetry_order.shift() != dfsubset.symmetry_order).cumsum())
         for _, dfsym in symmetry_groups:
             sym_order = dfsym.iloc[0].symmetry_order
-            #breakpoint()
             if sym_order == 1:
                 # no rotational symmetry
                 continue
             num_cancellation_groups, _ = divmod(len(dfsym), sym_order)
+            groups_phase = dfsym.phase.iloc[0:num_cancellation_groups * sym_order].sum()
             if num_cancellation_groups == 0:
                 # not enough members to satisfy symmetry cancellation
                 continue
-            # elif num_cancellation_groups % 2:  # double cover
-            #     dag.global_phase += np.pi
+            elif num_cancellation_groups % 2:  # double cover
+                dag.global_phase += np.pi
+            if math.cos(groups_phase) == -1:
+                dag.global_phase += np.pi
             del_ids = dfsym.iloc[0:num_cancellation_groups * sym_order].id
             thisDelList = [dag.node(delId) for delId in del_ids]
             delList += thisDelList
@@ -171,12 +173,16 @@ class AxisAngleReduction(TransformationPass):
             # the variable gate for the axis may not be in this stack
             df_gate = dfprop[dfprop.name == var_gate_name]
             df_gate_phase = df_gate.phase
-            if df_gate_phase_factor.nunique() == 1 or df_gate_angle != 0:
-                df_gate_phase_factor = df_gate_phase / df_gate.angle
-                gate_phase_factor = df_gate_phase_factor.iloc[0]
+            df_gate_angle = df_gate.angle
+            df_gate_phase_factor = df_gate_phase / df_gate_angle
+            phase_factor_uni = df_gate_phase_factor.unique()
+            
+            #if len(phase_factor_uni) == 1 and phase_factor_uni is
+            
+            if len(phase_factor_uni) == 1 and np.isfinite(phase_factor_uni[0]):
+                gate_phase_factor = phase_factor_uni[0]
             else:
-                _, _, gate_phase_factor = _su2_
-            #new_dag.global_phase = sum(old_phase - dfsubset.phase)
+                _, _, gate_phase_factor = _su2__axis_angle(Operator(var_gate).data)
             new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
             new_dag.apply_operation_back(var_gate, [new_qarg[0]])

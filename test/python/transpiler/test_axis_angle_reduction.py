@@ -220,10 +220,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)        
         ccirc = self.pmr.run(circ)
-        np.set_printoptions(precision=3, linewidth=250, suppress=True)
-        print('')
-        print(Operator(circ).data)
-        print(Operator(ccirc).data)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
 def axis_angle_phase_equal(tup1, tup2):
