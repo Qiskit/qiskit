@@ -285,7 +285,7 @@ the transpiler will not know which gate to use.
 
 2. After you've defined the custom gates to use for the Backend's basis set
 then you need to add equivalence rules to the standard equivalence library
-so that the :funnc:`~qiskit.compiler.transpile` function and
+so that the :func:`~qiskit.compiler.transpile` function and
 :mod:`~qiskit.transpiler` module can convert an arbitrary circuit using the
 custom basis set. This can be done by defining equivalent circuits, in terms
 of the custom gate, for standard gates. Typically if you can convert from a
