@@ -17,6 +17,7 @@
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data
 import numpy
 
 from qiskit.circuit import QuantumCircuit, Parameter
@@ -26,6 +27,7 @@ from qiskit.opflow import (
 )
 
 
+@ddt
 class TestStateOpMeasEvals(QiskitOpflowTestCase):
     """Tests of evals of Meas-Operator-StateFn combos."""
 
@@ -133,6 +135,54 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         self.assertEqual(expr1.eval(), 2)  # if the coeff is propagated too far the result is 4
         self.assertEqual(expr2.eval(), 2)
+
+    def test_single_parameter_binds(self):
+        """Test passing parameter binds as a dictionary to the circuit sampler."""
+        try:
+            from qiskit.providers.aer import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(x, 0)
+        expr = ~StateFn(H) @ StateFn(circuit)
+
+        sampler = CircuitSampler(Aer.get_backend('statevector_simulator'))
+
+        res = sampler.convert(expr, params={x: 0}).eval()
+
+        self.assertIsInstance(res, complex)
+
+    @data('all', 'last')
+    def test_circuit_sampler_caching(self, caching):
+        """Test caching all operators works."""
+        try:
+            from qiskit.providers.aer import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.ry(x, 0)
+        expr1 = ~StateFn(H) @ StateFn(circuit)
+        expr2 = ~StateFn(X) @ StateFn(circuit)
+
+        sampler = CircuitSampler(Aer.get_backend('statevector_simulator'), caching=caching)
+
+        res1 = sampler.convert(expr1, params={x: 0}).eval()
+        res2 = sampler.convert(expr2, params={x: 0}).eval()
+        res3 = sampler.convert(expr1, params={x: 0}).eval()
+        res4 = sampler.convert(expr2, params={x: 0}).eval()
+
+        self.assertEqual(res1, res3)
+        self.assertEqual(res2, res4)
+        if caching == 'last':
+            self.assertEqual(len(sampler._cached_ops.keys()), 1)
+        else:
+            self.assertEqual(len(sampler._cached_ops.keys()), 2)
 
 
 if __name__ == '__main__':

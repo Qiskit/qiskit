@@ -362,8 +362,8 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
                 new_layout[real_qubit] = disconnected_qreg[disconnected_qubit]
                 disconnected_qubit += 1
     physical_layout_dict = {}
-    for qubit in circuit.qubits:
-        physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
+    for index, qubit in enumerate(circuit.qubits):
+        physical_layout_dict[qubit] = faulty_qubits_map_reverse[index]
     for qubit in faulty_qreg[:] + disconnected_qreg[:]:
         physical_layout_dict[qubit] = new_layout[qubit]
     dag_circuit = circuit_to_dag(circuit)
