@@ -260,8 +260,8 @@ def plot_bloch_multivector(state, title='', figsize=None, *, rho=None, reverse_o
 
     # Data
     bloch_data = (_bloch_multivector_data(state)[::-1]
-        if reverse_order
-        else _bloch_multivector_data(state))
+                  if reverse_order
+                  else _bloch_multivector_data(state))
     num = len(bloch_data)
     width, height = plt.figaspect(1/num)
     fig = plt.figure(figsize=(width, height))
