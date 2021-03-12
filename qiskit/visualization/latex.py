@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,consider-using-enumerate
-
 """latex visualization backends."""
 
 import collections
@@ -296,7 +294,7 @@ class QCircuitImage:
         # PIL python package limits image size to around a quarter gigabyte
         # this means the beamer image should be limited to < 50000
         # if you want to avoid a "warning" too, set it to < 25000
-        PIL_limit = 40000
+        pil_limit = 40000
 
         # the beamer latex template limits each dimension to < 19 feet
         # (i.e. 575cm)
@@ -311,9 +309,9 @@ class QCircuitImage:
         width = min(self.sum_column_widths * margin_factor, beamer_limit)
 
         # if too large, make it fit
-        if height * width > PIL_limit:
-            height = min(np.sqrt(PIL_limit * aspect_ratio), beamer_limit)
-            width = min(np.sqrt(PIL_limit / aspect_ratio), beamer_limit)
+        if height * width > pil_limit:
+            height = min(np.sqrt(pil_limit * aspect_ratio), beamer_limit)
+            width = min(np.sqrt(pil_limit / aspect_ratio), beamer_limit)
 
         # if too small, give it a minimum size
         height = max(height, 10)
@@ -325,12 +323,11 @@ class QCircuitImage:
         """Load the gate_text and ctrl_text strings based on names and labels"""
         op_label = getattr(op.op, 'label', None)
         op_type = type(op.op)
+        base_name = base_label = base_type = None
         if hasattr(op.op, 'base_gate'):
             base_name = op.op.base_gate.name
             base_label = op.op.base_gate.label
             base_type = type(op.op.base_gate)
-        else:
-            base_name = base_label = base_type = None
         ctrl_text = None
 
         if base_label:
@@ -350,23 +347,24 @@ class QCircuitImage:
             gate_text = self._style['disptex'][gate_text]
             # Only add mathmode formatting if not already mathmode in disptex
             if gate_text[0] != '$' and gate_text[-1] != '$':
-                gate_text = "$\\mathrm{{{}}}$".format(gate_text)
+                gate_text = f"$\\mathrm{{{gate_text}}}$"
 
         # Only captitalize internally-created gate or instruction names
         elif ((gate_text == op.name and op_type not in (Gate, Instruction))
               or (gate_text == base_name and base_type not in (Gate, Instruction))):
-            gate_text = "$\\mathrm{{{}}}$".format(gate_text.capitalize())
+            gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
-            gate_text = "$\\mathrm{{{}}}$".format(gate_text)
+            gate_text = f"$\\mathrm{{{gate_text}}}$"
             # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace('_', '\\_').replace('^', '\\string^')
+            gate_text = gate_text.replace('_', '\\_')
+            gate_text = gate_text.replace('^', '\\string^')
             gate_text = gate_text.replace('-', '\\mbox{-}')
 
-        ctrl_text = "$\\mathrm{{{}}}$".format(ctrl_text)
+        ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
         return gate_text, ctrl_text
 
     def _build_latex_array(self):
-        """Returns an array of strings containing LaTeX for this circuit."""
+        """Returns an array of strings containing \\LaTeX for this circuit."""
 
         column = 1
         # Leave a column to display number of classical registers if needed
@@ -388,7 +386,7 @@ class QCircuitImage:
                 else:
                     gate_text, _ = self._get_gate_ctrl_text(op)
                     gate_text = self._add_params_to_gate_text(op, gate_text)
-                    gate_text = generate_latex_label(gate_text).replace(" ", "\\,")
+                    gate_text = generate_latex_label(gate_text)
                     wire_list = [self.img_regs[qarg] for qarg in op.qargs]
 
                     if op.condition:
@@ -409,11 +407,8 @@ class QCircuitImage:
     def _build_multi_gate(self, op, gate_text, wire_list, col):
         """Add a multiple wire gate to the _latex list"""
         num_cols_op = 1
-        if isinstance(op.op, SwapGate):
-            self._build_swap(wire_list, col)
-        elif isinstance(op.op, RZZGate):
-            self._build_symmetric_gate(op, gate_text, wire_list, col, is_rzz=True)
-            num_cols_op = 4
+        if isinstance(op.op, (SwapGate, RZZGate)):
+            num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
         else:
             wire_min = min(wire_list)
             wire_max = max(wire_list)
@@ -435,7 +430,7 @@ class QCircuitImage:
 
         # First do single qubit target gates
         if len(wireqargs) == 1:
-            self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
+            self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
             # Check for cx, cz, cu1 and cp first, then do standard gate
             if isinstance(op.op.base_gate, XGate):
@@ -443,19 +438,14 @@ class QCircuitImage:
             elif isinstance(op.op.base_gate, ZGate):
                 self._latex[wireqargs[0]][col] = "\\control\\qw"
             elif isinstance(op.op.base_gate, (U1Gate, PhaseGate)):
-                self._build_symmetric_gate(op, gate_text, wire_list, col)
-                num_cols_op = 4
+                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
             # Treat special cases of swap and rzz gates
             if isinstance(op.op.base_gate, (SwapGate, RZZGate)):
-                self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
-                if isinstance(op.op.base_gate, SwapGate):
-                    self._build_swap(wireqargs, col)
-                else:
-                    self._build_symmetric_gate(op, gate_text, wire_list, col, is_rzz=True)
-                    num_cols_op = 4
+                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
+                self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
             else:
                 # If any controls appear in the span of the multiqubit
                 # gate just treat the whole thing as a big gate
@@ -464,31 +454,36 @@ class QCircuitImage:
                         wireqargs = wire_list
                         break
                 else:
-                    self._add_multi_controls(wire_list, ctrlqargs, ctrl_state, col)
+                    self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
                 self._build_multi_gate(op, gate_text, wireqargs, col)
         return num_cols_op
 
-    def _build_swap(self, wire_list, col):
-        """Add a swap gate"""
-        wire_min = min(wire_list)
-        wire_max = max(wire_list)
-        self._latex[wire_min][col] = "\\qswap"
-        self._latex[wire_max][col] = "\\qswap \\qwx[" + str(wire_min - wire_max) + "]"
-
-    def _build_symmetric_gate(self, op, gate_text, wire_list, col, is_rzz=False):
+    def _build_symmetric_gate(self, op, gate_text, wire_list, col):
         """Add symmetric gates for cu1, cp, and rzz"""
-        wire_min = min(wire_list)
         wire_max = max(wire_list)
-        cond = '1' if is_rzz else "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
+        # The last and next to last in the wire list are the gate without added controls
+        wire_next_last = wire_list[-2]
+        wire_last = wire_list[-1]
+        base_op = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
 
-        if cond == '0':
-            self._latex[wire_min][col] = "\\ctrlo{" + str(wire_max - wire_min) + "}"
-        elif cond == '1':
-            self._latex[wire_min][col] = "\\ctrl{" + str(wire_max - wire_min) + "}"
+        if isinstance(op.op, SwapGate) or (base_op and isinstance(base_op, SwapGate)):
+            self._latex[wire_next_last][col] = "\\qswap"
+            self._latex[wire_last][col] = "\\qswap \\qwx[" + str(wire_next_last - wire_last) + "]"
+            return 1    # num_cols
 
-        self._latex[wire_max][col] = "\\control \\qw"
-        self._latex[wire_min][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
+        if isinstance(op.op, RZZGate) or (base_op and isinstance(base_op, RZZGate)):
+            ctrl_bit = '1'
+        else:
+            ctrl_bit = "{:b}".format(op.op.ctrl_state).rjust(1, '0')[::-1]
+
+        control = "\\ctrlo" if ctrl_bit == '0' else "\\ctrl"
+        self._latex[wire_next_last][col] = f"{control}" + ("{" + str(wire_last - wire_next_last)
+                                                           + "}")
+        self._latex[wire_last][col] = "\\control \\qw"
+        # Put side text between bottom wire and one above it
+        self._latex[wire_max-1][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
+        return 4    # num_cols for side text gates
 
     def _build_measure(self, op, col):
         """Build a meter and the lines to the creg"""
@@ -538,11 +533,10 @@ class QCircuitImage:
                 last - first) + "}"
             self._latex[pos][col] = "\\qw"
 
-    def _add_multi_controls(self, wire_list, ctrlqargs, ctrl_state, col):
+    def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
         """Add more than one control to a gate"""
         for index, ctrl_item in enumerate(zip(ctrlqargs, ctrl_state)):
             pos = ctrl_item[0]
-            cond = ctrl_item[1]
             nxt = wire_list[index]
             if wire_list[index] > wire_list[-1]:
                 nxt -= 1
@@ -552,27 +546,25 @@ class QCircuitImage:
                 nxt += 1
                 while nxt not in wire_list:
                     nxt += 1
-            if cond == '0':
-                self._latex[pos][col] = "\\ctrlo{" + str(
-                    nxt - wire_list[index]) + "}"
-            elif cond == '1':
-                self._latex[pos][col] = "\\ctrl{" + str(
-                    nxt - wire_list[index]) + "}"
+
+            # ctrl_item[1] is ctrl_state for this bit
+            control = "\\ctrlo" if ctrl_item[1] == '0' else "\\ctrl"
+            self._latex[pos][col] = f"{control}" + "{" + str(nxt - wire_list[index]) + "}"
 
     def _add_params_to_gate_text(self, op, gate_text):
         """Add the params to the end of the current gate_text"""
         # Must limit to 4 params or may get dimension too large error
         # from xy-pic xymatrix command
+
         if (len(op.op.params) > 0 and not any(
                 isinstance(param, np.ndarray) for param in op.op.params)):
             gate_text += "\\,\\mathrm{(}"
-            if len(op.op.params) > 4:
-                gate_text += '\\mathrm{>4\\,parameters}'
-            else:
-                for param in op.op.params:
-                    gate_text += "\\mathrm{%s}," % pi_check(param, output='latex', ndigits=4)
-                gate_text = gate_text[:-1]
-            gate_text += "\\mathrm{)}"
+            for param_count, param in enumerate(op.op.params):
+                if param_count > 3:
+                    gate_text += "...,"
+                    break
+                gate_text += "\\mathrm{%s}," % pi_check(param, output='latex', ndigits=4)
+            gate_text = gate_text[:-1] + "\\mathrm{)}"
         return gate_text
 
     def _add_condition(self, op, wire_list, col):
@@ -600,15 +592,11 @@ class QCircuitImage:
             self._latex[cwire][col] = \
                 "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (str(op.condition[1]), str(gap))
         else:
+            # Add the open and closed buttons to indicate the condition value
             for i in range(creg_size):
-                if if_value[i] == '1':
-                    self._latex[cwire + i][col] = \
-                        "\\control \\cw \\cwx[-" + str(gap) + "]"
-                    gap = 1
-                else:
-                    self._latex[cwire + i][col] = \
-                        "\\controlo \\cw \\cwx[-" + str(gap) + "]"
-                    gap = 1
+                control = "\\control" if if_value[i] == '1' else "\\controlo"
+                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                gap = 1
 
     def _get_register_specs(self, bits):
         """Get the number and size of unique registers from bits list."""
