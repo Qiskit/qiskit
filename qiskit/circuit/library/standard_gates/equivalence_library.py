@@ -15,7 +15,7 @@
 
 # pylint: disable=invalid-name
 import warnings
-from qiskit.qasm import pi
+from qiskit.qasm2 import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose

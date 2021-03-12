@@ -13,7 +13,7 @@
 """Y and CY gates."""
 
 import numpy
-from qiskit.qasm import pi
+from qiskit.qasm2 import pi
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate

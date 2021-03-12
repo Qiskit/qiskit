@@ -17,7 +17,7 @@ from math import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
-from qiskit.qasm.exceptions import QasmError
+from qiskit.qasm2.exceptions import QasmError
 
 
 class TestCircuitQasm(QiskitTestCase):

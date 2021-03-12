@@ -13,7 +13,7 @@
 """T and Tdg gate."""
 
 import numpy
-from qiskit.qasm import pi
+from qiskit.qasm2 import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 

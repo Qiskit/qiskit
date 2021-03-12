@@ -20,7 +20,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, QuantumCircuit
-from qiskit.qasm.node.real import Real
+from qiskit.qasm2.node.real import Real
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
@@ -78,7 +78,7 @@ def ast_to_dag(ast):
         .. jupyter-execute::
 
             from qiskit.converters import ast_to_dag
-            from qiskit import qasm, QuantumCircuit, ClassicalRegister, QuantumRegister
+            from qiskit import qasm2, QuantumCircuit, ClassicalRegister, QuantumRegister
             from qiskit.visualization import dag_drawer
             %matplotlib inline
 

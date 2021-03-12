@@ -20,7 +20,34 @@ Qasm2 (:mod:`qiskit.qasm2`)
 .. autosummary::
    :toctree: ../stubs/
 
-  load()
-"""
+   Qasm
+   QasmError
+   load()
+   export()
 
-from .functions import load, export
+Pygments
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpenQASMLexer
+   QasmHTMLStyle
+   QasmTerminalStyle
+
+"""
+from numpy import pi
+from .qasm import Qasm
+from .exceptions import QasmError
+
+try:
+    import pygments
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
+
+if HAS_PYGMENTS:
+    try:
+        from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+    except Exception:  # pylint: disable=broad-except
+        HAS_PYGMENTS = False

@@ -17,7 +17,7 @@ from inspect import signature
 import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-from qiskit.qasm import pi
+from qiskit.qasm2 import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase

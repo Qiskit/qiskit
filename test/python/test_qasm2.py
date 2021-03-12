@@ -15,7 +15,7 @@
 import tempfile
 import unittest
 
-from qiskit.qasm2 import load, export
+from qiskit.qasm2.functions import load, export
 from qiskit.test import QiskitTestCase, Path
 
 

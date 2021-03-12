@@ -18,43 +18,20 @@ Provide for pluggable qasm translator
 Based on conversation with Dr. Luciano Bello
 @author: jax
 """
-from importlib import import_module
 from os import linesep
 from typing import List, BinaryIO, TextIO
 from qiskit import QuantumCircuit, QiskitError
-from qiskit.qasm import Qasm
+from qiskit.qasm2 import Qasm
 from .funhelp import qasm_load, qasm_export
 
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
 
-
-def _load_from_string(qasm_src: str or List[str],
-                      loader: str = None,
-                      include_path: str = '') -> QuantumCircuit:
+def _load_from_string(qasm_src: str or List[str]) -> QuantumCircuit:
     """
 
     Parameters
     ----------
     qasm_src : str or List[str]
         Qasm program source as string or list of string.
-    loader : str, optional
-        Name of module with functional attribute
-            load(filename: str = None,
-                 data: str = None,
-                 include_path: str = None) -> QuantumCircuit:
-        ... to use for qasm translation.
-        None means "use Qiskit qasm"
-        The default is None.
-    include_path : str, optional
-        Loader-specific include path for qasm include directives.
-        The default is ''.
 
     Raises
     ------
@@ -69,38 +46,20 @@ def _load_from_string(qasm_src: str or List[str],
     """
 
     circ = None
-    if not loader:
-        if isinstance(qasm_src, list):
-            qasm_src = ''.join(s + linesep for s in qasm_src)
-        qasm = Qasm(data=qasm_src)
-        circ = qasm_load(qasm)
-    else:
-        m_m = import_module(loader)
-        circ = getattr(m_m, 'load')(data=qasm_src,
-                                    include_path=include_path)
+    if isinstance(qasm_src, list):
+        qasm_src = ''.join(s + linesep for s in qasm_src)
+    qasm = Qasm(data=qasm_src)
+    circ = qasm_load(qasm)
     return circ
 
 
-def _load_from_file(filename: str,
-                    loader: str = None,
-                    include_path: str = '') -> QuantumCircuit:
+def _load_from_file(filename: str) -> QuantumCircuit:
     """
 
     Parameters
     ----------
     filename : str
         Filepath to qasm program source.
-    loader : str, optional
-        Name of module with functional attribute
-            load(filename: str = None,
-                 data: str = None,
-                 include_path: str = None) -> QuantumCircuit:
-        ... to use for qasm translation.
-        None means "use Qiskit qasm"
-        The default is None.
-    include_path : str, optional
-        Loader-specific include path for qasm include directives.
-        The default is ''.
 
     Returns
     -------
@@ -109,21 +68,12 @@ def _load_from_file(filename: str,
 
     """
 
-    circ = None
-    if not loader:
-        qasm = Qasm(filename=filename)
-        circ = qasm_load(qasm)
-    else:
-        m_m = import_module(loader)
-        circ = getattr(m_m, 'load')(filename=filename,
-                                    include_path=include_path)
-    return circ
+    qasm = Qasm(filename=filename)
+    return qasm_load(qasm)
 
 
 def load(data: str or List[str] = None,
-         filename: str = None,
-         loader: str = None,
-         include_path: str = None) -> QuantumCircuit:
+         filename: str = None) -> QuantumCircuit:
     """
 
 
@@ -133,17 +83,6 @@ def load(data: str or List[str] = None,
         Qasm program source as string or list of string. The default is None.
     filename : str, optional
         Filepath to qasm program source. The default is None.
-    loader : str, optional
-        Name of module with functional attribute
-            load(filename: str = None,
-                 data: str = None,
-                 include_path: str = None) -> QuantumCircuit:
-        ... to use for qasm translation.
-        None means "use Qiskit qasm"
-        The default is None.
-    include_path : str, optional
-        Loader-specific include path for qasm include directives.
-        The default is None.
 
     Raises
     ------
@@ -163,18 +102,15 @@ def load(data: str or List[str] = None,
     circ = None
 
     if data:
-        circ = _load_from_string(data, loader=loader, include_path=include_path)
+        circ = _load_from_string(data)
     elif filename:
-        circ = _load_from_file(filename, loader=loader, include_path=include_path)
+        circ = _load_from_file(filename)
     return circ
 
 
 def export(qc: QuantumCircuit,
-           formatted: bool = False,
-           exporter: str = None,
            file: BinaryIO or TextIO = None,
-           filename: str = None,
-           include_path: str = None,) -> str:
+           filename: str = None) -> str:
     """
     Decompile a QuantumCircuit into Return OpenQASM string
 
@@ -182,17 +118,6 @@ def export(qc: QuantumCircuit,
     ----------
     qc : QuantumCircuit
         Circuit to decompile ("export")
-
-    formatted : bool
-        Print Qasm string formatted by Pygments if present.
-
-    exporter : str, optional
-        Name of module with functional attribute
-            export(qc: QuantumCircuit,
-                   include_path: str = None) -> QuantumCircuit:
-        ... to use for qasm translation.
-        None means "use Qiskit qasm"
-        The default is None.
 
     file : BinaryIO or TextIO, optional
         File object to write to as well as return str
@@ -206,16 +131,10 @@ def export(qc: QuantumCircuit,
         Mutually exclusive with file=
         The default is None.
 
-    include_path: str, optional
-        Unloader-specific include path for qasm include directives
-
     Raises
     ------
     QiskitError
         If both filename and file
-
-    ImportError
-        If pygments is not installed and ``formatted`` is ``True``.
 
     QasmError
         If circuit has free parameters.
@@ -229,13 +148,8 @@ def export(qc: QuantumCircuit,
     if filename and file:
         raise QiskitError("export: file= and filename= are mutually exclusive")
 
-    qasm_src = None
+    qasm_src = qasm_export(qc)
 
-    if not exporter:
-        qasm_src = qasm_export(qc)
-    else:
-        m_m = import_module(exporter)
-        qasm_src = getattr(m_m, 'export')(qc, include_path=include_path)
     if filename:
         f_f = open(filename, 'w')
         f_f.write(qasm_src)
@@ -245,13 +159,4 @@ def export(qc: QuantumCircuit,
             file.write(bytes(qasm_src, 'utf-8'))
         else:
             file.write(qasm_src)
-    if formatted:
-        if not HAS_PYGMENTS:
-            raise ImportError("To use the formatted output pygments>2.4 "
-                              "must be installed. To install pygments run "
-                              '"pip install pygments".')
-        code = pygments.highlight(qasm_src,
-                                  OpenQASMLexer(),
-                                  Terminal256Formatter(style=QasmTerminalStyle))
-        print(code)
     return qasm_src

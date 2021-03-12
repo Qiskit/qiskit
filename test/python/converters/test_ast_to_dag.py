@@ -16,7 +16,7 @@ import unittest
 
 from qiskit.converters import ast_to_dag, circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import qasm
+from qiskit import qasm2
 from qiskit.test import QiskitTestCase, Path
 
 
@@ -34,7 +34,7 @@ class TestAstToDag(QiskitTestCase):
 
     def test_from_ast_to_dag(self):
         """Test Unroller.execute()"""
-        ast = qasm.Qasm(filename=self._get_resource_path('example.qasm',
+        ast = qasm2.Qasm(filename=self._get_resource_path('example.qasm',
                                                          Path.QASMS)).parse()
         dag_circuit = ast_to_dag(ast)
         expected_result = """\

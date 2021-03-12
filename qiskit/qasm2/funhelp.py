@@ -24,8 +24,7 @@ from qiskit import QuantumCircuit  # , QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.qasm import Qasm
-from qiskit.qasm.exceptions import QasmError
+from qiskit.qasm2 import Qasm, QasmError
 from qiskit.converters import ast_to_dag
 from qiskit.converters import dag_to_circuit
 
