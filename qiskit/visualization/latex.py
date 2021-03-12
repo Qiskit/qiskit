@@ -12,7 +12,6 @@
 
 """latex visualization backends."""
 
-import collections
 import io
 import math
 import re
@@ -444,8 +443,8 @@ class QCircuitImage:
         else:
             # Treat special cases of swap and rzz gates
             if isinstance(op.op.base_gate, (SwapGate, RZZGate)):
-                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
                 self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
+                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
                 # If any controls appear in the span of the multiqubit
                 # gate just treat the whole thing as a big gate
@@ -460,9 +459,9 @@ class QCircuitImage:
         return num_cols_op
 
     def _build_symmetric_gate(self, op, gate_text, wire_list, col):
-        """Add symmetric gates for cu1, cp, and rzz"""
+        """Add symmetric gates for cu1, cp, swap, and rzz"""
         wire_max = max(wire_list)
-        # The last and next to last in the wire list are the gate without added controls
+        # The last and next to last in the wire list are the gate wires without added controls
         wire_next_last = wire_list[-2]
         wire_last = wire_list[-1]
         base_op = None if not hasattr(op.op, 'base_gate') else op.op.base_gate
@@ -481,7 +480,7 @@ class QCircuitImage:
         self._latex[wire_next_last][col] = f"{control}" + ("{" + str(wire_last - wire_next_last)
                                                            + "}")
         self._latex[wire_last][col] = "\\control \\qw"
-        # Put side text between bottom wire and one above it
+        # Put side text to the right between bottom wire in wire_list and the one above it
         self._latex[wire_max-1][col+1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
         return 4    # num_cols for side text gates
 
@@ -534,7 +533,7 @@ class QCircuitImage:
             self._latex[pos][col] = "\\qw"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
-        """Add more than one control to a gate"""
+        """Add one or more controls to a gate"""
         for index, ctrl_item in enumerate(zip(ctrlqargs, ctrl_state)):
             pos = ctrl_item[0]
             nxt = wire_list[index]
@@ -553,9 +552,9 @@ class QCircuitImage:
 
     def _add_params_to_gate_text(self, op, gate_text):
         """Add the params to the end of the current gate_text"""
+
         # Must limit to 4 params or may get dimension too large error
         # from xy-pic xymatrix command
-
         if (len(op.op.params) > 0 and not any(
                 isinstance(param, np.ndarray) for param in op.op.params)):
             gate_text += "\\,\\mathrm{(}"
@@ -600,8 +599,11 @@ class QCircuitImage:
 
     def _get_register_specs(self, bits):
         """Get the number and size of unique registers from bits list."""
-        regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
-        regs_bits = [bit.register for bit in bits]
+        regs = {}
+        regs_bits = []
+        for bit in bits:
+            regs[bit.register] = bit.register.size
+            regs_bits.append(bit.register)
         return regs, regs_bits
 
     def _truncate_float(self, matchobj, ndigits=4):
