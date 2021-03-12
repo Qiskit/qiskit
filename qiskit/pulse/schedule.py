@@ -34,7 +34,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-from qiskit.pulse.instructions import Instruction, Delay
+from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
