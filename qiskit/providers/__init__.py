@@ -170,10 +170,9 @@ required). An example provider class looks like::
                     backend for backend in backends if backend.name() == name]
             return filter_backends(backends, filters=filters, **kwargs)
 
-The key aspects to ensure are present is that any necessary information for
+Ensure that any necessary information for
 authentication (if required) are present in the class and that the backends
-method matches the abstract interface and will return initialized Backend
-objects. The rest is up to the specific provider on how to implement.
+method matches the required interface. The rest is up to the specific provider on how to implement.
 
 Backend
 =======
@@ -183,8 +182,8 @@ define the interface between Qiskit and the hardware or simulator that will
 execute circuits. They also define the interface for a backend to provide the
 necessary information describing the backend to the compiler so that it can
 embed and optimize any circuit to the backend. There are 3 required things
-in every backend object: a backend configuration object set in the
-`__init__()` method, a ``run()`` method, and a ``_default_options()`` method.
+in every backend object: a backend configuration property,
+a ``run()`` method, and a ``_default_options()`` method.
 For example, a minimum working example would be something like::
 
     from qiskit.providers import BackendV1 as Backend
@@ -250,8 +249,7 @@ Of these the only required piece for a backend is the
 is only used if the backend either returns the necessary information.
 
 It's worth noting that this interface will likely evolve over time as the
-format, details, API, and information of the data the compiler needs from a
-backend will change as the transpiler and backends grow and improve. This is
+compiler grows and improves, thus requiring new information from the backends. This is
 a key reason why the providers interfaces are versioned to enable making these
 changes in a controlled manner. The details here will change and reflect the
 latest version of this interface.
@@ -294,11 +292,11 @@ module can convert an arbitrary circuit using the custom basis set. This
 can be done by defining equivalent circuits, in terms of the custom gate,
 for standard gates. Typically if you can convert from a
 :class:`~qiskit.circuit.library.CXGate` (if your basis doesn't include a
-standard 2 qubit gate) and that some commonly used single
+standard 2 qubit gate) and some commonly used single
 qubit rotation gates like :class:`~qiskit.ciruit.library.HGate`. Typically
 the more equivalence rules that are defined from standard gates to your basis
 the more efficient translation from an arbitrary circuit to the target
-basis will be (although not always, and there is a diminishing margin of return)
+basis will be (although not always, and there is a diminishing margin of return).
 
 For example, if you were to add some rules for the above custom ``SYGate``
 we could define the :class:`~qiskit.circuit.library.U2Gate` and
@@ -336,11 +334,10 @@ package is imported it will be run. This will ensure that any time the
 :class:`~qiskit.transpiler.passes.BasisTranslator` pass is run with the
 custom gates the equivalence rules are defined.
 
-It's also worth noting that depending on the basis your using some optimization
+It's also worth noting that depending on the basis you're using, some optimization
 passes in the transpiler, such as
 :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`, may not
-be able to operate with your custom basis. For example continuing with the
-``SYGate`` example the
+be able to operate with your custom basis. For  our``SYGate`` example, the
 :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition` will not be
 able to simplify runs of single qubit gates into the SY basis. This is because
 the :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class does not
@@ -363,7 +360,7 @@ typically involves serializing the circuit object into the API format used by a
 backend. For example, on IBMQ backends from the ``qiskit-ibmq-provider``
 package this involves converting from a quantum circuit and options into a
 `qobj <https://arxiv.org/abs/1809.03452>`__ JSON payload and submitting
-that to the IBM Quantum API. Since every backends interface is different (and
+that to the IBM Quantum API. Since every backend interface is different (and
 in the case of the local simulators serialization may not be needed) it is
 expected that the backend's ``run()`` method will handle this conversion.
 
