@@ -14,7 +14,6 @@
 
 from collections import defaultdict
 import numpy as np
-import pandas as pd
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
@@ -65,6 +64,7 @@ class CommutationAnalysis(AnalysisPass):
         for wire in dag.wires:
 
             for current_gate in dag.nodes_on_wire(wire):
+
                 current_comm_set = self.property_set['commutation_set'][wire]
                 if not current_comm_set:
                     current_comm_set.append([current_gate])
