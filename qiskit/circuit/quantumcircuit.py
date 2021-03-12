@@ -1915,7 +1915,7 @@ class QuantumCircuit:
 
     def _unsorted_parameters(self):
         """Efficiently get all parameters in the circuit, without any sorting overhead."""
-        parameters = set(self._parameter_table.keys())
+        parameters = set(self._parameter_table)
         if isinstance(self.global_phase, ParameterExpression):
             parameters.update(self.global_phase.parameters)
 
