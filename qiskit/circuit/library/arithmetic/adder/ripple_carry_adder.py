@@ -80,6 +80,8 @@ class RippleCarryAdder(QuantumCircuit):
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
             name: The name of the circuit object.
+        Raises:
+            ValueError: If ``num_state_qubits`` is lower than 1.
         """
         if num_state_qubits < 1:
             raise ValueError('The number of qubits must be at least 1.')
