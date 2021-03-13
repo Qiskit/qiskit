@@ -1230,7 +1230,7 @@ class QuantumCircuit:
                       instead""",
                       DeprecationWarning)
         from qiskit.qasm2.functions import export
-        ret_str = export(self, formatted=formatted, filename=filename)
+        ret_str = export(self, filename=filename)
         if formatted:
             if not HAS_PYGMENTS:
                 raise ImportError("To use the formatted output pygments>2.4 "
