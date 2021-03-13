@@ -364,7 +364,7 @@ class DAGCircuit:
         elif isinstance(cond[0], ClassicalRegister):
             # Returns a list of all the cbits in the given creg cond[0].
             return cond[0][:]
-        elif isinstance(cond[0], Clbit):
+        else:
             # Returns a singleton list of the conditional cbit.
             return [cond[0]]
 
