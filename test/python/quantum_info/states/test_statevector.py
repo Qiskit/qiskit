@@ -15,6 +15,7 @@
 
 import unittest
 import logging
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -24,14 +25,16 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
 
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_statevector
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 logger = logging.getLogger(__name__)
 
 
+@ddt
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
 
@@ -896,9 +899,42 @@ class TestStatevector(QiskitTestCase):
                 ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
                 ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
             with self.subTest(msg="<{}>".format(label)):
-                op = Operator.from_label(label)
+                op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
+
+        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1+1j]) / 2
+        for label, target in [
+                ('XXX', np.sqrt(2)/2), ('YYY', -np.sqrt(2)/2), ('ZZZ', 0),
+                ('XYZ', 0), ('YIY', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Pauli(label)
+                expval = psi.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
+
+        labels = ['XXX', 'IXI', 'YYY', 'III']
+        coeffs = [3.0, 5.5, -1j, 23]
+        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        expval = psi.expectation_value(spp_op)
+        target = 25.121320343559642+0.7071067811865476j
+        self.assertAlmostEqual(expval, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
+          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
+          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
+          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
+          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
+          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
+          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    def test_expval_pauli(self, pauli):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = Pauli(pauli)
+        state = random_statevector(2**op.num_qubits, seed=seed)
+        target = state.expectation_value(op.to_matrix())
+        expval = state.expectation_value(op)
+        self.assertAlmostEqual(expval, target)
 
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
