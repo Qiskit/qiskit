@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    ``qiskit.qasm2`` supersedes ``qiskit.qasm`` which has been removed.
+    ``qiskit.qasm2`` also provides a functional interface to openqasm2 source
+    loading and exporting. This supersedes the use of :class:`QuantumCircuit`
+    member functions to load or export openqasm2 source for ``QuantumCircuit``.
+    Those member functions, ``qasm()`` ``from_qasm_string()`` and
+    ``from_qasm_file()`` are now deprecated.
+
+    Example
+
+.. code-block:
+
+      from qiskit.qasm2 import load, unload
+      circ = load(filename=filename),
+      print(export(circ))
