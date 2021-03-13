@@ -1,5 +1,5 @@
 ---
-features:
+fixes:
   - |
     In the transpiler pass :class:`qiskit.transpiler.passes.layout.csp_layout.CSPLayout` a bias towards
     lower numbered qubits could be observed. This enhancement changes this 
