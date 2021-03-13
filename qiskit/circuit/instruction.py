@@ -38,7 +38,7 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from .tools import pi_check
@@ -341,9 +341,10 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register classical and value val."""
-        if not isinstance(classical, ClassicalRegister):
-            raise CircuitError("c_if must be used with a classical register")
+        """Add classical condition on register or cbit classical and value val."""
+        if not isinstance(classical, ClassicalRegister) and not isinstance(classical, Clbit):
+            # raise CircuitError("c_if must be used with a classical register or classical bit")
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
         self.condition = (classical, val)
