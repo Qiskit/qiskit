@@ -86,11 +86,11 @@ class RippleCarryAdder(QuantumCircuit):
 
         qr_a = QuantumRegister(num_state_qubits, name='input_a')
         qr_b = QuantumRegister(num_state_qubits, name='input_b')
+        qr_z = QuantumRegister(1, name='carry_out')
         qr_c = AncillaRegister(1, name='carry_in')
-        qr_z = AncillaRegister(1, name='carry_out')
 
         # initialize quantum circuit with register list
-        super().__init__(qr_a, qr_b, qr_c, qr_z, name=name)
+        super().__init__(qr_a, qr_b, qr_z, qr_c, name=name)
 
         # build carry circuit for majority of 3 bits in-place
         # corresponds to MAJ gate in [1]

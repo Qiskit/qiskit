@@ -38,8 +38,7 @@ class TestAdder(QiskitTestCase):
         # trace out the ancillas if necessary
         if circuit.num_ancillas > 0:
             ancillas = list(range(circuit.num_qubits - circuit.num_ancillas, circuit.num_qubits))
-            # trace out all ancillas except last, since it stores highest qubit of resulting sum
-            probabilities = np.diagonal(partial_trace(statevector, ancillas[:-1]))
+            probabilities = np.diagonal(partial_trace(statevector, ancillas))
         else:
             probabilities = np.abs(statevector) ** 2
         # compute the expected results
