@@ -112,12 +112,36 @@ class CheckDecompositions(QiskitTestCase):
         for i in range(len(ctx.records)):
             self.assertLessEqual(ctx.records[i].levelno, logging.DEBUG,
                                  msg=f"Unexpected logging entry: {ctx.output[i]}")
+            self.assertIn("Requested fidelity:", ctx.records[i].getMessage())
+
+    def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
+        """Fail if eval(repr(weyl1)) not equal to weyl1"""
+        repr1 = repr(weyl1)
+        with self.assertDebugOnly():
+            weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
+        msg_base = f"weyl1:\n{repr1}\nweyl2:\n{repr(weyl2)}"
+        self.assertEqual(type(weyl1), type(weyl2), msg_base)
+        maxdiff = np.max(abs(weyl1.unitary_matrix-weyl2.unitary_matrix))
+        self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
+        self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
+        self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
+        self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
+        self.assertEqual(maxdiff, 0, msg=f"K1l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
+        self.assertEqual(maxdiff, 0, msg=f"K1r matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2l - weyl2.K2l))
+        self.assertEqual(maxdiff, 0, msg=f"K2l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
+        self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
 
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.e-13):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
         with self.assertDebugOnly():
             decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
+        self.assertRoundTrip(decomp)
         op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
         for u, qs in (
                 (decomp.K2r, [0]),
@@ -141,6 +165,7 @@ class CheckDecompositions(QiskitTestCase):
         for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
             with self.assertDebugOnly():
                 decomp = decomposer(target_unitary, fidelity=fidelity)
+            self.assertRoundTrip(decomp)
             self.assertEqual(np.max(np.abs(decomp.unitary_matrix - target_unitary)), 0,
                              "Incorrect saved unitary in the decomposition.")
             self.assertIsInstance(decomp, expected_specialization,
@@ -157,7 +182,8 @@ class CheckDecompositions(QiskitTestCase):
             self.assertAlmostEqual(trace.imag, 0, places=13,
                                    msg=f"Real trace for {decomposer.__name__}")
         with self.assertDebugOnly():
-            _ = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
+            decomp2 = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
+        self.assertRoundTrip(decomp2)
         if expected_specialization is not TwoQubitWeylGeneral:
             with self.assertRaises(QiskitError) as exc:
                 _ = expected_specialization(target_unitary, fidelity=1.)
@@ -1057,37 +1083,6 @@ class TestDecomposeProductRaises(QiskitTestCase):
         with self.assertRaises(QiskitError) as exc:
             decompose_two_qubit_product_gate(klkr)
         self.assertIn("decomposition failed", exc.exception.message)
-
-
-class TestTwoQubitWeylDecompositionMisc(QiskitTestCase):
-    """Miscellaneous checks for TwoQubitWeylDecomposition"""
-
-    def test_TwoQubitWeylDecomposition_log_debug_fidelity(self, fidelity=0.99):
-        """Check DEBUG log issued"""
-        target = Ud(0.3, 0.2, 0.1)
-        with self.assertLogs("qiskit.quantum_info.synthesis", "DEBUG") as ctx:
-            TwoQubitWeylDecomposition(target, fidelity=fidelity)
-        self.assertIn("Requested fidelity:", ctx.records[0].getMessage())
-
-    def test_TwoQubitWeylDecomposition_repr(self, seed=42):
-        """Check that eval(__repr__) is exact round trip"""
-        target = random_unitary(4, seed=seed)
-        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
-        weyl2: TwoQubitWeylDecomposition = eval(repr(weyl1))  # pylint: disable=eval-used
-        maxdiff = np.max(abs(weyl1.unitary_matrix-weyl2.unitary_matrix))
-        self.assertEqual(maxdiff, 0, msg=f"Unitary matrix element differs by {maxdiff}")
-        self.assertEqual(weyl1.a, weyl2.a)
-        self.assertEqual(weyl1.b, weyl2.b)
-        self.assertEqual(weyl1.c, weyl2.c)
-        maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
-        self.assertEqual(maxdiff, 0, msg=f"K1l matrix element differs by {maxdiff}")
-        maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
-        self.assertEqual(maxdiff, 0, msg=f"K1r matrix element differs by {maxdiff}")
-        maxdiff = np.max(np.abs(weyl1.K2l - weyl2.K2l))
-        self.assertEqual(maxdiff, 0, msg=f"K2l matrix element differs by {maxdiff}")
-        maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
-        self.assertEqual(maxdiff, 0, msg=f"K2r matrix element differs by {maxdiff}")
-        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity)
 
 
 if __name__ == '__main__':

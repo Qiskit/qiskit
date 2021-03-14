@@ -25,6 +25,8 @@ arXiv:1811.12926 [quant-ph] (2018).
 """
 import cmath
 import math
+import io
+import base64
 import warnings
 from typing import ClassVar, Optional
 
@@ -162,8 +164,8 @@ class TwoQubitWeylDecomposition():
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
-        for i in range(100):  # FIXME: this randomized algorithm is horrendous
-            state = np.random.default_rng(i)
+        state = np.random.default_rng(2020)
+        for _ in range(100):  # FIXME: this randomized algorithm is horrendous
             M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = np.linalg.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
@@ -376,14 +378,30 @@ class TwoQubitWeylDecomposition():
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases
         """
-        prefix = f"{self.__class__.__name__}("
-        prefix_nd = " np.array("
-        suffix = "),"
-        array = np.array2string(self.unitary_matrix, prefix=prefix+prefix_nd, suffix=suffix,
-                                separator=', ', max_line_width=1000,
-                                floatmode='maxprec_equal', precision=100)
-        return (f"{prefix}{prefix_nd}{array}{suffix}\n"
-                f"{' '*len(prefix)}fidelity={self.requested_fidelity})")
+        prefix = f"{type(self).__qualname__}.from_bytes("
+        with io.BytesIO() as f:
+            np.save(f, self.unitary_matrix, allow_pickle=False)
+            b64 = base64.encodebytes(f.getvalue()).splitlines()
+        b64ascii = [repr(x) for x in b64]
+        b64ascii[-1] += ","
+        pretty = [f'# {x.rstrip()}' for x in str(self).splitlines()]
+        indent = '\n' + ' '*4
+        lines = ([prefix] + pretty + b64ascii +
+                 [f"requested_fidelity={self.requested_fidelity},",
+                  f"calculated_fidelity={self.calculated_fidelity},",
+                  f"actual_fidelity={self.actual_fidelity()},",
+                  f"abc={(self.a, self.b, self.c)})"])
+        return indent.join(lines)
+
+    @classmethod
+    def from_bytes(cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
+                   ) -> "TwoQubitWeylDecomposition":
+        """Decode bytes into TwoQubitWeylDecomposition. Used by __repr__"""
+        del kwargs  # Unused (just for display)
+        b64 = base64.decodebytes(bytes_in)
+        with io.BytesIO(b64) as f:
+            arr = np.load(f, allow_pickle=False)
+        return cls(arr, fidelity=requested_fidelity)
 
     def __str__(self):
         pre = f"{self.__class__.__name__}(\n\t"
