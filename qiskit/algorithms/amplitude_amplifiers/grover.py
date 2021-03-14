@@ -102,7 +102,7 @@ class Grover(AmplitudeAmplifier):
     """
 
     def __init__(self,
-                 iterations: Optional[Union[int, List[int], Iterator[int], float]] = None,
+                 iterations: Optional[Union[List[int], Iterator[int], float]] = None,
                  growth_rate: Optional[float] = None,
                  sample_from_iterations: bool = False,
                  quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,

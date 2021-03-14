@@ -106,7 +106,7 @@ OpaqueShape.meta.__doc__ = 'Dictionary containing instruction details.'
 HorizontalAxis = NamedTuple(
     'HorizontalAxis',
     [('window', Tuple[int, int]),
-     ('axis_map', Dict[Union[int, float], Union[int, float, str]]),
+     ('axis_map', Dict[float, Union[float, str]]),
      ('axis_break_pos', List[int]),
      ('label', str)]
 )
@@ -226,4 +226,4 @@ class TimeUnits(str, Enum):
 DataTypes = NewType('DataType', Union[WaveformType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate
-Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
+Coordinate = NewType('Coordinate', Union[float, AbstractCoordinate])

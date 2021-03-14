@@ -773,7 +773,7 @@ class ScheduleDrawer:
 
     def draw(self, schedule: ScheduleComponent,
              dt: float, interp_method: Callable,
-             plot_range: Tuple[Union[int, float], Union[int, float]],
+             plot_range: Tuple[float, float],
              scale: float = None,
              channel_scales: Dict[Channel, float] = None,
              plot_all: bool = True, table: bool = False,

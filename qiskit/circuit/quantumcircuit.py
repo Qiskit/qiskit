@@ -2574,7 +2574,7 @@ class QuantumCircuit:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
     # Functions only for scheduled circuits
-    def qubit_duration(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
         excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2586,7 +2586,7 @@ class QuantumCircuit:
         """
         return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
 
-    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the start time of the first instruction, excluding delays,
         over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -2627,7 +2627,7 @@ class QuantumCircuit:
 
         return 0  # If there are no instructions over bits
 
-    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> Union[int, float]:
+    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> float:
         """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
         Its time unit is ``self.unit``.
 

@@ -145,7 +145,7 @@ class AQGD(Optimizer):
         gradient = 0.5 * (values[1:num_params + 1] - values[1 + num_params:])
         return obj_value, gradient
 
-    def _update(self, params: np.array, gradient: np.array, mprev: np.array,
+    def _update(self, params: np.ndarray, gradient: np.ndarray, mprev: np.ndarray,
                 step_size: float, momentum_coeff: float) -> Tuple[List[float], List[float]]:
         """
         Updates full parameter array based on a step that is a convex

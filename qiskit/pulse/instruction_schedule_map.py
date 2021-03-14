@@ -158,8 +158,8 @@ class InstructionScheduleMap():
     def get(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
-            *params: Union[int, float, complex, ParameterExpression],
-            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
+            *params: Union[complex, ParameterExpression],
+            **kwparams: Union[complex, ParameterExpression]) -> Schedule:
         """Return the defined :py:class:`~qiskit.pulse.Schedule` for the given instruction on
         the given qubits.
 
@@ -296,8 +296,8 @@ class InstructionScheduleMap():
     def pop(self,
             instruction: Union[str, Instruction],
             qubits: Union[int, Iterable[int]],
-            *params: Union[int, float, complex, ParameterExpression],
-            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
+            *params: Union[complex, ParameterExpression],
+            **kwparams: Union[complex, ParameterExpression]) -> Schedule:
         """Remove and return the defined ``Schedule`` for the given instruction on the given
         qubits.
 

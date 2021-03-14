@@ -21,7 +21,7 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 
-ParameterValueType = Union['ParameterExpression', float, int]
+ParameterValueType = Union['ParameterExpression', float]
 
 
 class ParameterExpression:

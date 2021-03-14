@@ -41,7 +41,7 @@ class CVaRMeasurement(OperatorStateFn):
 
     # TODO allow normalization somehow?
     def __init__(self,
-                 primitive: Union[OperatorBase] = None,
+                 primitive: OperatorBase = None,
                  alpha: float = 1.0,
                  coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
