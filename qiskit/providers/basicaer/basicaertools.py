@@ -59,8 +59,10 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
 
     return gc(*params).to_matrix()
 
+
 # Cache CX matrix as no parameters.
 _CX_MATRIX = gates.CXGate().to_matrix()
+
 
 def cx_gate_matrix():
     """Get the matrix for a controlled-NOT gate."""
