@@ -301,10 +301,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
+        output_qr = qc_b.qregs[0]
         for gate, qubits, _ in qc_b:
             if gate.name == 'cx':
                 for qubit in qubits:
-                    self.assertIn(qubit.index, [11, 3])
+                    self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
     def test_layout_2503(self, level):
@@ -340,10 +341,11 @@ class TestInitialLayouts(QiskitTestCase):
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
 
+        output_qr = qc_b.qregs[0]
         self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0].index, 6)
+        self.assertEqual(qubits_0[0], output_qr[6])
         self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0].index, 12)
+        self.assertEqual(qubits_1[0], output_qr[12])
 
 
 @ddt
