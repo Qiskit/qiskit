@@ -80,7 +80,7 @@ class FakeProvider(BaseProvider):
                           FakeSantiago(),
                           FakeCasablanca(),
                           FakeSydney(),
-                          FakeMubai(),
+                          FakeMumbai(),
                           FakeLima(),
                           FakeBelem(),
                           FakeQuito()]
