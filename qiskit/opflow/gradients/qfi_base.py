@@ -18,7 +18,7 @@ from .derivative_base import DerivativeBase
 from .circuit_qfis import CircuitQFI
 
 
-class QFIBase(DerivativeBase):  # pylint: disable=abstract-method
+class QFIBase(DerivativeBase):
 
     r"""Base class for Quantum Fisher Information (QFI).
 

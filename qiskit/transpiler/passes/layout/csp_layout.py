@@ -55,7 +55,7 @@ class CustomSolver(RecursiveBacktrackingSolver):
             self.time_start = time()
         return super().getSolution(domains, constraints, vconstraints)
 
-    def recursiveBacktracking(self,  # pylint: disable=invalid-name
+    def recursiveBacktracking(self,
                               solutions, domains, vconstraints, assignments, single):
         """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
         limited in the amount of calls by ``self.call_limit`` """

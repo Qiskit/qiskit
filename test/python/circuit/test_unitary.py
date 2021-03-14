@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,method-hidden,no-member
+# pylint: disable=arguments-differ,no-member
 
 """ UnitaryGate tests """
 

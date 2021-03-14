@@ -13,8 +13,6 @@
 Symplectic Stabilizer Table Class
 """
 
-# pylint: disable=abstract-method
-
 import numpy as np
 
 from qiskit.exceptions import QiskitError

@@ -472,7 +472,7 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return ''
 
 
-if not HAS_FIXTURES and not os.environ.get('QISKIT_TEST_CAPTURE_STREAMS'):
+if not HAS_FIXTURES or not os.environ.get('QISKIT_TEST_CAPTURE_STREAMS'):
     QiskitTestCase = BasicQiskitTestCase
 else:
     QiskitTestCase = FullQiskitTestCase

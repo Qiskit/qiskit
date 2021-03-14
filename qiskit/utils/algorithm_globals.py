@@ -98,4 +98,4 @@ class QiskitAlgorithmGlobals:
 
 
 # Global instance to be used as the entry point for globals.
-algorithm_globals = QiskitAlgorithmGlobals()  # pylint: disable=invalid-name
+algorithm_globals = QiskitAlgorithmGlobals()

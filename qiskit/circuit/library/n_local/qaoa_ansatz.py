@@ -258,7 +258,6 @@ class QAOAAnsatz(BlueprintCircuit):
 
     # we can't directly specify OperatorBase as a return type, it causes a circular import
     # and pylint objects if return type is not documented
-    # pylint: disable=missing-return-type-doc
     @property
     def mixer_operator(self):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.

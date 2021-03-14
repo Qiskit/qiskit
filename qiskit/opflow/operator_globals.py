@@ -21,8 +21,6 @@ from .primitive_ops.pauli_op import PauliOp
 from .primitive_ops.circuit_op import CircuitOp
 from .state_fns.state_fn import StateFn
 
-# pylint: disable=invalid-name
-
 # Digits of precision when returning values from eval functions. Without rounding, 1e-17 or 1e-32
 # values often show up in place of 0, etc.
 # Note: care needs to be taken in rounding otherwise some behavior may not be as expected. E.g

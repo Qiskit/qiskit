@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """

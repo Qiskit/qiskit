@@ -30,7 +30,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-# pylint: disable=cyclic-import, unused-import
+# pylint: disable=cyclic-import
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
