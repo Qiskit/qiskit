@@ -17,9 +17,9 @@ Operator Globals
 from qiskit.quantum_info import Pauli
 from qiskit.circuit.library import CXGate, SGate, TGate, HGate, SwapGate, CZGate
 
-from .primitive_ops.pauli_op import PauliOp
-from .primitive_ops.circuit_op import CircuitOp
-from .state_fns.state_fn import StateFn
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 
 # Digits of precision when returning values from eval functions. Without rounding, 1e-17 or 1e-32
 # values often show up in place of 0, etc.
@@ -58,7 +58,7 @@ Swap = make_immutable(CircuitOp(SwapGate()))
 CZ = make_immutable(CircuitOp(CZGate()))
 
 # 1-Qubit Paulis
-Zero = make_immutable(StateFn('0'))
-One = make_immutable(StateFn('1'))
+Zero = make_immutable(DictStateFn('0'))
+One = make_immutable(DictStateFn('1'))
 Plus = make_immutable(H.compose(Zero))
 Minus = make_immutable(H.compose(X).compose(Zero))
