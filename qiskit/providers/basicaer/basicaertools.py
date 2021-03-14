@@ -34,6 +34,9 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
         params: the operation parameters op['params']
     Returns:
         array: A numpy array representing the matrix
+    Raises:
+        QiskitError: If a gate outside the supported set is passed in for the
+            ``Gate`` argument.
     """
     if params is None:
         params = []
