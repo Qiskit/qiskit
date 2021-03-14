@@ -26,23 +26,16 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
-                 'sort_key', '_node_id']
+    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', '_wire', 'sort_key', '_node_id']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, wire=None, nid=-1):
+                 wire=None, nid=-1):
         """Create a node """
         self.type = type
         self._op = op
         self.name = name
         self._qargs = qargs if qargs is not None else []
         self.cargs = cargs if cargs is not None else []
-        if condition:
-            warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
-                          DeprecationWarning)
-        if self._op:
-            self._op.condition = condition if self._op.condition is None else self._op.condition
-        self.condition = self._op.condition if self._op is not None else None
         self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
@@ -57,6 +50,18 @@ class DAGNode:
     @op.setter
     def op(self, data):
         self._op = data
+
+    @property
+    def condition(self):
+        """Returns the condition of the node.op"""
+        if self.type and self.type == 'op':
+            return self._op.condition
+
+    @condition.setter
+    def condition(self, new_condition):
+        """Sets the node.condition which sets the node.op.condition."""
+        if self.type and self.type == 'op':
+            self._op.condition = new_condition
 
     @property
     def qargs(self):
