@@ -1163,23 +1163,27 @@ class ScheduleBlock(PulseProgram):
     This program representation doesn't track an explicit notion of timing, in contrast to the
     ``Schedule`` representation. The timing of an instruction is managed by its relative position
     and the stored ``context_alignment`` argument. ``ScheduleBlock`` s should be initialized
-    with one of the following alignment
+    with one of the following alignment:
 
-        - :class:`~qiskit.pulse.transforms.AlignLeft` ... Align instructions in the
-            `as-soon-as-possible` manner. Instructions are scheduled at the earliest
-            possible time on the channel.
-        - :class:`~qiskit.pulse.transforms.AlignRight` ... Align instructions in the
-            `as-late-as-possible` manner. Instructions are scheduled at the latest
-            possible time on the channel.
-        - :class:`~qiskit.pulse.transforms.AlignSequential` ... Align instructions sequentially
-            even though they are allocated in different channels.
-        - :class:`~qiskit.pulse.transforms.AlignEquispaced` ... Align instructions with
-            equal interval within a specified duration. Instructions on different channels
-            are aligned sequentially.
-        - :class:`~qiskit.pulse.transforms.AlignFunc` ... Align instructions with
-            arbitrary position within the given duration. The position is specified by
-            a callback function taking a pulse index ``j`` and returning a
-            fractional coordinate in [0, 1].
+    - :class:`~qiskit.pulse.transforms.AlignLeft` ... Align instructions in the
+        `as-soon-as-possible` manner. Instructions are scheduled at the earliest
+        possible time on the channel.
+
+    - :class:`~qiskit.pulse.transforms.AlignRight` ... Align instructions in the
+        `as-late-as-possible` manner. Instructions are scheduled at the latest
+        possible time on the channel.
+
+    - :class:`~qiskit.pulse.transforms.AlignSequential` ... Align instructions sequentially
+        even though they are allocated in different channels.
+
+    - :class:`~qiskit.pulse.transforms.AlignEquispaced` ... Align instructions with
+        equal interval within a specified duration. Instructions on different channels
+        are aligned sequentially.
+
+    - :class:`~qiskit.pulse.transforms.AlignFunc` ... Align instructions with
+        arbitrary position within the given duration. The position is specified by
+        a callback function taking a pulse index ``j`` and returning a
+        fractional coordinate in [0, 1].
 
     The ``ScheduleBlock`` defaults to the ``AlignLeft`` alignment.
     The timing overlap constraint of instructions is not immediately evaluated,
