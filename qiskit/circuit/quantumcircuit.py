@@ -1265,7 +1265,7 @@ class QuantumCircuit:
             gate_definition_string += '\n' + qasm_string
 
         self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
-                                                      "%s\n%s" % (self.extension_lib,
+                                                      "%s%s" % (self.extension_lib,
                                                                   gate_definition_string))
 
 
