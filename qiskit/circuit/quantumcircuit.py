@@ -201,7 +201,8 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
-        self.qelib1_gate_names = ['u3', 'u2', 'u1', 'cx', 'id', 'u0',
+        self.qelib1_gate_names = ['barrier', 'measure', 'reset',
+                                 'u3', 'u2', 'u1', 'cx', 'id', 'u0',
                                  'u', 'p', 'x', 'y', 'z', 'h', 's', 'sdg', 't', 'tdg',
                                  'rx', 'ry', 'rz',
                                  'sx', 'sxdg', 'cz', 'cy', 'swap', 'ch', 'ccx', 'cswap',
