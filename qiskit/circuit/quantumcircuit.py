@@ -209,6 +209,8 @@ class QuantumCircuit:
                                  'rxx', 'rzz', 'rccx', 'rc3x', 'c3x', 'c3sqrtx', 'c4x',
                                  ]
         self.existing_composite_circuits = []
+        self.qasm_string = ""
+        self.qasm_string_temp = ""
 
     @property
     def data(self):
@@ -1141,8 +1143,7 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    @staticmethod
-    def _get_composite_circuit_qasm_from_instruction(instruction):
+    def _get_composite_circuit_qasm_from_instruction(self, instruction):
         """Returns OpenQASM string composite circuit given an instruction.
         The given instruction should be the result of composite_circuit.to_instruction()."""
 
@@ -1150,9 +1151,16 @@ class QuantumCircuit:
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
-        for data, qargs, _ in instruction.definition:
+        for sub_instruction, qargs, _ in instruction.definition:
+            if sub_instruction.name not in self.qelib1_gate_names:
+                if sub_instruction not in self.existing_composite_circuits:
+                    # Get qasm of composite circuit
+                    self.existing_composite_circuits.append(sub_instruction)
+                    qasm_string = self._get_composite_circuit_qasm_from_instruction(sub_instruction)
+                    self._insert_composite_gate_definition_qasm(qasm_string)
+
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
-            composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
+            composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
 
         if composite_circuit_gates:
             composite_circuit_gates = composite_circuit_gates.rstrip(' ')
@@ -1186,18 +1194,18 @@ class QuantumCircuit:
 
         self.existing_composite_circuits = []
 
-        string_temp = self.header + "\n"
-        string_temp += self.extension_lib + "\n"
+        self.qasm_string_temp = self.header + "\n"
+        self.qasm_string_temp += self.extension_lib + "\n"
         for register in self.qregs:
-            string_temp += register.qasm() + "\n"
+            self.qasm_string_temp += register.qasm() + "\n"
         for register in self.cregs:
-            string_temp += register.qasm() + "\n"
+            self.qasm_string_temp += register.qasm() + "\n"
         unitary_gates = []
         for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
+                self.qasm_string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
             else:
@@ -1209,16 +1217,18 @@ class QuantumCircuit:
                         qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
                         # Insert composite circuit qasm definition right after header and extension lib
-                        string_temp = string_temp.replace(self.extension_lib,
-                                                      "%s\n%s" % (self.extension_lib,
-                                                                  qasm_string))
+                        # string_temp = string_temp.replace(self.extension_lib,
+                        #                              "%s\n%s" % (self.extension_lib,
+                        #                                          qasm_string))
+
+                        self._insert_composite_gate_definition_qasm(qasm_string, 'after')
 
                         self.existing_composite_circuits.append(instruction)
 
                     #self.existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
-                string_temp += "%s %s;\n" % (instruction.qasm(),
+                self.qasm_string_temp += "%s %s;\n" % (instruction.qasm(),
                                              ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
 
@@ -1231,7 +1241,7 @@ class QuantumCircuit:
 
         if filename:
             with open(filename, 'w+') as file:
-                file.write(string_temp)
+                file.write(self.qasm_string_temp)
             file.close()
 
         if formatted:
@@ -1239,13 +1249,26 @@ class QuantumCircuit:
                 raise ImportError("To use the formatted output pygments>2.4 "
                                   "must be installed. To install pygments run "
                                   '"pip install pygments".')
-            code = pygments.highlight(string_temp,
+            code = pygments.highlight(self.qasm_string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
             print(code)
             return None
         else:
-            return string_temp
+            return self.qasm_string_temp
+
+    def _insert_composite_gate_definition_qasm(self, string_to_insert, location='before'):
+        """Insert composite gate definition QASM code right after extension library in the header
+        """
+        if location == 'before':
+            self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
+                                                      "%s\n%s" % (self.extension_lib,
+                                                                  string_to_insert))
+        elif location == 'after':
+            # insert gate definition before the first occurance of 'qreg' and
+            self.qasm_string_temp = self.qasm_string_temp.replace('qreg',
+                                                      "%s\n%s" % (string_to_insert,
+                                                                  'qreg'), 1)
 
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
