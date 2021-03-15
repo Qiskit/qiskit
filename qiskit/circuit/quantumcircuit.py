@@ -1212,18 +1212,16 @@ class QuantumCircuit:
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
+                        if instruction.definition is None:
+                            raise ValueError('Instruction definition not found.')
+                        else:
+                            # Get qasm of composite circuit
+                            qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                        # Get qasm of composite circuit
-                        qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+                            self._insert_composite_gate_definition_qasm(qasm_string, 'after')
 
-                        # Insert composite circuit qasm definition right after header and extension lib
-                        # string_temp = string_temp.replace(self.extension_lib,
-                        #                              "%s\n%s" % (self.extension_lib,
-                        #                                          qasm_string))
+                            self.existing_composite_circuits.append(instruction)
 
-                        self._insert_composite_gate_definition_qasm(qasm_string, 'after')
-
-                        self.existing_composite_circuits.append(instruction)
 
                     #self.existing_gate_names.append(instruction.name)
 
