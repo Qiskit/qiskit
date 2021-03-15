@@ -382,8 +382,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
     elif ax_real is not None:
         fig = ax_real.get_figure()
         ax1 = ax_real
-        if ax_imag is not None:
-            ax2 = ax_imag
+        ax2 = ax_imag
     else:
         fig = ax_imag.get_figure()
         ax1 = None
