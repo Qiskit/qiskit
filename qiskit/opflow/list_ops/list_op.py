@@ -515,6 +515,9 @@ class ListOp(OperatorBase):
                               coeff=self.coeff, abelian=self.abelian
                               ).reduce()
 
+    def _is_emtpy(self):
+        return len(self.oplist) == 0
+
     # Array operations:
 
     def __getitem__(self, offset: Union[int, slice]) -> OperatorBase:
