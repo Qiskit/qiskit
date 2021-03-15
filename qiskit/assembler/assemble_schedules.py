@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Tuple, Union
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, library, schedule
+from qiskit.pulse import instructions, transforms, library, schedule, channels
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
@@ -202,6 +202,12 @@ def _assemble_instructions(
                 channel=instruction.channel,
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
+
+        # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
+        # timing of other instrs will still be shifted appropriately
+        if (isinstance(instruction, instructions.Delay) and
+                isinstance(instruction.channel, channels.AcquireChannel)):
+            continue
 
         if isinstance(instruction, instructions.Acquire):
             if instruction.mem_slot:
