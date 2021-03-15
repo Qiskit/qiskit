@@ -1158,7 +1158,8 @@ class QuantumCircuit:
             if sub_instruction.name not in self.qelib1_gate_names:
                 if sub_instruction not in self.existing_composite_circuits:
                     # Get qasm of composite circuit
-                    self.existing_composite_circuits.append(sub_instruction)
+                    self.existing_composite_circuits.insert(0, sub_instruction)
+                    #self.existing_composite_circuits.append(sub_instruction)
                     #qasm_string = self._get_composite_circuit_qasm_from_instruction(sub_instruction)
                     #self._insert_composite_gate_definition_qasm(qasm_string)
 
