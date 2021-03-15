@@ -1266,7 +1266,11 @@ class QuantumCircuit:
 
         gate_definition_string = ''
 
-        # Get qasm of composite circuit
+        # Cycle through all gate definitions and add all undefined gates to the list
+        for instruction in self.existing_composite_circuits:
+            self._get_composite_circuit_qasm_from_instruction(instruction)
+
+        # Generate gate definition string
         for instruction in self.existing_composite_circuits:
             qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
             gate_definition_string += '\n' + qasm_string
