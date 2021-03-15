@@ -34,15 +34,18 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
    pad
 
 
-Basis
-=====
+Canonicalization
+================
 
-The canonicalization transforms convert  schedules to a form
-amenable for execution on Openpulse backends.
+The canonicalization transforms convert  schedules to a form amenable for execution on
+Openpulse backends.
 
 .. autosummary::
    :toctree: ../stubs/
 
+   add_implicit_acquires
+   align_measures
+   block_to_schedule
    compress_pulses
    flatten
    inline_subroutines
@@ -70,8 +73,7 @@ The measure transforms schedule and align measurement and acquisition instructio
 .. autosummary::
    :toctree: ../stubs/
 
-   add_implicit_acquires
-   align_measures
+
 """
 
 from qiskit.pulse.transforms.alignments import (
@@ -88,20 +90,17 @@ from qiskit.pulse.transforms.alignments import (
     pad
 )
 
-from qiskit.pulse.transforms.basis import (
+from qiskit.pulse.transforms.canonicalization import (
+    add_implicit_acquires,
+    align_measures,
     block_to_schedule,
     compress_pulses,
     flatten,
     inline_subroutines,
     remove_directives,
-    remove_trivial_barriers
+    remove_trivial_barriers,
 )
 
 from qiskit.pulse.transforms.dag import (
     block_to_dag
-)
-
-from qiskit.pulse.transforms.measures import (
-    add_implicit_acquires,
-    align_measures
 )

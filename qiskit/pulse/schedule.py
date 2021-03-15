@@ -1228,7 +1228,7 @@ class ScheduleBlock(PulseProgram):
                  *blocks: BlockComponent,
                  name: Optional[str] = None,
                  metadata: Optional[dict] = None,
-                 context_alignment=None):
+                 alignment_context=None):
         """Create an empty schedule block.
 
         Args:
@@ -1238,18 +1238,18 @@ class ScheduleBlock(PulseProgram):
                 stored as free-form data in a dict in the
                 :attr:`~qiskit.pulse.ScheduleBlock.metadata` attribute. It will not be directly
                 used in the schedule.
-            context_alignment (AlignmentTransform): ``AlignmentTransform`` instance that manages
+            alignment_context (AlignmentTransform): ``AlignmentTransform`` instance that manages
                 scheduling of instructions in this block.
         Raises:
             TypeError: if metadata is not a dict.
         """
         super().__init__(name=name, metadata=metadata)
 
-        if context_alignment is None:
+        if alignment_context is None:
             from qiskit.pulse.transforms import AlignLeft
-            self._context_alignment = AlignLeft()
+            self._alignment_context = AlignLeft()
         else:
-            self._context_alignment = context_alignment
+            self._alignment_context = alignment_context
 
         self._blocks = list()
 
@@ -1257,9 +1257,9 @@ class ScheduleBlock(PulseProgram):
             self.append(block, inplace=True)
 
     @property
-    def context_alignment(self):
+    def alignment_context(self):
         """Return alignment instance that allocates block component to generate schedule."""
-        return self._context_alignment
+        return self._alignment_context
 
     def is_schedulable(self) -> bool:
         """Return ``True`` if all durations are assigned."""
@@ -1411,7 +1411,7 @@ class ScheduleBlock(PulseProgram):
                 *self.instructions,
                 name=name or self.name,
                 metadata=self.metadata.copy(),
-                context_alignment=self.context_alignment)
+                alignment_context=self.alignment_context)
             new_block.append(schedule, inplace=True)
 
             return new_block
@@ -1436,8 +1436,8 @@ class ScheduleBlock(PulseProgram):
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method is currently not supported. Support will be soon added please create an issue
-        if you believe this must be prioritized.
+        .. note:: This method is currently not supported. Support will be soon added
+            please create an issue if you believe this must be prioritized.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1473,7 +1473,8 @@ class ScheduleBlock(PulseProgram):
 
             self.filter(args) | self.exclude(args) == self
 
-        .. note:: This method is currently not supported, but the support will be soon added.
+        .. note:: This method is currently not supported. Support will be soon added
+            please create an issue if you believe this must be prioritized.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
@@ -1534,7 +1535,7 @@ class ScheduleBlock(PulseProgram):
             return ScheduleBlock(*new_blocks,
                                  name=self.name,
                                  metadata=self.metadata.copy(),
-                                 context_alignment=self.context_alignment)
+                                 alignment_context=self.alignment_context)
 
     def _update_parameter_table(self, schedule: BlockComponent):
         """A helper function to update parameter table with given schedule component.
@@ -1568,7 +1569,7 @@ class ScheduleBlock(PulseProgram):
             return False
 
         # 1. transformation check
-        if self.context_alignment != other.context_alignment:
+        if self.alignment_context != other.alignment_context:
             return False
 
         # 2. channel check
@@ -1594,7 +1595,7 @@ class ScheduleBlock(PulseProgram):
             self.__class__.__name__,
             instructions,
             name,
-            self.context_alignment.__class__.__name__
+            self.alignment_context.__class__.__name__
         )
 
 

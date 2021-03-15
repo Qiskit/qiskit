@@ -21,7 +21,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 
 
-class AlignmentTransform(abc.ABC):
+class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
     is_sequential = None
 
@@ -41,16 +41,16 @@ class AlignmentTransform(abc.ABC):
         pass
 
     @property
-    def context(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {'alignment': self.__class__.__name__}
 
     def __eq__(self, other):
         """Check equality of two transforms."""
-        return isinstance(other, type(self)) and self.context == other.context
+        return isinstance(other, type(self)) and self.to_dict == other.to_dict
 
 
-class AlignLeft(AlignmentTransform):
+class AlignLeft(AlignmentKind):
     """Align instructions in as-soon-as-possible manner.
 
     Instructions are placed at earliest available timeslots.
@@ -71,11 +71,42 @@ class AlignLeft(AlignmentTransform):
         """
         aligned = Schedule()
         for _, child in schedule._children:
-            _push_left_append(aligned, child)
+            self._push_left_append(aligned, child)
         return aligned
 
+    @staticmethod
+    def _push_left_append(this: Schedule, other: ScheduleComponent) -> Schedule:
+        """Return ``this`` with ``other`` inserted at the maximum time over
+        all channels shared between ```this`` and ``other``.
 
-class AlignRight(AlignmentTransform):
+        Args:
+            this: Input schedule to which ``other`` will be inserted.
+            other: Other schedule to insert.
+
+        Returns:
+            Push left appended schedule.
+        """
+        this_channels = set(this.channels)
+        other_channels = set(other.channels)
+        shared_channels = list(this_channels & other_channels)
+        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+                     for channel in shared_channels]
+
+        if ch_slacks:
+            slack_chan = shared_channels[np.argmin(ch_slacks)]
+            shared_insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
+        else:
+            shared_insert_time = 0
+
+        # Handle case where channels not common to both might actually start
+        # after ``this`` has finished.
+        other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
+        # Choose whichever is greatest.
+        insert_time = max(shared_insert_time, other_only_insert_time)
+        return this.insert(insert_time, other, inplace=True)
+
+
+class AlignRight(AlignmentKind):
     """Align instructions in as-late-as-possible manner.
 
     Instructions are placed at latest available timeslots.
@@ -96,11 +127,45 @@ class AlignRight(AlignmentTransform):
         """
         aligned = Schedule()
         for _, child in reversed(schedule._children):
-            aligned = _push_right_prepend(aligned, child)
+            aligned = self._push_right_prepend(aligned, child)
         return aligned
 
+    @staticmethod
+    def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
+        """Return ``this`` with ``other`` inserted at the latest possible time
+        such that ``other`` ends before it overlaps with any of ``this``.
 
-class AlignSequential(AlignmentTransform):
+        If required ``this`` is shifted  to start late enough so that there is room
+        to insert ``other``.
+
+        Args:
+           this: Input schedule to which ``other`` will be inserted.
+           other: Other schedule to insert.
+
+        Returns:
+           Push right prepended schedule.
+        """
+        this_channels = set(this.channels)
+        other_channels = set(other.channels)
+        shared_channels = list(this_channels & other_channels)
+        ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
+                     for channel in shared_channels]
+
+        if ch_slacks:
+            insert_time = min(ch_slacks) + other.start_time
+        else:
+            insert_time = this.stop_time - other.stop_time + other.start_time
+
+        if insert_time < 0:
+            this.shift(-insert_time, inplace=True)
+            this.insert(0, other, inplace=True)
+        else:
+            this.insert(insert_time, other, inplace=True)
+
+        return this
+
+
+class AlignSequential(AlignmentKind):
     """Align instructions sequentially.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -126,7 +191,7 @@ class AlignSequential(AlignmentTransform):
         return aligned
 
 
-class AlignEquispaced(AlignmentTransform):
+class AlignEquispaced(AlignmentKind):
     """Align instructions with equispaced interval within a specified duration.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -184,13 +249,13 @@ class AlignEquispaced(AlignmentTransform):
         return pad(aligned, aligned.channels, until=self._duration, inplace=True)
 
     @property
-    def context(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {'alignment': self.__class__.__name__,
                 'duration': self._duration}
 
 
-class AlignFunc(AlignmentTransform):
+class AlignFunc(AlignmentKind):
     """Allocate instructions at position specified by callback function.
 
     The position is specified for each instruction of index ``j`` as a
@@ -248,7 +313,7 @@ class AlignFunc(AlignmentTransform):
         return pad(aligned, aligned.channels, until=self._duration, inplace=True)
 
     @property
-    def context(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {'alignment': self.__class__.__name__,
                 'duration': self._duration,
@@ -304,71 +369,6 @@ def pad(schedule: Schedule,
                 inplace=inplace)
 
     return schedule
-
-
-def _push_left_append(this: Schedule, other: ScheduleComponent) -> Schedule:
-    """Return ``this`` with ``other`` inserted at the maximum time over
-    all channels shared between ```this`` and ``other``.
-
-    Args:
-        this: Input schedule to which ``other`` will be inserted.
-        other: Other schedule to insert.
-
-    Returns:
-        Push left appended schedule.
-    """
-    this_channels = set(this.channels)
-    other_channels = set(other.channels)
-    shared_channels = list(this_channels & other_channels)
-    ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                 for channel in shared_channels]
-
-    if ch_slacks:
-        slack_chan = shared_channels[np.argmin(ch_slacks)]
-        shared_insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
-    else:
-        shared_insert_time = 0
-
-    # Handle case where channels not common to both might actually start
-    # after ``this`` has finished.
-    other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
-    # Choose whichever is greatest.
-    insert_time = max(shared_insert_time, other_only_insert_time)
-    return this.insert(insert_time, other, inplace=True)
-
-
-def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
-    """Return ``this`` with ``other`` inserted at the latest possible time
-    such that ``other`` ends before it overlaps with any of ``this``.
-
-    If required ``this`` is shifted  to start late enough so that there is room
-    to insert ``other``.
-
-    Args:
-       this: Input schedule to which ``other`` will be inserted.
-       other: Other schedule to insert.
-
-    Returns:
-       Push right prepended schedule.
-    """
-    this_channels = set(this.channels)
-    other_channels = set(other.channels)
-    shared_channels = list(this_channels & other_channels)
-    ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
-                 for channel in shared_channels]
-
-    if ch_slacks:
-        insert_time = min(ch_slacks) + other.start_time
-    else:
-        insert_time = this.stop_time - other.stop_time + other.start_time
-
-    if insert_time < 0:
-        this.shift(-insert_time, inplace=True)
-        this.insert(0, other, inplace=True)
-    else:
-        this.insert(insert_time, other, inplace=True)
-
-    return this
 
 
 def align_left(schedule: Schedule) -> Schedule:

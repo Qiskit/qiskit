@@ -59,7 +59,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if block.context_alignment.is_sequential:
+    if block.alignment_context.is_sequential:
         return _sequential_allocation(block)
     else:
         return _parallel_allocation(block)
