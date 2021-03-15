@@ -12,7 +12,7 @@ issues:
     On Windows systems when parallel execution is enabled for
     :func:`~qiskit.tools.parallel_map` (for example with
     :func:`~qiskit.compiler.transpile` and :func:`~qiskit.compiler.assemble`)
-    may not work when caleld from a script running outside of a
+    parallelism may not work when called from a script running outside of a
     ``if __name__ == '__main__':`` block. This is due to how Python launches
     parallel processes on Windows. If ``RuntimeError`` or ``AttributeError``
     are raised by scripts that are directly calling parallel_map() or when
