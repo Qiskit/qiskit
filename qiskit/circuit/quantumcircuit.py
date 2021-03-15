@@ -1147,6 +1147,9 @@ class QuantumCircuit:
         """Returns OpenQASM string composite circuit given an instruction.
         The given instruction should be the result of composite_circuit.to_instruction()."""
 
+        if instruction.definition is None:
+            raise ValueError(f'Instruction "{instruction.name}" is not defined.')
+
         gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
@@ -1212,15 +1215,13 @@ class QuantumCircuit:
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
-                        if instruction.definition is None:
-                            raise ValueError('Instruction definition not found.')
-                        else:
-                            # Get qasm of composite circuit
-                            qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                            self._insert_composite_gate_definition_qasm(qasm_string, 'after')
+                        # Get qasm of composite circuit
+                        qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                            self.existing_composite_circuits.append(instruction)
+                        self._insert_composite_gate_definition_qasm(qasm_string, 'after')
+
+                        self.existing_composite_circuits.append(instruction)
 
 
                     #self.existing_gate_names.append(instruction.name)
