@@ -28,13 +28,13 @@ def dag_to_dagdependency(dag):
     dagdependency.name = dag.name
     dagdependency.metadata = dag.metadata
 
-    qregs = list(dag.qregs.values())
-    cregs = list(dag.cregs.values())
+    dagdependency.add_qubits(dag.qubits)
+    dagdependency.add_clbits(dag.clbits)
 
-    for register in qregs:
+    for register in dag.qregs.values():
         dagdependency.add_qreg(register)
 
-    for register in cregs:
+    for register in dag.cregs.values():
         dagdependency.add_creg(register)
 
     for node in dag.topological_op_nodes():

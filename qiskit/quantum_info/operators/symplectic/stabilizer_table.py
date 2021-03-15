@@ -668,7 +668,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
                                   (Default: None)
 
         Returns:
-            StabilizerTable: the concatinated table self + other.
+            StabilizerTable: the concatenated table self + other.
         """
         if qargs is None:
             qargs = getattr(other, 'qargs', None)

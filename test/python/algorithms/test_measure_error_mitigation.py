@@ -29,7 +29,6 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
         """ measurement error mitigation with different qubit order"""
-        # pylint: disable=import-outside-toplevel
         try:
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
@@ -82,7 +81,6 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """ measurement error mitigation test with vqe """
         try:
-            # pylint: disable=import-outside-toplevel
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit import Aer
             from qiskit.providers.aer import noise

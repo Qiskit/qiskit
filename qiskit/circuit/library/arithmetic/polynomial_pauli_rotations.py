@@ -42,7 +42,7 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """"Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
@@ -88,7 +88,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """"Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
@@ -244,11 +244,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             qr_target = QuantumRegister(1, name='target')
 
             self.qregs = [qr_state, qr_target]
-
-            self._qubits = qr_state[:] + qr_target[:]
         else:
             self.qregs = []
-            self._qubits = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True

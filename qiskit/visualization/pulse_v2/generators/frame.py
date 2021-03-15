@@ -416,8 +416,8 @@ def _freq_to_text(formatter: Dict[str, Any],
 
     try:
         value = freq/unit_table[unit]
-    except KeyError:
-        raise VisualizationError('Unit {unit} is not supported.'.format(unit=unit))
+    except KeyError as ex:
+        raise VisualizationError(f'Unit {unit} is not supported.') from ex
 
     latex = r'{val:.2f}~{{\rm {unit}}}'.format(val=value, unit=unit)
     plain = '{val:.2f} {unit}'.format(val=value, unit=unit)
