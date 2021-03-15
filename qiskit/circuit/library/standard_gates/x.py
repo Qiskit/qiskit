@@ -437,7 +437,7 @@ class C3SXGate(ControlledGate):
             angle (float): DEPRECATED. The angle used in the controlled-U1 gates. An angle of π/8
                 yields the sqrt(X) gates, an angle of π/4 the 3-qubit controlled X gate.
         """
-        super().__init__('c3sx', 4, [], num_ctrl_qubits=3, label=label,
+        super().__init__('c3sqrtx', 4, [], num_ctrl_qubits=3, label=label,
                          ctrl_state=ctrl_state, base_gate=SXGate())
 
         if angle is not None:
@@ -537,7 +537,7 @@ class C3XGate(ControlledGate):
     # pylint: disable=unused-argument
     def __init__(self, angle=None, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled X gate."""
-        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label,
+        super().__init__('c3x', 4, [], num_ctrl_qubits=3, label=label,
                          ctrl_state=ctrl_state, base_gate=XGate())
 
     # seems like open controls not hapening?
@@ -657,7 +657,7 @@ class RC3XGate(Gate):
 
     def __init__(self, label=None):
         """Create a new RC3X gate."""
-        super().__init__('rcccx', 4, [], label=label)
+        super().__init__('rc3x', 4, [], label=label)
 
     def _define(self):
         """
@@ -744,7 +744,7 @@ class C4XGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create a new 4-qubit controlled X gate."""
-        super().__init__('mcx', 5, [], num_ctrl_qubits=4, label=label,
+        super().__init__('c4x', 5, [], num_ctrl_qubits=4, label=label,
                          ctrl_state=ctrl_state, base_gate=XGate())
 
     # seems like open controls not hapening?
