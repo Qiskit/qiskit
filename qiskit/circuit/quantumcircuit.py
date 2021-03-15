@@ -1159,9 +1159,6 @@ class QuantumCircuit:
                 if sub_instruction not in self.existing_composite_circuits:
                     # Get qasm of composite circuit
                     self.existing_composite_circuits.insert(0, sub_instruction)
-                    #self.existing_composite_circuits.append(sub_instruction)
-                    #qasm_string = self._get_composite_circuit_qasm_from_instruction(sub_instruction)
-                    #self._insert_composite_gate_definition_qasm(qasm_string)
 
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
@@ -1217,15 +1214,7 @@ class QuantumCircuit:
                 if instruction.name not in self.qelib1_gate_names:
                     if instruction not in self.existing_composite_circuits:
 
-                        # Get qasm of composite circuit
-                        #qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
-
-                        #self._insert_composite_gate_definition_qasm(qasm_string, 'after')
-
                         self.existing_composite_circuits.append(instruction)
-
-
-                    #self.existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
                 self.qasm_string_temp += "%s %s;\n" % (instruction.qasm(),
@@ -1267,6 +1256,9 @@ class QuantumCircuit:
         gate_definition_string = ''
 
         # Cycle through all gate definitions and add all undefined gates to the list
+        for instruction in self.existing_composite_circuits:
+            self._get_composite_circuit_qasm_from_instruction(instruction)
+
         for instruction in self.existing_composite_circuits:
             self._get_composite_circuit_qasm_from_instruction(instruction)
 
