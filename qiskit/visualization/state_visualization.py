@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,import-error
+# pylint: disable=invalid-name
 # pylint: disable=inconsistent-return-statements,unsubscriptable-object
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
@@ -22,7 +22,9 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-from qiskit.quantum_info.states import DensityMatrix
+from qiskit import user_config
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
+from qiskit.visualization.array import _matrix_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
@@ -163,7 +165,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
+        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
             or [<r>, <theta>, <phi>] (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
@@ -172,7 +174,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
-            (cartesian or spherical), default is cartesian
+            (Cartesian or spherical), default is Cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -380,8 +382,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
     elif ax_real is not None:
         fig = ax_real.get_figure()
         ax1 = ax_real
-        if ax_imag is not None:
-            ax2 = ax_imag
+        ax2 = ax_imag
     else:
         fig = ax_imag.get_figure()
         ax1 = None
@@ -652,7 +653,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
             radians or degrees for the phase values in the plot.
 
     Returns:
-        Figure: A matplotlib figure instance if the ``ax`` kwag is not set
+        Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         ImportError: Requires matplotlib.
@@ -703,9 +704,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
     try:
         import seaborn as sns
-    except ImportError:
+    except ImportError as ex:
         raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip install seaborn".')
+                          'plot_state_qsphere. To install, run "pip install seaborn".') from ex
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -1047,3 +1048,160 @@ def _shade_colors(color, normals, lightsource=None):
         colors = np.asanyarray(color).copy()
 
     return colors
+
+
+def _repr_state_latex(state, max_size=(8, 8), dims=True, prefix=None):
+    if prefix is None:
+        prefix = ""
+    suffix = ""
+    if dims or prefix != "":
+        prefix = "\\begin{align}\n" + prefix
+        suffix = "\\end{align}"
+    if dims:
+        dims_str = state._op_shape.dims_l()
+        suffix = f"\\\\\n\\text{{dims={dims_str}}}\n" + suffix
+    latex_str = _matrix_to_latex(state._data, max_size=max_size)
+    return prefix + latex_str + suffix
+
+
+def _repr_state_text(state):
+    prefix = '{}('.format(type(state).__name__)
+    pad = len(prefix) * ' '
+    return '{}{},\n{}dims={})'.format(
+        prefix, np.array2string(
+            state._data, separator=', ', prefix=prefix),
+        pad, state._dims)
+
+
+class TextMatrix():
+    """Text representation of an array, with `__str__` method so it
+    displays nicely in Jupyter notebooks"""
+    def __init__(self, state, max_size=8, dims=False, prefix=''):
+        self.state = state
+        self.max_size = max_size
+        self.dims = dims
+        self.prefix = prefix
+        if isinstance(max_size, int):
+            self.max_size = max_size
+        elif isinstance(state, DensityMatrix):
+            # density matrices are square, so threshold for
+            # summarization is shortest side squared
+            self.max_size = min(max_size)**2
+        else:
+            self.max_size = max_size[0]
+
+    def __str__(self):
+        threshold = self.max_size
+        data = np.array2string(
+            self.state._data,
+            prefix=self.prefix,
+            threshold=threshold
+        )
+        if self.dims:
+            suffix = f',\ndims={self.state._op_shape.dims_l()}'
+        else:
+            suffix = ''
+        return self.prefix + data + suffix
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def state_drawer(state,
+                 output=None,
+                 max_size=None,
+                 dims=None,
+                 prefix=None,
+                 **drawer_args
+                 ):
+    """Returns a visualization of the state.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        **qsphere**: Matplotlib figure, rendering of statevector using `plot_state_qsphere()`.
+
+        **hinton**: Matplotlib figure, rendering of statevector using `plot_state_hinton()`.
+
+        **bloch**: Matplotlib figure, rendering of statevector using `plot_bloch_multivector()`.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
+                ``qsphere``, ``hinton``, or ``bloch``. Default is `'text`'.
+            max_size (int): Maximum number of elements before array is
+                summarized instead of fully represented. For ``latex``
+                drawer, this is also the maximum number of elements that will
+                be drawn in the output array, including elipses elements. For
+                ``text`` drawer, this is the ``threshold`` parameter in
+                ``numpy.array2string()``.
+            dims (bool): For `text`, `latex` and `latex_source`. Whether to
+                display the dimensions. If `None`, will only display if state
+                is not a qubit state.
+            prefix (str): For `text`, `latex`, and `latex_source`. Text to be
+                displayed before the rest of the state.
+
+        Returns:
+            :class:`matplotlib.figure` or :class:`str` or
+            :class:`TextMatrix`: or :class:`IPython.display.Latex`
+
+        Raises:
+            ImportError: when `output` is `latex` and IPython is not installed.
+            ValueError: when `output` is not a valid selection.
+    """
+    # set 'output'
+    config = user_config.get_config()
+    # Get default 'output' from config file else use text
+    default_output = 'text'
+    if config:
+        default_output = config.get('state_drawer', 'auto')
+        if default_output == 'auto':
+            try:
+                from IPython.display import Latex
+                default_output = 'latex'
+            except ImportError:
+                default_output = 'text'
+    if output in [None, 'auto']:
+        output = default_output
+    output = output.lower()
+    # Set 'dims'
+    if dims is None:  # show dims if state is not only qubits
+        if set(state.dims()) == {2}:
+            dims = False
+        else:
+            dims = True
+    if prefix is None:
+        prefix = ''
+    if max_size is None:
+        max_size = (8, 8)
+    if isinstance(max_size, int):
+        max_size = (max_size, max_size)
+
+    # Choose drawing backend:
+    # format is {'key': (<drawer-function>, (<drawer-specific-args>))}
+    drawers = {'text': (TextMatrix, (max_size, dims, prefix)),
+               'latex_source': (_repr_state_latex, (max_size, dims, prefix)),
+               'qsphere': (plot_state_qsphere, ()),
+               'hinton': (plot_state_hinton, ()),
+               'bloch': (plot_bloch_multivector, ())}
+    if output == 'latex':
+        try:
+            from IPython.display import Latex
+        except ImportError as err:
+            raise ImportError('IPython is not installed, to install run: '
+                              '"pip install ipython", or set output=\'latex_source\' '
+                              'instead for an ASCII string.') from err
+        else:
+            draw_func, args = drawers['latex_source']
+            return Latex(draw_func(state, *args))
+    try:
+        draw_func, specific_args = drawers[output]
+        return draw_func(state, *specific_args, **drawer_args)
+    except KeyError as err:
+        raise ValueError(
+            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            'text', 'latex', 'latex_source', 'qsphere', 'hinton',
+            'bloch' or 'auto'.""".format(output, type(state).__name__)) from err

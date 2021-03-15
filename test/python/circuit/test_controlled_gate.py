@@ -867,7 +867,7 @@ class TestControlledGate(QiskitTestCase):
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     @combine(
-        gate=[gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
+        gate=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)],
         num_ctrl_qubits=[1, 2],
         ctrl_state=[None, 0, 1],
     )

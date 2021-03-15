@@ -81,7 +81,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
-            if any([value < 0 for value in evaluation_schedule]):
+            if any(value < 0 for value in evaluation_schedule):
                 raise ValueError('The elements of the evaluation schedule cannot be < 0.')
 
             self._evaluation_schedule = evaluation_schedule

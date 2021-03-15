@@ -321,7 +321,7 @@ class Operator(LinearOp):
             QiskitError: if other is not an operator, or has incompatible
                          dimensions.
         """
-        # pylint: disable=import-outside-toplevel, cyclic-import
+        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
         if qargs is None:
@@ -379,6 +379,27 @@ class Operator(LinearOp):
             rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
+
+    def reverse_qargs(self):
+        r"""Return an Operator with reversed subsystem ordering.
+
+        For a tensor product operator this is equivalent to reversing
+        the order of tensor product subsystems. For an operator
+        :math:`A = A_{n-1} \otimes ... \otimes A_0`
+        the returned operator will be
+        :math:`A_0 \otimes ... \otimes A_{n-1}`.
+
+        Returns:
+            Operator: the operator with reversed subsystem order.
+        """
+        ret = copy.copy(self)
+        axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
+        axes = axes + tuple(len(axes) + i for i in axes)
+        ret._data = np.reshape(np.transpose(
+            np.reshape(self.data, self._op_shape.tensor_shape), axes),
+                               self._op_shape.shape)
+        ret._op_shape = self._op_shape.reverse()
+        return ret
 
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
@@ -475,17 +496,21 @@ class Operator(LinearOp):
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs)
                 self._data = op.data
-            flat_instr = obj.definition.to_instruction()
-            for instr, qregs, cregs in flat_instr.definition.data:
+            flat_instr = obj.definition
+            bit_indices = {bit: index
+                           for bits in [flat_instr.qubits, flat_instr.clbits]
+                           for index, bit in enumerate(bits)}
+
+            for instr, qregs, cregs in flat_instr:
                 if cregs:
                     raise QiskitError(
                         'Cannot apply instruction with classical registers: {}'.format(
                             instr.name))
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
+                    new_qargs = [bit_indices[tup] for tup in qregs]
                 else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
+                    new_qargs = [qargs[bit_indices[tup]] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
 
 

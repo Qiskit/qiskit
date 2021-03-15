@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
+
 from abc import ABC
 from typing import Optional
 
