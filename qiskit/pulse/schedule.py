@@ -1436,7 +1436,8 @@ class ScheduleBlock(PulseProgram):
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method is currently not supported, but the support will be soon added.
+        .. note:: This method is currently not supported. Support will be soon added please create an issue
+        if you believe this must be prioritized.
 
         Args:
             filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
