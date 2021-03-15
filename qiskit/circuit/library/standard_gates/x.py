@@ -854,6 +854,14 @@ class MCXGate(ControlledGate):
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None, _name='mcx'):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+
+        #if num_ctrl_qubits == 1:
+        #    _name = 'cx'
+        #elif num_ctrl_qubits == 2:
+        #    _name = 'ccx'
+        #else:
+        #    _name = f'c{num_ctrl_qubits}x'
+
         super().__init__(_name, num_ctrl_qubits + 1 + num_ancilla_qubits, [],
                          num_ctrl_qubits=num_ctrl_qubits, label=label,
                          ctrl_state=ctrl_state, base_gate=XGate())
@@ -936,6 +944,14 @@ class MCXGrayCode(MCXGate):
         return super().__new__(cls)
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+
+        if num_ctrl_qubits == 1:
+            _name = 'cx'
+        elif num_ctrl_qubits == 2:
+            _name = 'ccx'
+        else:
+            _name = f'c{num_ctrl_qubits}x_gray'
+
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')
 
     def inverse(self):
@@ -964,7 +980,15 @@ class MCXRecursive(MCXGate):
     """
 
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_recursive')
+
+        if num_ctrl_qubits == 1:
+            _name = 'cx'
+        elif num_ctrl_qubits == 2:
+            _name = 'ccx'
+        else:
+            _name = f'c{num_ctrl_qubits}x_recursive'
+
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='recursion'):
@@ -1028,7 +1052,15 @@ class MCXVChain(MCXGate):
         return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_vchain')
+
+        if num_ctrl_qubits == 1:
+            _name = 'cx'
+        elif num_ctrl_qubits == 2:
+            _name = 'ccx'
+        else:
+            _name = f'c{num_ctrl_qubits}x_vchain'
+
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
