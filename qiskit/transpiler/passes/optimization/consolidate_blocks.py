@@ -112,10 +112,11 @@ class ConsolidateBlocks(TransformationPass):
         basis_gate_name = self.decomposer.gate.name
         for block in blocks:
             if len(block) == 1 and block[0].name != basis_gate_name:
+                # pylint: disable=too-many-boolean-expressions
                 if block[0].type == 'op' \
                         and self.basis_gates \
                         and block[0].name not in self.basis_gates \
-                        and len(node.cargs) == 0 and node.condition is None \
+                        and len(block[0].cargs) == 0 and block[0].condition is None \
                         and isinstance(block[0].op, Gate) \
                         and hasattr(block[0].op, '__array__') \
                         and not block[0].op.is_parameterized():
