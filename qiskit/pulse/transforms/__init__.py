@@ -21,7 +21,7 @@ Alignments
 ==========
 
 The alignment transforms define alignment policies of instructions in ``ScheduleBlock``.
-This transformation is called to create ``Schedule`` from ``ScheduleBlock``.
+These transformations are called to create ``Schedule``s from ``ScheduleBlock``s.
 
 .. autosummary::
    :toctree: ../stubs/
