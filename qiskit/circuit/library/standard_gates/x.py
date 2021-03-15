@@ -851,16 +851,18 @@ class MCXGate(ControlledGate):
             return gate
         return super().__new__(cls)
 
-    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None, _name='mcx'):
+    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None, _name=None):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
 
-        #if num_ctrl_qubits == 1:
-        #    _name = 'cx'
-        #elif num_ctrl_qubits == 2:
-        #    _name = 'ccx'
-        #else:
-        #    _name = f'c{num_ctrl_qubits}x'
+        # if MCXGate is not specified via MCXGrayCode, MCXRecursive, MCXVChain
+        if _name is None:
+            if num_ctrl_qubits == 1:
+                _name = 'cx'
+            elif num_ctrl_qubits == 2:
+                _name = 'ccx'
+            else:
+                _name = f'c{num_ctrl_qubits}x'
 
         super().__init__(_name, num_ctrl_qubits + 1 + num_ancilla_qubits, [],
                          num_ctrl_qubits=num_ctrl_qubits, label=label,
@@ -952,7 +954,7 @@ class MCXGrayCode(MCXGate):
         else:
             _name = f'c{num_ctrl_qubits}x_gray'
 
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name=_name)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
