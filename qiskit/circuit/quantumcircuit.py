@@ -1159,8 +1159,8 @@ class QuantumCircuit:
                 if sub_instruction not in self.existing_composite_circuits:
                     # Get qasm of composite circuit
                     self.existing_composite_circuits.append(sub_instruction)
-                    qasm_string = self._get_composite_circuit_qasm_from_instruction(sub_instruction)
-                    self._insert_composite_gate_definition_qasm(qasm_string)
+                    #qasm_string = self._get_composite_circuit_qasm_from_instruction(sub_instruction)
+                    #self._insert_composite_gate_definition_qasm(qasm_string)
 
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
@@ -1217,9 +1217,9 @@ class QuantumCircuit:
                     if instruction not in self.existing_composite_circuits:
 
                         # Get qasm of composite circuit
-                        qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+                        #qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                        self._insert_composite_gate_definition_qasm(qasm_string, 'after')
+                        #self._insert_composite_gate_definition_qasm(qasm_string, 'after')
 
                         self.existing_composite_circuits.append(instruction)
 
@@ -1233,6 +1233,9 @@ class QuantumCircuit:
 
             if instruction.name == 'unitary':
                 unitary_gates.append(instruction)
+
+        # insert gate definitions
+        self._insert_composite_gate_definition_qasm()
 
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
@@ -1256,18 +1259,21 @@ class QuantumCircuit:
         else:
             return self.qasm_string_temp
 
-    def _insert_composite_gate_definition_qasm(self, string_to_insert, location='before'):
+    def _insert_composite_gate_definition_qasm(self):
         """Insert composite gate definition QASM code right after extension library in the header
         """
-        if location == 'before':
-            self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
+
+        gate_definition_string = ''
+
+        # Get qasm of composite circuit
+        for instruction in self.existing_composite_circuits:
+            qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+            gate_definition_string += '\n' + qasm_string
+
+        self.qasm_string_temp = self.qasm_string_temp.replace(self.extension_lib,
                                                       "%s\n%s" % (self.extension_lib,
-                                                                  string_to_insert))
-        elif location == 'after':
-            # insert gate definition before the first occurance of 'qreg' and
-            self.qasm_string_temp = self.qasm_string_temp.replace('qreg',
-                                                      "%s\n%s" % (string_to_insert,
-                                                                  'qreg'), 1)
+                                                                  gate_definition_string))
+
 
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
