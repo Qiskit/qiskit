@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.dagcircuit import DAGDependency
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -96,6 +96,32 @@ class TestDagRegisters(QiskitTestCase):
         dag = DAGDependency()
         cr = ClassicalRegister(2)
         self.assertRaises(DAGDependencyError, dag.add_qreg, cr)
+
+    def test_add_registerless_bits(self):
+        """Verify we can add are retrieve bits without an associated register."""
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(3)]
+
+        dag = DAGDependency()
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+
+        self.assertEqual(dag.qubits, qubits)
+        self.assertEqual(dag.clbits, clbits)
+
+    def test_add_duplicate_registerless_bits(self):
+        """Verify we raise when adding a bit already present in the circuit."""
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(3)]
+
+        dag = DAGDependency()
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+
+        with self.assertRaisesRegex(DAGDependencyError, r'duplicate qubits'):
+            dag.add_qubits(qubits[:1])
+        with self.assertRaisesRegex(DAGDependencyError, r'duplicate clbits'):
+            dag.add_clbits(clbits[:1])
 
 
 class TestDagNodeEdge(QiskitTestCase):

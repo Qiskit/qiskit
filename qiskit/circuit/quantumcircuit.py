@@ -1073,7 +1073,7 @@ class QuantumCircuit:
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
                 new_bits = [bit for bit in register
-                            if bit not in self._qubit_set]
+                            if bit not in self._clbit_set]
                 self._clbits.extend(new_bits)
                 self._clbit_set.update(new_bits)
             elif isinstance(register, list):
