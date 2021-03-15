@@ -54,7 +54,7 @@ DAG
 ===
 
 The DAG transforms create DAG representation of input program. This can be used for
-optimization of instructions and equality check.
+optimization of instructions and equality checks.
 
 .. autosummary::
    :toctree: ../stubs/
