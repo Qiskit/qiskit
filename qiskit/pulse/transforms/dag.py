@@ -66,7 +66,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
 
 def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
-    """A helper function to create DAG of sequential alignment context."""
+    """A helper function to create a DAG of a sequential alignment context."""
     dag_instructions = rx.PyDAG()
 
     prev_node = None
