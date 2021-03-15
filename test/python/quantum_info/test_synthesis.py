@@ -433,6 +433,12 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     """Test TwoQubitWeylDecomposition()
     """
 
+    def test_TwoQubitWeylDecomposition_repr(self, seed=42):
+        """Check that eval(__repr__) is exact round trip"""
+        target = random_unitary(4, seed=seed)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
+        self.assertRoundTrip(weyl1)
+
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""
         for k1l, k1r, k2l, k2r in K1K2S:
