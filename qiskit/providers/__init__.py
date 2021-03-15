@@ -276,8 +276,8 @@ set. For example::
             q.ry(np.pi / 2, 0)
             self.definition = qc
 
-The key thing to ensure is that any custom gates in your Backend's basis set
-is that your custom gate's name attribute (the first param on
+The key thing to ensure is that for any custom gates in your Backend's basis set
+your custom gate's name attribute (the first param on
 ``super().__init__()`` in the ``__init__`` defintion above) does not conflict
 with the name of any other gates. The name attribute is what is used to
 identify the gate in the basis set for the transpiler. If there is a conflict
@@ -337,7 +337,7 @@ custom gates the equivalence rules are defined.
 It's also worth noting that depending on the basis you're using, some optimization
 passes in the transpiler, such as
 :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`, may not
-be able to operate with your custom basis. For  our``SYGate`` example, the
+be able to operate with your custom basis. For our ``SYGate`` example, the
 :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition` will not be
 able to simplify runs of single qubit gates into the SY basis. This is because
 the :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class does not
