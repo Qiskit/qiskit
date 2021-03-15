@@ -68,7 +68,8 @@ class VarQRTE(VarQTE):
         # Step size
         dt = np.abs(operator.coeff) / self._num_time_steps
         # Run ODE Solver
-        parameter_values = self._run_ode_solver(dt * self._num_time_steps)
+        parameter_values = self._run_ode_solver(dt * self._num_time_steps,
+                                                self._init_parameter_values)
         # return evolved
         return self._state.assign_parameters(dict(zip(self._parameters,
                                                       parameter_values)))
@@ -99,81 +100,7 @@ class VarQRTE(VarQTE):
         #
         #     self._regularization = energy_reg
         #
-        # # Initialize error
-        # error_bound = 0
-        #
-        # # Assign parameter values to parameter items
-        # param_dict = dict(zip(self._parameters, self._parameter_values))
-        #
-        # # ODE Solver
-        #
-        # if self._ode_solver is not None:
-        #     self._parameter_values = self._run_ode_solver(dt * self._num_time_steps)
-        #     # Return variationally evolved operator
-        #     return self._state.assign_parameters(dict(zip(self._parameters,
-        #                                                   self._parameter_values)))
-        # if self._snapshot_dir is not None:
-        #     f, true_error, true_energy, trained_energy= self._distance_energy(0, param_dict)
-        #
-        # for j in range(self._num_time_steps):
-        #
-        #     # Get the natural gradient - time derivative of the variational parameters - and
-        #     # the gradient w.r.t. H and the QFI/4.
-        #     nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-        #
-        #     # Evaluate the error bound
-        #     if self._snapshot_dir:
-        #         # Get the residual for McLachlan's Variational Principle
-        #         resid = np.linalg.norm(np.matmul(metric_res, nat_grad_result) - 0.5 * grad_res)
-        #
-        #         # Get the error for the current step
-        #         et,  h_squared, dtdt_state, imgrad = self._error_t(nat_grad_result, grad_res,
-        #                                                            metric_res)
-        #         if et < 0 and np.abs(et) > 1e-4:
-        #             raise Warning('Non-neglectible negative et observed')
-        #         else:
-        #             et = np.sqrt(np.real(et))
-        #         error_bound += dt * et
-        #         print('et', et)
-        #         print('Error', np.round(error_bound, 3),  'after', j, ' time steps.')
-        #
-        #         if self._snapshot_dir:
-        #             self._store_params(j * dt, self._parameter_values, error_bound, et,
-        #                                resid, f, true_error, None,
-        #                                None, true_energy,
-        #                                trained_energy, None, h_squared, dtdt_state, imgrad)
-        #
-        #         # Propagate the Ansatz parameters step by step using explicit Euler
-        #         # if self._backend is not None:
-        #         #     state_for_grad = self._state_circ_sampler.convert(self._state,
-        #         #                                                       params=param_dict)[0]
-        #         # else:
-        #         #     state_for_grad = self._state.assign_parameters(param_dict)
-        #         # self._exact_euler_state += dt * \
-        #         #                            self._exact_grad_state(
-        #         #                                state_for_grad.eval().primitive.data)
-        #
-        #     self._parameter_values = list(np.add(self._parameter_values, dt *
-        #                                          np.real(nat_grad_result)))
-        #
-        #     # Assign parameter values to parameter items
-        #     param_dict = dict(zip(self._parameters, self._parameter_values))
-        #
-        #     # Store the current status
-        #     if self._snapshot_dir:
-        #         # Compute the fidelity, the error between the
-        #         # prepared and the target state, the energy w.r.t. the target state and the energy
-        #         # w.r.t. the prepared state
-        #         f, true_error, true_energy, trained_energy = self._distance_energy((j + 1) * dt,
-        #                                                                            param_dict)
-        # if self._snapshot_dir:
-        #     self._store_params((j + 1) * dt, self._parameter_values, error_bound, None,
-        #                        resid, f, true_error, None,
-        #                        None, true_energy,
-        #                        trained_energy, None, None, None, None)
-        #
-        # # Return evolved variational operator
-        # return self._state.assign_parameters(param_dict)
+
 
     def _error_t(self,
                  param_values: Union[List, np.ndarray],
@@ -200,7 +127,7 @@ class VarQRTE(VarQTE):
         # ⟨ψ(ω)|H^2|ψ(ω)〉
         if self._backend is not None:
             h_squared = self._h_squared_circ_sampler.convert(self._h_squared,
-                                                             params=param_dict)[0]
+                                                             params=param_dict)
         else:
             h_squared = self._h_squared.assign_parameters(param_dict)
         h_squared = np.real(h_squared.eval())

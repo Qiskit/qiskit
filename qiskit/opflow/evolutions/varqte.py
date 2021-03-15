@@ -91,9 +91,9 @@ class VarQTE(EvolutionBase):
             raise TypeError('Please provide parameters for the variational quantum time evolution.')
         self._parameters = parameters
         if init_parameter_values is not None:
-            self._parameter_values = init_parameter_values
+            self._init_parameter_values = init_parameter_values
         else:
-            self._parameter_values = np.random.random(len(parameters))
+            self._init_parameter_values = np.random.random(len(parameters))
         self._backend = backend
         if self._backend is not None:
             self._operator_circ_sampler = CircuitSampler(self._backend)
@@ -254,13 +254,13 @@ class VarQTE(EvolutionBase):
             self._init_state = self._state_circ_sampler.convert(self._state,
                                                                 params=dict(zip
                                                                             (self._parameters,
-                                                                             self._parameter_values
+                                                                             self._init_parameter_values
                                                                              )
                                                                             )
-                                                                )[0]
+                                                                )
         else:
             self._init_state = self._state.assign_parameters(dict(zip(self._parameters,
-                                                                      self._parameter_values)))
+                                                                      self._init_parameter_values)))
         self._init_state = self._init_state.eval().primitive.data
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
@@ -299,11 +299,13 @@ class VarQTE(EvolutionBase):
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
 
-    def _init_ode_solver(self, t: float):
+    def _init_ode_solver(self, t: float,
+                         init_params: Union[List, np.ndarray]):
         """
         Initialize ODE Solver
         Args:
-            t: time
+            t: Evolution time
+            init_params: Set of initial parameters for time 0
         """
         def error_based_ode_fun(time, params):
             param_dict = dict(zip(self._parameters, params))
@@ -401,12 +403,12 @@ class VarQTE(EvolutionBase):
             return dt_params
 
         if issubclass(self._ode_solver, OdeSolver):
-            self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=self._parameter_values,
-                                              n=self._num_time_steps, atol=1e-6)
+            self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
+                                              atol=1e-6)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
-                                                y0=self._parameter_values,
+                                                y0=init_params,
                                                 num_t_steps=self._num_time_steps)
 
         # elif self._ode_solver == backward_euler_fsolve:
@@ -416,9 +418,15 @@ class VarQTE(EvolutionBase):
             raise TypeError('Please define a valid ODESolver')
         return
 
-    def _run_ode_solver(self, t):
-        self._init_ode_solver(t=t)
-        param_values = self._parameter_values
+    def _run_ode_solver(self, t, init_params):
+        """
+        Find numerical solution with ODE Solver
+        Args:
+            t: Evolution time
+            init_params: Set of initial parameters for time 0
+        """
+        self._init_ode_solver(t, init_params)
+        # param_values = self._parameter_values
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
             self._store_now = True
             _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
@@ -577,10 +585,10 @@ class VarQTE(EvolutionBase):
         """
         if self._backend is not None:
             grad_res = np.array(self._grad_circ_sampler.convert(self._grad,
-                                                                params=param_dict).eval())[0]
+                                                                params=param_dict).eval())
             # Get the QFI/4
             metric_res = np.array(self._metric_circ_sampler.convert(self._metric,
-                                                           params=param_dict).eval()[0]) * 0.25
+                                                           params=param_dict).eval()) * 0.25
         else:
             grad_res = np.array(self._grad.assign_parameters(param_dict).eval())
             # Get the QFI/4
@@ -611,7 +619,7 @@ class VarQTE(EvolutionBase):
         else:
             if self._backend is not None:
                 nat_grad_result = \
-                    self._nat_grad_circ_sampler.convert(self._nat_grad, params=param_dict).eval()[0]
+                    self._nat_grad_circ_sampler.convert(self._nat_grad, params=param_dict).eval()
             else:
                 nat_grad_result = self._nat_grad.assign_parameters(param_dict).eval()
         print('nat grad result', nat_grad_result)
@@ -659,7 +667,7 @@ class VarQTE(EvolutionBase):
         # |state_t>
         if self._backend is not None:
             trained_state = self._state_circ_sampler.convert(self._state,
-                                                             params=param_dict)[0]
+                                                             params=param_dict)
         else:
             trained_state = self._state.assign_parameters(param_dict)
         trained_state = trained_state.eval().primitive.data
