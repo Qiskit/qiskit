@@ -37,8 +37,8 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
 Basis
 =====
 
-The basis transforms perform a fundamental conversion of schedules to
-optimize it to execute on Open Pulse backends.
+The canonicalization transforms convert  schedules to a form
+amenable for execution on Openpulse backends.
 
 .. autosummary::
    :toctree: ../stubs/
