@@ -14,8 +14,8 @@
 Pulse Transforms (:mod:`qiskit.pulse.transforms`)
 ===================================================
 
-The pulse transforms provide a collection of conversion to reallocate and optimize
-instructions to execute the input program on backends supporting the Open Pulse.
+The pulse transforms provide transformation routines to reallocate and optimize
+pulse programs for backends.
 
 Alignments
 ==========
