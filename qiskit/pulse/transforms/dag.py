@@ -82,7 +82,7 @@ def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
 
 
 def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
-    """A helper function to create DAG of parallel alignment context."""
+    """A helper function to create a DAG of a parallel alignment context."""
     dag_instructions = rx.PyDAG()
 
     slots = dict()
