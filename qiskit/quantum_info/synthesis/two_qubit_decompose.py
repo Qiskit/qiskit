@@ -50,7 +50,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
     Throws QiskitError if this isn't possible.
     """
-    special_unitary_matrix = np.asarray(special_unitary_matrix)
+    special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
     # extract the right component
     R = special_unitary_matrix[:2, :2].copy()
     detR = R[0, 0]*R[1, 1] - R[0, 1]*R[1, 0]
@@ -153,7 +153,7 @@ class TwoQubitWeylDecomposition():
         pi4 = np.pi/4
 
         # Make U be in SU(4)
-        U = np.array(unitary_matrix, copy=True)
+        U = np.array(unitary_matrix, dtype=complex, copy=True)
         detU = la.det(U)
         U *= detU**(-0.25)
         global_phase = cmath.phase(detU) / 4
@@ -258,7 +258,7 @@ class TwoQubitWeylDecomposition():
         od.global_phase = global_phase
         od.requested_fidelity = fidelity
         od.calculated_fidelity = 1.0
-        od.unitary_matrix = np.array(unitary_matrix, copy=True)
+        od.unitary_matrix = np.array(unitary_matrix, dtype=complex, copy=True)
         od.unitary_matrix.setflags(write=False)
         od._original_decomposition = None
         od._is_flipped_from_original = False
