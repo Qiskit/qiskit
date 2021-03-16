@@ -78,7 +78,6 @@ class VarQITE(VarQTE):
         return self._state.assign_parameters(dict(zip(self._parameters,
                                                       parameter_values)))
 
-
     def _error_t(self,
                  param_values: Union[List, np.ndarray],
          ng_res: Union[List, np.ndarray],

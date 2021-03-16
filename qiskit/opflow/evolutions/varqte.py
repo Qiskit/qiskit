@@ -331,7 +331,7 @@ class VarQTE(EvolutionBase):
                 """
                 et_squared = self._error_t(params, dt_param_values, grad_res,
                                            metric_res)[0]
-                print('grad error', et_squared)
+                # print('grad error', et_squared)
                 return et_squared
 
             def jac_argmin_fun(dt_param_values: Union[List, np.ndarray]
@@ -647,7 +647,7 @@ class VarQTE(EvolutionBase):
         """
         def phase_agnostic(phi):
             return np.linalg.norm(np.subtract(target_state, np.exp(1j*phi) * trained_state), ord=2)
-        l2_norm_pa = minimize(fun=phase_agnostic, x0=0, method='COBYLA', tol=1e-6)
+        l2_norm_pa = minimize(fun=phase_agnostic, x0=np.array([0]), method='COBYLA', tol=1e-6)
         return l2_norm_pa.fun
 
     def _distance_energy(self,
@@ -773,12 +773,14 @@ class VarQTE(EvolutionBase):
             plt.legend(loc='best')
             plt.xlabel('time')
             plt.ylabel('error')
-            # plt.xticks(range(counter-1))
+            plt.autoscale(enable=True)
+                          # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
             if reverse_bound_directories is not None:
                 plt.scatter(time, reverse_error_bounds, color='green', marker='o', s=40,
                             label='reverse error bound')
                 plt.legend(loc='best')
+                plt.autoscale(enable=True)
                 plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
             plt.close()
 
@@ -788,6 +790,7 @@ class VarQTE(EvolutionBase):
                         label='fidelity')
             plt.xlabel('time')
             plt.ylabel('fidelity')
+            plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'fidelity.png'))
             plt.close()
@@ -801,6 +804,7 @@ class VarQTE(EvolutionBase):
             plt.xlabel('time')
             plt.ylabel('energy')
             plt.legend(loc='best')
+            plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'energy.png'))
             plt.close()

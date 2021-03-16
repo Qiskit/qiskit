@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import fsolve
 from scipy.linalg import lu_factor, lu_solve
 from scipy.sparse import issparse, csc_matrix, eye
 from scipy.sparse.linalg import splu
@@ -96,30 +97,46 @@ class backward_euler_fsolve():
         self._y0 = y0
         self._n = n
 
-    def run(self):
-
-        from scipy.optimize import fsolve
-        import numpy as np
-
-        if ( np.ndim ( self._y0 ) == 0 ):
+        if (np.ndim(self._y0) == 0):
             m = 1
         else:
-            m = len ( self._y0 )
+            m = len(self._y0)
+        self._t = np.zeros(self._n + 1)
+        self._y = np.zeros([self._n + 1, m])
 
-        t = np.zeros (self._n + 1 )
-        y = np.zeros ( [ self._n + 1, m ] )
+        self._dt = (self._tspan[1] - self._tspan[0]) / float(self._n)
 
-        dt = ( self._tspan[1] - self._tspan[0] ) / float ( self._n )
+        self._t[0] = 0.0
+        self._y[0, :] = self._y0
+        self._n_count = 0
 
-        t[0] = 0.0
-        y[0,:] = self._y0
+    def step(self):
+        # tp = self._t[self._n_count] + self._dt
+        # yp = self._y[self._n_count, :]
+        #
+        # yp = self._y[self._n_count, :] + self._dt * self._f(tp, yp)
 
+        to = self._t[self._n_count]
+        yo = self._y[self._n_count,:]
+        tp = self._t[self._n_count] + self._dt
+        yp = yo - self._dt * self._f(to, yo)
+
+        yp = fsolve(backward_euler_residual, yp, args=(self._f, to, yo, tp))
+        print('params after step ', yp)
+
+        self._t[self._n_count + 1] = tp
+        print('updated parameters', yp)
+        self._y[self._n_count + 1, :] = yp[:]
+        self._n_count += 1
+        return self._y[-1, :]
+
+    def run(self):
         for i in range(0, self._n):
-            tp = t[i] + dt
-            yp = y[i, :]
+            tp = self._t[i] + self._dt
+            yp = self._y[i, :]
 
             for j in range(0, 1):
-                yp = y[i, :] + dt * self._f(tp, yp)
+                yp = self._y[i, :] + self._dt * self._f(tp, yp)
 
             # to = t[i]
             # yo = y[i,:]
@@ -129,10 +146,10 @@ class backward_euler_fsolve():
             # yp = fsolve(backward_euler_residual, yp, args=(self._f, to, yo, tp))
             print('params after step ', yp)
 
-            t[i+1] = tp
-            y[i+1,:] = yp[:]
+            self._t[i+1] = tp
+            self._y[i+1,:] = yp[:]
 
-        return t[-1], y[-1, :]
+        return self._t[-1], self._y[-1, :]
 
 
 def compute_R(order, factor):
