@@ -82,7 +82,7 @@ class TensoredOp(ListOp):
     # TODO do this smarter
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
-        if self._is_emtpy():
+        if self._is_empty():
             return self.__class__([], coeff=self.coeff, abelian=self.abelian)
         reduced_ops = reduce(lambda x, y: x.tensor(y), reduced_ops) * self.coeff
         if isinstance(reduced_ops, ListOp) and len(reduced_ops.oplist) == 1:
