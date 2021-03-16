@@ -34,7 +34,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         self.pma = PassManager(AxisAngleAnalysis())
         self.pmr = PassManager(AxisAngleReduction())
 
-
     def test_axis_angle(self):
         """test axis angle calc"""
         from qiskit.circuit.library.standard_gates import (U1Gate, TGate,
@@ -119,7 +118,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         # cos(pi/3)x + sin(pi/3)y axis, qubit 1, 2 parameters
         circ.r(np.pi/2, np.pi/3, 1)
         circ.r(np.pi/3, np.pi/3, 1)
-        circ.cx(0, 1) # check interruption by cx
+        circ.cx(0, 1)  # check interruption by cx
         circ.r(np.pi/3, np.pi/3, 1)
         passmanager = PassManager()
         passmanager.append(AxisAngleReduction())

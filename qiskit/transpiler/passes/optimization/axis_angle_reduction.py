@@ -44,7 +44,6 @@ class AxisAngleReduction(TransformationPass):
 
         self.requires.append(AxisAngleAnalysis())
 
-
     def run(self, dag):
         """Run the AxisAngleReduction pass on `dag`.
 

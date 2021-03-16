@@ -83,7 +83,7 @@ class AxisAngleAnalysis(AnalysisPass):
                               'symmetry_order': symmetry_order})
                 if node.name not in var_gate_class and nparams == 1:
                     var_gate_class[node.name] = node.op.__class__
-        dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order':int})
+        dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order': int})
         self.property_set['axis-angle'] = dfprop
         self.property_set['var_gate_class'] = var_gate_class
 
