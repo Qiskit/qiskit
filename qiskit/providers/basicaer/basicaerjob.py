@@ -15,16 +15,14 @@
 
 """This module implements the job class used by Basic Aer Provider."""
 
+import warnings
+
 from qiskit.providers import JobStatus
 from qiskit.providers.job import JobV1
 
 
 class BasicAerJob(JobV1):
-    """BasicAerJob class.
-
-    Attributes:
-        _executor (futures.Executor): executor to handle asynchronous jobs
-    """
+    """BasicAerJob class."""
 
     _async = False
 
@@ -40,17 +38,19 @@ class BasicAerJob(JobV1):
         """
         return
 
-    def result(self):
+    def result(self, timeout=None):
         # pylint: disable=arguments-differ
         """Get job result .
 
         Returns:
             qiskit.Result: Result object
-
-        Raises:
-            concurrent.futures.TimeoutError: if timeout occurred.
-            concurrent.futures.CancelledError: if job cancelled before completed.
         """
+        if timeout is not None:
+            warnings.warn("The timeout kwarg doesn't have any meaning with "
+                          "BasicAer because execution is synchronous and the "
+                          "result already exists when run() returns.",
+                          UserWarning)
+
         return self._result
 
     def status(self):

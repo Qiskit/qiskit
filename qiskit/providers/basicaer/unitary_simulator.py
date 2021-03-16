@@ -268,7 +268,15 @@ class UnitarySimulatorPy(BackendV1):
         """
         if isinstance(qobj, (QuantumCircuit, list)):
             from qiskit.compiler import assemble
-            qobj = assemble(qobj, self, **backend_options)
+            out_options = {}
+            for key in backend_options:
+                if not hasattr(self.options, key):
+                    warnings.warn(
+                        "Option %s is not used by this backend" % key,
+                        UserWarning, stacklevel=2)
+                else:
+                    out_options[key] = backend_options[key]
+            qobj = assemble(qobj, self, **out_options)
             qobj_options = qobj.config
         else:
             qobj_options = None

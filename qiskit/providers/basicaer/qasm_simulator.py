@@ -31,6 +31,7 @@ field, which is a result of measurements for each shot.
 import uuid
 import time
 import logging
+import warnings
 
 from math import log2
 from collections import Counter
@@ -154,7 +155,7 @@ class QasmSimulatorPy(BackendV1):
     def _default_options(cls):
         return Options(shots=1024, memory=False,
                        initial_statevector=None, chop_threshold=1e-15,
-                       allow_sample_measuring=False)
+                       allow_sample_measuring=False, seed_simulator=None)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -413,7 +414,15 @@ class QasmSimulatorPy(BackendV1):
         """
         if isinstance(qobj, (QuantumCircuit, list)):
             from qiskit.compiler import assemble
-            qobj = assemble(qobj, self, **backend_options)
+            out_options = {}
+            for key in backend_options:
+                if not hasattr(self.options, key):
+                    warnings.warn(
+                        "Option %s is not used by this backend" % key,
+                        UserWarning, stacklevel=2)
+                else:
+                    out_options[key] = backend_options[key]
+            qobj = assemble(qobj, self, **out_options)
             qobj_options = qobj.config
         else:
             qobj_options = qobj.config
