@@ -15,7 +15,7 @@
 from typing import Optional
 from abc import ABC, abstractmethod, abstractproperty
 from qiskit.circuit import QuantumCircuit
-from qiskit.algorithms import AlgorithmResult
+from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
 class PhaseEstimator(ABC):
