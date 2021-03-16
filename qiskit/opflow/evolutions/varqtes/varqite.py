@@ -160,47 +160,54 @@ class VarQITE(VarQTE):
 
     def _get_error_bound(self,
                          gradient_errors: List,
-                         time: List,
+                         times: List,
                          stddevs: List,
-                         use_integral_approx: bool = True,
                          imag_reverse_bound: bool = True,
-                         H: Optional[Union[List, np.ndarray]] = None) -> List:
+                         H: Optional[Union[List, np.ndarray]] = None) -> Union[List, Tuple[List,
+                                                                                           List]]:
+        """
+        Get the upper bound to a global phase agnostic l2-norm error for VarQITE simulation
+        Args:
+            gradient_errors: Error of the state propagation gradient for each t in times
+            times: List of all points in time considered throughout the simulation
+            stddevs: Standard deviations for times sqrt(⟨ψ(ω)|H^2| ψ(ω)〉- ⟨ψ(ω)|H| ψ(ω)〉^2)
+            imag_reverse_bound: If True compute the reverse error bound
+            H: If imag_reverse_bound find the first and second Eigenvalue of H to compute the
+               reverse bound
 
-        if not len(gradient_errors) == len(time):
-            print(gradient_errors)
-            print()
+        Returns:
+            List of the error upper bound for all times
+
+        Raises: NotImplementedError
+
+        """
+
+        if not len(gradient_errors) == len(times):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
         gradient_error_factors = []
-        for j in range(len(time)):
-            if use_integral_approx:
-                stddev_factor = np.exp(2 * np.trapz(stddevs[j:], x=time[j:]))
+        for j in range(len(times)):
+            stddev_factor = np.exp(2 * np.trapz(stddevs[j:], x=times[j:]))
                 # stddev_factor += (stddevs[k]+stddevs[k+1]) * 0.5 * time_steps[k]
-            else:
-                stddev_factor = 1
-                for k in range(j, len(time)):
-                    stddev_factor *= (1 + 2 * time[k] * stddevs[k])
+                # stddev_factor = 1
+                # for k in range(j, len(time)):
+                #     stddev_factor *= (1 + 2 * time[k] * stddevs[k])
 
             gradient_error_factors.append(stddev_factor)
-        # gradient_error_factors.append(0)
-
-        print('Error factors ', gradient_error_factors)
-        print('Gradient Errors', gradient_errors)
 
         e_bounds = []
-        for j in range(len(time)):
-            if use_integral_approx:
-                e_bounds.append(np.trapz(np.multiply(gradient_errors[:j+1],
-                                                     gradient_error_factors[:j+1]),
-                                         x=time[:j+1]))
-            else:
-                raise Warning('Summed Implementation not finished.')
+        for j in range(len(times)):
+            # if use_integral_approx:
+            e_bounds.append(np.trapz(np.multiply(gradient_errors[:j+1], gradient_error_factors[
+                                                                        :j+1]), x=times[:j+1]))
+            # else:
+                # raise Warning('Summed Implementation not finished.')
                 # e_bounds.append(e_bounds[j] + (gradient_errors[j] * gradient_error_factors[j]) *
                 #                 (time(j+1) - time(j)))
                 # if j == len(time) - 1:
                 #     e_bounds = [0] + e_bounds
                 #     break
-        print('Error bounds ', e_bounds)
+        # print('Error bounds ', e_bounds)
 
         if imag_reverse_bound:
             if H is None:
@@ -220,22 +227,21 @@ class VarQITE(VarQTE):
             reverse_bounds = [stddevs[-1] / (e1 - e0)]
             reverse_bounds_temp = np.multiply(gradient_errors, gradient_error_factors)
             # reverse_bounds_temp[-1] = reverse_bounds[0]
-            reverse_times = np.flip(time)
+            reverse_times = np.flip(times)
             for j, dt in enumerate(reverse_times):
                 if j == 0:
                     continue
-                if use_integral_approx:
+                # if use_integral_approx:
                     # TODO check here if correct
-                    reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[-(j+1):],
-                                                   x=time[-(j+1):]))
+                reverse_bounds.append(reverse_bounds[0] - np.trapz(reverse_bounds_temp[-(j+1):],
+                                                                   x=times[-(j+1):]))
 
                 # else:
-                #     # TODO check here if correct
+                #
                 #     reverse_bounds.append(reverse_bounds[j] + reverse_bounds_temp[j+1] *
                 #                           reverse_times[j])
 
             reverse_bounds.reverse()
-
             return e_bounds, reverse_bounds
         return e_bounds
 

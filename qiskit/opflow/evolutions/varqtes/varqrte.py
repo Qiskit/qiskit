@@ -183,20 +183,25 @@ class VarQRTE(VarQTE):
 
     def _get_error_bound(self,
                          gradient_errors: List,
-                         times: List,
-                         stddevs: List,
-                         use_integral_approx: bool = True) -> float:
+                         times: List) -> float:
+        """
+        Get the upper bound to a global phase agnostic l2-norm error for VarQRTE simulation
+        Args:
+            gradient_errors: Error of the state propagation gradient for each t in times
+            times: List of all points in time considered throughout the simulation
+            stddevs: Standard deviations for times sqrt(⟨ψ(ω)|H^2| ψ(ω)〉- ⟨ψ(ω)|H| ψ(ω)〉^2)
+
+        Returns:
+            List of the error upper bound for all times
+        """
 
         if not len(gradient_errors) == len(times):
             raise Warning('The number of the gradient errors is incompatible with the number of '
                           'the time steps.')
         e_bound = []
         for j, dt in enumerate(times):
-            if use_integral_approx:
-                e_bound.append(np.trapz(gradient_errors[:j+1], x=times[:j+1]))
-                # e_bound.append(e_bound[j] + (gradient_errors[j] + gradient_errors[j+1]) * 0.5 * dt)
-            else:
-                e_bound.append(e_bound[j] + gradient_errors[j] * dt)
+            e_bound.append(np.trapz(gradient_errors[:j+1], x=times[:j+1]))
+            # e_bound.append(e_bound[j] + gradient_errors[j] * dt)
         return e_bound
 
     def _exact_state(self,

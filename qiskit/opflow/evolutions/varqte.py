@@ -13,7 +13,7 @@
 """The Variational Quantum Time Evolution Interface"""
 
 from abc import abstractmethod
-from typing import List, Optional, Union, Dict, Iterable
+from typing import List, Optional, Union, Dict, Iterable, Tuple
 
 import numpy as np
 import os
@@ -74,16 +74,23 @@ class VarQTE(EvolutionBase):
                 ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
                 If regularization is None but the metric is ill-conditioned or singular then
                 a least square solver is used without regularization
+            num_time_steps: Number of time steps (deprecated if ode_solver is not ForwardEuler)
+            parameters: Parameter objects for the parameters to be used for the time propagation
+            init_parameter_values: Initial values for the parameters used for the time propagation
             ode_solver: ODE Solver for y'=f(t,y) with parameters - f(callable), jac(callable): df/dy
                         f to be given as dummy
+            backend: Backend used to evaluate the quantum circuit outputs
             snapshot_dir: Directory in to which to store cvs file with parameters,
                 if None (default) then no cvs file is created.
+            faster: Use additional CircuitSampler objects to increase the processing speed
+                    (deprecated if backend is None)
+            error_based_ode: If False use McLachlan to get the parameter updates
+                             If True use the argument that minimizes the error bounds
             kwargs (dict): Optional parameters for a CircuitGradient
         """
         super().__init__()
         self._grad_method = grad_method
         self._qfi_method = qfi_method
-        # TODO enable the use of custom regularization methods
         self._regularization = regularization
         self._epsilon = kwargs.get('epsilon', 1e-6)
         self._num_time_steps = num_time_steps
@@ -96,6 +103,7 @@ class VarQTE(EvolutionBase):
             self._init_parameter_values = np.random.random(len(parameters))
         self._backend = backend
         if self._backend is not None:
+            #
             self._operator_circ_sampler = CircuitSampler(self._backend)
             self._state_circ_sampler = CircuitSampler(self._backend)
             self._h_squared_circ_sampler = CircuitSampler(self._backend)
@@ -109,15 +117,7 @@ class VarQTE(EvolutionBase):
             self._ode_solver = ForwardEuler
         self._snapshot_dir = snapshot_dir
         if snapshot_dir:
-            # def ensure_dir(file_path):
-            #     directory = os.path.dirname(file_path)
-            #     if not os.path.exists(directory):
-            #         # os.makedirs(directory)
-            #         Path(snapshot_dir).mkdir(parents=True, exist_ok=True)
-            # ensure_dir(snapshot_dir)
             Path(snapshot_dir).mkdir(parents=True, exist_ok=True)
-            # if not os.path.exists(snapshot_dir):
-            #     os.makedirs(snapshot_dir)
             if not os.path.exists(os.path.join(self._snapshot_dir, 'varqte_output.csv')):
                 with open(os.path.join(self._snapshot_dir, 'varqte_output.csv'), mode='w') as \
                         csv_file:
@@ -134,13 +134,9 @@ class VarQTE(EvolutionBase):
         self._nat_grad = None
         self._metric = None
         self._grad = None
-        # Current gradient error
-        # self._et = 0
         self._error_based_ode = error_based_ode
 
         self._storage_params_tbd = None
-
-        self._exact_euler_state = None
         self._store_now = False
 
     @abstractmethod
@@ -183,10 +179,16 @@ class VarQTE(EvolutionBase):
 
     @abstractmethod
     def _get_error_bound(self,
-                     gradient_errors: List,
-                     time_steps: List,
-                     stddevs: List) -> List:
+                         gradient_errors: List,
+                         time: List) -> Union[List, Tuple[List, List]]:
         """
+        Get the upper bound to a global phase agnostic l2-norm error for VarQTE simulation
+        Args:
+            gradient_errors: Error of the state propagation gradient for each t in times
+            time: List of all points in time considered throughout the simulation
+
+        Returns:
+            List of the error upper bound for all times
 
         Raises: NotImplementedError
 
@@ -195,11 +197,19 @@ class VarQTE(EvolutionBase):
 
     def error_bound(self,
                     data_dir: str,
-                    use_integral_approx: bool = True,
                     imag_reverse_bound: bool = True,
                     H: Optional[Union[List, np.ndarray]] = None) -> List:
+        """
+        Evaluate an upper bound to the error of the VarQTE simulation
+        Args:
+            data_dir: Directory where the snapshots were stored
+            imag_reverse_bound: Compute the additional reverse bound (ignored if notVarQITE)
+            H: Hamiltonian used for the reverse bound (ignored if not VarQITE)
+
+        Returns: Error bounds for all accessed time points in the evolution
+
+        """
         # Read data
-        # if time already in data skip
         with open(os.path.join(data_dir, 'varqte_output.csv'), mode='r') as csv_file:
             fieldnames = ['t', 'params', 'num_params', 'num_time_steps', 'error_bound',
                           'error_bound_factor',
@@ -223,7 +233,6 @@ class VarQTE(EvolutionBase):
                     continue
                 time.append(t_line)
                 grad_errors.append(float(line['error_grad']))
-                # Method is not used.
                 stddevs.append(np.sqrt(float(line['variance'])))
 
         zipped_lists = zip(time, grad_errors, stddevs)
@@ -238,39 +247,36 @@ class VarQTE(EvolutionBase):
             time_steps.append(time[j+1]-time[j])
 
         if not np.iscomplex(self._operator.coeff):
-            e_bound = self._get_error_bound(grad_errors, time, stddevs,
-                                            use_integral_approx, imag_reverse_bound, H)
+            # VarQITE
+            e_bound = self._get_error_bound(grad_errors, time, stddevs, imag_reverse_bound, H)
 
         else:
-            e_bound = self._get_error_bound(grad_errors, time, stddevs, use_integral_approx)
+            # VarQRTE
+            e_bound = self._get_error_bound(grad_errors, time)
         return e_bound
 
     def _init_grad_objects(self):
-        # Adapt coefficients for the real part for McLachlan with 0.5
-        # True and needed!! Double checked
+        """
+        Initialize the gradient objects needed to perform VarQTE
+
+        """
 
         self._state = self._operator[-1]
         if self._backend is not None:
-            self._init_state = self._state_circ_sampler.convert(self._state,
-                                                                params=dict(zip
-                                                                            (self._parameters,
-                                                                             self._init_parameter_values
-                                                                             )
-                                                                            )
-                                                                )
+            self._init_state = \
+                self._state_circ_sampler.convert(self._state,
+                                                 params=dict(zip(self._parameters,
+                                                                 self._init_parameter_values)))
         else:
             self._init_state = self._state.assign_parameters(dict(zip(self._parameters,
                                                                       self._init_parameter_values)))
         self._init_state = self._init_state.eval().primitive.data
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
-
         self._h_squared = ComposedOp([~StateFn(self._h ** 2), self._state])
 
-        self._exact_euler_state = self._exact_state(0)
-
         if not self._faster:
-            # # VarQRTE
+            # VarQRTE
             if np.iscomplex(self._operator.coeff):
                 self._nat_grad = NaturalGradient(grad_method=self._grad_method,
                                                  qfi_method=self._qfi_method,
@@ -282,24 +288,13 @@ class VarQTE(EvolutionBase):
                                                  qfi_method=self._qfi_method,
                                                  regularization=self._regularization
                                                  ).convert(self._operator * -0.5, self._parameters)
-            # VarQRTE
-            # if np.iscomplex(self._operator.coeff):
-            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-            #                                      qfi_method=self._qfi_method,
-            #                                      regularization=self._regularization
-            #                                     ).convert(self._operator, self._parameters)
-            # # VarQITE
-            # else:
-            #     self._nat_grad = NaturalGradient(grad_method=self._grad_method,
-            #                                      qfi_method=self._qfi_method,
-            #                                      regularization=self._regularization
-            #                                      ).convert(self._operator * -1, self._parameters)
 
         self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
 
         self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
 
-    def _init_ode_solver(self, t: float,
+    def _init_ode_solver(self,
+                         t: float,
                          init_params: Union[List, np.ndarray]):
         """
         Initialize ODE Solver
@@ -309,15 +304,7 @@ class VarQTE(EvolutionBase):
         """
         def error_based_ode_fun(time, params):
             param_dict = dict(zip(self._parameters, params))
-            nat_grad_result, grad_res, metric_res = self._propagate(param_dict)
-            # w, v = np.linalg.eig(metric_res)
-            #
-            # if not all(ew >= -1e-8 for ew in w):
-            #     raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
-            #                   '. Please use a regularized least-square solver for this problem.')
-            # if not all(ew >= 0 for ew in w):
-            #     w = [max(0, ew) for ew in w]
-            #     metric_res = v @ np.diag(w) @ np.linalg.inv(v)
+            nat_grad_result, grad_res, metric_res = self._solve_sle(param_dict)
 
             def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:
                 """
@@ -351,14 +338,9 @@ class VarQTE(EvolutionBase):
 
             # return nat_grad_result
             # Use the natural gradient result as initial point for least squares solver
-            # argmin = least_squares(fun=argmin_fun, x0=nat_grad_result,
-            #                        ftol=1e-8)
-            print('initial natural gradient result', nat_grad_result)
+            # print('initial natural gradient result', nat_grad_result)
             argmin = minimize(fun=argmin_fun, x0=nat_grad_result,
                               method='COBYLA', tol=1e-6)
-            # argmin = minimize(fun=argmin_fun, x0=nat_grad_result, jac=jac_argmin_fun,
-            #                   method='CG', tol=1e-8)
-            #
 
             print('final dt_omega', np.real(argmin.x))
             # self._et = argmin_fun(argmin.x)
@@ -371,7 +353,7 @@ class VarQTE(EvolutionBase):
             if self._error_based_ode:
                 dt_params, grad_res, metric_res = error_based_ode_fun(t, params)
             else:
-                dt_params, grad_res, metric_res = self._propagate(param_dict)
+                dt_params, grad_res, metric_res = self._solve_sle(param_dict)
             if (self._snapshot_dir is not None) and (self._store_now):
                 # Get the residual for McLachlan's Variational Principle
                 # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
@@ -410,15 +392,12 @@ class VarQTE(EvolutionBase):
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
                                                 y0=init_params,
                                                 num_t_steps=self._num_time_steps)
-
-        # elif self._ode_solver == backward_euler_fsolve:
-        #     self._ode_solver = self._ode_solver(ode_fun,  tspan=(0, t), y0=self._parameter_values,
-        #                                         n=self._num_time_steps)
         else:
             raise TypeError('Please define a valid ODESolver')
         return
 
-    def _run_ode_solver(self, t, init_params):
+    def _run_ode_solver(self, t: float,
+                        init_params: Union[List, np.ndarray]):
         """
         Find numerical solution with ODE Solver
         Args:
@@ -426,7 +405,6 @@ class VarQTE(EvolutionBase):
             init_params: Set of initial parameters for time 0
         """
         self._init_ode_solver(t, init_params)
-        # param_values = self._parameter_values
         if isinstance(self._ode_solver, OdeSolver) or isinstance(self._ode_solver, ForwardEuler):
             self._store_now = True
             _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
@@ -436,18 +414,6 @@ class VarQTE(EvolutionBase):
                 if self._snapshot_dir is not None and self._ode_solver.t <= t:
                     self._store_now = True
                     _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
-                # if self._snapshot_dir is not None:
-                #     self._ode_solver_store(param_values, t_old)
-                # if self._et is None:
-                #     warnings.warn('Time evolution failed.')
-                #     break
-                # if self._snapshot_dir is not None:
-                #     time, params, et, resid, f, true_error, true_energy, trained_energy, \
-                #     h_squared, dtdt_state, reimgrad = self._storage_params_tbd
-                #     self._store_params(time, params, None, None, et,
-                #                        resid, f, true_error,  phase_agnostic_true_error, None,
-                #                        None, true_energy,
-                #                        trained_energy, None, h_squared, dtdt_state, reimgrad)
                 print('ode time', self._ode_solver.t)
                 param_values = self._ode_solver.y
                 print('ode parameters', self._ode_solver.y)
@@ -456,22 +422,6 @@ class VarQTE(EvolutionBase):
                     break
                 elif self._ode_solver.status == 'failed':
                     raise Warning('ODESolver failed')
-            # self._et = 0
-            # if self._snapshot_dir is not None:
-            #     self._ode_solver_store(param_values, self._ode_solver.t)
-
-        # elif isinstance(self._ode_solver, backward_euler_fsolve):
-        #     while self._ode_solver._n_count < self._ode_solver._n:
-        #         param_values = self._ode_solver.step()
-                # if self._snapshot_dir is not None:
-                #     self._ode_solver_store(param_values, self._ode_solver._t[-2])
-                # param_values = param_values_new
-                # if self._et is None:
-                #     warnings.warn('Time evolution failed.')
-                #     break
-
-            # if self._snapshot_dir is not None:
-            #     self._ode_solver_store(param_values, self._ode_solver._t[-1])
 
         else:
             raise TypeError('Please provide a scipy ODESolver or ode type object.')
@@ -511,6 +461,7 @@ class VarQTE(EvolutionBase):
                       dtdt_trained: Optional[float] = None,
                       re_im_grad: Optional[float] = None):
         """
+        Store values for time t
         Args:
             t: current point in time evolution
             error_bound: ||\epsilon_t|| >= |||target> - |trained>||_2
@@ -572,15 +523,17 @@ class VarQTE(EvolutionBase):
                              're_im_grad': re_im_grad
                              })
 
-    def _propagate(self,
+    def _solve_sle(self,
                    param_dict: Dict
                    ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
+        Solve the system of linear equations underlying McLachlan's variational principle
 
         Args:
-            param_dict:
+            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz
 
-        Returns:
+        Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
+        Fubini-Study Metric
 
         """
         if self._backend is not None:
@@ -682,16 +635,11 @@ class VarQTE(EvolutionBase):
         act_en = self._inner_prod(target_state, np.dot(self._h_matrix, target_state))
         # Trained Energy
         trained_en = self._inner_prod(trained_state, np.dot(self._h_matrix, trained_state))
-        print('Fidelity', f)
-        print('True error', act_err)
-        print('Global phase agnostic true error', phase_agnostic_act_err)
-        print('actual energy', act_en)
-        print('trained_en', trained_en)
-        # Error between exact evolution and Euler evolution using exact gradients
-        # exact_exact_euler_err = np.linalg.norm(target_state - self._exact_euler_state, ord=2)
-        # Error between Euler evolution using exact gradients and the trained state
-        # exact_euler_trained_err = np.linalg.norm(trained_state - self._exact_euler_state, ord=2)
-        # return f, act_err, act_en, trained_en, exact_exact_euler_err, exact_euler_trained_err
+        # print('Fidelity', f)
+        # print('True error', act_err)
+        # print('Global phase agnostic true error', phase_agnostic_act_err)
+        # print('actual energy', act_en)
+        # print('trained_en', trained_en)
         return f, act_err, phase_agnostic_act_err, np.real(act_en), np.real(trained_en)
 
     @staticmethod
@@ -699,12 +647,13 @@ class VarQTE(EvolutionBase):
                      error_bound_directories: List[str],
                      reverse_bound_directories: Optional[List[str]] = None):
         """
+        Plot results
 
         Args:
-            data_directories:
-            error_bound_directories:
-
-        Returns:
+            data_directories: Directories snapshots
+            error_bound_directories: Directories to error bound file
+            reverse_bound_directories: Directories to reverse error bound file (only to be used
+            with VarQITE)
 
         """
         if len(data_directories) != len(error_bound_directories):
@@ -726,7 +675,6 @@ class VarQTE(EvolutionBase):
                 true_error = []
                 phase_agnostic_true_error = []
                 time = []
-                time_steps = []
                 fid = []
                 true_energy = []
                 trained_energy = []
@@ -805,12 +753,8 @@ class VarQTE(EvolutionBase):
             plt.ylabel('energy')
             plt.legend(loc='best')
             plt.autoscale(enable=True)
-            # plt.xticks(range(counter-1))
             plt.savefig(os.path.join(data_dir, 'energy.png'))
             plt.close()
-
-
-
         return
 
 
@@ -822,11 +766,10 @@ class ForwardEuler:
                  y0: Iterable,
                  t_bound: float,
                  num_t_steps: int):
-            """Forward Euler ODE solver
-
-            Parameters
-            ----------
-            fun : callable
+        """
+        Forward Euler ODE solver
+        Args:
+            fun :
                 Right-hand side of the system. The calling signature is ``fun(t, y)``.
                 Here ``t`` is a scalar, and there are two options for the ndarray ``y``:
                 It can either have shape (n,); then ``fun`` must return array_like with
@@ -836,20 +779,17 @@ class ForwardEuler:
                 options is determined by `vectorized` argument (see below). The
                 vectorized implementation allows a faster approximation of the Jacobian
                 by finite differences (required for this solver).
-            t0 : float
+            t0 :
                 Initial time.
-            y0 : array_like, shape (n,)
+            y0 :shape (n,)
                 Initial state.
-            t_bound : float
+            t_bound :
                 Boundary time - the integration won't continue beyond it. It also
                 determines the direction of the integration.
-            num_t_steps: int
+            num_t_steps:
                 Number of time steps for forward Euler
 
-
-            Attributes
-            ----------
-
+        Attributes:
             status : string
                 Current status of the solver: 'running' or 'finished'.
             t_bound : float
@@ -860,15 +800,19 @@ class ForwardEuler:
                 Current state.
             step_size : float
                 Size of time steps
-            """
-            self.fun = fun
-            self.t = t0
-            self.y = y0
-            self.t_bound = t_bound
-            self.step_size = (t_bound - t0)/num_t_steps
-            self.status = 'running'
+        """
+        self.fun = fun
+        self.t = t0
+        self.y = y0
+        self.t_bound = t_bound
+        self.step_size = (t_bound - t0)/num_t_steps
+        self.status = 'running'
 
     def step(self):
+        """
+        Take an Euler step
+
+        """
         self.y = list(np.add(self.y, self.step_size * self.fun(self.t, self.y)))
         self.t += self.step_size
         if self.t == self.t_bound:
