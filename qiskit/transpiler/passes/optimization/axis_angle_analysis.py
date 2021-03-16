@@ -77,7 +77,8 @@ class AxisAngleAnalysis(AnalysisPass):
                               'nparams': nparams,
                               'qubit': node.qargs[0],
                               # needed for drop_duplicates; hashable type. Instead of rounding here
-                              # could consider putting the effect into the dot product test below.
+                              # could consider putting the effect into the dot product test during
+                              # reduction.
                               'axis': tuple(np.around(axis, decimals=decimals)),  
                               'angle': angle,
                               'phase': phase,

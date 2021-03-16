@@ -37,13 +37,17 @@ class TestAxisAngleReduction(QiskitTestCase):
 
 
     def test_axis_angle(self):
-        from qiskit.circuit.library.standard_gates import SGate, TGate, RXGate, XGate, ZGate, RYGate, YGate, IGate
+        from qiskit.circuit.library.standard_gates import (U1Gate, SGate, TGate,
+                                                           RXGate, XGate, ZGate,
+                                                           RYGate, YGate, IGate,
+                                                           RZGate, HGate)
 
         x = XGate()
         t = TGate()
         u1 = U1Gate(np.pi/3)
         rz = RZGate(np.pi/3)
         rx = RXGate(np.pi/2)
+        h = HGate()
         iden = IGate()
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(x.to_matrix()),
                                                (np.array([1, 0, 0]), np.pi, np.pi/2)))
@@ -55,6 +59,8 @@ class TestAxisAngleReduction(QiskitTestCase):
                                                (np.array([0, 0, 1]), np.pi/3, 0)))
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(rx.to_matrix()),
                                                (np.array([1, 0, 0]), np.pi/2, 0)))
+        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(h.to_matrix()),
+                                               (np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2]), np.pi, np.pi/2)))
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(iden.to_matrix()),
                                                (np.array([0, 0, 0]), 0, 0)))
 
@@ -69,6 +75,18 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.rx(np.pi/2, 0)
         circ.x(0)
         self.pma.run(circ)
+        angles = np.array([np.pi/2, np.pi/2, 3*np.pi/2, np.pi/2, np.pi])
+        sym_order = np.array([4, 4, 4, 4, 2])
+        axes = [(0, 0, 1),
+                (0, 0, 1),
+                (0, 0, -1),
+                (1, 0, 0),
+                (1, 0, 0)]
+        dfprop = self.pma.property_set['axis-angle']
+        self.assertTrue(np.allclose(dfprop.angle, angles))
+        self.assertTrue(np.allclose(dfprop.symmetry_order, sym_order))
+        for axis1, axis2 in zip(dfprop.axis, axes):
+            self.assertTrue(np.allclose(axis1, axis2))
 
     def test_2q_noninteracting(self):
         altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
@@ -106,7 +124,6 @@ class TestAxisAngleReduction(QiskitTestCase):
         ccirc = passmanager.run(circ)
         # TODO: set equal when fixing global phase
         self.assertTrue(Operator(circ).equiv(ccirc))
-        
 
     def test_symmetric_cancellation(self):
         """Test symmetry-based cancellation works."""
@@ -216,7 +233,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
         circ.rz(np.pi/2, 0)
-        circ.rz(np.pi/2, 0)        
+        circ.rz(np.pi/2, 0)
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
@@ -226,6 +243,3 @@ def axis_angle_phase_equal(tup1, tup2):
                 math.isclose(tup1[1], tup2[1]),
                 math.isclose(tup1[2], tup2[2])))
 
-
-if __name__ == '__main__':
-    unittest.main()

@@ -13,8 +13,11 @@
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
 
 import math
+from collections import deque
 import numpy as np
-
+import pandas as pd
+import retworkx as rx
+from qiskit.quantum_info import Operator
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
@@ -162,8 +165,9 @@ class AxisAngleReduction(TransformationPass):
             return []
         dfprop = self.property_set['axis-angle']
         stack_nodes, stack_indices = zip(*stack)
+        smask = list(stack_indices)
         delList = []
-        dfsubset = dfprop.iloc[list(stack_indices)]
+        dfsubset = dfprop.iloc[smask]
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
         params = dfsubset[['var_gate_angle', 'phase']].sum()
         if np.mod(params.var_gate_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
@@ -176,13 +180,10 @@ class AxisAngleReduction(TransformationPass):
             df_gate_angle = df_gate.angle
             df_gate_phase_factor = df_gate_phase / df_gate_angle
             phase_factor_uni = df_gate_phase_factor.unique()
-            
-            #if len(phase_factor_uni) == 1 and phase_factor_uni is
-            
             if len(phase_factor_uni) == 1 and np.isfinite(phase_factor_uni[0]):
                 gate_phase_factor = phase_factor_uni[0]
             else:
-                _, _, gate_phase_factor = _su2__axis_angle(Operator(var_gate).data)
+                 _, _, gate_phase_factor = _su2_axis_angle(Operator(var_gate).data)
             new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
             new_dag.apply_operation_back(var_gate, [new_qarg[0]])
@@ -192,11 +193,10 @@ class AxisAngleReduction(TransformationPass):
             delList += [node for node, _ in stack]
         return delList
 
-    def _commutation_analysis(self, global_basis=True):
+    def _commutation_analysis(self, global_basis=True, rel_tol=1e-9, abs_tol=0.0):
         if not global_basis:
             raise CircuitError('not implemented')
         var_gate_class = dict()
-        
         dfprop = self.property_set['axis-angle']
         dfaxis = dfprop.groupby('axis')
         buniq = dfprop.axis.unique()  # basis unique
@@ -204,10 +204,21 @@ class AxisAngleReduction(TransformationPass):
         naxes = len(buniq)
         # index pairs of buniq which are vectors in opposite directions
         buniq_inverses = list()
-        for v1_ind, v1 in enumerate(buniq[:-1]):
-            for v2_ind, v2 in enumerate(buniq[v1_ind+1:]):
-                if math.isclose(abs(v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]), 1):
-                    buniq_inverses.append((v1_ind, v1_ind + 1 + v2_ind))
+        buniq_parallel = list()
+        vdot = np.full((naxes, naxes), np.nan)
+        for v1_ind in range(naxes):
+            v1 = buniq[v1_ind]
+            for v2_ind in range(v1_ind + 1, naxes):
+                v2 = buniq[v2_ind]
+                vdot[v1_ind, v2_ind] = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+        buniq_parallel = list(zip(*np.where(np.isclose(vdot, 1, rtol=rel_tol, atol=abs_tol))))
+        buniq_inverses = list(zip(*np.where(np.isclose(vdot, -1, rtol=rel_tol, atol=abs_tol))))
+        buniq_orthogonal = list(zip(*np.where(np.isclose(vdot, 0, rtol=rel_tol, atol=abs_tol))))
+        buniq_common = buniq_parallel + buniq_inverses
+        grouped_common = [list(group) for group in join_if_intersect(buniq_common)]
+        grouped_parallel = [list(group) for group in join_if_intersect(buniq_parallel)]
+        grouped_inverses = [list(group) for group in join_if_intersect(buniq_inverses)]        
+
         dfprop['basis_group'] = None
         # "rotation sense" is used to indicate sense of rotation wrt : +1=ccw, -1=cw
         dfprop['rotation_sense'] = 1
@@ -219,32 +230,29 @@ class AxisAngleReduction(TransformationPass):
         unlabeled_axes = list(range(naxes))
         # determine if inverses have arbitrary single parameter rotation
         mask_1p = dfprop.nparams == 1
-        for pair in buniq_inverses:
-            mask0 = dfprop.axis == buniq[pair[0]]
-            mask1 = dfprop.axis == buniq[pair[1]]
-            inv_pair_mask = mask0 | mask1
-            if (dfprop[inv_pair_mask].nparams == 1).any():
-                dfprop.loc[inv_pair_mask, 'basis_group'] = basis_counter
-                unlabeled_axes.remove(pair[0])
-                unlabeled_axes.remove(pair[1])
-                basis_counter += 1
-                # the basis with the single parameter variable gate gets the +1 sense of rotation
-                if (dfprop[mask0].nparams == 1).any():
-                    var_gate_name = dfprop[mask0 & mask_1p].name.iloc[0]  # arb. taking 0, but maybe prioritize zero phase
-                    dfprop.loc[inv_pair_mask, 'var_gate'] = var_gate_name
-                    dfprop.loc[mask1, 'rotation_sense'] = -1                    
-                else:  # the single variable rotation gate must be in mask1
-                    var_gate_name = dfprop[mask1 & mask_1p].name.iloc[0]  # arb. taking 0, but maybe prioritize zero phase
-                    dfprop.loc[inv_pair_mask, 'var_gate'] = var_gate_name
-                    dfprop.loc[mask0, 'rotation_sense'] = -1
-            else:
-                dfprop.loc[dfprop.axis == buniq[pair[0]], 'basis_group'] = basis_counter
-                unlabeled_axes.remove(pair[0])
-                basis_counter += 1
-                dfprop.loc[dfprop.axis == buniq[pair[1]], 'basis_group'] = basis_counter
-                unlabeled_axes.remove(pair[1])
-                basis_counter += 1
-        # index non-inverse bases
+        for group in grouped_common:
+            lead = group[0]  # this will be the reference direction for the group
+            mask = pd.Series(False, index=range(dfprop.shape[0]))
+            for member in group:
+                mask |= dfprop.axis == buniq[member]
+                unlabeled_axes.remove(member)
+            dfprop.loc[mask, 'basis_group'] = basis_counter
+            if (dfprop[mask].nparams == 1).any():
+                group_single_param_name = dfprop[mask & mask_1p].name
+                if group_single_param_name.any():
+                    var_gate_name = dfprop[mask & mask_1p].name.iloc[0]
+                    dfprop.loc[mask, 'var_gate'] = var_gate_name
+            basis_counter += 1
+            # create mask for inverses to lead
+            mask[:] = False
+            for pair in buniq_inverses:
+                try:
+                    mask |= dfprop.axis == buniq[pair[int(not pair.index(lead))]]
+                except ValueError:
+                    # positive sense lead is not in pair; skip
+                    pass
+            dfprop.loc[mask, 'rotation_sense'] = -1
+        # index lone bases
         for bindex in unlabeled_axes[:]:
             mask = dfprop.axis == buniq[bindex]
             dfprop.loc[mask, 'basis_group'] = basis_counter
@@ -253,11 +261,45 @@ class AxisAngleReduction(TransformationPass):
                 dfprop.loc[mask, 'var_gate'] = var_gate_name
             unlabeled_axes.remove(bindex)
             basis_counter += 1
-                                             
             
     def _symmetry_complete(self, stack):
         """Determine whether complete cancellation is possible due to symmetry"""
         dfprop = self.property_set['axis-angle']
         _, stack_indices = zip(*stack)
         sym_order = dfprop.iloc[list(stack_indices)].symmetry_order
-        return all(sym_order.iloc[0] == sym_order)
+        sym_order_zero = sym_order.iloc[0]
+        return (sym_order_zero == len(sym_order)) and all(sym_order_zero == sym_order)
+
+
+def join_if_intersect(lists):
+    """This is from user 'agf' on stackoverflow
+    https://stackoverflow.com/questions/9110837/python-simple-list-merging-based-on-intersections  """
+    results = []
+    if not lists:
+        return results
+    sets = deque(set(lst) for lst in lists if lst)
+    disjoint = 0
+    current = sets.pop()
+    while True:
+        merged = False
+        newsets = deque()
+        for _ in range(disjoint, len(sets)):
+            this = sets.pop()
+            if not current.isdisjoint(this):
+                current.update(this)
+                merged = True
+                disjoint = 0
+            else:
+                newsets.append(this)
+                disjoint += 1
+        if sets:
+            newsets.extendleft(sets)
+        if not merged:
+            results.append(current)
+            try:
+                current = newsets.pop()
+            except IndexError:
+                break
+            disjoint = 0
+        sets = newsets
+    return results
