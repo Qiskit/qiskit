@@ -33,7 +33,7 @@ class BooleanExpression(Gate):
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
                               "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+                              '"pip install tweedledum==1.0.0b3".')
         from tweedledum import BoolFunction
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
         self.qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
@@ -107,7 +107,7 @@ class BooleanExpression(Gate):
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the BooleanExpression compiler, tweedledum "
                               "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+                              '"pip install tweedledum==1.0.0b3".')
         from tweedledum import BoolFunction
 
         expr_obj = cls.__new__(cls)

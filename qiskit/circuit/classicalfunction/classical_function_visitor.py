@@ -57,7 +57,7 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
         else:
             raise ImportError("To use the classicalfunction compiler, tweedledum "
                               "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
+                              '"pip install tweedledum==1.0.0b3".')
         if node.returns is None:
             raise ClassicalFunctionParseError("return type is needed")
         scope = {'return': (node.returns.id, None), node.returns.id: ('type', None)}
