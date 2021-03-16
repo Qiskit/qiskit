@@ -33,7 +33,7 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 
 # pylint: disable=no-name-in-module
-from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
+# from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
