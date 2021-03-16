@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Enable gradients to be computed for observables given as `TensoredOp`.

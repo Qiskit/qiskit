@@ -33,7 +33,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
-from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
+from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler, TensoredOp
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
@@ -126,7 +126,7 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_rxx(self, method):
         """Test the state gradient for XX rotation
         """
-        ham = Z ^ X
+        ham = TensoredOp([Z, X])
         a = Parameter('a')
 
         q = QuantumRegister(2)
