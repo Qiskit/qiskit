@@ -415,7 +415,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
-        self.assert_equal(expected, result)
+        self.assertEqual(expected, result)
 
     def test_y_simplification_rz_sx_x(self):
         """Test that a y gate gets decomposed to x-zx with ibmq basis."""
