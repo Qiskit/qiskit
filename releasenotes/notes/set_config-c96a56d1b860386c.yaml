@@ -7,9 +7,10 @@ features:
       from qiskit.user_config import set_config
       set_config("circuit_drawer", "mpl", section="default", file="settings.conf")
 
-    Optional arguments section and file has default values, 'default' and
-    `~/.qiskit/settings.conf` respectively. To write the config to a specific file,
-    add a file argument with the path to file and without one to write it to either
-    the default config file or if set, the value of `QISKIT_SETTINGS` env variable.
-    Set the QISKIT_SETTINGS env variable to use the config files. Otherwise, the
-    config in the 'default config file' will be used.
+    Section and file_path are optional arguments. If no file_path argument is
+    specified, config is added to the configured location (using `QISKIT_SETTINGS`
+    env variable) or the default location `~/.qiskit/settings.conf`. Set the
+    QISKIT_SETTINGS env variable to use the config files, otherwise the config
+    in the 'default config file' will be used. Changes to the existing config file
+    will not be reflected in the current session since the config file is parsed
+    at import time.

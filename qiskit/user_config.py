@@ -142,15 +142,18 @@ class UserConfig:
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
 
-    It will add the configuration in either the default location
-    ~/.qiskit/settings.conf or the value of file argument.
+    It will add configuration to the currently configured location
+    or the value of file argument.
 
     Only valid user config can be set in 'default' section. Custom
     user config can be added in any other sections.
 
+    Changes to the existing config file will not be reflected in
+    the current session since the config file is parsed at import time.
+
     Args:
         key (str): name of the config
-        value (str): value of the config
+        value (obj): value of the config
         section (str, optional): if not specified, adds it to the
             `default` section of the config file.
         file_path (str, optional): the file to which config is added.
@@ -165,16 +168,13 @@ def set_config(key, value, section=None, file_path=None):
 
     if not isinstance(key, str):
         raise exceptions.QiskitUserConfigError('Key must be string type')
-    if not isinstance(value, str):
-        raise exceptions.QiskitUserConfigError('Value must be string type')
 
-    valid_config = ['circuit_drawer',
+    valid_config = {'circuit_drawer',
                     'circuit_mpl_style',
                     'circuit_mpl_style_path',
                     'transpile_optimization_level',
-                    'suppress_packaging_warnings',
                     'parallel',
-                    'num_processes']
+                    'num_processes'}
 
     if section in [None, 'default']:
         if key not in valid_config:
@@ -187,7 +187,7 @@ def set_config(key, value, section=None, file_path=None):
     if section not in config.sections():
         config.add_section(section)
 
-    config.set(section, key, value)
+    config.set(section, key, str(value))
 
     try:
         with open(filename, 'w') as cfgfile:
@@ -197,10 +197,7 @@ def set_config(key, value, section=None, file_path=None):
             "Unable to load the config file {}. Error: '{}'".format(
                 filename, str(ex)))
 
-    # Confirms the config is set from QISKIT_SETTINGS or default config file
-    # New config changes is reflected only if the file is default config
-    # file or the value of QISKIT_SETTINGS env variable
-    filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
+    # validates config
     user_config = UserConfig(filename)
     user_config.read_config_file()
 
