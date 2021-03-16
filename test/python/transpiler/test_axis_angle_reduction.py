@@ -12,14 +12,13 @@
 
 """Test gate reduction by axis angle analysis"""
 
-import unittest
 import math
 import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumCircuit
 from qiskit.extensions.unitary import UnitaryGate
-from qiskit.transpiler import PassManager, PropertySet
+from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import _su2_axis_angle
 from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis
@@ -37,21 +36,21 @@ class TestAxisAngleReduction(QiskitTestCase):
 
 
     def test_axis_angle(self):
-        from qiskit.circuit.library.standard_gates import (U1Gate, SGate, TGate,
-                                                           RXGate, XGate, ZGate,
-                                                           RYGate, YGate, IGate,
-                                                           RZGate, HGate)
+        """test axis angle calc"""
+        from qiskit.circuit.library.standard_gates import (U1Gate, TGate,
+                                                           RXGate, XGate,
+                                                           IGate, RZGate, HGate)
 
-        x = XGate()
-        t = TGate()
+        xgate = XGate()
+        tgate = TGate()
         u1 = U1Gate(np.pi/3)
         rz = RZGate(np.pi/3)
         rx = RXGate(np.pi/2)
-        h = HGate()
+        hgate = HGate()
         iden = IGate()
-        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(x.to_matrix()),
+        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(xgate.to_matrix()),
                                                (np.array([1, 0, 0]), np.pi, np.pi/2)))
-        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(t.to_matrix()),
+        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(tgate.to_matrix()),
                                                (np.array([0, 0, 1]), np.pi/4, np.pi/8)))
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(u1.to_matrix()),
                                                (np.array([0, 0, 1]), np.pi/3, np.pi/6)))
@@ -59,12 +58,14 @@ class TestAxisAngleReduction(QiskitTestCase):
                                                (np.array([0, 0, 1]), np.pi/3, 0)))
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(rx.to_matrix()),
                                                (np.array([1, 0, 0]), np.pi/2, 0)))
-        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(h.to_matrix()),
-                                               (np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2]), np.pi, np.pi/2)))
+        self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(hgate.to_matrix()),
+                                               (np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2]),
+                                                np.pi, np.pi/2)))
         self.assertTrue(axis_angle_phase_equal(_su2_axis_angle(iden.to_matrix()),
                                                (np.array([0, 0, 0]), 0, 0)))
 
     def test_axis_angle_analysis(self):
+        """test axis angle analysis"""
         altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
         altp.rz(np.pi/2, 0)
         altpgate = altp.to_gate()
@@ -89,6 +90,7 @@ class TestAxisAngleReduction(QiskitTestCase):
             self.assertTrue(np.allclose(axis1, axis2))
 
     def test_2q_noninteracting(self):
+        """test two qubit set of non-interacting operations (except 1 cx)"""
         altp = QuantumCircuit(1, global_phase=np.pi, name='altp')
         altp.rz(np.pi/2, 0)
         altpgate = altp.to_gate()
@@ -135,7 +137,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         circ.s(0)
         circ.s(0)
         circ.s(0)
-        circ.z(0)        
+        circ.z(0)
         passmanager = PassManager()
         passmanager.append(AxisAngleReduction())
         ccirc = passmanager.run(circ)
@@ -153,7 +155,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.z(0)
         self.assertEqual(Operator(circ), Operator(ccirc))
-        self.assertEqual(Operator(ccirc), Operator(expected))        
+        self.assertEqual(Operator(ccirc), Operator(expected))
 
     def test_non_gate(self):
         """Test non-gate (barrier)."""
@@ -167,7 +169,7 @@ class TestAxisAngleReduction(QiskitTestCase):
         expected.barrier(0)
         expected.x(0)
         self.assertEqual(ccirc, expected)
-        
+
     def test_global_phase_01(self):
         """Test no specified basis, rz"""
         circ = QuantumCircuit(1)
@@ -204,7 +206,7 @@ class TestAxisAngleReduction(QiskitTestCase):
     def test_global_phase_custom_gate_second(self):
         """Test custom gate applied not first."""
         altp = QuantumCircuit(1, global_phase=np.pi/3)
-        altp.p(np.pi/3, [0])        
+        altp.p(np.pi/3, [0])
         mygate = altp.to_gate()
         circ = QuantumCircuit(1)
         circ.rz(np.pi/2, 0)
@@ -217,7 +219,6 @@ class TestAxisAngleReduction(QiskitTestCase):
     def test_global_phase_symmetry(self):
         """Test global phase for symmetry cancellation"""
         altp = QuantumCircuit(1, global_phase=np.pi/3)
-        altp
         mygate = altp.to_gate()
         circ = QuantumCircuit(1)
         circ.rz(np.pi/3, 0)
@@ -237,9 +238,9 @@ class TestAxisAngleReduction(QiskitTestCase):
         ccirc = self.pmr.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+
 def axis_angle_phase_equal(tup1, tup2):
     """tup is 3 component tuple of (np.array, angle, phase)"""
     return all((np.allclose(tup1[0], tup2[0]),
                 math.isclose(tup1[1], tup2[1]),
                 math.isclose(tup1[2], tup2[2])))
-

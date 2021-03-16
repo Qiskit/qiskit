@@ -16,12 +16,11 @@ import math
 from collections import deque
 import numpy as np
 import pandas as pd
-import retworkx as rx
 from qiskit.quantum_info import Operator
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization.axis_angle_analysis import AxisAngleAnalysis, _su2_axis_angle
+from qiskit.transpiler.passes.optimization.axis_angle_analysis import (AxisAngleAnalysis,
+                                                                       _su2_axis_angle)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import Gate
 
@@ -57,36 +56,36 @@ class AxisAngleReduction(TransformationPass):
         """
         self._commutation_analysis()
         dfprop = self.property_set['axis-angle']
-        delList = list()
+        del_list = list()
         for wire in dag.wires:
             node_it = dag.nodes_on_wire(wire)
             stack = list()  # list of (node, dfprop index)
             for node in node_it:
                 if node.type != 'op' or not isinstance(node.op, Gate):
-                    delList += self._eval_stack(stack, dag)
+                    del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
                 # just doing 1q for now
                 if len(node.qargs) != 1:
-                    delList += self._eval_stack(stack, dag)
+                    del_list += self._eval_stack(stack, dag)
                     stack = list()
                     continue
                 if not stack:
                     stack.append((node, self._get_index(node._node_id)))
                     continue
-                topnode = stack[-1][0]
-                topIndex = self._get_index(topnode._node_id)
-                thisNode = node
-                thisIndex = self._get_index(thisNode._node_id)
-                topGroup = dfprop.iloc[topIndex].basis_group
-                thisGroup = dfprop.iloc[thisIndex].basis_group
-                if topGroup == thisGroup:
-                    stack.append((thisNode, thisIndex))
+                top_node = stack[-1][0]
+                top_index = self._get_index(top_node._node_id)
+                this_node = node
+                this_index = self._get_index(this_node._node_id)
+                top_group = dfprop.iloc[top_index].basis_group
+                this_group = dfprop.iloc[this_index].basis_group
+                if top_group == this_group:
+                    stack.append((this_node, this_index))
                 elif len(stack) > 1:
-                    delList += self._eval_stack(stack, dag)
-                    stack = [(thisNode, thisIndex)]  # start new stack with this valid op
-            delList += self._eval_stack(stack, dag)
-        for node in delList:
+                    del_list += self._eval_stack(stack, dag)
+                    stack = [(this_node, this_index)]  # start new stack with this valid op
+            del_list += self._eval_stack(stack, dag)
+        for node in del_list:
             dag.remove_op_node(node)
         return dag
 
@@ -94,20 +93,18 @@ class AxisAngleReduction(TransformationPass):
         dfprop = self.property_set['axis-angle']
         if len(stack) <= 1:
             return []
-        topnode = stack[-1][0]
-        topIndex = self._get_index(topnode._node_id)
-        var_gate = dfprop.iloc[topIndex].var_gate
+        top_node = stack[-1][0]
+        top_index = self._get_index(top_node._node_id)
+        var_gate = dfprop.iloc[top_index].var_gate
         if var_gate and not self._symmetry_complete(stack):
-            delList = self._reduce_stack(stack, var_gate, dag)
+            del_list = self._reduce_stack(stack, var_gate, dag)
         else:
-            delList = self._symmetry_cancellation(stack, dag)
-            
-        return delList
+            del_list = self._symmetry_cancellation(stack, dag)
+        return del_list
 
     def _get_index(self, idnode):
         """return the index in dfprop where idop occurs"""
         dfprop = self.property_set['axis-angle']
-        dfprop.index[dfprop.id == idnode][0]
         return dfprop.index[dfprop.id == idnode][0]
 
     def _symmetry_cancellation(self, stack, dag):
@@ -125,8 +122,8 @@ class AxisAngleReduction(TransformationPass):
             return []
         dfprop = self.property_set['axis-angle']
         stack_nodes, stack_indices = zip(*stack)
-        delList = []
-        delListStackIndices = []
+        del_list = []
+        del_list_stack_indices = []
         # get contiguous symmetry groups
         dfsubset = dfprop.iloc[list(stack_indices)]
         symmetry_groups = dfsubset.groupby(
@@ -141,20 +138,22 @@ class AxisAngleReduction(TransformationPass):
             if num_cancellation_groups == 0:
                 # not enough members to satisfy symmetry cancellation
                 continue
-            elif num_cancellation_groups % 2:  # double cover (improve conditionals)
+            if num_cancellation_groups % 2:  # double cover (todo:improve conditionals)
                 dag.global_phase += np.pi
             if math.cos(groups_phase) == -1:
                 dag.global_phase += np.pi
             del_ids = dfsym.iloc[0:num_cancellation_groups * sym_order].id
-            thisDelList = [dag.node(delId) for delId in del_ids]
-            delList += thisDelList
+            this_del_list = [dag.node(delId) for delId in del_ids]
+            del_list += this_del_list
             # get indices of nodes in stack and remove from stack
-            delListStackIndices += [stack_nodes.index(node) for node in thisDelList]
-        redStack = [nodepair for inode, nodepair in enumerate(stack) if inode not in delListStackIndices]
-        if len(redStack) < len(stack):
+            del_list_stack_indices += [stack_nodes.index(node)
+                                       for node in this_del_list]
+        red_stack = [nodepair for inode, nodepair in enumerate(stack)
+                     if inode not in del_list_stack_indices]
+        if len(red_stack) < len(stack):
             # stack modified; attempt further cancellation recursively
-            delList += self._symmetry_cancellation(redStack, dag)
-        return delList
+            del_list += self._symmetry_cancellation(red_stack, dag)
+        return del_list
 
     def _reduce_stack(self, stack, var_gate_name, dag):
         """reduce common axis rotations to single rotation. This requires
@@ -164,9 +163,9 @@ class AxisAngleReduction(TransformationPass):
         if not stack:
             return []
         dfprop = self.property_set['axis-angle']
-        stack_nodes, stack_indices = zip(*stack)
+        _, stack_indices = zip(*stack)
         smask = list(stack_indices)
-        delList = []
+        del_list = []
         dfsubset = dfprop.iloc[smask]
         dfsubset['var_gate_angle'] = dfsubset.angle * dfsubset.rotation_sense
         params = dfsubset[['var_gate_angle', 'phase']].sum()
@@ -183,22 +182,18 @@ class AxisAngleReduction(TransformationPass):
             if len(phase_factor_uni) == 1 and np.isfinite(phase_factor_uni[0]):
                 gate_phase_factor = phase_factor_uni[0]
             else:
-                 _, _, gate_phase_factor = _su2_axis_angle(Operator(var_gate).data)
+                _, _, gate_phase_factor = _su2_axis_angle(Operator(var_gate).data)
             new_dag.global_phase = params.phase - params.var_gate_angle * gate_phase_factor
             new_dag.add_qreg(new_qarg)
             new_dag.apply_operation_back(var_gate, [new_qarg[0]])
             dag.substitute_node_with_dag(stack[0][0], new_dag)
-            delList += [node for node, _ in stack[1:]]
+            del_list += [node for node, _ in stack[1:]]
         else:
-            delList += [node for node, _ in stack]
-        return delList
+            del_list += [node for node, _ in stack]
+        return del_list
 
-    def _commutation_analysis(self, global_basis=True, rel_tol=1e-9, abs_tol=0.0):
-        if not global_basis:
-            raise CircuitError('not implemented')
-        var_gate_class = dict()
+    def _commutation_analysis(self, rel_tol=1e-9, abs_tol=0.0):
         dfprop = self.property_set['axis-angle']
-        dfaxis = dfprop.groupby('axis')
         buniq = dfprop.axis.unique()  # basis unique
         # merge collinear axes iff either contains a variable rotation
         naxes = len(buniq)
@@ -213,11 +208,8 @@ class AxisAngleReduction(TransformationPass):
                 vdot[v1_ind, v2_ind] = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
         buniq_parallel = list(zip(*np.where(np.isclose(vdot, 1, rtol=rel_tol, atol=abs_tol))))
         buniq_inverses = list(zip(*np.where(np.isclose(vdot, -1, rtol=rel_tol, atol=abs_tol))))
-        buniq_orthogonal = list(zip(*np.where(np.isclose(vdot, 0, rtol=rel_tol, atol=abs_tol))))
         buniq_common = buniq_parallel + buniq_inverses
         grouped_common = [list(group) for group in join_if_intersect(buniq_common)]
-        grouped_parallel = [list(group) for group in join_if_intersect(buniq_parallel)]
-        grouped_inverses = [list(group) for group in join_if_intersect(buniq_inverses)]        
 
         dfprop['basis_group'] = None
         # "rotation sense" is used to indicate sense of rotation wrt : +1=ccw, -1=cw
@@ -226,7 +218,6 @@ class AxisAngleReduction(TransformationPass):
         dfprop['var_gate'] = None
         # count the number of independent bases
         basis_counter = 0
-        basis_group_dict = dict()
         unlabeled_axes = list(range(naxes))
         # determine if inverses have arbitrary single parameter rotation
         mask_1p = dfprop.nparams == 1
@@ -261,7 +252,7 @@ class AxisAngleReduction(TransformationPass):
                 dfprop.loc[mask, 'var_gate'] = var_gate_name
             unlabeled_axes.remove(bindex)
             basis_counter += 1
-            
+
     def _symmetry_complete(self, stack):
         """Determine whether complete cancellation is possible due to symmetry"""
         dfprop = self.property_set['axis-angle']
@@ -273,7 +264,8 @@ class AxisAngleReduction(TransformationPass):
 
 def join_if_intersect(lists):
     """This is from user 'agf' on stackoverflow
-    https://stackoverflow.com/questions/9110837/python-simple-list-merging-based-on-intersections  """
+    https://stackoverflow.com/questions/9110837/python-simple-list-merging-based-on-intersections
+    """
     results = []
     if not lists:
         return results

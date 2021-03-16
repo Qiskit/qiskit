@@ -12,11 +12,9 @@
 
 """Analysis pass to find commutation relations between DAG nodes."""
 
-from collections import defaultdict
 import math
 import numpy as np
 import pandas as pd
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
 from qiskit.circuit.exceptions import CircuitError
@@ -33,23 +31,23 @@ class AxisAngleAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self.property_set['axis-angle']
-        self.property_set['var_gate_class']
+        self.property_set['axis-angle'] = {}
+        self.property_set['var_gate_class'] = {}
 
-    def run(self, dag, global_basis=True, decimals=12, rel_tol=1e-9, abs_tol=1e-9):
+    def run(self, dag):
         """Run the axis-angle analysis pass.
 
         Run the pass on the DAG, and write the discovered commutation relations
         into the property_set.
 
-        Args: 
+        Args:
             dag (DAGCircuit): circuit graph
-            global_basis (bool): If true, the discovered rotation axes are assummed to
-                to be applicable to all qubits. If false, the operations on each qubit describe
-                the basis.
         """
         props = []
         var_gate_class = dict()
+        decimals = 12
+        rel_tol = 1e-9
+        abs_tol = 1e-9
         for node in dag.gate_nodes():
             # TODO: cache angle-axis evaluation
             if len(node.qargs) == 1:
@@ -79,7 +77,7 @@ class AxisAngleAnalysis(AnalysisPass):
                               # needed for drop_duplicates; hashable type. Instead of rounding here
                               # could consider putting the effect into the dot product test during
                               # reduction.
-                              'axis': tuple(np.around(axis, decimals=decimals)),  
+                              'axis': tuple(np.around(axis, decimals=decimals)),
                               'angle': angle,
                               'phase': phase,
                               'symmetry_order': symmetry_order})
@@ -88,20 +86,20 @@ class AxisAngleAnalysis(AnalysisPass):
         dfprop = pd.DataFrame.from_dict(props).astype({'symmetry_order':int})
         self.property_set['axis-angle'] = dfprop
         self.property_set['var_gate_class'] = var_gate_class
-              
+
 
 def _su2_axis_angle(mat):
     """
     Convert 2x2 unitary matrix to axis-angle.
-    
+
     Args:
         mat (ndarray): single qubit unitary matrix to convert
-    
+
     Returns:
         tuple(axis, angle, phase): where axis is vector in SO(3), angle is the rotation
-            angle in radians, and phase scales mat as exp(1j*phase) 
-            away from the symmetry of su2. If the matrix is a scalar operator the axis will 
-            be the zero vector, the angle will be zero, and the phase gives the scalar constant as 
+            angle in radians, and phase scales mat as exp(1j*phase)
+            away from the symmetry of su2. If the matrix is a scalar operator the axis will
+            be the zero vector, the angle will be zero, and the phase gives the scalar constant as
             exp(𝑖 * phase) · 𝕀.
     """
     axis = np.zeros(3)
