@@ -14,13 +14,12 @@
 
 
 from typing import Dict, Union, cast
-import numpy
-from qiskit.result import Result
+from qiskit.algorithms import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 
 
-class HamiltonianPhaseEstimationResult:
+class HamiltonianPhaseEstimationResult(AlgorithmResult):
     """Store and manipulate results from running `HamiltonianPhaseEstimation`.
 
     This API of this class is nearly the same as `PhaseEstimatorResult`, differing only in
@@ -31,6 +30,7 @@ class HamiltonianPhaseEstimationResult:
 
     This class is meant to be instantiated via `HamiltonianPhaseEstimation.estimate`.
     """
+
     def __init__(self,
                  phase_estimation_result: PhaseEstimationResult,
                  phase_estimation_scale: PhaseEstimationScale,
@@ -45,6 +45,7 @@ class HamiltonianPhaseEstimationResult:
                             coefficient must added to give correct eigenvalues.
                             This is done automatically when retrieving eigenvalues.
         """
+        super().__init__()
         self._phase_estimation_scale = phase_estimation_scale
         self._id_coefficient = id_coefficient
         self._phase_estimation_result = phase_estimation_result

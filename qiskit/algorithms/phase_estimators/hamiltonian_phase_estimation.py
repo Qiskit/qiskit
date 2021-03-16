@@ -49,7 +49,6 @@ class HamiltonianPhaseEstimation:
          `arXiv:1809.09697 <https://arxiv.org/abs/1809.09697>`_
     """
 
-
     def __init__(self,
                  num_evaluation_qubits: int,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
@@ -58,31 +57,25 @@ class HamiltonianPhaseEstimation:
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
         """
-        self._pe_scale = None
-        self._bound = None
-        self._evolution = None
-        self._hamiltonian = None
-        self._id_coefficient = None
         self._phase_estimation = PhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,
             quantum_instance=quantum_instance)
 
-    def _set_scale(self) -> None:
-        if self._bound is None:
-            pe_scale = PhaseEstimationScale.from_pauli_sum(self._hamiltonian)
-            self._pe_scale = pe_scale
-        else:
-            self._pe_scale = PhaseEstimationScale(self._bound)
+    def _get_scale(self, hamiltonian, bound=None) -> None:
+        if bound is None:
+            return PhaseEstimationScale.from_pauli_sum(hamiltonian)
 
-    def _get_unitary(self) -> QuantumCircuit:
+        return PhaseEstimationScale(bound)
+
+    def _get_unitary(self, hamiltonian, pe_scale, evolution) -> QuantumCircuit:
         """Evolve the Hamiltonian to obtain a unitary.
 
         Apply the scaling to the Hamiltonian that has been computed from an eigenvalue bound
         and compute the unitary by applying the evolution object.
         """
         # scale so that phase does not wrap.
-        scaled_hamiltonian = -self._pe_scale.scale * self._hamiltonian
-        unitary = self._evolution.convert(scaled_hamiltonian.exp_i())
+        scaled_hamiltonian = -pe_scale.scale * hamiltonian
+        unitary = evolution.convert(scaled_hamiltonian.exp_i())
         if not isinstance(unitary, QuantumCircuit):
             unitary_circuit = unitary.to_circuit()
         else:
@@ -110,16 +103,13 @@ class HamiltonianPhaseEstimation:
                 then a bound will be computed.
 
         Returns:
-               HamiltonianPhaseEstimationResult instance containing the result of the estimation
+            HamiltonianPhaseEstimationResult instance containing the result of the estimation
             and diagnostic information.
 
         Raises:
             ValueError: if `bound` is `None` and `hamiltonian` is not a Pauli sum (i.e. a
             `PauliSumOp` or a `SummedOp` whose terms are `PauliOp`s.)
         """
-
-        self._evolution = evolution
-        self._bound = bound
         # The term propto the identity is removed from hamiltonian.
         # This is done for three reasons:
         # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
@@ -131,17 +121,24 @@ class HamiltonianPhaseEstimation:
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.to_pauli_op()
 
+        # remove identitiy terms
         id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-        self._hamiltonian = hamiltonian_no_id
-        self._id_coefficient = id_coefficient
-        self._set_scale()
-        unitary = self._get_unitary()
+
+        # get the rescaling object
+        pe_scale = self._get_scale(hamiltonian_no_id, bound)
+
+        # get the unitary
+        unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
+
+        # run phase estimation
         phase_estimation_result = self._phase_estimation.estimate(
             unitary=unitary, state_preparation=state_preparation)
+
         return HamiltonianPhaseEstimationResult(
             phase_estimation_result=phase_estimation_result,
-            id_coefficient=self._id_coefficient,
-            phase_estimation_scale=self._pe_scale)
+            id_coefficient=id_coefficient,
+            phase_estimation_scale=pe_scale)
+
 
 def _remove_identity(pauli_sum):
     """Remove any identity operators from `pauli_sum`. Return

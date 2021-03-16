@@ -12,14 +12,10 @@
 
 """The Phase Estimator interface"""
 
-from typing import Union, Optional
-from abc import ABC, abstractmethod
-import numpy
-import qiskit.circuit as circuit
+from typing import Optional
+from abc import ABC, abstractmethod, abstractproperty
 from qiskit.circuit import QuantumCircuit
 from qiskit.algorithms import AlgorithmResult
-
-# pylint: disable=attribute-defined-outside-init
 
 
 class PhaseEstimator(ABC):
@@ -36,26 +32,14 @@ class PhaseEstimator(ABC):
                  state_preparation: Optional[QuantumCircuit] = None,
                  pe_circuit: Optional[QuantumCircuit] = None,
                  num_unitary_qubits: Optional[int] = None) -> 'PhaseEstimatorResult':
-        """
-        Estimate the phase.
-        """
-
-        return PhaseEstimatorResult()
+        """Estimate the phase."""
+        raise NotImplementedError
 
 
 class PhaseEstimatorResult(AlgorithmResult):
     """Phase Estimator Result."""
 
-    @property
-    def phases(self) -> Union[numpy.ndarray, dict]:
-        """Return all phases and their frequencies computed by QPE.
-
-        This is an array or dict whose values correspond to weights on bit strings.
-        """
-        # pylint: disable=no-member
-        return self._phases
-
-    @property
+    @abstractproperty
     def most_likely_phase(self) -> float:
         r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.
 
@@ -63,4 +47,4 @@ class PhaseEstimatorResult(AlgorithmResult):
         eigenvector of the unitary so that the peak of the probability density occurs at the bit
         string that most closely approximates the true phase.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
