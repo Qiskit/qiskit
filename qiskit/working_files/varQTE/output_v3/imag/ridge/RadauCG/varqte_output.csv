@@ -1,5 +1,0 @@
-t,params,num_params,num_time_steps,error_bound,error_grad,resid,fidelity,true_error,true_to_euler_error,trained_to_euler_error,target_energy,trained_energy,energy_error,h_norm,h_squared,variance,dtdt_trained,re_im_grad
-0,"[0.         0.         0.         0.         1.57079633 1.57079633
- 0.         0.        ]",8,10,,,,1.0,0.0,0.0,0.0,0j,0j,0j,,19.000000000000004,(19.000000000000004+0j),,
-0.0002112789310045112,"[0.         0.         0.         0.         1.57079633 1.57079633
- 0.         0.        ]",8,10,,0.0,,0.99999915,0.00092091,0.0009209123262974956,0.0,(-0.00802806+0j),0j,(0.00802806+0j),,19.000000000000004,(19.000000000000004+0j),,
