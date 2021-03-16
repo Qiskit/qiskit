@@ -167,8 +167,6 @@ class TestUserConfig(QiskitTestCase):
                                file_path=self.file_path)
         user_config.set_config("transpile_optimization_level", "3",
                                file_path=self.file_path)
-        user_config.set_config("suppress_packaging_warnings", "true",
-                               file_path=self.file_path)
         user_config.set_config("parallel", "false",
                                file_path=self.file_path)
         user_config.set_config("num_processes", "15",
