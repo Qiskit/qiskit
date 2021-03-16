@@ -101,7 +101,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['layout']
 
     _choose_layout_1 = [] if pass_manager_config.layout_method \
-        else CSPLayout(coupling_map, call_limit=1000, time_limit=10)
+        else CSPLayout(coupling_map, call_limit=1000, time_limit=10, seed=seed_transpiler)
     if layout_method == 'trivial':
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == 'dense':

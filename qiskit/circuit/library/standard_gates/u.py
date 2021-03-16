@@ -66,7 +66,7 @@ class UGate(Gate):
     def inverse(self):
         r"""Return inverted U gate.
 
-        :math:`U(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\phi,-\lambda)`)
+        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
