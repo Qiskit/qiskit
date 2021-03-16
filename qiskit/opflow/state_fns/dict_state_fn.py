@@ -176,6 +176,10 @@ class DictStateFn(StateFn):
                                   shape=(1, 2**self.num_qubits))
         return spvec if not self.is_measurement else spvec.transpose()
 
+    def to_spmatrix_op(self) -> OperatorBase:
+        from .sparse_vector_state_fn import SparseVectorStateFn
+        return SparseVectorStateFn(self.to_spmatrix(), self.coeff, self.is_measurement)
+
     def to_circuit_op(self) -> OperatorBase:
         """ Return ``StateFnCircuit`` corresponding to this StateFn."""
         from .circuit_state_fn import CircuitStateFn
@@ -201,9 +205,9 @@ class DictStateFn(StateFn):
         ] = None,
     ) -> Union[OperatorBase, complex]:
         if front is None:
-            vector_state_fn = self.to_matrix_op().eval()
-            vector_state_fn = cast(OperatorBase, vector_state_fn)
-            return vector_state_fn
+            sparse_vector_state_fn = self.to_spmatrix_op().eval()
+            sparse_vector_state_fn = cast(OperatorBase, sparse_vector_state_fn)
+            return sparse_vector_state_fn
 
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
